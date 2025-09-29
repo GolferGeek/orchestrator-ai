@@ -94,7 +94,6 @@ export class HealthService {
       const status = await this.getHealthStatus();
       return status.status === 'healthy';
     } catch (error) {
-
       return false;
     }
   }

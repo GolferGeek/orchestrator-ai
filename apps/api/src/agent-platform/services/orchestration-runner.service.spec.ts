@@ -34,9 +34,15 @@ describe('OrchestrationRunnerService', () => {
   });
 
   it('updates orchestration run', async () => {
-    repo.update.mockResolvedValue({ id: 'run-1', status: 'in_execution' } as any);
+    repo.update.mockResolvedValue({
+      id: 'run-1',
+      status: 'in_execution',
+    } as any);
 
-    const result = await service.updateRun({ runId: 'run-1', status: 'in_execution' });
+    const result = await service.updateRun({
+      runId: 'run-1',
+      status: 'in_execution',
+    });
 
     expect(repo.update).toHaveBeenCalled();
     expect(result.status).toBe('in_execution');

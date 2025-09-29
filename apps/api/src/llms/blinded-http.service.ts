@@ -28,7 +28,9 @@ export class BlindedHttpService {
     private readonly httpService: HttpService,
     private readonly sourceBlindingService: SourceBlindingService,
   ) {
-    this.logger.log('BlindedHttpService initialized - all external HTTP calls will be source-blinded');
+    this.logger.log(
+      'BlindedHttpService initialized - all external HTTP calls will be source-blinded',
+    );
   }
 
   /**
@@ -37,9 +39,12 @@ export class BlindedHttpService {
   get<T = any>(
     url: string,
     config?: AxiosRequestConfig,
-    blindingOptions: BlindedHttpOptions = {}
+    blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
-    return this.makeBlindedRequest<T>({ ...config, method: 'GET', url }, blindingOptions);
+    return this.makeBlindedRequest<T>(
+      { ...config, method: 'GET', url },
+      blindingOptions,
+    );
   }
 
   /**
@@ -49,9 +54,12 @@ export class BlindedHttpService {
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-    blindingOptions: BlindedHttpOptions = {}
+    blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
-    return this.makeBlindedRequest<T>({ ...config, method: 'POST', url, data }, blindingOptions);
+    return this.makeBlindedRequest<T>(
+      { ...config, method: 'POST', url, data },
+      blindingOptions,
+    );
   }
 
   /**
@@ -61,9 +69,12 @@ export class BlindedHttpService {
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-    blindingOptions: BlindedHttpOptions = {}
+    blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
-    return this.makeBlindedRequest<T>({ ...config, method: 'PUT', url, data }, blindingOptions);
+    return this.makeBlindedRequest<T>(
+      { ...config, method: 'PUT', url, data },
+      blindingOptions,
+    );
   }
 
   /**
@@ -72,9 +83,12 @@ export class BlindedHttpService {
   delete<T = any>(
     url: string,
     config?: AxiosRequestConfig,
-    blindingOptions: BlindedHttpOptions = {}
+    blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
-    return this.makeBlindedRequest<T>({ ...config, method: 'DELETE', url }, blindingOptions);
+    return this.makeBlindedRequest<T>(
+      { ...config, method: 'DELETE', url },
+      blindingOptions,
+    );
   }
 
   /**
@@ -84,9 +98,12 @@ export class BlindedHttpService {
     url: string,
     data?: any,
     config?: AxiosRequestConfig,
-    blindingOptions: BlindedHttpOptions = {}
+    blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
-    return this.makeBlindedRequest<T>({ ...config, method: 'PATCH', url, data }, blindingOptions);
+    return this.makeBlindedRequest<T>(
+      { ...config, method: 'PATCH', url, data },
+      blindingOptions,
+    );
   }
 
   /**
@@ -94,7 +111,7 @@ export class BlindedHttpService {
    */
   request<T = any>(
     config: AxiosRequestConfig,
-    blindingOptions: BlindedHttpOptions = {}
+    blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
     return this.makeBlindedRequest<T>(config, blindingOptions);
   }
@@ -104,11 +121,13 @@ export class BlindedHttpService {
    */
   private makeBlindedRequest<T = any>(
     config: AxiosRequestConfig,
-    blindingOptions: BlindedHttpOptions
+    blindingOptions: BlindedHttpOptions,
   ): Observable<AxiosResponse<T>> {
     // Skip blinding for explicitly trusted internal calls
     if (blindingOptions.skipBlinding || this.isInternalCall(config.url)) {
-      this.logger.debug(`Skipping source blinding for internal call: ${config.url}`);
+      this.logger.debug(
+        `Skipping source blinding for internal call: ${config.url}`,
+      );
       return this.httpService.request<T>(config);
     }
 
@@ -137,15 +156,20 @@ export class BlindedHttpService {
           service: blindingOptions.serviceName,
           strippedHeaders: blindedRequest.strippedHeaders.length,
           finalHeaders: Object.keys(blindedRequest.headers).length,
-        }
+        },
       );
 
       return this.httpService.request<T>(blindedConfig);
     } catch (error) {
-      this.logger.error(`Source blinding failed for request to ${config.url}:`, error);
+      this.logger.error(
+        `Source blinding failed for request to ${config.url}:`,
+        error,
+      );
       // Fallback to original request to avoid breaking functionality
       // In production, you might want to block the request instead
-      this.logger.warn('Falling back to unblinded request - review security implications');
+      this.logger.warn(
+        'Falling back to unblinded request - review security implications',
+      );
       return this.httpService.request<T>(config);
     }
   }
@@ -162,16 +186,16 @@ export class BlindedHttpService {
       /^https?:\/\/192\.168\./,
       /^https?:\/\/10\./,
       /^https?:\/\/172\.(1[6-9]|2\d|3[01])\./,
-      
+
       // Internal services (if running on same domain)
       /\/internal\//,
       /\/api\/internal\//,
-      
+
       // Supabase (might be internal depending on setup)
       // Note: Only if it's your own internal Supabase instance
     ];
 
-    return internalPatterns.some(pattern => pattern.test(url));
+    return internalPatterns.some((pattern) => pattern.test(url));
   }
 
   /**
@@ -205,7 +229,7 @@ export class BlindedHttpService {
   async makeA2ACall<T = any>(
     url: string,
     data?: any,
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> {
     return firstValueFrom(
       this.post<T>(url, data, config, {
@@ -216,7 +240,7 @@ export class BlindedHttpService {
         dataClass: 'internal',
         noTrain: true,
         noRetain: true,
-      })
+      }),
     );
   }
 
@@ -227,10 +251,10 @@ export class BlindedHttpService {
     url: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     data?: any,
-    config?: AxiosRequestConfig
+    config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> {
     const provider = this.inferProvider(url);
-    
+
     return firstValueFrom(
       this.request<T>(
         { ...config, method, url, data },
@@ -242,8 +266,8 @@ export class BlindedHttpService {
           dataClass: 'internal',
           noTrain: true,
           noRetain: true,
-        }
-      )
+        },
+      ),
     );
   }
 
@@ -274,15 +298,17 @@ export class BlindedHttpService {
     error?: string;
   }> {
     try {
-      this.logger.debug(`Testing source blinding with request to: ${targetUrl}`);
-      
+      this.logger.debug(
+        `Testing source blinding with request to: ${targetUrl}`,
+      );
+
       const testConfig: AxiosRequestConfig = {
         method: 'GET',
         url: targetUrl,
         headers: {
           'User-Agent': 'TestOriginalAgent/1.0',
           'X-Company-ID': 'test-company-123',
-          'Referer': 'https://internal.company.com',
+          Referer: 'https://internal.company.com',
           'X-Source-Environment': 'production',
         },
       };
@@ -292,7 +318,7 @@ export class BlindedHttpService {
         this.request(testConfig, {
           serviceType: 'external-api',
           provider: 'test',
-        })
+        }),
       );
 
       return {

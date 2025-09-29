@@ -16,7 +16,8 @@ export interface AgentExecutionMetadata {
   capabilities: AgentExecutionCapabilities;
 }
 
-export const DEFAULT_EXECUTION_PROFILE: AgentExecutionProfile = 'autonomous_build';
+export const DEFAULT_EXECUTION_PROFILE: AgentExecutionProfile =
+  'autonomous_build';
 
 export const DEFAULT_EXECUTION_CAPABILITIES: AgentExecutionCapabilities = {
   can_converse: true,
@@ -50,7 +51,9 @@ export const EXECUTION_PROFILE_CAPABILITIES: Record<
   },
 };
 
-export function normalizeExecutionProfile(value: any): AgentExecutionProfile | null {
+export function normalizeExecutionProfile(
+  value: any,
+): AgentExecutionProfile | null {
   if (!value || typeof value !== 'string') {
     return null;
   }
@@ -62,9 +65,10 @@ export function buildExecutionCapabilities(
   profile?: AgentExecutionProfile | null,
   overrides?: Partial<AgentExecutionCapabilities>,
 ): AgentExecutionCapabilities {
-  const baseProfile = profile && profile in EXECUTION_PROFILE_CAPABILITIES
-    ? profile
-    : DEFAULT_EXECUTION_PROFILE;
+  const baseProfile =
+    profile && profile in EXECUTION_PROFILE_CAPABILITIES
+      ? profile
+      : DEFAULT_EXECUTION_PROFILE;
 
   const baseCapabilities = { ...EXECUTION_PROFILE_CAPABILITIES[baseProfile] };
 

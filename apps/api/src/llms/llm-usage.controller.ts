@@ -1,4 +1,10 @@
-import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  NotFoundException,
+} from '@nestjs/common';
 import { RunMetadataService } from './run-metadata.service';
 
 @Controller('api/llm-usage')
@@ -30,11 +36,11 @@ export class LlmUsageController {
 
     // Remove undefined values
     const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v !== undefined)
+      Object.entries(filters).filter(([_, v]) => v !== undefined),
     );
 
     const records = await this.runMetadataService.getUsageRecords(cleanFilters);
-    
+
     return {
       success: true,
       data: records,
@@ -60,11 +66,12 @@ export class LlmUsageController {
 
     // Remove undefined values
     const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v !== undefined)
+      Object.entries(filters).filter(([_, v]) => v !== undefined),
     );
 
-    const analytics = await this.runMetadataService.getUsageAnalytics(cleanFilters);
-    
+    const analytics =
+      await this.runMetadataService.getUsageAnalytics(cleanFilters);
+
     return {
       success: true,
       data: analytics,
@@ -79,7 +86,7 @@ export class LlmUsageController {
   @Get('stats')
   async getStats() {
     const stats = await this.runMetadataService.getStats();
-    
+
     return {
       success: true,
       data: stats,
@@ -92,7 +99,7 @@ export class LlmUsageController {
   @Get('active')
   getActiveRuns() {
     const activeRuns = this.runMetadataService.getActiveRuns();
-    
+
     return {
       success: true,
       data: activeRuns,

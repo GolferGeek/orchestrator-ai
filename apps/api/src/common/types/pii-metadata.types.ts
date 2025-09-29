@@ -1,11 +1,11 @@
 /**
  * PII Processing Metadata Types
- * 
+ *
  * This file defines the metadata structure that flows through the entire
  * pseudonymization system from detection to UI response.
  */
 
-export type PIIDataType = 
+export type PIIDataType =
   | 'email'
   | 'phone'
   | 'ssn'
@@ -14,7 +14,7 @@ export type PIIDataType =
   | 'address'
   | 'ip_address'
   | 'url'
-  | 'username'  // Added to match PIIPatternService
+  | 'username' // Added to match PIIPatternService
   | 'custom';
 
 export type PIISeverity = 'showstopper' | 'warning' | 'info';
@@ -124,15 +124,15 @@ export interface ProcessingTimestamps {
   pseudonymReversed?: number;
 }
 
-export type ProcessingFlow = 
-  | 'showstopper-blocked'    // Request blocked due to showstoppers
-  | 'policy-blocked'        // Request blocked due to other policy violations
-  | 'pseudonymized'         // Request processed with pseudonymization
-  | 'allowed-local';        // Request allowed without pseudonymization (local provider)
+export type ProcessingFlow =
+  | 'showstopper-blocked' // Request blocked due to showstoppers
+  | 'policy-blocked' // Request blocked due to other policy violations
+  | 'pseudonymized' // Request processed with pseudonymization
+  | 'allowed-local'; // Request allowed without pseudonymization (local provider)
 
 /**
  * Complete PII Processing Metadata
- * 
+ *
  * This structure flows through the entire system from PIIService detection
  * through to the frontend UI, providing complete transparency about PII processing.
  */
@@ -142,7 +142,7 @@ export interface PIIProcessingMetadata {
   piiDetected: boolean;
   /** Whether showstopper PII was detected (triggers early exit) */
   showstopperDetected: boolean;
-  
+
   detectionResults: {
     /** Total number of PII matches found */
     totalMatches: number;
@@ -155,19 +155,19 @@ export interface PIIProcessingMetadata {
     /** Breakdown by severity level */
     severityBreakdown: SeverityBreakdown;
   };
-  
+
   // Policy Decision
   policyDecision: PolicyDecision;
-  
+
   // Pseudonymization Instructions (only if no showstoppers)
   pseudonymInstructions?: PseudonymInstructions;
-  
+
   // Processing Results (populated at LLM boundary, never for showstoppers)
   pseudonymResults?: PseudonymResults;
-  
+
   // User-Facing Messages
   userMessage: UserMessage;
-  
+
   // Processing Flow Tracking
   /** High-level processing flow indicator */
   processingFlow: ProcessingFlow;
@@ -189,7 +189,7 @@ export interface RoutingDecisionWithPII {
   fallbackUsed: boolean;
   complexityScore: number;
   reasoningPath: string[];
-  
+
   // PII-specific fields
   /** Complete PII processing metadata */
   piiMetadata?: PIIProcessingMetadata;
@@ -199,7 +199,7 @@ export interface RoutingDecisionWithPII {
   routeToAgent: boolean;
   /** Reason for blocking if not routing to agents */
   blockingReason?: string;
-  
+
   // Legacy fields for compatibility
   sovereignModeEnforced?: boolean;
   sovereignModeViolation?: boolean;

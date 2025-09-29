@@ -28,7 +28,10 @@ describe('PlanEngineService', () => {
   });
 
   it('updates plan status', async () => {
-    repo.updateStatus.mockResolvedValue({ id: 'plan-1', status: 'approved' } as any);
+    repo.updateStatus.mockResolvedValue({
+      id: 'plan-1',
+      status: 'approved',
+    } as any);
 
     const result = await service.updateStatus({
       planId: 'plan-1',

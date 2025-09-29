@@ -29,16 +29,21 @@ export class SanitizationController {
           productionMode: patternStats.productionMode,
           pseudonymizationStats: {
             patternServiceStats: {
-              totalPatterns: patternStats.patternServiceStats?.totalPatterns || 0,
-              builtInPatterns: patternStats.patternServiceStats?.builtInPatterns || 0,
-              customPatterns: patternStats.patternServiceStats?.customPatterns || 0,
-              enabledPatterns: patternStats.patternServiceStats?.enabledPatterns || 0,
+              totalPatterns:
+                patternStats.patternServiceStats?.totalPatterns || 0,
+              builtInPatterns:
+                patternStats.patternServiceStats?.builtInPatterns || 0,
+              customPatterns:
+                patternStats.patternServiceStats?.customPatterns || 0,
+              enabledPatterns:
+                patternStats.patternServiceStats?.enabledPatterns || 0,
               lastRefresh: new Date().toISOString(),
             },
           },
           redactionStats: {
             totalPatterns: patternStats.patternServiceStats?.totalPatterns || 0,
-            customPatterns: patternStats.patternServiceStats?.customPatterns || 0,
+            customPatterns:
+              patternStats.patternServiceStats?.customPatterns || 0,
           },
           verboseLogging: false,
         },
@@ -56,7 +61,15 @@ export class SanitizationController {
       return {
         sanitizationStats: {
           productionMode: false,
-          pseudonymizationStats: { patternServiceStats: { totalPatterns: 0, builtInPatterns: 0, customPatterns: 0, enabledPatterns: 0, lastRefresh: new Date().toISOString() } },
+          pseudonymizationStats: {
+            patternServiceStats: {
+              totalPatterns: 0,
+              builtInPatterns: 0,
+              customPatterns: 0,
+              enabledPatterns: 0,
+              lastRefresh: new Date().toISOString(),
+            },
+          },
           redactionStats: { totalPatterns: 0, customPatterns: 0 },
           verboseLogging: false,
         },
@@ -91,7 +104,17 @@ export class SanitizationController {
     }
 
     // Group rows by category + data_type to fit frontend PseudonymDictionaryEntry shape
-    const groups: Record<string, { id: string; category: string; dataType: string; isActive: boolean; words: string[]; createdAt?: string }> = {};
+    const groups: Record<
+      string,
+      {
+        id: string;
+        category: string;
+        dataType: string;
+        isActive: boolean;
+        words: string[];
+        createdAt?: string;
+      }
+    > = {};
     for (const row of data || []) {
       const key = `${row.category || 'uncategorized'}::${row.data_type || 'custom'}::${row.is_active ? '1' : '0'}`;
       if (!groups[key]) {
@@ -113,4 +136,3 @@ export class SanitizationController {
     return { dictionaries };
   }
 }
-

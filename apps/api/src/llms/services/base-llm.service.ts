@@ -4,7 +4,12 @@ import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudo
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { PIIProcessingMetadata } from '../../common/types/pii-metadata.types';
-import { LLMError, LLMErrorMapper, LLMErrorMonitor, LLMErrorType } from './llm-error-handling';
+import {
+  LLMError,
+  LLMErrorMapper,
+  LLMErrorMonitor,
+  LLMErrorType,
+} from './llm-error-handling';
 import {
   LLMServiceConfig,
   GenerateResponseParams,
@@ -15,7 +20,7 @@ import {
 
 /**
  * Abstract base class for all LLM service implementations
- * 
+ *
  * This class provides a consistent interface and shared functionality
  * across all provider-specific LLM services, including:
  * - Standardized response format
@@ -27,7 +32,7 @@ import {
 @Injectable()
 export abstract class BaseLLMService {
   protected readonly logger: Logger;
-  
+
   constructor(
     protected readonly config: LLMServiceConfig,
     protected readonly piiService: PIIService,
@@ -36,14 +41,18 @@ export abstract class BaseLLMService {
     protected readonly providerConfigService: ProviderConfigService,
   ) {
     this.logger = new Logger(this.constructor.name);
-    this.logger.log(`${this.constructor.name} initialized for provider: ${config.provider}`);
+    this.logger.log(
+      `${this.constructor.name} initialized for provider: ${config.provider}`,
+    );
   }
 
   /**
    * Abstract method that all provider services must implement
    * This is the core method for generating responses from the LLM
    */
-  abstract generateResponse(params: GenerateResponseParams): Promise<LLMResponse>;
+  abstract generateResponse(
+    params: GenerateResponseParams,
+  ): Promise<LLMResponse>;
 
   /**
    * Create standardized metadata for responses
@@ -53,12 +62,14 @@ export abstract class BaseLLMService {
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
-    requestId: string
+    requestId: string,
   ): ResponseMetadata {
-    const inputTokens = this.estimateTokens(params.systemPrompt + params.userMessage);
+    const inputTokens = this.estimateTokens(
+      params.systemPrompt + params.userMessage,
+    );
     const outputTokens = this.estimateTokens(rawResponse.content || '');
     const totalTokens = inputTokens + outputTokens;
-    
+
     return {
       provider: params.config.provider,
       model: params.config.model,
@@ -68,7 +79,12 @@ export abstract class BaseLLMService {
         inputTokens,
         outputTokens,
         totalTokens,
-        cost: this.calculateCost(params.config.provider, params.config.model, inputTokens, outputTokens),
+        cost: this.calculateCost(
+          params.config.provider,
+          params.config.model,
+          inputTokens,
+          outputTokens,
+        ),
       },
       timing: {
         startTime,
@@ -88,7 +104,7 @@ export abstract class BaseLLMService {
    */
   protected async handlePiiInput(
     text: string,
-    options: PiiOptions = {}
+    options: PiiOptions = {},
   ): Promise<{ processedText: string; piiMetadata?: PIIProcessingMetadata }> {
     try {
       if (!options.enablePseudonymization) {
@@ -97,15 +113,16 @@ export abstract class BaseLLMService {
 
       // Use dictionary pseudonymizer if requested
       if (options.useDictionaryPseudonymizer) {
-        const result = await this.dictionaryPseudonymizerService.pseudonymizeText(text);
-        
+        const result =
+          await this.dictionaryPseudonymizerService.pseudonymizeText(text);
+
         // Convert dictionary result to minimal PIIProcessingMetadata
         const piiMetadata: PIIProcessingMetadata = {
           piiDetected: result.mappings.length > 0,
           showstopperDetected: false,
           detectionResults: {
             totalMatches: result.mappings.length,
-            flaggedMatches: result.mappings.map(mapping => ({
+            flaggedMatches: result.mappings.map((mapping) => ({
               value: mapping.originalValue,
               dataType: mapping.dataType as any,
               severity: 'info' as any,
@@ -127,25 +144,35 @@ export abstract class BaseLLMService {
             allowed: result.mappings.length === 0,
             blocked: false,
             violations: [],
-            reasoningPath: [result.mappings.length > 0 ? 'Dictionary matches found' : 'No dictionary matches'],
+            reasoningPath: [
+              result.mappings.length > 0
+                ? 'Dictionary matches found'
+                : 'No dictionary matches',
+            ],
             appliedFor: 'external',
           },
           userMessage: {
-            summary: result.mappings.length > 0 
-              ? `Applied ${result.mappings.length} dictionary pseudonym(s)`
-              : 'No dictionary matches found',
-            details: [`Dictionary pseudonymization: ${result.mappings.length} matches`],
-            actionsTaken: result.mappings.length > 0 ? ['pseudonymization'] : [],
+            summary:
+              result.mappings.length > 0
+                ? `Applied ${result.mappings.length} dictionary pseudonym(s)`
+                : 'No dictionary matches found',
+            details: [
+              `Dictionary pseudonymization: ${result.mappings.length} matches`,
+            ],
+            actionsTaken:
+              result.mappings.length > 0 ? ['pseudonymization'] : [],
             isBlocked: false,
           },
           processingFlow: 'pseudonymized',
-          processingSteps: [`Dictionary pseudonymization: ${result.mappings.length} matches`],
+          processingSteps: [
+            `Dictionary pseudonymization: ${result.mappings.length} matches`,
+          ],
           timestamps: {
             detectionStart: Date.now() - result.processingTimeMs,
             pseudonymApplied: Date.now(),
           },
         };
-        
+
         return {
           processedText: result.pseudonymizedText,
           piiMetadata,
@@ -156,7 +183,7 @@ export abstract class BaseLLMService {
       const requestId = this.generateRequestId('pii');
       // Note: Pseudonymization is now handled at the LLM service level via DictionaryPseudonymizerService
       const result = { pseudonymizedText: text, mappings: [] }; // No-op since pattern-based pseudonymization is removed
-      
+
       return {
         processedText: result.pseudonymizedText,
         // Note: Standard pseudonymizer doesn't directly provide PIIProcessingMetadata
@@ -175,7 +202,7 @@ export abstract class BaseLLMService {
   protected async handlePiiOutput(
     text: string,
     requestId?: string,
-    mappings?: any[]
+    mappings?: any[],
   ): Promise<string> {
     try {
       if (!requestId && !mappings) {
@@ -184,7 +211,11 @@ export abstract class BaseLLMService {
 
       // For dictionary pseudonymizer, use the mappings directly
       if (mappings && Array.isArray(mappings)) {
-        const result = await this.dictionaryPseudonymizerService.reversePseudonyms(text, mappings);
+        const result =
+          await this.dictionaryPseudonymizerService.reversePseudonyms(
+            text,
+            mappings,
+          );
         return result.originalText;
       }
 
@@ -220,11 +251,13 @@ export abstract class BaseLLMService {
       piiMetadata?: any;
       startTime?: number;
       endTime?: number;
-    }
+    },
   ): Promise<void> {
     try {
-      this.logger.debug(`Usage tracked - Provider: ${provider}, Model: ${model}, Input: ${inputTokens}, Output: ${outputTokens}, Cost: ${cost || 'N/A'}`);
-      
+      this.logger.debug(
+        `Usage tracked - Provider: ${provider}, Model: ${model}, Input: ${inputTokens}, Output: ${outputTokens}, Cost: ${cost || 'N/A'}`,
+      );
+
       // Start metadata tracking if we have the necessary info
       if (requestMetadata?.startTime && requestMetadata?.userId) {
         const routingDecision = {
@@ -234,70 +267,119 @@ export abstract class BaseLLMService {
           modelTier: 'general',
           fallbackUsed: false,
         };
-        
+
         const options = {
           userId: requestMetadata.userId,
           callerType: requestMetadata.callerType || 'llm_service',
           callerName: requestMetadata.callerName || 'direct_call',
           conversationId: requestMetadata.conversationId,
         };
-        
+
         // Insert a single completed usage record (simpler, no two-phase update)
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - requestMetadata.piiMetadata exists:`, !!requestMetadata.piiMetadata);
+        this.logger.debug(
+          `🔍 [PII-METADATA-DEBUG] trackUsage - requestMetadata.piiMetadata exists:`,
+          !!requestMetadata.piiMetadata,
+        );
         if (requestMetadata.piiMetadata) {
-          this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - piiMetadata structure:`, {
-            piiDetected: requestMetadata.piiMetadata.piiDetected,
-            processingFlow: requestMetadata.piiMetadata.processingFlow,
-            totalMatches: requestMetadata.piiMetadata.totalMatches,
-            hasDetectionResults: !!requestMetadata.piiMetadata.detectionResults,
-            hasPseudonymInstructions: !!requestMetadata.piiMetadata.pseudonymInstructions
-          });
+          this.logger.debug(
+            `🔍 [PII-METADATA-DEBUG] trackUsage - piiMetadata structure:`,
+            {
+              piiDetected: requestMetadata.piiMetadata.piiDetected,
+              processingFlow: requestMetadata.piiMetadata.processingFlow,
+              totalMatches: requestMetadata.piiMetadata.totalMatches,
+              hasDetectionResults:
+                !!requestMetadata.piiMetadata.detectionResults,
+              hasPseudonymInstructions:
+                !!requestMetadata.piiMetadata.pseudonymInstructions,
+            },
+          );
         }
-        
+
         // Derive full pseudonym mappings from PII metadata when available
-        const derivePseudonymMappings = (piiMeta: any): Array<{original: string; pseudonym: string; dataType: string}> => {
+        const derivePseudonymMappings = (
+          piiMeta: any,
+        ): Array<{ original: string; pseudonym: string; dataType: string }> => {
           try {
             // Prefer explicit pseudonymsApplied if present
-            if (Array.isArray(piiMeta?.pseudonymsApplied) && piiMeta.pseudonymsApplied.length > 0) {
+            if (
+              Array.isArray(piiMeta?.pseudonymsApplied) &&
+              piiMeta.pseudonymsApplied.length > 0
+            ) {
               return piiMeta.pseudonymsApplied
                 .map((m: any) => ({
                   original: m.original ?? m.value ?? m.source ?? '',
                   pseudonym: m.pseudonym ?? '',
-                  dataType: m.type ?? m.dataType ?? 'custom'
+                  dataType: m.type ?? m.dataType ?? 'custom',
                 }))
-                .filter((m: {original: string; pseudonym: string; dataType: string}) => m.original && m.pseudonym);
+                .filter(
+                  (m: {
+                    original: string;
+                    pseudonym: string;
+                    dataType: string;
+                  }) => m.original && m.pseudonym,
+                );
             }
             // Fallback to processedMatches
-            const matches = piiMeta?.pseudonymResults?.processedMatches || piiMeta?.pseudonymInstructions?.targetMatches || [];
+            const matches =
+              piiMeta?.pseudonymResults?.processedMatches ||
+              piiMeta?.pseudonymInstructions?.targetMatches ||
+              [];
             return (matches as any[])
               .filter((m: any) => !!m?.pseudonym)
               .map((m: any) => ({
                 original: m.value ?? '',
                 pseudonym: m.pseudonym ?? '',
-                dataType: m.dataType ?? 'custom'
+                dataType: m.dataType ?? 'custom',
               }))
-              .filter((m: {original: string; pseudonym: string; dataType: string}) => m.original && m.pseudonym);
+              .filter(
+                (m: {
+                  original: string;
+                  pseudonym: string;
+                  dataType: string;
+                }) => m.original && m.pseudonym,
+              );
           } catch {
             return [];
           }
         };
 
-        const enhancedMetrics = requestMetadata.piiMetadata ? {
-          dataSanitizationApplied: requestMetadata.piiMetadata.piiDetected || false,
-          sanitizationLevel: requestMetadata.piiMetadata.processingFlow || 'none',
-          piiDetected: requestMetadata.piiMetadata.piiDetected || false,
-          piiTypes: requestMetadata.piiMetadata.detectionResults?.dataTypesSummary || {},
-          // Extract pseudonym information from pseudonymInstructions
-          pseudonymsUsed: requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.length || 0,
-          pseudonymTypes: requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.map((m: any) => m.dataType) || [],
-          pseudonymMappings: derivePseudonymMappings(requestMetadata.piiMetadata),
-          // Also include flagged items count
-          redactionsApplied: requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.length || 0,
-          redactionTypes: requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.map((m: any) => m.dataType) || [],
-        } : undefined;
-        
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - enhancedMetrics:`, enhancedMetrics);
-        
+        const enhancedMetrics = requestMetadata.piiMetadata
+          ? {
+              dataSanitizationApplied:
+                requestMetadata.piiMetadata.piiDetected || false,
+              sanitizationLevel:
+                requestMetadata.piiMetadata.processingFlow || 'none',
+              piiDetected: requestMetadata.piiMetadata.piiDetected || false,
+              piiTypes:
+                requestMetadata.piiMetadata.detectionResults
+                  ?.dataTypesSummary || {},
+              // Extract pseudonym information from pseudonymInstructions
+              pseudonymsUsed:
+                requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches
+                  ?.length || 0,
+              pseudonymTypes:
+                requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.map(
+                  (m: any) => m.dataType,
+                ) || [],
+              pseudonymMappings: derivePseudonymMappings(
+                requestMetadata.piiMetadata,
+              ),
+              // Also include flagged items count
+              redactionsApplied:
+                requestMetadata.piiMetadata.detectionResults?.flaggedMatches
+                  ?.length || 0,
+              redactionTypes:
+                requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.map(
+                  (m: any) => m.dataType,
+                ) || [],
+            }
+          : undefined;
+
+        this.logger.debug(
+          `🔍 [PII-METADATA-DEBUG] trackUsage - enhancedMetrics:`,
+          enhancedMetrics,
+        );
+
         await this.runMetadataService.insertCompletedUsage({
           provider,
           model,
@@ -315,10 +397,14 @@ export abstract class BaseLLMService {
           enhancedMetrics,
           runId: requestMetadata.requestId,
         });
-        
-        this.logger.debug(`✅ Usage data saved to database for ${provider}/${model}`);
+
+        this.logger.debug(
+          `✅ Usage data saved to database for ${provider}/${model}`,
+        );
       } else {
-        this.logger.debug(`⚠️ Insufficient metadata for database tracking - missing startTime or userId`);
+        this.logger.debug(
+          `⚠️ Insufficient metadata for database tracking - missing startTime or userId`,
+        );
       }
     } catch (error) {
       this.logger.error('Usage tracking failed:', error);
@@ -349,7 +435,7 @@ export abstract class BaseLLMService {
     provider: string,
     model: string,
     inputTokens: number,
-    outputTokens: number
+    outputTokens: number,
   ): number | undefined {
     try {
       const p = provider.toLowerCase();
@@ -360,28 +446,31 @@ export abstract class BaseLLMService {
       // Example rates are used where exact pricing is unavailable in code.
       const openaiRates: Record<string, { input: number; output: number }> = {
         // gpt-4o family
-        'gpt-4o': { input: 0.005 / 1000, output: 0.015 / 1000 },       // $5 / $15 per 1M
+        'gpt-4o': { input: 0.005 / 1000, output: 0.015 / 1000 }, // $5 / $15 per 1M
         'gpt-4o-mini': { input: 0.00015 / 1000, output: 0.0006 / 1000 }, // $0.15 / $0.60 per 1M
         // legacy models
-        'gpt-4': { input: 0.03 / 1000, output: 0.06 / 1000 },          // $30 / $60 per 1M
-        'gpt-4-turbo': { input: 0.01 / 1000, output: 0.03 / 1000 },    // $10 / $30 per 1M
+        'gpt-4': { input: 0.03 / 1000, output: 0.06 / 1000 }, // $30 / $60 per 1M
+        'gpt-4-turbo': { input: 0.01 / 1000, output: 0.03 / 1000 }, // $10 / $30 per 1M
         'gpt-3.5-turbo': { input: 0.0015 / 1000, output: 0.002 / 1000 }, // $1.5 / $2 per 1M
         // reasoning family (example rates)
-        'o1': { input: 0.003 / 1000, output: 0.012 / 1000 },           // $3 / $12 per 1M
+        o1: { input: 0.003 / 1000, output: 0.012 / 1000 }, // $3 / $12 per 1M
         'o1-mini': { input: 0.003 / 1000, output: 0.012 / 1000 },
-        'o4-mini': { input: 0.001 / 1000, output: 0.005 / 1000 },      // example placeholder
+        'o4-mini': { input: 0.001 / 1000, output: 0.005 / 1000 }, // example placeholder
       };
 
-      const anthropicRates: Record<string, { input: number; output: number }> = {
-        'claude-3-5-sonnet': { input: 0.003 / 1000, output: 0.015 / 1000 }, // $3 / $15 per 1M
-        'claude-3-5-haiku': { input: 0.00025 / 1000, output: 0.00125 / 1000 }, // $0.25 / $1.25 per 1M
-        'claude-3-sonnet': { input: 0.003 / 1000, output: 0.015 / 1000 },
-        'claude-3-haiku': { input: 0.00025 / 1000, output: 0.00125 / 1000 },
-      };
+      const anthropicRates: Record<string, { input: number; output: number }> =
+        {
+          'claude-3-5-sonnet': { input: 0.003 / 1000, output: 0.015 / 1000 }, // $3 / $15 per 1M
+          'claude-3-5-haiku': { input: 0.00025 / 1000, output: 0.00125 / 1000 }, // $0.25 / $1.25 per 1M
+          'claude-3-sonnet': { input: 0.003 / 1000, output: 0.015 / 1000 },
+          'claude-3-haiku': { input: 0.00025 / 1000, output: 0.00125 / 1000 },
+        };
 
       const defaultRates = { input: 0.001 / 1000, output: 0.002 / 1000 }; // $1 / $2 per 1M
 
-      const matchRate = (rates: Record<string, { input: number; output: number }>) => {
+      const matchRate = (
+        rates: Record<string, { input: number; output: number }>,
+      ) => {
         for (const key of Object.keys(rates)) {
           if (m.includes(key)) return rates[key];
         }
@@ -411,7 +500,11 @@ export abstract class BaseLLMService {
     try {
       const provider = this.config?.provider || 'unknown';
       const model = this.config?.model;
-      const mappedError = LLMErrorMapper.fromGenericError(error, provider, model);
+      const mappedError = LLMErrorMapper.fromGenericError(
+        error,
+        provider,
+        model,
+      );
       LLMErrorMonitor.recordError(mappedError);
       throw mappedError;
     } catch (mappingFailure) {
@@ -419,7 +512,7 @@ export abstract class BaseLLMService {
         `${context}: ${error?.message || 'Unknown error occurred'}`,
         LLMErrorType.UNKNOWN,
         this.config?.provider || 'unknown',
-        { model: this.config?.model, originalError: error }
+        { model: this.config?.model, originalError: error },
       );
       LLMErrorMonitor.recordError(fallback);
       throw fallback;
@@ -433,11 +526,11 @@ export abstract class BaseLLMService {
     if (!config.provider) {
       throw new Error('Provider must be specified in configuration');
     }
-    
+
     if (!config.model) {
       throw new Error('Model must be specified in configuration');
     }
-    
+
     // Additional provider-specific validation can be implemented in subclasses
   }
 
@@ -447,7 +540,7 @@ export abstract class BaseLLMService {
    */
   protected async integrateLangSmith(
     params: GenerateResponseParams,
-    response: LLMResponse
+    response: LLMResponse,
   ): Promise<string | undefined> {
     // Default implementation returns undefined (no LangSmith integration)
     // Subclasses can override this method to provide actual integration
@@ -460,7 +553,7 @@ export abstract class BaseLLMService {
   protected logRequestResponse(
     params: GenerateResponseParams,
     response: LLMResponse,
-    duration: number
+    duration: number,
   ): void {
     if (process.env.NODE_ENV === 'development') {
       this.logger.debug('Request/Response Log:', {

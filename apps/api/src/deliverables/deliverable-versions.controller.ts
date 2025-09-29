@@ -21,13 +21,8 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeliverableVersionsService } from './deliverable-versions.service';
-import {
-  CreateVersionDto,
-  RerunWithLLMDto,
-} from './dto';
-import {
-  DeliverableVersion,
-} from './entities/deliverable.entity';
+import { CreateVersionDto, RerunWithLLMDto } from './dto';
+import { DeliverableVersion } from './entities/deliverable.entity';
 
 @ApiTags('deliverable-versions')
 @ApiBearerAuth()
@@ -59,7 +54,11 @@ export class DeliverableVersionsController {
     if (!userId) {
       throw new Error('User not authenticated');
     }
-    return this.versionsService.createVersion(deliverableId, createVersionDto, userId);
+    return this.versionsService.createVersion(
+      deliverableId,
+      createVersionDto,
+      userId,
+    );
   }
 
   @Get(':deliverableId/history')
@@ -98,7 +97,10 @@ export class DeliverableVersionsController {
     type: DeliverableVersion,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Deliverable or current version not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Deliverable or current version not found',
+  })
   async getCurrentVersion(
     @Param('deliverableId', ParseUUIDPipe) deliverableId: string,
     @Req() req: any,
@@ -137,7 +139,8 @@ export class DeliverableVersionsController {
   @Patch('version/:versionId/set-current')
   @ApiOperation({
     summary: 'Set version as current',
-    description: 'Sets a specific version as the current version of its deliverable',
+    description:
+      'Sets a specific version as the current version of its deliverable',
   })
   @ApiParam({ name: 'versionId', description: 'Version UUID' })
   @ApiResponse({
@@ -162,7 +165,8 @@ export class DeliverableVersionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete version',
-    description: 'Deletes a specific version. If it was the current version, the previous version becomes current.',
+    description:
+      'Deletes a specific version. If it was the current version, the previous version becomes current.',
   })
   @ApiParam({ name: 'versionId', description: 'Version UUID' })
   @ApiResponse({ status: 204, description: 'Version deleted successfully' })
@@ -183,7 +187,8 @@ export class DeliverableVersionsController {
   @Post('version/:versionId/rerun')
   @ApiOperation({
     summary: 'Rerun version with different LLM',
-    description: 'Creates a new version by re-running the original prompt with a different LLM model',
+    description:
+      'Creates a new version by re-running the original prompt with a different LLM model',
   })
   @ApiParam({ name: 'versionId', description: 'Source version UUID to rerun' })
   @ApiResponse({
@@ -191,7 +196,10 @@ export class DeliverableVersionsController {
     description: 'New version created successfully with different LLM',
     type: DeliverableVersion,
   })
-  @ApiResponse({ status: 400, description: 'Bad request - validation failed or cannot rerun' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - validation failed or cannot rerun',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Source version not found' })
   async rerunWithDifferentLLM(
@@ -201,18 +209,22 @@ export class DeliverableVersionsController {
   ): Promise<DeliverableVersion> {
     console.log('🔄 Rerun request received:', { versionId, rerunDto });
     console.log('🔄 Request body validation passed');
-    
+
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     console.log('🔄 User ID extracted:', userId);
-    
+
     if (!userId) {
       console.error('🚨 No user ID found in request');
       throw new Error('User not authenticated');
     }
-    
+
     try {
       console.log('🔄 Calling versionsService.rerunWithDifferentLLM...');
-      const result = await this.versionsService.rerunWithDifferentLLM(versionId, rerunDto, userId);
+      const result = await this.versionsService.rerunWithDifferentLLM(
+        versionId,
+        rerunDto,
+        userId,
+      );
       console.log('✅ Rerun completed successfully');
       return result;
     } catch (error) {
@@ -220,7 +232,7 @@ export class DeliverableVersionsController {
       console.error('🚨 Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
-        name: error instanceof Error ? error.name : 'Unknown'
+        name: error instanceof Error ? error.name : 'Unknown',
       });
       throw error;
     }

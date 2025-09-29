@@ -105,7 +105,6 @@ export class AuthController {
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
-
       throw new Error('No token provided');
     }
 
@@ -167,7 +166,6 @@ export class AuthController {
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
-
       throw new Error('No token provided');
     }
 

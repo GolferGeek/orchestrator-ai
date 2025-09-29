@@ -130,9 +130,13 @@ export class EvaluationController {
 
   @Get('agents/:agentIdentifier/llm-recommendations')
   @ApiOperation({
-    summary: 'Get recommended LLM models for an agent based on user evaluations',
+    summary:
+      'Get recommended LLM models for an agent based on user evaluations',
   })
-  @ApiParam({ name: 'agentIdentifier', description: 'Agent identifier or name' })
+  @ApiParam({
+    name: 'agentIdentifier',
+    description: 'Agent identifier or name',
+  })
   @ApiQuery({
     name: 'minRating',
     required: false,
@@ -225,8 +229,6 @@ export class EvaluationController {
       totalPages: number;
     };
   }> {
-
-
     // Ensure reasonable pagination limits
     const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
     const sanitizedPage = Math.max(page, 1);

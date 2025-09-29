@@ -41,12 +41,19 @@ export class LLMController {
         dataClassification?: string;
       };
     },
-  ): Promise<{ response: string; content?: string; sanitizationMetadata?: any; piiMetadata?: any; metadata?: any }> {
+  ): Promise<{
+    response: string;
+    content?: string;
+    sanitizationMetadata?: any;
+    piiMetadata?: any;
+    metadata?: any;
+  }> {
     try {
       // Guard: Conversation-based requests must use the agent tasks endpoint
       if (request?.options?.conversationId) {
         const guidance = {
-          message: 'Conversation-based requests must use the agent tasks endpoint to preserve agent + MCP context.',
+          message:
+            'Conversation-based requests must use the agent tasks endpoint to preserve agent + MCP context.',
           endpoint: '/agents/:agentType/:agentName/tasks',
           example: {
             url: '/agents/finance/metrics/tasks',
@@ -85,26 +92,34 @@ export class LLMController {
       );
 
       console.log('🎮 [CONTROLLER] Result type:', typeof result);
-      console.log('🎮 [CONTROLLER] Result keys:', result && typeof result === 'object' ? Object.keys(result) : 'N/A');
-      console.log('🎮 [CONTROLLER] Has piiMetadata?', result && typeof result === 'object' ? !!result.piiMetadata : false);
+      console.log(
+        '🎮 [CONTROLLER] Result keys:',
+        result && typeof result === 'object' ? Object.keys(result) : 'N/A',
+      );
+      console.log(
+        '🎮 [CONTROLLER] Has piiMetadata?',
+        result && typeof result === 'object' ? !!result.piiMetadata : false,
+      );
 
       // Handle both string and object responses
       if (typeof result === 'string') {
         return { response: result };
       } else {
         // Return all relevant fields from the LLM service response
-        const response = { 
+        const response = {
           response: result.content || result.response || result,
           content: result.content || result.response || result,
           sanitizationMetadata: result.sanitizationMetadata,
           piiMetadata: result.piiMetadata,
-          metadata: result.metadata
+          metadata: result.metadata,
         };
-        console.log('🎮 [CONTROLLER] Returning response with piiMetadata?', !!response.piiMetadata);
+        console.log(
+          '🎮 [CONTROLLER] Returning response with piiMetadata?',
+          !!response.piiMetadata,
+        );
         return response;
       }
     } catch (error) {
-
       throw error;
     }
   }

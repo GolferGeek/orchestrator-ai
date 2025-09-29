@@ -95,7 +95,6 @@ export class MarketResearchWorkflow {
         threats: marketSizeData.threats,
       };
     } catch (error) {
-
       messageEmitter.emit(
         `❌ Market research failed: ${error instanceof Error ? error.message : String(error)}`,
         'error',

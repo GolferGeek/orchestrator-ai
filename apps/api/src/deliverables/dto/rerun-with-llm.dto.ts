@@ -9,25 +9,26 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RerunWithLLMDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'LLM provider to use for rerun (e.g., "anthropic", "openai")',
-    example: 'anthropic'
+    example: 'anthropic',
   })
   @IsString()
   provider!: string;
 
-  @ApiProperty({ 
-    description: 'LLM model to use for rerun (e.g., "claude-3-5-sonnet-20241022", "gpt-4")',
-    example: 'claude-3-5-sonnet-20241022'
+  @ApiProperty({
+    description:
+      'LLM model to use for rerun (e.g., "claude-3-5-sonnet-20241022", "gpt-4")',
+    example: 'claude-3-5-sonnet-20241022',
   })
   @IsString()
   model!: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Temperature for LLM generation (0.0 to 2.0)',
     minimum: 0,
     maximum: 2,
-    example: 0.7
+    example: 0.7,
   })
   @IsOptional()
   @IsNumber()
@@ -35,10 +36,10 @@ export class RerunWithLLMDto {
   @Max(2)
   temperature?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Maximum tokens for LLM response',
     minimum: 1,
-    example: 4000
+    example: 4000,
   })
   @IsOptional()
   @IsNumber()

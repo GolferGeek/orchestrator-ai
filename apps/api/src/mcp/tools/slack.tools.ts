@@ -1,17 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MCPToolDefinition, MCPToolRequest, MCPToolResponse, IMCPToolHandler } from '../interfaces/mcp.interface';
+import {
+  MCPToolDefinition,
+  MCPToolRequest,
+  MCPToolResponse,
+  IMCPToolHandler,
+} from '../interfaces/mcp.interface';
 
 /**
  * Slack MCP Tools Handler
- * 
+ *
  * Implements productivity namespace tools for Slack workspace operations
  * Provides: messaging, channel management, user information, and search capabilities
  */
 @Injectable()
 export class SlackMCPTools implements IMCPToolHandler {
   private readonly logger = new Logger(SlackMCPTools.name);
-  
+
   constructor(private readonly configService: ConfigService) {}
 
   /**
@@ -27,25 +32,26 @@ export class SlackMCPTools implements IMCPToolHandler {
           properties: {
             channel: {
               type: 'string',
-              description: 'Channel ID or name (e.g., #general, @username, or C1234567890)'
+              description:
+                'Channel ID or name (e.g., #general, @username, or C1234567890)',
             },
             text: {
               type: 'string',
-              description: 'Message text content'
+              description: 'Message text content',
             },
             thread_ts: {
               type: 'string',
-              description: 'Timestamp of parent message to reply in thread'
+              description: 'Timestamp of parent message to reply in thread',
             },
             blocks: {
               type: 'array',
               description: 'Rich message blocks (Slack Block Kit format)',
-              items: { type: 'object' }
-            }
+              items: { type: 'object' },
+            },
           },
           required: ['channel', 'text'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'get-channels',
@@ -55,23 +61,24 @@ export class SlackMCPTools implements IMCPToolHandler {
           properties: {
             types: {
               type: 'string',
-              description: 'Channel types to include (public_channel, private_channel, mpim, im)',
-              default: 'public_channel'
+              description:
+                'Channel types to include (public_channel, private_channel, mpim, im)',
+              default: 'public_channel',
             },
             exclude_archived: {
               type: 'boolean',
               description: 'Exclude archived channels',
-              default: true
+              default: true,
             },
             limit: {
               type: 'number',
               description: 'Maximum number of channels to return',
-              default: 100
-            }
+              default: 100,
+            },
           },
           required: [],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'get-users',
@@ -81,22 +88,22 @@ export class SlackMCPTools implements IMCPToolHandler {
           properties: {
             user_id: {
               type: 'string',
-              description: 'Specific user ID to get info for'
+              description: 'Specific user ID to get info for',
             },
             include_deleted: {
               type: 'boolean',
               description: 'Include deleted/deactivated users',
-              default: false
+              default: false,
             },
             limit: {
               type: 'number',
               description: 'Maximum number of users to return',
-              default: 100
-            }
+              default: 100,
+            },
           },
           required: [],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'search-messages',
@@ -106,31 +113,31 @@ export class SlackMCPTools implements IMCPToolHandler {
           properties: {
             query: {
               type: 'string',
-              description: 'Search query string'
+              description: 'Search query string',
             },
             channel: {
               type: 'string',
-              description: 'Limit search to specific channel'
+              description: 'Limit search to specific channel',
             },
             user: {
               type: 'string',
-              description: 'Limit search to messages from specific user'
+              description: 'Limit search to messages from specific user',
             },
             count: {
               type: 'number',
               description: 'Number of results to return',
-              default: 20
+              default: 20,
             },
             sort: {
               type: 'string',
               enum: ['score', 'timestamp'],
               description: 'Sort results by relevance or time',
-              default: 'score'
-            }
+              default: 'score',
+            },
           },
           required: ['query'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'get-channel-history',
@@ -140,30 +147,30 @@ export class SlackMCPTools implements IMCPToolHandler {
           properties: {
             channel: {
               type: 'string',
-              description: 'Channel ID or name'
+              description: 'Channel ID or name',
             },
             count: {
               type: 'number',
               description: 'Number of messages to retrieve',
-              default: 100
+              default: 100,
             },
             oldest: {
               type: 'string',
-              description: 'Start of time range (Unix timestamp)'
+              description: 'Start of time range (Unix timestamp)',
             },
             latest: {
               type: 'string',
-              description: 'End of time range (Unix timestamp)'
+              description: 'End of time range (Unix timestamp)',
             },
             inclusive: {
               type: 'boolean',
               description: 'Include messages with oldest and latest timestamps',
-              default: true
-            }
+              default: true,
+            },
           },
           required: ['channel'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'create-channel',
@@ -173,26 +180,26 @@ export class SlackMCPTools implements IMCPToolHandler {
           properties: {
             name: {
               type: 'string',
-              description: 'Channel name (lowercase, no spaces)'
+              description: 'Channel name (lowercase, no spaces)',
             },
             is_private: {
               type: 'boolean',
               description: 'Create as private channel',
-              default: false
+              default: false,
             },
             purpose: {
               type: 'string',
-              description: 'Channel purpose/description'
+              description: 'Channel purpose/description',
             },
             topic: {
               type: 'string',
-              description: 'Channel topic'
-            }
+              description: 'Channel topic',
+            },
           },
           required: ['name'],
-          additionalProperties: false
-        }
-      }
+          additionalProperties: false,
+        },
+      },
     ];
   }
 
@@ -220,7 +227,8 @@ export class SlackMCPTools implements IMCPToolHandler {
           return this.createErrorResponse(`Unknown Slack tool: ${name}`);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Slack tool ${name} failed: ${errorMessage}`);
       return this.createErrorResponse(`Tool execution failed: ${errorMessage}`);
     }
@@ -233,9 +241,11 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       // Check if basic configuration is available
       const slackToken = this.configService.get('SLACK_BOT_TOKEN');
-      
+
       if (!slackToken) {
-        this.logger.debug('Slack configuration not available - tools will be available but may fail at execution');
+        this.logger.debug(
+          'Slack configuration not available - tools will be available but may fail at execution',
+        );
         return false;
       }
 
@@ -244,7 +254,9 @@ export class SlackMCPTools implements IMCPToolHandler {
       const data = await response.json();
       return data.ok === true;
     } catch (error) {
-      this.logger.debug(`Slack ping failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.debug(
+        `Slack ping failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return false;
     }
   }
@@ -257,16 +269,20 @@ export class SlackMCPTools implements IMCPToolHandler {
 
     try {
       const payload: any = { channel, text };
-      
+
       if (thread_ts) {
         payload.thread_ts = thread_ts;
       }
-      
+
       if (blocks) {
         payload.blocks = blocks;
       }
 
-      const response = await this.makeSlackRequest('chat.postMessage', 'POST', payload);
+      const response = await this.makeSlackRequest(
+        'chat.postMessage',
+        'POST',
+        payload,
+      );
       const data = await response.json();
 
       if (!data.ok) {
@@ -274,20 +290,27 @@ export class SlackMCPTools implements IMCPToolHandler {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: true,
-            channel: data.channel,
-            timestamp: data.ts,
-            message: data.message,
-            sent_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                channel: data.channel,
+                timestamp: data.ts,
+                message: data.message,
+                sent_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Send message failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Send message failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -295,16 +318,23 @@ export class SlackMCPTools implements IMCPToolHandler {
    * Get channels list
    */
   private async getChannels(args: any): Promise<MCPToolResponse> {
-    const { types = 'public_channel', exclude_archived = true, limit = 100 } = args;
+    const {
+      types = 'public_channel',
+      exclude_archived = true,
+      limit = 100,
+    } = args;
 
     try {
       const params = new URLSearchParams({
         types,
         exclude_archived: exclude_archived.toString(),
-        limit: limit.toString()
+        limit: limit.toString(),
       });
 
-      const response = await this.makeSlackRequest(`conversations.list?${params}`, 'GET');
+      const response = await this.makeSlackRequest(
+        `conversations.list?${params}`,
+        'GET',
+      );
       const data = await response.json();
 
       if (!data.ok) {
@@ -312,18 +342,25 @@ export class SlackMCPTools implements IMCPToolHandler {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            channels: data.channels,
-            total_count: data.channels?.length || 0,
-            retrieved_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                channels: data.channels,
+                total_count: data.channels?.length || 0,
+                retrieved_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Get channels failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Get channels failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -336,7 +373,10 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       if (user_id) {
         // Get specific user info
-        const response = await this.makeSlackRequest(`users.info?user=${user_id}`, 'GET');
+        const response = await this.makeSlackRequest(
+          `users.info?user=${user_id}`,
+          'GET',
+        );
         const data = await response.json();
 
         if (!data.ok) {
@@ -344,22 +384,31 @@ export class SlackMCPTools implements IMCPToolHandler {
         }
 
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              user: data.user,
-              retrieved_at: new Date().toISOString()
-            }, null, 2)
-          }]
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  user: data.user,
+                  retrieved_at: new Date().toISOString(),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
         };
       } else {
         // Get users list
         const params = new URLSearchParams({
           include_locale: 'false',
-          limit: limit.toString()
+          limit: limit.toString(),
         });
 
-        const response = await this.makeSlackRequest(`users.list?${params}`, 'GET');
+        const response = await this.makeSlackRequest(
+          `users.list?${params}`,
+          'GET',
+        );
         const data = await response.json();
 
         if (!data.ok) {
@@ -367,25 +416,32 @@ export class SlackMCPTools implements IMCPToolHandler {
         }
 
         let users = data.members || [];
-        
+
         if (!include_deleted) {
           users = users.filter((user: any) => !user.deleted);
         }
 
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              users,
-              total_count: users.length,
-              retrieved_at: new Date().toISOString()
-            }, null, 2)
-          }]
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  users,
+                  total_count: users.length,
+                  retrieved_at: new Date().toISOString(),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
         };
       }
-
     } catch (error) {
-      return this.createErrorResponse(`Get users failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Get users failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -397,11 +453,11 @@ export class SlackMCPTools implements IMCPToolHandler {
 
     try {
       let searchQuery = query;
-      
+
       if (channel) {
         searchQuery += ` in:${channel}`;
       }
-      
+
       if (user) {
         searchQuery += ` from:${user}`;
       }
@@ -409,10 +465,13 @@ export class SlackMCPTools implements IMCPToolHandler {
       const params = new URLSearchParams({
         query: searchQuery,
         count: count.toString(),
-        sort
+        sort,
       });
 
-      const response = await this.makeSlackRequest(`search.messages?${params}`, 'GET');
+      const response = await this.makeSlackRequest(
+        `search.messages?${params}`,
+        'GET',
+      );
       const data = await response.json();
 
       if (!data.ok) {
@@ -420,19 +479,26 @@ export class SlackMCPTools implements IMCPToolHandler {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            matches: data.messages?.matches || [],
-            total: data.messages?.total || 0,
-            query: searchQuery,
-            searched_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                matches: data.messages?.matches || [],
+                total: data.messages?.total || 0,
+                query: searchQuery,
+                searched_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Search messages failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Search messages failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -446,18 +512,21 @@ export class SlackMCPTools implements IMCPToolHandler {
       const params = new URLSearchParams({
         channel,
         limit: count.toString(),
-        inclusive: inclusive.toString()
+        inclusive: inclusive.toString(),
       });
 
       if (oldest) {
         params.append('oldest', oldest);
       }
-      
+
       if (latest) {
         params.append('latest', latest);
       }
 
-      const response = await this.makeSlackRequest(`conversations.history?${params}`, 'GET');
+      const response = await this.makeSlackRequest(
+        `conversations.history?${params}`,
+        'GET',
+      );
       const data = await response.json();
 
       if (!data.ok) {
@@ -465,19 +534,26 @@ export class SlackMCPTools implements IMCPToolHandler {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            messages: data.messages || [],
-            has_more: data.has_more || false,
-            channel,
-            retrieved_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                messages: data.messages || [],
+                has_more: data.has_more || false,
+                channel,
+                retrieved_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Get channel history failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Get channel history failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -489,8 +565,12 @@ export class SlackMCPTools implements IMCPToolHandler {
 
     try {
       const payload: any = { name, is_private };
-      
-      const response = await this.makeSlackRequest('conversations.create', 'POST', payload);
+
+      const response = await this.makeSlackRequest(
+        'conversations.create',
+        'POST',
+        payload,
+      );
       const data = await response.json();
 
       if (!data.ok) {
@@ -499,50 +579,63 @@ export class SlackMCPTools implements IMCPToolHandler {
 
       // Set purpose and topic if provided
       const channelId = data.channel.id;
-      
+
       if (purpose) {
         await this.makeSlackRequest('conversations.setPurpose', 'POST', {
           channel: channelId,
-          purpose
+          purpose,
         });
       }
-      
+
       if (topic) {
         await this.makeSlackRequest('conversations.setTopic', 'POST', {
           channel: channelId,
-          topic
+          topic,
         });
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: true,
-            channel: data.channel,
-            created_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                channel: data.channel,
+                created_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Create channel failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Create channel failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
   /**
    * Make authenticated request to Slack API
    */
-  private async makeSlackRequest(endpoint: string, method: string, body?: any): Promise<Response> {
-    const slackToken = this.configService.get('SLACK_BOT_TOKEN') || this.configService.get('SLACK_API_TOKEN');
+  private async makeSlackRequest(
+    endpoint: string,
+    method: string,
+    body?: any,
+  ): Promise<Response> {
+    const slackToken =
+      this.configService.get('SLACK_BOT_TOKEN') ||
+      this.configService.get('SLACK_API_TOKEN');
 
     if (!slackToken) {
       throw new Error('Slack token not configured');
     }
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${slackToken}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${slackToken}`,
+      'Content-Type': 'application/json',
     };
 
     const url = `https://slack.com/api/${endpoint}`;
@@ -559,14 +652,16 @@ export class SlackMCPTools implements IMCPToolHandler {
    */
   private createErrorResponse(message: string): MCPToolResponse {
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          error: message,
-          timestamp: new Date().toISOString()
-        })
-      }],
-      isError: true
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            error: message,
+            timestamp: new Date().toISOString(),
+          }),
+        },
+      ],
+      isError: true,
     };
   }
 }

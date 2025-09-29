@@ -4,20 +4,29 @@ import { AgentExecutionGateway } from './services/agent-execution-gateway.servic
 import { TaskRequestDto } from './dto/task-request.dto';
 import { TaskResponseDto } from './dto/task-response.dto';
 
-@Controller('agent-to-agent/:orgSlug/:agentSlug')
+@Controller()
 export class Agent2AgentController {
   constructor(
     private readonly cardBuilder: AgentCardBuilderService,
     private readonly gateway: AgentExecutionGateway,
   ) {}
 
-  @Get('.well-known/agent.json')
-  async getAgentCard(@Param('orgSlug') orgSlug: string, @Param('agentSlug') agentSlug: string) {
+  @Get([
+    'agent-to-agent/:orgSlug/:agentSlug/.well-known/agent.json',
+    'agents/:orgSlug/:agentSlug/.well-known/agent.json',
+  ])
+  async getAgentCard(
+    @Param('orgSlug') orgSlug: string,
+    @Param('agentSlug') agentSlug: string,
+  ) {
     const org = orgSlug === 'global' ? null : orgSlug;
     return this.cardBuilder.build(org, agentSlug);
   }
 
-  @Post('tasks')
+  @Post([
+    'agent-to-agent/:orgSlug/:agentSlug/tasks',
+    'agents/:orgSlug/:agentSlug/tasks',
+  ])
   async executeTask(
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,

@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
-import { 
-  GenerateResponseParams, 
-  LLMResponse, 
+import {
+  GenerateResponseParams,
+  LLMResponse,
   LLMServiceConfig,
-  ResponseMetadata 
+  ResponseMetadata,
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
@@ -31,7 +31,7 @@ interface GrokResponseMetadata extends ResponseMetadata {
 
 /**
  * Grok (xAI) LLM Service Implementation
- * 
+ *
  * This example shows how to extend BaseLLMService for xAI's Grok models
  * with provider-specific functionality and metadata handling.
  */
@@ -59,7 +59,7 @@ export class GrokLLMService extends BaseLLMService {
     if (!apiKey) {
       throw new Error('Grok API key is required');
     }
-    
+
     this.apiKey = apiKey;
     this.baseUrl = config.baseUrl || 'https://api.x.ai/v1';
   }
@@ -70,21 +70,25 @@ export class GrokLLMService extends BaseLLMService {
   async generateResponse(params: GenerateResponseParams): Promise<LLMResponse> {
     const startTime = Date.now();
     const requestId = this.generateRequestId('grok');
-    
+
     try {
       // Validate configuration
       this.validateConfig(params.config);
-      
+
       // Use PII pre-processing from LLM Service level when available (unified architecture)
-      let processedText = params.userMessage;
-      let piiMetadata = params.options?.piiMetadata || null;
-      let dictionaryMappings = params.options?.dictionaryMappings || [];
+      const processedText = params.userMessage;
+      const piiMetadata = params.options?.piiMetadata || null;
+      const dictionaryMappings = params.options?.dictionaryMappings || [];
       if (!piiMetadata) {
-        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] GrokLLMService - No PII metadata from LLM Service, using raw message`);
+        this.logger.warn(
+          `⚠️ [PII-METADATA-DEBUG] GrokLLMService - No PII metadata from LLM Service, using raw message`,
+        );
       } else {
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] GrokLLMService - Using preprocessed text and PII metadata`);
+        this.logger.debug(
+          `🔍 [PII-METADATA-DEBUG] GrokLLMService - Using preprocessed text and PII metadata`,
+        );
       }
-      
+
       // Prepare Grok request (OpenAI-compatible API)
       const messages = [
         { role: 'system', content: params.systemPrompt },
@@ -94,7 +98,8 @@ export class GrokLLMService extends BaseLLMService {
       const requestBody = {
         model: params.config.model,
         messages,
-        temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
+        temperature:
+          params.options?.temperature ?? params.config.temperature ?? 0.7,
         max_tokens: params.options?.maxTokens ?? params.config.maxTokens,
         stream: false,
       };
@@ -103,7 +108,7 @@ export class GrokLLMService extends BaseLLMService {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
@@ -116,24 +121,24 @@ export class GrokLLMService extends BaseLLMService {
 
       const completion = await response.json();
       const choice = completion.choices?.[0];
-      
+
       if (!choice?.message?.content) {
         throw new Error('No content in Grok response');
       }
       // Do not reverse here; LLMService handles dictionary reversal consistently
       const finalContent = choice.message.content;
-      
+
       const endTime = Date.now();
-      
+
       // Create Grok-specific metadata
       const metadata = this.createGrokMetadata(
         completion,
         params,
         startTime,
         endTime,
-        requestId
+        requestId,
       );
-      
+
       // Track usage with full metadata for database persistence
       await this.trackUsage(
         params.config.provider,
@@ -144,30 +149,31 @@ export class GrokLLMService extends BaseLLMService {
         {
           requestId,
           userId: params.userId || params.options?.userId,
-          conversationId: params.conversationId || params.options?.conversationId,
+          conversationId:
+            params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
           piiMetadata: piiMetadata,
           startTime,
           endTime,
-        }
+        },
       );
-      
+
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
         piiMetadata: piiMetadata,
       };
-      
+
       // Optional LangSmith integration
       const langsmithRunId = await this.integrateLangSmith(params, llmResponse);
       if (langsmithRunId) {
         llmResponse.metadata.langsmithRunId = langsmithRunId;
       }
-      
+
       // Log request/response
       this.logRequestResponse(params, llmResponse, metadata.timing.duration);
-      
+
       return llmResponse;
     } catch (error) {
       this.handleError(error, 'GrokLLMService.generateResponse');
@@ -182,11 +188,11 @@ export class GrokLLMService extends BaseLLMService {
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
-    requestId: string
+    requestId: string,
   ): GrokResponseMetadata {
     const choice = completion.choices?.[0];
     const usage = completion.usage;
-    
+
     return {
       provider: 'grok',
       model: completion.model,
@@ -196,7 +202,12 @@ export class GrokLLMService extends BaseLLMService {
         inputTokens: usage?.prompt_tokens || 0,
         outputTokens: usage?.completion_tokens || 0,
         totalTokens: usage?.total_tokens || 0,
-        cost: this.calculateCost('grok', completion.model, usage?.prompt_tokens || 0, usage?.completion_tokens || 0),
+        cost: this.calculateCost(
+          'grok',
+          completion.model,
+          usage?.prompt_tokens || 0,
+          usage?.completion_tokens || 0,
+        ),
       },
       timing: {
         startTime,
@@ -226,10 +237,13 @@ export class GrokLLMService extends BaseLLMService {
    */
   protected async integrateLangSmith(
     params: GenerateResponseParams,
-    response: LLMResponse
+    response: LLMResponse,
   ): Promise<string | undefined> {
     // Example Grok-specific LangSmith integration
-    if (process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_TRACING === 'true') {
+    if (
+      process.env.LANGSMITH_API_KEY &&
+      process.env.LANGSMITH_TRACING === 'true'
+    ) {
       try {
         // This would integrate with LangSmith for Grok-specific tracing
         const runId = `grok-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -247,23 +261,22 @@ export class GrokLLMService extends BaseLLMService {
    */
   protected validateConfig(config: LLMServiceConfig): void {
     super.validateConfig(config);
-    
+
     if (config.provider !== 'grok') {
       throw new Error('GrokLLMService requires provider to be "grok"');
     }
-    
+
     if (!config.apiKey && !process.env.XAI_API_KEY) {
       throw new Error('Grok (xAI) API key is required');
     }
-    
+
     // Validate Grok-specific model names
-    const validModels = [
-      'grok-beta',
-      'grok-vision-beta',
-    ];
-    
-    if (!validModels.some(model => config.model.includes(model))) {
-      this.logger.warn(`Unknown Grok model: ${config.model}. Proceeding anyway.`);
+    const validModels = ['grok-beta', 'grok-vision-beta'];
+
+    if (!validModels.some((model) => config.model.includes(model))) {
+      this.logger.warn(
+        `Unknown Grok model: ${config.model}. Proceeding anyway.`,
+      );
     }
   }
 
@@ -279,7 +292,7 @@ export class GrokLLMService extends BaseLLMService {
     } else if (error.message?.includes('400')) {
       throw new Error(`${context}: Invalid request to Grok API`);
     }
-    
+
     // Fall back to base error handling
     super.handleError(error, context);
   }
@@ -287,22 +300,28 @@ export class GrokLLMService extends BaseLLMService {
   /**
    * Override cost calculation for Grok-specific pricing
    */
-  protected calculateCost(provider: string, model: string, inputTokens: number, outputTokens: number): number {
+  protected calculateCost(
+    provider: string,
+    model: string,
+    inputTokens: number,
+    outputTokens: number,
+  ): number {
     // Grok pricing (as of late 2024)
     // Note: These are example rates - check xAI documentation for current pricing
     const grokRates = {
       'grok-beta': {
-        input: 0.000005,  // $5 per 1M input tokens
+        input: 0.000005, // $5 per 1M input tokens
         output: 0.000015, // $15 per 1M output tokens
       },
       'grok-vision-beta': {
-        input: 0.000005,  // $5 per 1M input tokens
+        input: 0.000005, // $5 per 1M input tokens
         output: 0.000015, // $15 per 1M output tokens
       },
     };
 
-    const rates = grokRates[model as keyof typeof grokRates] || grokRates['grok-beta'];
-    return (inputTokens * rates.input) + (outputTokens * rates.output);
+    const rates =
+      grokRates[model as keyof typeof grokRates] || grokRates['grok-beta'];
+    return inputTokens * rates.input + outputTokens * rates.output;
   }
 }
 
@@ -316,7 +335,7 @@ export function createGrokService(
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
-  }
+  },
 ): GrokLLMService {
   return new GrokLLMService(
     { ...config, provider: 'grok' },
@@ -348,7 +367,7 @@ export async function testGrokService() {
   };
 
   const service = createGrokService(config, mockDependencies);
-  
+
   const params: GenerateResponseParams = {
     systemPrompt: 'You are Grok, a witty and helpful AI assistant.',
     userMessage: 'Tell me something interesting about space exploration.',

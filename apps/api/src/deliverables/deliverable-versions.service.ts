@@ -13,9 +13,7 @@ import {
   DeliverableFormat,
   RerunWithLLMDto,
 } from './dto';
-import {
-  DeliverableVersion,
-} from './entities/deliverable.entity';
+import { DeliverableVersion } from './entities/deliverable.entity';
 import { getTableName } from '../supabase/supabase.config';
 import { LLMService } from '../llms/llm.service';
 import { Task } from '../common/types/agent-conversations.types';
@@ -39,8 +37,6 @@ export class DeliverableVersionsService {
     createVersionDto: CreateVersionDto,
     userId: string,
   ): Promise<DeliverableVersion> {
-    
-
     try {
       // Verify deliverable exists and belongs to user
       await this.verifyDeliverableOwnership(deliverableId, userId);
@@ -56,28 +52,30 @@ export class DeliverableVersionsService {
       await this.markPreviousVersionsAsNotCurrent(deliverableId);
 
       // Create new version
-      const { data: newVersionData, error: insertError } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverable_versions'))
-        .insert([
-          {
-            deliverable_id: deliverableId,
-            version_number: nextVersionNumber,
-            content: createVersionDto.content,
-            format: createVersionDto.format,
-            is_current_version: true,
-            created_by_type: createVersionDto.createdByType,
-            task_id: createVersionDto.taskId || null,
-            metadata: createVersionDto.metadata || {},
-            file_attachments: createVersionDto.fileAttachments || {},
-          },
-        ])
-        .select('*')
-        .single();
+      const { data: newVersionData, error: insertError } =
+        await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverable_versions'))
+          .insert([
+            {
+              deliverable_id: deliverableId,
+              version_number: nextVersionNumber,
+              content: createVersionDto.content,
+              format: createVersionDto.format,
+              is_current_version: true,
+              created_by_type: createVersionDto.createdByType,
+              task_id: createVersionDto.taskId || null,
+              metadata: createVersionDto.metadata || {},
+              file_attachments: createVersionDto.fileAttachments || {},
+            },
+          ])
+          .select('*')
+          .single();
 
       if (insertError) {
-
-        throw new BadRequestException(`Failed to create version: ${insertError.message}`);
+        throw new BadRequestException(
+          `Failed to create version: ${insertError.message}`,
+        );
       }
 
       return this.mapToVersion(newVersionData);
@@ -103,7 +101,7 @@ export class DeliverableVersionsService {
     try {
       // Verify deliverable ownership
       await this.verifyDeliverableOwnership(deliverableId, userId);
-      
+
       // Get all versions for this deliverable
       const { data, error } = await this.supabaseService
         .getServiceClient()
@@ -113,17 +111,15 @@ export class DeliverableVersionsService {
         .order('version_number', { ascending: true });
 
       if (error) {
-
         throw new BadRequestException(
           `Failed to get version history: ${error.message}`,
         );
       }
 
       const versions = (data || []).map((item: any) => this.mapToVersion(item));
-      
+
       return versions;
     } catch (error) {
-
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException
@@ -142,7 +138,6 @@ export class DeliverableVersionsService {
     versionId: string,
     userId: string,
   ): Promise<DeliverableVersion> {
-
     try {
       const { data, error } = await this.supabaseService
         .getServiceClient()
@@ -184,7 +179,6 @@ export class DeliverableVersionsService {
     deliverableId: string,
     userId: string,
   ): Promise<DeliverableVersion | null> {
-
     try {
       // Verify deliverable ownership
       await this.verifyDeliverableOwnership(deliverableId, userId);
@@ -198,28 +192,24 @@ export class DeliverableVersionsService {
         .maybeSingle();
 
       if (error) {
-
         throw new BadRequestException('Failed to find current version');
       }
 
       if (data) {
-
         return this.mapToVersion(data);
       } else {
-
         // Check if any versions exist at all
-        const { data: allVersions, error: allVersionsError } = await this.supabaseService
-          .getServiceClient()
-          .from(getTableName('deliverable_versions'))
-          .select('id, version_number, is_current_version')
-          .eq('deliverable_id', deliverableId);
-          
+        const { data: allVersions, error: allVersionsError } =
+          await this.supabaseService
+            .getServiceClient()
+            .from(getTableName('deliverable_versions'))
+            .select('id, version_number, is_current_version')
+            .eq('deliverable_id', deliverableId);
+
         if (allVersionsError) {
-
         } else {
-
         }
-        
+
         return null;
       }
     } catch (error) {
@@ -241,7 +231,6 @@ export class DeliverableVersionsService {
     versionId: string,
     userId: string,
   ): Promise<DeliverableVersion> {
-
     try {
       // Get the version and verify ownership
       const version = await this.getVersion(versionId, userId);
@@ -259,8 +248,9 @@ export class DeliverableVersionsService {
         .single();
 
       if (error) {
-
-        throw new BadRequestException(`Failed to set current version: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to set current version: ${error.message}`,
+        );
       }
 
       return this.mapToVersion(data);
@@ -283,14 +273,14 @@ export class DeliverableVersionsService {
     versionId: string,
     userId: string,
   ): Promise<{ success: boolean; message: string }> {
-
     try {
       // Get the version and verify ownership
       const version = await this.getVersion(versionId, userId);
 
       // Prevent deletion of current version (as per PRD requirement)
       if (version.isCurrentVersion) {
-        const message = 'Cannot delete the current version. Please set a different version as current first.';
+        const message =
+          'Cannot delete the current version. Please set a different version as current first.';
 
         return { success: false, message };
       }
@@ -303,8 +293,9 @@ export class DeliverableVersionsService {
         .eq('id', versionId);
 
       if (error) {
-
-        throw new BadRequestException(`Failed to delete version: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to delete version: ${error.message}`,
+        );
       }
 
       const successMessage = `Version ${version.versionNumber} deleted successfully`;
@@ -331,14 +322,15 @@ export class DeliverableVersionsService {
     mergePrompt: string,
     userId: string,
   ): Promise<{ newVersion: DeliverableVersion; conflictSummary?: string }> {
-
     try {
       // Verify deliverable ownership
       await this.verifyDeliverableOwnership(deliverableId, userId);
 
       // Validate that we have at least 2 versions to merge
       if (versionIds.length < 2) {
-        throw new BadRequestException('At least 2 versions are required for merging');
+        throw new BadRequestException(
+          'At least 2 versions are required for merging',
+        );
       }
 
       // Get all versions to merge and verify they exist and belong to the deliverable
@@ -346,16 +338,18 @@ export class DeliverableVersionsService {
         versionIds.map(async (versionId) => {
           const version = await this.getVersion(versionId, userId);
           if (version.deliverableId !== deliverableId) {
-            throw new BadRequestException(`Version ${versionId} does not belong to deliverable ${deliverableId}`);
+            throw new BadRequestException(
+              `Version ${versionId} does not belong to deliverable ${deliverableId}`,
+            );
           }
           return version;
-        })
+        }),
       );
 
       // TODO: Integrate with LLM service for intelligent merging
       // For now, implement a simple concatenation with conflict detection
       const mergedContent = await this.performLLMMerge(versions, mergePrompt);
-      
+
       // Create new version with merged content
       const createVersionDto: CreateVersionDto = {
         content: mergedContent.content,
@@ -368,7 +362,11 @@ export class DeliverableVersionsService {
         },
       };
 
-      const newVersion = await this.createVersion(deliverableId, createVersionDto, userId);
+      const newVersion = await this.createVersion(
+        deliverableId,
+        createVersionDto,
+        userId,
+      );
 
       return {
         newVersion,
@@ -395,28 +393,33 @@ export class DeliverableVersionsService {
     userId: string,
     baseVersionId?: string,
   ): Promise<DeliverableVersion> {
-
     try {
       // Verify deliverable ownership
       await this.verifyDeliverableOwnership(deliverableId, userId);
 
       // Get base version (current version if not specified)
-      const baseVersion = baseVersionId 
+      const baseVersion = baseVersionId
         ? await this.getVersion(baseVersionId, userId)
         : await this.getCurrentVersion(deliverableId, userId);
 
       if (!baseVersion) {
-        throw new BadRequestException('No base version found for task-based modification');
+        throw new BadRequestException(
+          'No base version found for task-based modification',
+        );
       }
 
       // TODO: Integrate with LLM service for task-based content modification
       // For now, append the task prompt as a comment
-      const modifiedContent = await this.performTaskBasedModification(baseVersion.content || '', taskPrompt);
+      const modifiedContent = await this.performTaskBasedModification(
+        baseVersion.content || '',
+        taskPrompt,
+      );
 
       // Create new version with modified content
       const createVersionDto: CreateVersionDto = {
         content: modifiedContent,
-        format: baseVersion.format || this.detectFormatFromContent(modifiedContent),
+        format:
+          baseVersion.format || this.detectFormatFromContent(modifiedContent),
         createdByType: DeliverableVersionCreationType.CONVERSATION_TASK,
         metadata: {
           baseVersionId: baseVersion.id,
@@ -441,7 +444,10 @@ export class DeliverableVersionsService {
   /**
    * Get task by ID (internal method to avoid circular dependency)
    */
-  private async getTaskById(taskId: string, userId: string): Promise<Task | null> {
+  private async getTaskById(
+    taskId: string,
+    userId: string,
+  ): Promise<Task | null> {
     try {
       const { data, error } = await this.supabaseService
         .getAnonClient()
@@ -484,11 +490,16 @@ export class DeliverableVersionsService {
       }
 
       // Verify deliverable ownership
-      await this.verifyDeliverableOwnership(sourceVersion.deliverableId, userId);
+      await this.verifyDeliverableOwnership(
+        sourceVersion.deliverableId,
+        userId,
+      );
 
       // Get the original task to retrieve the prompt
       if (!sourceVersion.taskId) {
-        throw new BadRequestException('Cannot rerun: source version has no associated task');
+        throw new BadRequestException(
+          'Cannot rerun: source version has no associated task',
+        );
       }
 
       const originalTask = await this.getTaskById(sourceVersion.taskId, userId);
@@ -497,7 +508,9 @@ export class DeliverableVersionsService {
       }
 
       if (!originalTask.prompt) {
-        throw new BadRequestException('Cannot rerun: original task has no prompt');
+        throw new BadRequestException(
+          'Cannot rerun: original task has no prompt',
+        );
       }
 
       // Extract agent information from source version metadata
@@ -505,7 +518,11 @@ export class DeliverableVersionsService {
       const agentType = sourceVersion.metadata?.agentType || 'context';
 
       // Create system prompt based on agent type and original context
-      const systemPrompt = this.buildSystemPromptForRerun(agentName, agentType, sourceVersion);
+      const systemPrompt = this.buildSystemPromptForRerun(
+        agentName,
+        agentType,
+        sourceVersion,
+      );
 
       // Call LLM service with new model
       const llmResponse = await this.llmService.generateUnifiedResponse({
@@ -521,13 +538,16 @@ export class DeliverableVersionsService {
           callerName: `${agentName}_rerun`,
           conversationId: sourceVersion.metadata?.conversationId,
           includeMetadata: true, // We need the full response object
-        }
+        },
       });
 
       // Handle string | LLMResponse union type
-      const responseContent = typeof llmResponse === 'string' ? llmResponse : llmResponse.content;
-      const responseMetadata = typeof llmResponse === 'object' ? llmResponse.metadata : undefined;
-      const responsePiiMetadata = typeof llmResponse === 'object' ? llmResponse.piiMetadata : undefined;
+      const responseContent =
+        typeof llmResponse === 'string' ? llmResponse : llmResponse.content;
+      const responseMetadata =
+        typeof llmResponse === 'object' ? llmResponse.metadata : undefined;
+      const responsePiiMetadata =
+        typeof llmResponse === 'object' ? llmResponse.piiMetadata : undefined;
 
       // Create new version with LLM response
       const createVersionDto: CreateVersionDto = {
@@ -545,24 +565,30 @@ export class DeliverableVersionsService {
             temperature: rerunDto.temperature,
             maxTokens: rerunDto.maxTokens,
           },
-          llmMetadata: responseMetadata ? {
-            runId: responseMetadata.requestId, // requestId is the correct property name
-            provider: responseMetadata.provider,
-            model: responseMetadata.model,
-            inputTokens: responseMetadata.usage?.inputTokens,
-            outputTokens: responseMetadata.usage?.outputTokens,
-            cost: responseMetadata.usage?.cost,
-            duration: responseMetadata.timing?.duration,
-          } : undefined,
+          llmMetadata: responseMetadata
+            ? {
+                runId: responseMetadata.requestId, // requestId is the correct property name
+                provider: responseMetadata.provider,
+                model: responseMetadata.model,
+                inputTokens: responseMetadata.usage?.inputTokens,
+                outputTokens: responseMetadata.usage?.outputTokens,
+                cost: responseMetadata.usage?.cost,
+                duration: responseMetadata.timing?.duration,
+              }
+            : undefined,
           // Note: routingDecision not available in new unified response interface
           piiMetadata: responsePiiMetadata,
         },
       };
 
-      const newVersion = await this.createVersion(sourceVersion.deliverableId, createVersionDto, userId);
+      const newVersion = await this.createVersion(
+        sourceVersion.deliverableId,
+        createVersionDto,
+        userId,
+      );
 
       this.logger.log(
-        `🔄 Deliverable rerun completed: Version ${newVersion.versionNumber} created with ${rerunDto.provider}/${rerunDto.model} for deliverable ${sourceVersion.deliverableId}`
+        `🔄 Deliverable rerun completed: Version ${newVersion.versionNumber} created with ${rerunDto.provider}/${rerunDto.model} for deliverable ${sourceVersion.deliverableId}`,
       );
 
       return newVersion;
@@ -574,55 +600,62 @@ export class DeliverableVersionsService {
         throw error;
       }
 
-      this.logger.error('Failed to rerun deliverable with different LLM:', error);
+      this.logger.error(
+        'Failed to rerun deliverable with different LLM:',
+        error,
+      );
       this.logger.error('Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
-        name: error instanceof Error ? error.name : 'Unknown'
+        name: error instanceof Error ? error.name : 'Unknown',
       });
-      
+
       // Include the actual error message in the BadRequestException
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new BadRequestException(`Failed to rerun deliverable with different LLM: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new BadRequestException(
+        `Failed to rerun deliverable with different LLM: ${errorMessage}`,
+      );
     }
   }
 
-
   // Private helper methods
 
-  private async verifyDeliverableOwnership(deliverableId: string, userId: string): Promise<void> {
-
+  private async verifyDeliverableOwnership(
+    deliverableId: string,
+    userId: string,
+  ): Promise<void> {
     try {
       // First, check if the deliverable exists at all (without user_id filter for debugging)
-      const { data: deliverableCheck, error: checkError } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverables'))
-        .select('id, user_id')
-        .eq('id', deliverableId)
-        .single();
+      const { data: deliverableCheck, error: checkError } =
+        await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverables'))
+          .select('id, user_id')
+          .eq('id', deliverableId)
+          .single();
 
       if (checkError) {
-
         // If it's a schema or connection error, we'll see it here
-        throw new NotFoundException(`Database error checking deliverable: ${checkError.message || checkError.code || 'unknown error'}`);
+        throw new NotFoundException(
+          `Database error checking deliverable: ${checkError.message || checkError.code || 'unknown error'}`,
+        );
       }
 
       if (!deliverableCheck) {
-
         throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
       }
 
       if (deliverableCheck.user_id !== userId) {
-
         throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
       }
-
     } catch (error) {
-
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new NotFoundException(`Failed to verify deliverable ownership: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new NotFoundException(
+        `Failed to verify deliverable ownership: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -637,14 +670,15 @@ export class DeliverableVersionsService {
       .maybeSingle();
 
     if (error) {
-
       throw new BadRequestException('Failed to determine version number');
     }
 
     return lastVersion ? lastVersion.version_number + 1 : 1;
   }
 
-  private async markPreviousVersionsAsNotCurrent(deliverableId: string): Promise<void> {
+  private async markPreviousVersionsAsNotCurrent(
+    deliverableId: string,
+  ): Promise<void> {
     const { error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverable_versions'))
@@ -652,7 +686,6 @@ export class DeliverableVersionsService {
       .eq('deliverable_id', deliverableId);
 
     if (error) {
-
       throw new BadRequestException('Failed to update previous versions');
     }
   }
@@ -683,9 +716,9 @@ export class DeliverableVersionsService {
     mergePrompt: string,
   ): Promise<{ content: string; conflictSummary?: string }> {
     // Placeholder implementation - will be replaced with actual LLM integration
-    const versionContents = versions.map((v, i) => 
-      `=== VERSION ${v.versionNumber} ===\n${v.content || ''}`
-    ).join('\n\n');
+    const versionContents = versions
+      .map((v, i) => `=== VERSION ${v.versionNumber} ===\n${v.content || ''}`)
+      .join('\n\n');
 
     const mergedContent = `${versionContents}\n\n=== MERGE INSTRUCTIONS ===\n${mergePrompt}\n\n[TODO: This will be replaced with LLM-generated merged content]`;
 
@@ -712,12 +745,14 @@ export class DeliverableVersionsService {
    */
   private detectFormatFromContent(content: string): DeliverableFormat {
     if (!content) return DeliverableFormat.TEXT;
-    
+
     const trimmedContent = content.trim();
-    
+
     // Check for JSON
-    if ((trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) ||
-        (trimmedContent.startsWith('[') && trimmedContent.endsWith(']'))) {
+    if (
+      (trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) ||
+      (trimmedContent.startsWith('[') && trimmedContent.endsWith(']'))
+    ) {
       try {
         JSON.parse(trimmedContent);
         return DeliverableFormat.JSON;
@@ -725,23 +760,27 @@ export class DeliverableVersionsService {
         // Not valid JSON, continue checking
       }
     }
-    
+
     // Check for HTML
-    if (trimmedContent.includes('<html') || 
-        trimmedContent.includes('<!DOCTYPE') ||
-        (trimmedContent.includes('<') && trimmedContent.includes('>'))) {
+    if (
+      trimmedContent.includes('<html') ||
+      trimmedContent.includes('<!DOCTYPE') ||
+      (trimmedContent.includes('<') && trimmedContent.includes('>'))
+    ) {
       return DeliverableFormat.HTML;
     }
-    
+
     // Check for Markdown
-    if (content.includes('```') || 
-        content.includes('#') || 
-        content.includes('**') || 
-        content.includes('__') ||
-        content.includes('[') && content.includes('](')) {
+    if (
+      content.includes('```') ||
+      content.includes('#') ||
+      content.includes('**') ||
+      content.includes('__') ||
+      (content.includes('[') && content.includes(']('))
+    ) {
       return DeliverableFormat.MARKDOWN;
     }
-    
+
     // Default to plain text
     return DeliverableFormat.TEXT;
   }
@@ -749,19 +788,25 @@ export class DeliverableVersionsService {
   /**
    * Get the most common format from a list of versions
    */
-  private getMostCommonFormat(versions: DeliverableVersion[]): DeliverableFormat {
+  private getMostCommonFormat(
+    versions: DeliverableVersion[],
+  ): DeliverableFormat {
     if (versions.length === 0) return DeliverableFormat.TEXT;
-    
-    const formatCounts = versions.reduce((acc, v) => {
-      if (v.format) {
-        acc[v.format] = (acc[v.format] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const mostCommon = Object.entries(formatCounts)
-      .sort(([,a], [,b]) => b - a)[0]?.[0];
-      
+
+    const formatCounts = versions.reduce(
+      (acc, v) => {
+        if (v.format) {
+          acc[v.format] = (acc[v.format] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    const mostCommon = Object.entries(formatCounts).sort(
+      ([, a], [, b]) => b - a,
+    )[0]?.[0];
+
     return (mostCommon as DeliverableFormat) || DeliverableFormat.TEXT;
   }
 
@@ -774,25 +819,26 @@ export class DeliverableVersionsService {
     sourceVersion: DeliverableVersion,
   ): string {
     const basePrompt = `You are ${agentName}, a ${agentType} agent. You are re-running a previous task with a different LLM model.`;
-    
+
     // Add context from the original version if available
     let contextPrompt = '';
     if (sourceVersion.metadata?.conversationId) {
       contextPrompt += ' This is part of an ongoing conversation.';
     }
-    
+
     if (sourceVersion.metadata?.projectStepId) {
       contextPrompt += ' This is part of a project workflow.';
     }
 
     // Add format guidance
-    const formatGuidance = sourceVersion.format === DeliverableFormat.MARKDOWN 
-      ? ' Please format your response in Markdown.'
-      : sourceVersion.format === DeliverableFormat.JSON
-      ? ' Please format your response as valid JSON.'
-      : sourceVersion.format === DeliverableFormat.HTML
-      ? ' Please format your response as HTML.'
-      : ' Please format your response as plain text.';
+    const formatGuidance =
+      sourceVersion.format === DeliverableFormat.MARKDOWN
+        ? ' Please format your response in Markdown.'
+        : sourceVersion.format === DeliverableFormat.JSON
+          ? ' Please format your response as valid JSON.'
+          : sourceVersion.format === DeliverableFormat.HTML
+            ? ' Please format your response as HTML.'
+            : ' Please format your response as plain text.';
 
     return `${basePrompt}${contextPrompt}${formatGuidance}
 

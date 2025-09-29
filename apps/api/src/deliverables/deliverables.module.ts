@@ -9,7 +9,7 @@ import { LLMModule } from '../llms/llm.module';
 
 @Module({
   imports: [
-    SupabaseModule, 
+    SupabaseModule,
     AgentConversationsModule,
     forwardRef(() => LLMModule),
   ],

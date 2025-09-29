@@ -1,6 +1,6 @@
 /**
  * Comprehensive LLM Error Handling System
- * 
+ *
  * This module provides standardized error types, codes, and handling mechanisms
  * across all LLM provider services to ensure consistent error reporting,
  * user-friendly messages, and proper retry logic.
@@ -75,9 +75,9 @@ export enum LLMErrorType {
  * Error severity levels for prioritizing error handling
  */
 export enum LLMErrorSeverity {
-  LOW = 'low',           // Minor issues, system can continue
-  MEDIUM = 'medium',     // Notable issues, may affect user experience
-  HIGH = 'high',         // Significant issues, likely to block user
+  LOW = 'low', // Minor issues, system can continue
+  MEDIUM = 'medium', // Notable issues, may affect user experience
+  HIGH = 'high', // Significant issues, likely to block user
   CRITICAL = 'critical', // System-level issues, requires immediate attention
 }
 
@@ -85,13 +85,13 @@ export enum LLMErrorSeverity {
  * Error category for grouping related error types
  */
 export enum LLMErrorCategory {
-  CLIENT = 'client',         // Client-side errors (4xx)
-  SERVER = 'server',         // Server-side errors (5xx)
-  NETWORK = 'network',       // Network connectivity issues
+  CLIENT = 'client', // Client-side errors (4xx)
+  SERVER = 'server', // Server-side errors (5xx)
+  NETWORK = 'network', // Network connectivity issues
   CONFIGURATION = 'configuration', // Configuration problems
   VALIDATION = 'validation', // Input validation errors
-  SECURITY = 'security',     // Security and safety errors
-  RESOURCE = 'resource',     // Resource limits and availability
+  SECURITY = 'security', // Security and safety errors
+  RESOURCE = 'resource', // Resource limits and availability
 }
 
 /**
@@ -124,7 +124,7 @@ export class LLMError extends Error {
       originalError?: any;
       context?: Record<string, any>;
       requestId?: string;
-    } = {}
+    } = {},
   ) {
     super(message);
     this.name = 'LLMError';
@@ -266,55 +266,94 @@ export class LLMError extends Error {
    */
   public getUserFriendlyMessage(): string {
     const messageMap: Record<LLMErrorType, string> = {
-      [LLMErrorType.AUTHENTICATION]: 'Authentication failed. Please check your API credentials.',
-      [LLMErrorType.AUTHORIZATION]: 'You are not authorized to use this service.',
-      [LLMErrorType.API_KEY_INVALID]: 'The API key is invalid. Please check your configuration.',
-      [LLMErrorType.API_KEY_MISSING]: 'API key is missing. Please configure your credentials.',
-      
-      [LLMErrorType.RATE_LIMIT]: 'The service is currently busy. Please try again in a moment.',
-      [LLMErrorType.QUOTA_EXCEEDED]: 'You have reached your usage limit for this service.',
-      [LLMErrorType.DAILY_LIMIT_EXCEEDED]: 'Daily usage limit exceeded. Please try again tomorrow.',
-      [LLMErrorType.MONTHLY_LIMIT_EXCEEDED]: 'Monthly usage limit exceeded. Please upgrade your plan.',
-      
-      [LLMErrorType.INVALID_REQUEST]: 'The request is invalid. Please check your input.',
-      [LLMErrorType.MISSING_PARAMETERS]: 'Required parameters are missing from your request.',
-      [LLMErrorType.INVALID_PARAMETERS]: 'Some parameters in your request are invalid.',
+      [LLMErrorType.AUTHENTICATION]:
+        'Authentication failed. Please check your API credentials.',
+      [LLMErrorType.AUTHORIZATION]:
+        'You are not authorized to use this service.',
+      [LLMErrorType.API_KEY_INVALID]:
+        'The API key is invalid. Please check your configuration.',
+      [LLMErrorType.API_KEY_MISSING]:
+        'API key is missing. Please configure your credentials.',
+
+      [LLMErrorType.RATE_LIMIT]:
+        'The service is currently busy. Please try again in a moment.',
+      [LLMErrorType.QUOTA_EXCEEDED]:
+        'You have reached your usage limit for this service.',
+      [LLMErrorType.DAILY_LIMIT_EXCEEDED]:
+        'Daily usage limit exceeded. Please try again tomorrow.',
+      [LLMErrorType.MONTHLY_LIMIT_EXCEEDED]:
+        'Monthly usage limit exceeded. Please upgrade your plan.',
+
+      [LLMErrorType.INVALID_REQUEST]:
+        'The request is invalid. Please check your input.',
+      [LLMErrorType.MISSING_PARAMETERS]:
+        'Required parameters are missing from your request.',
+      [LLMErrorType.INVALID_PARAMETERS]:
+        'Some parameters in your request are invalid.',
       [LLMErrorType.MALFORMED_REQUEST]: 'The request format is incorrect.',
-      
-      [LLMErrorType.MODEL_NOT_FOUND]: 'The requested model was not found. Please select a different model.',
-      [LLMErrorType.MODEL_UNAVAILABLE]: 'The model is temporarily unavailable. Please try again later.',
-      [LLMErrorType.UNSUPPORTED_MODEL]: 'This model is not supported by the selected provider.',
-      [LLMErrorType.PROVIDER_UNAVAILABLE]: 'The AI service is currently unavailable. Please try again later.',
-      
-      [LLMErrorType.CONTENT_FILTER]: 'Your content was filtered by safety systems. Please modify your input.',
-      [LLMErrorType.SAFETY_VIOLATION]: 'Your request violates safety guidelines. Please revise your input.',
-      [LLMErrorType.INAPPROPRIATE_CONTENT]: 'The content is inappropriate. Please use different language.',
-      [LLMErrorType.HARMFUL_CONTENT]: 'The content may be harmful and cannot be processed.',
-      
-      [LLMErrorType.CONTEXT_LENGTH_EXCEEDED]: 'Your input is too long for this model. Please shorten it or use a model with larger context.',
-      [LLMErrorType.TOKEN_LIMIT_EXCEEDED]: 'Token limit exceeded. Please reduce the length of your input.',
-      [LLMErrorType.INPUT_TOO_LONG]: 'Your input is too long. Please shorten it and try again.',
-      [LLMErrorType.OUTPUT_TOO_LONG]: 'The response was too long and was truncated.',
-      
-      [LLMErrorType.NETWORK_ERROR]: 'Network connection failed. Please check your internet connection.',
-      [LLMErrorType.CONNECTION_TIMEOUT]: 'The request timed out. Please try again.',
-      [LLMErrorType.SERVICE_UNAVAILABLE]: 'The AI service is temporarily unavailable. Please try again later.',
-      [LLMErrorType.SERVER_ERROR]: 'A server error occurred. Please try again later.',
-      [LLMErrorType.GATEWAY_TIMEOUT]: 'The request timed out at the gateway. Please try again.',
-      
-      [LLMErrorType.CONFIGURATION_ERROR]: 'There is a configuration error. Please contact support.',
-      [LLMErrorType.INVALID_CONFIGURATION]: 'The service configuration is invalid.',
-      [LLMErrorType.MISSING_CONFIGURATION]: 'Required configuration is missing.',
-      
-      [LLMErrorType.PROCESSING_ERROR]: 'An error occurred while processing your request.',
-      [LLMErrorType.PII_PROCESSING_ERROR]: 'An error occurred while processing sensitive information.',
-      [LLMErrorType.RESPONSE_PARSING_ERROR]: 'Failed to parse the response from the AI service.',
-      
-      [LLMErrorType.UNKNOWN]: 'An unknown error occurred. Please try again later.',
-      [LLMErrorType.INTERNAL_ERROR]: 'An internal error occurred. Please contact support if this persists.',
+
+      [LLMErrorType.MODEL_NOT_FOUND]:
+        'The requested model was not found. Please select a different model.',
+      [LLMErrorType.MODEL_UNAVAILABLE]:
+        'The model is temporarily unavailable. Please try again later.',
+      [LLMErrorType.UNSUPPORTED_MODEL]:
+        'This model is not supported by the selected provider.',
+      [LLMErrorType.PROVIDER_UNAVAILABLE]:
+        'The AI service is currently unavailable. Please try again later.',
+
+      [LLMErrorType.CONTENT_FILTER]:
+        'Your content was filtered by safety systems. Please modify your input.',
+      [LLMErrorType.SAFETY_VIOLATION]:
+        'Your request violates safety guidelines. Please revise your input.',
+      [LLMErrorType.INAPPROPRIATE_CONTENT]:
+        'The content is inappropriate. Please use different language.',
+      [LLMErrorType.HARMFUL_CONTENT]:
+        'The content may be harmful and cannot be processed.',
+
+      [LLMErrorType.CONTEXT_LENGTH_EXCEEDED]:
+        'Your input is too long for this model. Please shorten it or use a model with larger context.',
+      [LLMErrorType.TOKEN_LIMIT_EXCEEDED]:
+        'Token limit exceeded. Please reduce the length of your input.',
+      [LLMErrorType.INPUT_TOO_LONG]:
+        'Your input is too long. Please shorten it and try again.',
+      [LLMErrorType.OUTPUT_TOO_LONG]:
+        'The response was too long and was truncated.',
+
+      [LLMErrorType.NETWORK_ERROR]:
+        'Network connection failed. Please check your internet connection.',
+      [LLMErrorType.CONNECTION_TIMEOUT]:
+        'The request timed out. Please try again.',
+      [LLMErrorType.SERVICE_UNAVAILABLE]:
+        'The AI service is temporarily unavailable. Please try again later.',
+      [LLMErrorType.SERVER_ERROR]:
+        'A server error occurred. Please try again later.',
+      [LLMErrorType.GATEWAY_TIMEOUT]:
+        'The request timed out at the gateway. Please try again.',
+
+      [LLMErrorType.CONFIGURATION_ERROR]:
+        'There is a configuration error. Please contact support.',
+      [LLMErrorType.INVALID_CONFIGURATION]:
+        'The service configuration is invalid.',
+      [LLMErrorType.MISSING_CONFIGURATION]:
+        'Required configuration is missing.',
+
+      [LLMErrorType.PROCESSING_ERROR]:
+        'An error occurred while processing your request.',
+      [LLMErrorType.PII_PROCESSING_ERROR]:
+        'An error occurred while processing sensitive information.',
+      [LLMErrorType.RESPONSE_PARSING_ERROR]:
+        'Failed to parse the response from the AI service.',
+
+      [LLMErrorType.UNKNOWN]:
+        'An unknown error occurred. Please try again later.',
+      [LLMErrorType.INTERNAL_ERROR]:
+        'An internal error occurred. Please contact support if this persists.',
     };
 
-    return messageMap[this.type] || 'An error occurred while processing your request.';
+    return (
+      messageMap[this.type] ||
+      'An error occurred while processing your request.'
+    );
   }
 
   /**
@@ -333,12 +372,14 @@ export class LLMError extends Error {
       timestamp: this.timestamp,
       requestId: this.requestId,
       context: this.context,
-      originalError: this.originalError ? {
-        message: this.originalError.message,
-        code: this.originalError.code,
-        status: this.originalError.status,
-        stack: this.originalError.stack,
-      } : undefined,
+      originalError: this.originalError
+        ? {
+            message: this.originalError.message,
+            code: this.originalError.code,
+            status: this.originalError.status,
+            stack: this.originalError.stack,
+          }
+        : undefined,
     };
   }
 
@@ -364,7 +405,12 @@ export class LLMErrorMapper {
   /**
    * Map OpenAI errors to standardized LLMError
    */
-  static fromOpenAIError(error: any, provider: string = 'openai', model?: string, requestId?: string): LLMError {
+  static fromOpenAIError(
+    error: any,
+    provider: string = 'openai',
+    model?: string,
+    requestId?: string,
+  ): LLMError {
     const status = error.response?.status || error.status;
     const errorType = error.response?.data?.error?.type || error.type;
     const errorCode = error.response?.data?.error?.code || error.code;
@@ -375,7 +421,7 @@ export class LLMErrorMapper {
         'Invalid OpenAI API key',
         LLMErrorType.API_KEY_INVALID,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -386,12 +432,12 @@ export class LLMErrorMapper {
         'OpenAI rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
         provider,
-        { 
-          model, 
-          originalError: error, 
+        {
+          model,
+          originalError: error,
           requestId,
-          retryAfterMs: retryAfter ? parseInt(retryAfter) * 1000 : 60000 
-        }
+          retryAfterMs: retryAfter ? parseInt(retryAfter) * 1000 : 60000,
+        },
       );
     }
 
@@ -401,7 +447,7 @@ export class LLMErrorMapper {
         'OpenAI quota exceeded',
         LLMErrorType.QUOTA_EXCEEDED,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -412,15 +458,15 @@ export class LLMErrorMapper {
           'Context length exceeded for OpenAI model',
           LLMErrorType.CONTEXT_LENGTH_EXCEEDED,
           provider,
-          { model, originalError: error, requestId }
+          { model, originalError: error, requestId },
         );
       }
-      
+
       return new LLMError(
         `Invalid OpenAI request: ${error.message}`,
         LLMErrorType.INVALID_REQUEST,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -430,7 +476,7 @@ export class LLMErrorMapper {
         `OpenAI model not found: ${model}`,
         LLMErrorType.MODEL_NOT_FOUND,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -440,7 +486,7 @@ export class LLMErrorMapper {
         'OpenAI server error',
         LLMErrorType.SERVER_ERROR,
         provider,
-        { model, originalError: error, requestId, retryable: true }
+        { model, originalError: error, requestId, retryable: true },
       );
     }
 
@@ -450,7 +496,7 @@ export class LLMErrorMapper {
         'Cannot connect to OpenAI service',
         LLMErrorType.NETWORK_ERROR,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -459,7 +505,7 @@ export class LLMErrorMapper {
         'OpenAI request timed out',
         LLMErrorType.CONNECTION_TIMEOUT,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -468,14 +514,19 @@ export class LLMErrorMapper {
       `Unknown OpenAI error: ${error.message}`,
       LLMErrorType.UNKNOWN,
       provider,
-      { model, originalError: error, requestId }
+      { model, originalError: error, requestId },
     );
   }
 
   /**
    * Map Anthropic errors to standardized LLMError
    */
-  static fromAnthropicError(error: any, provider: string = 'anthropic', model?: string, requestId?: string): LLMError {
+  static fromAnthropicError(
+    error: any,
+    provider: string = 'anthropic',
+    model?: string,
+    requestId?: string,
+  ): LLMError {
     const status = error.status;
     const errorType = error.error?.type;
 
@@ -485,7 +536,7 @@ export class LLMErrorMapper {
         'Invalid Anthropic API key',
         LLMErrorType.API_KEY_INVALID,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -495,7 +546,7 @@ export class LLMErrorMapper {
         'Anthropic rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
         provider,
-        { model, originalError: error, requestId, retryAfterMs: 60000 }
+        { model, originalError: error, requestId, retryAfterMs: 60000 },
       );
     }
 
@@ -506,7 +557,7 @@ export class LLMErrorMapper {
           `Invalid Anthropic request: ${error.error?.message}`,
           LLMErrorType.INVALID_REQUEST,
           provider,
-          { model, originalError: error, requestId }
+          { model, originalError: error, requestId },
         );
       }
     }
@@ -517,7 +568,7 @@ export class LLMErrorMapper {
         'Anthropic server error',
         LLMErrorType.SERVER_ERROR,
         provider,
-        { model, originalError: error, requestId, retryable: true }
+        { model, originalError: error, requestId, retryable: true },
       );
     }
 
@@ -526,14 +577,19 @@ export class LLMErrorMapper {
       `Unknown Anthropic error: ${error.message}`,
       LLMErrorType.UNKNOWN,
       provider,
-      { model, originalError: error, requestId }
+      { model, originalError: error, requestId },
     );
   }
 
   /**
    * Map Google errors to standardized LLMError
    */
-  static fromGoogleError(error: any, provider: string = 'google', model?: string, requestId?: string): LLMError {
+  static fromGoogleError(
+    error: any,
+    provider: string = 'google',
+    model?: string,
+    requestId?: string,
+  ): LLMError {
     const message = error.message || '';
 
     // Authentication errors
@@ -542,7 +598,7 @@ export class LLMErrorMapper {
         'Invalid Google API key',
         LLMErrorType.API_KEY_INVALID,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -552,7 +608,7 @@ export class LLMErrorMapper {
         'Google API quota exceeded',
         LLMErrorType.QUOTA_EXCEEDED,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -562,7 +618,7 @@ export class LLMErrorMapper {
         'Content blocked by Google safety filters',
         LLMErrorType.CONTENT_FILTER,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -571,7 +627,7 @@ export class LLMErrorMapper {
         'Content blocked due to recitation concerns',
         LLMErrorType.CONTENT_FILTER,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -580,21 +636,26 @@ export class LLMErrorMapper {
       `Unknown Google error: ${error.message}`,
       LLMErrorType.UNKNOWN,
       provider,
-      { model, originalError: error, requestId }
+      { model, originalError: error, requestId },
     );
   }
 
   /**
    * Map Ollama errors to standardized LLMError
    */
-  static fromOllamaError(error: any, provider: string = 'ollama', model?: string, requestId?: string): LLMError {
+  static fromOllamaError(
+    error: any,
+    provider: string = 'ollama',
+    model?: string,
+    requestId?: string,
+  ): LLMError {
     // Connection errors
     if (error.code === 'ECONNREFUSED') {
       return new LLMError(
         'Cannot connect to Ollama server. Is Ollama running?',
         LLMErrorType.NETWORK_ERROR,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -604,7 +665,7 @@ export class LLMErrorMapper {
         'Ollama request timed out. Model may be loading.',
         LLMErrorType.CONNECTION_TIMEOUT,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -614,7 +675,7 @@ export class LLMErrorMapper {
         'Ollama endpoint not found. Check server configuration.',
         LLMErrorType.MODEL_NOT_FOUND,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -624,7 +685,7 @@ export class LLMErrorMapper {
         `Ollama model not available: ${model}`,
         LLMErrorType.MODEL_UNAVAILABLE,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -633,14 +694,19 @@ export class LLMErrorMapper {
       `Unknown Ollama error: ${error.message}`,
       LLMErrorType.UNKNOWN,
       provider,
-      { model, originalError: error, requestId }
+      { model, originalError: error, requestId },
     );
   }
 
   /**
    * Map Grok errors to standardized LLMError
    */
-  static fromGrokError(error: any, provider: string = 'grok', model?: string, requestId?: string): LLMError {
+  static fromGrokError(
+    error: any,
+    provider: string = 'grok',
+    model?: string,
+    requestId?: string,
+  ): LLMError {
     // Grok uses OpenAI-compatible API, so similar error handling
     const status = error.response?.status || error.status;
 
@@ -650,7 +716,7 @@ export class LLMErrorMapper {
         'Invalid Grok API key',
         LLMErrorType.API_KEY_INVALID,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -660,7 +726,7 @@ export class LLMErrorMapper {
         'Grok rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
         provider,
-        { model, originalError: error, requestId, retryAfterMs: 60000 }
+        { model, originalError: error, requestId, retryAfterMs: 60000 },
       );
     }
 
@@ -670,7 +736,7 @@ export class LLMErrorMapper {
         `Invalid Grok request: ${error.message}`,
         LLMErrorType.INVALID_REQUEST,
         provider,
-        { model, originalError: error, requestId }
+        { model, originalError: error, requestId },
       );
     }
 
@@ -680,7 +746,7 @@ export class LLMErrorMapper {
         'Grok server error',
         LLMErrorType.SERVER_ERROR,
         provider,
-        { model, originalError: error, requestId, retryable: true }
+        { model, originalError: error, requestId, retryable: true },
       );
     }
 
@@ -689,14 +755,19 @@ export class LLMErrorMapper {
       `Unknown Grok error: ${error.message}`,
       LLMErrorType.UNKNOWN,
       provider,
-      { model, originalError: error, requestId }
+      { model, originalError: error, requestId },
     );
   }
 
   /**
    * Generic error mapper that attempts to determine provider from error
    */
-  static fromGenericError(error: any, provider: string, model?: string, requestId?: string): LLMError {
+  static fromGenericError(
+    error: any,
+    provider: string,
+    model?: string,
+    requestId?: string,
+  ): LLMError {
     switch (provider.toLowerCase()) {
       case 'openai':
         return this.fromOpenAIError(error, provider, model, requestId);
@@ -713,7 +784,7 @@ export class LLMErrorMapper {
           `Unknown error from ${provider}: ${error.message}`,
           LLMErrorType.UNKNOWN,
           provider,
-          { model, originalError: error, requestId }
+          { model, originalError: error, requestId },
         );
     }
   }
@@ -748,7 +819,7 @@ export class LLMErrorMonitor {
    */
   static recordError(error: LLMError): void {
     this.errorHistory.push(error);
-    
+
     // Maintain history size limit
     if (this.errorHistory.length > this.maxHistorySize) {
       this.errorHistory = this.errorHistory.slice(-this.maxHistorySize);
@@ -770,17 +841,24 @@ export class LLMErrorMonitor {
 
     // Alert on critical errors
     if (error.severity === LLMErrorSeverity.CRITICAL) {
-      this.logger.error(`🚨 CRITICAL LLM ERROR: ${error.message}`, error.getTechnicalDetails());
+      this.logger.error(
+        `🚨 CRITICAL LLM ERROR: ${error.message}`,
+        error.getTechnicalDetails(),
+      );
     }
   }
 
   /**
    * Get error statistics for a provider
    */
-  static getErrorStats(provider: string, timeWindowHours: number = 24): LLMErrorStats {
+  static getErrorStats(
+    provider: string,
+    timeWindowHours: number = 24,
+  ): LLMErrorStats {
     const cutoffTime = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000);
     const relevantErrors = this.errorHistory.filter(
-      error => error.provider === provider && new Date(error.timestamp) > cutoffTime
+      (error) =>
+        error.provider === provider && new Date(error.timestamp) > cutoffTime,
     );
 
     const errorsByType: Record<LLMErrorType, number> = {} as any;
@@ -788,10 +866,12 @@ export class LLMErrorMonitor {
     const errorsByCategory: Record<LLMErrorCategory, number> = {} as any;
     let retryableErrors = 0;
 
-    relevantErrors.forEach(error => {
+    relevantErrors.forEach((error) => {
       errorsByType[error.type] = (errorsByType[error.type] || 0) + 1;
-      errorsBySeverity[error.severity] = (errorsBySeverity[error.severity] || 0) + 1;
-      errorsByCategory[error.category] = (errorsByCategory[error.category] || 0) + 1;
+      errorsBySeverity[error.severity] =
+        (errorsBySeverity[error.severity] || 0) + 1;
+      errorsByCategory[error.category] =
+        (errorsByCategory[error.category] || 0) + 1;
       if (error.retryable) retryableErrors++;
     });
 
@@ -860,63 +940,76 @@ export class LLMRetryHandler {
   static async withRetry<T>(
     operation: () => Promise<T>,
     config: RetryConfig = DEFAULT_RETRY_CONFIG,
-    context: string = 'LLM operation'
+    context: string = 'LLM operation',
   ): Promise<T> {
     let lastError: LLMError | undefined;
-    
+
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
       try {
         const result = await operation();
-        
+
         // Log successful retry
         if (attempt > 0) {
           this.logger.log(`${context} succeeded after ${attempt} retries`);
         }
-        
+
         return result;
       } catch (error) {
         // Convert to LLMError if not already
-        const llmError = error instanceof LLMError 
-          ? error 
-          : new LLMError(
-              (error as any)?.message || 'Unknown error',
-              LLMErrorType.UNKNOWN,
-              'unknown',
-              { originalError: error }
-            );
+        const llmError =
+          error instanceof LLMError
+            ? error
+            : new LLMError(
+                (error as any)?.message || 'Unknown error',
+                LLMErrorType.UNKNOWN,
+                'unknown',
+                { originalError: error },
+              );
 
         lastError = llmError;
 
         // Check if error is retryable
-        if (!llmError.retryable || !config.retryableErrorTypes.includes(llmError.type)) {
-          this.logger.error(`${context} failed with non-retryable error: ${llmError.message}`);
+        if (
+          !llmError.retryable ||
+          !config.retryableErrorTypes.includes(llmError.type)
+        ) {
+          this.logger.error(
+            `${context} failed with non-retryable error: ${llmError.message}`,
+          );
           throw llmError;
         }
 
         // Check if we've exhausted retries
         if (attempt >= config.maxRetries) {
-          this.logger.error(`${context} failed after ${config.maxRetries} retries: ${llmError.message}`);
+          this.logger.error(
+            `${context} failed after ${config.maxRetries} retries: ${llmError.message}`,
+          );
           throw llmError;
         }
 
         // Calculate delay for next retry
         const delay = Math.min(
           config.baseDelayMs * Math.pow(config.backoffMultiplier, attempt),
-          config.maxDelayMs
+          config.maxDelayMs,
         );
 
         // Use retry-after header if available
         const actualDelay = llmError.retryAfterMs || delay;
 
-        this.logger.warn(`${context} failed (attempt ${attempt + 1}/${config.maxRetries + 1}), retrying in ${actualDelay}ms: ${llmError.message}`);
+        this.logger.warn(
+          `${context} failed (attempt ${attempt + 1}/${config.maxRetries + 1}), retrying in ${actualDelay}ms: ${llmError.message}`,
+        );
 
         // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, actualDelay));
+        await new Promise((resolve) => setTimeout(resolve, actualDelay));
       }
     }
 
     // This should never be reached, but TypeScript requires it
-    throw lastError || new LLMError('Retry logic failed', LLMErrorType.INTERNAL_ERROR, 'unknown');
+    throw (
+      lastError ||
+      new LLMError('Retry logic failed', LLMErrorType.INTERNAL_ERROR, 'unknown')
+    );
   }
 }
 
@@ -931,7 +1024,7 @@ export class LLMErrorUtils {
     if (error instanceof LLMError) {
       return error.retryable;
     }
-    
+
     // Check common retryable patterns
     const retryablePatterns = [
       /rate.?limit/i,
@@ -942,7 +1035,7 @@ export class LLMErrorUtils {
     ];
 
     const errorMessage = error.message || '';
-    return retryablePatterns.some(pattern => pattern.test(errorMessage));
+    return retryablePatterns.some((pattern) => pattern.test(errorMessage));
   }
 
   /**

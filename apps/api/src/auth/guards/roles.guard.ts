@@ -73,7 +73,6 @@ export class RolesGuard implements CanActivate {
 
     // Ensure user is authenticated (should be handled by JwtAuthGuard first)
     if (!user || !user.id) {
-
       throw new ForbiddenException('Authentication required');
     }
 
@@ -82,7 +81,6 @@ export class RolesGuard implements CanActivate {
       const userProfile = await this.getUserProfile(user.id);
 
       if (!userProfile) {
-
         throw new ForbiddenException('User profile not found');
       }
 
@@ -137,7 +135,6 @@ export class RolesGuard implements CanActivate {
 
       return data;
     } catch (error) {
-
       throw error;
     }
   }

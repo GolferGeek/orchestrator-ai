@@ -1,6 +1,6 @@
 /**
  * Simplified PII Module
- * 
+ *
  * Provides the clean, simplified PII services
  * Can be used alongside legacy services during migration
  */
@@ -15,9 +15,7 @@ import { SovereignPolicyService } from '../config/sovereign-policy.service';
 import { SupabaseModule } from '../supabase/supabase.module';
 
 @Module({
-  imports: [
-    SupabaseModule
-  ],
+  imports: [SupabaseModule],
   providers: [
     SimplifiedPIIService,
     PIIPatternService,
@@ -26,9 +24,6 @@ import { SupabaseModule } from '../supabase/supabase.module';
     FeatureFlagService,
     SovereignPolicyService,
   ],
-  exports: [
-    SimplifiedPIIService,
-    SimplifiedCentralizedRoutingService,
-  ],
+  exports: [SimplifiedPIIService, SimplifiedCentralizedRoutingService],
 })
 export class SimplifiedPIIModule {}

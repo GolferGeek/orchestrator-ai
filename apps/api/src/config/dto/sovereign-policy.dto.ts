@@ -60,7 +60,8 @@ export class SovereignPolicyStatusDto {
   allowedProviders!: string[];
 
   @ApiPropertyOptional({
-    description: 'Fallback behavior when no compliant providers available (deprecated)',
+    description:
+      'Fallback behavior when no compliant providers available (deprecated)',
     example: 'prompt_user',
     deprecated: true,
   })
@@ -139,7 +140,8 @@ export class PolicyValidationResponseDto {
   valid!: boolean;
 
   @ApiProperty({
-    description: 'Effective sovereign mode status after applying precedence rules',
+    description:
+      'Effective sovereign mode status after applying precedence rules',
     example: true,
   })
   effectiveSovereignMode!: boolean;

@@ -37,8 +37,11 @@ export class JwtAuthGuard implements CanActivate {
 
     if (configuredTestKey && testApiKey && testApiKey === configuredTestKey) {
       // Prefer configured test user from environment to satisfy DB FKs in development
-      const devUserId = process.env.SUPABASE_TEST_USERID || '00000000-0000-0000-0000-000000000001';
-      const devEmail = process.env.SUPABASE_TEST_USER || 'test_api_key_user@example.com';
+      const devUserId =
+        process.env.SUPABASE_TEST_USERID ||
+        '00000000-0000-0000-0000-000000000001';
+      const devEmail =
+        process.env.SUPABASE_TEST_USER || 'test_api_key_user@example.com';
 
       (request as any).user = {
         id: devUserId,
@@ -60,12 +63,10 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
-
       throw new UnauthorizedException('No token provided');
     }
 
     try {
-
       // Verify the token with Supabase
       const supabaseClient = this.supabaseService.getAnonClient();
       const {
@@ -74,7 +75,6 @@ export class JwtAuthGuard implements CanActivate {
       } = await supabaseClient.auth.getUser(token);
 
       if (error || !user) {
-
         throw new UnauthorizedException('Invalid token');
       }
 
@@ -104,7 +104,6 @@ export class JwtAuthGuard implements CanActivate {
       (request as any).user = validatedUser;
       return true;
     } catch (error) {
-
       throw new UnauthorizedException('Invalid token');
     }
   }

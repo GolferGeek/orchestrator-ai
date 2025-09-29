@@ -47,13 +47,13 @@ interface AuthenticatedSocket extends Socket {
       'http://127.0.0.1:3101',
       'http://localhost:8080',
       'http://127.0.0.1:8080',
-                    // Production domains
-              'https://orchestratorai.io',
-              'https://app.orchestratorai.io',
-              'https://api.orchestratorai.io',
-              'http://orchestratorai.io',
-              'http://app.orchestratorai.io',
-              'http://api.orchestratorai.io',
+      // Production domains
+      'https://orchestratorai.io',
+      'https://app.orchestratorai.io',
+      'https://api.orchestratorai.io',
+      'http://orchestratorai.io',
+      'http://app.orchestratorai.io',
+      'http://api.orchestratorai.io',
     ],
     credentials: true,
     methods: ['GET', 'POST'],
@@ -73,18 +73,14 @@ export class TaskProgressGateway
 
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  afterInit(server: Server) {
-
-  }
+  afterInit(server: Server) {}
 
   async handleConnection(client: AuthenticatedSocket) {
-
     try {
       // Extract JWT token from handshake
       const token = this.extractTokenFromHandshake(client);
 
       if (!token) {
-
         client.userId = 'anonymous';
         client.subscribedTasks = new Set();
         this.connectedClients.set(client.id, client);
@@ -100,7 +96,6 @@ export class TaskProgressGateway
       } = await supabaseClient.auth.getUser(token);
 
       if (error || !user) {
-
         client.userId = 'anonymous';
         client.subscribedTasks = new Set();
         this.connectedClients.set(client.id, client);
@@ -117,18 +112,15 @@ export class TaskProgressGateway
       // Join user-specific room
       client.join(`user:${client.userId}`);
     } catch (error) {
-
       // Allow anonymous connection as fallback
       client.userId = 'anonymous';
       client.subscribedTasks = new Set();
       this.connectedClients.set(client.id, client);
-
     }
   }
 
   handleDisconnect(client: AuthenticatedSocket) {
     this.connectedClients.delete(client.id);
-
   }
 
   /**
@@ -139,10 +131,8 @@ export class TaskProgressGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { taskId: string },
   ) {
-
     // Allow subscription without authentication for development/testing
     if (!client.userId) {
-
       // Set a temporary user ID for unauthenticated clients
       client.userId = 'anonymous';
     }
@@ -162,19 +152,16 @@ export class TaskProgressGateway
         const clientCount = roomClients ? roomClients.size : 0;
 
         if (clientCount === 0) {
-
           const allRooms = Array.from(
             this.server?.sockets?.adapter?.rooms?.keys() || [],
           );
 
           const clientRooms = Array.from(client.rooms || []);
-
         }
       }, 100); // Small delay to let room join complete
 
       client.emit('subscription_confirmed', { taskId: data.taskId });
     } catch (error) {
-
       client.emit('subscription_error', {
         taskId: data.taskId,
         message: 'Failed to subscribe to task',
@@ -201,7 +188,6 @@ export class TaskProgressGateway
    */
   @OnEvent('task.progress')
   handleTaskProgress(event: TaskProgressEvent) {
-
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${event.taskId}`).emit('task_progress', event);
   }
@@ -232,22 +218,17 @@ export class TaskProgressGateway
     try {
       roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${taskId}`);
       clientCount = roomClients ? roomClients.size : 0;
-    } catch (error) {
-
-    }
+    } catch (error) {}
 
     if (clientCount === 0) {
-
       // Log all current rooms to debug
       const allRooms = Array.from(
         this.server?.sockets?.adapter?.rooms?.keys() || [],
       );
-
     }
 
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${taskId}`).emit('workflow_step_progress', event);
-
   }
 
   /**
@@ -268,13 +249,10 @@ export class TaskProgressGateway
         `task:${taskId}`,
       );
       clientCount = roomClients ? roomClients.size : 0;
-    } catch (error) {
-
-    }
+    } catch (error) {}
 
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${taskId}`).emit('task_completed', event);
-
   }
 
   /**
@@ -303,15 +281,12 @@ export class TaskProgressGateway
         `task:${taskId}`,
       );
       clientCount = roomClients ? roomClients.size : 0;
-    } catch (error) {
-
-    }
+    } catch (error) {}
 
     // Broadcast to all clients subscribed to this task with full response
     this.server
       .to(`task:${taskId}`)
       .emit('task_completed_with_response', event);
-
   }
 
   /**
@@ -324,7 +299,6 @@ export class TaskProgressGateway
     userId: string;
     agentName: string;
   }) {
-
     // Broadcast to user's room
     this.server.to(`user:${event.userId}`).emit('task_created', event);
   }
@@ -341,7 +315,6 @@ export class TaskProgressGateway
     message?: string;
     data: any; // Full JSON status object with agent-specific data
   }) {
-
     // Broadcast to task room and user room with full JSON data
     this.server.to(`task:${event.taskId}`).emit('task_status_changed', event);
     this.server.to(`user:${event.userId}`).emit('task_status_changed', event);
@@ -353,7 +326,6 @@ export class TaskProgressGateway
    */
   @OnEvent('task.completed')
   handleTaskCompleted(event: { taskId: string; userId: string }) {
-
     // Don't emit WebSocket events here - broadcastTaskCompletion() already handles this
     // to prevent duplicate task_completed events that cause multiple frontend completion handlers
   }
@@ -363,7 +335,6 @@ export class TaskProgressGateway
    */
   @OnEvent('task.failed')
   handleTaskFailed(event: { taskId: string; userId: string }) {
-
     // Broadcast to task room and user room
     this.server.to(`task:${event.taskId}`).emit('task_failed', event);
     this.server.to(`user:${event.userId}`).emit('task_failed', event);
@@ -374,7 +345,6 @@ export class TaskProgressGateway
    */
   @OnEvent('task.cancelled')
   handleTaskCancelled(event: { taskId: string; userId: string }) {
-
     // Broadcast to task room and user room
     this.server.to(`task:${event.taskId}`).emit('task_cancelled', event);
     this.server.to(`user:${event.userId}`).emit('task_cancelled', event);
@@ -385,7 +355,6 @@ export class TaskProgressGateway
    */
   @OnEvent('task.message')
   handleTaskMessage(event: { taskId: string; userId: string; message: any }) {
-
     // Broadcast to task room and user room
     this.server.to(`task:${event.taskId}`).emit('task_message', event);
     this.server.to(`user:${event.userId}`).emit('task_message', event);
@@ -402,7 +371,6 @@ export class TaskProgressGateway
     prompt: string;
     options?: any;
   }) {
-
     // Only broadcast to the specific user (not all task subscribers)
     this.server.to(`user:${event.userId}`).emit('human_input_required', event);
   }
@@ -417,7 +385,6 @@ export class TaskProgressGateway
     inputId: string;
     response: any;
   }) {
-
     // Broadcast to task room and user room
     this.server.to(`task:${event.taskId}`).emit('human_input_response', event);
     this.server.to(`user:${event.userId}`).emit('human_input_response', event);
@@ -432,7 +399,6 @@ export class TaskProgressGateway
     userId: string;
     inputId: string;
   }) {
-
     // Broadcast to task room and user room
     this.server.to(`task:${event.taskId}`).emit('human_input_timeout', event);
     this.server.to(`user:${event.userId}`).emit('human_input_timeout', event);
@@ -443,7 +409,6 @@ export class TaskProgressGateway
    */
   @OnEvent('task.resumed')
   handleTaskResumed(event: { taskId: string; userId: string }) {
-
     // Broadcast to task room and user room
     this.server.to(`task:${event.taskId}`).emit('task_resumed', event);
     this.server.to(`user:${event.userId}`).emit('task_resumed', event);
@@ -467,7 +432,6 @@ export class TaskProgressGateway
    * Extract JWT token from WebSocket handshake
    */
   private extractTokenFromHandshake(client: Socket): string | null {
-
     const token =
       client.handshake.auth?.token ||
       client.handshake.headers?.authorization?.replace('Bearer ', '') ||

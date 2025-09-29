@@ -82,14 +82,12 @@ export class AgentContextService {
    */
   private async loadContext(): Promise<AgentContext | null> {
     if (!this.agentDirectory) {
-
       return null;
     }
 
     const yamlPath = path.join(this.agentDirectory, 'agent.yaml');
 
     if (!fs.existsSync(yamlPath)) {
-
       return null;
     }
 
@@ -100,7 +98,6 @@ export class AgentContextService {
       const parsed = yaml.load(yamlContent) as any;
 
       if (!parsed) {
-
         return null;
       }
 
@@ -136,7 +133,6 @@ export class AgentContextService {
 
       return context;
     } catch (error) {
-
       return null;
     }
   }

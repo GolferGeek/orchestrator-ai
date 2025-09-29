@@ -55,7 +55,6 @@ export class NotionAgentService extends FunctionAgentBaseService {
 
       return await this.handleNotionRequest(userMessage, params);
     } catch (error) {
-
       await this.updateProgress(4, 'Processing failed', 'error');
 
       return {
@@ -167,7 +166,6 @@ export class NotionAgentService extends FunctionAgentBaseService {
         },
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -266,6 +264,5 @@ export class NotionAgentService extends FunctionAgentBaseService {
     status: 'in_progress' | 'completed' | 'error' = 'in_progress',
   ): Promise<void> {
     // TaskProgressGateway.emitProgress method not available - progress updates disabled
-
   }
 }

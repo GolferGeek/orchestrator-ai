@@ -46,7 +46,7 @@ export default tseslint.config(
   {
     // Forbid direct provider SDK imports outside approved modules
     files: ['**/*.ts', '**/*.tsx'],
-    excludedFiles: [
+    ignores: [
       // Allowed central implementations
       'src/llms/**',
       'src/langchain/**',

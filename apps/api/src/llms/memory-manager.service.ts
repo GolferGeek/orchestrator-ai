@@ -62,13 +62,13 @@ export class MemoryManagerService implements OnModuleInit {
   async onModuleInit() {
     // Load model definitions from database (metadata only)
     await this.loadThreeTierModels();
-    
+
     // Skip automatic sync and health checks - only load models when explicitly requested
     // await this.syncWithCurrentState();
-    
+
     // Start periodic optimization (but only for already-loaded models)
     setInterval(() => {
-      this.optimizeMemoryUsage().catch(error => {
+      this.optimizeMemoryUsage().catch((error) => {
         this.logger.error('Periodic memory optimization failed', error);
       });
     }, 60000); // Every minute
@@ -80,7 +80,7 @@ export class MemoryManagerService implements OnModuleInit {
   private initializeMemoryConfig(): void {
     const maxMemoryGB = parseInt(process.env.MAX_MODEL_MEMORY_GB || '24', 10);
     const maxMemoryBytes = maxMemoryGB * 1024 * 1024 * 1024;
-    
+
     this.memoryConfig = {
       maxMemoryUsage: maxMemoryBytes,
       reservedMemory: maxMemoryBytes * 0.1, // 10% reserved for system
@@ -89,7 +89,9 @@ export class MemoryManagerService implements OnModuleInit {
       minFreeMemory: 2 * 1024 * 1024 * 1024, // 2GB minimum free
     };
 
-    this.logger.log(`Memory configuration: ${maxMemoryGB}GB max, ${(this.memoryConfig.threeTierReserved / 1024 / 1024 / 1024).toFixed(1)}GB reserved for three-tier models`);
+    this.logger.log(
+      `Memory configuration: ${maxMemoryGB}GB max, ${(this.memoryConfig.threeTierReserved / 1024 / 1024 / 1024).toFixed(1)}GB reserved for three-tier models`,
+    );
   }
 
   /**
@@ -111,9 +113,11 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       this.threeTierModels.clear();
-      data?.forEach(model => this.threeTierModels.add(model.model_name));
-      
-      this.logger.debug(`Loaded ${this.threeTierModels.size} three-tier models: ${Array.from(this.threeTierModels).join(', ')}`);
+      data?.forEach((model) => this.threeTierModels.add(model.model_name));
+
+      this.logger.debug(
+        `Loaded ${this.threeTierModels.size} three-tier models: ${Array.from(this.threeTierModels).join(', ')}`,
+      );
     } catch (error) {
       this.logger.error('Error loading three-tier models', error);
     }
@@ -126,7 +130,7 @@ export class MemoryManagerService implements OnModuleInit {
     try {
       // Use getLoadedModels() instead of getOllamaStatus() to avoid health checks
       const loadedModels = await this.localModelStatusService.getLoadedModels();
-      
+
       // Update loaded models map
       for (const model of loadedModels) {
         const memoryInfo: ModelMemoryInfo = {
@@ -138,19 +142,21 @@ export class MemoryManagerService implements OnModuleInit {
           priority: await this.getModelPriority(model.name),
           isThreeTier: this.threeTierModels.has(model.name),
         };
-        
+
         this.loadedModels.set(model.name, memoryInfo);
       }
 
       // Remove models that are no longer loaded
-      const currentlyLoaded = new Set(loadedModels.map(m => m.name));
+      const currentlyLoaded = new Set(loadedModels.map((m) => m.name));
       for (const [modelName] of this.loadedModels) {
         if (!currentlyLoaded.has(modelName)) {
           this.loadedModels.delete(modelName);
         }
       }
 
-      this.logger.debug(`Synced with current state: ${this.loadedModels.size} models loaded`);
+      this.logger.debug(
+        `Synced with current state: ${this.loadedModels.size} models loaded`,
+      );
     } catch (error) {
       this.logger.error('Failed to sync with current state', error);
     }
@@ -159,14 +165,18 @@ export class MemoryManagerService implements OnModuleInit {
   /**
    * Attempt to load a model, managing memory if necessary
    */
-  async loadModel(modelName: string, taskComplexity?: string, priority: 'high' | 'medium' | 'low' = 'medium'): Promise<{
+  async loadModel(
+    modelName: string,
+    taskComplexity?: string,
+    priority: 'high' | 'medium' | 'low' = 'medium',
+  ): Promise<{
     success: boolean;
     message?: string;
     memoryFreed?: number;
     modelsUnloaded?: string[];
   }> {
     const startTime = Date.now();
-    
+
     try {
       // Check if model is already loaded
       if (this.loadedModels.has(modelName)) {
@@ -180,29 +190,38 @@ export class MemoryManagerService implements OnModuleInit {
 
       // Check if we need to free memory
       const availableMemory = this.memoryConfig.maxMemoryUsage - currentUsage;
-      const needsMemoryManagement = availableMemory < modelSize + this.memoryConfig.minFreeMemory;
+      const needsMemoryManagement =
+        availableMemory < modelSize + this.memoryConfig.minFreeMemory;
 
       let memoryFreed = 0;
       let modelsUnloaded: string[] = [];
 
       if (needsMemoryManagement) {
-        this.logger.log(`Memory management needed for ${modelName} (${(modelSize / 1024 / 1024 / 1024).toFixed(1)}GB). Current usage: ${(currentUsage / 1024 / 1024 / 1024).toFixed(1)}GB`);
-        
-        const freeResult = await this.freeMemoryForModel(modelName, modelSize, isThreeTier, priority);
+        this.logger.log(
+          `Memory management needed for ${modelName} (${(modelSize / 1024 / 1024 / 1024).toFixed(1)}GB). Current usage: ${(currentUsage / 1024 / 1024 / 1024).toFixed(1)}GB`,
+        );
+
+        const freeResult = await this.freeMemoryForModel(
+          modelName,
+          modelSize,
+          isThreeTier,
+          priority,
+        );
         if (!freeResult.success) {
           return {
             success: false,
             message: `Insufficient memory: ${freeResult.message}`,
           };
         }
-        
+
         memoryFreed = freeResult.memoryFreed || 0;
         modelsUnloaded = freeResult.modelsUnloaded || [];
       }
 
       // Attempt to load the model
-      const loadResult = await this.localModelStatusService.ensureModelLoaded(modelName);
-      
+      const loadResult =
+        await this.localModelStatusService.ensureModelLoaded(modelName);
+
       if (loadResult) {
         // Track the loaded model
         const memoryInfo: ModelMemoryInfo = {
@@ -214,15 +233,20 @@ export class MemoryManagerService implements OnModuleInit {
           priority: await this.getModelPriority(modelName),
           isThreeTier,
         };
-        
+
         this.loadedModels.set(modelName, memoryInfo);
-        
+
         // Update database
-        await this.localModelStatusService.updateModelLoadingStatus(modelName, true);
-        
+        await this.localModelStatusService.updateModelLoadingStatus(
+          modelName,
+          true,
+        );
+
         const loadTime = Date.now() - startTime;
-        this.logger.log(`Successfully loaded ${modelName} in ${loadTime}ms${memoryFreed > 0 ? ` (freed ${(memoryFreed / 1024 / 1024 / 1024).toFixed(1)}GB)` : ''}`);
-        
+        this.logger.log(
+          `Successfully loaded ${modelName} in ${loadTime}ms${memoryFreed > 0 ? ` (freed ${(memoryFreed / 1024 / 1024 / 1024).toFixed(1)}GB)` : ''}`,
+        );
+
         return {
           success: true,
           message: `Model loaded successfully`,
@@ -237,8 +261,11 @@ export class MemoryManagerService implements OnModuleInit {
       }
     } catch (error) {
       const loadTime = Date.now() - startTime;
-      this.logger.error(`Failed to load model ${modelName} after ${loadTime}ms`, error);
-      
+      this.logger.error(
+        `Failed to load model ${modelName} after ${loadTime}ms`,
+        error,
+      );
+
       return {
         success: false,
         message: `Loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -253,7 +280,7 @@ export class MemoryManagerService implements OnModuleInit {
     targetModel: string,
     requiredSize: number,
     isThreeTier: boolean,
-    priority: 'high' | 'medium' | 'low'
+    priority: 'high' | 'medium' | 'low',
   ): Promise<{
     success: boolean;
     message?: string;
@@ -261,14 +288,22 @@ export class MemoryManagerService implements OnModuleInit {
     modelsUnloaded?: string[];
   }> {
     if (this.isOptimizing) {
-      return { success: false, message: 'Memory optimization already in progress' };
+      return {
+        success: false,
+        message: 'Memory optimization already in progress',
+      };
     }
 
     this.isOptimizing = true;
-    
+
     try {
-      const modelsToUnload = this.selectModelsForUnloading(targetModel, requiredSize, isThreeTier, priority);
-      
+      const modelsToUnload = this.selectModelsForUnloading(
+        targetModel,
+        requiredSize,
+        isThreeTier,
+        priority,
+      );
+
       if (modelsToUnload.length === 0) {
         return { success: false, message: 'No suitable models to unload' };
       }
@@ -285,16 +320,21 @@ export class MemoryManagerService implements OnModuleInit {
             totalFreed += modelInfo.estimatedSize;
             this.loadedModels.delete(model.name);
             unloadedModels.push(model.name);
-            
+
             // Update database
-            await this.localModelStatusService.updateModelLoadingStatus(model.name, false);
-            
-            this.logger.log(`Unloaded ${model.name} (${(modelInfo.estimatedSize / 1024 / 1024 / 1024).toFixed(1)}GB)`);
+            await this.localModelStatusService.updateModelLoadingStatus(
+              model.name,
+              false,
+            );
+
+            this.logger.log(
+              `Unloaded ${model.name} (${(modelInfo.estimatedSize / 1024 / 1024 / 1024).toFixed(1)}GB)`,
+            );
           }
         } catch (error) {
           this.logger.error(`Failed to unload ${model.name}`, error);
         }
-        
+
         // Check if we've freed enough memory
         if (totalFreed >= requiredSize + this.memoryConfig.minFreeMemory) {
           break;
@@ -304,7 +344,9 @@ export class MemoryManagerService implements OnModuleInit {
       const success = totalFreed >= requiredSize;
       return {
         success,
-        message: success ? `Freed ${(totalFreed / 1024 / 1024 / 1024).toFixed(1)}GB` : 'Insufficient memory freed',
+        message: success
+          ? `Freed ${(totalFreed / 1024 / 1024 / 1024).toFixed(1)}GB`
+          : 'Insufficient memory freed',
         memoryFreed: totalFreed,
         modelsUnloaded: unloadedModels,
       };
@@ -320,65 +362,69 @@ export class MemoryManagerService implements OnModuleInit {
     targetModel: string,
     requiredSize: number,
     targetIsThreeTier: boolean,
-    targetPriority: 'high' | 'medium' | 'low'
+    targetPriority: 'high' | 'medium' | 'low',
   ): ModelMemoryInfo[] {
     const candidates = Array.from(this.loadedModels.values())
-      .filter(model => {
+      .filter((model) => {
         // Never unload the target model
         if (model.name === targetModel) return false;
-        
+
         // Protect three-tier models if target is also three-tier
         if (targetIsThreeTier && model.isThreeTier) {
           // Only unload three-tier models if they have very low usage
           return model.useCount < 5 && Date.now() - model.lastUsed > 300000; // 5 minutes
         }
-        
+
         // Don't unload three-tier models for non-three-tier targets unless absolutely necessary
         if (!targetIsThreeTier && model.isThreeTier) {
           return false;
         }
-        
+
         return true;
       })
       .sort((a, b) => {
         // Sort by unloading priority (least important first)
-        
+
         // 1. Non-three-tier models first (if target is not three-tier)
         if (!targetIsThreeTier) {
           if (a.isThreeTier !== b.isThreeTier) {
             return a.isThreeTier ? 1 : -1;
           }
         }
-        
+
         // 2. Least recently used
         const timeDiff = a.lastUsed - b.lastUsed;
-        if (Math.abs(timeDiff) > 60000) { // More than 1 minute difference
+        if (Math.abs(timeDiff) > 60000) {
+          // More than 1 minute difference
           return timeDiff;
         }
-        
+
         // 3. Lowest use count
         if (a.useCount !== b.useCount) {
           return a.useCount - b.useCount;
         }
-        
+
         // 4. Lower priority models first
         const priorityOrder = { low: 0, medium: 1, high: 2 };
-        return priorityOrder[this.getPriorityLevel(a.priority)] - priorityOrder[this.getPriorityLevel(b.priority)];
+        return (
+          priorityOrder[this.getPriorityLevel(a.priority)] -
+          priorityOrder[this.getPriorityLevel(b.priority)]
+        );
       });
 
     // Select models until we have enough memory
     const selected: ModelMemoryInfo[] = [];
     let totalSize = 0;
-    
+
     for (const candidate of candidates) {
       selected.push(candidate);
       totalSize += candidate.estimatedSize;
-      
+
       if (totalSize >= requiredSize + this.memoryConfig.minFreeMemory) {
         break;
       }
     }
-    
+
     return selected;
   }
 
@@ -398,8 +444,10 @@ export class MemoryManagerService implements OnModuleInit {
    * Get current memory usage estimate
    */
   getCurrentMemoryUsage(): number {
-    return Array.from(this.loadedModels.values())
-      .reduce((total, model) => total + model.estimatedSize, 0);
+    return Array.from(this.loadedModels.values()).reduce(
+      (total, model) => total + model.estimatedSize,
+      0,
+    );
   }
 
   /**
@@ -409,7 +457,7 @@ export class MemoryManagerService implements OnModuleInit {
     const currentUsage = this.getCurrentMemoryUsage();
     const availableMemory = this.memoryConfig.maxMemoryUsage - currentUsage;
     const usageRatio = currentUsage / this.memoryConfig.maxMemoryUsage;
-    
+
     let memoryPressure: 'low' | 'medium' | 'high' | 'critical';
     if (usageRatio < 0.6) {
       memoryPressure = 'low';
@@ -421,8 +469,9 @@ export class MemoryManagerService implements OnModuleInit {
       memoryPressure = 'critical';
     }
 
-    const threeTierCount = Array.from(this.loadedModels.values())
-      .filter(model => model.isThreeTier).length;
+    const threeTierCount = Array.from(this.loadedModels.values()).filter(
+      (model) => model.isThreeTier,
+    ).length;
 
     return {
       totalAllocated: this.memoryConfig.maxMemoryUsage,
@@ -443,23 +492,25 @@ export class MemoryManagerService implements OnModuleInit {
     }
 
     const stats = this.getMemoryStats();
-    
+
     // Only optimize if memory pressure is medium or higher
     if (stats.memoryPressure === 'low') {
       return;
     }
 
-    this.logger.debug(`Optimizing memory usage (pressure: ${stats.memoryPressure})`);
-    
+    this.logger.debug(
+      `Optimizing memory usage (pressure: ${stats.memoryPressure})`,
+    );
+
     try {
       this.isOptimizing = true;
-      
+
       // Find models that haven't been used recently
       const now = Date.now();
       const staleThreshold = 10 * 60 * 1000; // 10 minutes
-      
+
       const staleModels = Array.from(this.loadedModels.values())
-        .filter(model => {
+        .filter((model) => {
           // Don't unload three-tier models unless they're very stale
           if (model.isThreeTier) {
             return now - model.lastUsed > staleThreshold * 3; // 30 minutes for three-tier
@@ -479,17 +530,24 @@ export class MemoryManagerService implements OnModuleInit {
         try {
           this.loadedModels.delete(model.name);
           memoryFreed += model.estimatedSize;
-          
-          await this.localModelStatusService.updateModelLoadingStatus(model.name, false);
-          
-          this.logger.log(`Optimized: unloaded ${model.name} (unused for ${Math.round((now - model.lastUsed) / 60000)}min)`);
+
+          await this.localModelStatusService.updateModelLoadingStatus(
+            model.name,
+            false,
+          );
+
+          this.logger.log(
+            `Optimized: unloaded ${model.name} (unused for ${Math.round((now - model.lastUsed) / 60000)}min)`,
+          );
         } catch (error) {
           this.logger.error(`Failed to optimize-unload ${model.name}`, error);
         }
       }
 
       if (memoryFreed > 0) {
-        this.logger.log(`Memory optimization freed ${(memoryFreed / 1024 / 1024 / 1024).toFixed(1)}GB`);
+        this.logger.log(
+          `Memory optimization freed ${(memoryFreed / 1024 / 1024 / 1024).toFixed(1)}GB`,
+        );
       }
     } finally {
       this.isOptimizing = false;
@@ -570,7 +628,7 @@ export class MemoryManagerService implements OnModuleInit {
     useCount: number;
     isThreeTier: boolean;
   }> {
-    return Array.from(this.loadedModels.values()).map(model => ({
+    return Array.from(this.loadedModels.values()).map((model) => ({
       name: model.name,
       size: `${(model.estimatedSize / 1024 / 1024 / 1024).toFixed(1)}GB`,
       tier: model.tier,
@@ -591,8 +649,11 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       this.loadedModels.delete(modelName);
-      await this.localModelStatusService.updateModelLoadingStatus(modelName, false);
-      
+      await this.localModelStatusService.updateModelLoadingStatus(
+        modelName,
+        false,
+      );
+
       this.logger.log(`Force unloaded ${modelName}`);
       return true;
     } catch (error) {
@@ -606,13 +667,18 @@ export class MemoryManagerService implements OnModuleInit {
    */
   async preloadThreeTierModels(): Promise<void> {
     this.logger.log('Preloading three-tier models...');
-    
+
     const threeTierModelsList = Array.from(this.threeTierModels);
     const stats = this.getMemoryStats();
-    
+
     // Don't preload if memory pressure is already high
-    if (stats.memoryPressure === 'high' || stats.memoryPressure === 'critical') {
-      this.logger.warn('Skipping three-tier preload due to high memory pressure');
+    if (
+      stats.memoryPressure === 'high' ||
+      stats.memoryPressure === 'critical'
+    ) {
+      this.logger.warn(
+        'Skipping three-tier preload due to high memory pressure',
+      );
       return;
     }
 

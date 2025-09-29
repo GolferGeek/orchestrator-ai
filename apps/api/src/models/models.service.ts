@@ -29,7 +29,10 @@ interface RecommendationFilters {
 @Injectable()
 export class ModelsService {
   private readonly logger = new Logger(ModelsService.name);
-  private readonly modelNamesCache = new Map<string, { data: ModelNameDto[]; timestamp: number }>();
+  private readonly modelNamesCache = new Map<
+    string,
+    { data: ModelNameDto[]; timestamp: number }
+  >();
   private readonly cacheExpirationMs = 5 * 60 * 1000; // 5 minutes
 
   constructor(private readonly supabaseService: SupabaseService) {}
@@ -37,7 +40,7 @@ export class ModelsService {
   async findAllNames(filters: ModelFilters = {}): Promise<ModelNameDto[]> {
     const cacheKey = `names:${filters.providerName || 'all'}:${filters.status || 'all'}:${filters.sovereignMode || 'false'}`;
     const cached = this.modelNamesCache.get(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < this.cacheExpirationMs) {
       return cached.data;
     }
@@ -69,18 +72,18 @@ export class ModelsService {
       );
     }
 
-    const result = (data || []).map(row => ({
+    const result = (data || []).map((row) => ({
       providerName: row.provider_name,
       modelName: row.model_name,
       displayName: row.display_name,
     }));
-    
+
     // Cache the result
     this.modelNamesCache.set(cacheKey, {
       data: result,
       timestamp: Date.now(),
     });
-    
+
     return result;
   }
 
@@ -89,7 +92,8 @@ export class ModelsService {
 
     // If sovereign mode is enabled, we need to get the Ollama provider ID first
     let ollamaProviderId: string | null = null;
-    const isSovereignMode = filters.sovereignMode === true || filters.sovereignMode === 'true';
+    const isSovereignMode =
+      filters.sovereignMode === true || filters.sovereignMode === 'true';
     if (isSovereignMode) {
       // Try to find Ollama provider (case-insensitive)
       const { data: providerData, error: providerError } = await client
@@ -99,16 +103,23 @@ export class ModelsService {
         .single();
 
       if (providerError) {
-        this.logger.warn('Could not find Ollama provider for sovereign mode filtering', providerError);
+        this.logger.warn(
+          'Could not find Ollama provider for sovereign mode filtering',
+          providerError,
+        );
         // Return empty array if Ollama provider not found
         return [];
       }
       ollamaProviderId = providerData?.id;
-      this.logger.debug(`Found Ollama provider with ID: ${ollamaProviderId} and name: ${providerData?.name}`);
+      this.logger.debug(
+        `Found Ollama provider with ID: ${ollamaProviderId} and name: ${providerData?.name}`,
+      );
     }
 
     // Determine if we need provider data for user request
-    const selectClause = filters.includeProvider ? `*, provider:llm_providers(*)` : '*';
+    const selectClause = filters.includeProvider
+      ? `*, provider:llm_providers(*)`
+      : '*';
 
     let query = client
       .from(getTableName('llm_models'))
@@ -141,7 +152,6 @@ export class ModelsService {
     const { data, error } = await query;
 
     if (error) {
-
       throw new HttpException(
         `Failed to fetch models: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -156,7 +166,6 @@ export class ModelsService {
       this.logger.log(`Successfully mapped ${mappedModels.length} models`);
       return mappedModels;
     } catch (mappingError) {
-
       const errorMessage =
         mappingError instanceof Error
           ? mappingError.message
@@ -294,7 +303,10 @@ export class ModelsService {
     }
 
     // If updating model_name, check for conflicts
-    if (updateModelDto.modelName && updateModelDto.modelName !== existing.modelName) {
+    if (
+      updateModelDto.modelName &&
+      updateModelDto.modelName !== existing.modelName
+    ) {
       const { data: existingModel } = await client
         .from(getTableName('llm_models'))
         .select('model_name')
@@ -354,7 +366,10 @@ export class ModelsService {
       );
     }
 
-    const { error } = await client.from(getTableName('llm_models')).delete().eq('id', id);
+    const { error } = await client
+      .from(getTableName('llm_models'))
+      .delete()
+      .eq('id', id);
 
     if (error) {
       throw new HttpException(

@@ -1,7 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AgentsRepository } from '@agent-platform/repositories/agents.repository';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { ConversationPlanRecord } from '@agent-platform/interfaces/conversation-plan-record.interface';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentModeRouterService } from './agent-mode-router.service';
@@ -25,7 +31,10 @@ export class AgentExecutionGateway {
     agentSlug: string,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
-    const agent = await this.agentsRepository.findBySlug(organizationSlug, agentSlug);
+    const agent = await this.agentsRepository.findBySlug(
+      organizationSlug,
+      agentSlug,
+    );
 
     if (!agent) {
       throw new NotFoundException('Agent not found');
@@ -57,22 +66,11 @@ export class AgentExecutionGateway {
           assessment.metadata,
         );
       case AgentTaskMode.ORCHESTRATE_CREATE:
-        return this.handleOrchestrateCreate(
-          organizationSlug,
-          agent,
-          request,
-        );
+        return this.handleOrchestrateCreate(organizationSlug, agent, request);
       case AgentTaskMode.ORCHESTRATE_EXECUTE:
-        return this.handleOrchestrateExecute(
-          organizationSlug,
-          agent,
-          request,
-        );
+        return this.handleOrchestrateExecute(organizationSlug, agent, request);
       case AgentTaskMode.ORCHESTRATE_CONTINUE:
-        return this.handleOrchestrateContinue(
-          organizationSlug,
-          request,
-        );
+        return this.handleOrchestrateContinue(organizationSlug, request);
       case AgentTaskMode.ORCHESTRATE_SAVE_RECIPE:
         return this.handleOrchestrateSaveRecipe(
           organizationSlug,
@@ -88,12 +86,14 @@ export class AgentExecutionGateway {
 
   private async handlePlan(
     organizationSlug: string | null,
-    agent: any,
+    agent: AgentRecord,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const conversationId = request.conversationId;
     if (!conversationId) {
-      throw new BadRequestException('conversationId is required for plan generation');
+      throw new BadRequestException(
+        'conversationId is required for plan generation',
+      );
     }
 
     const draftPlan = request.payload?.planDraft ?? {
@@ -116,7 +116,7 @@ export class AgentExecutionGateway {
 
   private async handleBuild(
     organizationSlug: string | null,
-    agent: any,
+    agent: AgentRecord,
     request: TaskRequestDto,
     routingMetadata?: Record<string, any>,
   ): Promise<TaskResponseDto> {
@@ -141,7 +141,7 @@ export class AgentExecutionGateway {
 
   private async handleOrchestrateCreate(
     organizationSlug: string | null,
-    agent: any,
+    agent: AgentRecord,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const conversationId = request.conversationId;
@@ -174,7 +174,7 @@ export class AgentExecutionGateway {
 
   private async handleOrchestrateExecute(
     organizationSlug: string | null,
-    agent: any,
+    agent: AgentRecord,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const orchestrationResponse = await this.startOrchestrationFromRequest(
@@ -198,8 +198,7 @@ export class AgentExecutionGateway {
     organizationSlug: string | null,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
-    const runId =
-      request.orchestrationRunId ?? request.payload?.runId ?? null;
+    const runId = request.orchestrationRunId ?? request.payload?.runId ?? null;
 
     if (!runId) {
       throw new BadRequestException(
@@ -230,7 +229,7 @@ export class AgentExecutionGateway {
 
   private async handleOrchestrateSaveRecipe(
     organizationSlug: string | null,
-    agent: any,
+    agent: AgentRecord,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const orchestrationPayload = request.payload?.orchestration;
@@ -245,16 +244,21 @@ export class AgentExecutionGateway {
       organization_slug: organizationSlug,
       agent_slug: agent.slug,
       slug: orchestrationPayload.slug,
-      display_name: orchestrationPayload.displayName ?? orchestrationPayload.slug,
+      display_name:
+        orchestrationPayload.displayName ?? orchestrationPayload.slug,
       description: orchestrationPayload.description ?? null,
       status: orchestrationPayload.status,
       orchestration_json:
-        orchestrationPayload.orchestrationJson ?? orchestrationPayload.definition ?? {},
+        orchestrationPayload.orchestrationJson ??
+        orchestrationPayload.definition ??
+        {},
       prompt_templates: orchestrationPayload.promptTemplates ?? [],
       tags: orchestrationPayload.tags ?? [],
       version: orchestrationPayload.version ?? null,
-      created_by: orchestrationPayload.createdBy ?? request.payload?.createdBy ?? null,
-      updated_by: orchestrationPayload.updatedBy ?? request.payload?.updatedBy ?? null,
+      created_by:
+        orchestrationPayload.createdBy ?? request.payload?.createdBy ?? null,
+      updated_by:
+        orchestrationPayload.updatedBy ?? request.payload?.updatedBy ?? null,
     });
 
     return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_SAVE_RECIPE, {
@@ -264,7 +268,7 @@ export class AgentExecutionGateway {
 
   private async startOrchestrationFromRequest(
     organizationSlug: string | null,
-    agent: any,
+    agent: AgentRecord,
     request: TaskRequestDto,
     responseMode: AgentTaskMode,
     options: { requireTarget: boolean },
@@ -277,20 +281,32 @@ export class AgentExecutionGateway {
     const metadata = request.payload?.metadata ?? {};
 
     if (request.planId) {
-      const run = await this.orchestrationRunner.startRun({
-        planId: request.planId,
-        originType: 'plan',
-        originId: request.planId,
+      const plan = await this.resolvePlanForExecution(
         organizationSlug,
+        agent,
+        request,
+      );
+      const runMetadata = {
+        ...metadata,
+        conversationId: plan.conversation_id,
+        planVersion: plan.version,
+      };
+      const run = await this.orchestrationRunner.startRun({
+        planId: plan.id,
+        originType: 'plan',
+        originId: plan.id,
+        organizationSlug: plan.organization_slug ?? null,
         promptInputs,
-        metadata,
+        metadata: runMetadata,
       });
 
       return TaskResponseDto.success(responseMode, {
         content: run,
         metadata: {
           originType: 'plan',
-          planId: request.planId,
+          planId: plan.id,
+          planVersion: plan.version,
+          conversationId: plan.conversation_id,
           promptInputs,
         },
       });
@@ -376,5 +392,41 @@ export class AgentExecutionGateway {
     }
 
     return result;
+  }
+
+  private async resolvePlanForExecution(
+    organizationSlug: string | null,
+    agent: AgentRecord,
+    request: TaskRequestDto,
+  ): Promise<ConversationPlanRecord> {
+    const planId = request.planId;
+    if (!planId) {
+      throw new BadRequestException('planId is required for plan execution');
+    }
+
+    const plan = await this.planEngine.getPlan(planId);
+
+    if (!plan) {
+      throw new NotFoundException('Plan not found');
+    }
+
+    const normalizedOrg = organizationSlug ?? null;
+    if ((plan.organization_slug ?? null) !== normalizedOrg) {
+      throw new BadRequestException(
+        'Plan belongs to a different organization',
+      );
+    }
+
+    if (plan.agent_slug !== agent.slug) {
+      throw new BadRequestException('Plan is not associated with this agent');
+    }
+
+    if (plan.conversation_id !== request.conversationId) {
+      throw new BadRequestException(
+        'Plan is tied to a different conversation',
+      );
+    }
+
+    return plan;
   }
 }

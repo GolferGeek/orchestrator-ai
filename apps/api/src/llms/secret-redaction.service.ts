@@ -27,7 +27,8 @@ export interface RedactionResult {
 export class SecretRedactionService {
   private readonly logger = new Logger(SecretRedactionService.name);
   private readonly isProduction = process.env.NODE_ENV === 'production';
-  private readonly enableVerboseLogging = process.env.ENABLE_VERBOSE_LOGGING === 'true';
+  private readonly enableVerboseLogging =
+    process.env.ENABLE_VERBOSE_LOGGING === 'true';
 
   // Predefined redaction patterns for common secrets
   // More specific patterns first to avoid generic API key pattern conflicts
@@ -118,13 +119,15 @@ export class SecretRedactionService {
     },
     {
       name: 'bearer_token',
-      pattern: /(?:Authorization\s*:\s*Bearer\s+|bearer[\s:]+|Bearer[\s:]+|[a-zA-Z_-]*(?:access[_-]?token|auth[_-]?token|session[_-]?token|refresh[_-]?token|id[_-]?token)[_-]*\s+|[a-zA-Z_-]*(?:access[_-]?token|auth[_-]?token|session[_-]?token|refresh[_-]?token|id[_-]?token)[_-]*\s*[:=]\s*|token[\s:=]+)([a-zA-Z0-9_\-\.]{20,})/gi,
+      pattern:
+        /(?:Authorization\s*:\s*Bearer\s+|bearer[\s:]+|Bearer[\s:]+|[a-zA-Z_-]*(?:access[_-]?token|auth[_-]?token|session[_-]?token|refresh[_-]?token|id[_-]?token)[_-]*\s+|[a-zA-Z_-]*(?:access[_-]?token|auth[_-]?token|session[_-]?token|refresh[_-]?token|id[_-]?token)[_-]*\s*[:=]\s*|token[\s:=]+)([a-zA-Z0-9_\-\.]{20,})/gi,
       replacement: 'bearer [REDACTED]',
       description: 'Bearer tokens',
     },
     {
       name: 'password',
-      pattern: /\b(?:[a-zA-Z_-]*(?:password|pwd|pass)[_-]*)\s*[:=]\s*['"]?([^\s'"]{8,})['"]?/gi,
+      pattern:
+        /\b(?:[a-zA-Z_-]*(?:password|pwd|pass)[_-]*)\s*[:=]\s*['"]?([^\s'"]{8,})['"]?/gi,
       replacement: 'password=[REDACTED]',
       description: 'Passwords',
     },
@@ -148,13 +151,15 @@ export class SecretRedactionService {
     },
     {
       name: 'ipAddress',
-      pattern: /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
+      pattern:
+        /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
       replacement: '[IP_ADDRESS_REDACTED]',
       description: 'IP addresses',
     },
     {
       name: 'internalUrl',
-      pattern: /https?:\/\/(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9-]+\.(?:local|internal|corp|test|dev))[^\s]*/g,
+      pattern:
+        /https?:\/\/(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9-]+\.(?:local|internal|corp|test|dev))[^\s]*/g,
       replacement: '[INTERNAL_URL_REDACTED]',
       description: 'Internal URLs',
     },
@@ -166,33 +171,41 @@ export class SecretRedactionService {
     },
     {
       name: 'credit_card',
-      pattern: /\b(?:(?:\d{4}[-\s]?){3}\d{4}|\d{4}[-\s]?\d{6}[-\s]?\d{5}|\d{15,16})\b/g,
+      pattern:
+        /\b(?:(?:\d{4}[-\s]?){3}\d{4}|\d{4}[-\s]?\d{6}[-\s]?\d{5}|\d{15,16})\b/g,
       replacement: '[CREDIT_CARD_REDACTED]',
       description: 'Credit card numbers',
     },
     {
       name: 'ssh_key',
-      pattern: /-----BEGIN (?:[A-Z\s]*)?PRIVATE KEY-----[\s\S]+?-----END (?:[A-Z\s]*)?PRIVATE KEY-----/gi,
+      pattern:
+        /-----BEGIN (?:[A-Z\s]*)?PRIVATE KEY-----[\s\S]+?-----END (?:[A-Z\s]*)?PRIVATE KEY-----/gi,
       replacement: '-----BEGIN [REDACTED] PRIVATE KEY-----',
       description: 'SSH private keys',
     },
     // Generic API key pattern last to avoid conflicts with specific patterns
     {
       name: 'api_key',
-      pattern: /\b(?:[a-zA-Z_-]*(?:api[_-]?key|apikey|key|secret|token)[_-]*)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?/gi,
+      pattern:
+        /\b(?:[a-zA-Z_-]*(?:api[_-]?key|apikey|key|secret|token)[_-]*)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?/gi,
       replacement: 'api_key=[REDACTED]',
       description: 'API keys and similar tokens',
     },
   ];
 
   constructor() {
-    this.logger.log(`SecretRedactionService initialized (production: ${this.isProduction})`);
+    this.logger.log(
+      `SecretRedactionService initialized (production: ${this.isProduction})`,
+    );
   }
 
   /**
    * Redact secrets from text using predefined patterns
    */
-  redactSecrets(text: string): { redactedText: string; result: RedactionResult } {
+  redactSecrets(text: string): {
+    redactedText: string;
+    result: RedactionResult;
+  } {
     if (!text) {
       return {
         redactedText: text,
@@ -214,7 +227,10 @@ export class SecretRedactionService {
     for (const pattern of this.redactionPatterns) {
       const matches = redactedText.match(pattern.pattern);
       if (matches) {
-        redactedText = redactedText.replace(pattern.pattern, pattern.replacement);
+        redactedText = redactedText.replace(
+          pattern.pattern,
+          pattern.replacement,
+        );
         totalRedactionCount += matches.length;
         patternsMatched.push(pattern.name);
       }
@@ -238,7 +254,7 @@ export class SecretRedactionService {
     message: string,
     runId?: string,
     context?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): void {
     // Skip verbose logging in production unless explicitly enabled
     if (this.isProduction && level === 'debug' && !this.enableVerboseLogging) {
@@ -266,7 +282,7 @@ export class SecretRedactionService {
 
     // Log using NestJS logger with appropriate level
     const logMessage = this.formatLogMessage(logEntry);
-    
+
     switch (level) {
       case 'debug':
         this.logger.debug(logMessage);
@@ -295,15 +311,22 @@ export class SecretRedactionService {
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => this.redactObjectSecrets(item));
+      return obj.map((item) => this.redactObjectSecrets(item));
     }
 
     const redactedObj: any = {};
     for (const [key, value] of Object.entries(obj)) {
       // Check if the key itself suggests sensitive data
-      const sensitiveKeys = ['password', 'token', 'key', 'secret', 'auth', 'credential'];
-      const isSensitiveKey = sensitiveKeys.some(sensitiveKey => 
-        key.toLowerCase().includes(sensitiveKey)
+      const sensitiveKeys = [
+        'password',
+        'token',
+        'key',
+        'secret',
+        'auth',
+        'credential',
+      ];
+      const isSensitiveKey = sensitiveKeys.some((sensitiveKey) =>
+        key.toLowerCase().includes(sensitiveKey),
       );
 
       if (isSensitiveKey && typeof value === 'string') {
@@ -321,7 +344,7 @@ export class SecretRedactionService {
    */
   private formatLogMessage(logEntry: LogEntry): string {
     const parts = [`[${logEntry.runId}]`, logEntry.message];
-    
+
     if (logEntry.context) {
       parts.push(`(${logEntry.context})`);
     }
@@ -345,7 +368,7 @@ export class SecretRedactionService {
    * Remove redaction pattern by name
    */
   removeRedactionPattern(name: string): boolean {
-    const index = this.redactionPatterns.findIndex(p => p.name === name);
+    const index = this.redactionPatterns.findIndex((p) => p.name === name);
     if (index >= 0) {
       this.redactionPatterns.splice(index, 1);
       this.logger.debug(`Removed redaction pattern: ${name}`);
@@ -374,15 +397,17 @@ export class SecretRedactionService {
     }>;
   } {
     const { redactedText, result } = this.redactSecrets(text);
-    
-    const patternDetails = this.redactionPatterns.map(pattern => {
-      const matches = text.match(pattern.pattern);
-      return {
-        name: pattern.name,
-        matches: matches ? matches.length : 0,
-        description: pattern.description,
-      };
-    }).filter(detail => detail.matches > 0);
+
+    const patternDetails = this.redactionPatterns
+      .map((pattern) => {
+        const matches = text.match(pattern.pattern);
+        return {
+          name: pattern.name,
+          matches: matches ? matches.length : 0,
+          description: pattern.description,
+        };
+      })
+      .filter((detail) => detail.matches > 0);
 
     return {
       redactedText,
@@ -394,19 +419,39 @@ export class SecretRedactionService {
   /**
    * Convenience methods for different log levels with runId correlation
    */
-  debug(message: string, runId?: string, context?: string, metadata?: Record<string, any>): void {
+  debug(
+    message: string,
+    runId?: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.safeLog('debug', message, runId, context, metadata);
   }
 
-  info(message: string, runId?: string, context?: string, metadata?: Record<string, any>): void {
+  info(
+    message: string,
+    runId?: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.safeLog('info', message, runId, context, metadata);
   }
 
-  warn(message: string, runId?: string, context?: string, metadata?: Record<string, any>): void {
+  warn(
+    message: string,
+    runId?: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.safeLog('warn', message, runId, context, metadata);
   }
 
-  error(message: string, runId?: string, context?: string, metadata?: Record<string, any>): void {
+  error(
+    message: string,
+    runId?: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.safeLog('error', message, runId, context, metadata);
   }
 
@@ -420,7 +465,10 @@ export class SecretRedactionService {
     customPatterns: number;
   } {
     const defaultPatternCount = 11; // Number of predefined patterns
-    const customPatterns = Math.max(0, this.redactionPatterns.length - defaultPatternCount);
+    const customPatterns = Math.max(
+      0,
+      this.redactionPatterns.length - defaultPatternCount,
+    );
 
     return {
       totalPatterns: this.redactionPatterns.length,
@@ -429,5 +477,4 @@ export class SecretRedactionService {
       customPatterns,
     };
   }
-
 }

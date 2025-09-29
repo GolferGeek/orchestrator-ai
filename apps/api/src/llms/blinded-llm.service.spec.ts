@@ -73,18 +73,19 @@ describe('BlindedLLMService', () => {
       });
 
       expect(llm).toBeDefined();
-      expect(providerConfigService.getEnhancedProviderConfig).toHaveBeenCalledWith('openai');
-      expect(sourceBlindingService.createBlindedHttpClient).toHaveBeenCalledWith(
-        'openai',
-        {
-          provider: 'openai',
-          policyProfile: 'strict',
-          dataClass: 'confidential',
-          sovereignMode: 'false',
-          noTrain: true,
-          noRetain: true,
-        }
-      );
+      expect(
+        providerConfigService.getEnhancedProviderConfig,
+      ).toHaveBeenCalledWith('openai');
+      expect(
+        sourceBlindingService.createBlindedHttpClient,
+      ).toHaveBeenCalledWith('openai', {
+        provider: 'openai',
+        policyProfile: 'strict',
+        dataClass: 'confidential',
+        sovereignMode: 'false',
+        noTrain: true,
+        noRetain: true,
+      });
     });
 
     it('should create blinded Anthropic LLM', () => {
@@ -107,7 +108,9 @@ describe('BlindedLLMService', () => {
       });
 
       expect(llm).toBeDefined();
-      expect(providerConfigService.getEnhancedProviderConfig).toHaveBeenCalledWith('anthropic');
+      expect(
+        providerConfigService.getEnhancedProviderConfig,
+      ).toHaveBeenCalledWith('anthropic');
     });
 
     it('should create blinded Google LLM', () => {
@@ -152,14 +155,17 @@ describe('BlindedLLMService', () => {
 
   describe('createBlindedLLMs', () => {
     beforeEach(() => {
-      providerConfigService.getEnhancedProviderConfig.mockImplementation((provider) => ({
-        name: provider,
-        baseUrl: `https://api.${provider}.com`,
-        apiKey: `${provider}-key`,
-        features: { supportsNoTrain: true },
-        models: [],
-        defaultModel: `${provider}-model`,
-      } as any));
+      providerConfigService.getEnhancedProviderConfig.mockImplementation(
+        (provider) =>
+          ({
+            name: provider,
+            baseUrl: `https://api.${provider}.com`,
+            apiKey: `${provider}-key`,
+            features: { supportsNoTrain: true },
+            models: [],
+            defaultModel: `${provider}-model`,
+          }) as any,
+      );
 
       sourceBlindingService.createBlindedHttpClient.mockReturnValue({} as any);
     });
@@ -203,7 +209,7 @@ describe('BlindedLLMService', () => {
       expect(result.success).toBe(true);
       expect(result.blindingApplied).toBe(true);
       expect(mockLLM.call).toHaveBeenCalledWith([
-        { role: 'user', content: 'Hello, this is a source blinding test.' }
+        { role: 'user', content: 'Hello, this is a source blinding test.' },
       ]);
     });
 

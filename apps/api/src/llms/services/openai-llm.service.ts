@@ -4,10 +4,13 @@ import {
   GenerateResponseParams,
   LLMResponse,
   LLMServiceConfig,
-  ResponseMetadata
+  ResponseMetadata,
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
-import { DictionaryPseudonymizerService, DictionaryPseudonymMapping } from '../../services/dictionary-pseudonymizer.service';
+import {
+  DictionaryPseudonymizerService,
+  DictionaryPseudonymMapping,
+} from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import OpenAI from 'openai';
@@ -18,7 +21,12 @@ import { getModelRestrictions } from '../config/model-restrictions.config';
  */
 interface OpenAIResponseMetadata extends ResponseMetadata {
   providerSpecific: {
-    finish_reason: 'stop' | 'length' | 'function_call' | 'content_filter' | 'null';
+    finish_reason:
+      | 'stop'
+      | 'length'
+      | 'function_call'
+      | 'content_filter'
+      | 'null';
     system_fingerprint?: string;
     model_version?: string;
     logprobs?: any;
@@ -31,7 +39,7 @@ interface OpenAIResponseMetadata extends ResponseMetadata {
 
 /**
  * OpenAI LLM Service Implementation
- * 
+ *
  * This example shows how to extend BaseLLMService for OpenAI-specific functionality
  * while maintaining compatibility with the standardized interface.
  */
@@ -67,35 +75,41 @@ export class OpenAILLMService extends BaseLLMService {
   async generateResponse(params: GenerateResponseParams): Promise<LLMResponse> {
     const startTime = Date.now();
     const requestId = this.generateRequestId('openai');
-    
+
     try {
       // Validate configuration
       this.validateConfig(params.config);
-      
+
       // Handle PII in input - use what's already been processed at LLM Service level
       let piiResult;
       if (params.options?.piiMetadata) {
         // Use existing PII metadata from LLM Service level processing
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - Using PII metadata from LLM Service level`);
-        
+        this.logger.debug(
+          `🔍 [PII-METADATA-DEBUG] OpenAILLMService - Using PII metadata from LLM Service level`,
+        );
+
         // The text has already been pseudonymized at LLM Service level
         piiResult = {
           processedText: params.userMessage, // Already processed
           piiMetadata: params.options.piiMetadata,
           dictionaryMappings: params.options?.dictionaryMappings || [], // Already applied at LLM Service level
         };
-        
-        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Using pre-processed text with ${params.options?.dictionaryMappings?.length || 0} dictionary mappings`);
+
+        this.logger.debug(
+          `🎯 [DICTIONARY-DEBUG] Using pre-processed text with ${params.options?.dictionaryMappings?.length || 0} dictionary mappings`,
+        );
       } else {
         // Fallback - shouldn't happen if LLM Service is processing correctly
-        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] OpenAILLMService - No PII metadata from LLM Service, skipping PII processing`);
+        this.logger.warn(
+          `⚠️ [PII-METADATA-DEBUG] OpenAILLMService - No PII metadata from LLM Service, skipping PII processing`,
+        );
         piiResult = {
           processedText: params.userMessage,
           piiMetadata: null,
           dictionaryMappings: [],
         };
       }
-      
+
       // Normalize config for model-specific restrictions
       const normalizedConfig = this.normalizeConfigForModel(params.config);
 
@@ -103,7 +117,7 @@ export class OpenAILLMService extends BaseLLMService {
       const messages = this.prepareMessagesForModel(
         normalizedConfig.model,
         params.systemPrompt,
-        piiResult.processedText
+        piiResult.processedText,
       );
 
       // Build API request parameters, respecting model restrictions
@@ -120,13 +134,21 @@ export class OpenAILLMService extends BaseLLMService {
 
       // Add max_tokens or max_completion_tokens based on model requirements
       if (params.options?.maxTokens ?? normalizedConfig.maxTokens) {
-        let maxTokensValue = params.options?.maxTokens ?? normalizedConfig.maxTokens;
+        let maxTokensValue =
+          params.options?.maxTokens ?? normalizedConfig.maxTokens;
 
         // Check if model has a minimum token requirement
-        const restrictions = getModelRestrictions('openai', normalizedConfig.model);
-        if (restrictions?.minCompletionTokens && maxTokensValue && maxTokensValue < restrictions.minCompletionTokens) {
+        const restrictions = getModelRestrictions(
+          'openai',
+          normalizedConfig.model,
+        );
+        if (
+          restrictions?.minCompletionTokens &&
+          maxTokensValue &&
+          maxTokensValue < restrictions.minCompletionTokens
+        ) {
           this.logger.debug(
-            `Model ${normalizedConfig.model} requires minimum ${restrictions.minCompletionTokens} tokens, increasing from ${maxTokensValue}`
+            `Model ${normalizedConfig.model} requires minimum ${restrictions.minCompletionTokens} tokens, increasing from ${maxTokensValue}`,
           );
           maxTokensValue = restrictions.minCompletionTokens;
         }
@@ -135,7 +157,7 @@ export class OpenAILLMService extends BaseLLMService {
         if (this.requiresMaxCompletionTokens(normalizedConfig.model)) {
           apiParams.max_completion_tokens = maxTokensValue;
           this.logger.debug(
-            `Using max_completion_tokens for model ${normalizedConfig.model}: ${maxTokensValue}`
+            `Using max_completion_tokens for model ${normalizedConfig.model}: ${maxTokensValue}`,
           );
         } else {
           apiParams.max_tokens = maxTokensValue;
@@ -148,45 +170,60 @@ export class OpenAILLMService extends BaseLLMService {
       const choice = completion.choices[0];
       if (!choice?.message?.content) {
         // Log the full response for debugging
-        this.logger.warn(`OpenAI returned response without content for model ${normalizedConfig.model}:`, {
-          choices: completion.choices,
-          model: completion.model,
-          usage: completion.usage
-        });
+        this.logger.warn(
+          `OpenAI returned response without content for model ${normalizedConfig.model}:`,
+          {
+            choices: completion.choices,
+            model: completion.model,
+            usage: completion.usage,
+          },
+        );
         throw new Error('No content in OpenAI response');
       }
 
       // Don't reverse pseudonyms here - it will be done at LLM Service level
-      let finalContent = choice.message.content;
-      
+      const finalContent = choice.message.content;
+
       // Skip dictionary reversal - handled at LLM Service level
-      if ('dictionaryMappings' in piiResult && piiResult.dictionaryMappings && piiResult.dictionaryMappings.length > 0) {
-        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Skipping reversal - will be handled at LLM Service level with ${piiResult.dictionaryMappings.length} mappings`);
+      if (
+        'dictionaryMappings' in piiResult &&
+        piiResult.dictionaryMappings &&
+        piiResult.dictionaryMappings.length > 0
+      ) {
+        this.logger.debug(
+          `🎯 [DICTIONARY-DEBUG] Skipping reversal - will be handled at LLM Service level with ${piiResult.dictionaryMappings.length} mappings`,
+        );
       }
-      
+
       const endTime = Date.now();
-      
+
       // Create OpenAI-specific metadata
       const metadata = this.createOpenAIMetadata(
         completion,
         params,
         startTime,
         endTime,
-        requestId
+        requestId,
       );
-      
+
       // Debug PII metadata before passing to trackUsage
-      this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - piiResult structure:`, {
-        hasPiiResult: !!piiResult,
-        hasPiiMetadata: !!piiResult?.piiMetadata,
-        piiDetected: piiResult?.piiMetadata?.piiDetected,
-        processingFlow: piiResult?.piiMetadata?.processingFlow
-      });
-      
+      this.logger.debug(
+        `🔍 [PII-METADATA-DEBUG] OpenAILLMService - piiResult structure:`,
+        {
+          hasPiiResult: !!piiResult,
+          hasPiiMetadata: !!piiResult?.piiMetadata,
+          piiDetected: piiResult?.piiMetadata?.piiDetected,
+          processingFlow: piiResult?.piiMetadata?.processingFlow,
+        },
+      );
+
       if (piiResult?.piiMetadata) {
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - Full piiMetadata:`, piiResult.piiMetadata);
+        this.logger.debug(
+          `🔍 [PII-METADATA-DEBUG] OpenAILLMService - Full piiMetadata:`,
+          piiResult.piiMetadata,
+        );
       }
-      
+
       // Track usage with full metadata for database persistence
       await this.trackUsage(
         params.config.provider,
@@ -197,30 +234,31 @@ export class OpenAILLMService extends BaseLLMService {
         {
           requestId,
           userId: params.userId || params.options?.userId,
-          conversationId: params.conversationId || params.options?.conversationId,
+          conversationId:
+            params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
           piiMetadata: piiResult.piiMetadata,
           startTime,
           endTime,
-        }
+        },
       );
-      
+
       const response: LLMResponse = {
         content: finalContent,
         metadata,
         piiMetadata: piiResult.piiMetadata,
       };
-      
+
       // Optional LangSmith integration
       const langsmithRunId = await this.integrateLangSmith(params, response);
       if (langsmithRunId) {
         response.metadata.langsmithRunId = langsmithRunId;
       }
-      
+
       // Log request/response
       this.logRequestResponse(params, response, metadata.timing.duration);
-      
+
       return response;
     } catch (error) {
       this.handleError(error, 'OpenAILLMService.generateResponse');
@@ -261,7 +299,7 @@ export class OpenAILLMService extends BaseLLMService {
     if (restrictions.temperature && !restrictions.temperature.supported) {
       if (normalizedConfig.temperature !== undefined) {
         this.logger.debug(
-          `OpenAI model ${config.model} doesn't support temperature, removing: ${normalizedConfig.temperature}`
+          `OpenAI model ${config.model} doesn't support temperature, removing: ${normalizedConfig.temperature}`,
         );
         delete normalizedConfig.temperature;
       }
@@ -276,22 +314,25 @@ export class OpenAILLMService extends BaseLLMService {
   private prepareMessagesForModel(
     model: string,
     systemPrompt: string,
-    userMessage: string
+    userMessage: string,
   ): Array<{ role: 'system' | 'user'; content: string }> {
     const restrictions = getModelRestrictions('openai', model);
 
-    if (restrictions?.systemMessages && !restrictions.systemMessages.supported) {
+    if (
+      restrictions?.systemMessages &&
+      !restrictions.systemMessages.supported
+    ) {
       // Model doesn't support system messages
       this.logger.debug(
-        `OpenAI model ${model} doesn't support system messages, combining with user message`
+        `OpenAI model ${model} doesn't support system messages, combining with user message`,
       );
 
       if (restrictions.systemMessages.workaround === 'combine_with_user') {
         return [
           {
             role: 'user' as const,
-            content: `${systemPrompt}\n\n${userMessage}`
-          }
+            content: `${systemPrompt}\n\n${userMessage}`,
+          },
         ];
       }
     }
@@ -299,7 +340,7 @@ export class OpenAILLMService extends BaseLLMService {
     // Standard models support system messages
     return [
       { role: 'system' as const, content: systemPrompt },
-      { role: 'user' as const, content: userMessage }
+      { role: 'user' as const, content: userMessage },
     ];
   }
 
@@ -311,12 +352,14 @@ export class OpenAILLMService extends BaseLLMService {
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
-    requestId: string
+    requestId: string,
   ): OpenAIResponseMetadata {
     const choice = completion.choices[0];
     const usage = completion.usage;
     // Fallback estimation if usage is missing (not always present for some models)
-    const estInput = this.estimateTokens(`${params.systemPrompt}${params.systemPrompt ? '\n\n' : ''}${params.userMessage}`);
+    const estInput = this.estimateTokens(
+      `${params.systemPrompt}${params.systemPrompt ? '\n\n' : ''}${params.userMessage}`,
+    );
     const estOutput = this.estimateTokens(choice?.message?.content || '');
     const inputTokens = usage?.prompt_tokens ?? estInput;
     const outputTokens = usage?.completion_tokens ?? estOutput;
@@ -329,8 +372,13 @@ export class OpenAILLMService extends BaseLLMService {
       usage: {
         inputTokens,
         outputTokens,
-        totalTokens: (usage?.total_tokens ?? (inputTokens + outputTokens)) || 0,
-        cost: this.calculateCost('openai', completion.model, inputTokens, outputTokens),
+        totalTokens: (usage?.total_tokens ?? inputTokens + outputTokens) || 0,
+        cost: this.calculateCost(
+          'openai',
+          completion.model,
+          inputTokens,
+          outputTokens,
+        ),
       },
       timing: {
         startTime,
@@ -358,10 +406,13 @@ export class OpenAILLMService extends BaseLLMService {
    */
   protected async integrateLangSmith(
     params: GenerateResponseParams,
-    response: LLMResponse
+    response: LLMResponse,
   ): Promise<string | undefined> {
     // Example OpenAI-specific LangSmith integration
-    if (process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_TRACING === 'true') {
+    if (
+      process.env.LANGSMITH_API_KEY &&
+      process.env.LANGSMITH_TRACING === 'true'
+    ) {
       try {
         // This would integrate with LangSmith for OpenAI-specific tracing
         const runId = `openai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -379,23 +430,29 @@ export class OpenAILLMService extends BaseLLMService {
    */
   protected validateConfig(config: LLMServiceConfig): void {
     super.validateConfig(config);
-    
+
     if (config.provider !== 'openai') {
       throw new Error('OpenAILLMService requires provider to be "openai"');
     }
-    
+
     if (!config.apiKey && !process.env.OPENAI_API_KEY) {
       throw new Error('OpenAI API key is required');
     }
-    
+
     // Validate OpenAI-specific model names
     const validModels = [
-      'gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini',
-      'gpt-3.5-turbo', 'gpt-3.5-turbo-16k'
+      'gpt-4',
+      'gpt-4-turbo',
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-3.5-turbo',
+      'gpt-3.5-turbo-16k',
     ];
-    
-    if (!validModels.some(model => config.model.startsWith(model))) {
-      this.logger.warn(`Unknown OpenAI model: ${config.model}. Proceeding anyway.`);
+
+    if (!validModels.some((model) => config.model.startsWith(model))) {
+      this.logger.warn(
+        `Unknown OpenAI model: ${config.model}. Proceeding anyway.`,
+      );
     }
   }
 }
@@ -410,7 +467,7 @@ export function createOpenAIService(
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
-  }
+  },
 ): OpenAILLMService {
   return new OpenAILLMService(
     { ...config, provider: 'openai' },
@@ -442,7 +499,7 @@ export async function testOpenAIService() {
   };
 
   const service = createOpenAIService(config, mockDependencies);
-  
+
   const params: GenerateResponseParams = {
     systemPrompt: 'You are a helpful assistant.',
     userMessage: 'Hello, how are you?',

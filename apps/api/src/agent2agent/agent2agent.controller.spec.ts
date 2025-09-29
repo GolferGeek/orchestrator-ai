@@ -34,8 +34,14 @@ describe('Agent2AgentController', () => {
   });
 
   it('executes task via gateway', async () => {
-    gateway.execute.mockResolvedValue({ success: true, mode: AgentTaskMode.CONVERSE } as any);
-    const dto = { mode: AgentTaskMode.CONVERSE, conversationId: 'conv-1' } as any;
+    gateway.execute.mockResolvedValue({
+      success: true,
+      mode: AgentTaskMode.CONVERSE,
+    } as any);
+    const dto = {
+      mode: AgentTaskMode.CONVERSE,
+      conversationId: 'conv-1',
+    } as any;
 
     const result = await controller.executeTask('my-org', 'agent', dto);
     expect(gateway.execute).toHaveBeenCalledWith('my-org', 'agent', dto);

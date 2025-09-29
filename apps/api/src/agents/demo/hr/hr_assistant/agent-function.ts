@@ -79,8 +79,8 @@ Respond with a JSON object:
     const classificationResponse = await llmService.generateResponse(
       'You are an expert HR query classifier. Always respond with valid JSON.',
       classificationPrompt,
-      { 
-        temperature: 0.1, 
+      {
+        temperature: 0.1,
         maxTokens: 200,
         callerType: 'agent',
         callerName: 'hr-assistant-agent',
@@ -92,13 +92,14 @@ Respond with a JSON object:
     );
 
     // Handle both string and object responses from LLM service
-    const responseContent = typeof classificationResponse === 'string' 
-      ? classificationResponse 
-      : classificationResponse?.content || classificationResponse?.response || String(classificationResponse);
-    
-    const classification: HRQueryClassification = JSON.parse(
-      responseContent,
-    );
+    const responseContent =
+      typeof classificationResponse === 'string'
+        ? classificationResponse
+        : classificationResponse?.content ||
+          classificationResponse?.response ||
+          String(classificationResponse);
+
+    const classification: HRQueryClassification = JSON.parse(responseContent);
 
     progressCallback?.(
       'Classifying HR query',
@@ -294,9 +295,10 @@ Be comprehensive and anticipate follow-up questions they might have.`;
     );
 
     // Handle both string and object responses from LLM service
-    const responseContent = typeof response === 'string' 
-      ? response 
-      : response?.content || response?.response || String(response);
+    const responseContent =
+      typeof response === 'string'
+        ? response
+        : response?.content || response?.response || String(response);
 
     return {
       ...state,

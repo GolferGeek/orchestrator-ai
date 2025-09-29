@@ -35,7 +35,6 @@ export function initializeLangChain(): void {
 
     langchainInitialized = true;
   } catch (error) {
-
     throw error;
   }
 }
@@ -59,7 +58,9 @@ export function getLLM(options?: {
 
   // Require explicit provider - no defaults or fallbacks
   if (!provider || !model) {
-    throw new Error('Provider and model must be explicitly specified - no defaults allowed');
+    throw new Error(
+      'Provider and model must be explicitly specified - no defaults allowed',
+    );
   }
 
   if (provider === 'openai') {
@@ -77,7 +78,9 @@ export function getLLM(options?: {
   }
 
   // No fallback - throw error for unsupported providers
-  throw new Error(`Unsupported provider: ${provider}. Please use a supported provider.`);
+  throw new Error(
+    `Unsupported provider: ${provider}. Please use a supported provider.`,
+  );
 }
 
 /**
@@ -104,7 +107,6 @@ export async function executeSimpleCall(
     const response = await llm.invoke(messages);
     return response.content as string;
   } catch (error) {
-
     throw error;
   }
 }
@@ -117,7 +119,6 @@ export function isLangChainConfigured(): boolean {
     getOpenAIApiKey();
     return true;
   } catch {
-
     return false;
   }
 }

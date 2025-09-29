@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PseudonymizationService, PseudonymResult } from './pseudonymization.service';
+import {
+  PseudonymizationService,
+  PseudonymResult,
+} from './pseudonymization.service';
 import { PIIPatternService, PIIDataType } from './pii-pattern.service';
 import { SupabaseService } from '../supabase/supabase.service';
 
@@ -68,7 +71,11 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.generatePseudonym('john@example.com', 'email', 'test');
+      const result = await service.generatePseudonym(
+        'john@example.com',
+        'email',
+        'test',
+      );
 
       expect(result).toMatchObject({
         originalValue: 'john@example.com',
@@ -82,20 +89,23 @@ describe('PseudonymizationService', () => {
 
     it('should return existing pseudonym when already mapped', async () => {
       const existingPseudonym = 'user123@example.com';
-      
+
       // Mock database lookup to return existing pseudonym
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({ 
-              data: { pseudonym: existingPseudonym }, 
-              error: null 
+            single: jest.fn().mockResolvedValue({
+              data: { pseudonym: existingPseudonym },
+              error: null,
             }),
           })),
         })),
       });
 
-      const result = await service.generatePseudonym('john@example.com', 'email');
+      const result = await service.generatePseudonym(
+        'john@example.com',
+        'email',
+      );
 
       expect(result).toMatchObject({
         originalValue: 'john@example.com',
@@ -137,12 +147,12 @@ describe('PseudonymizationService', () => {
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn(() => ({
-              limit: jest.fn().mockResolvedValue({ 
+              limit: jest.fn().mockResolvedValue({
                 data: [
                   { value: 'John', frequency_weight: 10 },
-                  { value: 'Jane', frequency_weight: 8 }
-                ], 
-                error: null 
+                  { value: 'Jane', frequency_weight: 8 },
+                ],
+                error: null,
               }),
             })),
           })),
@@ -166,7 +176,10 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.generatePseudonym('192.168.1.100', 'ip_address');
+      const result = await service.generatePseudonym(
+        '192.168.1.100',
+        'ip_address',
+      );
 
       expect(result.pseudonym).toMatch(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/);
       expect(result.dataType).toBe('ip_address');
@@ -176,21 +189,29 @@ describe('PseudonymizationService', () => {
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({ 
-              data: null, 
-              error: new Error('Database error') 
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: new Error('Database error'),
             }),
           })),
         })),
       });
 
-      await expect(service.generatePseudonym('test@example.com', 'email'))
-        .rejects.toThrow('Database error');
+      await expect(
+        service.generatePseudonym('test@example.com', 'email'),
+      ).rejects.toThrow('Database error');
     });
 
     it('should handle different data types', async () => {
-      const dataTypes: PIIDataType[] = ['email', 'phone', 'name', 'address', 'ip_address', 'username'];
-      
+      const dataTypes: PIIDataType[] = [
+        'email',
+        'phone',
+        'name',
+        'address',
+        'ip_address',
+        'username',
+      ];
+
       for (const dataType of dataTypes) {
         mockSupabaseClient.from.mockReturnValue({
           select: jest.fn(() => ({
@@ -285,7 +306,9 @@ describe('PseudonymizationService', () => {
       });
 
       const text = 'john@example.com and (555) 123-4567';
-      const result = await service.pseudonymizeText(text, { dataTypes: ['email'] });
+      const result = await service.pseudonymizeText(text, {
+        dataTypes: ['email'],
+      });
 
       expect(mockPIIPatternService.detectPII).toHaveBeenCalledWith(text, {
         dataTypes: ['email'],
@@ -319,7 +342,9 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.pseudonymizeText('john@example.com', { context: 'test-context' });
+      const result = await service.pseudonymizeText('john@example.com', {
+        context: 'test-context',
+      });
 
       expect(result.pseudonyms[0].context).toBe('test-context');
     });
@@ -361,13 +386,13 @@ describe('PseudonymizationService', () => {
   describe('lookupPseudonym', () => {
     it('should return existing pseudonym', async () => {
       const existingPseudonym = 'user123@example.com';
-      
+
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({ 
-              data: { pseudonym: existingPseudonym, data_type: 'email' }, 
-              error: null 
+            single: jest.fn().mockResolvedValue({
+              data: { pseudonym: existingPseudonym, data_type: 'email' },
+              error: null,
             }),
           })),
         })),
@@ -387,7 +412,10 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      const result = await service.lookupPseudonym('nonexistent@example.com', 'email');
+      const result = await service.lookupPseudonym(
+        'nonexistent@example.com',
+        'email',
+      );
 
       expect(result).toBeNull();
     });
@@ -396,9 +424,9 @@ describe('PseudonymizationService', () => {
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({ 
-              data: { pseudonym: 'user123@example.com', data_type: 'phone' }, 
-              error: null 
+            single: jest.fn().mockResolvedValue({
+              data: { pseudonym: 'user123@example.com', data_type: 'phone' },
+              error: null,
             }),
           })),
         })),
@@ -413,9 +441,9 @@ describe('PseudonymizationService', () => {
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({ 
-              data: null, 
-              error: new Error('Database error') 
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: new Error('Database error'),
             }),
           })),
         })),
@@ -444,10 +472,16 @@ describe('PseudonymizationService', () => {
         },
       ];
 
-      const pseudonymizedText = 'Contact user123@example.com or call (555) 999-0000';
-      const result = await service.reversePseudonymization(pseudonymizedText, pseudonymMappings);
+      const pseudonymizedText =
+        'Contact user123@example.com or call (555) 999-0000';
+      const result = await service.reversePseudonymization(
+        pseudonymizedText,
+        pseudonymMappings,
+      );
 
-      expect(result.originalText).toBe('Contact john@example.com or call (555) 123-4567');
+      expect(result.originalText).toBe(
+        'Contact john@example.com or call (555) 123-4567',
+      );
       expect(result.reversalCount).toBe(2);
       expect(result.processingTime).toBeGreaterThan(0);
     });
@@ -463,15 +497,23 @@ describe('PseudonymizationService', () => {
       ];
 
       const pseudonymizedText = 'Contact user123@example.com and someone else';
-      const result = await service.reversePseudonymization(pseudonymizedText, pseudonymMappings);
+      const result = await service.reversePseudonymization(
+        pseudonymizedText,
+        pseudonymMappings,
+      );
 
-      expect(result.originalText).toBe('Contact john@example.com and someone else');
+      expect(result.originalText).toBe(
+        'Contact john@example.com and someone else',
+      );
       expect(result.reversalCount).toBe(1);
     });
 
     it('should handle empty mappings', async () => {
       const pseudonymizedText = 'No pseudonyms to reverse';
-      const result = await service.reversePseudonymization(pseudonymizedText, []);
+      const result = await service.reversePseudonymization(
+        pseudonymizedText,
+        [],
+      );
 
       expect(result.originalText).toBe(pseudonymizedText);
       expect(result.reversalCount).toBe(0);
@@ -494,7 +536,10 @@ describe('PseudonymizationService', () => {
       ];
 
       const pseudonymizedText = 'Emails: test@fake.com and testing@fake.com';
-      const result = await service.reversePseudonymization(pseudonymizedText, pseudonymMappings);
+      const result = await service.reversePseudonymization(
+        pseudonymizedText,
+        pseudonymMappings,
+      );
 
       expect(result.originalText).toContain('test@example.com');
       expect(result.originalText).toContain('testing@example.com');
@@ -529,8 +574,8 @@ describe('PseudonymizationService', () => {
       });
 
       const result = await service.createReversiblePseudonymization(
-        'john@example.com', 
-        'request-123'
+        'john@example.com',
+        'request-123',
       );
 
       expect(result.pseudonymizedText).toBeDefined();
@@ -547,9 +592,9 @@ describe('PseudonymizationService', () => {
       });
 
       const result = await service.createReversiblePseudonymization(
-        'No PII here', 
+        'No PII here',
         'request-456',
-        { context: 'test' }
+        { context: 'test' },
       );
 
       expect(result).toBeDefined();
@@ -570,7 +615,9 @@ describe('PseudonymizationService', () => {
 
       await service.addPIIPattern(pattern);
 
-      expect(mockPIIPatternService.addCustomPattern).toHaveBeenCalledWith(pattern);
+      expect(mockPIIPatternService.addCustomPattern).toHaveBeenCalledWith(
+        pattern,
+      );
     });
   });
 
@@ -623,24 +670,26 @@ describe('PseudonymizationService', () => {
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn(() => ({
-              limit: jest.fn().mockResolvedValue({ 
-                data: [{ value: 'example.com' }], 
-                error: null 
+              limit: jest.fn().mockResolvedValue({
+                data: [{ value: 'example.com' }],
+                error: null,
               }),
             })),
           })),
         })),
       });
 
-      const email = await (service as any).generateFakeEmail('john@example.com');
-      
+      const email = await (service as any).generateFakeEmail(
+        'john@example.com',
+      );
+
       expect(email).toMatch(/@/);
       expect(typeof email).toBe('string');
     });
 
     it('should generate realistic fake phone numbers', async () => {
       const phone = await (service as any).generateFakePhone('(555) 123-4567');
-      
+
       expect(phone).toMatch(/\(\d{3}\) \d{3}-\d{4}/);
     });
 
@@ -650,9 +699,9 @@ describe('PseudonymizationService', () => {
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
               eq: jest.fn(() => ({
-                limit: jest.fn().mockResolvedValue({ 
-                  data: [{ value: 'John', frequency_weight: 10 }], 
-                  error: null 
+                limit: jest.fn().mockResolvedValue({
+                  data: [{ value: 'John', frequency_weight: 10 }],
+                  error: null,
                 }),
               })),
             })),
@@ -662,9 +711,9 @@ describe('PseudonymizationService', () => {
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
               eq: jest.fn(() => ({
-                limit: jest.fn().mockResolvedValue({ 
-                  data: [{ value: 'Smith', frequency_weight: 10 }], 
-                  error: null 
+                limit: jest.fn().mockResolvedValue({
+                  data: [{ value: 'Smith', frequency_weight: 10 }],
+                  error: null,
                 }),
               })),
             })),
@@ -672,17 +721,21 @@ describe('PseudonymizationService', () => {
         });
 
       const name = await (service as any).generateFakeName('Original Name');
-      
+
       expect(typeof name).toBe('string');
       expect(name.split(' ')).toHaveLength(2);
     });
 
     it('should generate fake IP addresses in private ranges', async () => {
       const ip = await (service as any).generateFakeIPAddress('192.168.1.100');
-      
+
       expect(ip).toMatch(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/);
       // Should be in private IP ranges
-      expect(ip.startsWith('10.') || ip.startsWith('172.') || ip.startsWith('192.168.')).toBe(true);
+      expect(
+        ip.startsWith('10.') ||
+          ip.startsWith('172.') ||
+          ip.startsWith('192.168.'),
+      ).toBe(true);
     });
 
     it('should generate fake usernames', async () => {
@@ -690,9 +743,9 @@ describe('PseudonymizationService', () => {
         select: jest.fn(() => ({
           eq: jest.fn(() => ({
             eq: jest.fn(() => ({
-              limit: jest.fn().mockResolvedValue({ 
-                data: [{ value: 'john', frequency_weight: 10 }], 
-                error: null 
+              limit: jest.fn().mockResolvedValue({
+                data: [{ value: 'john', frequency_weight: 10 }],
+                error: null,
               }),
             })),
           })),
@@ -700,7 +753,7 @@ describe('PseudonymizationService', () => {
       });
 
       const username = await (service as any).generateFakeUsername('@johndoe');
-      
+
       expect(username).toMatch(/^@\w+$/);
     });
   });
@@ -713,12 +766,20 @@ describe('PseudonymizationService', () => {
             single: jest.fn().mockResolvedValue({ data: null, error: null }),
           })),
         })),
-        insert: jest.fn().mockResolvedValue({ data: { id: 'new-id' }, error: null }),
+        insert: jest
+          .fn()
+          .mockResolvedValue({ data: { id: 'new-id' }, error: null }),
       });
 
-      await service.generatePseudonym('test@example.com', 'email', 'test-context');
+      await service.generatePseudonym(
+        'test@example.com',
+        'email',
+        'test-context',
+      );
 
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('pseudonym_mappings');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith(
+        'pseudonym_mappings',
+      );
     });
 
     it('should handle database connection errors', async () => {
@@ -730,24 +791,25 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      await expect(service.generatePseudonym('test@example.com', 'email'))
-        .rejects.toThrow('Connection failed');
+      await expect(
+        service.generatePseudonym('test@example.com', 'email'),
+      ).rejects.toThrow('Connection failed');
     });
 
     it('should increment usage counters', async () => {
       const existingId = 'existing-mapping-id';
-      
+
       mockSupabaseClient.from
         .mockReturnValueOnce({
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
-              single: jest.fn().mockResolvedValue({ 
-                data: { 
+              single: jest.fn().mockResolvedValue({
+                data: {
                   id: existingId,
                   pseudonym: 'existing@example.com',
-                  data_type: 'email'
-                }, 
-                error: null 
+                  data_type: 'email',
+                },
+                error: null,
               }),
             })),
           })),
@@ -755,9 +817,9 @@ describe('PseudonymizationService', () => {
         .mockReturnValueOnce({
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
-              single: jest.fn().mockResolvedValue({ 
-                data: { usage_count: 5 }, 
-                error: null 
+              single: jest.fn().mockResolvedValue({
+                data: { usage_count: 5 },
+                error: null,
               }),
             })),
           })),
@@ -769,7 +831,9 @@ describe('PseudonymizationService', () => {
       await service.generatePseudonym('test@example.com', 'email');
 
       // Should attempt to increment usage count
-      expect(mockSupabaseClient.from).toHaveBeenCalledWith('pseudonym_mappings');
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith(
+        'pseudonym_mappings',
+      );
     });
   });
 
@@ -785,7 +849,7 @@ describe('PseudonymizationService', () => {
       });
 
       const result = await service.generatePseudonym('test-value', 'custom');
-      
+
       expect(result.dataType).toBe('custom');
       expect(result.pseudonym).toBeDefined();
     });
@@ -802,21 +866,21 @@ describe('PseudonymizationService', () => {
 
       expect(emptyResult.pseudonymizedText).toBe('');
       expect(emptyResult.pseudonyms).toHaveLength(0);
-      
+
       expect(nullResult.pseudonymizedText).toBe(null);
       expect(nullResult.pseudonyms).toHaveLength(0);
     });
 
     it('should handle very long inputs efficiently', async () => {
       const longText = 'test@example.com '.repeat(1000);
-      
+
       mockPIIPatternService.detectPII.mockResolvedValue({
         matches: Array.from({ length: 100 }, (_, i) => ({
           value: `test${i}@example.com`,
           dataType: 'email',
           patternName: 'email_standard',
           startIndex: i * 18,
-          endIndex: (i * 18) + 17,
+          endIndex: i * 18 + 17,
           confidence: 1.0,
         })),
         processingTime: 50,

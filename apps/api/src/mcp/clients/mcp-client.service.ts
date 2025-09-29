@@ -3,10 +3,10 @@ import { MCPService } from '../mcp.service';
 
 /**
  * MCP Client Service for Function Agents
- * 
+ *
  * Provides a clean, simple interface for agents to use MCP tools
  * without needing to know about JSON-RPC protocol details.
- * 
+ *
  * Updated to use direct MCPService instead of HTTP calls to avoid circular dependencies.
  */
 @Injectable()
@@ -47,13 +47,15 @@ export class MCPClientService {
           // Pass through provider/model (optional)
           provider: params.providerName,
           model: params.modelName,
-        }
+        },
       });
 
       if (response.isError) {
         return {
           isError: true,
-          content: [{ text: response.content[0]?.text || 'SQL generation failed' }]
+          content: [
+            { text: response.content[0]?.text || 'SQL generation failed' },
+          ],
         };
       }
 
@@ -61,7 +63,9 @@ export class MCPClientService {
     } catch (error) {
       return {
         isError: true,
-        content: [{ text: error instanceof Error ? error.message : 'Unknown error' }]
+        content: [
+          { text: error instanceof Error ? error.message : 'Unknown error' },
+        ],
       };
     }
   }
@@ -82,13 +86,15 @@ export class MCPClientService {
         arguments: {
           sql: params.sql_query,
           max_rows: params.max_rows || 1000,
-        }
+        },
       });
 
       if (response.isError) {
         return {
           isError: true,
-          content: [{ text: response.content[0]?.text || 'SQL execution failed' }]
+          content: [
+            { text: response.content[0]?.text || 'SQL execution failed' },
+          ],
         };
       }
 
@@ -96,7 +102,9 @@ export class MCPClientService {
     } catch (error) {
       return {
         isError: true,
-        content: [{ text: error instanceof Error ? error.message : 'Unknown error' }]
+        content: [
+          { text: error instanceof Error ? error.message : 'Unknown error' },
+        ],
       };
     }
   }
@@ -114,13 +122,15 @@ export class MCPClientService {
         arguments: {
           table_name: options?.table_name,
           include_system: false,
-        }
+        },
       });
 
       if (response.isError) {
         return {
           isError: true,
-          content: [{ text: response.content[0]?.text || 'Schema retrieval failed' }]
+          content: [
+            { text: response.content[0]?.text || 'Schema retrieval failed' },
+          ],
         };
       }
 
@@ -128,7 +138,9 @@ export class MCPClientService {
     } catch (error) {
       return {
         isError: true,
-        content: [{ text: error instanceof Error ? error.message : 'Unknown error' }]
+        content: [
+          { text: error instanceof Error ? error.message : 'Unknown error' },
+        ],
       };
     }
   }
@@ -155,14 +167,14 @@ export class MCPClientService {
           limit: params.limit || 100,
           offset: params.offset || 0,
           order_by: params.order_by?.column,
-          format: params.format || 'json'
-        }
+          format: params.format || 'json',
+        },
       });
 
       if (response.isError) {
         return {
           isError: true,
-          content: [{ text: response.content[0]?.text || 'Data read failed' }]
+          content: [{ text: response.content[0]?.text || 'Data read failed' }],
         };
       }
 
@@ -170,7 +182,9 @@ export class MCPClientService {
     } catch (error) {
       return {
         isError: true,
-        content: [{ text: error instanceof Error ? error.message : 'Unknown error' }]
+        content: [
+          { text: error instanceof Error ? error.message : 'Unknown error' },
+        ],
       };
     }
   }
@@ -191,14 +205,16 @@ export class MCPClientService {
         arguments: {
           query: params.user_prompt,
           format: params.output_format || 'table',
-          analysis_type: 'raw'
-        }
+          analysis_type: 'raw',
+        },
       });
 
       if (response.isError) {
         return {
           isError: true,
-          content: [{ text: response.content[0]?.text || 'Query and format failed' }]
+          content: [
+            { text: response.content[0]?.text || 'Query and format failed' },
+          ],
         };
       }
 
@@ -206,7 +222,9 @@ export class MCPClientService {
     } catch (error) {
       return {
         isError: true,
-        content: [{ text: error instanceof Error ? error.message : 'Unknown error' }]
+        content: [
+          { text: error instanceof Error ? error.message : 'Unknown error' },
+        ],
       };
     }
   }
@@ -218,14 +236,16 @@ export class MCPClientService {
     try {
       const response = await this.mcpService.callTool({
         name: toolName,
-        arguments: params
+        arguments: params,
       });
 
       return response;
     } catch (error) {
       return {
         isError: true,
-        content: [{ text: error instanceof Error ? error.message : 'Unknown error' }]
+        content: [
+          { text: error instanceof Error ? error.message : 'Unknown error' },
+        ],
       };
     }
   }

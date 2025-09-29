@@ -132,7 +132,6 @@ export class AgentMetadataService {
     this.metadataCache = new Map<string, AgentMetadata>();
     this.cardCache = new Map<string, AgentCard>();
     this.structureCache = new Map<string, AgentStructure>();
-
   }
 
   /**
@@ -146,7 +145,6 @@ export class AgentMetadataService {
     const cacheKey = `card:${agentConfig.name || 'unknown'}:${baseUrl}`;
     const cached = this.cardCache.get(cacheKey);
     if (cached) {
-
       return cached;
     }
 
@@ -330,7 +328,6 @@ export class AgentMetadataService {
 
       return structure;
     } catch (error) {
-
       return {
         hasContextFile: false,
         hasFunctionFile: false,
@@ -356,9 +353,7 @@ export class AgentMetadataService {
     if (structure.hasContextFile && structure.contextPath) {
       try {
         metadata = await this.extractMetadataFromContext(structure.contextPath);
-      } catch (error) {
-
-      }
+      } catch (error) {}
     }
 
     return {
@@ -381,7 +376,6 @@ export class AgentMetadataService {
    */
   cacheMetadata(agentId: string, metadata: AgentMetadata): void {
     this.metadataCache.set(agentId, metadata);
-
   }
 
   /**
@@ -391,7 +385,6 @@ export class AgentMetadataService {
     this.metadataCache.clear();
     this.cardCache.clear();
     this.structureCache.clear();
-
   }
 
   /**

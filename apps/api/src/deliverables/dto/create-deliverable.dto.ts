@@ -39,7 +39,7 @@ export enum DeliverableVersionCreationType {
 
 // Custom validator to ensure at least one of conversationId or projectStepId is provided
 function AtLeastOneContext(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'atLeastOneContext',
       target: object.constructor,
@@ -66,17 +66,23 @@ export class CreateDeliverableDto {
   @MaxLength(255)
   title!: string;
 
-  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
+  @ApiPropertyOptional({
+    enum: DeliverableType,
+    description: 'Type of deliverable',
+  })
   @IsOptional()
   @IsEnum(DeliverableType)
   type?: DeliverableType;
 
   @ApiPropertyOptional({
-    description: 'Conversation ID this deliverable belongs to (optional - use when deliverable is part of a conversation)',
+    description:
+      'Conversation ID this deliverable belongs to (optional - use when deliverable is part of a conversation)',
   })
   @IsOptional()
   @IsUUID()
-  @AtLeastOneContext({ message: 'Either conversationId or projectStepId must be provided' })
+  @AtLeastOneContext({
+    message: 'Either conversationId or projectStepId must be provided',
+  })
   conversationId?: string;
 
   @ApiPropertyOptional({
@@ -87,7 +93,8 @@ export class CreateDeliverableDto {
   projectStepId?: string;
 
   @ApiPropertyOptional({
-    description: 'Agent that should handle editing this deliverable (inherited from creating conversation)',
+    description:
+      'Agent that should handle editing this deliverable (inherited from creating conversation)',
     maxLength: 255,
   })
   @IsOptional()

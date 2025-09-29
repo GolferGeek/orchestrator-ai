@@ -43,7 +43,8 @@ export class HierarchyController {
 
       const hierarchy = this.agentDiscovery.getAgentHierarchy(namespaces);
       const totalAgents = namespaces?.length
-        ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces).length
+        ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces)
+            .length
         : this.agentDiscovery.getDiscoveredAgents().length;
 
       return {
@@ -57,7 +58,6 @@ export class HierarchyController {
         },
       };
     } catch (error) {
-
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

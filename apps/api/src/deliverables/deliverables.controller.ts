@@ -161,11 +161,8 @@ export class DeliverablesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: any,
   ): Promise<Deliverable> {
-
-    
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
-
       throw new Error('User not authenticated');
     }
 
@@ -173,23 +170,26 @@ export class DeliverablesController {
   }
 
   @Get('conversation/:conversationId')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get deliverables by conversation ID',
-    description: 'Retrieves all deliverables associated with a specific conversation'
+    description:
+      'Retrieves all deliverables associated with a specific conversation',
   })
   @ApiParam({ name: 'conversationId', description: 'Conversation UUID' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Deliverables retrieved successfully',
-    type: [Deliverable]
+    type: [Deliverable],
   })
-  @ApiResponse({ status: 400, description: 'Bad Request - Invalid conversation ID format' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid conversation ID format',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findByConversation(
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
     @Req() req: any,
   ): Promise<Deliverable[]> {
-    
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
       throw new Error('User not authenticated');
@@ -226,7 +226,8 @@ export class DeliverablesController {
   @Post(':id/conversations')
   @ApiOperation({
     summary: 'Create editing conversation for deliverable',
-    description: 'Creates a new conversation for editing a standalone deliverable',
+    description:
+      'Creates a new conversation for editing a standalone deliverable',
   })
   @ApiParam({ name: 'id', description: 'Deliverable UUID' })
   @ApiResponse({
@@ -235,8 +236,14 @@ export class DeliverablesController {
     schema: {
       type: 'object',
       properties: {
-        conversationId: { type: 'string', description: 'ID of the created conversation' },
-        message: { type: 'string', description: 'Initial context message for the conversation' },
+        conversationId: {
+          type: 'string',
+          description: 'ID of the created conversation',
+        },
+        message: {
+          type: 'string',
+          description: 'Initial context message for the conversation',
+        },
       },
     },
   })

@@ -1,25 +1,25 @@
 /**
  * Simple Ollama Test - Golf Blog Post
- * 
+ *
  * This is our baseline test that we'll perfect and then replicate for all providers.
  * Tests a real-world scenario: generating a blog post about playing golf in the rain.
  */
 
 import { HttpService } from '@nestjs/axios';
 import { OllamaLLMService } from './ollama-llm.service';
-import { 
-  LLMServiceConfig, 
-  GenerateResponseParams, 
-  LLMResponse 
+import {
+  LLMServiceConfig,
+  GenerateResponseParams,
+  LLMResponse,
 } from './llm-interfaces';
 
 // Mock dependencies for testing (we'll keep this simple for now)
 const mockDependencies = {
   piiService: {
-    detectAndProcessPII: async () => ({ 
-      processedText: 'test', 
-      piiMetadata: undefined 
-    })
+    detectAndProcessPII: async () => ({
+      processedText: 'test',
+      piiMetadata: undefined,
+    }),
   } as any,
   dictionaryPseudonymizerService: {} as any,
   runMetadataService: {} as any,
@@ -27,31 +27,31 @@ const mockDependencies = {
   httpService: {
     post: () => ({
       // Mock Ollama response
-      toPromise: () => Promise.resolve({
-        data: {
-          response: "# Playing Golf in the Rain: A Wet Adventure\n\nPlaying golf in the rain can be both challenging and rewarding. Here are some tips for making the most of your rainy day round:\n\n## Essential Gear\n- Waterproof rain gear\n- Golf umbrella\n- Extra towels\n- Waterproof gloves\n\n## Playing Tips\n1. Adjust your stance for wet conditions\n2. Take shorter swings for better control\n3. Focus on course management\n4. Stay positive and enjoy the unique experience\n\nRemember, some of the most memorable rounds happen in less-than-perfect weather!",
-          model: "llama3.2:3b",
-          created_at: new Date().toISOString(),
-          done: true,
-          total_duration: 5000000000, // 5 seconds in nanoseconds
-          load_duration: 1000000000,  // 1 second
-          prompt_eval_count: 25,
-          prompt_eval_duration: 500000000,
-          eval_count: 150,
-          eval_duration: 3500000000
-        }
-      })
+      toPromise: () =>
+        Promise.resolve({
+          data: {
+            response:
+              '# Playing Golf in the Rain: A Wet Adventure\n\nPlaying golf in the rain can be both challenging and rewarding. Here are some tips for making the most of your rainy day round:\n\n## Essential Gear\n- Waterproof rain gear\n- Golf umbrella\n- Extra towels\n- Waterproof gloves\n\n## Playing Tips\n1. Adjust your stance for wet conditions\n2. Take shorter swings for better control\n3. Focus on course management\n4. Stay positive and enjoy the unique experience\n\nRemember, some of the most memorable rounds happen in less-than-perfect weather!',
+            model: 'llama3.2:3b',
+            created_at: new Date().toISOString(),
+            done: true,
+            total_duration: 5000000000, // 5 seconds in nanoseconds
+            load_duration: 1000000000, // 1 second
+            prompt_eval_count: 25,
+            prompt_eval_duration: 500000000,
+            eval_count: 150,
+            eval_duration: 3500000000,
+          },
+        }),
     }),
     get: () => ({
-      toPromise: () => Promise.resolve({
-        data: {
-          models: [
-            { name: "llama3.2:3b" },
-            { name: "llama3.2:1b" }
-          ]
-        }
-      })
-    })
+      toPromise: () =>
+        Promise.resolve({
+          data: {
+            models: [{ name: 'llama3.2:3b' }, { name: 'llama3.2:1b' }],
+          },
+        }),
+    }),
   } as any,
 };
 
@@ -70,7 +70,8 @@ const testConfig: LLMServiceConfig = {
  * The test prompt we'll use across all providers
  */
 const testPrompt = {
-  systemPrompt: 'You are a helpful assistant who writes engaging blog posts. Write in a friendly, informative tone.',
+  systemPrompt:
+    'You are a helpful assistant who writes engaging blog posts. Write in a friendly, informative tone.',
   userMessage: 'Write me a blog post about playing golf in the rain',
 };
 
@@ -95,7 +96,7 @@ export async function testOllamaGolfBlogPost(): Promise<{
   console.log('');
 
   const startTime = Date.now();
-  
+
   try {
     // Create Ollama service
     const ollamaService = new OllamaLLMService(
@@ -110,11 +111,13 @@ export async function testOllamaGolfBlogPost(): Promise<{
     // Check Ollama health first
     console.log('🏥 Checking Ollama health...');
     const health = await ollamaService.checkHealth();
-    
+
     if (!health.healthy) {
-      throw new Error('Ollama server is not healthy. Make sure Ollama is running on localhost:11434');
+      throw new Error(
+        'Ollama server is not healthy. Make sure Ollama is running on localhost:11434',
+      );
     }
-    
+
     console.log(`✅ Ollama is healthy (version: ${health.version})`);
     console.log(`📋 Available models: ${health.models?.join(', ') || 'none'}`);
     console.log('');
@@ -133,14 +136,15 @@ export async function testOllamaGolfBlogPost(): Promise<{
     // Generate response
     console.log('🤖 Generating blog post...');
     const response = await ollamaService.generateResponse(params);
-    
+
     const duration = Date.now() - startTime;
-    
+
     // Calculate metrics
     const wordCount = response.content.split(/\s+/).length;
-    const tokensPerSecond = response.metadata.usage.outputTokens > 0 
-      ? (response.metadata.usage.outputTokens / duration) * 1000 
-      : undefined;
+    const tokensPerSecond =
+      response.metadata.usage.outputTokens > 0
+        ? (response.metadata.usage.outputTokens / duration) * 1000
+        : undefined;
 
     // Print results
     console.log('✅ Success!');
@@ -152,21 +156,35 @@ export async function testOllamaGolfBlogPost(): Promise<{
     console.log(`   Total tokens: ${response.metadata.usage.totalTokens}`);
     console.log(`   Tokens/sec: ${tokensPerSecond?.toFixed(2) || 'N/A'}`);
     console.log(`   Word count: ${wordCount}`);
-    console.log(`   Cost: $${response.metadata.usage.cost?.toFixed(4) || '0.0000'} (local model)`);
+    console.log(
+      `   Cost: $${response.metadata.usage.cost?.toFixed(4) || '0.0000'} (local model)`,
+    );
     console.log('');
-    
+
     // Print performance details from Ollama
     if (response.metadata.providerSpecific) {
       const perf = response.metadata.providerSpecific;
       console.log('🔧 Ollama Performance Details:');
-      if (perf.total_duration) console.log(`   Total duration: ${(perf.total_duration / 1000000).toFixed(0)}ms`);
-      if (perf.load_duration) console.log(`   Model load time: ${(perf.load_duration / 1000000).toFixed(0)}ms`);
-      if (perf.prompt_eval_duration) console.log(`   Prompt eval time: ${(perf.prompt_eval_duration / 1000000).toFixed(0)}ms`);
-      if (perf.eval_duration) console.log(`   Generation time: ${(perf.eval_duration / 1000000).toFixed(0)}ms`);
+      if (perf.total_duration)
+        console.log(
+          `   Total duration: ${(perf.total_duration / 1000000).toFixed(0)}ms`,
+        );
+      if (perf.load_duration)
+        console.log(
+          `   Model load time: ${(perf.load_duration / 1000000).toFixed(0)}ms`,
+        );
+      if (perf.prompt_eval_duration)
+        console.log(
+          `   Prompt eval time: ${(perf.prompt_eval_duration / 1000000).toFixed(0)}ms`,
+        );
+      if (perf.eval_duration)
+        console.log(
+          `   Generation time: ${(perf.eval_duration / 1000000).toFixed(0)}ms`,
+        );
       console.log(`   Model status: ${perf.model_status}`);
       console.log('');
     }
-    
+
     console.log('📝 Generated Blog Post:');
     console.log('========================');
     console.log(response.content);
@@ -183,14 +201,14 @@ export async function testOllamaGolfBlogPost(): Promise<{
         wordCount,
       },
     };
-
   } catch (error) {
     const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+
     console.log(`❌ Test failed (${duration}ms): ${errorMessage}`);
     console.log('');
-    
+
     // Provide helpful troubleshooting info
     if (errorMessage.includes('ECONNREFUSED')) {
       console.log('💡 Troubleshooting:');

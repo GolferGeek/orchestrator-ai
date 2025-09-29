@@ -52,7 +52,9 @@ export class OrchestrationRunsRepository {
     }
 
     if (!data) {
-      throw new Error('Orchestration run insert succeeded but returned no data');
+      throw new Error(
+        'Orchestration run insert succeeded but returned no data',
+      );
     }
 
     return data;
@@ -75,7 +77,9 @@ export class OrchestrationRunsRepository {
       .maybeSingle()) as SupabaseSelectResponse<OrchestrationRunRecord>;
 
     if (error) {
-      this.logger.error(`Failed to update orchestration run ${id}: ${error.message}`);
+      this.logger.error(
+        `Failed to update orchestration run ${id}: ${error.message}`,
+      );
       throw new Error(`Failed to update orchestration run: ${error.message}`);
     }
 
@@ -94,7 +98,9 @@ export class OrchestrationRunsRepository {
       .maybeSingle()) as SupabaseSelectResponse<OrchestrationRunRecord>;
 
     if (error && error.code !== 'PGRST116') {
-      this.logger.error(`Failed to load orchestration run ${id}: ${error.message}`);
+      this.logger.error(
+        `Failed to load orchestration run ${id}: ${error.message}`,
+      );
       throw new Error(`Failed to load orchestration run: ${error.message}`);
     }
 

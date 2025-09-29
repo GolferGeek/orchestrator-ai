@@ -137,14 +137,26 @@ describe('LLMService - Unified Method Robustness Tests', () => {
         LLMService,
         { provide: SupabaseService, useValue: mockSupabaseService },
         { provide: CIDAFMService, useValue: mockCIDAFMService },
-        { provide: CentralizedRoutingService, useValue: mockCentralizedRoutingService },
+        {
+          provide: CentralizedRoutingService,
+          useValue: mockCentralizedRoutingService,
+        },
         { provide: RunMetadataService, useValue: mockRunMetadataService },
         { provide: ProviderConfigService, useValue: mockProviderConfigService },
-        { provide: DataSanitizationService, useValue: mockDataSanitizationService },
+        {
+          provide: DataSanitizationService,
+          useValue: mockDataSanitizationService,
+        },
         { provide: PIIService, useValue: mockPIIService },
         { provide: PseudonymizerService, useValue: mockPseudonymizerService },
-        { provide: DictionaryPseudonymizerService, useValue: mockDictionaryPseudonymizerService },
-        { provide: LocalModelStatusService, useValue: mockLocalModelStatusService },
+        {
+          provide: DictionaryPseudonymizerService,
+          useValue: mockDictionaryPseudonymizerService,
+        },
+        {
+          provide: LocalModelStatusService,
+          useValue: mockLocalModelStatusService,
+        },
         { provide: LocalLLMService, useValue: mockLocalLLMService },
         { provide: BlindedLLMService, useValue: mockBlindedLLMService },
         { provide: LLMServiceFactory, useValue: mockLLMServiceFactory },
@@ -166,7 +178,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           model: 'test-model',
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
-        })
+        }),
       ).rejects.toThrow('Missing required parameter: provider is required');
 
       await expect(
@@ -175,7 +187,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           model: '   ',
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
-        })
+        }),
       ).rejects.toThrow('Missing required parameter: model is required');
 
       await expect(
@@ -184,7 +196,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           model: 'test-model',
           systemPrompt: '   ',
           userMessage: 'Test message',
-        })
+        }),
       ).rejects.toThrow('Missing required parameter: systemPrompt is required');
 
       await expect(
@@ -193,7 +205,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           model: 'test-model',
           systemPrompt: 'Test prompt',
           userMessage: '   ',
-        })
+        }),
       ).rejects.toThrow('Missing required parameter: userMessage is required');
     });
 
@@ -219,8 +231,10 @@ describe('LLMService - Unified Method Robustness Tests', () => {
         };
 
         await expect(
-          service.generateUnifiedResponse(params as any)
-        ).rejects.toThrow(`Missing required parameter: ${testCase.field} is required`);
+          service.generateUnifiedResponse(params as any),
+        ).rejects.toThrow(
+          `Missing required parameter: ${testCase.field} is required`,
+        );
       }
     });
 
@@ -241,7 +255,8 @@ describe('LLMService - Unified Method Robustness Tests', () => {
     });
 
     it('should handle special characters and unicode', async () => {
-      const specialChars = '🚀 Special chars: @#$%^&*()[]{}|\\:";\'<>?,./ 中文 العربية 🎉';
+      const specialChars =
+        '🚀 Special chars: @#$%^&*()[]{}|\\:";\'<>?,./ 中文 العربية 🎉';
       const mockResponse = createMockLLMResponse();
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
@@ -261,8 +276,15 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const mockResponse = createMockLLMResponse();
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const providers = ['OLLAMA', 'ollama', 'OlLaMa', 'OPENAI', 'openai', 'OpenAI'];
-      
+      const providers = [
+        'OLLAMA',
+        'ollama',
+        'OlLaMa',
+        'OPENAI',
+        'openai',
+        'OpenAI',
+      ];
+
       for (const provider of providers) {
         const result = await service.generateUnifiedResponse({
           provider,
@@ -276,7 +298,12 @@ describe('LLMService - Unified Method Robustness Tests', () => {
     });
 
     it('should reject providers with special characters', async () => {
-      const invalidProviders = ['open@ai', 'ollama!', 'provider-with-spaces', 'provider/with/slashes'];
+      const invalidProviders = [
+        'open@ai',
+        'ollama!',
+        'provider-with-spaces',
+        'provider/with/slashes',
+      ];
 
       for (const provider of invalidProviders) {
         await expect(
@@ -285,7 +312,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
             model: 'test-model',
             systemPrompt: 'Test prompt',
             userMessage: 'Test message',
-          })
+          }),
         ).rejects.toThrow('Unsupported provider');
       }
     });
@@ -299,8 +326,12 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           userMessage: 'Test message',
         });
       } catch (error) {
-        expect(error.message).toContain('Unsupported provider: invalid-provider');
-        expect(error.message).toContain('Supported providers: openai, anthropic, google, grok, ollama');
+        expect(error.message).toContain(
+          'Unsupported provider: invalid-provider',
+        );
+        expect(error.message).toContain(
+          'Supported providers: openai, anthropic, google, grok, ollama',
+        );
       }
     });
   });
@@ -342,7 +373,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
 
       // Test extreme but valid values
       const extremeValues = [0, 0.0001, 1.9999, 2.0];
-      
+
       for (const temperature of extremeValues) {
         const result = await service.generateUnifiedResponse({
           provider: 'ollama',
@@ -362,7 +393,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
 
       // Test extreme but reasonable values
       const extremeValues = [1, 100000];
-      
+
       for (const maxTokens of extremeValues) {
         const result = await service.generateUnifiedResponse({
           provider: 'ollama',
@@ -422,7 +453,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
             model: 'test-model',
             systemPrompt: 'Test prompt',
             userMessage: 'Test message',
-          })
+          }),
         ).rejects.toThrow(/Unified LLM service error/);
       }
     });
@@ -446,7 +477,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
 
     it('should handle async errors gracefully', async () => {
       llmServiceFactory.generateResponse.mockImplementation(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         throw new Error('Async error');
       });
 
@@ -456,7 +487,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           model: 'test-model',
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
-        })
+        }),
       ).rejects.toThrow('Unified LLM service error: Async error');
     });
   });
@@ -492,7 +523,9 @@ describe('LLMService - Unified Method Robustness Tests', () => {
 
     it('should handle includeMetadata flag correctly with malformed responses', async () => {
       const malformedResponse = { content: 'test content' }; // Missing metadata
-      llmServiceFactory.generateResponse.mockResolvedValue(malformedResponse as any);
+      llmServiceFactory.generateResponse.mockResolvedValue(
+        malformedResponse as any,
+      );
 
       // With includeMetadata: true, should return the response as-is
       const resultWithMetadata = await service.generateUnifiedResponse({
@@ -530,14 +563,14 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           systemPrompt: `Test prompt ${i}`,
           userMessage: `Test message ${i}`,
           options: { callerName: `concurrent-test-${i}` },
-        })
+        }),
       );
 
       const results = await Promise.all(concurrentRequests);
 
       // All requests should succeed
       expect(results).toHaveLength(10);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result).toBe('Mock response content');
       });
 
@@ -556,19 +589,23 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       });
 
       const concurrentRequests = Array.from({ length: 6 }, (_, i) =>
-        service.generateUnifiedResponse({
-          provider: 'ollama',
-          model: 'test-model',
-          systemPrompt: `Test prompt ${i}`,
-          userMessage: `Test message ${i}`,
-        }).catch(error => ({ error: error.message }))
+        service
+          .generateUnifiedResponse({
+            provider: 'ollama',
+            model: 'test-model',
+            systemPrompt: `Test prompt ${i}`,
+            userMessage: `Test message ${i}`,
+          })
+          .catch((error) => ({ error: error.message })),
       );
 
       const results = await Promise.all(concurrentRequests);
 
       // Should have mix of successes and failures
-      const successes = results.filter(r => typeof r === 'string');
-      const failures = results.filter(r => typeof r === 'object' && 'error' in r);
+      const successes = results.filter((r) => typeof r === 'string');
+      const failures = results.filter(
+        (r) => typeof r === 'object' && 'error' in r,
+      );
 
       expect(successes.length).toBe(3);
       expect(failures.length).toBe(3);
@@ -662,7 +699,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
             callerName: 'robustness-test',
             dataClassification: 'confidential',
           }),
-        })
+        }),
       );
     });
   });

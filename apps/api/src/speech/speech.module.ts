@@ -17,10 +17,7 @@ import { SupabaseModule } from '../supabase/supabase.module';
     SupabaseModule,
   ],
   controllers: [SpeechController],
-  providers: [
-    SpeechService,
-    DeepgramElevenLabsService,
-  ],
+  providers: [SpeechService, DeepgramElevenLabsService],
   exports: [SpeechService, DeepgramElevenLabsService],
 })
 export class SpeechModule {}

@@ -90,6 +90,15 @@ export const useAgentChatStore = defineStore('agentChat', {
       const activeConversation = state.conversations.find(conv => conv.id === state.activeConversationId);
       return activeConversation?.error || state.globalError;
     }
+    ,
+    getLatestPlan(state): ConversationPlanRecord | null {
+      const activeConversation = state.conversations.find(conv => conv.id === state.activeConversationId);
+      return activeConversation?.latestPlan ?? null;
+    },
+    getLatestRun(state): OrchestrationRunRecord | null {
+      const activeConversation = state.conversations.find(conv => conv.id === state.activeConversationId);
+      return activeConversation?.orchestrationRuns?.[0] ?? null;
+    }
   },
 
   actions: {
@@ -235,32 +244,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       const basePrompt = lastUser?.content || 'Please proceed.';
 
       // Ensure backend conversation exists
-      let conversationId = activeConversation.id;
-      const hasOnlyInitialMessages = activeConversation.messages.length <= 1 && 
-        activeConversation.messages.every(msg => msg.metadata?.isWelcome);
-      if (hasOnlyInitialMessages) {
-        const exists = await conversation.conversationExists(conversationId);
-        if (!exists) {
-          const backendId = await conversation.createConversation(activeConversation.agent);
-          conversationId = backendId;
-          activeConversation.id = conversationId;
-          this.activeConversationId = conversationId;
-          const conversationsStore = useAgentConversationsStore();
-          conversationsStore.addExistingConversation({
-            id: conversationId,
-            agentName: activeConversation.agent.name,
-            agentType: activeConversation.agent.type,
-            startedAt: new Date(),
-            lastActiveAt: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            taskCount: 0,
-            completedTasks: 0,
-            failedTasks: 0,
-            activeTasks: 0,
-          });
-        }
-      }
+      const conversationId = await this.ensureBackendConversation(activeConversation);
 
       // Determine execution mode
       const userPreferences = useUserPreferencesStore();
@@ -269,6 +253,52 @@ export const useAgentChatStore = defineStore('agentChat', {
 
       // Mark sending state for UI (mirrors sendMessage path)
       activeConversation.isSendingMessage = true;
+
+      if (mode === 'plan') {
+        try {
+          analyticsService.trackEvent({
+            eventType: 'system',
+            category: 'chat',
+            action: 'plan_sent',
+            label: 'plan_cta',
+            properties: { conversationId },
+            context: { url: window.location.pathname, userAgent: navigator.userAgent },
+          });
+
+          await this.createOrchestrationDraft({
+            planDraft: { summary: basePrompt, phases: [] },
+            summary: basePrompt,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to create plan';
+          activeConversation.error = message;
+          console.error('Plan creation failed:', error);
+        } finally {
+          activeConversation.isSendingMessage = false;
+        }
+        return;
+      }
+
+      if (mode === 'build' && activeConversation.latestPlanId) {
+        try {
+          analyticsService.trackEvent({
+            eventType: 'system',
+            category: 'chat',
+            action: 'orchestration_execute',
+            label: 'build_from_plan_cta',
+            properties: { conversationId, planId: activeConversation.latestPlanId },
+            context: { url: window.location.pathname, userAgent: navigator.userAgent },
+          });
+
+          await this.executeOrchestrationRun({
+            planId: activeConversation.latestPlanId,
+          });
+          activeConversation.isSendingMessage = false;
+          return;
+        } catch (error) {
+          console.error('Orchestration execution failed, falling back to legacy build:', error);
+        }
+      }
 
       const taskOptions = {
         method: String(mode), // Ensure method is always a string for JSON-RPC
@@ -546,6 +576,33 @@ export const useAgentChatStore = defineStore('agentChat', {
         };
         activeConversation.messages.push(userMessage);
 
+        const chatMode = this.getActiveChatMode();
+
+        if (chatMode === 'plan') {
+          try {
+            analyticsService.trackEvent({
+              eventType: 'system',
+              category: 'chat',
+              action: 'plan_sent',
+              label: 'plan',
+              properties: { conversationId },
+              context: { url: window.location.pathname, userAgent: navigator.userAgent },
+            });
+
+            await this.createOrchestrationDraft({
+              planDraft: { summary: content, phases: [] },
+              summary: content,
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to create plan';
+            activeConversation.error = message;
+            console.error('Plan creation failed:', error);
+          } finally {
+            activeConversation.isSendingMessage = false;
+          }
+          return;
+        }
+
         // Determine execution mode
         const userPreferences = useUserPreferencesStore();
         const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
@@ -560,9 +617,29 @@ export const useAgentChatStore = defineStore('agentChat', {
           try { await (useLLMStore() as any).ensureSystemModelSelection?.(); } catch {}
         }
 
+        if (chatMode === 'build' && activeConversation.latestPlanId) {
+          try {
+            analyticsService.trackEvent({
+              eventType: 'system',
+              category: 'chat',
+              action: 'orchestration_execute',
+              label: 'build_from_plan',
+              properties: { conversationId, planId: activeConversation.latestPlanId },
+              context: { url: window.location.pathname, userAgent: navigator.userAgent },
+            });
+
+            await this.executeOrchestrationRun({
+              planId: activeConversation.latestPlanId,
+            });
+            activeConversation.isSendingMessage = false;
+            return;
+          } catch (error) {
+            console.error('Orchestration execution failed, falling back to legacy build:', error);
+          }
+        }
+
         // Prepare task execution options
         // Ensure chatMode is a string to prevent JSON-RPC errors
-        const chatMode = this.getActiveChatMode();
         const taskOptions = {
           method: chatMode, // This must be a string for JSON-RPC
           prompt: content,
@@ -755,6 +832,10 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (planRecord) {
         activeConversation.plans = activeConversation.plans ?? [];
         activeConversation.plans.unshift(planRecord);
+        activeConversation.latestPlanId = planRecord.id;
+        activeConversation.latestPlan = planRecord;
+        const planMessage = messageFormatting.createPlanMessage(planRecord);
+        activeConversation.messages.push(planMessage);
         return planRecord;
       }
 
@@ -800,6 +881,11 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (runRecord) {
         activeConversation.orchestrationRuns = activeConversation.orchestrationRuns ?? [];
         activeConversation.orchestrationRuns.unshift(runRecord);
+        if (runRecord.plan_id) {
+          activeConversation.latestPlanId = runRecord.plan_id;
+        }
+        const runMessage = messageFormatting.createOrchestrationRunMessage(runRecord);
+        activeConversation.messages.push(runMessage);
         return runRecord;
       }
 
@@ -842,6 +928,11 @@ export const useAgentChatStore = defineStore('agentChat', {
         } else {
           activeConversation.orchestrationRuns.unshift(runRecord);
         }
+        if (runRecord.plan_id) {
+          activeConversation.latestPlanId = runRecord.plan_id;
+        }
+        const runMessage = messageFormatting.createOrchestrationRunMessage(runRecord);
+        activeConversation.messages.push(runMessage);
         return runRecord;
       }
 
@@ -884,6 +975,8 @@ export const useAgentChatStore = defineStore('agentChat', {
         } else {
           activeConversation.savedOrchestrations.unshift(saved);
         }
+        const savedMessage = messageFormatting.createSavedOrchestrationMessage(saved);
+        activeConversation.messages.push(savedMessage);
         return saved;
       }
 

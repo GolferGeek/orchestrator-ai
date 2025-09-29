@@ -1,3 +1,4 @@
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AgentExecutionGateway } from './agent-execution-gateway.service';
 import { AgentsRepository } from '@agent-platform/repositories/agents.repository';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
@@ -19,6 +20,7 @@ const createMocks = () => {
   } as unknown as jest.Mocked<AgentModeRouterService>;
   const planEngine = {
     generateDraft: jest.fn(),
+    getPlan: jest.fn(),
   } as unknown as jest.Mocked<PlanEngineService>;
   const orchestrationRunner = {
     startRun: jest.fn(),
@@ -56,7 +58,10 @@ describe('AgentExecutionGateway', () => {
       agentOrchestrations,
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
-    routing.evaluate.mockResolvedValue({ showstopper: true, humanMessage: 'blocked' });
+    routing.evaluate.mockResolvedValue({
+      showstopper: true,
+      humanMessage: 'blocked',
+    });
 
     const gateway = new AgentExecutionGateway(
       agentsRepo,
@@ -83,8 +88,14 @@ describe('AgentExecutionGateway', () => {
       agentOrchestrations,
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
-    routing.evaluate.mockResolvedValue({ showstopper: false, metadata: { route: 'ok' } });
-    modeRouter.execute.mockResolvedValue({ success: true, mode: AgentTaskMode.CONVERSE } as any);
+    routing.evaluate.mockResolvedValue({
+      showstopper: false,
+      metadata: { route: 'ok' },
+    });
+    modeRouter.execute.mockResolvedValue({
+      success: true,
+      mode: AgentTaskMode.CONVERSE,
+    } as any);
 
     const gateway = new AgentExecutionGateway(
       agentsRepo,
@@ -143,6 +154,21 @@ describe('AgentExecutionGateway', () => {
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
+    const planRecord = {
+      id: 'plan-1',
+      conversation_id: 'conv-1',
+      organization_slug: 'demo',
+      agent_slug: 'agent-1',
+      version: 1,
+      status: 'approved',
+      summary: null,
+      plan_json: {},
+      created_by: null,
+      approved_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any;
+    planEngine.getPlan.mockResolvedValue(planRecord);
     orchestrationRunner.startRun.mockResolvedValue({ id: 'run-1' } as any);
 
     const gateway = new AgentExecutionGateway(
@@ -160,19 +186,188 @@ describe('AgentExecutionGateway', () => {
       planId: 'plan-1',
     } as any);
 
+    expect(planEngine.getPlan).toHaveBeenCalledWith('plan-1');
     expect(orchestrationRunner.startRun).toHaveBeenCalledWith({
       planId: 'plan-1',
       originType: 'plan',
       originId: 'plan-1',
       organizationSlug: 'demo',
       promptInputs: {},
-      metadata: {},
+      metadata: {
+        conversationId: 'conv-1',
+        planVersion: 1,
+      },
     });
     expect(result.mode).toBe(AgentTaskMode.BUILD);
     expect(result.payload?.metadata).toMatchObject({
       originType: 'plan',
       planId: 'plan-1',
+      planVersion: 1,
+      conversationId: 'conv-1',
     });
+  });
+
+  it('throws when plan cannot be found for execution', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    planEngine.getPlan.mockResolvedValue(null as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    await expect(
+      gateway.execute('demo', 'agent-1', {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-1',
+        planId: 'missing-plan',
+      } as any),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('throws when plan belongs to a different agent', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    planEngine.getPlan.mockResolvedValue({
+      id: 'plan-1',
+      conversation_id: 'conv-1',
+      organization_slug: 'demo',
+      agent_slug: 'other-agent',
+      version: 1,
+      status: 'approved',
+      summary: null,
+      plan_json: {},
+      created_by: null,
+      approved_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    await expect(
+      gateway.execute('demo', 'agent-1', {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-1',
+        planId: 'plan-1',
+      } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('throws when plan conversation does not match request', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    planEngine.getPlan.mockResolvedValue({
+      id: 'plan-1',
+      conversation_id: 'conv-999',
+      organization_slug: 'demo',
+      agent_slug: 'agent-1',
+      version: 1,
+      status: 'approved',
+      summary: null,
+      plan_json: {},
+      created_by: null,
+      approved_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    await expect(
+      gateway.execute('demo', 'agent-1', {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-1',
+        planId: 'plan-1',
+      } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('throws when plan organization differs from request context', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    planEngine.getPlan.mockResolvedValue({
+      id: 'plan-1',
+      conversation_id: 'conv-1',
+      organization_slug: 'other-org',
+      agent_slug: 'agent-1',
+      version: 1,
+      status: 'approved',
+      summary: null,
+      plan_json: {},
+      created_by: null,
+      approved_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    await expect(
+      gateway.execute('demo', 'agent-1', {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-1',
+        planId: 'plan-1',
+      } as any),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('handles saved orchestration execution with prompt validation', async () => {
@@ -258,7 +453,10 @@ describe('AgentExecutionGateway', () => {
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
-    planEngine.generateDraft.mockResolvedValue({ id: 'plan-1', status: 'draft' } as any);
+    planEngine.generateDraft.mockResolvedValue({
+      id: 'plan-1',
+      status: 'draft',
+    } as any);
 
     const gateway = new AgentExecutionGateway(
       agentsRepo,
@@ -291,7 +489,25 @@ describe('AgentExecutionGateway', () => {
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
-    orchestrationRunner.startRun.mockResolvedValue({ id: 'run-1', origin_type: 'plan' } as any);
+    const planRecord = {
+      id: 'plan-2',
+      conversation_id: 'conv-1',
+      organization_slug: 'demo',
+      agent_slug: 'agent-1',
+      version: 2,
+      status: 'approved',
+      summary: null,
+      plan_json: {},
+      created_by: null,
+      approved_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any;
+    planEngine.getPlan.mockResolvedValue(planRecord);
+    orchestrationRunner.startRun.mockResolvedValue({
+      id: 'run-1',
+      origin_type: 'plan',
+    } as any);
 
     const gateway = new AgentExecutionGateway(
       agentsRepo,
@@ -308,15 +524,24 @@ describe('AgentExecutionGateway', () => {
       planId: 'plan-2',
     } as any);
 
+    expect(planEngine.getPlan).toHaveBeenCalledWith('plan-2');
     expect(orchestrationRunner.startRun).toHaveBeenCalledWith({
       planId: 'plan-2',
       originType: 'plan',
       originId: 'plan-2',
       organizationSlug: 'demo',
       promptInputs: {},
-      metadata: {},
+      metadata: {
+        conversationId: 'conv-1',
+        planVersion: 2,
+      },
     });
     expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_EXECUTE);
+    expect(result.payload?.metadata).toMatchObject({
+      planId: 'plan-2',
+      planVersion: 2,
+      conversationId: 'conv-1',
+    });
   });
 
   it('continues orchestration run', async () => {
@@ -330,7 +555,10 @@ describe('AgentExecutionGateway', () => {
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
-    orchestrationRunner.updateRun.mockResolvedValue({ id: 'run-1', status: 'running' } as any);
+    orchestrationRunner.updateRun.mockResolvedValue({
+      id: 'run-1',
+      status: 'running',
+    } as any);
 
     const gateway = new AgentExecutionGateway(
       agentsRepo,
@@ -372,7 +600,10 @@ describe('AgentExecutionGateway', () => {
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
-    agentOrchestrations.upsert.mockResolvedValue({ id: 'orch-1', slug: 'recipe' } as any);
+    agentOrchestrations.upsert.mockResolvedValue({
+      id: 'orch-1',
+      slug: 'recipe',
+    } as any);
 
     const gateway = new AgentExecutionGateway(
       agentsRepo,
@@ -413,7 +644,24 @@ describe('AgentExecutionGateway', () => {
 
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
-    planEngine.generateDraft.mockResolvedValue({ id: 'plan-123', status: 'draft' } as any);
+    planEngine.generateDraft.mockResolvedValue({
+      id: 'plan-123',
+      status: 'draft',
+    } as any);
+    planEngine.getPlan.mockResolvedValue({
+      id: 'plan-123',
+      conversation_id: 'conv-123',
+      organization_slug: 'demo',
+      agent_slug: 'agent-1',
+      version: 3,
+      status: 'approved',
+      summary: null,
+      plan_json: {},
+      created_by: null,
+      approved_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any);
     orchestrationRunner.startRun.mockResolvedValue({
       id: 'run-123',
       origin_type: 'plan',
@@ -455,7 +703,10 @@ describe('AgentExecutionGateway', () => {
       originId: 'plan-123',
       organizationSlug: 'demo',
       promptInputs: {},
-      metadata: {},
+      metadata: {
+        conversationId: 'conv-123',
+        planVersion: 3,
+      },
     });
     expect(run.mode).toBe(AgentTaskMode.ORCHESTRATE_EXECUTE);
 

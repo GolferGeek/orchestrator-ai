@@ -13,9 +13,7 @@ export class AgentPoolService implements OnModuleDestroy {
   private readonly heartbeatInterval = 60000; // 60 seconds
   private readonly heartbeatTimeout = 180000; // 180 seconds (3 missed heartbeats = offline)
 
-  constructor() {
-
-  }
+  constructor() {}
 
   /**
    * Register an agent with the pool
@@ -30,7 +28,6 @@ export class AgentPoolService implements OnModuleDestroy {
       lastHeartbeat: new Date(),
       status: 'online',
     });
-
   }
 
   /**
@@ -40,7 +37,6 @@ export class AgentPoolService implements OnModuleDestroy {
     const agent = this.agents.get(heartbeat.agentId);
 
     if (!agent) {
-
       return;
     }
 
@@ -48,7 +44,6 @@ export class AgentPoolService implements OnModuleDestroy {
     agent.lastHeartbeat = new Date();
     agent.status = 'online';
     agent.metrics = heartbeat.metrics;
-
   }
 
   /**
@@ -57,7 +52,6 @@ export class AgentPoolService implements OnModuleDestroy {
   async unregisterAgent(agentId: string): Promise<void> {
     if (this.agents.has(agentId)) {
       this.agents.delete(agentId);
-
     }
   }
 
@@ -219,7 +213,6 @@ export class AgentPoolService implements OnModuleDestroy {
     }
 
     if (staleAgents.length > 0) {
-
     }
   }
 
@@ -252,7 +245,6 @@ export class AgentPoolService implements OnModuleDestroy {
    * Cleanup on module destroy
    */
   onModuleDestroy() {
-
     this.agents.clear();
   }
 }

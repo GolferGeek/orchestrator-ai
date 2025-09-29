@@ -127,7 +127,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
   },
   ollama: {
     // Ollama models - generally support temperature
-    'default': {
+    default: {
       supportsTemperature: true,
       temperatureRange: { min: 0.0, max: 2.0 },
       defaultTemperature: 0.8,
@@ -162,12 +162,17 @@ export class LLMModelCapabilities {
   /**
    * Get capabilities for a specific provider/model combination
    */
-  static getModelCapabilities(provider: string, model: string): ModelCapabilities {
+  static getModelCapabilities(
+    provider: string,
+    model: string,
+  ): ModelCapabilities {
     const normalizedProvider = provider.toLowerCase();
     const providerCapabilities = MODEL_CAPABILITIES[normalizedProvider];
-    
+
     if (!providerCapabilities) {
-      this.logger.warn(`Unknown provider: ${provider}, using default capabilities`);
+      this.logger.warn(
+        `Unknown provider: ${provider}, using default capabilities`,
+      );
       return this.getDefaultCapabilities();
     }
 
@@ -187,7 +192,9 @@ export class LLMModelCapabilities {
       return providerCapabilities['default'];
     }
 
-    this.logger.warn(`Unknown model: ${model} for provider: ${provider}, using default capabilities`);
+    this.logger.warn(
+      `Unknown model: ${model} for provider: ${provider}, using default capabilities`,
+    );
     return this.getDefaultCapabilities();
   }
 
@@ -195,14 +202,17 @@ export class LLMModelCapabilities {
    * Normalize and validate LLM configuration based on model capabilities
    */
   static normalizeConfig(config: LLMServiceConfig): LLMServiceConfig {
-    const capabilities = this.getModelCapabilities(config.provider, config.model);
+    const capabilities = this.getModelCapabilities(
+      config.provider,
+      config.model,
+    );
     const normalizedConfig = { ...config };
 
     // Handle temperature restrictions
     if (!capabilities.supportsTemperature) {
       if (normalizedConfig.temperature !== undefined) {
         this.logger.debug(
-          `Model ${config.model} doesn't support temperature, removing temperature: ${normalizedConfig.temperature}`
+          `Model ${config.model} doesn't support temperature, removing temperature: ${normalizedConfig.temperature}`,
         );
         delete normalizedConfig.temperature;
       }
@@ -210,11 +220,17 @@ export class LLMModelCapabilities {
       // Validate temperature range
       if (capabilities.temperatureRange) {
         const { min, max } = capabilities.temperatureRange;
-        if (normalizedConfig.temperature < min || normalizedConfig.temperature > max) {
+        if (
+          normalizedConfig.temperature < min ||
+          normalizedConfig.temperature > max
+        ) {
           this.logger.warn(
-            `Temperature ${normalizedConfig.temperature} out of range [${min}, ${max}] for ${config.model}, clamping`
+            `Temperature ${normalizedConfig.temperature} out of range [${min}, ${max}] for ${config.model}, clamping`,
           );
-          normalizedConfig.temperature = Math.max(min, Math.min(max, normalizedConfig.temperature));
+          normalizedConfig.temperature = Math.max(
+            min,
+            Math.min(max, normalizedConfig.temperature),
+          );
         }
       }
     }
@@ -223,7 +239,7 @@ export class LLMModelCapabilities {
     if (capabilities.maxTokensLimit && normalizedConfig.maxTokens) {
       if (normalizedConfig.maxTokens > capabilities.maxTokensLimit) {
         this.logger.warn(
-          `MaxTokens ${normalizedConfig.maxTokens} exceeds limit ${capabilities.maxTokensLimit} for ${config.model}, clamping`
+          `MaxTokens ${normalizedConfig.maxTokens} exceeds limit ${capabilities.maxTokensLimit} for ${config.model}, clamping`,
         );
         normalizedConfig.maxTokens = capabilities.maxTokensLimit;
       }
@@ -235,7 +251,11 @@ export class LLMModelCapabilities {
   /**
    * Check if a model supports a specific capability
    */
-  static supportsCapability(provider: string, model: string, capability: keyof ModelCapabilities): boolean {
+  static supportsCapability(
+    provider: string,
+    model: string,
+    capability: keyof ModelCapabilities,
+  ): boolean {
     const capabilities = this.getModelCapabilities(provider, model);
     return capabilities[capability] as boolean;
   }
@@ -245,44 +265,52 @@ export class LLMModelCapabilities {
    * For o1 models: combine system prompt with user message
    */
   static transformMessagesForModel(
-    provider: string, 
-    model: string, 
-    systemPrompt: string, 
-    userMessage: string
+    provider: string,
+    model: string,
+    systemPrompt: string,
+    userMessage: string,
   ): { systemPrompt?: string; userMessage: string } {
     const capabilities = this.getModelCapabilities(provider, model);
-    
+
     if (!capabilities.supportsSystemMessages) {
       // For models that don't support system messages, prepend system prompt to user message
       this.logger.debug(
-        `Model ${model} doesn't support system messages, combining system prompt with user message`
+        `Model ${model} doesn't support system messages, combining system prompt with user message`,
       );
-      
+
       return {
         systemPrompt: undefined, // Remove system prompt
-        userMessage: `${systemPrompt}\n\n${userMessage}` // Combine into user message
+        userMessage: `${systemPrompt}\n\n${userMessage}`, // Combine into user message
       };
     }
-    
+
     // For models that support system messages, return as-is
     return {
       systemPrompt,
-      userMessage
+      userMessage,
     };
   }
 
   /**
    * Get the default temperature for a model (if temperature is supported)
    */
-  static getDefaultTemperature(provider: string, model: string): number | undefined {
+  static getDefaultTemperature(
+    provider: string,
+    model: string,
+  ): number | undefined {
     const capabilities = this.getModelCapabilities(provider, model);
-    return capabilities.supportsTemperature ? capabilities.defaultTemperature : undefined;
+    return capabilities.supportsTemperature
+      ? capabilities.defaultTemperature
+      : undefined;
   }
 
   /**
    * Find matching model pattern in provider capabilities
    */
-  private static findModelPattern(providerCapabilities: Record<string, ModelCapabilities>, model: string): string | null {
+  private static findModelPattern(
+    providerCapabilities: Record<string, ModelCapabilities>,
+    model: string,
+  ): string | null {
     // Check for exact matches first
     if (providerCapabilities[model]) {
       return model;
@@ -292,11 +320,13 @@ export class LLMModelCapabilities {
     if (model.match(/^o\d+(-\w+)?$/)) {
       // If we have o1-mini config and this is another o-series model, use o1-mini as template
       if (providerCapabilities['o1-mini']) {
-        this.logger.debug(`Using o1-mini capabilities as template for o-series model: ${model}`);
+        this.logger.debug(
+          `Using o1-mini capabilities as template for o-series model: ${model}`,
+        );
         return 'o1-mini';
       }
     }
-    
+
     // Check for pattern matches (e.g., o1-* models)
     for (const pattern of Object.keys(providerCapabilities)) {
       if (pattern.includes('*')) {
@@ -305,13 +335,13 @@ export class LLMModelCapabilities {
           return pattern;
         }
       }
-      
+
       // Check for prefix matches (e.g., gpt-4 matches gpt-4-0314)
       if (model.startsWith(pattern)) {
         return pattern;
       }
     }
-    
+
     return null;
   }
 

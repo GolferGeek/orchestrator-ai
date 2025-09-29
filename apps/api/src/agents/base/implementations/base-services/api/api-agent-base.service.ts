@@ -81,14 +81,12 @@ export class ApiAgentBaseService
       services.authService,
       services.configurationService,
     );
-
   }
 
   /**
    * Initialize the API agent and load configuration from agent.yaml
    */
   async onModuleInit() {
-
     // Call parent initialization first
     await super.onModuleInit();
 
@@ -100,7 +98,6 @@ export class ApiAgentBaseService
    * Load API configuration from agent.yaml file using AgentContextService
    */
   private async loadApiConfigurationFromYaml(): Promise<void> {
-
     let agentPath = this.agentPath;
 
     // Fallback: If agent path is unknown, try to determine it from the agent name
@@ -168,7 +165,6 @@ export class ApiAgentBaseService
       }
 
       if (fs.existsSync(yamlPath)) {
-
         // Extract the directory name for AgentContextService (it expects just the directory)
         const agentDirectory = path.dirname(yamlPath);
 
@@ -180,7 +176,6 @@ export class ApiAgentBaseService
           const config = this.extractApiConfigurationFromContext();
 
           if (config) {
-
             // Use ConfigurationService for environment variable substitution if available
             if (this.services.configurationService) {
               const substitutionResult =
@@ -280,7 +275,9 @@ export class ApiAgentBaseService
 
     // NEW ARCHITECTURE: Check for PII blocking first
     if (this.shouldBlockForPII(params)) {
-      this.apiLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+      this.apiLogger.warn(
+        `🛑 [${agentName}] Request blocked due to PII policy violation`,
+      );
       return this.generatePIIBlockedResponse(params);
     }
 
@@ -567,7 +564,6 @@ export class ApiAgentBaseService
 
     // If no transform specified, use default extraction
     if (!config?.responseTransform) {
-
       // Try common response field names
       if (typeof apiResponse === 'string') {
         return apiResponse;
@@ -745,7 +741,6 @@ export class ApiAgentBaseService
    * Fallback response when no API configuration is available
    */
   private async fallbackResponse(method: string, _params: any): Promise<any> {
-
     return {
       success: true,
       response: `Hello! I'm the ${this.getAgentName()} API agent. I'm ready to connect to external APIs, but my configuration isn't loaded yet. Please check back soon!`,
@@ -800,7 +795,6 @@ export class ApiAgentBaseService
         this.currentUserId,
         updateData,
       );
-
     } catch (error) {
       this.apiLogger.error(
         `❌ Failed to save API task ${this.currentTaskId} result:`,

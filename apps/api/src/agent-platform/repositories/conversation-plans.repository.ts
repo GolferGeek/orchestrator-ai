@@ -64,7 +64,10 @@ export class ConversationPlansRepository {
     id: string,
     update: ConversationPlanStatusUpdate,
   ): Promise<ConversationPlanRecord> {
-    const patch: Record<string, any> = { ...update, updated_at: new Date().toISOString() };
+    const patch: Record<string, any> = {
+      ...update,
+      updated_at: new Date().toISOString(),
+    };
     const { data, error } = (await this.client()
       .from(TABLE)
       .update(patch)
@@ -106,7 +109,9 @@ export class ConversationPlansRepository {
       .from(TABLE)
       .select('*')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: false })) as SupabaseSelectListResponse<ConversationPlanRecord>;
+      .order('created_at', {
+        ascending: false,
+      })) as SupabaseSelectListResponse<ConversationPlanRecord>;
 
     if (error) {
       this.logger.error(

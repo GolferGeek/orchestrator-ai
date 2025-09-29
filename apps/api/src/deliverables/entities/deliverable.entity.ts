@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DeliverableType, DeliverableFormat, DeliverableVersionCreationType } from '../dto';
+import {
+  DeliverableType,
+  DeliverableFormat,
+  DeliverableVersionCreationType,
+} from '../dto';
 
 export class DeliverableVersion {
   @ApiProperty({ description: 'Version identifier' })
@@ -14,18 +18,18 @@ export class DeliverableVersion {
   @ApiPropertyOptional({ description: 'Version content' })
   content?: string;
 
-  @ApiPropertyOptional({ 
-    enum: DeliverableFormat, 
-    description: 'Format of the content' 
+  @ApiPropertyOptional({
+    enum: DeliverableFormat,
+    description: 'Format of the content',
   })
   format?: DeliverableFormat;
 
   @ApiProperty({ description: 'Whether this is the current version' })
   isCurrentVersion!: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     enum: DeliverableVersionCreationType,
-    description: 'How this version was created' 
+    description: 'How this version was created',
   })
   createdByType!: DeliverableVersionCreationType;
 
@@ -63,7 +67,8 @@ export class Deliverable {
   userId!: string;
 
   @ApiPropertyOptional({
-    description: 'Conversation this deliverable belongs to (optional - when deliverable is part of a conversation)',
+    description:
+      'Conversation this deliverable belongs to (optional - when deliverable is part of a conversation)',
   })
   conversationId?: string;
 
@@ -73,14 +78,18 @@ export class Deliverable {
   projectStepId?: string;
 
   @ApiPropertyOptional({
-    description: 'Agent that should handle editing this deliverable (inherited from creating conversation)',
+    description:
+      'Agent that should handle editing this deliverable (inherited from creating conversation)',
   })
   agentName?: string;
 
   @ApiProperty({ description: 'Title of the deliverable' })
   title!: string;
 
-  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
+  @ApiPropertyOptional({
+    enum: DeliverableType,
+    description: 'Type of deliverable',
+  })
   type?: DeliverableType;
 
   @ApiProperty({ description: 'Creation timestamp' })
@@ -90,11 +99,17 @@ export class Deliverable {
   updatedAt!: Date;
 
   // Include current version data when fetched
-  @ApiPropertyOptional({ description: 'Current version data', type: () => DeliverableVersion })
+  @ApiPropertyOptional({
+    description: 'Current version data',
+    type: () => DeliverableVersion,
+  })
   currentVersion?: DeliverableVersion;
 
   // Include all versions when requested
-  @ApiPropertyOptional({ description: 'All versions', type: () => [DeliverableVersion] })
+  @ApiPropertyOptional({
+    description: 'All versions',
+    type: () => [DeliverableVersion],
+  })
   versions?: DeliverableVersion[];
 }
 
@@ -105,16 +120,23 @@ export class DeliverableSearchResult {
   @ApiProperty({ description: 'User who owns this deliverable' })
   userId!: string;
 
-  @ApiPropertyOptional({ description: 'Conversation this deliverable belongs to (if any)' })
+  @ApiPropertyOptional({
+    description: 'Conversation this deliverable belongs to (if any)',
+  })
   conversationId?: string;
 
-  @ApiPropertyOptional({ description: 'Agent that should handle editing this deliverable' })
+  @ApiPropertyOptional({
+    description: 'Agent that should handle editing this deliverable',
+  })
   agentName?: string;
 
   @ApiProperty({ description: 'Deliverable title' })
   title!: string;
 
-  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
+  @ApiPropertyOptional({
+    enum: DeliverableType,
+    description: 'Type of deliverable',
+  })
   type?: DeliverableType;
 
   @ApiProperty({ description: 'Deliverable creation timestamp' })

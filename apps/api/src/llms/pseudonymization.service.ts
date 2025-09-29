@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { PIIPatternService, PIIDataType, PIIPattern } from './pii-pattern.service';
+import {
+  PIIPatternService,
+  PIIDataType,
+  PIIPattern,
+} from './pii-pattern.service';
 import { createHash, randomBytes } from 'crypto';
 
 export interface PseudonymResult {
@@ -25,9 +29,11 @@ export class PseudonymizationService {
 
   constructor(
     private readonly supabaseService: SupabaseService,
-    private readonly piiPatternService: PIIPatternService
+    private readonly piiPatternService: PIIPatternService,
   ) {
-    this.logger.log(`PseudonymizationService initialized (production: ${this.isProduction})`);
+    this.logger.log(
+      `PseudonymizationService initialized (production: ${this.isProduction})`,
+    );
   }
 
   /**
@@ -36,20 +42,21 @@ export class PseudonymizationService {
   async generatePseudonym(
     originalValue: string,
     dataType: PIIDataType,
-    context?: string
+    context?: string,
   ): Promise<PseudonymResult> {
     const startTime = Date.now();
-    
+
     try {
       // Create hash of original value for consistent lookup
       const originalHash = this.hashValue(originalValue);
-      
+
       // Check if pseudonym already exists
-      const existingPseudonym = await this.lookupExistingPseudonym(originalHash);
+      const existingPseudonym =
+        await this.lookupExistingPseudonym(originalHash);
       if (existingPseudonym) {
         // Update usage count
         await this.incrementPseudonymUsage(existingPseudonym.id);
-        
+
         return {
           originalValue,
           pseudonym: existingPseudonym.pseudonym,
@@ -61,17 +68,21 @@ export class PseudonymizationService {
 
       // Generate new pseudonym
       const pseudonym = await this.createNewPseudonym(dataType, originalValue);
-      
+
       // Store in database
       const mappingId = await this.storePseudonymMapping(
         originalHash,
         pseudonym,
         dataType,
-        context
+        context,
       );
 
       // Log audit trail
-      await this.logPseudonymOperation('pseudonymize', dataType, Date.now() - startTime);
+      await this.logPseudonymOperation(
+        'pseudonymize',
+        dataType,
+        Date.now() - startTime,
+      );
 
       return {
         originalValue,
@@ -81,7 +92,9 @@ export class PseudonymizationService {
         context,
       };
     } catch (error) {
-      this.logger.error(`Failed to generate pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to generate pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw error;
     }
   }
@@ -94,12 +107,12 @@ export class PseudonymizationService {
     options?: {
       context?: string;
       dataTypes?: PIIDataType[];
-    }
+    },
   ): Promise<PseudonymizationResult> {
     const startTime = Date.now();
     let processedText = text;
     const pseudonyms: PseudonymResult[] = [];
-    
+
     try {
       // Use PIIPatternService to detect PII in text
       const detectionResult = await this.piiPatternService.detectPII(text, {
@@ -115,15 +128,21 @@ export class PseudonymizationService {
           const pseudonymResult = await this.generatePseudonym(
             match.value,
             match.dataType,
-            options?.context
+            options?.context,
           );
 
           pseudonyms.push(pseudonymResult);
 
           // Replace in text (use exact match to avoid partial replacements)
-          processedText = processedText.replace(match.value, pseudonymResult.pseudonym);
+          processedText = processedText.replace(
+            match.value,
+            pseudonymResult.pseudonym,
+          );
         } catch (error) {
-          this.logger.warn(`Failed to pseudonymize ${match.dataType}: ${match.value}`, error);
+          this.logger.warn(
+            `Failed to pseudonymize ${match.dataType}: ${match.value}`,
+            error,
+          );
         }
       }
 
@@ -141,7 +160,9 @@ export class PseudonymizationService {
         processingTime,
       };
     } catch (error) {
-      this.logger.error(`Failed to pseudonymize text: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to pseudonymize text: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw error;
     }
   }
@@ -151,19 +172,21 @@ export class PseudonymizationService {
    */
   async lookupPseudonym(
     originalValue: string,
-    dataType: PIIDataType
+    dataType: PIIDataType,
   ): Promise<string | null> {
     try {
       const originalHash = this.hashValue(originalValue);
       const existing = await this.lookupExistingPseudonym(originalHash);
-      
+
       if (existing && existing.data_type === dataType) {
         return existing.pseudonym;
       }
-      
+
       return null;
     } catch (error) {
-      this.logger.error(`Failed to lookup pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to lookup pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return null;
     }
   }
@@ -212,7 +235,9 @@ export class PseudonymizationService {
    * Create SHA-256 hash of a value for consistent pseudonym lookup
    */
   private hashValue(value: string): string {
-    return createHash('sha256').update(value.toLowerCase().trim()).digest('hex');
+    return createHash('sha256')
+      .update(value.toLowerCase().trim())
+      .digest('hex');
   }
 
   /**
@@ -227,13 +252,16 @@ export class PseudonymizationService {
         .eq('original_hash', originalHash)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 = no rows found
         throw error;
       }
 
       return data;
     } catch (error) {
-      this.logger.error(`Database lookup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Database lookup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return null;
     }
   }
@@ -241,7 +269,10 @@ export class PseudonymizationService {
   /**
    * Create a new pseudonym based on data type
    */
-  private async createNewPseudonym(dataType: PIIDataType, originalValue: string): Promise<string> {
+  private async createNewPseudonym(
+    dataType: PIIDataType,
+    originalValue: string,
+  ): Promise<string> {
     switch (dataType) {
       case 'email':
         return await this.generateFakeEmail(originalValue);
@@ -267,36 +298,43 @@ export class PseudonymizationService {
     try {
       // Get random first name, last name, and domain from dictionary
       const client = this.supabaseService.getServiceClient();
-      
-      const [firstNameResult, lastNameResult, domainResult] = await Promise.all([
-        client.from('pseudonym_dictionaries')
-          .select('value')
-          .eq('data_type', 'name')
-          .eq('category', 'first_names')
-          .order('frequency_weight', { ascending: false })
-          .limit(10),
-        client.from('pseudonym_dictionaries')
-          .select('value')
-          .eq('data_type', 'name')
-          .eq('category', 'last_names')
-          .order('frequency_weight', { ascending: false })
-          .limit(10),
-        client.from('pseudonym_dictionaries')
-          .select('value')
-          .eq('data_type', 'email')
-          .eq('category', 'domains')
-          .order('frequency_weight', { ascending: false })
-          .limit(5),
-      ]);
 
-      const firstName = this.getRandomFromResult(firstNameResult.data) || 'john';
+      const [firstNameResult, lastNameResult, domainResult] = await Promise.all(
+        [
+          client
+            .from('pseudonym_dictionaries')
+            .select('value')
+            .eq('data_type', 'name')
+            .eq('category', 'first_names')
+            .order('frequency_weight', { ascending: false })
+            .limit(10),
+          client
+            .from('pseudonym_dictionaries')
+            .select('value')
+            .eq('data_type', 'name')
+            .eq('category', 'last_names')
+            .order('frequency_weight', { ascending: false })
+            .limit(10),
+          client
+            .from('pseudonym_dictionaries')
+            .select('value')
+            .eq('data_type', 'email')
+            .eq('category', 'domains')
+            .order('frequency_weight', { ascending: false })
+            .limit(5),
+        ],
+      );
+
+      const firstName =
+        this.getRandomFromResult(firstNameResult.data) || 'john';
       const lastName = this.getRandomFromResult(lastNameResult.data) || 'doe';
-      const domain = this.getRandomFromResult(domainResult.data) || 'example.com';
+      const domain =
+        this.getRandomFromResult(domainResult.data) || 'example.com';
 
       // Create deterministic but realistic email
       const hash = this.hashValue(originalEmail);
       const suffix = hash.substring(0, 3);
-      
+
       return `${firstName.toLowerCase()}.${lastName.toLowerCase()}${suffix}@${domain}`;
     } catch (error) {
       // Fallback if database lookup fails
@@ -313,7 +351,7 @@ export class PseudonymizationService {
     const areaCode = Math.floor(Math.random() * 800) + 200; // 200-999
     const exchange = Math.floor(Math.random() * 800) + 200; // 200-999
     const number = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
-    
+
     return `(${areaCode}) ${exchange}-${number}`;
   }
 
@@ -323,15 +361,17 @@ export class PseudonymizationService {
   private async generateFakeName(): Promise<string> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       const [firstNameResult, lastNameResult] = await Promise.all([
-        client.from('pseudonym_dictionaries')
+        client
+          .from('pseudonym_dictionaries')
           .select('value')
           .eq('data_type', 'name')
           .eq('category', 'first_names')
           .order('frequency_weight', { ascending: false })
           .limit(20),
-        client.from('pseudonym_dictionaries')
+        client
+          .from('pseudonym_dictionaries')
           .select('value')
           .eq('data_type', 'name')
           .eq('category', 'last_names')
@@ -339,7 +379,8 @@ export class PseudonymizationService {
           .limit(20),
       ]);
 
-      const firstName = this.getRandomFromResult(firstNameResult.data) || 'John';
+      const firstName =
+        this.getRandomFromResult(firstNameResult.data) || 'John';
       const lastName = this.getRandomFromResult(lastNameResult.data) || 'Doe';
 
       return `${firstName} ${lastName}`;
@@ -354,11 +395,11 @@ export class PseudonymizationService {
   private generateFakeIP(): string {
     // Generate private IP ranges for safety
     const ranges = [
-      [10, 0, 0, 0],    // 10.x.x.x
-      [172, 16, 0, 0],  // 172.16.x.x
+      [10, 0, 0, 0], // 10.x.x.x
+      [172, 16, 0, 0], // 172.16.x.x
       [192, 168, 0, 0], // 192.168.x.x
     ];
-    
+
     const range = ranges[Math.floor(Math.random() * ranges.length)];
     if (!range) {
       return '192.168.1.1'; // fallback
@@ -369,7 +410,9 @@ export class PseudonymizationService {
   /**
    * Generate fake username
    */
-  private async generateFakeUsername(originalUsername: string): Promise<string> {
+  private async generateFakeUsername(
+    originalUsername: string,
+  ): Promise<string> {
     try {
       const client = this.supabaseService.getServiceClient();
       const { data } = await client
@@ -382,7 +425,7 @@ export class PseudonymizationService {
       const name = this.getRandomFromResult(data) || 'user';
       const hash = this.hashValue(originalUsername);
       const suffix = hash.substring(0, 4);
-      
+
       return `@${name.toLowerCase()}${suffix}`;
     } catch (error) {
       const hash = this.hashValue(originalUsername);
@@ -406,8 +449,9 @@ export class PseudonymizationService {
       const streetName = this.getRandomFromResult(data) || 'Main';
       const streetNumber = Math.floor(Math.random() * 9999) + 1;
       const streetTypes = ['St', 'Ave', 'Blvd', 'Dr', 'Ln', 'Rd'];
-      const streetType = streetTypes[Math.floor(Math.random() * streetTypes.length)];
-      
+      const streetType =
+        streetTypes[Math.floor(Math.random() * streetTypes.length)];
+
       return `${streetNumber} ${streetName} ${streetType}`;
     } catch (error) {
       return '123 Main St';
@@ -430,7 +474,7 @@ export class PseudonymizationService {
     originalHash: string,
     pseudonym: string,
     dataType: PIIDataType,
-    context?: string
+    context?: string,
   ): Promise<string> {
     try {
       const client = this.supabaseService.getServiceClient();
@@ -450,7 +494,9 @@ export class PseudonymizationService {
       if (error) throw error;
       return data.id;
     } catch (error) {
-      this.logger.error(`Failed to store pseudonym mapping: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to store pseudonym mapping: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw error;
     }
   }
@@ -467,9 +513,9 @@ export class PseudonymizationService {
         .select('usage_count')
         .eq('id', mappingId)
         .single();
-      
+
       const currentCount = mapping?.usage_count || 0;
-      
+
       await client
         .from('pseudonym_mappings')
         .update({
@@ -478,7 +524,9 @@ export class PseudonymizationService {
         })
         .eq('id', mappingId);
     } catch (error) {
-      this.logger.warn(`Failed to increment pseudonym usage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.warn(
+        `Failed to increment pseudonym usage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -490,28 +538,28 @@ export class PseudonymizationService {
     dataType: PIIDataType,
     processingTime: number,
     sessionId?: string,
-    runId?: string
+    runId?: string,
   ): Promise<void> {
     try {
       const client = this.supabaseService.getServiceClient();
-      await client
-        .from('redaction_audit_log')
-        .insert({
-          session_id: sessionId,
-          run_id: runId,
-          operation_type: operation,
-          data_type: dataType,
-          pseudonym_count: 1,
-          processing_time_ms: processingTime,
-          service_name: 'pseudonymization_service',
-          metadata: {
-            operation,
-            dataType,
-            timestamp: new Date().toISOString(),
-          },
-        });
+      await client.from('redaction_audit_log').insert({
+        session_id: sessionId,
+        run_id: runId,
+        operation_type: operation,
+        data_type: dataType,
+        pseudonym_count: 1,
+        processing_time_ms: processingTime,
+        service_name: 'pseudonymization_service',
+        metadata: {
+          operation,
+          dataType,
+          timestamp: new Date().toISOString(),
+        },
+      });
     } catch (error) {
-      this.logger.warn(`Failed to log pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.warn(
+        `Failed to log pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -522,35 +570,42 @@ export class PseudonymizationService {
     pseudonyms: PseudonymResult[],
     processingTime: number,
     sessionId?: string,
-    runId?: string
+    runId?: string,
   ): Promise<void> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
-      // Group by data type for separate log entries
-      const groupedByType = pseudonyms.reduce((acc, p) => {
-        acc[p.dataType] = (acc[p.dataType] || 0) + 1;
-        return acc;
-      }, {} as Record<PIIDataType, number>);
 
-      const logEntries = Object.entries(groupedByType).map(([dataType, count]) => ({
-        session_id: sessionId,
-        run_id: runId,
-        operation_type: 'bulk_pseudonymize',
-        data_type: dataType as PIIDataType,
-        pseudonym_count: count,
-        processing_time_ms: processingTime,
-        service_name: 'pseudonymization_service',
-        metadata: {
-          totalPseudonyms: pseudonyms.length,
-          dataTypeBreakdown: groupedByType,
-          timestamp: new Date().toISOString(),
+      // Group by data type for separate log entries
+      const groupedByType = pseudonyms.reduce(
+        (acc, p) => {
+          acc[p.dataType] = (acc[p.dataType] || 0) + 1;
+          return acc;
         },
-      }));
+        {} as Record<PIIDataType, number>,
+      );
+
+      const logEntries = Object.entries(groupedByType).map(
+        ([dataType, count]) => ({
+          session_id: sessionId,
+          run_id: runId,
+          operation_type: 'bulk_pseudonymize',
+          data_type: dataType as PIIDataType,
+          pseudonym_count: count,
+          processing_time_ms: processingTime,
+          service_name: 'pseudonymization_service',
+          metadata: {
+            totalPseudonyms: pseudonyms.length,
+            dataTypeBreakdown: groupedByType,
+            timestamp: new Date().toISOString(),
+          },
+        }),
+      );
 
       await client.from('redaction_audit_log').insert(logEntries);
     } catch (error) {
-      this.logger.warn(`Failed to log bulk pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.warn(
+        `Failed to log bulk pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -559,7 +614,7 @@ export class PseudonymizationService {
    */
   async reversePseudonymization(
     pseudonymizedText: string,
-    pseudonymMappings: PseudonymResult[]
+    pseudonymMappings: PseudonymResult[],
   ): Promise<{
     originalText: string;
     reversalCount: number;
@@ -570,17 +625,22 @@ export class PseudonymizationService {
     let reversalCount = 0;
 
     // Sort by pseudonym length (longest first) to avoid partial replacements
-    const sortedMappings = [...pseudonymMappings].sort((a, b) => b.pseudonym.length - a.pseudonym.length);
+    const sortedMappings = [...pseudonymMappings].sort(
+      (a, b) => b.pseudonym.length - a.pseudonym.length,
+    );
 
     for (const mapping of sortedMappings) {
       // Only reverse if the pseudonym appears in the text
       if (reversedText.includes(mapping.pseudonym)) {
         // Use word boundaries for exact matches to avoid partial replacements
-        const regex = new RegExp(`\\b${this.escapeRegExp(mapping.pseudonym)}\\b`, 'g');
+        const regex = new RegExp(
+          `\\b${this.escapeRegExp(mapping.pseudonym)}\\b`,
+          'g',
+        );
         const beforeLength = reversedText.length;
         reversedText = reversedText.replace(regex, mapping.originalValue);
         const afterLength = reversedText.length;
-        
+
         // Count actual replacements made
         if (beforeLength !== afterLength) {
           reversalCount++;
@@ -602,28 +662,28 @@ export class PseudonymizationService {
    */
   async reversePseudonymizationFromDatabase(
     pseudonymizedText: string,
-    context?: string
+    context?: string,
   ): Promise<{
     originalText: string;
     reversalCount: number;
     processingTime: number;
   }> {
     const startTime = Date.now();
-    let reversedText = pseudonymizedText;
+    const reversedText = pseudonymizedText;
     let reversalCount = 0;
 
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       // Get all pseudonym mappings that might be in the text
       let query = client
         .from('pseudonym_mappings')
         .select('pseudonym, original_hash, data_type, context');
-      
+
       if (context) {
         query = query.eq('context', context);
       }
-      
+
       const { data: mappings } = await query;
 
       if (mappings && mappings.length > 0) {
@@ -633,18 +693,25 @@ export class PseudonymizationService {
             // We cannot reverse from hash alone - this method would need
             // access to the sensitive_data_vault for reversible pseudonyms
             // For now, we'll keep the pseudonym but mark it as [PSEUDONYM]
-            const regex = new RegExp(`\\b${this.escapeRegExp(mapping.pseudonym)}\\b`, 'g');
+            const regex = new RegExp(
+              `\\b${this.escapeRegExp(mapping.pseudonym)}\\b`,
+              'g',
+            );
             const matches = reversedText.match(regex);
             if (matches) {
               reversalCount += matches.length;
               // Note: Cannot reverse without original value - would need vault access
-              this.logger.warn(`Found pseudonym ${mapping.pseudonym} but cannot reverse without original value`);
+              this.logger.warn(
+                `Found pseudonym ${mapping.pseudonym} but cannot reverse without original value`,
+              );
             }
           }
         }
       }
     } catch (error) {
-      this.logger.error(`Failed to reverse pseudonymization from database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to reverse pseudonymization from database: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
 
     const processingTime = Date.now() - startTime;
@@ -662,7 +729,7 @@ export class PseudonymizationService {
   async createReversiblePseudonymization(
     text: string,
     requestId: string,
-    options?: { context?: string; dataTypes?: PIIDataType[] }
+    options?: { context?: string; dataTypes?: PIIDataType[] },
   ): Promise<{
     pseudonymizedText: string;
     reversalContext: PseudonymResult[];

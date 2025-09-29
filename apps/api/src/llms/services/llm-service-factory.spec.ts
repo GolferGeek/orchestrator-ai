@@ -11,7 +11,11 @@ import { AnthropicLLMService } from './anthropic-llm.service';
 import { GoogleLLMService } from './google-llm.service';
 import { OllamaLLMService } from './ollama-llm.service';
 import { GrokLLMService } from './grok-llm.service';
-import { LLMServiceConfig, GenerateResponseParams, LLMResponse } from './llm-interfaces';
+import {
+  LLMServiceConfig,
+  GenerateResponseParams,
+  LLMResponse,
+} from './llm-interfaces';
 
 describe('LLMServiceFactory', () => {
   let factory: LLMServiceFactory;
@@ -22,7 +26,10 @@ describe('LLMServiceFactory', () => {
   let mockProviderConfigService: jest.Mocked<ProviderConfigService>;
   let mockHttpService: jest.Mocked<HttpService>;
 
-  const createMockConfig = (provider: string, model: string = 'test-model'): LLMServiceConfig => ({
+  const createMockConfig = (
+    provider: string,
+    model: string = 'test-model',
+  ): LLMServiceConfig => ({
     provider,
     model,
     temperature: 0.7,
@@ -65,7 +72,10 @@ describe('LLMServiceFactory', () => {
         LLMServiceFactory,
         { provide: PIIService, useValue: mockPIIService },
         { provide: PseudonymizerService, useValue: mockPseudonymizerService },
-        { provide: DictionaryPseudonymizerService, useValue: mockDictionaryPseudonymizerService },
+        {
+          provide: DictionaryPseudonymizerService,
+          useValue: mockDictionaryPseudonymizerService,
+        },
         { provide: RunMetadataService, useValue: mockRunMetadataService },
         { provide: ProviderConfigService, useValue: mockProviderConfigService },
         { provide: HttpService, useValue: mockHttpService },
@@ -83,131 +93,131 @@ describe('LLMServiceFactory', () => {
   describe('createService', () => {
     it('should create OpenAI service instance', async () => {
       const config = createMockConfig('openai', 'gpt-4');
-      
+
       // Mock environment variable for API key
       process.env.OPENAI_API_KEY = 'test-key';
-      
+
       const service = await factory.createService(config);
-      
+
       expect(service).toBeInstanceOf(OpenAILLMService);
     });
 
     it('should create Anthropic service instance', async () => {
       const config = createMockConfig('anthropic', 'claude-3-sonnet');
-      
+
       // Mock environment variable for API key
       process.env.ANTHROPIC_API_KEY = 'test-key';
-      
+
       const service = await factory.createService(config);
-      
+
       expect(service).toBeInstanceOf(AnthropicLLMService);
     });
 
     it('should create Google service instance', async () => {
       const config = createMockConfig('google', 'gemini-pro');
-      
+
       // Mock environment variable for API key
       process.env.GOOGLE_API_KEY = 'test-key';
-      
+
       const service = await factory.createService(config);
-      
+
       expect(service).toBeInstanceOf(GoogleLLMService);
     });
 
     it('should create Ollama service instance', async () => {
       const config = createMockConfig('ollama', 'llama2');
-      
+
       const service = await factory.createService(config);
-      
+
       expect(service).toBeInstanceOf(OllamaLLMService);
     });
 
     it('should create Grok service instance', async () => {
       const config = createMockConfig('grok', 'grok-beta');
-      
+
       // Mock environment variable for API key
       process.env.XAI_API_KEY = 'test-key';
-      
+
       const service = await factory.createService(config);
-      
+
       expect(service).toBeInstanceOf(GrokLLMService);
     });
 
     it('should handle case-insensitive provider names', async () => {
       const config = createMockConfig('OPENAI', 'gpt-4');
-      
+
       process.env.OPENAI_API_KEY = 'test-key';
-      
+
       const service = await factory.createService(config);
-      
+
       expect(service).toBeInstanceOf(OpenAILLMService);
     });
 
     it('should return cached instance when useCache is true', async () => {
       const config = createMockConfig('openai', 'gpt-4');
-      
+
       process.env.OPENAI_API_KEY = 'test-key';
-      
+
       const service1 = await factory.createService(config, true);
       const service2 = await factory.createService(config, true);
-      
+
       expect(service1).toBe(service2); // Same instance
     });
 
     it('should create new instance when useCache is false', async () => {
       const config = createMockConfig('openai', 'gpt-4');
-      
+
       process.env.OPENAI_API_KEY = 'test-key';
-      
+
       const service1 = await factory.createService(config, false);
       const service2 = await factory.createService(config, false);
-      
+
       expect(service1).not.toBe(service2); // Different instances
     });
 
     it('should throw error for unsupported provider', async () => {
       const config = createMockConfig('unsupported-provider');
-      
+
       await expect(factory.createService(config)).rejects.toThrow(
-        'Unsupported provider: unsupported-provider'
+        'Unsupported provider: unsupported-provider',
       );
     });
 
     it('should throw error for invalid configuration', async () => {
       await expect(factory.createService(null as any)).rejects.toThrow(
-        'LLM service configuration is required'
+        'LLM service configuration is required',
       );
-      
+
       await expect(factory.createService({} as any)).rejects.toThrow(
-        'Provider is required in LLM service configuration'
+        'Provider is required in LLM service configuration',
       );
-      
-      await expect(factory.createService({ provider: 'openai' } as any)).rejects.toThrow(
-        'Model is required in LLM service configuration'
-      );
+
+      await expect(
+        factory.createService({ provider: 'openai' } as any),
+      ).rejects.toThrow('Model is required in LLM service configuration');
     });
 
     it('should validate temperature parameter', async () => {
       const config = { ...createMockConfig('openai'), temperature: 3 };
-      
+
       await expect(factory.createService(config)).rejects.toThrow(
-        'Temperature must be a number between 0 and 2'
+        'Temperature must be a number between 0 and 2',
       );
     });
 
     it('should validate maxTokens parameter', async () => {
       const config = { ...createMockConfig('openai'), maxTokens: -1 };
-      
+
       await expect(factory.createService(config)).rejects.toThrow(
-        'Max tokens must be a positive number'
+        'Max tokens must be a positive number',
       );
     });
 
     it('should validate timeout parameter', async () => {
       const config = { ...createMockConfig('openai'), timeout: 0 };
-      
+
       await expect(factory.createService(config)).rejects.toThrow(
-        'Timeout must be a positive number'
+        'Timeout must be a positive number',
       );
     });
   });
@@ -215,8 +225,14 @@ describe('LLMServiceFactory', () => {
   describe('getSupportedProviders', () => {
     it('should return all supported providers', () => {
       const providers = factory.getSupportedProviders();
-      
-      expect(providers).toEqual(['openai', 'anthropic', 'google', 'ollama', 'grok']);
+
+      expect(providers).toEqual([
+        'openai',
+        'anthropic',
+        'google',
+        'ollama',
+        'grok',
+      ]);
     });
   });
 
@@ -237,20 +253,20 @@ describe('LLMServiceFactory', () => {
     it('should clear cache for specific provider', async () => {
       const openaiConfig = createMockConfig('openai', 'gpt-4');
       const anthropicConfig = createMockConfig('anthropic', 'claude-3');
-      
+
       process.env.OPENAI_API_KEY = 'test-key';
       process.env.ANTHROPIC_API_KEY = 'test-key';
-      
+
       // Create cached instances
       await factory.createService(openaiConfig);
       await factory.createService(anthropicConfig);
-      
+
       let stats = factory.getCacheStats();
       expect(stats.totalCached).toBe(2);
-      
+
       // Clear only OpenAI cache
       factory.clearCache('openai');
-      
+
       stats = factory.getCacheStats();
       expect(stats.totalCached).toBe(1);
       expect(stats.providerBreakdown.anthropic).toBe(1);
@@ -259,20 +275,20 @@ describe('LLMServiceFactory', () => {
     it('should clear all cache when no provider specified', async () => {
       const openaiConfig = createMockConfig('openai', 'gpt-4');
       const anthropicConfig = createMockConfig('anthropic', 'claude-3');
-      
+
       process.env.OPENAI_API_KEY = 'test-key';
       process.env.ANTHROPIC_API_KEY = 'test-key';
-      
+
       // Create cached instances
       await factory.createService(openaiConfig);
       await factory.createService(anthropicConfig);
-      
+
       let stats = factory.getCacheStats();
       expect(stats.totalCached).toBe(2);
-      
+
       // Clear all cache
       factory.clearCache();
-      
+
       stats = factory.getCacheStats();
       expect(stats.totalCached).toBe(0);
     });
@@ -283,17 +299,17 @@ describe('LLMServiceFactory', () => {
       const openaiConfig1 = createMockConfig('openai', 'gpt-4');
       const openaiConfig2 = createMockConfig('openai', 'gpt-3.5-turbo');
       const anthropicConfig = createMockConfig('anthropic', 'claude-3');
-      
+
       process.env.OPENAI_API_KEY = 'test-key';
       process.env.ANTHROPIC_API_KEY = 'test-key';
-      
+
       // Create cached instances
       await factory.createService(openaiConfig1);
       await factory.createService(openaiConfig2);
       await factory.createService(anthropicConfig);
-      
+
       const stats = factory.getCacheStats();
-      
+
       expect(stats.totalCached).toBe(3);
       expect(stats.providerBreakdown.openai).toBe(2);
       expect(stats.providerBreakdown.anthropic).toBe(1);
@@ -301,7 +317,7 @@ describe('LLMServiceFactory', () => {
 
     it('should return empty stats when cache is empty', () => {
       const stats = factory.getCacheStats();
-      
+
       expect(stats.totalCached).toBe(0);
       expect(stats.providerBreakdown).toEqual({});
     });
@@ -311,20 +327,23 @@ describe('LLMServiceFactory', () => {
     it('should generate different cache keys for different configurations', async () => {
       const config1 = createMockConfig('openai', 'gpt-4');
       const config2 = createMockConfig('openai', 'gpt-3.5-turbo');
-      const config3 = { ...createMockConfig('openai', 'gpt-4'), temperature: 0.5 };
-      
+      const config3 = {
+        ...createMockConfig('openai', 'gpt-4'),
+        temperature: 0.5,
+      };
+
       process.env.OPENAI_API_KEY = 'test-key';
-      
+
       // Create services with different configs
       const service1 = await factory.createService(config1);
       const service2 = await factory.createService(config2);
       const service3 = await factory.createService(config3);
-      
+
       // All should be different instances
       expect(service1).not.toBe(service2);
       expect(service1).not.toBe(service3);
       expect(service2).not.toBe(service3);
-      
+
       const stats = factory.getCacheStats();
       expect(stats.totalCached).toBe(3);
     });
@@ -333,12 +352,12 @@ describe('LLMServiceFactory', () => {
   describe('error handling', () => {
     it('should handle service instantiation errors gracefully', async () => {
       const config = createMockConfig('openai', 'gpt-4');
-      
+
       // Don't set API key to trigger error
       delete process.env.OPENAI_API_KEY;
-      
+
       await expect(factory.createService(config)).rejects.toThrow(
-        'Failed to instantiate openai service'
+        'Failed to instantiate openai service',
       );
     });
   });
@@ -460,15 +479,15 @@ describe('LLMServiceFactory', () => {
       // First call
       const service1 = await factory.createService(config);
       jest.spyOn(service1, 'generateResponse').mockResolvedValue(mockResponse);
-      
+
       const response1 = await factory.generateResponse(config, params);
-      
+
       // Second call should use cached service
       const response2 = await factory.generateResponse(config, params);
-      
+
       expect(response1).toEqual(mockResponse);
       expect(response2).toEqual(mockResponse);
-      
+
       // Should have used the same cached service
       const stats = factory.getCacheStats();
       expect(stats.totalCached).toBe(1);
@@ -478,24 +497,24 @@ describe('LLMServiceFactory', () => {
   describe('getService', () => {
     it('should return service instance with full metadata capabilities', async () => {
       const config = createMockConfig('anthropic', 'claude-3-sonnet');
-      
+
       process.env.ANTHROPIC_API_KEY = 'test-key';
-      
+
       const service = await factory.getService(config);
-      
+
       expect(service).toBeInstanceOf(AnthropicLLMService);
       expect(typeof service.generateResponse).toBe('function');
     });
 
     it('should respect caching parameter in getService', async () => {
       const config = createMockConfig('google', 'gemini-pro');
-      
+
       process.env.GOOGLE_API_KEY = 'test-key';
-      
+
       const service1 = await factory.getService(config, true);
       const service2 = await factory.getService(config, true);
       const service3 = await factory.getService(config, false);
-      
+
       expect(service1).toBe(service2); // Same cached instance
       expect(service1).not.toBe(service3); // Different instance when cache disabled
     });
@@ -505,10 +524,10 @@ describe('LLMServiceFactory', () => {
     it('should preserve provider-specific metadata fields', async () => {
       const config = createMockConfig('ollama', 'llama2');
       const service = await factory.createService(config);
-      
+
       // Verify the service can handle provider-specific metadata
       expect(service).toBeInstanceOf(OllamaLLMService);
-      
+
       // The service should have access to all dependencies needed for metadata generation
       expect(service).toHaveProperty('config');
       expect((service as any).runMetadataService).toBeDefined();
@@ -517,11 +536,11 @@ describe('LLMServiceFactory', () => {
 
     it('should maintain PII processing capabilities for metadata', async () => {
       const config = createMockConfig('grok', 'grok-beta');
-      
+
       process.env.XAI_API_KEY = 'test-key';
-      
+
       const service = await factory.createService(config);
-      
+
       // Verify PII services are properly injected
       expect((service as any).piiService).toBeDefined();
       expect((service as any).pseudonymizerService).toBeDefined();

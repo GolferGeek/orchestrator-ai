@@ -41,7 +41,6 @@ export class DelegationService implements IDelegationService {
     prompt: string,
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       // Step 1: Discover and validate target agent
       const targetAgent = await this.discoverTargetAgent(agentName);
@@ -74,7 +73,6 @@ export class DelegationService implements IDelegationService {
 
       return orchestratorResponse;
     } catch (error) {
-
       if (error instanceof DelegationError) {
         throw error;
       }
@@ -102,7 +100,6 @@ export class DelegationService implements IDelegationService {
     confidence: number;
     reasoning: string;
   }> {
-
     try {
       if (conversationHistory.length === 0) {
         return {
@@ -150,7 +147,6 @@ export class DelegationService implements IDelegationService {
         quickAnalysis,
       );
     } catch (error) {
-
       return {
         shouldContinue: false,
         confidence: 0.1,
@@ -193,12 +189,10 @@ export class DelegationService implements IDelegationService {
       }
 
       if (targetAgent) {
-
       }
 
       return targetAgent;
     } catch (error) {
-
       throw error;
     }
   }
@@ -213,7 +207,6 @@ export class DelegationService implements IDelegationService {
 
       return agents.map((agent) => agent.name);
     } catch (error) {
-
       return [];
     }
   }
@@ -231,7 +224,6 @@ export class DelegationService implements IDelegationService {
 
       return agentInstance;
     } catch (error) {
-
       throw new DelegationError(
         `Failed to create agent instance: ${error instanceof Error ? error.message : 'Unknown error'}`,
         targetAgent.name,
@@ -274,7 +266,6 @@ export class DelegationService implements IDelegationService {
     taskPayload: any,
   ): Promise<any> {
     try {
-
       // Call the agent's executeTask method (A2A protocol)
       const result = await agentInstance.executeTask(
         taskPayload.method,
@@ -283,7 +274,6 @@ export class DelegationService implements IDelegationService {
 
       return result;
     } catch (error) {
-
       throw error;
     }
   }
@@ -297,7 +287,6 @@ export class DelegationService implements IDelegationService {
     input: OrchestratorInput,
   ): OrchestratorResponse {
     try {
-
       // Extract content from the delegation result
       const content =
         delegationResult.response ||
@@ -339,7 +328,6 @@ export class DelegationService implements IDelegationService {
 
       return response;
     } catch (error) {
-
       // Return error response
       return {
         success: false,
@@ -483,7 +471,6 @@ Provide your analysis in the required JSON format.`;
 
       return this.parseContextAnalysis(response);
     } catch (error) {
-
       throw new Error(
         `LLM context analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}. Context analysis must work for agent delegation.`,
       );
@@ -497,7 +484,6 @@ Provide your analysis in the required JSON format.`;
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-
         throw new Error('LLM context analysis returned no JSON');
       }
 
@@ -521,7 +507,6 @@ Provide your analysis in the required JSON format.`;
         reasoning: parsed.reasoning,
       };
     } catch (error) {
-
       throw new Error(
         `LLM context analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must generate valid JSON.`,
       );
@@ -624,7 +609,6 @@ Can the ${agentName} agent handle this request?`;
 
       return this.parseCapabilityResponse(response);
     } catch (error) {
-
       // Conservative fallback - let delegation service handle it
       return {
         canHandle: false,
@@ -665,7 +649,6 @@ Can the ${agentName} agent handle this request?`;
         reasoning: parsed.reasoning,
       };
     } catch (error) {
-
       // Conservative fallback
       return {
         canHandle: false,

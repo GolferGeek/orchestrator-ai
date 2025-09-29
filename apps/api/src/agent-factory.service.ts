@@ -124,15 +124,12 @@ export class AgentFactoryService {
     private readonly productivityManagerOrchestratorService?: ProductivityManagerOrchestratorService,
     // mcpClientService removed - using LangChain.js services instead
     // supabaseToolsService removed - using utility functions instead
-  ) {
-
-  }
+  ) {}
 
   /**
    * Create an agent instance from discovered metadata
    */
   async createAgent(discoveredAgent: DiscoveredAgent): Promise<any> {
-
     try {
       // Load agent configuration from YAML
 
@@ -161,7 +158,6 @@ export class AgentFactoryService {
 
       return serviceInstance;
     } catch (error: any) {
-
       throw error;
     }
   }
@@ -176,7 +172,6 @@ export class AgentFactoryService {
     const yamlPath = path.join(agentDirectory, 'agent.yaml');
 
     if (!fs.existsSync(yamlPath)) {
-
       return this.createDefaultConfig(discoveredAgent);
     }
 
@@ -190,7 +185,6 @@ export class AgentFactoryService {
 
       return this.validateAndNormalizeConfig(yamlData, discoveredAgent);
     } catch (error: any) {
-
       return this.createDefaultConfig(discoveredAgent);
     }
   }
@@ -259,7 +253,6 @@ export class AgentFactoryService {
 
       return ServiceClass || null;
     } catch (error: any) {
-
       return null;
     }
   }
@@ -276,7 +269,6 @@ export class AgentFactoryService {
     try {
       switch (config.type) {
         case 'orchestrator': {
-
           if (!this.orchestratorAgentServicesContext) {
             throw new Error(
               'OrchestratorAgentServicesContext not available - required for orchestrator agents. Please ensure OrchestratorAgentServicesContextModule is imported.',
@@ -287,7 +279,6 @@ export class AgentFactoryService {
         }
 
         case 'function': {
-
           if (!this.functionAgentServicesContext) {
             throw new Error(
               'FunctionAgentServicesContext not available - required for function agents. Please ensure FunctionAgentServicesContextModule is imported.',
@@ -298,7 +289,6 @@ export class AgentFactoryService {
         }
 
         case 'python-function': {
-
           if (!this.pythonFunctionAgentServicesContext) {
             throw new Error(
               'PythonFunctionAgentServicesContext not available - required for Python function agents. Please ensure PythonFunctionAgentServicesContextModule is imported.',
@@ -309,7 +299,6 @@ export class AgentFactoryService {
         }
 
         case 'context': {
-
           if (!this.agentServicesContext) {
             throw new Error(
               'AgentServicesContext not available - required for context agents. Please ensure AgentServicesContextModule is imported.',
@@ -320,7 +309,6 @@ export class AgentFactoryService {
         }
 
         case 'api': {
-
           if (!this.apiAgentServicesContext) {
             throw new Error(
               'ApiAgentServicesContext not available - required for API agents. Please ensure ApiAgentServicesContextModule is imported.',
@@ -331,7 +319,6 @@ export class AgentFactoryService {
         }
 
         case 'external': {
-
           if (!this.externalAgentServicesContext) {
             throw new Error('ExternalAgentServicesContext not available');
           }
@@ -340,12 +327,10 @@ export class AgentFactoryService {
         }
 
         default: {
-
           return new ServiceClass(this.httpService);
         }
       }
     } catch (error: any) {
-
       throw error;
     }
   }
@@ -361,7 +346,6 @@ export class AgentFactoryService {
     // Set discovered path
     if (typeof serviceInstance.setDiscoveredPath === 'function') {
       serviceInstance.setDiscoveredPath(discoveredAgent.path);
-
     }
 
     // Set up function paths based on agent type BEFORE calling onModuleInit
@@ -370,11 +354,8 @@ export class AgentFactoryService {
     // Call onModuleInit to trigger configuration loading
     if (typeof serviceInstance.onModuleInit === 'function') {
       try {
-
         await serviceInstance.onModuleInit();
-
       } catch (initError: any) {
-
         // Don't throw - let agent continue with fallback behavior
       }
     }
@@ -387,7 +368,6 @@ export class AgentFactoryService {
       try {
         await this.loadContextData(serviceInstance, discoveredAgent);
       } catch (contextError: any) {
-
         // Don't throw - let agent continue without context
       }
     }
@@ -424,15 +404,10 @@ export class AgentFactoryService {
 
           if (typeof agentFunction === 'function') {
             serviceInstance.setAgentFunction(agentFunction);
-
           } else {
-
           }
-        } catch (error: any) {
-
-        }
+        } catch (error: any) {}
       } else {
-
       }
     }
 
@@ -442,9 +417,7 @@ export class AgentFactoryService {
 
       if (fs.existsSync(pythonFunctionPath)) {
         serviceInstance.setPythonScriptPath(pythonFunctionPath);
-
       } else {
-
       }
     }
   }
@@ -461,7 +434,6 @@ export class AgentFactoryService {
     // Initialize context from AgentContextService (loads YAML data including skills)
     if (typeof serviceInstance.initializeContext === 'function') {
       await serviceInstance.initializeContext(agentDirectory);
-
     }
 
     // Load markdown context data if available
@@ -469,7 +441,6 @@ export class AgentFactoryService {
     if (fs.existsSync(contextPath)) {
       const contextContent = fs.readFileSync(contextPath, 'utf8');
       serviceInstance.setContextData(contextContent);
-
     }
   }
 

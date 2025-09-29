@@ -31,16 +31,12 @@ export class LoggingService {
 
     switch (level) {
       case 'error':
-
         break;
       case 'warn':
-
         break;
       case 'debug':
-
         break;
       default:
-
     }
   }
 

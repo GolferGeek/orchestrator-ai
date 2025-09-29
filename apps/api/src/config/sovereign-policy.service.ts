@@ -18,10 +18,19 @@ export class SovereignPolicyService {
    * Get the current sovereign mode policy from environment variables
    */
   getPolicy(): SovereignPolicy {
-    const enforced = this.configService.get('SOVEREIGN_MODE_ENFORCED', 'false') === 'true';
-    const defaultMode = this.configService.get('SOVEREIGN_MODE_DEFAULT', 'relaxed') as 'strict' | 'relaxed';
-    const auditLevel = this.configService.get('SOVEREIGN_MODE_AUDIT_LEVEL', 'basic') as 'none' | 'basic' | 'full';
-    const realtimeUpdates = this.configService.get('SOVEREIGN_MODE_REALTIME_UPDATES', 'true') === 'true';
+    const enforced =
+      this.configService.get('SOVEREIGN_MODE_ENFORCED', 'false') === 'true';
+    const defaultMode = this.configService.get(
+      'SOVEREIGN_MODE_DEFAULT',
+      'relaxed',
+    );
+    const auditLevel = this.configService.get(
+      'SOVEREIGN_MODE_AUDIT_LEVEL',
+      'basic',
+    );
+    const realtimeUpdates =
+      this.configService.get('SOVEREIGN_MODE_REALTIME_UPDATES', 'true') ===
+      'true';
 
     return {
       enforced,
@@ -52,7 +61,6 @@ export class SovereignPolicyService {
     return this.getPolicy().auditLevel;
   }
 
-
   /**
    * Check if a provider is allowed in sovereign mode
    * In sovereign mode, only ollama is allowed
@@ -71,14 +79,14 @@ export class SovereignPolicyService {
     // If enforced is true, default should probably be strict
     if (policy.enforced && policy.defaultMode === 'relaxed') {
       warnings.push(
-        'Sovereign mode is enforced but default mode is relaxed. Consider setting SOVEREIGN_MODE_DEFAULT=strict for consistency.'
+        'Sovereign mode is enforced but default mode is relaxed. Consider setting SOVEREIGN_MODE_DEFAULT=strict for consistency.',
       );
     }
 
     // If audit level is 'none' but enforced is true, suggest basic logging
     if (policy.enforced && policy.auditLevel === 'none') {
       warnings.push(
-        'Sovereign mode is enforced but audit level is none. Consider enabling basic audit logging for compliance.'
+        'Sovereign mode is enforced but audit level is none. Consider enabling basic audit logging for compliance.',
       );
     }
 

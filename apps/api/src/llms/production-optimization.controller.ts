@@ -1,6 +1,24 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Logger, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Logger,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { MemoryManagerService, MemoryStats } from './memory-manager.service';
-import { ModelMonitorService, SystemHealthMetrics, ModelHealthMetrics, Alert, AlertThresholds } from './model-monitor.service';
+import {
+  ModelMonitorService,
+  SystemHealthMetrics,
+  ModelHealthMetrics,
+  Alert,
+  AlertThresholds,
+} from './model-monitor.service';
 
 @Controller('llm/production')
 export class ProductionOptimizationController {
@@ -39,22 +57,25 @@ export class ProductionOptimizationController {
   @HttpCode(HttpStatus.OK)
   async loadModel(
     @Param('modelName') modelName: string,
-    @Body() body: {
+    @Body()
+    body: {
       taskComplexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
       priority?: 'high' | 'medium' | 'low';
-    } = {}
+    } = {},
   ) {
     try {
       const result = await this.memoryManagerService.loadModel(
         modelName,
         body.taskComplexity,
-        body.priority || 'medium'
+        body.priority || 'medium',
       );
 
       return {
         success: result.success,
         message: result.message,
-        memoryFreed: result.memoryFreed ? `${(result.memoryFreed / 1024 / 1024 / 1024).toFixed(1)}GB` : undefined,
+        memoryFreed: result.memoryFreed
+          ? `${(result.memoryFreed / 1024 / 1024 / 1024).toFixed(1)}GB`
+          : undefined,
         modelsUnloaded: result.modelsUnloaded,
         memoryStats: this.memoryManagerService.getMemoryStats(),
       };
@@ -71,10 +92,13 @@ export class ProductionOptimizationController {
   @HttpCode(HttpStatus.OK)
   async unloadModel(@Param('modelName') modelName: string) {
     try {
-      const result = await this.memoryManagerService.forceUnloadModel(modelName);
+      const result =
+        await this.memoryManagerService.forceUnloadModel(modelName);
       return {
         success: result,
-        message: result ? 'Model unloaded successfully' : 'Model was not loaded or unload failed',
+        message: result
+          ? 'Model unloaded successfully'
+          : 'Model was not loaded or unload failed',
         memoryStats: this.memoryManagerService.getMemoryStats(),
       };
     } catch (error) {
@@ -149,7 +173,7 @@ export class ProductionOptimizationController {
       averageResponseTime: 0,
       memoryStats: memoryStats,
       systemLoad: 0,
-      uptime: process.uptime() * 1000
+      uptime: process.uptime() * 1000,
     };
   }
 
@@ -277,11 +301,18 @@ export class ProductionOptimizationController {
         uptime: process.uptime() * 1000,
       },
       memory: {
-        healthy: memoryStats.memoryPressure === 'low' || memoryStats.memoryPressure === 'medium',
+        healthy:
+          memoryStats.memoryPressure === 'low' ||
+          memoryStats.memoryPressure === 'medium',
         pressure: memoryStats.memoryPressure,
-        usagePercent: Math.round((memoryStats.currentUsage / memoryStats.totalAllocated) * 100),
-        currentUsageGB: Math.round(memoryStats.currentUsage / 1024 / 1024 / 1024 * 10) / 10,
-        totalAllocatedGB: Math.round(memoryStats.totalAllocated / 1024 / 1024 / 1024 * 10) / 10,
+        usagePercent: Math.round(
+          (memoryStats.currentUsage / memoryStats.totalAllocated) * 100,
+        ),
+        currentUsageGB:
+          Math.round((memoryStats.currentUsage / 1024 / 1024 / 1024) * 10) / 10,
+        totalAllocatedGB:
+          Math.round((memoryStats.totalAllocated / 1024 / 1024 / 1024) * 10) /
+          10,
         loadedModels: memoryStats.loadedModels,
         threeTierModels: memoryStats.threeTierModels,
       },
@@ -305,23 +336,23 @@ export class ProductionOptimizationController {
   async emergencyRestart() {
     try {
       this.logger.warn('🚨 EMERGENCY RESTART INITIATED');
-      
+
       // Step 1: Clear all loaded models from memory manager
       const loadedModels = this.memoryManagerService.getLoadedModels();
       for (const model of loadedModels) {
         await this.memoryManagerService.forceUnloadModel(model.name);
       }
-      
+
       // Step 2: Force health check to refresh status
       await this.modelMonitorService.forceHealthCheck();
-      
+
       // Step 3: Preload three-tier models
       await this.memoryManagerService.preloadThreeTierModels();
-      
+
       const finalStatus = await this.getOperationalStatus();
-      
+
       this.logger.log('✅ Emergency restart completed');
-      
+
       return {
         success: true,
         message: 'Emergency restart completed successfully',
@@ -341,12 +372,13 @@ export class ProductionOptimizationController {
   @HttpCode(HttpStatus.OK)
   async getDiagnostics() {
     try {
-      const [systemHealth, memoryStats, modelHealth, activeAlerts] = await Promise.all([
-        this.modelMonitorService.getSystemHealthMetrics(),
-        this.memoryManagerService.getMemoryStats(),
-        this.modelMonitorService.getModelHealthMetrics(),
-        this.modelMonitorService.getActiveAlerts(),
-      ]);
+      const [systemHealth, memoryStats, modelHealth, activeAlerts] =
+        await Promise.all([
+          this.modelMonitorService.getSystemHealthMetrics(),
+          this.memoryManagerService.getMemoryStats(),
+          this.modelMonitorService.getModelHealthMetrics(),
+          this.modelMonitorService.getActiveAlerts(),
+        ]);
 
       // Analyze common issues
       const diagnostics = {
@@ -364,32 +396,47 @@ export class ProductionOptimizationController {
       if (!systemHealth.ollamaConnected) {
         diagnostics.overallHealth = 'critical';
         diagnostics.issues.push('Ollama service is not connected');
-        diagnostics.recommendations.push('Check if Ollama is running: ollama list');
+        diagnostics.recommendations.push(
+          'Check if Ollama is running: ollama list',
+        );
       }
 
       if (systemHealth.unhealthyModels > 0) {
-        diagnostics.overallHealth = diagnostics.overallHealth === 'critical' ? 'critical' : 'degraded';
-        diagnostics.issues.push(`${systemHealth.unhealthyModels} models are unhealthy`);
-        diagnostics.recommendations.push('Check model health and consider restarting unhealthy models');
+        diagnostics.overallHealth =
+          diagnostics.overallHealth === 'critical' ? 'critical' : 'degraded';
+        diagnostics.issues.push(
+          `${systemHealth.unhealthyModels} models are unhealthy`,
+        );
+        diagnostics.recommendations.push(
+          'Check model health and consider restarting unhealthy models',
+        );
       }
 
       if (memoryStats.memoryPressure === 'critical') {
         diagnostics.overallHealth = 'critical';
         diagnostics.issues.push('Critical memory pressure detected');
-        diagnostics.recommendations.push('Run memory optimization or unload unused models');
+        diagnostics.recommendations.push(
+          'Run memory optimization or unload unused models',
+        );
       } else if (memoryStats.memoryPressure === 'high') {
-        diagnostics.overallHealth = diagnostics.overallHealth === 'critical' ? 'critical' : 'degraded';
+        diagnostics.overallHealth =
+          diagnostics.overallHealth === 'critical' ? 'critical' : 'degraded';
         diagnostics.issues.push('High memory pressure detected');
         diagnostics.recommendations.push('Consider optimizing memory usage');
       }
 
       if (systemHealth.averageResponseTime > 10000) {
-        diagnostics.overallHealth = diagnostics.overallHealth === 'critical' ? 'critical' : 'degraded';
-        diagnostics.issues.push(`High average response time: ${systemHealth.averageResponseTime}ms`);
-        diagnostics.recommendations.push('Check system resources and model loading status');
+        diagnostics.overallHealth =
+          diagnostics.overallHealth === 'critical' ? 'critical' : 'degraded';
+        diagnostics.issues.push(
+          `High average response time: ${systemHealth.averageResponseTime}ms`,
+        );
+        diagnostics.recommendations.push(
+          'Check system resources and model loading status',
+        );
       }
 
-      if (activeAlerts.filter(a => a.severity === 'critical').length > 0) {
+      if (activeAlerts.filter((a) => a.severity === 'critical').length > 0) {
         diagnostics.overallHealth = 'critical';
         diagnostics.issues.push('Critical alerts are active');
         diagnostics.recommendations.push('Address critical alerts immediately');

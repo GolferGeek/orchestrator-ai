@@ -61,13 +61,13 @@ export class DynamicAgentsController {
     const agents = this.agentDiscovery.getDiscoveredAgents();
     return {
       success: true,
-      data: agents.map(a => ({
+      data: agents.map((a) => ({
         name: a.name,
         path: a.path,
         reportsTo: a.reportsTo,
-        hasConfig: !!a.configPath
+        hasConfig: !!a.configPath,
       })),
-      total: agents.length
+      total: agents.length,
     };
   }
 
@@ -95,7 +95,8 @@ export class DynamicAgentsController {
 
       const hierarchy = this.agentDiscovery.getAgentHierarchy(namespaces);
       const totalAgents = namespaces?.length
-        ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces).length
+        ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces)
+            .length
         : this.agentDiscovery.getDiscoveredAgents().length;
 
       return {
@@ -138,14 +139,17 @@ export class DynamicAgentsController {
     @Req() req: ExpressRequest & { activeNamespace?: string },
   ) {
     // 🔍 Log minimal info about incoming request
-    this.logger.log(`[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`);
+    this.logger.log(
+      `[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`,
+    );
 
-    const { activeNamespace } =
-      await this.resolveNamespaceContext(currentUser, req);
+    const { activeNamespace } = await this.resolveNamespaceContext(
+      currentUser,
+      req,
+    );
 
     req.activeNamespace = activeNamespace;
 
-    
     // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
     let normalizedTaskRequest: CreateTaskDto;
 
@@ -181,11 +185,19 @@ export class DynamicAgentsController {
     }
 
     // Debug: Log the received LLM selection
-    this.logger.log(`🎤 [DynamicAgentsController] Received llmSelection: ${JSON.stringify(normalizedTaskRequest.llmSelection)}`);
-    this.logger.log(`🎤 [DynamicAgentsController] Full normalized request has llmSelection: ${!!normalizedTaskRequest.llmSelection}`);
+    this.logger.log(
+      `🎤 [DynamicAgentsController] Received llmSelection: ${JSON.stringify(normalizedTaskRequest.llmSelection)}`,
+    );
+    this.logger.log(
+      `🎤 [DynamicAgentsController] Full normalized request has llmSelection: ${!!normalizedTaskRequest.llmSelection}`,
+    );
     if (normalizedTaskRequest.llmSelection) {
-      this.logger.log(`🎤 [DynamicAgentsController] llmSelection.providerName: ${normalizedTaskRequest.llmSelection.providerName}`);
-      this.logger.log(`🎤 [DynamicAgentsController] llmSelection.modelName: ${normalizedTaskRequest.llmSelection.modelName}`);
+      this.logger.log(
+        `🎤 [DynamicAgentsController] llmSelection.providerName: ${normalizedTaskRequest.llmSelection.providerName}`,
+      );
+      this.logger.log(
+        `🎤 [DynamicAgentsController] llmSelection.modelName: ${normalizedTaskRequest.llmSelection.modelName}`,
+      );
     }
 
     // Validate required fields
@@ -196,29 +208,33 @@ export class DynamicAgentsController {
     // 🎤 AUDIO DETECTION AND TRANSCRIPTION - Convert audio to text if detected
     let transcribedText: string | null = null;
     let audioDetected = false;
-    
+
     try {
       // Check if prompt contains base64 audio data
       if (this.isBase64Audio(normalizedTaskRequest.prompt)) {
-        this.logger.log(`🎤 [DynamicAgentsController] Audio detected in prompt for ${agentType}/${agentName}`);
+        this.logger.log(
+          `🎤 [DynamicAgentsController] Audio detected in prompt for ${agentType}/${agentName}`,
+        );
         audioDetected = true;
-        
+
         // Extract audio format and data from the prompt
         const audioData = normalizedTaskRequest.prompt;
-        
+
         // Transcribe the audio using speech service
         const transcriptionResult = await this.speechService.transcribeAudio(
           audioData,
           'wav', // Default to WAV format
-          48000 // Default sample rate
+          48000, // Default sample rate
         );
-        
+
         transcribedText = transcriptionResult.text;
-        this.logger.log(`🎤 [DynamicAgentsController] Audio transcribed: "${transcribedText}" (confidence: ${transcriptionResult.confidence || 'N/A'})`);
-        
+        this.logger.log(
+          `🎤 [DynamicAgentsController] Audio transcribed: "${transcribedText}" (confidence: ${transcriptionResult.confidence || 'N/A'})`,
+        );
+
         // Replace the audio prompt with transcribed text
         normalizedTaskRequest.prompt = transcribedText;
-        
+
         // Add audio metadata to the request
         if (!normalizedTaskRequest.metadata) {
           normalizedTaskRequest.metadata = {};
@@ -227,14 +243,19 @@ export class DynamicAgentsController {
           detected: true,
           transcribedText: transcribedText,
           confidence: transcriptionResult.confidence,
-          originalFormat: 'wav'
+          originalFormat: 'wav',
         };
       }
     } catch (audioError) {
-      this.logger.error(`🎤 [DynamicAgentsController] Audio transcription failed for ${agentType}/${agentName}:`, audioError);
+      this.logger.error(
+        `🎤 [DynamicAgentsController] Audio transcription failed for ${agentType}/${agentName}:`,
+        audioError,
+      );
       // If audio transcription fails, continue with original prompt but log the error
       if (audioDetected) {
-        throw new BadRequestException(`Audio transcription failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`);
+        throw new BadRequestException(
+          `Audio transcription failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`,
+        );
       }
     }
 
@@ -246,14 +267,17 @@ export class DynamicAgentsController {
 
     // 🔒 PII POLICY CHECK - Block sensitive data before it reaches any agent
     // PII policy check
-    
+
     // Check PII policy directly without centralized routing
-    const piiResult = await this.piiService.checkPolicy(normalizedTaskRequest.prompt, {
-      conversationId: normalizedTaskRequest.conversationId,
-      userId: currentUser?.id,
-      requestId: `agent-${agentType}-${agentName}-${Date.now()}`,
-      providerName: normalizedTaskRequest.llmSelection?.providerName
-    });
+    const piiResult = await this.piiService.checkPolicy(
+      normalizedTaskRequest.prompt,
+      {
+        conversationId: normalizedTaskRequest.conversationId,
+        userId: currentUser?.id,
+        requestId: `agent-${agentType}-${agentName}-${Date.now()}`,
+        providerName: normalizedTaskRequest.llmSelection?.providerName,
+      },
+    );
 
     // Create routing decision for compatibility with existing code
     let routingDecision;
@@ -273,29 +297,38 @@ export class DynamicAgentsController {
       };
     } else {
       // Simple model selection based on mode - no centralized routing needed
-      const isConversationMode = normalizedTaskRequest.method === 'converse' || normalizedTaskRequest.method === 'plan';
-      
+      const isConversationMode =
+        normalizedTaskRequest.method === 'converse' ||
+        normalizedTaskRequest.method === 'plan';
+
       let selectedProvider, selectedModel;
       if (isConversationMode) {
         // Use system model for conversation/plan mode
-        const systemConfig = JSON.parse(process.env.MODEL_CONFIG_GLOBAL_JSON || '{"provider":"ollama","model":"llama3.2:1b"}');
+        const systemConfig = JSON.parse(
+          process.env.MODEL_CONFIG_GLOBAL_JSON ||
+            '{"provider":"ollama","model":"llama3.2:1b"}',
+        );
         selectedProvider = systemConfig.provider;
         selectedModel = systemConfig.model;
         // Using system model
       } else {
         // Use passed llmSelection for deliverable mode (build/process)
-        selectedProvider = normalizedTaskRequest.llmSelection?.providerName || 'ollama';
-        selectedModel = normalizedTaskRequest.llmSelection?.modelName || 'llama3.2:1b';
+        selectedProvider =
+          normalizedTaskRequest.llmSelection?.providerName || 'ollama';
+        selectedModel =
+          normalizedTaskRequest.llmSelection?.modelName || 'llama3.2:1b';
         // Using explicit model
       }
-      
+
       routingDecision = {
         provider: selectedProvider,
         model: selectedModel,
         isLocal: selectedProvider.toLowerCase() === 'ollama',
         fallbackUsed: false,
         complexityScore: 0,
-        reasoningPath: [`Simple mode-based routing: ${normalizedTaskRequest.method} mode`],
+        reasoningPath: [
+          `Simple mode-based routing: ${normalizedTaskRequest.method} mode`,
+        ],
         piiMetadata: piiResult.metadata,
         originalPrompt: normalizedTaskRequest.prompt,
         routeToAgent: true,
@@ -304,7 +337,9 @@ export class DynamicAgentsController {
 
     // Check if request was blocked by PII policy
     if (routingDecision.provider === 'policy-blocked') {
-      this.logger.warn(`🚫 [DynamicAgentsController] Request blocked by PII policy: ${routingDecision.piiMetadata?.policyDecision?.violations?.join(', ')}`);
+      this.logger.warn(
+        `🚫 [DynamicAgentsController] Request blocked by PII policy: ${routingDecision.piiMetadata?.policyDecision?.violations?.join(', ')}`,
+      );
 
       // Create a blocked task response immediately
       const task = await this.tasksService.createTask(
@@ -318,7 +353,8 @@ export class DynamicAgentsController {
       );
 
       const userMessage = routingDecision.piiMetadata?.userMessage;
-      const defaultMessage = 'Request blocked due to PII policy violation. Please rephrase your request without including sensitive personal information.';
+      const defaultMessage =
+        'Request blocked due to PII policy violation. Please rephrase your request without including sensitive personal information.';
       const messageSummary = userMessage?.summary || defaultMessage;
 
       // Mark task as failed with PII violation
@@ -337,8 +373,12 @@ export class DynamicAgentsController {
         taskId: task.id,
         conversationId: task.agentConversationId,
         details: {
-          reason: userMessage?.details?.join(' ') || 'Sensitive personal information detected.',
-          suggestion: userMessage?.blockingDetails?.recommendation || 'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.',
+          reason:
+            userMessage?.details?.join(' ') ||
+            'Sensitive personal information detected.',
+          suggestion:
+            userMessage?.blockingDetails?.recommendation ||
+            'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.',
           detectedTypes: userMessage?.blockingDetails?.showstopperTypes || [],
         },
         piiMetadata: routingDecision.piiMetadata,
@@ -352,11 +392,9 @@ export class DynamicAgentsController {
     const token = authHeader?.replace('Bearer ', '');
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(
-      agentType,
-      agentName,
-      [activeNamespace],
-    );
+    const agentInstance = this.findAgentInstance(agentType, agentName, [
+      activeNamespace,
+    ]);
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -429,9 +467,7 @@ export class DynamicAgentsController {
             currentUser.id,
             { type: wp.type, id: wp.id },
           );
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
 
       // Prepare request for agent with task context
@@ -457,18 +493,28 @@ export class DynamicAgentsController {
       };
 
       // Debug: Log what we're sending to the agent
-      this.logger.log(`🎯 [DynamicAgentsController] Sending to agent ${agentType}/${agentName}:`);
-      this.logger.log(`   metadata.llmPreferences: ${JSON.stringify(authenticatedTaskRequest.metadata?.llmPreferences)}`);
-      this.logger.log(`   Has providerName: ${!!authenticatedTaskRequest.metadata?.llmPreferences?.providerName}`);
-      this.logger.log(`   Has modelName: ${!!authenticatedTaskRequest.metadata?.llmPreferences?.modelName}`);
+      this.logger.log(
+        `🎯 [DynamicAgentsController] Sending to agent ${agentType}/${agentName}:`,
+      );
+      this.logger.log(
+        `   metadata.llmPreferences: ${JSON.stringify(authenticatedTaskRequest.metadata?.llmPreferences)}`,
+      );
+      this.logger.log(
+        `   Has providerName: ${!!authenticatedTaskRequest.metadata?.llmPreferences?.providerName}`,
+      );
+      this.logger.log(
+        `   Has modelName: ${!!authenticatedTaskRequest.metadata?.llmPreferences?.modelName}`,
+      );
 
       // In A2A architecture, all execution modes should await completion
       // The difference is only in progress reporting:
       // - immediate: no progress updates
       // - websocket/polling: progress updates via WebSocket during processing
-      
+
       const executionMode = normalizedTaskRequest.executionMode;
-      this.logger.log(`🚀 Processing task ${task.id} in ${executionMode} mode - will await completion`);
+      this.logger.log(
+        `🚀 Processing task ${task.id} in ${executionMode} mode - will await completion`,
+      );
 
       // 🔍 DEBUG: Log before calling JSON-RPC processing
       // Call agent's processJsonRpcRequest
@@ -482,7 +528,8 @@ export class DynamicAgentsController {
       };
 
       // All modes await the result for proper A2A behavior
-      const rpcResponse = await (agentInstance as any).processJsonRpcRequest(jsonRpcRequest);
+      const rpcResponse =
+        await agentInstance.processJsonRpcRequest(jsonRpcRequest);
       const result = rpcResponse?.result ?? rpcResponse; // Unwrap JSON-RPC result
 
       // 🔍 DEBUG: Log the result from JSON-RPC processing
@@ -491,9 +538,8 @@ export class DynamicAgentsController {
       const taskAlreadyHandled =
         result &&
         typeof result === 'object' &&
-        ((result as any).__taskCompletionHandled === true ||
-          ((result as any).metadata &&
-            (result as any).metadata.taskCompletionHandled === true));
+        (result.__taskCompletionHandled === true ||
+          (result.metadata && result.metadata.taskCompletionHandled === true));
 
       if (!taskAlreadyHandled) {
         // Store the result in the task record with deliverable auto-creation
@@ -502,7 +548,11 @@ export class DynamicAgentsController {
           await agentInstance.completeTask(task.id, currentUser.id, result);
         } else {
           // Fallback to direct task completion if agent doesn't have completeTask method
-          await this.taskStatusService.completeTask(task.id, currentUser.id, result);
+          await this.taskStatusService.completeTask(
+            task.id,
+            currentUser.id,
+            result,
+          );
         }
       } else {
         this.logger.debug(
@@ -512,31 +562,41 @@ export class DynamicAgentsController {
 
       // 🔊 OPTIONAL AUDIO SYNTHESIS - Convert response to speech if original input was audio
       let responseAudio: string | undefined = undefined;
-      
+
       if (audioDetected && transcribedText && result?.message) {
         try {
-          this.logger.log(`🔊 [DynamicAgentsController] Synthesizing audio response for ${agentType}/${agentName}`);
-          
+          this.logger.log(
+            `🔊 [DynamicAgentsController] Synthesizing audio response for ${agentType}/${agentName}`,
+          );
+
           const synthesisResult = await this.speechService.synthesizeText(
             result.message,
             'EXAVITQu4vr4xnSDxMaL', // Default to Bella voice from Eleven Labs
-            0.5 // Default stability setting
+            0.5, // Default stability setting
           );
-          
+
           responseAudio = synthesisResult.audioData;
-          this.logger.log(`🔊 [DynamicAgentsController] Audio response synthesized successfully for ${agentType}/${agentName}`);
+          this.logger.log(
+            `🔊 [DynamicAgentsController] Audio response synthesized successfully for ${agentType}/${agentName}`,
+          );
         } catch (synthesisError) {
-          this.logger.error(`🔊 [DynamicAgentsController] Audio synthesis failed for ${agentType}/${agentName}:`, synthesisError);
+          this.logger.error(
+            `🔊 [DynamicAgentsController] Audio synthesis failed for ${agentType}/${agentName}:`,
+            synthesisError,
+          );
           // Continue without audio - don't fail the entire request
         }
       }
 
       // Normalize result metadata so frontend sees final PII in parsedResponse.metadata.piiMetadata
       try {
-        const finalPii = (result as any)?.piiMetadata || (result as any)?.metadata?.piiMetadata || routingDecision.piiMetadata;
+        const finalPii =
+          result?.piiMetadata ||
+          result?.metadata?.piiMetadata ||
+          routingDecision.piiMetadata;
         if (result && typeof result === 'object') {
-          (result as any).metadata = {
-            ...((result as any).metadata || {}),
+          result.metadata = {
+            ...(result.metadata || {}),
             piiMetadata: finalPii,
           };
         }
@@ -553,20 +613,23 @@ export class DynamicAgentsController {
           metadata: {
             ...result.metadata,
             // Prefer LLM-level PII over routing-level
-            piiMetadata: (result as any)?.piiMetadata || (result as any)?.metadata?.piiMetadata || routingDecision.piiMetadata,
+            piiMetadata:
+              result?.piiMetadata ||
+              result?.metadata?.piiMetadata ||
+              routingDecision.piiMetadata,
           },
         }),
         // Also expose the final LLM PII metadata directly for convenience
-        ...(result as any)?.piiMetadata && {
-          piiMetadata: (result as any).piiMetadata,
-        },
+        ...(result?.piiMetadata && {
+          piiMetadata: result.piiMetadata,
+        }),
         // Fallback: if no LLM PII provided, include routing-level PII
-        ...(!((result as any)?.piiMetadata || (result as any)?.metadata?.piiMetadata) && {
+        ...(!(result?.piiMetadata || result?.metadata?.piiMetadata) && {
           piiMetadata: routingDecision.piiMetadata,
         }),
         // Include any PII metadata from the agent result if available
         ...(result?.metadata?.piiMetadata && {
-          agentPiiMetadata: result.metadata.piiMetadata
+          agentPiiMetadata: result.metadata.piiMetadata,
         }),
         // Include audio synthesis results if available
         ...(responseAudio && {
@@ -574,17 +637,17 @@ export class DynamicAgentsController {
           audioSynthesis: {
             synthesized: true,
             voiceId: 'EXAVITQu4vr4xnSDxMaL',
-            format: 'mp3'
-          }
+            format: 'mp3',
+          },
         }),
         // Include audio input metadata for frontend reference
         ...(audioDetected && {
           audioInput: {
             detected: true,
             transcribedText: transcribedText,
-            originalFormat: 'wav'
-          }
-        })
+            originalFormat: 'wav',
+          },
+        }),
       };
     } catch (error) {
       // Mark task as failed via TaskStatusService (single source of truth)
@@ -605,7 +668,8 @@ export class DynamicAgentsController {
       'gpt-4-turbo': 100000,
       default: 80000,
     };
-    const modelName: string = (llmSelection && llmSelection.modelName) || 'default';
+    const modelName: string =
+      (llmSelection && llmSelection.modelName) || 'default';
     const hasKey = Object.prototype.hasOwnProperty.call(budgets, modelName);
     const value: number = hasKey
       ? (budgets[modelName] as number)
@@ -632,11 +696,9 @@ export class DynamicAgentsController {
     );
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(
-      agentType,
-      agentName,
-      [activeNamespace],
-    );
+    const agentInstance = this.findAgentInstance(agentType, agentName, [
+      activeNamespace,
+    ]);
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -663,11 +725,9 @@ export class DynamicAgentsController {
     );
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(
-      agentType,
-      agentName,
-      [activeNamespace],
-    );
+    const agentInstance = this.findAgentInstance(agentType, agentName, [
+      activeNamespace,
+    ]);
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -720,7 +780,6 @@ export class DynamicAgentsController {
     });
 
     if (agentIndex === -1) {
-
       return null;
     }
 
@@ -818,11 +877,12 @@ export class DynamicAgentsController {
     ];
 
     // Check if the prompt matches any audio pattern
-    const isAudio = base64AudioPatterns.some(pattern => pattern.test(prompt));
-    
+    const isAudio = base64AudioPatterns.some((pattern) => pattern.test(prompt));
+
     // Also check for very long base64-like strings (likely audio data)
-    const isLongBase64 = prompt.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(prompt);
-    
+    const isLongBase64 =
+      prompt.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(prompt);
+
     return isAudio || isLongBase64;
   }
 }

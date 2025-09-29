@@ -10,17 +10,26 @@ import { PIIService } from '../../services/pii.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
-import { LLMServiceConfig, GenerateResponseParams, LLMResponse } from './llm-interfaces';
+import {
+  LLMServiceConfig,
+  GenerateResponseParams,
+  LLMResponse,
+} from './llm-interfaces';
 import { LLMRetryHandler, DEFAULT_RETRY_CONFIG } from './llm-error-handling';
 
 /**
  * Supported LLM provider types
  */
-export type SupportedProvider = 'openai' | 'anthropic' | 'google' | 'ollama' | 'grok';
+export type SupportedProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'google'
+  | 'ollama'
+  | 'grok';
 
 /**
  * Factory service for creating LLM provider instances
- * 
+ *
  * This factory provides a centralized way to instantiate LLM services with:
  * - Proper dependency injection
  * - Provider validation
@@ -59,7 +68,7 @@ export class LLMServiceFactory {
 
   /**
    * Create or retrieve a cached LLM service instance
-   * 
+   *
    * @param config - Configuration for the LLM service
    * @param useCache - Whether to use cached instances (default: true)
    * @returns Promise<BaseLLMService> - The LLM service instance
@@ -83,12 +92,16 @@ export class LLMServiceFactory {
 
     // Return cached instance if available and caching is enabled
     if (useCache && this.serviceCache.has(cacheKey)) {
-      this.logger.debug(`Returning cached service for provider: ${normalizedProvider}`);
+      this.logger.debug(
+        `Returning cached service for provider: ${normalizedProvider}`,
+      );
       return this.serviceCache.get(cacheKey)!;
     }
 
     // Create new service instance
-    this.logger.log(`Creating new service instance for provider: ${normalizedProvider}`);
+    this.logger.log(
+      `Creating new service instance for provider: ${normalizedProvider}`,
+    );
     const service = await this.instantiateService(normalizedProvider, config);
 
     // Cache the instance if caching is enabled
@@ -102,7 +115,7 @@ export class LLMServiceFactory {
 
   /**
    * Get a list of all supported providers
-   * 
+   *
    * @returns Array of supported provider names
    */
   getSupportedProviders(): SupportedProvider[] {
@@ -111,7 +124,7 @@ export class LLMServiceFactory {
 
   /**
    * Check if a provider is supported
-   * 
+   *
    * @param provider - Provider name to check
    * @returns boolean - True if provider is supported
    */
@@ -122,16 +135,16 @@ export class LLMServiceFactory {
 
   /**
    * Clear cached service instances
-   * 
+   *
    * @param provider - Optional provider to clear (clears all if not specified)
    */
   clearCache(provider?: string): void {
     if (provider) {
       const normalized = this.normalizeProviderName(provider);
-      const keysToDelete = Array.from(this.serviceCache.keys()).filter(key =>
+      const keysToDelete = Array.from(this.serviceCache.keys()).filter((key) =>
         key.startsWith(`${normalized}:`),
       );
-      keysToDelete.forEach(key => this.serviceCache.delete(key));
+      keysToDelete.forEach((key) => this.serviceCache.delete(key));
       this.logger.log(`Cleared cache for provider: ${normalized}`);
     } else {
       this.serviceCache.clear();
@@ -141,7 +154,7 @@ export class LLMServiceFactory {
 
   /**
    * Get cache statistics
-   * 
+   *
    * @returns Object with cache statistics
    */
   getCacheStats(): {
@@ -149,7 +162,7 @@ export class LLMServiceFactory {
     providerBreakdown: Record<string, number>;
   } {
     const providerBreakdown: Record<string, number> = {};
-    
+
     for (const key of this.serviceCache.keys()) {
       const provider = key.split(':')[0];
       if (provider) {
@@ -165,10 +178,10 @@ export class LLMServiceFactory {
 
   /**
    * Create a service and generate a response with full metadata preservation
-   * 
+   *
    * This is a convenience method that combines service creation with response generation,
    * ensuring all metadata (usage, timing, costs, provider-specific data) flows through properly.
-   * 
+   *
    * @param config - Configuration for the LLM service
    * @param params - Parameters for response generation
    * @param useCache - Whether to use cached service instances (default: true)
@@ -181,32 +194,35 @@ export class LLMServiceFactory {
   ): Promise<LLMResponse> {
     // Create or get cached service
     const service = await this.createService(config, useCache);
-    
+
     // Generate response with full metadata, with retry on transient errors only
     const response = await LLMRetryHandler.withRetry(
       () => service.generateResponse(params),
       DEFAULT_RETRY_CONFIG,
-      `LLMFactory:${config.provider}:${config.model}`
+      `LLMFactory:${config.provider}:${config.model}`,
     );
-    
-    this.logger.debug(`Generated response via factory for provider: ${config.provider}`, {
-      provider: response.metadata.provider,
-      model: response.metadata.model,
-      requestId: response.metadata.requestId,
-      usage: response.metadata.usage,
-      timing: response.metadata.timing,
-      hasPiiMetadata: !!response.piiMetadata,
-    });
-    
+
+    this.logger.debug(
+      `Generated response via factory for provider: ${config.provider}`,
+      {
+        provider: response.metadata.provider,
+        model: response.metadata.model,
+        requestId: response.metadata.requestId,
+        usage: response.metadata.usage,
+        timing: response.metadata.timing,
+        hasPiiMetadata: !!response.piiMetadata,
+      },
+    );
+
     return response;
   }
 
   /**
    * Get service instance for direct use (preserves all metadata capabilities)
-   * 
+   *
    * Use this when you need direct access to the service for multiple operations
    * while maintaining full metadata tracking capabilities.
-   * 
+   *
    * @param config - Configuration for the LLM service
    * @param useCache - Whether to use cached instances (default: true)
    * @returns Promise<BaseLLMService> - Service instance with full metadata support
@@ -220,7 +236,7 @@ export class LLMServiceFactory {
 
   /**
    * Validate the LLM service configuration
-   * 
+   *
    * @private
    * @param config - Configuration to validate
    * @throws Error if configuration is invalid
@@ -240,7 +256,11 @@ export class LLMServiceFactory {
 
     // Validate optional numeric parameters
     if (config.temperature !== undefined) {
-      if (typeof config.temperature !== 'number' || config.temperature < 0 || config.temperature > 2) {
+      if (
+        typeof config.temperature !== 'number' ||
+        config.temperature < 0 ||
+        config.temperature > 2
+      ) {
         throw new Error('Temperature must be a number between 0 and 2');
       }
     }
@@ -260,7 +280,7 @@ export class LLMServiceFactory {
 
   /**
    * Normalize provider name to lowercase
-   * 
+   *
    * @private
    * @param provider - Provider name to normalize
    * @returns Normalized provider name
@@ -271,12 +291,14 @@ export class LLMServiceFactory {
 
   /**
    * Validate that the provider is supported
-   * 
+   *
    * @private
    * @param provider - Normalized provider name
    * @throws Error if provider is not supported
    */
-  private validateProvider(provider: string): asserts provider is SupportedProvider {
+  private validateProvider(
+    provider: string,
+  ): asserts provider is SupportedProvider {
     if (!this.isProviderSupported(provider)) {
       const supportedProviders = this.getSupportedProviders().join(', ');
       throw new Error(
@@ -287,7 +309,7 @@ export class LLMServiceFactory {
 
   /**
    * Generate a cache key for the service configuration
-   * 
+   *
    * @private
    * @param config - LLM service configuration
    * @returns Cache key string
@@ -302,13 +324,13 @@ export class LLMServiceFactory {
       config.baseUrl || 'default',
       config.timeout?.toString() || 'default',
     ];
-    
+
     return keyParts.join(':');
   }
 
   /**
    * Instantiate a new service based on provider type
-   * 
+   *
    * @private
    * @param provider - Normalized provider name
    * @param config - LLM service configuration
@@ -385,7 +407,10 @@ export class LLMServiceFactory {
       const errorMessage = `Failed to instantiate ${provider} service: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`;
-      this.logger.error(errorMessage, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        errorMessage,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new Error(errorMessage);
     }
   }

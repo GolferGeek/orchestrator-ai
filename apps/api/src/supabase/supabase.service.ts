@@ -34,11 +34,11 @@ export class SupabaseService implements OnModuleInit {
     const serviceKey =
       this.configService.get<string>('supabase.serviceKey') ||
       this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    const coreSchema = 
+    const coreSchema =
       this.configService.get<string>('supabase.coreSchema') ||
       this.configService.get<string>('SUPABASE_CORE_SCHEMA') ||
       'public';
-    const companySchema = 
+    const companySchema =
       this.configService.get<string>('supabase.companySchema') ||
       this.configService.get<string>('SUPABASE_COMPANY_SCHEMA') ||
       'public';
@@ -52,14 +52,12 @@ export class SupabaseService implements OnModuleInit {
     this.companySchema = companySchema;
 
     if (!url) {
-
       return;
     }
 
     // Initialize anonymous client (for RLS-compliant operations)
     if (anonKey) {
       try {
-
         this.anonClient = createClient(url, anonKey, {
           global: {
             fetch: (url, options = {}) => {
@@ -70,7 +68,6 @@ export class SupabaseService implements OnModuleInit {
             },
           },
         });
-
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
@@ -79,13 +76,11 @@ export class SupabaseService implements OnModuleInit {
         throw error;
       }
     } else {
-
     }
 
     // Initialize service client (bypasses RLS - use with caution)
     if (serviceKey) {
       try {
-
         this.serviceClient = createClient(url, serviceKey, {
           global: {
             fetch: (url, options = {}) => {
@@ -96,7 +91,6 @@ export class SupabaseService implements OnModuleInit {
             },
           },
         });
-
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
@@ -105,7 +99,6 @@ export class SupabaseService implements OnModuleInit {
         throw error;
       }
     } else {
-
     }
   }
 
@@ -115,7 +108,6 @@ export class SupabaseService implements OnModuleInit {
    */
   getAnonClient(): SupabaseClient {
     if (!this.anonClient) {
-
       throw new HttpException(
         'Supabase client is not available. Check server configuration.',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -130,7 +122,6 @@ export class SupabaseService implements OnModuleInit {
    */
   getServiceClient(): SupabaseClient {
     if (!this.serviceClient) {
-
       throw new HttpException(
         'Supabase service client is not available. Check server configuration.',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -152,7 +143,6 @@ export class SupabaseService implements OnModuleInit {
       this.configService.get<string>('SUPABASE_ANON_KEY');
 
     if (!url || !anonKey) {
-
       throw new HttpException(
         'Authentication service configuration error.',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -231,23 +221,23 @@ export class SupabaseService implements OnModuleInit {
       },
     };
   }
-  
+
   /**
    * Get schema-aware table name
    */
   getTableName(tableName: string, explicitSchema?: string): string {
     return getTableName(tableName, explicitSchema);
   }
-  
+
   /**
    * Get core schema name
    */
   getCoreSchema(): string {
     return this.coreSchema;
   }
-  
+
   /**
-   * Get company schema name  
+   * Get company schema name
    */
   getCompanySchema(): string {
     return this.companySchema;
@@ -275,7 +265,6 @@ export class SupabaseService implements OnModuleInit {
         .limit(1);
 
       if (error) {
-
         return { status: 'error', message: error.message };
       }
 

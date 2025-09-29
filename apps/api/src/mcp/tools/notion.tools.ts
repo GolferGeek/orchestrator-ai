@@ -1,17 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MCPToolDefinition, MCPToolRequest, MCPToolResponse, IMCPToolHandler } from '../interfaces/mcp.interface';
+import {
+  MCPToolDefinition,
+  MCPToolRequest,
+  MCPToolResponse,
+  IMCPToolHandler,
+} from '../interfaces/mcp.interface';
 
 /**
  * Notion MCP Tools Handler
- * 
+ *
  * Implements productivity namespace tools for Notion workspace operations
  * Provides: page management, database operations, search, and content creation
  */
 @Injectable()
 export class NotionMCPTools implements IMCPToolHandler {
   private readonly logger = new Logger(NotionMCPTools.name);
-  
+
   constructor(private readonly configService: ConfigService) {}
 
   /**
@@ -31,36 +36,36 @@ export class NotionMCPTools implements IMCPToolHandler {
               properties: {
                 type: {
                   type: 'string',
-                  enum: ['page_id', 'database_id', 'workspace']
+                  enum: ['page_id', 'database_id', 'workspace'],
                 },
                 id: {
                   type: 'string',
-                  description: 'Parent ID (required if type is not workspace)'
-                }
+                  description: 'Parent ID (required if type is not workspace)',
+                },
               },
-              required: ['type']
+              required: ['type'],
             },
             title: {
               type: 'string',
-              description: 'Page title'
+              description: 'Page title',
             },
             content: {
               type: 'array',
               description: 'Page content blocks',
               items: {
                 type: 'object',
-                description: 'Notion block object'
-              }
+                description: 'Notion block object',
+              },
             },
             properties: {
               type: 'object',
               description: 'Page properties (for database pages)',
-              additionalProperties: true
-            }
+              additionalProperties: true,
+            },
           },
           required: ['parent', 'title'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'query-database',
@@ -70,12 +75,12 @@ export class NotionMCPTools implements IMCPToolHandler {
           properties: {
             database_id: {
               type: 'string',
-              description: 'Database ID to query'
+              description: 'Database ID to query',
             },
             filter: {
               type: 'object',
               description: 'Filter criteria for the query',
-              additionalProperties: true
+              additionalProperties: true,
             },
             sorts: {
               type: 'array',
@@ -84,27 +89,27 @@ export class NotionMCPTools implements IMCPToolHandler {
                 type: 'object',
                 properties: {
                   property: { type: 'string' },
-                  direction: { 
-                    type: 'string', 
-                    enum: ['ascending', 'descending'] 
-                  }
-                }
-              }
+                  direction: {
+                    type: 'string',
+                    enum: ['ascending', 'descending'],
+                  },
+                },
+              },
             },
             start_cursor: {
               type: 'string',
-              description: 'Pagination cursor'
+              description: 'Pagination cursor',
             },
             page_size: {
               type: 'number',
               description: 'Number of results to return',
               maximum: 100,
-              default: 100
-            }
+              default: 100,
+            },
           },
           required: ['database_id'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'search-content',
@@ -114,7 +119,7 @@ export class NotionMCPTools implements IMCPToolHandler {
           properties: {
             query: {
               type: 'string',
-              description: 'Search query string'
+              description: 'Search query string',
             },
             filter: {
               type: 'object',
@@ -122,13 +127,13 @@ export class NotionMCPTools implements IMCPToolHandler {
               properties: {
                 value: {
                   type: 'string',
-                  enum: ['page', 'database']
+                  enum: ['page', 'database'],
                 },
                 property: {
                   type: 'string',
-                  enum: ['object']
-                }
-              }
+                  enum: ['object'],
+                },
+              },
             },
             sort: {
               type: 'object',
@@ -136,28 +141,28 @@ export class NotionMCPTools implements IMCPToolHandler {
               properties: {
                 direction: {
                   type: 'string',
-                  enum: ['ascending', 'descending']
+                  enum: ['ascending', 'descending'],
                 },
                 timestamp: {
                   type: 'string',
-                  enum: ['last_edited_time']
-                }
-              }
+                  enum: ['last_edited_time'],
+                },
+              },
             },
             start_cursor: {
               type: 'string',
-              description: 'Pagination cursor'
+              description: 'Pagination cursor',
             },
             page_size: {
               type: 'number',
               description: 'Number of results to return',
               maximum: 100,
-              default: 100
-            }
+              default: 100,
+            },
           },
           required: [],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'get-page',
@@ -167,17 +172,17 @@ export class NotionMCPTools implements IMCPToolHandler {
           properties: {
             page_id: {
               type: 'string',
-              description: 'Page ID to retrieve'
+              description: 'Page ID to retrieve',
             },
             include_content: {
               type: 'boolean',
               description: 'Include page content blocks',
-              default: false
-            }
+              default: false,
+            },
           },
           required: ['page_id'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'update-page',
@@ -187,21 +192,21 @@ export class NotionMCPTools implements IMCPToolHandler {
           properties: {
             page_id: {
               type: 'string',
-              description: 'Page ID to update'
+              description: 'Page ID to update',
             },
             properties: {
               type: 'object',
               description: 'Properties to update',
-              additionalProperties: true
+              additionalProperties: true,
             },
             archived: {
               type: 'boolean',
-              description: 'Archive or unarchive the page'
-            }
+              description: 'Archive or unarchive the page',
+            },
           },
           required: ['page_id'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'append-blocks',
@@ -211,20 +216,20 @@ export class NotionMCPTools implements IMCPToolHandler {
           properties: {
             page_id: {
               type: 'string',
-              description: 'Page ID to append content to'
+              description: 'Page ID to append content to',
             },
             children: {
               type: 'array',
               description: 'Content blocks to append',
               items: {
                 type: 'object',
-                description: 'Notion block object'
-              }
-            }
+                description: 'Notion block object',
+              },
+            },
           },
           required: ['page_id', 'children'],
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
       {
         name: 'get-databases',
@@ -234,19 +239,19 @@ export class NotionMCPTools implements IMCPToolHandler {
           properties: {
             start_cursor: {
               type: 'string',
-              description: 'Pagination cursor'
+              description: 'Pagination cursor',
             },
             page_size: {
               type: 'number',
               description: 'Number of results to return',
               maximum: 100,
-              default: 100
-            }
+              default: 100,
+            },
           },
           required: [],
-          additionalProperties: false
-        }
-      }
+          additionalProperties: false,
+        },
+      },
     ];
   }
 
@@ -276,7 +281,8 @@ export class NotionMCPTools implements IMCPToolHandler {
           return this.createErrorResponse(`Unknown Notion tool: ${name}`);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Notion tool ${name} failed: ${errorMessage}`);
       return this.createErrorResponse(`Tool execution failed: ${errorMessage}`);
     }
@@ -290,7 +296,9 @@ export class NotionMCPTools implements IMCPToolHandler {
       const response = await this.makeNotionRequest('users/me', 'GET');
       return response.ok;
     } catch (error) {
-      this.logger.warn(`Notion ping failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(
+        `Notion ping failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return false;
     }
   }
@@ -310,13 +318,13 @@ export class NotionMCPTools implements IMCPToolHandler {
               {
                 type: 'text',
                 text: {
-                  content: title
-                }
-              }
-            ]
+                  content: title,
+                },
+              },
+            ],
           },
-          ...properties
-        }
+          ...properties,
+        },
       };
 
       if (content.length > 0) {
@@ -327,25 +335,34 @@ export class NotionMCPTools implements IMCPToolHandler {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Notion API error: ${data.message || response.statusText}`);
+        throw new Error(
+          `Notion API error: ${data.message || response.statusText}`,
+        );
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: true,
-            page_id: data.id,
-            url: data.url,
-            title,
-            created_time: data.created_time,
-            created_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                page_id: data.id,
+                url: data.url,
+                title,
+                created_time: data.created_time,
+                created_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Create page failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Create page failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -370,28 +387,41 @@ export class NotionMCPTools implements IMCPToolHandler {
         payload.start_cursor = start_cursor;
       }
 
-      const response = await this.makeNotionRequest(`databases/${database_id}/query`, 'POST', payload);
+      const response = await this.makeNotionRequest(
+        `databases/${database_id}/query`,
+        'POST',
+        payload,
+      );
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Notion API error: ${data.message || response.statusText}`);
+        throw new Error(
+          `Notion API error: ${data.message || response.statusText}`,
+        );
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            results: data.results,
-            has_more: data.has_more,
-            next_cursor: data.next_cursor,
-            total_count: data.results?.length || 0,
-            queried_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                results: data.results,
+                has_more: data.has_more,
+                next_cursor: data.next_cursor,
+                total_count: data.results?.length || 0,
+                queried_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Query database failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Query database failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -424,25 +454,34 @@ export class NotionMCPTools implements IMCPToolHandler {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Notion API error: ${data.message || response.statusText}`);
+        throw new Error(
+          `Notion API error: ${data.message || response.statusText}`,
+        );
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            results: data.results,
-            has_more: data.has_more,
-            next_cursor: data.next_cursor,
-            total_count: data.results?.length || 0,
-            query: query || 'all content',
-            searched_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                results: data.results,
+                has_more: data.has_more,
+                next_cursor: data.next_cursor,
+                total_count: data.results?.length || 0,
+                query: query || 'all content',
+                searched_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Search content failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Search content failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -457,35 +496,49 @@ export class NotionMCPTools implements IMCPToolHandler {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Notion API error: ${data.message || response.statusText}`);
+        throw new Error(
+          `Notion API error: ${data.message || response.statusText}`,
+        );
       }
 
       let content = undefined;
       if (include_content) {
         try {
-          const contentResponse = await this.makeNotionRequest(`blocks/${page_id}/children`, 'GET');
+          const contentResponse = await this.makeNotionRequest(
+            `blocks/${page_id}/children`,
+            'GET',
+          );
           const contentData = await contentResponse.json();
           if (contentResponse.ok) {
             content = contentData.results;
           }
         } catch (error) {
-          this.logger.warn(`Failed to fetch page content: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.warn(
+            `Failed to fetch page content: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            page: data,
-            content,
-            retrieved_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                page: data,
+                content,
+                retrieved_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Get page failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Get page failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -506,27 +559,40 @@ export class NotionMCPTools implements IMCPToolHandler {
         payload.archived = archived;
       }
 
-      const response = await this.makeNotionRequest(`pages/${page_id}`, 'PATCH', payload);
+      const response = await this.makeNotionRequest(
+        `pages/${page_id}`,
+        'PATCH',
+        payload,
+      );
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Notion API error: ${data.message || response.statusText}`);
+        throw new Error(
+          `Notion API error: ${data.message || response.statusText}`,
+        );
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: true,
-            page_id: data.id,
-            last_edited_time: data.last_edited_time,
-            updated_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                page_id: data.id,
+                last_edited_time: data.last_edited_time,
+                updated_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Update page failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Update page failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -539,27 +605,40 @@ export class NotionMCPTools implements IMCPToolHandler {
     try {
       const payload = { children };
 
-      const response = await this.makeNotionRequest(`blocks/${page_id}/children`, 'PATCH', payload);
+      const response = await this.makeNotionRequest(
+        `blocks/${page_id}/children`,
+        'PATCH',
+        payload,
+      );
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Notion API error: ${data.message || response.statusText}`);
+        throw new Error(
+          `Notion API error: ${data.message || response.statusText}`,
+        );
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: true,
-            blocks_added: data.results?.length || 0,
-            page_id,
-            appended_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                success: true,
+                blocks_added: data.results?.length || 0,
+                page_id,
+                appended_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Append blocks failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Append blocks failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -573,9 +652,9 @@ export class NotionMCPTools implements IMCPToolHandler {
       const payload: any = {
         filter: {
           value: 'database',
-          property: 'object'
+          property: 'object',
         },
-        page_size
+        page_size,
       };
 
       if (start_cursor) {
@@ -586,41 +665,56 @@ export class NotionMCPTools implements IMCPToolHandler {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Notion API error: ${data.message || response.statusText}`);
+        throw new Error(
+          `Notion API error: ${data.message || response.statusText}`,
+        );
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            databases: data.results,
-            has_more: data.has_more,
-            next_cursor: data.next_cursor,
-            total_count: data.results?.length || 0,
-            retrieved_at: new Date().toISOString()
-          }, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                databases: data.results,
+                has_more: data.has_more,
+                next_cursor: data.next_cursor,
+                total_count: data.results?.length || 0,
+                retrieved_at: new Date().toISOString(),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       };
-
     } catch (error) {
-      return this.createErrorResponse(`Get databases failed: ${error instanceof Error ? error.message : String(error)}`);
+      return this.createErrorResponse(
+        `Get databases failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
   /**
    * Make authenticated request to Notion API
    */
-  private async makeNotionRequest(endpoint: string, method: string, body?: any): Promise<Response> {
-    const notionToken = this.configService.get('NOTION_API_TOKEN') || this.configService.get('NOTION_TOKEN');
+  private async makeNotionRequest(
+    endpoint: string,
+    method: string,
+    body?: any,
+  ): Promise<Response> {
+    const notionToken =
+      this.configService.get('NOTION_API_TOKEN') ||
+      this.configService.get('NOTION_TOKEN');
 
     if (!notionToken) {
       throw new Error('Notion API token not configured');
     }
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${notionToken}`,
+      Authorization: `Bearer ${notionToken}`,
       'Content-Type': 'application/json',
-      'Notion-Version': '2022-06-28'
+      'Notion-Version': '2022-06-28',
     };
 
     const url = `https://api.notion.com/v1/${endpoint}`;
@@ -637,14 +731,16 @@ export class NotionMCPTools implements IMCPToolHandler {
    */
   private createErrorResponse(message: string): MCPToolResponse {
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          error: message,
-          timestamp: new Date().toISOString()
-        })
-      }],
-      isError: true
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            error: message,
+            timestamp: new Date().toISOString(),
+          }),
+        },
+      ],
+      isError: true,
     };
   }
 }

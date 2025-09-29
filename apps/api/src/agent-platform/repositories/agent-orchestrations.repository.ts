@@ -58,9 +58,7 @@ export class AgentOrchestrationsRepository {
       this.logger.error(
         `Failed to upsert agent orchestration ${input.slug}: ${error.message}`,
       );
-      throw new Error(
-        `Failed to upsert agent orchestration: ${error.message}`,
-      );
+      throw new Error(`Failed to upsert agent orchestration: ${error.message}`);
     }
 
     if (!data) {
@@ -86,15 +84,14 @@ export class AgentOrchestrationsRepository {
       ? query.eq('organization_slug', organizationSlug)
       : query.is('organization_slug', null);
 
-    const { data, error } = (await query.maybeSingle()) as SupabaseSingleResponse<AgentOrchestrationRecord>;
+    const { data, error } =
+      (await query.maybeSingle()) as SupabaseSingleResponse<AgentOrchestrationRecord>;
 
     if (error && error.code !== 'PGRST116') {
       this.logger.error(
         `Failed to load agent orchestration ${orchestrationSlug}: ${error.message}`,
       );
-      throw new Error(
-        `Failed to load agent orchestration: ${error.message}`,
-      );
+      throw new Error(`Failed to load agent orchestration: ${error.message}`);
     }
 
     return data;
@@ -121,9 +118,7 @@ export class AgentOrchestrationsRepository {
       this.logger.error(
         `Failed to list orchestrations for agent ${agentSlug}: ${error.message}`,
       );
-      throw new Error(
-        `Failed to list agent orchestrations: ${error.message}`,
-      );
+      throw new Error(`Failed to list agent orchestrations: ${error.message}`);
     }
 
     return data ?? [];

@@ -23,11 +23,11 @@ export interface UpdatePlanStatusInput {
 export class PlanEngineService {
   private readonly logger = new Logger(PlanEngineService.name);
 
-  constructor(
-    private readonly plansRepository: ConversationPlansRepository,
-  ) {}
+  constructor(private readonly plansRepository: ConversationPlansRepository) {}
 
-  async generateDraft(input: GeneratePlanInput): Promise<ConversationPlanRecord> {
+  async generateDraft(
+    input: GeneratePlanInput,
+  ): Promise<ConversationPlanRecord> {
     this.logger.debug(`Generating plan draft for ${input.agentSlug}`);
 
     return this.plansRepository.createDraft({
@@ -40,8 +40,12 @@ export class PlanEngineService {
     });
   }
 
-  async updateStatus(input: UpdatePlanStatusInput): Promise<ConversationPlanRecord> {
-    this.logger.debug(`Updating plan ${input.planId} to status ${input.status}`);
+  async updateStatus(
+    input: UpdatePlanStatusInput,
+  ): Promise<ConversationPlanRecord> {
+    this.logger.debug(
+      `Updating plan ${input.planId} to status ${input.status}`,
+    );
 
     return this.plansRepository.updateStatus(input.planId, {
       status: input.status,

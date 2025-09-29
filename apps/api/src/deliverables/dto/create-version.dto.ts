@@ -7,7 +7,10 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DeliverableFormat, DeliverableVersionCreationType } from './create-deliverable.dto';
+import {
+  DeliverableFormat,
+  DeliverableVersionCreationType,
+} from './create-deliverable.dto';
 
 export class CreateVersionDto {
   @ApiProperty({ description: 'Content of the new version' })

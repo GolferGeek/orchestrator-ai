@@ -36,7 +36,7 @@ export interface BlindedRequest {
 @Injectable()
 export class SourceBlindingService {
   private readonly logger = new Logger(SourceBlindingService.name);
-  
+
   private readonly config: SourceBlindingConfig = {
     stripIdentifyingHeaders: true,
     stripReferrer: true,
@@ -53,19 +53,19 @@ export class SourceBlindingService {
       'accept-encoding',
       'cache-control',
       'connection',
-      
+
       // Privacy/policy headers we want to send
       'x-no-train',
-      'x-no-retain', 
+      'x-no-retain',
       'x-policy-profile',
       'x-data-class',
       'x-sovereign-mode',
-      
+
       // Provider-specific headers
       'anthropic-version',
       'openai-version',
       'openai-beta',
-      
+
       // Custom orchestrator headers
       'user-agent', // We control this
     ],
@@ -85,14 +85,14 @@ export class SourceBlindingService {
       'cf-ipcountry',
       'via',
       'forwarded',
-      
+
       // Request tracing headers that could leak environment info
       'x-request-id',
       'x-trace-id',
       'x-span-id',
       'x-correlation-id',
       'x-session-id',
-      
+
       // Server/environment identifying headers
       'server',
       'x-powered-by',
@@ -102,7 +102,7 @@ export class SourceBlindingService {
       'x-environment',
       'x-datacenter',
       'x-region',
-      
+
       // Browser/client identifying headers
       'sec-fetch-site',
       'sec-fetch-mode',
@@ -113,7 +113,7 @@ export class SourceBlindingService {
       'sec-ch-ua-platform',
       'dnt',
       'upgrade-insecure-requests',
-      
+
       // Company/organization specific headers
       'x-company-id',
       'x-tenant-id',
@@ -127,16 +127,24 @@ export class SourceBlindingService {
       enabled: process.env.SOURCE_BLINDING_PROXY_ENABLED === 'true',
       host: process.env.SOURCE_BLINDING_PROXY_HOST || 'localhost',
       port: parseInt(process.env.SOURCE_BLINDING_PROXY_PORT || '8080'),
-      protocol: (process.env.SOURCE_BLINDING_PROXY_PROTOCOL as 'http' | 'https') || 'http',
-      auth: process.env.SOURCE_BLINDING_PROXY_USERNAME && process.env.SOURCE_BLINDING_PROXY_PASSWORD ? {
-        username: process.env.SOURCE_BLINDING_PROXY_USERNAME,
-        password: process.env.SOURCE_BLINDING_PROXY_PASSWORD,
-      } : undefined,
+      protocol:
+        (process.env.SOURCE_BLINDING_PROXY_PROTOCOL as 'http' | 'https') ||
+        'http',
+      auth:
+        process.env.SOURCE_BLINDING_PROXY_USERNAME &&
+        process.env.SOURCE_BLINDING_PROXY_PASSWORD
+          ? {
+              username: process.env.SOURCE_BLINDING_PROXY_USERNAME,
+              password: process.env.SOURCE_BLINDING_PROXY_PASSWORD,
+            }
+          : undefined,
     },
   };
 
   constructor(private readonly httpService: HttpService) {
-    this.logger.log('SourceBlindingService initialized with complete source blinding');
+    this.logger.log(
+      'SourceBlindingService initialized with complete source blinding',
+    );
   }
 
   /**
@@ -151,16 +159,19 @@ export class SourceBlindingService {
       policyProfile?: string;
       dataClass?: string;
       sovereignMode?: string;
-    }
+    },
   ): BlindedRequest {
-    const originalHeaders = { ...originalConfig.headers } as Record<string, string>;
+    const originalHeaders = { ...originalConfig.headers } as Record<
+      string,
+      string
+    >;
     const blindedHeaders: Record<string, string> = {};
     const strippedHeaders: string[] = [];
 
     // Step 1: Start with clean slate - only add explicitly allowed headers
     Object.entries(originalHeaders).forEach(([key, value]) => {
       const normalizedKey = key.toLowerCase();
-      
+
       if (this.config.allowedHeaders.includes(normalizedKey)) {
         blindedHeaders[key] = value;
       } else if (this.config.blockedHeaders.includes(normalizedKey)) {
@@ -168,14 +179,16 @@ export class SourceBlindingService {
         this.logger.debug(`Stripped identifying header: ${key}`);
       } else {
         // Log unknown headers for review
-        this.logger.warn(`Unknown header encountered: ${key} - review for source blinding`);
+        this.logger.warn(
+          `Unknown header encountered: ${key} - review for source blinding`,
+        );
         strippedHeaders.push(key);
       }
     });
 
     // Step 2: Set mandatory source-blinding headers
     blindedHeaders['User-Agent'] = this.config.customUserAgent;
-    
+
     // Step 3: Add privacy policy headers
     blindedHeaders['X-Policy-Profile'] = options.policyProfile || 'standard';
     blindedHeaders['X-Data-Class'] = options.dataClass || 'public';
@@ -187,7 +200,7 @@ export class SourceBlindingService {
         blindedHeaders['X-No-Train'] = 'true';
       }
     }
-    
+
     if (options.noRetain && options.provider === 'ollama') {
       blindedHeaders['X-No-Retain'] = 'true';
     }
@@ -222,10 +235,10 @@ export class SourceBlindingService {
       policyProfile?: string;
       dataClass?: string;
       sovereignMode?: string;
-    }
+    },
   ): Promise<AxiosResponse<T>> {
     const blindedRequest = this.blindRequest(config, blindingOptions);
-    
+
     // Create new config with blinded headers
     const blindedConfig: AxiosRequestConfig = {
       ...config,
@@ -243,20 +256,30 @@ export class SourceBlindingService {
     }
 
     // Log the source blinding action
-    this.logger.debug(`Source blinding applied for ${blindingOptions.provider}:`, {
-      strippedHeaders: blindedRequest.strippedHeaders,
-      finalHeaderCount: Object.keys(blindedRequest.headers).length,
-      originalHeaderCount: Object.keys(blindedRequest.originalHeaders).length,
-    });
+    this.logger.debug(
+      `Source blinding applied for ${blindingOptions.provider}:`,
+      {
+        strippedHeaders: blindedRequest.strippedHeaders,
+        finalHeaderCount: Object.keys(blindedRequest.headers).length,
+        originalHeaderCount: Object.keys(blindedRequest.originalHeaders).length,
+      },
+    );
 
     try {
-      const response = await firstValueFrom(this.httpService.request<T>(blindedConfig));
-      
-      this.logger.debug(`Source-blinded request completed successfully for ${blindingOptions.provider}`);
-      
+      const response = await firstValueFrom(
+        this.httpService.request<T>(blindedConfig),
+      );
+
+      this.logger.debug(
+        `Source-blinded request completed successfully for ${blindingOptions.provider}`,
+      );
+
       return response;
     } catch (error) {
-      this.logger.error(`Source-blinded request failed for ${blindingOptions.provider}:`, error);
+      this.logger.error(
+        `Source-blinded request failed for ${blindingOptions.provider}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -272,31 +295,45 @@ export class SourceBlindingService {
       policyProfile?: string;
       dataClass?: string;
       sovereignMode?: string;
-    } = {}
+    } = {},
   ) {
     return {
-      post: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+      post: async <T = any>(
+        url: string,
+        data?: any,
+        config?: AxiosRequestConfig,
+      ): Promise<AxiosResponse<T>> => {
         return this.makeBlindedRequest<T>(
           { ...config, method: 'POST', url, data },
-          { provider, ...options }
+          { provider, ...options },
         );
       },
-      get: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+      get: async <T = any>(
+        url: string,
+        config?: AxiosRequestConfig,
+      ): Promise<AxiosResponse<T>> => {
         return this.makeBlindedRequest<T>(
           { ...config, method: 'GET', url },
-          { provider, ...options }
+          { provider, ...options },
         );
       },
-      put: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+      put: async <T = any>(
+        url: string,
+        data?: any,
+        config?: AxiosRequestConfig,
+      ): Promise<AxiosResponse<T>> => {
         return this.makeBlindedRequest<T>(
           { ...config, method: 'PUT', url, data },
-          { provider, ...options }
+          { provider, ...options },
         );
       },
-      delete: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+      delete: async <T = any>(
+        url: string,
+        config?: AxiosRequestConfig,
+      ): Promise<AxiosResponse<T>> => {
         return this.makeBlindedRequest<T>(
           { ...config, method: 'DELETE', url },
-          { provider, ...options }
+          { provider, ...options },
         );
       },
     };
@@ -305,16 +342,16 @@ export class SourceBlindingService {
   /**
    * Validate that source blinding is working correctly
    */
-  validateSourceBlinding(request: BlindedRequest): { 
-    valid: boolean; 
-    issues: string[]; 
-    score: number; 
+  validateSourceBlinding(request: BlindedRequest): {
+    valid: boolean;
+    issues: string[];
+    score: number;
   } {
     const issues: string[] = [];
     let score = 100;
 
     // Check for leaked identifying headers
-    Object.keys(request.headers).forEach(header => {
+    Object.keys(request.headers).forEach((header) => {
       const normalized = header.toLowerCase();
       if (this.config.blockedHeaders.includes(normalized)) {
         issues.push(`Blocked header present: ${header}`);
@@ -379,7 +416,7 @@ export class SourceBlindingService {
    */
   testSourceBlinding(
     sampleHeaders: Record<string, string>,
-    provider: string
+    provider: string,
   ): {
     blindedRequest: BlindedRequest;
     validation: {
@@ -405,9 +442,15 @@ export class SourceBlindingService {
       isValid: rawValidation.valid,
       issues: rawValidation.issues,
       blindingEffective: rawValidation.score >= 80, // 80+ score = effective
-      headersStripped: Object.keys(sampleHeaders).length - Object.keys(blindedRequest.headers).length,
-      customUserAgent: blindedRequest.headers['User-Agent'] === this.config.customUserAgent,
-      policyHeaders: !!(blindedRequest.headers['X-No-Train'] || blindedRequest.headers['X-Policy-Profile']),
+      headersStripped:
+        Object.keys(sampleHeaders).length -
+        Object.keys(blindedRequest.headers).length,
+      customUserAgent:
+        blindedRequest.headers['User-Agent'] === this.config.customUserAgent,
+      policyHeaders: !!(
+        blindedRequest.headers['X-No-Train'] ||
+        blindedRequest.headers['X-Policy-Profile']
+      ),
     };
 
     return {

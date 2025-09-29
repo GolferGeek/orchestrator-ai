@@ -1,17 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
-import { 
-  GenerateResponseParams, 
-  LLMResponse, 
+import {
+  GenerateResponseParams,
+  LLMResponse,
   LLMServiceConfig,
-  ResponseMetadata 
+  ResponseMetadata,
 } from './llm-interfaces';
 import { LLMErrorMapper } from './llm-error-handling';
 import { PIIService } from '../../services/pii.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from '@google/generative-ai';
 
 /**
  * Google-specific response metadata extension
@@ -48,7 +52,7 @@ interface GoogleResponseMetadata extends ResponseMetadata {
 
 /**
  * Google Gemini LLM Service Implementation
- * 
+ *
  * This example shows how to extend BaseLLMService for Google's Gemini models
  * with provider-specific functionality, safety settings, and metadata handling.
  */
@@ -86,26 +90,31 @@ export class GoogleLLMService extends BaseLLMService {
   async generateResponse(params: GenerateResponseParams): Promise<LLMResponse> {
     const startTime = Date.now();
     const requestId = this.generateRequestId('google');
-    
+
     try {
       // Validate configuration
       this.validateConfig(params.config);
-      
+
       // Use LLM Service level PII pre-processing when provided
-      let processedText = params.userMessage;
-      let piiMetadata = params.options?.piiMetadata || null;
-      let dictionaryMappings = params.options?.dictionaryMappings || [];
+      const processedText = params.userMessage;
+      const piiMetadata = params.options?.piiMetadata || null;
+      const dictionaryMappings = params.options?.dictionaryMappings || [];
       if (!piiMetadata) {
-        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] GoogleLLMService - No PII metadata from LLM Service, using raw message`);
+        this.logger.warn(
+          `⚠️ [PII-METADATA-DEBUG] GoogleLLMService - No PII metadata from LLM Service, using raw message`,
+        );
       } else {
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] GoogleLLMService - Using preprocessed text and PII metadata`);
+        this.logger.debug(
+          `🔍 [PII-METADATA-DEBUG] GoogleLLMService - Using preprocessed text and PII metadata`,
+        );
       }
-      
+
       // Get the model
       const model = this.genAI.getGenerativeModel({
         model: params.config.model,
         generationConfig: {
-          temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
+          temperature:
+            params.options?.temperature ?? params.config.temperature ?? 0.7,
           maxOutputTokens: params.options?.maxTokens ?? params.config.maxTokens,
           topP: 0.95,
           topK: 64,
@@ -136,16 +145,16 @@ export class GoogleLLMService extends BaseLLMService {
       // Make Google API call
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      
+
       if (!response.text()) {
         throw new Error('No content in Google response');
       }
 
       // Do not reverse here; LLMService handles dictionary reversal consistently
       const finalContent = response.text();
-      
+
       const endTime = Date.now();
-      
+
       // Create Google-specific metadata
       const metadata = this.createGoogleMetadata(
         result,
@@ -153,9 +162,9 @@ export class GoogleLLMService extends BaseLLMService {
         params,
         startTime,
         endTime,
-        requestId
+        requestId,
       );
-      
+
       // Track usage with full metadata for database persistence
       await this.trackUsage(
         params.config.provider,
@@ -166,30 +175,31 @@ export class GoogleLLMService extends BaseLLMService {
         {
           requestId,
           userId: params.userId || params.options?.userId,
-          conversationId: params.conversationId || params.options?.conversationId,
+          conversationId:
+            params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
           piiMetadata: piiMetadata,
           startTime,
           endTime,
-        }
+        },
       );
-      
+
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
         piiMetadata: piiMetadata,
       };
-      
+
       // Optional LangSmith integration
       const langsmithRunId = await this.integrateLangSmith(params, llmResponse);
       if (langsmithRunId) {
         llmResponse.metadata.langsmithRunId = langsmithRunId;
       }
-      
+
       // Log request/response
       this.logRequestResponse(params, llmResponse, metadata.timing.duration);
-      
+
       return llmResponse;
     } catch (error) {
       this.handleError(error, 'GoogleLLMService.generateResponse');
@@ -205,11 +215,11 @@ export class GoogleLLMService extends BaseLLMService {
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
-    requestId: string
+    requestId: string,
   ): GoogleResponseMetadata {
     const usageMetadata = response.usageMetadata;
     const candidate = response.candidates?.[0];
-    
+
     return {
       provider: 'google',
       model: params.config.model,
@@ -219,7 +229,12 @@ export class GoogleLLMService extends BaseLLMService {
         inputTokens: usageMetadata?.promptTokenCount || 0,
         outputTokens: usageMetadata?.candidatesTokenCount || 0,
         totalTokens: usageMetadata?.totalTokenCount || 0,
-        cost: this.calculateCost('google', params.config.model, usageMetadata?.promptTokenCount || 0, usageMetadata?.candidatesTokenCount || 0),
+        cost: this.calculateCost(
+          'google',
+          params.config.model,
+          usageMetadata?.promptTokenCount || 0,
+          usageMetadata?.candidatesTokenCount || 0,
+        ),
       },
       timing: {
         startTime,
@@ -235,19 +250,24 @@ export class GoogleLLMService extends BaseLLMService {
           category: rating.category,
           probability: rating.probability,
         })),
-        citation_metadata: candidate?.citationMetadata ? {
-          citation_sources: candidate.citationMetadata.citationSources || [],
-        } : undefined,
+        citation_metadata: candidate?.citationMetadata
+          ? {
+              citation_sources:
+                candidate.citationMetadata.citationSources || [],
+            }
+          : undefined,
         // Include actual token counts from Google
         prompt_token_count: usageMetadata?.promptTokenCount,
         candidates_token_count: usageMetadata?.candidatesTokenCount,
         total_token_count: usageMetadata?.totalTokenCount,
         model_version: params.config.model,
         generation_config: {
-          temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
+          temperature:
+            params.options?.temperature ?? params.config.temperature ?? 0.7,
           top_p: 0.95,
           top_k: 64,
-          max_output_tokens: params.options?.maxTokens ?? params.config.maxTokens,
+          max_output_tokens:
+            params.options?.maxTokens ?? params.config.maxTokens,
         },
       },
     };
@@ -258,10 +278,13 @@ export class GoogleLLMService extends BaseLLMService {
    */
   protected async integrateLangSmith(
     params: GenerateResponseParams,
-    response: LLMResponse
+    response: LLMResponse,
   ): Promise<string | undefined> {
     // Example Google-specific LangSmith integration
-    if (process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_TRACING === 'true') {
+    if (
+      process.env.LANGSMITH_API_KEY &&
+      process.env.LANGSMITH_TRACING === 'true'
+    ) {
       try {
         // This would integrate with LangSmith for Google-specific tracing
         const runId = `google-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -279,15 +302,15 @@ export class GoogleLLMService extends BaseLLMService {
    */
   protected validateConfig(config: LLMServiceConfig): void {
     super.validateConfig(config);
-    
+
     if (config.provider !== 'google') {
       throw new Error('GoogleLLMService requires provider to be "google"');
     }
-    
+
     if (!config.apiKey && !process.env.GOOGLE_API_KEY) {
       throw new Error('Google API key is required');
     }
-    
+
     // Validate Google-specific model names
     const validModels = [
       'gemini-1.5-pro',
@@ -298,9 +321,11 @@ export class GoogleLLMService extends BaseLLMService {
       'gemini-pro',
       'gemini-pro-vision',
     ];
-    
-    if (!validModels.some(model => config.model.includes(model))) {
-      this.logger.warn(`Unknown Google model: ${config.model}. Proceeding anyway.`);
+
+    if (!validModels.some((model) => config.model.includes(model))) {
+      this.logger.warn(
+        `Unknown Google model: ${config.model}. Proceeding anyway.`,
+      );
     }
   }
 
@@ -309,7 +334,11 @@ export class GoogleLLMService extends BaseLLMService {
    */
   protected handleError(error: any, context: string): never {
     try {
-      const mapped = LLMErrorMapper.fromGoogleError(error, 'google', this.config?.model);
+      const mapped = LLMErrorMapper.fromGoogleError(
+        error,
+        'google',
+        this.config?.model,
+      );
       super.handleError(mapped, context);
     } catch {
       super.handleError(error, context);
@@ -319,21 +348,26 @@ export class GoogleLLMService extends BaseLLMService {
   /**
    * Override cost calculation for Google-specific pricing
    */
-  protected calculateCost(provider: string, model: string, inputTokens: number, outputTokens: number): number {
+  protected calculateCost(
+    provider: string,
+    model: string,
+    inputTokens: number,
+    outputTokens: number,
+  ): number {
     // Google Gemini pricing (as of late 2024)
     // Note: These are example rates - check Google AI documentation for current pricing
     const googleRates = {
       'gemini-1.5-pro': {
-        input: 0.00000125,  // $1.25 per 1M input tokens
-        output: 0.000005,   // $5 per 1M output tokens
+        input: 0.00000125, // $1.25 per 1M input tokens
+        output: 0.000005, // $5 per 1M output tokens
       },
       'gemini-1.5-flash': {
         input: 0.000000075, // $0.075 per 1M input tokens
-        output: 0.0000003,  // $0.30 per 1M output tokens
+        output: 0.0000003, // $0.30 per 1M output tokens
       },
       'gemini-1.0-pro': {
-        input: 0.0000005,   // $0.50 per 1M input tokens
-        output: 0.0000015,  // $1.50 per 1M output tokens
+        input: 0.0000005, // $0.50 per 1M input tokens
+        output: 0.0000015, // $1.50 per 1M output tokens
       },
     };
 
@@ -346,21 +380,25 @@ export class GoogleLLMService extends BaseLLMService {
       }
     }
 
-    return (inputTokens * rates.input) + (outputTokens * rates.output);
+    return inputTokens * rates.input + outputTokens * rates.output;
   }
 
   /**
    * Check if content was blocked by safety filters
    */
-  private checkSafetyBlocking(response: any): { blocked: boolean; reason?: string } {
+  private checkSafetyBlocking(response: any): {
+    blocked: boolean;
+    reason?: string;
+  } {
     const candidate = response.candidates?.[0];
-    
+
     if (candidate?.finishReason === 'SAFETY') {
       const safetyRatings = candidate.safetyRatings || [];
-      const blockedRatings = safetyRatings.filter((rating: any) => 
-        rating.probability === 'HIGH' || rating.probability === 'MEDIUM'
+      const blockedRatings = safetyRatings.filter(
+        (rating: any) =>
+          rating.probability === 'HIGH' || rating.probability === 'MEDIUM',
       );
-      
+
       if (blockedRatings.length > 0) {
         return {
           blocked: true,
@@ -368,7 +406,7 @@ export class GoogleLLMService extends BaseLLMService {
         };
       }
     }
-    
+
     return { blocked: false };
   }
 }
@@ -383,7 +421,7 @@ export function createGoogleService(
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
-  }
+  },
 ): GoogleLLMService {
   return new GoogleLLMService(
     { ...config, provider: 'google' },
@@ -415,7 +453,7 @@ export async function testGoogleService() {
   };
 
   const service = createGoogleService(config, mockDependencies);
-  
+
   const params: GenerateResponseParams = {
     systemPrompt: 'You are a helpful AI assistant powered by Google Gemini.',
     userMessage: 'Explain the benefits of multimodal AI models.',
@@ -426,7 +464,10 @@ export async function testGoogleService() {
   try {
     const response = await service.generateResponse(params);
     console.log('Google Response:', response.content);
-    console.log('Safety Ratings:', response.metadata.providerSpecific?.safety_ratings);
+    console.log(
+      'Safety Ratings:',
+      response.metadata.providerSpecific?.safety_ratings,
+    );
     console.log('Metadata:', response.metadata);
     return response;
   } catch (error) {

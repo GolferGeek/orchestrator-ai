@@ -1,4 +1,13 @@
-import { Controller, Get, Put, Body, Query, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  Query,
+  Logger,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SupabaseService } from '../supabase/supabase.service';
 import { IsOptional, IsObject, IsString } from 'class-validator';
@@ -34,11 +43,14 @@ export class SystemController {
     try {
       const uptime = process.uptime() * 1000;
       const memoryUsage = process.memoryUsage();
-      
+
       // Test database connectivity
       const client = this.supabaseService.getServiceClient();
-      const { error: dbError } = await client.from('users').select('id', { count: 'exact', head: true }).limit(1);
-      
+      const { error: dbError } = await client
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .limit(1);
+
       return {
         success: true,
         status: 'healthy',
@@ -48,12 +60,14 @@ export class SystemController {
           rss: Math.round(memoryUsage.rss / 1024 / 1024),
           heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
           heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
-          heapUtilization: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)
+          heapUtilization: Math.round(
+            (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+          ),
         },
         services: {
           database: dbError ? 'unhealthy' : 'healthy',
-          api: 'healthy'
-        }
+          api: 'healthy',
+        },
       };
     } catch (error) {
       this.logger.error('Failed to get system health:', error);
@@ -61,7 +75,7 @@ export class SystemController {
         success: false,
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: 'System health check failed'
+        error: 'System health check failed',
       };
     }
   }
@@ -79,33 +93,38 @@ export class SystemController {
     try {
       // Get current timestamp
       const now = new Date();
-      const start = startDate ? new Date(startDate) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+      const start = startDate
+        ? new Date(startDate)
+        : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
       const end = endDate ? new Date(endDate) : now;
 
       // System metrics
       const uptime = process.uptime() * 1000; // milliseconds
       const memoryUsage = process.memoryUsage();
-      
+
       // Get real data from database - use service client for admin analytics
       const client = this.supabaseService.getServiceClient();
-      
-      const [
-        usersResult,
-        tasksResult,
-        conversationsResult,
-        projectsResult
-      ] = await Promise.all([
-        client.from('users').select('id', { count: 'exact', head: true }),
-        client.from('tasks').select('id', { count: 'exact', head: true }),
-        client.from('conversations').select('id', { count: 'exact', head: true }),
-        client.from('projects').select('id', { count: 'exact', head: true })
-      ]);
 
+      const [usersResult, tasksResult, conversationsResult, projectsResult] =
+        await Promise.all([
+          client.from('users').select('id', { count: 'exact', head: true }),
+          client.from('tasks').select('id', { count: 'exact', head: true }),
+          client
+            .from('conversations')
+            .select('id', { count: 'exact', head: true }),
+          client.from('projects').select('id', { count: 'exact', head: true }),
+        ]);
 
       // Get task completion stats
       const [completedTasks, failedTasks] = await Promise.all([
-        client.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-        client.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'failed')
+        client
+          .from('tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'completed'),
+        client
+          .from('tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'failed'),
       ]);
 
       const totalUsers = usersResult.count || 0;
@@ -116,14 +135,17 @@ export class SystemController {
       const failedTasksCount = failedTasks.count || 0;
 
       // Calculate success rate
-      const successRate = totalTasks > 0 ? ((completedTasksCount / totalTasks) * 100) : 100;
-      
+      const successRate =
+        totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 100;
+
       const analytics = {
         timestamp: now.toISOString(),
         period: {
           startDate: start.toISOString(),
           endDate: end.toISOString(),
-          durationDays: Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000))
+          durationDays: Math.ceil(
+            (end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
+          ),
         },
         system: {
           uptime: uptime,
@@ -133,12 +155,14 @@ export class SystemController {
             heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
             heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
             external: Math.round(memoryUsage.external / 1024 / 1024), // MB
-            heapUtilization: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)
+            heapUtilization: Math.round(
+              (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+            ),
           },
           cpu: {
             usage: Math.round(process.cpuUsage().user / 1000), // Convert microseconds to milliseconds
-            cores: require('os').cpus().length
-          }
+            cores: require('os').cpus().length,
+          },
         },
         performance: {
           averageResponseTime: Math.round(uptime / (totalTasks || 1)), // Rough estimate based on uptime/tasks
@@ -151,8 +175,8 @@ export class SystemController {
             database: usersResult.error ? 'unhealthy' : 'healthy',
             llm: 'healthy', // TODO: Add real LLM health check
             monitoring: 'healthy',
-            authentication: 'healthy'
-          }
+            authentication: 'healthy',
+          },
         },
         statistics: {
           totalRequests: totalTasks, // Use tasks as proxy for requests
@@ -163,13 +187,13 @@ export class SystemController {
           totalConversations: totalConversations,
           completedTasks: completedTasksCount,
           failedTasks: failedTasksCount,
-          successRate: Math.round(successRate * 100) / 100
-        }
+          successRate: Math.round(successRate * 100) / 100,
+        },
       };
 
       return {
         success: true,
-        data: analytics
+        data: analytics,
       };
     } catch (error) {
       this.logger.error('Failed to get system analytics', error);
@@ -183,10 +207,15 @@ export class SystemController {
 
   @Get('model-config/global')
   @ApiOperation({ summary: 'Get global model configuration (DB-backed)' })
-  @ApiResponse({ status: 200, description: 'Returns DB value and env override presence' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns DB value and env override presence',
+  })
   async getGlobalModelConfig() {
     try {
-      const envOverride = this.configService.get<string>('MODEL_CONFIG_GLOBAL_JSON');
+      const envOverride = this.configService.get<string>(
+        'MODEL_CONFIG_GLOBAL_JSON',
+      );
       const client = this.supabaseService.getServiceClient();
       const { data, error } = await client.rpc('get_global_model_config');
       if (error) {
@@ -201,7 +230,10 @@ export class SystemController {
       };
     } catch (error) {
       this.logger.error('Failed to get global model config', error);
-      throw new HttpException('Failed to fetch model config', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to fetch model config',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -210,10 +242,14 @@ export class SystemController {
   @ApiResponse({ status: 200, description: 'Stored configuration' })
   async setGlobalModelConfig(@Body() dto: UpdateGlobalModelConfigDto) {
     try {
-      const envOverride = this.configService.get<string>('MODEL_CONFIG_GLOBAL_JSON');
+      const envOverride = this.configService.get<string>(
+        'MODEL_CONFIG_GLOBAL_JSON',
+      );
       if (envOverride) {
         // Warn that env override takes precedence
-        this.logger.warn('MODEL_CONFIG_GLOBAL_JSON is set; DB updates will not take effect until env override is removed');
+        this.logger.warn(
+          'MODEL_CONFIG_GLOBAL_JSON is set; DB updates will not take effect until env override is removed',
+        );
       }
 
       // Determine payload
@@ -222,32 +258,54 @@ export class SystemController {
         try {
           payload = JSON.parse(dto.config_json);
         } catch (e) {
-          throw new HttpException('config_json is not valid JSON', HttpStatus.BAD_REQUEST);
+          throw new HttpException(
+            'config_json is not valid JSON',
+            HttpStatus.BAD_REQUEST,
+          );
         }
       }
       if (!payload || typeof payload !== 'object') {
-        throw new HttpException('Missing config object or config_json', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Missing config object or config_json',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Basic shape check: either flat {provider, model} or dual {default, localOnly?}
       const isFlat = 'provider' in payload && 'model' in payload;
-      const isDual = 'default' in payload && typeof payload.default === 'object';
+      const isDual =
+        'default' in payload && typeof payload.default === 'object';
       if (!isFlat && !isDual) {
-        throw new HttpException('Invalid config shape: expected {provider, model} or {default, localOnly?}', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'Invalid config shape: expected {provider, model} or {default, localOnly?}',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       const client = this.supabaseService.getServiceClient();
-      const { error } = await client
-        .from('system_settings')
-        .upsert({ key: 'model_config_global', value: payload, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      const { error } = await client.from('system_settings').upsert(
+        {
+          key: 'model_config_global',
+          value: payload,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' },
+      );
       if (error) {
         throw new Error(error.message);
       }
-      return { success: true, message: 'Global model configuration updated', envOverrideActive: Boolean(envOverride) };
+      return {
+        success: true,
+        message: 'Global model configuration updated',
+        envOverrideActive: Boolean(envOverride),
+      };
     } catch (error) {
       this.logger.error('Failed to update global model config', error);
       if (error instanceof HttpException) throw error;
-      throw new HttpException('Failed to update model config', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to update model config',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

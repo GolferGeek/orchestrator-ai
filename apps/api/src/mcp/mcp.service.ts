@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { 
-  MCPServerInfo, 
-  MCPToolDefinition, 
-  MCPToolRequest, 
-  MCPToolResponse 
+import {
+  MCPServerInfo,
+  MCPToolDefinition,
+  MCPToolRequest,
+  MCPToolResponse,
 } from './interfaces/mcp.interface';
 
 // Service implementations for different namespaces
@@ -14,7 +14,7 @@ import { NotionMCPTools } from './tools/notion.tools';
 
 /**
  * Unified MCP Service
- * 
+ *
  * Single service implementing full MCP 2025-03-26 specification
  * Handles all tool namespaces (data and productivity) in one application
  * Supports: supabase/, slack/, notion/, sqlserver/ namespaces
@@ -22,10 +22,10 @@ import { NotionMCPTools } from './tools/notion.tools';
 @Injectable()
 export class MCPService {
   private readonly logger = new Logger(MCPService.name);
-  
+
   // Tool namespace handlers
   private readonly toolHandlers: Map<string, any> = new Map();
-  
+
   constructor(
     private readonly configService: ConfigService,
     private readonly supabaseService: SupabaseMCPService,
@@ -42,8 +42,10 @@ export class MCPService {
     this.toolHandlers.set('supabase', this.supabaseService);
     this.toolHandlers.set('slack', this.slackTools);
     this.toolHandlers.set('notion', this.notionTools);
-    
-    this.logger.log(`Initialized MCP service handlers: ${Array.from(this.toolHandlers.keys()).join(', ')}`);
+
+    this.logger.log(
+      `Initialized MCP service handlers: ${Array.from(this.toolHandlers.keys()).join(', ')}`,
+    );
   }
 
   /**
@@ -56,22 +58,24 @@ export class MCPService {
       serverInfo: {
         name: 'Orchestrator AI MCP Server',
         version: '1.0.0',
-        description: 'Unified MCP server supporting data and productivity operations'
+        description:
+          'Unified MCP server supporting data and productivity operations',
       },
       capabilities: {
         tools: {
-          listChanged: true
+          listChanged: true,
         },
         resources: {
           subscribe: false,
-          listChanged: false
+          listChanged: false,
         },
         prompts: {
-          listChanged: false
+          listChanged: false,
         },
-        logging: {}
+        logging: {},
       },
-      instructions: 'This server provides access to multiple tool namespaces: supabase/, slack/, notion/'
+      instructions:
+        'This server provides access to multiple tool namespaces: supabase/, slack/, notion/',
     };
   }
 
@@ -86,23 +90,30 @@ export class MCPService {
     for (const [namespace, handler] of this.toolHandlers.entries()) {
       try {
         const namespaceTools = await handler.getTools();
-        
+
         // Add namespace prefix to tool names
         const prefixedTools = namespaceTools.map((tool: MCPToolDefinition) => ({
           ...tool,
           name: `${namespace}/${tool.name}`,
-          description: `[${this.getNamespaceType(namespace)}] ${tool.description}`
+          description: `[${this.getNamespaceType(namespace)}] ${tool.description}`,
         }));
 
         allTools.push(...prefixedTools);
-        this.logger.debug(`Loaded ${prefixedTools.length} tools from ${namespace} namespace`);
+        this.logger.debug(
+          `Loaded ${prefixedTools.length} tools from ${namespace} namespace`,
+        );
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        this.logger.warn(`Failed to load tools from ${namespace}: ${errorMessage}`);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `Failed to load tools from ${namespace}: ${errorMessage}`,
+        );
       }
     }
 
-    this.logger.log(`Returning ${allTools.length} tools across ${this.toolHandlers.size} namespaces`);
+    this.logger.log(
+      `Returning ${allTools.length} tools across ${this.toolHandlers.size} namespaces`,
+    );
     return { tools: allTools };
   }
 
@@ -112,33 +123,41 @@ export class MCPService {
    */
   async callTool(request: MCPToolRequest): Promise<MCPToolResponse> {
     const { namespace, toolName } = this.parseToolName(request.name);
-    
+
     if (!namespace) {
-      return this.createErrorResponse(`Tool name must include namespace: ${request.name}. Use format: namespace/tool-name`);
+      return this.createErrorResponse(
+        `Tool name must include namespace: ${request.name}. Use format: namespace/tool-name`,
+      );
     }
 
     const handler = this.toolHandlers.get(namespace);
     if (!handler) {
-      const availableNamespaces = Array.from(this.toolHandlers.keys()).join(', ');
-      return this.createErrorResponse(`Unknown namespace '${namespace}'. Available: ${availableNamespaces}`);
+      const availableNamespaces = Array.from(this.toolHandlers.keys()).join(
+        ', ',
+      );
+      return this.createErrorResponse(
+        `Unknown namespace '${namespace}'. Available: ${availableNamespaces}`,
+      );
     }
 
     try {
       // Execute tool with original name (without namespace prefix)
       const toolRequest: MCPToolRequest = {
         ...request,
-        name: toolName
+        name: toolName,
       };
 
       const result = await handler.executeTool(toolRequest);
-      
+
       this.logger.debug(`Successfully executed ${request.name}`);
       return result;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Tool execution failed for ${request.name}: ${errorMessage}`);
-      
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Tool execution failed for ${request.name}: ${errorMessage}`,
+      );
+
       return this.createErrorResponse(`Tool execution failed: ${errorMessage}`);
     }
   }
@@ -147,14 +166,19 @@ export class MCPService {
    * MCP ping method
    * Health check for the MCP server
    */
-  async ping(): Promise<{ status: 'healthy' | 'unhealthy'; timestamp: string; namespaces: Record<string, boolean> }> {
+  async ping(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    timestamp: string;
+    namespaces: Record<string, boolean>;
+  }> {
     const timestamp = new Date().toISOString();
     const namespaceHealth: Record<string, boolean> = {};
 
     // Check health of each namespace handler
     for (const [namespace, handler] of this.toolHandlers.entries()) {
       try {
-        const isHealthy = typeof handler.ping === 'function' ? await handler.ping() : true;
+        const isHealthy =
+          typeof handler.ping === 'function' ? await handler.ping() : true;
         namespaceHealth[namespace] = isHealthy;
       } catch (error) {
         namespaceHealth[namespace] = false;
@@ -164,27 +188,30 @@ export class MCPService {
     // MCP server is considered healthy if it can serve tools, regardless of external service availability
     const hasLoadedTools = this.toolHandlers.size > 0;
     const overallHealth = hasLoadedTools; // Changed from requiring all namespaces to be healthy
-    
+
     return {
       status: overallHealth ? 'healthy' : 'unhealthy',
       timestamp,
-      namespaces: namespaceHealth
+      namespaces: namespaceHealth,
     };
   }
 
   /**
    * Parse namespaced tool name into components
    */
-  private parseToolName(toolName: string): { namespace: string | null; toolName: string } {
+  private parseToolName(toolName: string): {
+    namespace: string | null;
+    toolName: string;
+  } {
     const parts = toolName.split('/');
-    
+
     if (parts.length < 2) {
       return { namespace: null, toolName };
     }
-    
+
     const namespace = parts[0] || null;
     const tool = parts.slice(1).join('/');
-    
+
     return { namespace, toolName: tool };
   }
 
@@ -194,13 +221,13 @@ export class MCPService {
   private getNamespaceType(namespace: string): string {
     const dataNamespaces = ['supabase', 'sqlserver', 'postgres', 'mysql'];
     const productivityNamespaces = ['slack', 'notion', 'asana', 'trello'];
-    
+
     if (dataNamespaces.includes(namespace)) {
       return 'data';
     } else if (productivityNamespaces.includes(namespace)) {
       return 'productivity';
     }
-    
+
     return 'utility';
   }
 
@@ -214,11 +241,11 @@ export class MCPService {
           type: 'text',
           text: JSON.stringify({
             error: message,
-            timestamp: new Date().toISOString()
-          })
-        }
+            timestamp: new Date().toISOString(),
+          }),
+        },
       ],
-      isError: true
+      isError: true,
     };
   }
 
@@ -230,7 +257,7 @@ export class MCPService {
       namespaces: Array.from(this.toolHandlers.keys()),
       capabilities: ['tools', 'logging'],
       version: '1.0.0',
-      protocolVersion: '2025-03-26'
+      protocolVersion: '2025-03-26',
     };
   }
 }

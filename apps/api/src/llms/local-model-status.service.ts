@@ -67,9 +67,12 @@ export class LocalModelStatusService {
     private readonly httpService: HttpService,
     private readonly supabaseService: SupabaseService,
   ) {
-    this.ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    this.logger.log(`LocalModelStatusService initialized (Ollama: ${this.ollamaBaseUrl})`);
-    
+    this.ollamaBaseUrl =
+      process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    this.logger.log(
+      `LocalModelStatusService initialized (Ollama: ${this.ollamaBaseUrl})`,
+    );
+
     // Don't perform initial health check - only check when explicitly requested
     // This prevents startup connection attempts to services that may not be running
     // Use 'ollama ps' to check only running models instead of proactive health checks
@@ -83,7 +86,7 @@ export class LocalModelStatusService {
       const response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/version`, {
           timeout: 5000,
-        })
+        }),
       );
 
       this.ollamaStatus.connected = true;
@@ -95,9 +98,12 @@ export class LocalModelStatusService {
     } catch (error) {
       this.ollamaStatus.connected = false;
       this.ollamaStatus.lastCheck = new Date().toISOString();
-      this.ollamaStatus.errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      this.logger.warn(`Ollama connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.ollamaStatus.errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.warn(
+        `Ollama connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return false;
     }
   }
@@ -106,7 +112,7 @@ export class LocalModelStatusService {
    * Get only currently loaded models from Ollama (faster - no health checks)
    */
   async getLoadedModels(): Promise<ModelStatus[]> {
-    if (!await this.checkOllamaConnection()) {
+    if (!(await this.checkOllamaConnection())) {
       return [];
     }
 
@@ -114,7 +120,7 @@ export class LocalModelStatusService {
       const response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/ps`, {
           timeout: 5000,
-        })
+        }),
       );
 
       const loadedModels: any[] = response.data?.models || [];
@@ -130,7 +136,9 @@ export class LocalModelStatusService {
 
       return modelStatuses;
     } catch (error) {
-      this.logger.error(`Failed to get loaded models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to get loaded models: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return [];
     }
   }
@@ -139,7 +147,7 @@ export class LocalModelStatusService {
    * Get list of available models from Ollama (with health checks - slower)
    */
   async getAvailableModels(): Promise<ModelStatus[]> {
-    if (!await this.checkOllamaConnection()) {
+    if (!(await this.checkOllamaConnection())) {
       return [];
     }
 
@@ -147,12 +155,12 @@ export class LocalModelStatusService {
       const response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/tags`, {
           timeout: 10000,
-        })
+        }),
       );
 
       const models: OllamaModel[] = response.data?.models || [];
       const modelStatuses: ModelStatus[] = [];
-      
+
       for (const model of models) {
         const status: ModelStatus = {
           name: model.name,
@@ -166,7 +174,7 @@ export class LocalModelStatusService {
         // Check individual model health
         const health = await this.checkModelHealth(model.name);
         status.responseTime = health.responseTime;
-        
+
         if (!health.available) {
           status.status = 'error';
           status.errorMessage = health.errorMessage;
@@ -178,7 +186,9 @@ export class LocalModelStatusService {
       this.ollamaStatus.models = modelStatuses;
       return modelStatuses;
     } catch (error) {
-      this.logger.error(`Failed to get available models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to get available models: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return [];
     }
   }
@@ -189,14 +199,17 @@ export class LocalModelStatusService {
   async checkModelHealth(modelName: string): Promise<ModelHealth> {
     const cacheKey = modelName;
     const cached = this.healthCache.get(cacheKey);
-    
+
     // Return cached result if still valid
-    if (cached && Date.now() - new Date(cached.lastCheck).getTime() < this.cacheTimeout) {
+    if (
+      cached &&
+      Date.now() - new Date(cached.lastCheck).getTime() < this.cacheTimeout
+    ) {
       return cached;
     }
 
     const startTime = Date.now();
-    
+
     try {
       // Simple health check by making a minimal generate request
       const response = await firstValueFrom(
@@ -212,8 +225,8 @@ export class LocalModelStatusService {
           },
           {
             timeout: 30000,
-          }
-        )
+          },
+        ),
       );
 
       const responseTime = Date.now() - startTime;
@@ -243,13 +256,13 @@ export class LocalModelStatusService {
    * Pull/download a model if not available
    */
   async pullModel(modelName: string): Promise<boolean> {
-    if (!await this.checkOllamaConnection()) {
+    if (!(await this.checkOllamaConnection())) {
       throw new Error('Ollama service is not available');
     }
 
     try {
       this.logger.log(`Pulling model: ${modelName}`);
-      
+
       const response = await firstValueFrom(
         this.httpService.post(
           `${this.ollamaBaseUrl}/api/pull`,
@@ -258,18 +271,20 @@ export class LocalModelStatusService {
           },
           {
             timeout: 300000, // 5 minutes for model download
-          }
-        )
+          },
+        ),
       );
 
       this.logger.log(`Successfully pulled model: ${modelName}`);
-      
+
       // Clear cache to force refresh
       this.healthCache.delete(modelName);
-      
+
       return true;
     } catch (error) {
-      this.logger.error(`Failed to pull model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to pull model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return false;
     }
   }
@@ -294,18 +309,20 @@ export class LocalModelStatusService {
   async getModelsByTier(tier: string): Promise<ModelStatus[]> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       // Query database for models in the specified tier
       const { data: dbModels, error } = await client
         .from(getTableName('llm_models'))
-        .select(`
+        .select(
+          `
           model_name,
           display_name,
           model_tier,
           loading_priority,
           is_local,
           is_currently_loaded
-        `)
+        `,
+        )
         .eq('is_local', true)
         .eq('model_tier', tier)
         .eq('is_active', true)
@@ -323,10 +340,10 @@ export class LocalModelStatusService {
 
       // Check health status for each model
       const modelStatuses: ModelStatus[] = [];
-      
+
       for (const dbModel of dbModels) {
         const health = await this.checkModelHealth(dbModel.model_name);
-        
+
         const status: ModelStatus = {
           name: dbModel.model_name,
           status: health.available ? 'loaded' : 'unavailable',
@@ -347,28 +364,37 @@ export class LocalModelStatusService {
   /**
    * Update model loading status in database
    */
-  async updateModelLoadingStatus(modelName: string, isLoaded: boolean): Promise<boolean> {
+  async updateModelLoadingStatus(
+    modelName: string,
+    isLoaded: boolean,
+  ): Promise<boolean> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       const { error } = await client
         .from(getTableName('llm_models'))
-        .update({ 
+        .update({
           is_currently_loaded: isLoaded,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('model_name', modelName)
         .eq('is_local', true);
 
       if (error) {
-        this.logger.error(`Failed to update loading status for ${modelName}:`, error);
+        this.logger.error(
+          `Failed to update loading status for ${modelName}:`,
+          error,
+        );
         return false;
       }
 
       this.logger.debug(`Updated loading status for ${modelName}: ${isLoaded}`);
       return true;
     } catch (error) {
-      this.logger.error(`Error updating loading status for ${modelName}:`, error);
+      this.logger.error(
+        `Error updating loading status for ${modelName}:`,
+        error,
+      );
       return false;
     }
   }
@@ -376,25 +402,29 @@ export class LocalModelStatusService {
   /**
    * Get all local models from database
    */
-  async getLocalModelsFromDatabase(): Promise<Array<{
-    modelName: string;
-    displayName: string;
-    tier: string;
-    priority: number;
-    isCurrentlyLoaded: boolean;
-  }>> {
+  async getLocalModelsFromDatabase(): Promise<
+    Array<{
+      modelName: string;
+      displayName: string;
+      tier: string;
+      priority: number;
+      isCurrentlyLoaded: boolean;
+    }>
+  > {
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       const { data: models, error } = await client
         .from(getTableName('llm_models'))
-        .select(`
+        .select(
+          `
           model_name,
           display_name,
           model_tier,
           loading_priority,
           is_currently_loaded
-        `)
+        `,
+        )
         .eq('is_local', true)
         .eq('is_active', true)
         .order('loading_priority', { ascending: false });
@@ -404,7 +434,7 @@ export class LocalModelStatusService {
         return [];
       }
 
-      return (models || []).map(model => ({
+      return (models || []).map((model) => ({
         modelName: model.model_name,
         displayName: model.display_name || model.model_name,
         tier: model.model_tier || 'general',
@@ -424,10 +454,10 @@ export class LocalModelStatusService {
     try {
       // Get models from Ollama
       const ollamaModels = await this.getAvailableModels();
-      
+
       // Get models from database
       const dbModels = await this.getLocalModelsFromDatabase();
-      
+
       // Update database with current loading status
       for (const ollamaModel of ollamaModels) {
         const isLoaded = ollamaModel.status === 'loaded';
@@ -436,7 +466,9 @@ export class LocalModelStatusService {
 
       // Mark models not in Ollama as not loaded
       for (const dbModel of dbModels) {
-        const ollamaModel = ollamaModels.find(m => m.name === dbModel.modelName);
+        const ollamaModel = ollamaModels.find(
+          (m) => m.name === dbModel.modelName,
+        );
         if (!ollamaModel && dbModel.isCurrentlyLoaded) {
           await this.updateModelLoadingStatus(dbModel.modelName, false);
         }
@@ -453,7 +485,7 @@ export class LocalModelStatusService {
    */
   async getOllamaStatus(): Promise<OllamaStatus> {
     await this.checkOllamaConnection();
-    
+
     if (this.ollamaStatus.connected) {
       this.ollamaStatus.models = await this.getAvailableModels();
     }
@@ -466,14 +498,14 @@ export class LocalModelStatusService {
    */
   async getModelInfo(modelName: string): Promise<ModelStatus | null> {
     const models = await this.getAvailableModels();
-    return models.find(model => model.name === modelName) || null;
+    return models.find((model) => model.name === modelName) || null;
   }
 
   /**
    * Delete/remove a model
    */
   async deleteModel(modelName: string): Promise<boolean> {
-    if (!await this.checkOllamaConnection()) {
+    if (!(await this.checkOllamaConnection())) {
       throw new Error('Ollama service is not available');
     }
 
@@ -482,17 +514,19 @@ export class LocalModelStatusService {
         this.httpService.delete(`${this.ollamaBaseUrl}/api/delete`, {
           data: { name: modelName },
           timeout: 30000,
-        })
+        }),
       );
 
       this.logger.log(`Successfully deleted model: ${modelName}`);
-      
+
       // Clear cache
       this.healthCache.delete(modelName);
-      
+
       return true;
     } catch (error) {
-      this.logger.error(`Failed to delete model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to delete model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return false;
     }
   }
@@ -530,16 +564,17 @@ export class LocalModelStatusService {
     avgResponseTime: number;
   } {
     const models = this.ollamaStatus.models;
-    const loadedModels = models.filter(m => m.status === 'loaded').length;
-    const errorModels = models.filter(m => m.status === 'error').length;
-    
+    const loadedModels = models.filter((m) => m.status === 'loaded').length;
+    const errorModels = models.filter((m) => m.status === 'error').length;
+
     const responseTimes = models
-      .filter(m => m.responseTime)
-      .map(m => m.responseTime!);
-    
-    const avgResponseTime = responseTimes.length > 0
-      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-      : 0;
+      .filter((m) => m.responseTime)
+      .map((m) => m.responseTime!);
+
+    const avgResponseTime =
+      responseTimes.length > 0
+        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+        : 0;
 
     return {
       connected: this.ollamaStatus.connected,
@@ -556,7 +591,7 @@ export class LocalModelStatusService {
    */
   async performHealthCheck(): Promise<void> {
     this.logger.debug('Performing periodic health check');
-    
+
     const models = await this.getAvailableModels();
     for (const model of models) {
       // This will update the cache

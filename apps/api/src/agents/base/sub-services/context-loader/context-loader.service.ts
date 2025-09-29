@@ -23,7 +23,6 @@ export class ContextLoaderService {
       const contextPath = path.join(agentDirectory, 'context.md');
 
       if (!fs.existsSync(contextPath)) {
-
         return null;
       }
 
@@ -31,7 +30,6 @@ export class ContextLoaderService {
 
       return this.parseContextContent(rawContent);
     } catch (error) {
-
       return null;
     }
   }

@@ -42,9 +42,7 @@ export class ContextMetricsListener {
           rollup,
           timestamp: new Date().toISOString(),
         });
-      } catch (e) {
-
-      }
+      } catch (e) {}
     }
   }
 

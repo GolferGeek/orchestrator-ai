@@ -433,24 +433,26 @@ export class EvaluationService {
 
     const { client, isServiceClient } = this.getAggregationsClient();
 
-    const [{ data: tasksData, error: taskError }, { data: messagesData, error: messageError }] =
-      await Promise.all([
-        client
-          .from('tasks')
-          .select('*')
-          .not('evaluation', 'is', null)
-          .not('llm_metadata', 'is', null),
-        client
-          .from('messages')
-          .select(
-            `
+    const [
+      { data: tasksData, error: taskError },
+      { data: messagesData, error: messageError },
+    ] = await Promise.all([
+      client
+        .from('tasks')
+        .select('*')
+        .not('evaluation', 'is', null)
+        .not('llm_metadata', 'is', null),
+      client
+        .from('messages')
+        .select(
+          `
             *,
             provider:llm_providers(*),
             model:llm_models(*)
           `,
-          )
-          .not('user_rating', 'is', null),
-      ]);
+        )
+        .not('user_rating', 'is', null),
+    ]);
 
     if (taskError) {
       this.logger.warn(
@@ -494,22 +496,31 @@ export class EvaluationService {
     }
 
     const accumulateSample = (
-      info:
-        | {
-            rating: number;
-            providerId?: string;
-            providerName?: string;
-            modelId?: string;
-            modelName?: string;
-            timestamp?: string;
-          }
-        | null,
+      info: {
+        rating: number;
+        providerId?: string;
+        providerName?: string;
+        modelId?: string;
+        modelName?: string;
+        timestamp?: string;
+      } | null,
     ) => {
-      if (!info || typeof info.rating !== 'number' || Number.isNaN(info.rating)) {
+      if (
+        !info ||
+        typeof info.rating !== 'number' ||
+        Number.isNaN(info.rating)
+      ) {
         return;
       }
 
-      const { rating, providerId, providerName, modelId, modelName, timestamp } = info;
+      const {
+        rating,
+        providerId,
+        providerName,
+        modelId,
+        modelName,
+        timestamp,
+      } = info;
 
       if (providerId) {
         providerIds.add(providerId);
@@ -1016,7 +1027,6 @@ export class EvaluationService {
       totalPages: number;
     };
   }> {
-
     const client = this.supabaseService.getAnonClient();
 
     // Query only tasks for evaluations (since that's where the data actually is)
@@ -1086,7 +1096,6 @@ export class EvaluationService {
       .eq('id', 'bb7bd9b6-f120-4847-807e-b0455bad6f31');
 
     if (providerIds.size > 0) {
-
       const { data: providers, error: providerError } = await client
         .from('llm_providers')
         .select('*')
@@ -1094,7 +1103,6 @@ export class EvaluationService {
 
       if (providers) {
         providers.forEach((provider) => {
-
           // Use the mapLLMProviderFromDb utility function for consistent mapping
           const mappedProvider = mapLLMProviderFromDb(provider);
           providersMap.set(provider.id, mappedProvider);
@@ -1103,7 +1111,6 @@ export class EvaluationService {
     }
 
     if (modelIds.size > 0) {
-
       const { data: models, error: modelError } = await client
         .from('llm_models')
         .select('*')
@@ -1111,7 +1118,6 @@ export class EvaluationService {
 
       if (models) {
         models.forEach((model) => {
-
           // Use the mapLLMModelFromDb utility function for consistent mapping
           const mappedModel = mapLLMModelFromDb(model);
           modelsMap.set(model.id, mappedModel);
@@ -1296,7 +1302,6 @@ export class EvaluationService {
       totalPages: number;
     };
   }> {
-
     const client = this.supabaseService.getAnonClient();
 
     // Build base query for tasks with evaluations (no user filtering for admin)
@@ -1942,7 +1947,6 @@ export class EvaluationService {
       .in('id', userIds);
 
     if (error) {
-
       return new Map();
     }
 
@@ -1966,7 +1970,6 @@ export class EvaluationService {
       .in('id', providerIds);
 
     if (error) {
-
       return new Map();
     }
 
@@ -1989,7 +1992,6 @@ export class EvaluationService {
       .in('id', modelIds);
 
     if (error) {
-
       return new Map();
     }
 
@@ -2187,14 +2189,12 @@ export class EvaluationService {
     );
   }
 
-  private extractProviderModelInfo(task: any):
-    | {
-        providerId?: string;
-        providerName?: string;
-        modelId?: string;
-        modelName?: string;
-      }
-    | null {
+  private extractProviderModelInfo(task: any): {
+    providerId?: string;
+    providerName?: string;
+    modelId?: string;
+    modelName?: string;
+  } | null {
     const llmMetadata = task.llm_metadata || {};
     const selection =
       llmMetadata.originalLLMSelection ||
@@ -2290,16 +2290,16 @@ export class EvaluationService {
     // 4. Trim and clean up multiple underscores
     return value
       .toLowerCase()
-      .replace(/\s+/g, '_')  // Replace spaces with underscores
-      .replace(/-/g, '_')     // Replace hyphens with underscores
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/-/g, '_') // Replace hyphens with underscores
       .replace(/_writer$/i, '') // Remove 'writer' suffix
       .replace(/_agent$/i, '') // Remove 'agent' suffix
       .replace(/_assistant$/i, '') // Remove 'assistant' suffix
-      .replace(/writer$/i, '')  // Remove 'writer' suffix without underscore
-      .replace(/agent$/i, '')  // Remove 'agent' suffix without underscore
+      .replace(/writer$/i, '') // Remove 'writer' suffix without underscore
+      .replace(/agent$/i, '') // Remove 'agent' suffix without underscore
       .replace(/assistant$/i, '') // Remove 'assistant' suffix without underscore
-      .replace(/_{2,}/g, '_')  // Replace multiple underscores with single
-      .replace(/^_|_$/g, '')   // Remove leading/trailing underscores
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .replace(/^_|_$/g, '') // Remove leading/trailing underscores
       .trim();
   }
 
@@ -2357,7 +2357,10 @@ export class EvaluationService {
     return identifiers.includes(normalizedTarget);
   }
 
-  private getAggregationsClient(): { client: SupabaseClient; isServiceClient: boolean } {
+  private getAggregationsClient(): {
+    client: SupabaseClient;
+    isServiceClient: boolean;
+  } {
     try {
       const client = this.supabaseService.getServiceClient();
       return { client, isServiceClient: true };
@@ -2365,7 +2368,10 @@ export class EvaluationService {
       this.logger.warn(
         `[EvaluationService] Service client unavailable, falling back to anon client for recommendations: ${error instanceof Error ? error.message : error}`,
       );
-      return { client: this.supabaseService.getAnonClient(), isServiceClient: false };
+      return {
+        client: this.supabaseService.getAnonClient(),
+        isServiceClient: false,
+      };
     }
   }
 

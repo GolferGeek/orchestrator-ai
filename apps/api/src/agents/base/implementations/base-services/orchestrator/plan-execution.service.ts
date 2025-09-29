@@ -37,12 +37,9 @@ export class PlanExecutionService implements IPlanExecutionService {
     private readonly delegationService: IDelegationService,
     @Inject('ILangGraphStateManagementService')
     private readonly stateManagementService: ILangGraphStateManagementService,
-  ) {
-
-  }
+  ) {}
 
   async startProject(project: Project): Promise<void> {
-
     try {
       // Validate project has a plan
       if (!project.planJson) {
@@ -83,9 +80,7 @@ export class PlanExecutionService implements IPlanExecutionService {
         steps,
         orchestratorInput,
       );
-
     } catch (error) {
-
       // Update project status to error
       await this.updateProjectStatus(project.id, 'paused_on_error', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -97,7 +92,6 @@ export class PlanExecutionService implements IPlanExecutionService {
   }
 
   async resumeProject(projectId: string): Promise<void> {
-
     try {
       // Load project and steps
       const project = await this.loadProject(projectId);
@@ -130,15 +124,12 @@ export class PlanExecutionService implements IPlanExecutionService {
         steps,
         orchestratorInput,
       );
-
     } catch (error) {
-
       throw error;
     }
   }
 
   async retryStep(projectId: string, stepId: string): Promise<void> {
-
     try {
       // Reset step status to pending
       await this.updateStepStatus(projectId, stepId, 'pending');
@@ -172,15 +163,12 @@ export class PlanExecutionService implements IPlanExecutionService {
         stepId,
         orchestratorInput,
       );
-
     } catch (error) {
-
       throw error;
     }
   }
 
   async abortProject(projectId: string): Promise<void> {
-
     try {
       // Update project status to aborted
       await this.updateProjectStatus(projectId, 'aborted', {
@@ -190,9 +178,7 @@ export class PlanExecutionService implements IPlanExecutionService {
 
       // Mark any running/pending steps as skipped
       await this.abortAllProjectSteps(projectId);
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -246,7 +232,6 @@ export class PlanExecutionService implements IPlanExecutionService {
       try {
         await this.executeStep(projectId, step);
       } catch (error) {
-
         // Continue with other steps, handle error appropriately
         await this.updateStepStatus(projectId, step.stepId, 'failed', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -277,7 +262,6 @@ export class PlanExecutionService implements IPlanExecutionService {
     // Execute ready steps through StateGraph workflow
     for (const step of readySteps) {
       try {
-
         // Execute step through StateGraph state management
         await this.stateManagementService.executeWorkflowStep(
           projectId,
@@ -294,9 +278,7 @@ export class PlanExecutionService implements IPlanExecutionService {
             },
           },
         );
-
       } catch (error) {
-
         // Handle workflow interrupts for error recovery
         await this.stateManagementService.handleWorkflowInterrupt(
           projectId,
@@ -334,7 +316,6 @@ export class PlanExecutionService implements IPlanExecutionService {
   }
 
   private async executeStep(projectId: string, step: any): Promise<void> {
-
     // Update step status to running
     await this.updateStepStatus(projectId, step.stepId, 'running', {
       startedAt: new Date().toISOString(),
@@ -391,7 +372,6 @@ export class PlanExecutionService implements IPlanExecutionService {
         completedAt: new Date().toISOString(),
         result: result,
       });
-
     } catch (error) {
       await this.updateStepStatus(projectId, step.stepId, 'failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -417,7 +397,6 @@ export class PlanExecutionService implements IPlanExecutionService {
       await this.updateProjectStatus(projectId, 'completed', {
         completedAt: new Date().toISOString(),
       });
-
     }
   }
 

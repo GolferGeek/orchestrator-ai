@@ -78,7 +78,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
     // NEW ARCHITECTURE: Check for PII blocking first
     if (this.shouldBlockForPII(params)) {
-      this.pythonLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+      this.pythonLogger.warn(
+        `🛑 [${agentName}] Request blocked due to PII policy violation`,
+      );
       return this.generatePIIBlockedResponse(params);
     }
 
@@ -88,7 +90,6 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     }
 
     try {
-
       // If no Python script path, fall back to context processing
       if (!this.pythonScriptPath || !fs.existsSync(this.pythonScriptPath)) {
         return this.processWithContext(method, params);
@@ -241,7 +242,6 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                     stepStatus: progressEvent.status,
                   },
                 );
-
               }
 
               // Broadcast workflow step progress via WebSocket
@@ -259,7 +259,6 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   'TaskProgressGateway is not available for broadcasting progress events',
                 );
               }
-
             } catch (error) {
               this.pythonLogger.warn(
                 `Failed to parse progress event: ${line}`,
@@ -288,7 +287,6 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
               // Note: Task completion with result is now handled in process completion
               // This event is just for broadcasting completion to WebSocket clients
-
             } catch (error) {
               this.pythonLogger.warn(
                 `Failed to parse completion event: ${line}`,
@@ -301,7 +299,6 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
       // Handle process completion
       pythonProcess.on('close', async (code) => {
-
         if (code !== 0) {
           this.pythonLogger.error(
             `❌ Python script failed with code ${code}. Error: ${stderr}`,
@@ -455,7 +452,6 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    * Simple context-based fallback processing
    */
   private async processWithContext(method: string, _params: any): Promise<any> {
-
     return {
       success: true,
       response: `Hello! I'm the ${this.getAgentName()} agent. I'm ready to help, but my Python script isn't available yet. Please check back soon!`,

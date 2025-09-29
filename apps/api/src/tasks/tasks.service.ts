@@ -39,11 +39,14 @@ export class TasksService {
    * Generate a unique task ID using UUID v4
    */
   private generateTaskId(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      },
+    );
   }
 
   /**
@@ -79,7 +82,9 @@ export class TasksService {
         params: dto.params || {},
         status: 'pending',
         progress: 0,
-        timeout_seconds: dto.timeoutSeconds || parseInt(process.env.AGENT_TASK_TIMEOUT_SECONDS || '120', 10),
+        timeout_seconds:
+          dto.timeoutSeconds ||
+          parseInt(process.env.AGENT_TASK_TIMEOUT_SECONDS || '120', 10),
         metadata: dto.metadata || {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -116,7 +121,6 @@ export class TasksService {
           if (error) {
             // If it's a duplicate key error and we have attempts left, generate new ID
             if (error.code === '23505' && attempts < maxAttempts - 1) {
-
               finalTaskData = {
                 ...taskData,
                 id: this.generateTaskId(), // Generate new unique ID
@@ -169,7 +173,6 @@ export class TasksService {
 
       throw new Error(`Failed to create task after ${maxAttempts} attempts`);
     } catch (error) {
-
       throw error;
     }
   }
@@ -188,22 +191,18 @@ export class TasksService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-
         throw new Error(`Failed to fetch task: ${error.message}`);
       }
 
       const result = data ? this.mapToTask(data) : null;
 
       if (result) {
-
         if (result.response) {
-
         }
       }
 
       return result;
     } catch (error) {
-
       throw error;
     }
   }
@@ -241,7 +240,6 @@ export class TasksService {
       const { data, error, count } = await query;
 
       if (error) {
-
         throw new Error(`Failed to list tasks: ${error.message}`);
       }
 
@@ -250,7 +248,6 @@ export class TasksService {
         total: count || 0,
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -317,7 +314,6 @@ export class TasksService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to update task: ${error.message}`);
       }
 
@@ -352,7 +348,6 @@ export class TasksService {
 
       return this.mapToTask(data);
     } catch (error) {
-
       throw error;
     }
   }
@@ -377,7 +372,6 @@ export class TasksService {
         .eq('id', taskId);
 
       if (error) {
-
         throw new Error(`Failed to update task progress: ${error.message}`);
       }
 
@@ -392,7 +386,6 @@ export class TasksService {
       };
       this.eventEmitter.emit('task.progress', progressEvent);
     } catch (error) {
-
       throw error;
     }
   }
@@ -412,7 +405,6 @@ export class TasksService {
         this.taskLifecycleService.cancelTask(taskId);
       }
     } catch (error) {
-
       throw error;
     }
   }
@@ -431,13 +423,11 @@ export class TasksService {
         .order('created_at', { ascending: false });
 
       if (error) {
-
         throw new Error(`Failed to fetch active tasks: ${error.message}`);
       }
 
       return data.map((item) => this.mapToTask(item));
     } catch (error) {
-
       throw error;
     }
   }
@@ -460,25 +450,33 @@ export class TasksService {
 
       // Calculate basic metrics
       const totalTasks = tasks?.length || 0;
-      const completedTasks = tasks?.filter(task => task.status === 'completed').length || 0;
-      const activeTasks = tasks?.filter(task => ['pending', 'running'].includes(task.status)).length || 0;
-      const failedTasks = tasks?.filter(task => task.status === 'failed').length || 0;
-      
+      const completedTasks =
+        tasks?.filter((task) => task.status === 'completed').length || 0;
+      const activeTasks =
+        tasks?.filter((task) => ['pending', 'running'].includes(task.status))
+          .length || 0;
+      const failedTasks =
+        tasks?.filter((task) => task.status === 'failed').length || 0;
+
       // Calculate success rate
-      const successRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 100;
+      const successRate =
+        totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 100;
 
       // Calculate average completion time (for completed tasks)
-      const completedTasksWithTimes = tasks?.filter(task => 
-        task.status === 'completed' && task.created_at && task.updated_at
-      ) || [];
-      
-      const averageCompletionTime = completedTasksWithTimes.length > 0
-        ? completedTasksWithTimes.reduce((sum, task) => {
-            const created = new Date(task.created_at).getTime();
-            const updated = new Date(task.updated_at).getTime();
-            return sum + (updated - created);
-          }, 0) / completedTasksWithTimes.length
-        : 0;
+      const completedTasksWithTimes =
+        tasks?.filter(
+          (task) =>
+            task.status === 'completed' && task.created_at && task.updated_at,
+        ) || [];
+
+      const averageCompletionTime =
+        completedTasksWithTimes.length > 0
+          ? completedTasksWithTimes.reduce((sum, task) => {
+              const created = new Date(task.created_at).getTime();
+              const updated = new Date(task.updated_at).getTime();
+              return sum + (updated - created);
+            }, 0) / completedTasksWithTimes.length
+          : 0;
 
       return {
         totalTasks,
@@ -489,7 +487,7 @@ export class TasksService {
         averageCompletionTime: Math.round(averageCompletionTime), // in milliseconds
         timestamp: new Date().toISOString(),
         uptime: process.uptime() * 1000, // Convert to milliseconds
-        memoryUsage: process.memoryUsage()
+        memoryUsage: process.memoryUsage(),
       };
     } catch (error) {
       this.logger.error('Error calculating task metrics:', error);
@@ -599,7 +597,10 @@ export class TasksService {
   /**
    * Add deliverable ID to task response
    */
-  private addDeliverableIdToResponse(response: any, deliverableId: string): string {
+  private addDeliverableIdToResponse(
+    response: any,
+    deliverableId: string,
+  ): string {
     try {
       let result = response;
       if (typeof response === 'string') {
@@ -617,7 +618,6 @@ export class TasksService {
 
       return JSON.stringify(enhancedResult);
     } catch (error) {
-
       return response;
     }
   }

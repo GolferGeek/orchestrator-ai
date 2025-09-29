@@ -36,7 +36,6 @@ export class ContextOptimizationService {
     // Fast-path: under 80% of budget → pass through
     const totalTokens = this.calculateTokens(fullHistory);
     if (totalTokens <= tokenBudget * 0.8) {
-
       return fullHistory;
     }
 
@@ -52,9 +51,7 @@ export class ContextOptimizationService {
         processingTimeMs: duration,
         workProductType: request.workProductType,
       });
-    } catch (e) {
-
-    }
+    } catch (e) {}
     return optimized;
   }
 
@@ -95,9 +92,7 @@ export class ContextOptimizationService {
           '00000000-0000-0000-0000-000000000000',
         );
       }
-    } catch (e) {
-
-    }
+    } catch (e) {}
     return null;
   }
 

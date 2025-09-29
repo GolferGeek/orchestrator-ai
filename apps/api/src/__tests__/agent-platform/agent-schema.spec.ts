@@ -56,7 +56,8 @@ describe('Agent schema validation', () => {
           {
             id: 'approve_plan',
             label: 'Approve Plan',
-            description: 'Manager signs off on generated plan before execution.',
+            description:
+              'Manager signs off on generated plan before execution.',
           },
         ],
         supporting_agents: [

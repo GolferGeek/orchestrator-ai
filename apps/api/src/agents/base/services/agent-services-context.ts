@@ -34,7 +34,8 @@ export class AgentServicesContext {
     @Optional() public readonly taskStatusService?: TaskStatusService,
     @Optional() public readonly tasksService?: TasksService,
     @Optional() public readonly deliverablesService?: DeliverablesService,
-    @Optional() public readonly deliverableVersionsService?: DeliverableVersionsService,
+    @Optional()
+    public readonly deliverableVersionsService?: DeliverableVersionsService,
     @Optional() public readonly taskProgressGateway?: TaskProgressGateway,
 
     // Agent framework services

@@ -127,14 +127,12 @@ export class AgentRegistrationService implements OnModuleDestroy {
         ...config.endpoints,
       },
     };
-
   }
 
   /**
    * Register an agent with the agent pool
    */
   async registerAgent(agentInfo: AgentInfo): Promise<RegistrationResult> {
-
     const registration: AgentRegistration = {
       ...agentInfo,
       status: 'online',
@@ -173,13 +171,11 @@ export class AgentRegistrationService implements OnModuleDestroy {
           };
         } else {
           lastError = `Unexpected response status: ${response.status}`;
-
         }
       } catch (error: any) {
         lastError = error.message || String(error);
 
         if (attempt < this.config.maxRetryAttempts) {
-
           await this.delay(this.config.retryDelay);
         }
       }
@@ -287,7 +283,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
    */
   startHeartbeat(agentInfo: AgentInfo, getMetrics?: () => AgentMetrics): void {
     if (this.heartbeatInterval) {
-
       this.stopHeartbeat();
     }
 
@@ -304,7 +299,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
-
     }
   }
 
@@ -428,7 +422,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
    * Cleanup on module destroy
    */
   async onModuleDestroy(): Promise<void> {
-
     // Stop heartbeat
     this.stopHeartbeat();
 
@@ -436,7 +429,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
     if (this.isRegistered && this.registeredAgentId) {
       await this.unregisterAgent(this.registeredAgentId);
     }
-
   }
 
   /**

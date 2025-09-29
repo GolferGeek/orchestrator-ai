@@ -41,7 +41,9 @@ export class ProvidersController {
 
   @Get('names')
   @Public()
-  @ApiOperation({ summary: 'Get provider names only (optimized for frontend dropdowns)' })
+  @ApiOperation({
+    summary: 'Get provider names only (optimized for frontend dropdowns)',
+  })
   @ApiQuery({
     name: 'status',
     required: false,
@@ -61,7 +63,10 @@ export class ProvidersController {
 
   @Get('with-models')
   @Public()
-  @ApiOperation({ summary: 'Get providers with their available models (optimized for frontend)' })
+  @ApiOperation({
+    summary:
+      'Get providers with their available models (optimized for frontend)',
+  })
   @ApiQuery({
     name: 'status',
     required: false,
@@ -99,7 +104,8 @@ export class ProvidersController {
     name: 'sovereign_mode',
     required: false,
     type: Boolean,
-    description: 'Filter providers based on sovereign mode compliance (true = only local/ollama providers)',
+    description:
+      'Filter providers based on sovereign mode compliance (true = only local/ollama providers)',
   })
   @ApiResponse({
     status: 200,

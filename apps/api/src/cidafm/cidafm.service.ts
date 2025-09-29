@@ -58,7 +58,6 @@ export class CIDAFMService {
       const uuidRegex =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(userId)) {
-
       } else {
         // First check if user has any commands
         const { data: userCommandIds } = await client
@@ -72,7 +71,7 @@ export class CIDAFMService {
         }
 
         // Get the actual command details
-        const commandIds = userCommandIds.map(uc => uc.command_id);
+        const commandIds = userCommandIds.map((uc) => uc.command_id);
         let commandQuery = client
           .from('cidafm_commands')
           .select('*')
@@ -211,7 +210,8 @@ export class CIDAFMService {
       .update({ is_active: isActive })
       .eq('command_id', commandId)
       .eq('user_id', userId)
-      .select(`
+      .select(
+        `
         *,
         cidafm_commands (
           id,
@@ -221,7 +221,8 @@ export class CIDAFMService {
           default_active,
           is_builtin
         )
-      `)
+      `,
+      )
       .single();
 
     if (error || !userCommand) {

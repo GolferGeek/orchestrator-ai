@@ -84,12 +84,11 @@ export class AgentsRepository {
       ? query.eq('organization_slug', organizationSlug)
       : query.is('organization_slug', null);
 
-    const { data, error } = (await query.maybeSingle()) as SupabaseSelectResponse<AgentRecord>;
+    const { data, error } =
+      (await query.maybeSingle()) as SupabaseSelectResponse<AgentRecord>;
 
     if (error && error.code !== 'PGRST116') {
-      this.logger.error(
-        `Failed to load agent ${agentSlug}: ${error.message}`,
-      );
+      this.logger.error(`Failed to load agent ${agentSlug}: ${error.message}`);
       throw new Error(`Failed to load agent: ${error.message}`);
     }
 
@@ -105,7 +104,9 @@ export class AgentsRepository {
       ? query.eq('organization_slug', organizationSlug)
       : query.is('organization_slug', null);
 
-    const { data, error } = (await query.order('slug', { ascending: true })) as SupabaseSelectListResponse<AgentRecord>;
+    const { data, error } = (await query.order('slug', {
+      ascending: true,
+    })) as SupabaseSelectListResponse<AgentRecord>;
 
     if (error) {
       this.logger.error(

@@ -87,7 +87,6 @@ export class TaskLifecycleService {
    */
   updateConfig(newConfig: Partial<TaskLifecycleConfig>): void {
     this.config = { ...this.config, ...newConfig };
-
   }
 
   /**
@@ -202,7 +201,6 @@ export class TaskLifecycleService {
   updateTaskStatus(taskId: string, status: TaskStatus): Task | null {
     const task = this.activeTasks.get(taskId);
     if (!task) {
-
       return null;
     }
 
@@ -294,7 +292,6 @@ export class TaskLifecycleService {
 
     // Only log cleanup if tasks were actually cleaned up
     if (tasksToCleanup.length > 0) {
-
     }
     return tasksToCleanup.length;
   }
@@ -357,7 +354,6 @@ export class TaskLifecycleService {
     const stuckTasks = this.getStuckTasks();
 
     for (const task of stuckTasks) {
-
       this.failTask(task.id, new Error('Task stuck - forced cleanup'));
     }
 
@@ -370,7 +366,6 @@ export class TaskLifecycleService {
   private completeTask(taskId: string, result: any): void {
     const task = this.activeTasks.get(taskId);
     if (!task) {
-
       return;
     }
 
@@ -379,7 +374,6 @@ export class TaskLifecycleService {
     task.updatedAt = new Date();
 
     this.cleanupTaskTimeout(taskId);
-
   }
 
   /**
@@ -388,7 +382,6 @@ export class TaskLifecycleService {
   private failTask(taskId: string, error: any): void {
     const task = this.activeTasks.get(taskId);
     if (!task) {
-
       return;
     }
 
@@ -401,7 +394,6 @@ export class TaskLifecycleService {
     task.updatedAt = new Date();
 
     this.cleanupTaskTimeout(taskId);
-
   }
 
   /**
@@ -477,9 +469,7 @@ export class TaskLifecycleService {
 
           // Cleanup stuck tasks
           await this.cleanupStuckTasks();
-        } catch (error) {
-
-        }
+        } catch (error) {}
       }, this.config.cleanupInterval);
     }
   }
@@ -498,7 +488,6 @@ export class TaskLifecycleService {
    * Cleanup all resources when service is destroyed
    */
   async onModuleDestroy(): Promise<void> {
-
     // Stop cleanup interval
     this.stopCleanupInterval();
 
@@ -515,6 +504,5 @@ export class TaskLifecycleService {
 
     // Clear all tasks
     this.activeTasks.clear();
-
   }
 }

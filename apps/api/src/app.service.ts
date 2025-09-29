@@ -20,19 +20,15 @@ export class AppService implements OnModuleInit {
     private readonly agentFactory: AgentFactoryService,
     private readonly agentPoolService: AgentPoolService,
     private readonly llmService: LLMService,
-  ) {
-
-  }
+  ) {}
 
   async onModuleInit() {
-
     try {
       // Step 1: Discover all agents
 
       this.discoveredAgents = await this.agentDiscovery.discoverAgents();
 
       if (this.discoveredAgents.length === 0) {
-
         return;
       }
 
@@ -43,7 +39,6 @@ export class AppService implements OnModuleInit {
 
       for (const discoveredAgent of this.discoveredAgents) {
         try {
-
           const serviceInstance =
             await this.agentFactory.createAgent(discoveredAgent);
 
@@ -58,9 +53,7 @@ export class AppService implements OnModuleInit {
           await this.registerAgentWithPool(serviceInstance, discoveredAgent);
 
           this.agentInstances.push(serviceInstance);
-
         } catch (error: any) {
-
           this.agentRecords.push({
             agent: discoveredAgent,
             instance: null,
@@ -73,14 +66,11 @@ export class AppService implements OnModuleInit {
 
       // Summary log
       if (this.discoveredAgents.length > 0) {
-
         this.agentRecords.forEach(({ agent, instance }) => {
           const status = instance ? '✅' : '❌';
-
         });
       }
     } catch (error: any) {
-
       throw error;
     }
   }
@@ -93,7 +83,6 @@ export class AppService implements OnModuleInit {
     discoveredAgent: any,
   ): Promise<void> {
     try {
-
       // Get agent card information from the service instance (includes YAML description)
       let agentCard = null;
       try {
@@ -103,9 +92,7 @@ export class AppService implements OnModuleInit {
         ) {
           agentCard = await serviceInstance.getAgentCard();
         }
-      } catch (error) {
-
-      }
+      } catch (error) {}
 
       // Build agent registration object
       const agentRegistration = {
@@ -147,9 +134,7 @@ export class AppService implements OnModuleInit {
 
       // Register with internal agent pool
       await this.agentPoolService.registerAgent(agentRegistration);
-
     } catch (error: any) {
-
       throw error;
     }
   }
@@ -193,9 +178,7 @@ export class AppService implements OnModuleInit {
               };
             }
           }
-        } catch (error) {
-
-        }
+        } catch (error) {}
 
         return {
           id: this.agentDiscovery.generateAgentId(
@@ -222,7 +205,8 @@ export class AppService implements OnModuleInit {
     return {
       status: 'running',
       discoveredAgents: filteredRecords.length,
-      runningInstances: filteredRecords.filter((record) => !!record.instance).length,
+      runningInstances: filteredRecords.filter((record) => !!record.instance)
+        .length,
       agents: agentsWithDetails,
     };
   }

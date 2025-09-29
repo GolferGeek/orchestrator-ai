@@ -193,7 +193,7 @@ export interface LLMUsageMetrics {
   totalCost?: number;
   responseTimeMs?: number;
   langsmithRunId?: string;
-  
+
   // Data sanitization and privacy tracking
   dataSanitizationApplied?: boolean;
   sanitizationLevel?: 'none' | 'basic' | 'standard' | 'strict';
@@ -215,16 +215,16 @@ export interface LLMUsageMetrics {
   proxyUsed?: boolean;
   noTrainHeaderSent?: boolean;
   noRetainHeaderSent?: boolean;
-  
+
   // Sanitization performance metrics
   sanitizationTimeMs?: number;
   reversalContextSize?: number; // Size of context needed for pseudonym reversal
-  
+
   // Data classification
   dataClassification?: 'public' | 'internal' | 'confidential' | 'restricted';
   policyProfile?: string; // e.g., 'healthcare', 'finance', 'standard'
   sovereignMode?: boolean;
-  
+
   // Compliance tracking
   complianceFlags?: {
     gdprCompliant?: boolean;

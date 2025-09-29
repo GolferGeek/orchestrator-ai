@@ -1,4 +1,9 @@
-import type { AgentChatMessage } from './types';
+import type {
+  AgentChatMessage,
+  ConversationPlanRecord,
+  OrchestrationRunRecord,
+  AgentOrchestrationRecord,
+} from './types';
 
 /**
  * Service for formatting and processing agent response messages
@@ -291,6 +296,56 @@ export class MessageFormattingService {
     });
     
     return progressContent.trim();
+  }
+
+  createPlanMessage(plan: ConversationPlanRecord): AgentChatMessage {
+    const summary = plan.summary || 'Plan draft generated.';
+    const planDetails = JSON.stringify(plan.plan_json, null, 2);
+    const content = `📋 Plan Draft (v${plan.version ?? 1})\n\n${summary}\n\n\uD83D\DCCB Plan JSON:\n${planDetails}`;
+
+    return {
+      id: `plan-${plan.id}`,
+      role: 'assistant',
+      content,
+      timestamp: new Date(plan.updated_at ?? plan.created_at ?? Date.now()),
+      metadata: {
+        planId: plan.id,
+        plan,
+      },
+    };
+  }
+
+  createOrchestrationRunMessage(run: OrchestrationRunRecord): AgentChatMessage {
+    const status = run.status ?? 'running';
+    const planRef = run.plan_id ? `Plan: ${run.plan_id}` : 'Ad hoc execution';
+    const content = `▶️ Orchestration Run Started\nStatus: ${status}\n${planRef}`;
+
+    return {
+      id: `run-${run.id}`,
+      role: 'assistant',
+      content,
+      timestamp: new Date(run.started_at ?? Date.now()),
+      metadata: {
+        runId: run.id,
+        planId: run.plan_id,
+        run,
+      },
+    };
+  }
+
+  createSavedOrchestrationMessage(orchestration: AgentOrchestrationRecord): AgentChatMessage {
+    const content = `✅ Saved orchestration recipe “${orchestration.display_name}” (slug: ${orchestration.slug}).`;
+
+    return {
+      id: `orch-${orchestration.id}`,
+      role: 'assistant',
+      content,
+      timestamp: new Date(orchestration.updated_at ?? orchestration.created_at ?? Date.now()),
+      metadata: {
+        orchestrationId: orchestration.id,
+        orchestration,
+      },
+    };
   }
 }
 

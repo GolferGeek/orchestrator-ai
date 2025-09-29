@@ -18,8 +18,14 @@ import { getTableName } from '../supabase/supabase.config';
 
 @Injectable()
 export class ProvidersService {
-  private readonly providerNamesCache = new Map<string, { data: ProviderNameDto[]; timestamp: number }>();
-  private readonly providersWithModelsCache = new Map<string, { data: ProviderWithModelsDto[]; timestamp: number }>();
+  private readonly providerNamesCache = new Map<
+    string,
+    { data: ProviderNameDto[]; timestamp: number }
+  >();
+  private readonly providersWithModelsCache = new Map<
+    string,
+    { data: ProviderWithModelsDto[]; timestamp: number }
+  >();
   private readonly cacheExpirationMs = 5 * 60 * 1000; // 5 minutes
 
   constructor(private readonly supabaseService: SupabaseService) {}
@@ -27,7 +33,7 @@ export class ProvidersService {
   async findAllNames(status?: ProviderStatus): Promise<ProviderNameDto[]> {
     const cacheKey = `names:${status || 'all'}`;
     const cached = this.providerNamesCache.get(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < this.cacheExpirationMs) {
       return cached.data;
     }
@@ -52,14 +58,14 @@ export class ProvidersService {
       );
     }
 
-    const result = (data || []).map(row => ({ name: row.name }));
-    
+    const result = (data || []).map((row) => ({ name: row.name }));
+
     // Cache the result
     this.providerNamesCache.set(cacheKey, {
       data: result,
       timestamp: Date.now(),
     });
-    
+
     return result;
   }
 
@@ -69,7 +75,7 @@ export class ProvidersService {
   ): Promise<ProviderWithModelsDto[]> {
     const cacheKey = `with-models:${status || 'all'}:${sovereignMode || 'false'}`;
     const cached = this.providersWithModelsCache.get(cacheKey);
-    
+
     if (cached && Date.now() - cached.timestamp < this.cacheExpirationMs) {
       return cached.data;
     }
@@ -122,7 +128,7 @@ export class ProvidersService {
 
       result.push({
         providerName: provider.name,
-        models: (models || []).map(model => ({
+        models: (models || []).map((model) => ({
           providerName: model.provider_name,
           modelName: model.model_name,
           displayName: model.display_name,
@@ -135,15 +141,21 @@ export class ProvidersService {
       data: result,
       timestamp: Date.now(),
     });
-    
+
     return result;
   }
 
-  async findAll(status?: ProviderStatus, sovereignMode?: boolean): Promise<ProviderResponseDto[]> {
+  async findAll(
+    status?: ProviderStatus,
+    sovereignMode?: boolean,
+  ): Promise<ProviderResponseDto[]> {
     // Try service client first to bypass RLS
     const client = this.supabaseService.getServiceClient();
 
-    let query = client.from(getTableName('llm_providers')).select('*').order('name');
+    let query = client
+      .from(getTableName('llm_providers'))
+      .select('*')
+      .order('name');
 
     if (status) {
       query = query.eq('status', status);
@@ -345,7 +357,10 @@ export class ProvidersService {
       );
     }
 
-    const { error } = await client.from(getTableName('llm_providers')).delete().eq('id', id);
+    const { error } = await client
+      .from(getTableName('llm_providers'))
+      .delete()
+      .eq('id', id);
 
     if (error) {
       throw new HttpException(
@@ -379,5 +394,4 @@ export class ProvidersService {
 
     return data ? mapLLMProviderFromDb(data) : null;
   }
-
 }

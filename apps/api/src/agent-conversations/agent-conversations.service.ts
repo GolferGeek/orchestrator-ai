@@ -72,13 +72,11 @@ export class AgentConversationsService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to create conversation: ${error.message}`);
       }
 
       return this.mapToAgentConversation(data);
     } catch (error) {
-
       throw error;
     }
   }
@@ -91,8 +89,10 @@ export class AgentConversationsService {
     userId: string,
   ): Promise<AgentConversation | null> {
     try {
-      this.logger.debug(`🔍 getConversationById: Looking for conversation ${conversationId} for user ${userId}`);
-      
+      this.logger.debug(
+        `🔍 getConversationById: Looking for conversation ${conversationId} for user ${userId}`,
+      );
+
       const { data, error } = await this.supabaseService
         .getAnonClient()
         .from(getTableName('conversations'))
@@ -101,7 +101,12 @@ export class AgentConversationsService {
         .eq('user_id', userId)
         .single();
 
-      this.logger.debug(`🔍 getConversationById: Query result - data:`, data ? 'Found' : 'Null', 'error:', error?.message || 'None');
+      this.logger.debug(
+        `🔍 getConversationById: Query result - data:`,
+        data ? 'Found' : 'Null',
+        'error:',
+        error?.message || 'None',
+      );
 
       if (error && error.code !== 'PGRST116') {
         // PGRST116 is "no rows found"
@@ -111,7 +116,6 @@ export class AgentConversationsService {
 
       return data ? this.mapToAgentConversation(data) : null;
     } catch (error) {
-
       throw error;
     }
   }
@@ -143,7 +147,6 @@ export class AgentConversationsService {
         }
 
         // If provided conversation ID doesn't exist or doesn't match, log warning and create new
-
       }
 
       // First try to find an active conversation
@@ -168,7 +171,6 @@ export class AgentConversationsService {
         agentType,
       });
     } catch (error) {
-
       throw error;
     }
   }
@@ -209,7 +211,6 @@ export class AgentConversationsService {
       const { data, error, count } = await query;
 
       if (error) {
-
         throw new Error(`Failed to list conversations: ${error.message}`);
       }
 
@@ -220,7 +221,6 @@ export class AgentConversationsService {
         total: count || 0,
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -241,11 +241,9 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (error) {
-
         throw new Error(`Failed to end conversation: ${error.message}`);
       }
     } catch (error) {
-
       throw error;
     }
   }
@@ -258,22 +256,31 @@ export class AgentConversationsService {
     userId: string,
   ): Promise<void> {
     try {
-      this.logger.debug(`🗑️ Attempting to delete conversation: ${conversationId} for user: ${userId}`);
-      
+      this.logger.debug(
+        `🗑️ Attempting to delete conversation: ${conversationId} for user: ${userId}`,
+      );
+
       // First verify the conversation exists and belongs to the user
       const conversation = await this.getConversationById(
         conversationId,
         userId,
       );
-      
-      this.logger.debug(`🗑️ getConversationById result:`, conversation ? 'Found' : 'Not found');
-      
+
+      this.logger.debug(
+        `🗑️ getConversationById result:`,
+        conversation ? 'Found' : 'Not found',
+      );
+
       if (!conversation) {
-        this.logger.error(`🗑️ Conversation not found: ${conversationId} for user: ${userId}`);
+        this.logger.error(
+          `🗑️ Conversation not found: ${conversationId} for user: ${userId}`,
+        );
         throw new Error('Conversation not found');
       }
-      
-      this.logger.debug(`🗑️ Found conversation to delete: ${conversation.agentName}`);
+
+      this.logger.debug(
+        `🗑️ Found conversation to delete: ${conversation.agentName}`,
+      );
 
       // Delete related LLM usage records first to avoid foreign key constraint violation
       const { error: llmUsageDeleteError } = await this.supabaseService
@@ -284,11 +291,18 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (llmUsageDeleteError) {
-        this.logger.error(`🗑️ Failed to delete LLM usage records:`, llmUsageDeleteError);
-        throw new Error(`Failed to delete LLM usage records: ${llmUsageDeleteError.message}`);
+        this.logger.error(
+          `🗑️ Failed to delete LLM usage records:`,
+          llmUsageDeleteError,
+        );
+        throw new Error(
+          `Failed to delete LLM usage records: ${llmUsageDeleteError.message}`,
+        );
       }
-      
-      this.logger.debug(`🗑️ Deleted LLM usage records for conversation: ${conversationId}`);
+
+      this.logger.debug(
+        `🗑️ Deleted LLM usage records for conversation: ${conversationId}`,
+      );
 
       // Preserve agent_name in deliverables before deleting conversation
       // The database will automatically set conversation_id to NULL due to SET NULL constraint,
@@ -305,7 +319,6 @@ export class AgentConversationsService {
         .is('agent_name', null); // Only update if agent_name is not already set
 
       if (deliverablesUpdateError) {
-
         // Don't throw here - this is not critical enough to stop deletion
       }
 
@@ -318,7 +331,6 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (tasksError) {
-
         throw new Error(
           `Failed to delete conversation tasks: ${tasksError.message}`,
         );
@@ -333,12 +345,9 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (error) {
-
         throw new Error(`Failed to delete conversation: ${error.message}`);
       }
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -363,13 +372,11 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (error) {
-
         throw new Error(
           `Failed to update conversation metadata: ${error.message}`,
         );
       }
     } catch (error) {
-
       throw error;
     }
   }
@@ -388,7 +395,6 @@ export class AgentConversationsService {
         .order('last_active_at', { ascending: false });
 
       if (error) {
-
         throw new Error(
           `Failed to fetch active conversations: ${error.message}`,
         );
@@ -396,7 +402,6 @@ export class AgentConversationsService {
 
       return data.map((item) => this.mapToAgentConversation(item));
     } catch (error) {
-
       throw error;
     }
   }
@@ -419,7 +424,6 @@ export class AgentConversationsService {
       .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
-
       throw new Error(
         `Failed to find conversation by work product: ${error.message}`,
       );
@@ -448,7 +452,6 @@ export class AgentConversationsService {
       .single();
 
     if (fetchError || !existing) {
-
       throw new Error('Conversation not found or access denied');
     }
 
@@ -463,7 +466,6 @@ export class AgentConversationsService {
       existingId &&
       (existingType !== workProduct.type || existingId !== workProduct.id)
     ) {
-
       throw new Error('Primary work product is immutable once set');
     }
 
@@ -487,7 +489,6 @@ export class AgentConversationsService {
       .eq('user_id', userId);
 
     if (updateError) {
-
       throw new Error(
         updateError.message || 'Could not set primary work product',
       );
@@ -503,9 +504,13 @@ export class AgentConversationsService {
       userId: data.user_id,
       agentName: data.agent_name,
       agentType: data.agent_type,
-      startedAt: data.started_at ? new Date(data.started_at) : new Date(data.created_at),
+      startedAt: data.started_at
+        ? new Date(data.started_at)
+        : new Date(data.created_at),
       endedAt: data.ended_at ? new Date(data.ended_at) : undefined,
-      lastActiveAt: data.last_active_at ? new Date(data.last_active_at) : new Date(data.created_at),
+      lastActiveAt: data.last_active_at
+        ? new Date(data.last_active_at)
+        : new Date(data.created_at),
       metadata: data.metadata,
       workProduct:
         data.primary_work_product_type && data.primary_work_product_id

@@ -15,12 +15,10 @@ async function bootstrap() {
     const envFilePath = process.env.ENV_FILE.startsWith('/')
       ? process.env.ENV_FILE
       : join(process.cwd(), process.env.ENV_FILE);
-    
+
     try {
       dotenv.config({ path: envFilePath });
-
     } catch (error) {
-
       process.exit(1);
     }
   }
@@ -34,11 +32,10 @@ async function bootstrap() {
   );
   if (enableExternalIdx !== -1) {
     process.env.ENABLE_EXTERNAL_AGENTS = 'true';
-
   }
 
   // Configure logging levels based on environment
-  // 
+  //
   // Environment Variables for Logging:
   // LOG_LEVEL - Comma-separated list of levels: error,warn,log,debug,verbose
   // NODE_ENV - Environment: production, development, test
@@ -52,16 +49,27 @@ async function bootstrap() {
   const logLevels = (() => {
     const nodeEnv = process.env.NODE_ENV;
     const logLevel = process.env.LOG_LEVEL;
-    
+
     // Valid NestJS log levels
-    const validLevels: LogLevel[] = ['error', 'warn', 'log', 'debug', 'verbose'];
-    
+    const validLevels: LogLevel[] = [
+      'error',
+      'warn',
+      'log',
+      'debug',
+      'verbose',
+    ];
+
     // If LOG_LEVEL is explicitly set, use it
     if (logLevel) {
-      const levels = logLevel.toLowerCase().split(',').map(l => l.trim());
-      return levels.filter(level => validLevels.includes(level as LogLevel)) as LogLevel[];
+      const levels = logLevel
+        .toLowerCase()
+        .split(',')
+        .map((l) => l.trim());
+      return levels.filter((level) =>
+        validLevels.includes(level as LogLevel),
+      ) as LogLevel[];
     }
-    
+
     // Default levels based on environment
     if (nodeEnv === 'production') {
       return ['error', 'warn'] as LogLevel[]; // Only errors and warnings in production
@@ -84,7 +92,9 @@ async function bootstrap() {
   // Setup Swagger/OpenAPI documentation
   const config = new DocumentBuilder()
     .setTitle('Orchestrator AI API')
-    .setDescription('API for Orchestrator AI platform with sovereign mode support')
+    .setDescription(
+      'API for Orchestrator AI platform with sovereign mode support',
+    )
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -136,44 +146,73 @@ async function bootstrap() {
   ];
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       // Allow requests with no origin (like mobile apps, curl, or tests)
       if (!origin) return callback(null, true);
-      
+
       // In development mode, allow localhost and test environments
-      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      if (
+        process.env.NODE_ENV === 'development' ||
+        process.env.NODE_ENV === 'test'
+      ) {
         // Allow localhost and common test origins
-        if (origin.startsWith('http://localhost') || 
-            origin.startsWith('https://localhost') ||
-            origin.includes('127.0.0.1') ||
-            origin === 'null' ||
-            origin === 'file://') {
+        if (
+          origin.startsWith('http://localhost') ||
+          origin.startsWith('https://localhost') ||
+          origin.includes('127.0.0.1') ||
+          origin === 'null' ||
+          origin === 'file://'
+        ) {
           return callback(null, true);
         }
       }
-      
+
       // Check if origin is in our list
       if (corsOrigins.includes(origin)) {
         return callback(null, true);
       }
-      
+
       // In production, you might want to be more restrictive
       // For now, let's allow all orchestratorai.io subdomains
       if (origin.includes('orchestratorai.io')) {
         return callback(null, true);
       }
-      
+
       // In development, be more permissive for testing
       if (process.env.NODE_ENV === 'development') {
-        console.warn(`🚨 CORS: Allowing unrecognized origin in development: ${origin}`);
+        console.warn(
+          `🚨 CORS: Allowing unrecognized origin in development: ${origin}`,
+        );
         return callback(null, true);
       }
-      
+
       callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Accept', 'Accept-Language', 'Accept-Encoding', 'Pragma', 'X-CSRF-Token', 'X-Requested-With', 'Accept', 'Accept-Version', 'Content-Length', 'Content-MD5', 'Date', 'X-Api-Version', 'X-Test-Api-Key', 'X-Agent-Namespace'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Cache-Control',
+      'Accept',
+      'Accept-Language',
+      'Accept-Encoding',
+      'Pragma',
+      'X-CSRF-Token',
+      'X-Requested-With',
+      'Accept',
+      'Accept-Version',
+      'Content-Length',
+      'Content-MD5',
+      'Date',
+      'X-Api-Version',
+      'X-Test-Api-Key',
+      'X-Agent-Namespace',
+    ],
   });
 
   // Start the HTTP server
@@ -189,7 +228,6 @@ async function bootstrap() {
   // 1. AgentDiscoveryService.discoverAgents()
   // 2. AgentFactoryService.createAgent() for each discovered agent
   // 3. Registration with agent pool
-
 }
 
 bootstrap().catch((error) => {

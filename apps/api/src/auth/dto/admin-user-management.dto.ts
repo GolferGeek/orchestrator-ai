@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsArray, IsEnum, IsOptional, IsString, IsEmail, MinLength } from 'class-validator';
+import {
+  IsUUID,
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsEmail,
+  MinLength,
+} from 'class-validator';
 import { UserRole } from '../decorators/roles.decorator';
 
 export class UserListResponseDto {
@@ -12,11 +20,11 @@ export class UserListResponseDto {
   @ApiProperty({ description: 'User display name', required: false })
   displayName?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Array of user roles',
     enum: UserRole,
     isArray: true,
-    example: [UserRole.USER, UserRole.ADMIN]
+    example: [UserRole.USER, UserRole.ADMIN],
   })
   roles!: UserRole[];
 
@@ -32,16 +40,16 @@ export class UpdateUserRolesDto {
     description: 'Array of roles to assign to the user',
     enum: UserRole,
     isArray: true,
-    example: [UserRole.USER, UserRole.ADMIN]
+    example: [UserRole.USER, UserRole.ADMIN],
   })
   @IsArray()
   @IsEnum(UserRole, { each: true })
   roles!: UserRole[];
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Optional reason for role change',
     required: false,
-    example: 'Promoting user to admin for system maintenance'
+    example: 'Promoting user to admin for system maintenance',
   })
   @IsOptional()
   @IsString()
@@ -52,15 +60,15 @@ export class AddUserRoleDto {
   @ApiProperty({
     description: 'Role to add to the user',
     enum: UserRole,
-    example: UserRole.ADMIN
+    example: UserRole.ADMIN,
   })
   @IsEnum(UserRole)
   role!: UserRole;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Optional reason for adding role',
     required: false,
-    example: 'Granting admin access for project management'
+    example: 'Granting admin access for project management',
   })
   @IsOptional()
   @IsString()
@@ -71,15 +79,15 @@ export class RemoveUserRoleDto {
   @ApiProperty({
     description: 'Role to remove from the user',
     enum: UserRole,
-    example: UserRole.ADMIN
+    example: UserRole.ADMIN,
   })
   @IsEnum(UserRole)
   role!: UserRole;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Optional reason for removing role',
     required: false,
-    example: 'User no longer needs admin access'
+    example: 'User no longer needs admin access',
   })
   @IsOptional()
   @IsString()
@@ -89,7 +97,7 @@ export class RemoveUserRoleDto {
 export class CreateUserDto {
   @ApiProperty({
     description: 'User email address',
-    example: 'newuser@example.com'
+    example: 'newuser@example.com',
   })
   @IsEmail()
   email!: string;
@@ -97,7 +105,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Temporary password (user should change on first login)',
     example: 'TempPass123!',
-    minLength: 8
+    minLength: 8,
   })
   @IsString()
   @MinLength(8)
@@ -106,7 +114,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'User display name',
     required: false,
-    example: 'John Doe'
+    example: 'John Doe',
   })
   @IsOptional()
   @IsString()
@@ -117,7 +125,7 @@ export class CreateUserDto {
     enum: UserRole,
     isArray: true,
     example: [UserRole.USER],
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsArray()
@@ -127,7 +135,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Force user to change password on first login',
     example: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   emailConfirm?: boolean;
@@ -153,10 +161,10 @@ export class CreateUserResponseDto {
   @ApiProperty({ description: 'User display name', required: false })
   displayName?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Assigned roles',
     enum: UserRole,
-    isArray: true
+    isArray: true,
   })
   roles!: UserRole[];
 

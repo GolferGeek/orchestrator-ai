@@ -25,7 +25,6 @@ export class AuthService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async signup(userCreateDto: UserCreateDto): Promise<TokenResponseDto> {
-
     try {
       const supabaseClient = this.supabaseService.getAnonClient();
 
@@ -42,7 +41,6 @@ export class AuthService {
       });
 
       if (error) {
-
         throw new BadRequestException(
           error.message ||
             'Error during signup. User might already exist or invalid input.',
@@ -51,7 +49,6 @@ export class AuthService {
 
       // Handle successful signup with session
       if (authResponse.user && authResponse.session?.access_token) {
-
         return {
           accessToken: authResponse.session.access_token,
           refreshToken: authResponse.session.refresh_token || undefined,
@@ -62,7 +59,6 @@ export class AuthService {
 
       // User created but no session (email confirmation required)
       if (authResponse.user && !authResponse.session) {
-
         throw new HttpException(
           'User created successfully. Please check your email to confirm your account before logging in.',
           HttpStatus.ACCEPTED, // 202 Accepted
@@ -86,7 +82,6 @@ export class AuthService {
   }
 
   async login(userLoginDto: UserLoginDto): Promise<TokenResponseDto> {
-
     try {
       const supabaseClient = this.supabaseService.getAnonClient();
 
@@ -97,14 +92,12 @@ export class AuthService {
         });
 
       if (error) {
-
         throw new UnauthorizedException(
           error.message || 'Invalid login credentials.',
         );
       }
 
       if (!authResponse.session?.access_token) {
-
         throw new BadRequestException(
           'Login succeeded but no session or token received.',
         );
@@ -129,7 +122,6 @@ export class AuthService {
   }
 
   async logout(token: string): Promise<void> {
-
     try {
       // Create an authenticated client with the user's token
       const authenticatedClient =
@@ -138,10 +130,8 @@ export class AuthService {
       const { error } = await authenticatedClient.auth.signOut();
 
       if (error) {
-
         throw new BadRequestException(error.message || 'Error during logout.');
       }
-
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -155,7 +145,6 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string): Promise<TokenResponseDto> {
-
     try {
       const supabaseClient = this.supabaseService.getAnonClient();
 
@@ -166,14 +155,12 @@ export class AuthService {
         });
 
       if (error) {
-
         throw new UnauthorizedException(
           error.message || 'Invalid or expired refresh token',
         );
       }
 
       if (!authResponse.session) {
-
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
 
@@ -199,7 +186,6 @@ export class AuthService {
     currentAuthUser: SupabaseAuthUserDto,
     token: string,
   ): Promise<AuthenticatedUserResponseDto> {
-
     try {
       // Use service role client to bypass RLS issues temporarily
       const serviceClient = this.supabaseService.getServiceClient();
@@ -280,7 +266,6 @@ export class AuthService {
         identities: user.identities,
       };
     } catch (error) {
-
       throw new UnauthorizedException('Invalid token');
     }
   }
@@ -293,7 +278,9 @@ export class AuthService {
       const { data, error } = await this.supabaseService
         .getAnonClient()
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, updated_at, namespace_access')
+        .select(
+          'id, email, display_name, roles, created_at, updated_at, namespace_access',
+        )
         .eq('id', userId)
         .single();
 
@@ -316,7 +303,6 @@ export class AuthService {
           : [],
       };
     } catch (error) {
-
       throw new HttpException(
         'Could not fetch user profile.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -541,11 +527,8 @@ export class AuthService {
         });
 
       if (error) {
-
       }
-    } catch (error) {
-
-    }
+    } catch (error) {}
   }
 
   /**
@@ -557,14 +540,15 @@ export class AuthService {
       const serviceClient = this.supabaseService.getServiceClient();
 
       // Create user in Supabase Auth using Admin API
-      const { data: authUser, error: authError } = await serviceClient.auth.admin.createUser({
-        email: createUserDto.email,
-        password: createUserDto.password,
-        email_confirm: createUserDto.emailConfirm !== false, // Default to true
-        user_metadata: {
-          display_name: createUserDto.displayName || '',
-        }
-      });
+      const { data: authUser, error: authError } =
+        await serviceClient.auth.admin.createUser({
+          email: createUserDto.email,
+          password: createUserDto.password,
+          email_confirm: createUserDto.emailConfirm !== false, // Default to true
+          user_metadata: {
+            display_name: createUserDto.displayName || '',
+          },
+        });
 
       if (authError) {
         throw new Error(`Failed to create auth user: ${authError.message}`);
@@ -598,7 +582,9 @@ export class AuthService {
       if (profileError) {
         // If profile creation fails, we should clean up the auth user
         await serviceClient.auth.admin.deleteUser(authUser.user.id);
-        throw new Error(`Failed to create user profile: ${profileError.message}`);
+        throw new Error(
+          `Failed to create user profile: ${profileError.message}`,
+        );
       }
 
       return {
@@ -608,13 +594,14 @@ export class AuthService {
         roles: roles,
         emailConfirmationRequired: !authUser.user.email_confirmed_at,
         message: 'User created successfully',
-        namespaceAccess:
-          createUserDto.namespaceAccess?.length
-            ? createUserDto.namespaceAccess
-            : ['my-org'],
+        namespaceAccess: createUserDto.namespaceAccess?.length
+          ? createUserDto.namespaceAccess
+          : ['my-org'],
       };
     } catch (error) {
-      throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -627,7 +614,9 @@ export class AuthService {
 
       const { data: users, error } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, status, namespace_access')
+        .select(
+          'id, email, display_name, roles, created_at, status, namespace_access',
+        )
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -636,7 +625,9 @@ export class AuthService {
 
       return users || [];
     } catch (error) {
-      throw new Error(`Failed to get all users: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get all users: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -649,7 +640,9 @@ export class AuthService {
 
       const { data: user, error } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, status, namespace_access')
+        .select(
+          'id, email, display_name, roles, created_at, status, namespace_access',
+        )
         .eq('id', userId)
         .single();
 
@@ -663,7 +656,9 @@ export class AuthService {
 
       return user;
     } catch (error) {
-      throw new Error(`Failed to get user by ID: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get user by ID: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }

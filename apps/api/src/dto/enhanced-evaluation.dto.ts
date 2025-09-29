@@ -298,13 +298,19 @@ export class AgentLLMRecommendationDto {
   @IsString()
   modelName!: string;
 
-  @ApiProperty({ description: 'Average overall user rating (1-5)', example: 4.7 })
+  @ApiProperty({
+    description: 'Average overall user rating (1-5)',
+    example: 4.7,
+  })
   @IsNumber()
   @Min(0)
   @Max(5)
   averageRating!: number;
 
-  @ApiProperty({ description: 'Number of evaluations contributing to the score', example: 12 })
+  @ApiProperty({
+    description: 'Number of evaluations contributing to the score',
+    example: 12,
+  })
   @IsNumber()
   @Min(1)
   evaluationCount!: number;

@@ -31,7 +31,6 @@ export class AuthService {
   validateAuthContext(authContext: AuthContext): boolean {
     // Basic validation - can be extended with more sophisticated checks
     if (!authContext.currentUser || !authContext.authToken) {
-
       return false;
     }
 
@@ -41,9 +40,7 @@ export class AuthService {
   /**
    * Log authentication events
    */
-  logAuthEvent(event: string, authContext: AuthContext, details?: any): void {
-
-  }
+  logAuthEvent(event: string, authContext: AuthContext, details?: any): void {}
 
   /**
    * Get user information from auth context

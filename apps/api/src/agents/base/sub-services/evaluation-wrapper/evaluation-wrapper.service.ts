@@ -147,7 +147,6 @@ export class EvaluationWrapperService {
     this.metricsCache = new Map<string, EvaluationMetrics>();
     this.performanceSnapshots = new Map<string, PerformanceSnapshot>();
     this.errorTrackingCache = new Map<string, ErrorTrackingEntry>();
-
   }
 
   /**
@@ -158,7 +157,6 @@ export class EvaluationWrapperService {
 
     this.requestCount++;
     this.activeTasks++;
-
   }
 
   /**
@@ -200,7 +198,6 @@ export class EvaluationWrapperService {
         error,
       );
     }
-
   }
 
   /**
@@ -403,7 +400,6 @@ export class EvaluationWrapperService {
     };
 
     this.errorTrackingCache.set(errorEntry.id, errorEntry);
-
   }
 
   /**
@@ -455,7 +451,6 @@ export class EvaluationWrapperService {
    */
   updateConfig(newConfig: Partial<EvaluationConfig>): void {
     this.config = { ...this.config, ...newConfig };
-
   }
 
   /**
@@ -478,7 +473,6 @@ export class EvaluationWrapperService {
     this.errorCount = 0;
     this.completedTasks = 0;
     this.activeTasks = 0;
-
   }
 
   /**

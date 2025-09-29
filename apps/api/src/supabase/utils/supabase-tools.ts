@@ -42,20 +42,25 @@ export interface SQLExecutionResult {
 function getOrchestratorClient() {
   if (!orchestratorClient) {
     // Use orchestrator database (main platform)
-    const supabaseUrl = process.env.SUPABASE_MODE === 'local' 
-      ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:9010'
-      : process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
-    
-    const serviceKey = process.env.SUPABASE_MODE === 'local'
-      ? process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
-      : process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl =
+      process.env.SUPABASE_MODE === 'local'
+        ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:9010'
+        : process.env.SUPABASE_URL ||
+          'https://jcmkjecmdugfzvdijodg.supabase.co';
+
+    const serviceKey =
+      process.env.SUPABASE_MODE === 'local'
+        ? process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY ||
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        : process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!serviceKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+      throw new Error(
+        'SUPABASE_SERVICE_ROLE_KEY environment variable is required',
+      );
     }
 
     orchestratorClient = createClient(supabaseUrl, serviceKey);
-
   }
   return orchestratorClient;
 }
@@ -66,20 +71,23 @@ function getOrchestratorClient() {
 function getCompanyClient() {
   if (!companyClient) {
     // Use same database as orchestrator (single-instance demo)
-    const supabaseUrl = process.env.SUPABASE_MODE === 'local' 
-      ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:9010'
-      : process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
-    
-    const serviceKey = process.env.SUPABASE_MODE === 'local'
-      ? process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
-      : process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl =
+      process.env.SUPABASE_MODE === 'local'
+        ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:9010'
+        : process.env.SUPABASE_URL ||
+          'https://jcmkjecmdugfzvdijodg.supabase.co';
+
+    const serviceKey =
+      process.env.SUPABASE_MODE === 'local'
+        ? process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY ||
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        : process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!serviceKey) {
       throw new Error('Company database service role key is required');
     }
 
     companyClient = createClient(supabaseUrl, serviceKey);
-
   }
   return companyClient;
 }
@@ -87,13 +95,13 @@ function getCompanyClient() {
 /**
  * Create SQL Database interface for LangChain - Orchestrator Database
  */
-async function createOrchestratorSqlDatabase(): Promise<any> { // SqlDatabase type not available
+async function createOrchestratorSqlDatabase(): Promise<any> {
+  // SqlDatabase type not available
   if (!orchestratorSqlDatabase) {
     const client = getOrchestratorClient();
 
     orchestratorSqlDatabase = {
       async run(query: string) {
-
         try {
           const { data, error } = await client.rpc('exec_sql', {
             query: query,
@@ -104,7 +112,6 @@ async function createOrchestratorSqlDatabase(): Promise<any> { // SqlDatabase ty
 
           return data;
         } catch (rpcError) {
-
           throw new Error(
             `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
           );
@@ -123,7 +130,6 @@ async function createOrchestratorSqlDatabase(): Promise<any> { // SqlDatabase ty
         );
       },
     } as any;
-
   }
   return orchestratorSqlDatabase!;
 }
@@ -131,13 +137,13 @@ async function createOrchestratorSqlDatabase(): Promise<any> { // SqlDatabase ty
 /**
  * Create SQL Database interface for LangChain - Company Database
  */
-async function createCompanySqlDatabase(): Promise<any> { // SqlDatabase type not available
+async function createCompanySqlDatabase(): Promise<any> {
+  // SqlDatabase type not available
   if (!companySqlDatabase) {
     const client = getCompanyClient();
 
     companySqlDatabase = {
       async run(query: string) {
-
         try {
           // Company database uses direct table queries (no exec_sql RPC)
           // Parse and execute the query directly
@@ -148,7 +154,6 @@ async function createCompanySqlDatabase(): Promise<any> { // SqlDatabase type no
 
           return data;
         } catch (rpcError) {
-
           throw new Error(
             `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
           );
@@ -177,50 +182,77 @@ async function createCompanySqlDatabase(): Promise<any> { // SqlDatabase type no
 /**
  * Execute a query on company database using PostgREST API
  */
-async function executeQueryOnCompanyDB(client: any, query: string): Promise<{data: any, error?: string}> {
+async function executeQueryOnCompanyDB(
+  client: any,
+  query: string,
+): Promise<{ data: any; error?: string }> {
   // Simple query parsing for basic SELECT statements on company schema
   // This is a simplified approach - for production you'd want more robust SQL parsing
   const lowerQuery = query.toLowerCase().trim();
-  
+
   try {
     // Handle count queries
-    if (lowerQuery.includes('select count(*)') && lowerQuery.includes('companies')) {
-      const { data, error } = await client.from('companies').select('*', { count: 'exact' });
+    if (
+      lowerQuery.includes('select count(*)') &&
+      lowerQuery.includes('companies')
+    ) {
+      const { data, error } = await client
+        .from('companies')
+        .select('*', { count: 'exact' });
       return { data: [{ count: data?.length || 0 }], error: error?.message };
     }
-    
+
     // Handle public schema table queries
     if (lowerQuery.includes('from companies')) {
-      const { data, error } = await client.from('companies').select('*').limit(100);
+      const { data, error } = await client
+        .from('companies')
+        .select('*')
+        .limit(100);
       return { data, error: error?.message };
     }
-    
+
     if (lowerQuery.includes('from departments')) {
-      const { data, error } = await client.from('departments').select('*').limit(100);
+      const { data, error } = await client
+        .from('departments')
+        .select('*')
+        .limit(100);
       return { data, error: error?.message };
     }
-    
+
     if (lowerQuery.includes('from kpi_data')) {
-      const { data, error } = await client.from('kpi_data').select('*').limit(100);
+      const { data, error } = await client
+        .from('kpi_data')
+        .select('*')
+        .limit(100);
       return { data, error: error?.message };
     }
-    
+
     if (lowerQuery.includes('from kpi_metrics')) {
-      const { data, error } = await client.from('kpi_metrics').select('*').limit(100);
+      const { data, error } = await client
+        .from('kpi_metrics')
+        .select('*')
+        .limit(100);
       return { data, error: error?.message };
     }
-    
+
     if (lowerQuery.includes('from kpi_goals')) {
-      const { data, error } = await client.from('kpi_goals').select('*').limit(100);
+      const { data, error } = await client
+        .from('kpi_goals')
+        .select('*')
+        .limit(100);
       return { data, error: error?.message };
     }
-    
+
     // For complex queries, try to execute via raw query if possible
     // This is a fallback - you might need to implement more sophisticated query parsing
-    throw new Error('Complex query execution not implemented for company database');
-    
+    throw new Error(
+      'Complex query execution not implemented for company database',
+    );
   } catch (err) {
-    return { data: null, error: err instanceof Error ? err.message : 'Unknown error' };
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    };
   }
 }
 
@@ -248,23 +280,22 @@ export async function initializeForOrchestrator(config?: SupabaseToolsConfig) {
  * Initialize Supabase tools for Company database (KPI/Analytics)
  */
 export async function initializeForCompany(config?: SupabaseToolsConfig) {
-
   await createCompanySqlDatabase();
-  
+
   if (!initialized) {
     initializeLangChain();
     initialized = true;
   }
-
 }
 
 /**
  * Legacy function - now routes to orchestrator
  */
 export async function initializeForAgent(config?: SupabaseToolsConfig) {
-  const isKpiRequest = config?.includeDomains?.includes('KPI & Analytics') || 
-                      config?.agentName?.includes('Metrics');
-  
+  const isKpiRequest =
+    config?.includeDomains?.includes('KPI & Analytics') ||
+    config?.agentName?.includes('Metrics');
+
   if (isKpiRequest) {
     await initializeForCompany(config);
   } else {
@@ -287,7 +318,6 @@ export async function executeOrchestratorSQL(query: string): Promise<any> {
 
     return data;
   } catch (rpcError) {
-
     throw new Error(
       `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
     );
@@ -309,7 +339,6 @@ export async function executeCompanySQL(query: string): Promise<any> {
 
     return result.data;
   } catch (sqlError) {
-
     throw new Error(
       `SQL execution failed: ${sqlError instanceof Error ? sqlError.message : 'Unknown error'}`,
     );
@@ -322,10 +351,11 @@ export async function executeCompanySQL(query: string): Promise<any> {
 export async function executeSQL(query: string): Promise<any> {
   // Auto-detect if this is a company/KPI query
   const lowerQuery = query.toLowerCase();
-  const isCompanyQuery = lowerQuery.includes('companies') || 
-                        lowerQuery.includes('departments') || 
-                        lowerQuery.includes('kpi_');
-  
+  const isCompanyQuery =
+    lowerQuery.includes('companies') ||
+    lowerQuery.includes('departments') ||
+    lowerQuery.includes('kpi_');
+
   if (isCompanyQuery) {
     return executeCompanySQL(query);
   } else {
@@ -347,18 +377,26 @@ export async function generateAndExecuteCompanySQL(
   } = {},
 ): Promise<SQLExecutionResult> {
   const startTime = Date.now();
-  
+
   try {
     // Note: MCPClientService should be injected via DI in production
     // This is a temporary workaround for the standalone utility function
     if (!mcpClientService) {
-      throw new Error('MCP Client Service not initialized. Use dependency injection.');
+      throw new Error(
+        'MCP Client Service not initialized. Use dependency injection.',
+      );
     }
 
     // Generate SQL using MCP
     const sqlResponse = await mcpClientService.generateSQL({
       natural_language_query: naturalLanguageQuery,
-      schema_tables: options.config?.tableNames || ['companies', 'departments', 'kpi_metrics', 'kpi_goals', 'kpi_data'],
+      schema_tables: options.config?.tableNames || [
+        'companies',
+        'departments',
+        'kpi_metrics',
+        'kpi_goals',
+        'kpi_data',
+      ],
       max_rows: options.maxRows,
     });
 
@@ -377,7 +415,10 @@ export async function generateAndExecuteCompanySQL(
           result = result.slice(0, options.maxRows);
         }
       } catch (executionError) {
-        error = executionError instanceof Error ? executionError.message : 'Execution failed';
+        error =
+          executionError instanceof Error
+            ? executionError.message
+            : 'Execution failed';
       }
     }
 
@@ -398,7 +439,10 @@ export async function generateAndExecuteCompanySQL(
     const executionTime = Date.now() - startTime;
     return {
       sql: '',
-      error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
+      error:
+        generationError instanceof Error
+          ? generationError.message
+          : 'SQL generation failed',
       metadata: {
         executionTime,
         provider: options.provider || 'mcp',
@@ -422,18 +466,20 @@ export async function generateAndExecuteOrchestratorSQL(
   } = {},
 ): Promise<SQLExecutionResult> {
   const startTime = Date.now();
-  
+
   try {
     // Note: MCPClientService should be injected via DI in production
     // This is a temporary workaround for the standalone utility function
     if (!mcpClientService) {
-      throw new Error('MCP Client Service not initialized. Use dependency injection.');
+      throw new Error(
+        'MCP Client Service not initialized. Use dependency injection.',
+      );
     }
 
     // Generate SQL using MCP
     const sqlResponse = await mcpClientService.generateSQL({
       natural_language_query: naturalLanguageQuery,
-      schema_tables: options.config?.tableNames || await getAllTableNames(),
+      schema_tables: options.config?.tableNames || (await getAllTableNames()),
       max_rows: options.maxRows,
     });
 
@@ -452,7 +498,10 @@ export async function generateAndExecuteOrchestratorSQL(
           result = result.slice(0, options.maxRows);
         }
       } catch (executionError) {
-        error = executionError instanceof Error ? executionError.message : 'Execution failed';
+        error =
+          executionError instanceof Error
+            ? executionError.message
+            : 'Execution failed';
       }
     }
 
@@ -473,7 +522,10 @@ export async function generateAndExecuteOrchestratorSQL(
     const executionTime = Date.now() - startTime;
     return {
       sql: '',
-      error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
+      error:
+        generationError instanceof Error
+          ? generationError.message
+          : 'SQL generation failed',
       metadata: {
         executionTime,
         provider: options.provider || 'mcp',
@@ -498,14 +550,15 @@ export async function generateAndExecuteSQL(
 ): Promise<SQLExecutionResult> {
   // Auto-detect if this is a company/KPI query
   const lowerQuery = naturalLanguageQuery.toLowerCase();
-  const isCompanyQuery = lowerQuery.includes('companies') || 
-                        lowerQuery.includes('departments') || 
-                        lowerQuery.includes('kpi') ||
-                        lowerQuery.includes('revenue') ||
-                        lowerQuery.includes('metric') ||
-                        lowerQuery.includes('goal') ||
-                        options.config?.includeDomains?.includes('KPI & Analytics');
-  
+  const isCompanyQuery =
+    lowerQuery.includes('companies') ||
+    lowerQuery.includes('departments') ||
+    lowerQuery.includes('kpi') ||
+    lowerQuery.includes('revenue') ||
+    lowerQuery.includes('metric') ||
+    lowerQuery.includes('goal') ||
+    options.config?.includeDomains?.includes('KPI & Analytics');
+
   if (isCompanyQuery) {
     return generateAndExecuteCompanySQL(naturalLanguageQuery, options);
   } else {
@@ -516,7 +569,9 @@ export async function generateAndExecuteSQL(
 /**
  * Get database schema information
  */
-export async function getDatabaseSchemaInfo(config?: SupabaseToolsConfig): Promise<string> {
+export async function getDatabaseSchemaInfo(
+  config?: SupabaseToolsConfig,
+): Promise<string> {
   if (config?.includeDomains?.includes('KPI & Analytics')) {
     return `
       Available tables for KPI & Analytics (public schema):
@@ -536,7 +591,9 @@ export async function getDatabaseSchemaInfo(config?: SupabaseToolsConfig): Promi
 /**
  * Get table names based on domain
  */
-export async function getTableNames(config?: SupabaseToolsConfig): Promise<string[]> {
+export async function getTableNames(
+  config?: SupabaseToolsConfig,
+): Promise<string[]> {
   if (config?.includeDomains?.includes('KPI & Analytics')) {
     return ['companies', 'departments', 'kpi_metrics', 'kpi_goals', 'kpi_data'];
   } else if (config?.tableNames) {

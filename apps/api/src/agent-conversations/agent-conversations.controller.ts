@@ -39,7 +39,6 @@ export class AgentConversationsController {
     @Query() query: AgentConversationQueryParams,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-
     // Ensure user can only see their own conversations
     const params = {
       ...query,
@@ -58,7 +57,6 @@ export class AgentConversationsController {
     @Param('id') conversationId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-
     const conversation =
       await this.agentConversationsService.getConversationById(
         conversationId,
@@ -82,7 +80,6 @@ export class AgentConversationsController {
     @Body() dto: CreateAgentConversationDto,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-
     return this.agentConversationsService.createConversation(
       currentUser.id,
       dto,
@@ -99,7 +96,6 @@ export class AgentConversationsController {
     @Param('id') conversationId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-
     await this.agentConversationsService.endConversation(
       conversationId,
       currentUser.id,
@@ -119,7 +115,6 @@ export class AgentConversationsController {
     @Body() metadata: Record<string, any>,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-
     await this.agentConversationsService.updateConversationMetadata(
       conversationId,
       currentUser.id,
@@ -139,7 +134,6 @@ export class AgentConversationsController {
     @Param('id') conversationId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-
     await this.agentConversationsService.deleteConversation(
       conversationId,
       currentUser.id,
@@ -156,7 +150,6 @@ export class AgentConversationsController {
   async getActiveConversations(
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-
     return this.agentConversationsService.getActiveConversations(
       currentUser.id,
     );

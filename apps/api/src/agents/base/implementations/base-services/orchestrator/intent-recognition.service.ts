@@ -37,9 +37,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     input: OrchestratorInput,
     delegationContext?: string,
   ): Promise<IntentDirective> {
-
     if (delegationContext) {
-
     }
 
     try {
@@ -66,7 +64,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
 
       return classification;
     } catch (error) {
-
       // Fallback to safe conversation mode
       return {
         action: 'CONVERSE',
@@ -224,7 +221,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     const userMessage = this.buildUserAnalysisMessage(input, context);
 
     try {
-
       const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
@@ -240,7 +236,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
 
       return this.parseIntentResponse(response);
     } catch (error) {
-
       throw new Error(
         `LLM classification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -257,7 +252,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     // Extract available agents from delegation context
     let availableAgents: string[] = [];
     if (delegationContext) {
-
       // Parse delegation context to extract agent names
       // Look for lines starting with agent_name: (new simple format)
       const lines = delegationContext.split('\n');
@@ -277,9 +271,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
           })
           .filter((name): name is string => name !== null);
       }
-
     } else {
-
     }
 
     return `You are an enterprise orchestrator intent classifier. Your PRIMARY job is to identify task requests and DELEGATE them to specialist agents.
@@ -387,7 +379,6 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
       const cleanedResponse = response.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
       const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-
         throw new Error('No JSON found in response');
       }
 
@@ -425,7 +416,6 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
         subprojectScope: parsed.subprojectScope,
       };
     } catch (error) {
-
       // Return safe fallback
       return {
         action: 'CONVERSE',

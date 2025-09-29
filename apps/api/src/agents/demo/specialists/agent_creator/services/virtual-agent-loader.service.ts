@@ -2,20 +2,23 @@ import { Injectable, Logger, Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ContextAgentBaseService } from '@agents/base/implementations/base-services/context/context-agent-base.service';
 import { AgentServicesContext } from '@agents/base/services/agent-services-context';
-import { AgentConfigurationService, AgentConfigurationData } from './agent-configuration.service';
+import {
+  AgentConfigurationService,
+  AgentConfigurationData,
+} from './agent-configuration.service';
 
 /**
  * Virtual agent class that loads behavior from database-stored configuration
  */
 class VirtualDatabaseAgent extends ContextAgentBaseService {
   protected readonly logger = new Logger('VirtualDatabaseAgent');
-  
+
   private agentConfig: AgentConfigurationData;
   private contextContent: string;
 
   constructor(
     services: AgentServicesContext,
-    agentConfig: AgentConfigurationData
+    agentConfig: AgentConfigurationData,
   ) {
     super(services);
     this.agentConfig = agentConfig;
@@ -51,20 +54,23 @@ class VirtualDatabaseAgent extends ContextAgentBaseService {
           primaryPurpose: this.agentConfig.primaryPurpose,
           capabilities: this.agentConfig.capabilities,
           communicationStyle: this.agentConfig.communicationStyle,
-          limitations: this.agentConfig.limitations
-        }
+          limitations: this.agentConfig.limitations,
+        },
       };
 
       return await super.processTask(enhancedRequest);
     } catch (error) {
-      this.logger.error(`Virtual agent ${this.agentConfig.agentId} task failed:`, error);
+      this.logger.error(
+        `Virtual agent ${this.agentConfig.agentId} task failed:`,
+        error,
+      );
       return {
         message: `I apologize, but I encountered an error while processing your request. As a ${this.agentConfig.displayName}, I'm here to help with ${this.agentConfig.primaryPurpose}. Could you please try rephrasing your request?`,
         metadata: {
           agentName: this.agentConfig.displayName,
           error: error instanceof Error ? error.message : 'Unknown error',
-          isVirtualAgent: true
-        }
+          isVirtualAgent: true,
+        },
       };
     }
   }
@@ -77,13 +83,15 @@ export class VirtualAgentLoaderService {
 
   constructor(
     private moduleRef: ModuleRef,
-    private agentConfigService: AgentConfigurationService
+    private agentConfigService: AgentConfigurationService,
   ) {}
 
   /**
    * Create a virtual agent instance from database configuration
    */
-  async createVirtualAgent(agentId: string): Promise<VirtualDatabaseAgent | null> {
+  async createVirtualAgent(
+    agentId: string,
+  ): Promise<VirtualDatabaseAgent | null> {
     try {
       // Check cache first
       if (this.agentInstanceCache.has(agentId)) {
@@ -92,7 +100,8 @@ export class VirtualAgentLoaderService {
       }
 
       // Load configuration from database
-      const agentConfig = await this.agentConfigService.getAgentConfiguration(agentId);
+      const agentConfig =
+        await this.agentConfigService.getAgentConfiguration(agentId);
       if (!agentConfig) {
         this.logger.warn(`Agent configuration not found: ${agentId}`);
         return null;
@@ -107,13 +116,14 @@ export class VirtualAgentLoaderService {
 
       // Create virtual agent instance
       const virtualAgent = new VirtualDatabaseAgent(services, agentConfig);
-      
+
       // Cache the instance
       this.agentInstanceCache.set(agentId, virtualAgent);
-      
-      this.logger.log(`Created virtual agent: ${agentId} (${agentConfig.displayName})`);
+
+      this.logger.log(
+        `Created virtual agent: ${agentId} (${agentConfig.displayName})`,
+      );
       return virtualAgent;
-      
     } catch (error) {
       this.logger.error(`Failed to create virtual agent: ${agentId}`, error);
       return null;
@@ -136,7 +146,8 @@ export class VirtualAgentLoaderService {
     }
 
     try {
-      const config = await this.agentConfigService.getAgentConfiguration(agentId);
+      const config =
+        await this.agentConfigService.getAgentConfiguration(agentId);
       return config !== null;
     } catch {
       return false;
@@ -165,7 +176,7 @@ export class VirtualAgentLoaderService {
   getCacheStats() {
     return {
       cachedAgents: this.agentInstanceCache.size,
-      agentIds: Array.from(this.agentInstanceCache.keys())
+      agentIds: Array.from(this.agentInstanceCache.keys()),
     };
   }
 
@@ -175,7 +186,7 @@ export class VirtualAgentLoaderService {
   async listVirtualAgents(): Promise<string[]> {
     try {
       const configs = await this.agentConfigService.listAgentConfigurations();
-      return configs.map(config => config.agentId);
+      return configs.map((config) => config.agentId);
     } catch (error) {
       this.logger.error('Failed to list virtual agents:', error);
       return [];
@@ -185,7 +196,9 @@ export class VirtualAgentLoaderService {
   /**
    * Hot-reload a virtual agent with updated configuration
    */
-  async reloadVirtualAgent(agentId: string): Promise<VirtualDatabaseAgent | null> {
+  async reloadVirtualAgent(
+    agentId: string,
+  ): Promise<VirtualDatabaseAgent | null> {
     this.invalidateVirtualAgent(agentId);
     return await this.createVirtualAgent(agentId);
   }
@@ -195,7 +208,9 @@ export class VirtualAgentLoaderService {
    */
   private async getAgentServicesContext(): Promise<AgentServicesContext | null> {
     try {
-      const services = await this.moduleRef.get(AgentServicesContext, { strict: false });
+      const services = await this.moduleRef.get(AgentServicesContext, {
+        strict: false,
+      });
       return services;
     } catch (error) {
       this.logger.error('Could not resolve AgentServicesContext:', error);
@@ -207,11 +222,19 @@ export class VirtualAgentLoaderService {
    * Validate virtual agent configuration
    */
   private validateAgentConfig(config: AgentConfigurationData): boolean {
-    const required = ['agentId', 'displayName', 'agentType', 'contextContent', 'primaryPurpose'];
-    
+    const required = [
+      'agentId',
+      'displayName',
+      'agentType',
+      'contextContent',
+      'primaryPurpose',
+    ];
+
     for (const field of required) {
       if (!config[field as keyof AgentConfigurationData]) {
-        this.logger.warn(`Agent configuration missing required field: ${field}`);
+        this.logger.warn(
+          `Agent configuration missing required field: ${field}`,
+        );
         return false;
       }
     }

@@ -44,7 +44,9 @@ export class BlindedLLMService {
    * Create a source-blinded LangChain LLM
    */
   createBlindedLLM(config: BlindedLLMConfig): BaseChatModel {
-    const providerConfig = this.providerConfigService.getEnhancedProviderConfig(config.provider);
+    const providerConfig = this.providerConfigService.getEnhancedProviderConfig(
+      config.provider,
+    );
     if (!providerConfig) {
       throw new Error(`Provider configuration not found: ${config.provider}`);
     }
@@ -53,9 +55,10 @@ export class BlindedLLMService {
     const blindingOptions = {
       provider: config.provider,
       policyProfile: config.sourceBlindingOptions?.policyProfile || 'standard',
-      dataClass: config.sourceBlindingOptions?.dataClass || 'public', 
+      dataClass: config.sourceBlindingOptions?.dataClass || 'public',
       sovereignMode: config.sourceBlindingOptions?.sovereignMode || 'false',
-      noTrain: config.sourceBlindingOptions?.noTrain ?? 
+      noTrain:
+        config.sourceBlindingOptions?.noTrain ??
         providerConfig.features.supportsNoTrain,
       noRetain: config.sourceBlindingOptions?.noRetain ?? false,
     };
@@ -63,7 +66,7 @@ export class BlindedLLMService {
     // Create blinded HTTP client
     const blindedClient = this.sourceBlindingService.createBlindedHttpClient(
       config.provider,
-      blindingOptions
+      blindingOptions,
     );
 
     let llm: BaseChatModel;
@@ -72,9 +75,11 @@ export class BlindedLLMService {
       case 'openai':
         // Require explicit model - no fallbacks allowed
         if (!config.model) {
-          throw new Error('OpenAI model must be explicitly specified - no fallback model configured');
+          throw new Error(
+            'OpenAI model must be explicitly specified - no fallback model configured',
+          );
         }
-        
+
         llm = new ChatOpenAI({
           openAIApiKey: config.apiKey || providerConfig.apiKey,
           modelName: config.model,
@@ -92,9 +97,11 @@ export class BlindedLLMService {
       case 'anthropic':
         // Require explicit model - no fallbacks allowed
         if (!config.model) {
-          throw new Error('Anthropic model must be explicitly specified - no fallback model configured');
+          throw new Error(
+            'Anthropic model must be explicitly specified - no fallback model configured',
+          );
         }
-        
+
         llm = new ChatAnthropic({
           anthropicApiKey: config.apiKey || providerConfig.apiKey,
           modelName: config.model,
@@ -112,9 +119,11 @@ export class BlindedLLMService {
       case 'google':
         // Require explicit model - no fallbacks allowed
         if (!config.model) {
-          throw new Error('Google model must be explicitly specified - no fallback model configured');
+          throw new Error(
+            'Google model must be explicitly specified - no fallback model configured',
+          );
         }
-        
+
         llm = new ChatGoogleGenerativeAI({
           apiKey: config.apiKey || providerConfig.apiKey,
           model: config.model,
@@ -129,25 +138,38 @@ export class BlindedLLMService {
     }
 
     // Wrap the LLM to add logging and validation
-    return this.wrapWithSourceBlindingValidation(llm, config.provider, blindingOptions);
+    return this.wrapWithSourceBlindingValidation(
+      llm,
+      config.provider,
+      blindingOptions,
+    );
   }
 
   /**
    * Create a blinded fetch function for LangChain HTTP clients
    */
   private createBlindedFetch(blindedClient: any, provider: string) {
-    return async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    return async (
+      url: string | URL | Request,
+      init?: RequestInit,
+    ): Promise<Response> => {
       try {
-        this.logger.debug(`Intercepting ${provider} request for source blinding`);
+        this.logger.debug(
+          `Intercepting ${provider} request for source blinding`,
+        );
 
         // Convert fetch-style request to axios-style
         const axiosConfig = this.convertFetchToAxios(url, init);
-        
+
         // Make the blinded request
-        const response = await blindedClient.post(axiosConfig.url, axiosConfig.data, {
-          headers: axiosConfig.headers,
-          ...axiosConfig.options,
-        });
+        const response = await blindedClient.post(
+          axiosConfig.url,
+          axiosConfig.data,
+          {
+            headers: axiosConfig.headers,
+            ...axiosConfig.options,
+          },
+        );
 
         // Convert axios response back to fetch-style Response
         return this.convertAxiosToFetchResponse(response);
@@ -163,7 +185,7 @@ export class BlindedLLMService {
    */
   private convertFetchToAxios(
     url: string | URL | Request,
-    init?: RequestInit
+    init?: RequestInit,
   ): {
     url: string;
     data?: any;
@@ -172,7 +194,7 @@ export class BlindedLLMService {
   } {
     const requestUrl = typeof url === 'string' ? url : url.toString();
     const headers: Record<string, string> = {};
-    
+
     // Extract headers from init
     if (init?.headers) {
       const headerEntries = init.headers as any;
@@ -217,32 +239,47 @@ export class BlindedLLMService {
   private wrapWithSourceBlindingValidation(
     llm: BaseChatModel,
     provider: string,
-    blindingOptions: any
+    blindingOptions: any,
   ): BaseChatModel {
     // Create a proxy to intercept all LLM calls
     return new Proxy(llm, {
       get: (target, prop) => {
         if (prop === '_call' || prop === 'call') {
-          return async (messages: BaseMessage[], options?: any, callbacks?: CallbackManagerForLLMRun): Promise<ChatResult> => {
-            this.logger.debug(`Source-blinded LLM call starting for ${provider}`);
-            
+          return async (
+            messages: BaseMessage[],
+            options?: any,
+            callbacks?: CallbackManagerForLLMRun,
+          ): Promise<ChatResult> => {
+            this.logger.debug(
+              `Source-blinded LLM call starting for ${provider}`,
+            );
+
             const startTime = Date.now();
-            
+
             try {
               // Call the original LLM method (which will use our blinded fetch)
-              const result = await (target as any)[prop](messages, options, callbacks);
-              
+              const result = await (target as any)[prop](
+                messages,
+                options,
+                callbacks,
+              );
+
               const endTime = Date.now();
-              this.logger.debug(`Source-blinded LLM call completed for ${provider} in ${endTime - startTime}ms`);
-              
+              this.logger.debug(
+                `Source-blinded LLM call completed for ${provider} in ${endTime - startTime}ms`,
+              );
+
               return result;
             } catch (error) {
-              this.logger.error(`Source-blinded LLM call failed for ${provider}:`, error);
+              this.logger.error(
+                `Source-blinded LLM call failed for ${provider}:`,
+                error,
+              );
               throw error;
             }
           };
         }
-        
+
         return (target as any)[prop];
       },
     });
@@ -263,7 +300,7 @@ export class BlindedLLMService {
       }),
       anthropic: this.createBlindedLLM({
         ...baseConfig,
-        provider: 'anthropic', 
+        provider: 'anthropic',
       }),
       google: this.createBlindedLLM({
         ...baseConfig,
@@ -275,7 +312,9 @@ export class BlindedLLMService {
   /**
    * Test source blinding by making a sample request
    */
-  async testSourceBlinding(provider: 'openai' | 'anthropic' | 'google'): Promise<{
+  async testSourceBlinding(
+    provider: 'openai' | 'anthropic' | 'google',
+  ): Promise<{
     success: boolean;
     blindingApplied: boolean;
     headerCount: number;
@@ -285,9 +324,12 @@ export class BlindedLLMService {
     try {
       const blindedLLM = this.createBlindedLLM({
         provider,
-        model: provider === 'openai' ? 'gpt-4o-mini' : 
-               provider === 'anthropic' ? 'claude-3-haiku-20240307' :
-               'gemini-pro',
+        model:
+          provider === 'openai'
+            ? 'gpt-4o-mini'
+            : provider === 'anthropic'
+              ? 'claude-3-haiku-20240307'
+              : 'gemini-pro',
         sourceBlindingOptions: {
           policyProfile: 'test',
           dataClass: 'public',
@@ -299,7 +341,10 @@ export class BlindedLLMService {
 
       // Make a simple test call
       const testMessages = [
-        { role: 'user' as const, content: 'Hello, this is a source blinding test.' },
+        {
+          role: 'user' as const,
+          content: 'Hello, this is a source blinding test.',
+        },
       ];
 
       // This should trigger our blinded HTTP client

@@ -40,7 +40,6 @@ export class PlanningService implements IPlanningService {
    * 7. Return structured PlanDefinition with full enterprise context
    */
   async createPlan(input: OrchestratorInput): Promise<PlanDefinition> {
-
     try {
       // Step 1: Analyze the goal and detect enterprise requirements
       const goalAnalysis = await this.analyzeEnterpriseGoalRequirements(input);
@@ -79,7 +78,6 @@ export class PlanningService implements IPlanningService {
 
       return finalPlan;
     } catch (error) {
-
       throw new Error(
         `Failed to create plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -97,7 +95,6 @@ export class PlanningService implements IPlanningService {
     input: OrchestratorInput,
     originalPlan?: PlanDefinition,
   ): Promise<PlanDefinition> {
-
     try {
       // For testing, use the original plan if provided
       // In production, this would load from database using planId
@@ -125,7 +122,6 @@ export class PlanningService implements IPlanningService {
 
       return refinedPlan;
     } catch (error) {
-
       throw new Error(
         `Failed to refine plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -138,13 +134,11 @@ export class PlanningService implements IPlanningService {
    * Converts structured PlanDefinition to human-readable format for approval.
    */
   async formatPlanForHuman(plan: PlanDefinition): Promise<string> {
-
     try {
       // Use LLM to generate natural language plan description
       const formatted = await this.generateHumanReadablePlan(plan);
       return formatted;
     } catch (error) {
-
       // Fallback to basic formatting if LLM fails
       return this.generateBasicPlanFormat(plan);
     }
@@ -254,7 +248,6 @@ Detect enterprise characteristics and provide complete analysis in the required 
 
       return this.parseEnterpriseGoalAnalysis(response);
     } catch (error) {
-
       throw new Error(
         `Enterprise goal analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -351,7 +344,6 @@ Identify capability gaps and workforce development needs.`;
 
       return this.parseCapabilityAssessment(response, availableAgents);
     } catch (error) {
-
       throw new Error(
         `Agent capability assessment failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -452,7 +444,6 @@ Determine if this complex request should be decomposed into subprojects managed 
 
       return this.parseSubprojectAnalysis(response);
     } catch (error) {
-
       throw new Error(
         `Subproject analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -547,7 +538,6 @@ Return the complete plan structure in JSON format.`;
 
       return this.parseEnterprisePlanStructure(response, input);
     } catch (error) {
-
       throw new Error(
         `Enterprise plan generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -608,7 +598,6 @@ Add appropriate human expert assignments to steps that need oversight or approva
 
       return this.parseHumanAssignedPlan(response);
     } catch (error) {
-
       // Return original plan if human assignment fails (non-critical)
 
       return plan;
@@ -675,7 +664,6 @@ Return the improved plan in the same JSON format.`;
 
       return this.parseValidatedEnterprisePlan(response);
     } catch (error) {
-
       throw new Error(
         `Enterprise plan validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -773,13 +761,11 @@ Provide your analysis in the required JSON format.`;
         {
           temperature: 0.3, // Moderate creativity for planning
           maxTokens: 600,
-
         },
       );
 
       return this.parseGoalAnalysis(response);
     } catch (error) {
-
       throw new Error(
         `Goal analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -808,7 +794,6 @@ Provide your analysis in the required JSON format.`;
         description: agent.metadata?.description,
       }));
     } catch (error) {
-
       throw new Error(
         `Failed to discover agents for planning: ${error instanceof Error ? error.message : 'Unknown error'}. Agent discovery must work for planning to function.`,
       );
@@ -852,7 +837,6 @@ JSON STRUCTURE REQUIRED:
 Create 3-5 steps using the available agents. Return only the JSON structure.`;
 
     try {
-
       const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
@@ -869,7 +853,6 @@ Create 3-5 steps using the available agents. Return only the JSON structure.`;
 
       return this.parsePlanStructure(response, input);
     } catch (error) {
-
       throw new Error(
         `Plan generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -923,7 +906,6 @@ Return the improved plan in the same JSON format.`;
 
       return this.parseValidatedPlan(response);
     } catch (error) {
-
       throw new Error(
         `Plan validation failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must be able to validate and optimize plans.`,
       );
@@ -984,7 +966,6 @@ What changes is the user requesting?`;
 
       return this.parseFeedbackAnalysis(response);
     } catch (error) {
-
       throw new Error(
         `Feedback analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1047,7 +1028,6 @@ Return the expanded plan with all original steps PLUS new steps for the requeste
 
       return this.parsePlanStructure(response, input);
     } catch (error) {
-
       throw new Error(
         `Failed to incorporate feedback: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1098,7 +1078,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return response;
     } catch (error) {
-
       return this.generateBasicPlanFormat(plan);
     }
   }
@@ -1155,7 +1134,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return parsed;
     } catch (error) {
-
       throw new Error(
         `Enterprise goal analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1198,7 +1176,6 @@ Create an engaging, clear presentation that helps the user understand and approv
         availableAgents: enhancedAgents,
       };
     } catch (error) {
-
       throw new Error(
         `Capability assessment parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1224,7 +1201,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return parsed;
     } catch (error) {
-
       throw new Error(
         `Subproject analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1242,7 +1218,6 @@ Create an engaging, clear presentation that helps the user understand and approv
       const cleanedResponse = response.replace(/[\x00-\x1F\x7F]/g, '');
       const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-
         throw new Error('No JSON found in response');
       }
 
@@ -1267,7 +1242,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return plan;
     } catch (error) {
-
       throw new Error(
         `Enterprise plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1281,7 +1255,6 @@ Create an engaging, clear presentation that helps the user understand and approv
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-
         throw new Error('No JSON found in response');
       }
 
@@ -1293,7 +1266,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return parsed;
     } catch (error) {
-
       throw new Error(
         `Human assignment parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1307,7 +1279,6 @@ Create an engaging, clear presentation that helps the user understand and approv
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-
         throw new Error('Plan validation response contained no JSON');
       }
 
@@ -1318,7 +1289,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return parsed;
     } catch (error) {
-
       throw new Error(
         `Enterprise plan validation parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1438,7 +1408,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return parsed;
     } catch (error) {
-
       throw new Error(
         `Goal analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -1454,7 +1423,6 @@ Create an engaging, clear presentation that helps the user understand and approv
       const cleanedResponse = response.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
       const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-
         throw new Error('No JSON found in response');
       }
 
@@ -1480,7 +1448,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return plan;
     } catch (error) {
-
       throw new Error(
         `Plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM generated malformed JSON that cannot be parsed.`,
       );
@@ -1491,7 +1458,6 @@ Create an engaging, clear presentation that helps the user understand and approv
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-
         throw new Error('Plan validation response contained no JSON');
       }
 
@@ -1503,7 +1469,6 @@ Create an engaging, clear presentation that helps the user understand and approv
       }
       return parsed;
     } catch (error) {
-
       throw new Error(
         `Plan validation parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must generate valid JSON.`,
       );
@@ -1517,7 +1482,6 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-
       throw new Error(
         `Feedback parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

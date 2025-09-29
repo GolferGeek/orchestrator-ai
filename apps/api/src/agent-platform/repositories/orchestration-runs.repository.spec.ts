@@ -4,7 +4,7 @@ import { SupabaseService } from '@/supabase/supabase.service';
 const createSupabaseMock = () => {
   const fromMock = jest.fn();
   const service: Partial<SupabaseService> = {
-    getServiceClient: jest.fn(() => ({ from: fromMock } as any)),
+    getServiceClient: jest.fn(() => ({ from: fromMock }) as any),
   };
   return { fromMock, service: service as SupabaseService };
 };
@@ -33,7 +33,9 @@ describe('OrchestrationRunsRepository', () => {
 
   it('creates orchestration runs', async () => {
     const { fromMock, service } = createSupabaseMock();
-    const maybeSingle = jest.fn().mockResolvedValue({ data: runRecord, error: null });
+    const maybeSingle = jest
+      .fn()
+      .mockResolvedValue({ data: runRecord, error: null });
     const select = jest.fn().mockReturnValue({ maybeSingle });
     const insert = jest.fn().mockReturnValue({ select });
     fromMock.mockReturnValue({ insert });
@@ -75,7 +77,9 @@ describe('OrchestrationRunsRepository', () => {
 
   it('returns null when orchestration run missing', async () => {
     const { fromMock, service } = createSupabaseMock();
-    const maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const maybeSingle = jest
+      .fn()
+      .mockResolvedValue({ data: null, error: null });
     const eq = jest.fn().mockReturnValue({ maybeSingle });
     const select = jest.fn().mockReturnValue({ eq });
     fromMock.mockReturnValue({ select });

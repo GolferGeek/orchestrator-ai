@@ -71,7 +71,6 @@ export class ProjectsService {
           .single();
 
         if (parentError) {
-
           throw new Error(
             `Failed to create subproject: Parent project not found`,
           );
@@ -107,7 +106,6 @@ export class ProjectsService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to create project: ${error.message}`);
       }
 
@@ -124,7 +122,6 @@ export class ProjectsService {
 
       return project;
     } catch (error) {
-
       throw error;
     }
   }
@@ -151,11 +148,15 @@ export class ProjectsService {
         .eq('user_id', userId);
 
       if (convError) {
-        this.logger.error(`Failed to get conversations for user: ${convError.message}`);
-        throw new Error(`Failed to get user conversations: ${convError.message}`);
+        this.logger.error(
+          `Failed to get conversations for user: ${convError.message}`,
+        );
+        throw new Error(
+          `Failed to get user conversations: ${convError.message}`,
+        );
       }
 
-      const conversationIds = (conversations || []).map(c => c.id);
+      const conversationIds = (conversations || []).map((c) => c.id);
 
       // If user has no conversations, return empty result
       if (conversationIds.length === 0) {
@@ -189,7 +190,6 @@ export class ProjectsService {
       const { data, error, count } = await query;
 
       if (error) {
-
         throw new Error(`Failed to get projects: ${error.message}`);
       }
 
@@ -200,7 +200,6 @@ export class ProjectsService {
         offset: params.offset,
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -228,7 +227,6 @@ export class ProjectsService {
 
       return this.mapDatabaseToProject(data);
     } catch (error) {
-
       throw error;
     }
   }
@@ -266,7 +264,6 @@ export class ProjectsService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to update project: ${error.message}`);
       }
 
@@ -285,7 +282,6 @@ export class ProjectsService {
 
       return project;
     } catch (error) {
-
       throw error;
     }
   }
@@ -303,12 +299,9 @@ export class ProjectsService {
         .eq('id', projectId);
 
       if (error) {
-
         throw new Error(`Failed to delete project: ${error.message}`);
       }
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -333,7 +326,6 @@ export class ProjectsService {
 
       return !!data;
     } catch (error) {
-
       return false;
     }
   }
@@ -352,13 +344,11 @@ export class ProjectsService {
         .order('step_index', { ascending: true });
 
       if (error) {
-
         throw new Error(`Failed to get project steps: ${error.message}`);
       }
 
       return (data || []).map(this.mapDatabaseToProjectStep);
     } catch (error) {
-
       throw error;
     }
   }
@@ -477,7 +467,6 @@ export class ProjectsService {
 
       return { project, steps, timeline };
     } catch (error) {
-
       throw error;
     }
   }
@@ -499,9 +488,7 @@ export class ProjectsService {
           ...params.metadata,
         },
       });
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -532,9 +519,7 @@ export class ProjectsService {
           ...params.metadata,
         },
       });
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -563,7 +548,6 @@ export class ProjectsService {
 
       return forkedProject;
     } catch (error) {
-
       throw error;
     }
   }
@@ -584,9 +568,7 @@ export class ProjectsService {
           ...params.metadata,
         },
       });
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -594,7 +576,11 @@ export class ProjectsService {
   /**
    * Get project metrics for analytics
    */
-  async getProjectMetrics(userId: string, startDate: Date, endDate: Date): Promise<{
+  async getProjectMetrics(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
     totalProjects: number;
     activeProjects: number;
     completedProjects: number;
@@ -638,36 +624,50 @@ export class ProjectsService {
 
       // Calculate metrics
       const totalProjects = projectList.length;
-      const activeProjects = projectList.filter(p => ['active', 'in_progress', 'running'].includes(p.status)).length;
-      const completedProjects = projectList.filter(p => p.status === 'completed').length;
-      const failedProjects = projectList.filter(p => ['failed', 'aborted', 'error'].includes(p.status)).length;
-      
-      const successRate = totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 100;
+      const activeProjects = projectList.filter((p) =>
+        ['active', 'in_progress', 'running'].includes(p.status),
+      ).length;
+      const completedProjects = projectList.filter(
+        (p) => p.status === 'completed',
+      ).length;
+      const failedProjects = projectList.filter((p) =>
+        ['failed', 'aborted', 'error'].includes(p.status),
+      ).length;
+
+      const successRate =
+        totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 100;
 
       // Calculate average completion time for completed projects
-      const completedProjectsWithTimes = projectList.filter(p => 
-        p.status === 'completed' && p.created_at && p.updated_at
+      const completedProjectsWithTimes = projectList.filter(
+        (p) => p.status === 'completed' && p.created_at && p.updated_at,
       );
-      
-      const averageCompletionTime = completedProjectsWithTimes.length > 0
-        ? completedProjectsWithTimes.reduce((sum, project) => {
-            const created = new Date(project.created_at).getTime();
-            const updated = new Date(project.updated_at).getTime();
-            return sum + (updated - created);
-          }, 0) / completedProjectsWithTimes.length
-        : 0;
+
+      const averageCompletionTime =
+        completedProjectsWithTimes.length > 0
+          ? completedProjectsWithTimes.reduce((sum, project) => {
+              const created = new Date(project.created_at).getTime();
+              const updated = new Date(project.updated_at).getTime();
+              return sum + (updated - created);
+            }, 0) / completedProjectsWithTimes.length
+          : 0;
 
       // Group projects by status
-      const projectsByStatus = projectList.reduce((acc, project) => {
-        acc[project.status] = (acc[project.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const projectsByStatus = projectList.reduce(
+        (acc, project) => {
+          acc[project.status] = (acc[project.status] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       // Get recent activity (last 5 projects)
       const recentActivity = projectList
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .sort(
+          (a, b) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+        )
         .slice(0, 5)
-        .map(project => ({
+        .map((project) => ({
           projectId: project.id,
           name: project.name || 'Unnamed Project',
           status: project.status,
@@ -825,7 +825,6 @@ export class ProjectsService {
         recommendations,
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -844,9 +843,7 @@ export class ProjectsService {
       this.taskProgressGateway.server
         .to('projects')
         .emit('project_event', message);
-    } catch (error) {
-
-    }
+    } catch (error) {}
   }
 
   /**

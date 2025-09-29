@@ -74,7 +74,6 @@ export class HumanLoopService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to create human input: ${error.message}`);
       }
 
@@ -93,7 +92,6 @@ export class HumanLoopService {
 
       return humanInput;
     } catch (error) {
-
       throw error;
     }
   }
@@ -125,7 +123,6 @@ export class HumanLoopService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to update human input: ${error.message}`);
       }
 
@@ -152,7 +149,6 @@ export class HumanLoopService {
 
       return humanInput;
     } catch (error) {
-
       throw error;
     }
   }
@@ -208,13 +204,11 @@ export class HumanLoopService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-
         throw new Error(`Failed to fetch human input: ${error.message}`);
       }
 
       return data ? this.mapToHumanInput(data) : null;
     } catch (error) {
-
       throw error;
     }
   }
@@ -237,13 +231,11 @@ export class HumanLoopService {
         .order('created_at', { ascending: true });
 
       if (error) {
-
         throw new Error(`Failed to fetch pending inputs: ${error.message}`);
       }
 
       return data.map((item) => this.mapToHumanInput(item));
     } catch (error) {
-
       throw error;
     }
   }
@@ -265,12 +257,9 @@ export class HumanLoopService {
         .eq('status', 'pending');
 
       if (error) {
-
         throw new Error(`Failed to cancel human input: ${error.message}`);
       }
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -293,7 +282,6 @@ export class HumanLoopService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to handle timeout: ${error.message}`);
       }
 
@@ -314,7 +302,6 @@ export class HumanLoopService {
 
       return humanInput;
     } catch (error) {
-
       throw error;
     }
   }
@@ -336,7 +323,6 @@ export class HumanLoopService {
         .select('id, task_id, user_id');
 
       if (error) {
-
         throw new Error(`Failed to cleanup expired inputs: ${error.message}`);
       }
 
@@ -356,12 +342,10 @@ export class HumanLoopService {
 
       const count = data?.length || 0;
       if (count > 0) {
-
       }
 
       return count;
     } catch (error) {
-
       throw error;
     }
   }

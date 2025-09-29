@@ -77,7 +77,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
 
     // NEW ARCHITECTURE: Check for PII blocking first
     if (this.shouldBlockForPII(params)) {
-      this.functionLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+      this.functionLogger.warn(
+        `🛑 [${agentName}] Request blocked due to PII policy violation`,
+      );
       return this.generatePIIBlockedResponse(params);
     }
 
@@ -119,23 +121,23 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             ...options,
             // Accept either flat params or nested llmSelection
             providerName:
-              (params as any)?.providerName ||
-              (params as any)?.llmSelection?.providerName ||
+              params?.providerName ||
+              params?.llmSelection?.providerName ||
               options?.providerName,
             modelName:
-              (params as any)?.modelName ||
-              (params as any)?.llmSelection?.modelName ||
+              params?.modelName ||
+              params?.llmSelection?.modelName ||
               options?.modelName,
             temperature:
-              (params as any)?.temperature ??
-              (params as any)?.llmSelection?.temperature ??
+              params?.temperature ??
+              params?.llmSelection?.temperature ??
               options?.temperature,
             maxTokens:
-              (params as any)?.maxTokens ||
-              (params as any)?.llmSelection?.maxTokens ||
+              params?.maxTokens ||
+              params?.llmSelection?.maxTokens ||
               options?.maxTokens,
             // Honor quick path for converse/plan to bypass pseudonymization
-            quick: (params as any)?.quick === true || options?.quick === true,
+            quick: params?.quick === true || options?.quick === true,
             cidafmOptions: params.cidafmOptions || options?.cidafmOptions,
             authToken: params.authToken || options?.authToken,
             sessionId: params.sessionId || options?.sessionId,
@@ -246,11 +248,13 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       }
 
       // Return structured response format to match ContextAgentBaseService
-      const hasContent = result && (result.response || result.message || typeof result === 'string');
+      const hasContent =
+        result &&
+        (result.response || result.message || typeof result === 'string');
       const successResponse = {
         success: true,
         response: hasContent
-          ? (result.response || result)
+          ? result.response || result
           : 'Let’s continue the conversation — how would you like to proceed?',
         metadata: {
           agentType: this.getAgentType(),
@@ -357,7 +361,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           stepStatus: status,
         },
       );
-
     }
 
     // Broadcast workflow step progress via WebSocket
@@ -376,8 +379,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       );
     }
   }
-
-
 
   /**
    * Set the total number of steps for progress tracking
@@ -456,7 +457,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    * Simple context-based fallback processing
    */
   private async processWithContext(method: string, _params: any): Promise<any> {
-
     return {
       success: true,
       response: `Hello! I'm the ${this.getAgentName()} agent. I'm ready to help, but my function isn't loaded yet. Please check back soon!`,

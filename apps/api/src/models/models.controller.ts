@@ -40,7 +40,9 @@ export class ModelsController {
 
   @Get('names')
   @Public()
-  @ApiOperation({ summary: 'Get model names only (optimized for frontend dropdowns)' })
+  @ApiOperation({
+    summary: 'Get model names only (optimized for frontend dropdowns)',
+  })
   @ApiQuery({
     name: 'provider_name',
     required: false,
@@ -105,7 +107,8 @@ export class ModelsController {
     name: 'sovereign_mode',
     required: false,
     type: Boolean,
-    description: 'Filter models based on sovereign mode compliance (true = only local/ollama models)',
+    description:
+      'Filter models based on sovereign mode compliance (true = only local/ollama models)',
   })
   @ApiResponse({
     status: 200,
@@ -172,7 +175,10 @@ export class ModelsController {
     @Param('modelName') modelName: string,
     @Query('provider_name') providerName?: string,
   ): Promise<ModelResponseDto> {
-    const model = await this.modelsService.findByModelId(modelName, providerName);
+    const model = await this.modelsService.findByModelId(
+      modelName,
+      providerName,
+    );
     if (!model) {
       throw new HttpException('Model not found', HttpStatus.NOT_FOUND);
     }

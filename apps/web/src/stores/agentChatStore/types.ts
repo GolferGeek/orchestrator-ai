@@ -142,6 +142,8 @@ export interface AgentConversation {
   executionProfile?: AgentExecutionProfile;
   executionCapabilities?: AgentExecutionCapabilities;
   error?: string;
+  latestPlanId?: string | null;
+  latestPlan?: ConversationPlanRecord | null;
   plans?: ConversationPlanRecord[];
   orchestrationRuns?: OrchestrationRunRecord[];
   savedOrchestrations?: AgentOrchestrationRecord[];

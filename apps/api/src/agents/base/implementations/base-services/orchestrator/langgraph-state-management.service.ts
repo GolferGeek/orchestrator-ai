@@ -247,7 +247,6 @@ export class LangGraphStateManagementService {
     projectDefinition: PlanDefinition,
     input: OrchestratorInput,
   ): Promise<LangGraphState> {
-
     // Create Tier 1: Plan State
     const planState: PlanState = await this.createPlanState(
       projectDefinition,
@@ -359,7 +358,6 @@ export class LangGraphStateManagementService {
     update: Partial<StepResultsState>,
     trigger: StateTransition['trigger'] = 'agent_completion',
   ): Promise<StepResultsState> {
-
     const currentState = await this.getState(projectId);
     const stepState = currentState.stepResults.get(stepId);
 
@@ -431,7 +429,6 @@ export class LangGraphStateManagementService {
     stepId: string,
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     const state = await this.getState(projectId);
     const stepState = state.stepResults.get(stepId);
 
@@ -533,7 +530,6 @@ export class LangGraphStateManagementService {
         },
       };
     } catch (error) {
-
       await this.updateStepState(
         projectId,
         stepId,
@@ -564,7 +560,6 @@ export class LangGraphStateManagementService {
     interruptType: 'approval_required' | 'user_input_needed' | 'error_recovery',
     context: Record<string, any>,
   ): Promise<void> {
-
     await this.updateStepState(
       projectId,
       stepId,
@@ -609,7 +604,6 @@ export class LangGraphStateManagementService {
     resolution: 'approved' | 'rejected' | 'modified',
     resolutionData?: Record<string, any>,
   ): Promise<void> {
-
     if (resolution === 'approved') {
       await this.updateStepState(
         projectId,
@@ -653,7 +647,6 @@ export class LangGraphStateManagementService {
     targetVersion: number,
     reason: string,
   ): Promise<LangGraphState> {
-
     // Load historical state
     const historicalState = await this.loadStateVersion(
       projectId,
@@ -810,7 +803,6 @@ export class LangGraphStateManagementService {
     planDefinition: PlanDefinition,
     input: OrchestratorInput,
   ): Promise<any> {
-
     // Define state schema for this specific plan
     const StateAnnotation = Annotation.Root({
       projectId: Annotation<string>,
@@ -853,7 +845,6 @@ export class LangGraphStateManagementService {
 
     // Add END node
     workflow.addNode('end', async (state) => {
-
       // Final checkpoint
       const finalState = {
         ...state,
@@ -891,7 +882,6 @@ export class LangGraphStateManagementService {
     input: OrchestratorInput,
   ): Promise<void> {
     workflow.addNode(step.stepId, async (state) => {
-
       try {
         // Update status to running and create checkpoint
         const runningState = {
@@ -923,7 +913,6 @@ export class LangGraphStateManagementService {
 
         return completedState;
       } catch (error) {
-
         // Handle error with recovery options
         const errorState = await this.handleStepError(
           step,
@@ -970,7 +959,6 @@ export class LangGraphStateManagementService {
     projectId: string,
     state: any,
   ): Promise<any> {
-
     // Set approval status and create interrupt
     const approvalState = {
       ...state,
@@ -1106,9 +1094,7 @@ export class LangGraphStateManagementService {
         state_data: state,
         created_at: new Date().toISOString(),
       });
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -1266,7 +1252,6 @@ Respond in JSON format:
 
       return planState;
     } catch (error) {
-
       // Fallback to basic plan state
       return {
         projectId,
@@ -1428,7 +1413,6 @@ Respond in JSON format:
     });
 
     if (error) {
-
       throw new Error(`Failed to persist state: ${error.message}`);
     }
   }
@@ -1495,9 +1479,7 @@ Respond in JSON format:
               prompt: `Continue workflow execution: ${stepState.stepName}`,
               userId: 'system',
               conversationId: projectId,
-            }).catch((error) => {
-
-            });
+            }).catch((error) => {});
           }, 100);
         }
       }
@@ -1509,7 +1491,6 @@ Respond in JSON format:
     event: any,
   ): Promise<void> {
     // Emit events to WebSocket or other notification systems
-
     // Implementation would integrate with WebSocket service
   }
 }

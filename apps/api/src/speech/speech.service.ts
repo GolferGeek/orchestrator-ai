@@ -34,11 +34,12 @@ export class SpeechService {
     try {
       // Step 1: Transcribe the audio to text
       this.logger.debug('Step 1: Transcribing audio...');
-      const transcription = await this.deepgramElevenLabsService.transcribeAudio(
-        request.audioData,
-        request.encoding,
-        request.sampleRate,
-      );
+      const transcription =
+        await this.deepgramElevenLabsService.transcribeAudio(
+          request.audioData,
+          request.encoding,
+          request.sampleRate,
+        );
 
       if (!transcription.text || transcription.text.trim().length === 0) {
         throw new Error('No speech detected in audio');
@@ -50,16 +51,17 @@ export class SpeechService {
 
       // Step 2: Get or create agent conversation
       this.logger.debug('Step 2: Getting agent conversation...');
-      const conversation = await this.agentConversationsService.getOrCreateConversation(
-        currentUser.id,
-        agentName,
-        agentType as any,
-        request.conversationId,
-      );
+      const conversation =
+        await this.agentConversationsService.getOrCreateConversation(
+          currentUser.id,
+          agentName,
+          agentType as any,
+          request.conversationId,
+        );
 
       // Step 3: Send the transcribed text through the task system
       this.logger.debug('Step 3: Processing through agent system...');
-      
+
       // Create a task for this agent with the transcribed text
       const taskResult = await this.tasksService.createTask(
         currentUser.id,
@@ -74,7 +76,7 @@ export class SpeechService {
             speechInput: true,
             transcriptionConfidence: transcription.confidence,
           },
-        }
+        },
       );
 
       if (!taskResult || !taskResult.response) {
@@ -84,17 +86,18 @@ export class SpeechService {
       // Step 4: Convert the AI response to speech
       this.logger.debug('Step 4: Converting response to speech...');
       const responseText = taskResult.response;
-      
+
       if (!responseText || responseText.trim().length === 0) {
         throw new Error('Agent response contains no text to synthesize');
       }
 
-      const synthesizedAudio = await this.deepgramElevenLabsService.synthesizeText(
-        responseText,
-        // TODO: Could allow user preferences for voice settings
-        'EXAVITQu4vr4xnSDxMaL', // Default to Bella voice from Eleven Labs
-        0.5, // Default stability setting
-      );
+      const synthesizedAudio =
+        await this.deepgramElevenLabsService.synthesizeText(
+          responseText,
+          // TODO: Could allow user preferences for voice settings
+          'EXAVITQu4vr4xnSDxMaL', // Default to Bella voice from Eleven Labs
+          0.5, // Default stability setting
+        );
 
       // Step 5: Return the complete conversation result
       const result: ConversationResponseDto = {
@@ -117,7 +120,7 @@ export class SpeechService {
       return result;
     } catch (error) {
       this.logger.error('Conversation processing failed:', error);
-      
+
       // If we fail at any step, we should still try to provide a helpful audio response
       try {
         const errorMessage = `I'm sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`;
@@ -136,7 +139,8 @@ export class SpeechService {
           responseAudio: errorAudio.audioData,
           metadata: {
             transcriptionConfidence: 0,
-            processingError: error instanceof Error ? error.message : 'Unknown error',
+            processingError:
+              error instanceof Error ? error.message : 'Unknown error',
           },
         };
 
@@ -168,7 +172,8 @@ export class SpeechService {
       };
     } catch (error) {
       this.logger.error('Audio transcription failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Audio transcription failed: ${errorMessage}`);
     }
   }
@@ -193,7 +198,8 @@ export class SpeechService {
       };
     } catch (error) {
       this.logger.error('Text synthesis failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Text synthesis failed: ${errorMessage}`);
     }
   }

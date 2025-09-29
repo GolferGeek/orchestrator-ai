@@ -165,8 +165,10 @@ describe('LLMService - Unified Architecture', () => {
           model: 'test-model',
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
-        })
-      ).rejects.toThrow('Unified LLM service error: Missing required parameter: provider is required');
+        }),
+      ).rejects.toThrow(
+        'Unified LLM service error: Missing required parameter: provider is required',
+      );
 
       await expect(
         service.generateUnifiedResponse({
@@ -174,8 +176,10 @@ describe('LLMService - Unified Architecture', () => {
           model: '',
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
-        })
-      ).rejects.toThrow('Unified LLM service error: Missing required parameter: model is required');
+        }),
+      ).rejects.toThrow(
+        'Unified LLM service error: Missing required parameter: model is required',
+      );
 
       await expect(
         service.generateUnifiedResponse({
@@ -183,8 +187,10 @@ describe('LLMService - Unified Architecture', () => {
           model: 'test-model',
           systemPrompt: '',
           userMessage: 'Test message',
-        })
-      ).rejects.toThrow('Unified LLM service error: Missing required parameter: systemPrompt is required');
+        }),
+      ).rejects.toThrow(
+        'Unified LLM service error: Missing required parameter: systemPrompt is required',
+      );
 
       await expect(
         service.generateUnifiedResponse({
@@ -192,8 +198,10 @@ describe('LLMService - Unified Architecture', () => {
           model: 'test-model',
           systemPrompt: 'Test prompt',
           userMessage: '',
-        })
-      ).rejects.toThrow('Unified LLM service error: Missing required parameter: userMessage is required');
+        }),
+      ).rejects.toThrow(
+        'Unified LLM service error: Missing required parameter: userMessage is required',
+      );
     });
 
     it('should validate supported providers', async () => {
@@ -203,7 +211,7 @@ describe('LLMService - Unified Architecture', () => {
           model: 'test-model',
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
-        })
+        }),
       ).rejects.toThrow('Unsupported provider');
     });
 
@@ -257,7 +265,7 @@ describe('LLMService - Unified Architecture', () => {
             temperature: 0.7,
             maxTokens: 100,
           }),
-        })
+        }),
       );
 
       expect(result).toBe('Test response');
@@ -311,7 +319,7 @@ describe('LLMService - Unified Architecture', () => {
           model: 'test-model',
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
-        })
+        }),
       ).rejects.toThrow('Unified LLM service error: LLM service error');
     });
   });
@@ -324,8 +332,8 @@ describe('LLMService - Unified Architecture', () => {
           'Test message',
           { providerName: undefined, modelName: 'test-model' } as any,
           'test-token',
-          'test-session'
-        )
+          'test-session',
+        ),
       ).rejects.toThrow('User preferences must include a valid providerName');
 
       await expect(
@@ -334,8 +342,8 @@ describe('LLMService - Unified Architecture', () => {
           'Test message',
           { providerName: 'ollama', modelName: undefined } as any,
           'test-token',
-          'test-session'
-        )
+          'test-session',
+        ),
       ).rejects.toThrow('User preferences must include a valid modelName');
     });
 
@@ -375,7 +383,7 @@ describe('LLMService - Unified Architecture', () => {
           maxTokens: 200,
         },
         'test-auth-token',
-        'test-session-id'
+        'test-session-id',
       );
 
       expect(result).toEqual({

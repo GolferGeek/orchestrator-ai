@@ -25,7 +25,9 @@ export async function executeAgentTask(
   request: AgentExecutionRequest,
 ): Promise<AgentTaskResponse> {
   const orgSegment = normalizeOrgSegment(orgSlug);
-  const url = `/agent-to-agent/${encodeURIComponent(orgSegment)}/${encodeURIComponent(agentSlug)}/tasks`;
+  const normalizedAgent = encodeURIComponent(agentSlug);
+  const primaryUrl = `/agents/${encodeURIComponent(orgSegment)}/${normalizedAgent}/tasks`;
+  const fallbackUrl = `/agent-to-agent/${encodeURIComponent(orgSegment)}/${normalizedAgent}/tasks`;
 
   const payload = {
     mode: request.mode,
@@ -38,7 +40,15 @@ export async function executeAgentTask(
     payload: request.payload ?? undefined,
   };
 
-  return apiService.post(url, payload);
+  try {
+    return await apiService.post(primaryUrl, payload);
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status && status !== 404) {
+      throw error;
+    }
+    return apiService.post(fallbackUrl, payload);
+  }
 }
 
 export const agentExecutionService = {

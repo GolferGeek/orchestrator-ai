@@ -128,7 +128,10 @@ export class CIDAFMController {
     @CurrentUser() user: any,
     @Body() createCommandDto: { commandId: string },
   ): Promise<CIDAFMCommandResponseDto> {
-    return this.cidafmService.addUserCommand(user.id, createCommandDto.commandId);
+    return this.cidafmService.addUserCommand(
+      user.id,
+      createCommandDto.commandId,
+    );
   }
 
   @Put('commands/:id')

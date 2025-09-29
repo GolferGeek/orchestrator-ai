@@ -240,7 +240,7 @@ async function selectAgentTeam(
   ) => void,
 ): Promise<SwarmWorkflowState> {
   // Small delay to ensure previous step's completion is processed
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   progressCallback?.(
     'Selecting agent team',
@@ -370,8 +370,8 @@ Create high-quality, actionable marketing content according to your expertise. M
       const content = await llmService.generateResponse(
         agent.systemPrompt,
         contentPrompt,
-        { 
-          temperature: agent.temperature, 
+        {
+          temperature: agent.temperature,
           maxTokens: 1500,
           callerType: 'agent',
           callerName: 'marketing-swarm-agent',
@@ -471,8 +471,8 @@ Format as JSON:
       const evaluation = await llmService.generateResponse(
         evaluator.systemPrompt,
         evaluationPrompt,
-        { 
-          temperature: evaluator.temperature, 
+        {
+          temperature: evaluator.temperature,
           maxTokens: 800,
           callerType: 'agent',
           callerName: 'marketing-swarm-agent',
@@ -573,8 +573,8 @@ Format the response as a well-structured marketing content package with clear se
     const finalPackage = await llmService.generateResponse(
       `You are a senior marketing coordinator. Synthesize agent outputs into a cohesive, optimized MARKETING CONTENT PACKAGE that directly addresses the user's specific request. Create ready-to-use marketing materials that fulfill the exact needs stated in the original request. Do not create generic examples - focus on the actual topic/product/service requested.`,
       synthesisPrompt,
-      { 
-        temperature: 0.4, 
+      {
+        temperature: 0.4,
         maxTokens: 2500,
         callerType: 'agent',
         callerName: 'marketing-swarm-agent',
@@ -592,9 +592,8 @@ Format the response as a well-structured marketing content package with clear se
         // Extract content pieces from agent outputs
         const contentPieces: Record<string, any> = {};
         state.agentOutputs.forEach((value, key) => {
-          contentPieces[key] = typeof value === 'object' && value.content
-            ? value.content
-            : value;
+          contentPieces[key] =
+            typeof value === 'object' && value.content ? value.content : value;
         });
 
         finalResult = {
@@ -611,9 +610,8 @@ Format the response as a well-structured marketing content package with clear se
       // Extract just the content strings from agent outputs
       const contentPieces: Record<string, any> = {};
       state.agentOutputs.forEach((value, key) => {
-        contentPieces[key] = typeof value === 'object' && value.content
-          ? value.content
-          : value;
+        contentPieces[key] =
+          typeof value === 'object' && value.content ? value.content : value;
       });
 
       finalResult = {
@@ -644,9 +642,8 @@ Format the response as a well-structured marketing content package with clear se
     const contentPieces: Record<string, any> = {};
     state.agentOutputs.forEach((value, key) => {
       // Extract just the content string if it's nested in an object
-      contentPieces[key] = typeof value === 'object' && value.content
-        ? value.content
-        : value;
+      contentPieces[key] =
+        typeof value === 'object' && value.content ? value.content : value;
     });
 
     return {
@@ -755,24 +752,22 @@ ${(() => {
 ## Individual Content Pieces
 
 ${Object.entries(state.finalContent.content_pieces || {})
-  .map(
-    ([agent, piece]: [string, any]) => {
-      let content = piece;
-      // Extract content if it's an object with a 'content' field
-      if (typeof piece === 'object' && piece.content) {
-        content = piece.content;
-      } else if (typeof piece === 'object' && piece.metadata) {
-        // If there's metadata, exclude it
-        const { metadata, ...contentOnly } = piece;
-        content = JSON.stringify(contentOnly, null, 2);
-      } else if (typeof piece === 'object') {
-        content = JSON.stringify(piece, null, 2);
-      }
-      return `### ${agent}
+  .map(([agent, piece]: [string, any]) => {
+    let content = piece;
+    // Extract content if it's an object with a 'content' field
+    if (typeof piece === 'object' && piece.content) {
+      content = piece.content;
+    } else if (typeof piece === 'object' && piece.metadata) {
+      // If there's metadata, exclude it
+      const { metadata, ...contentOnly } = piece;
+      content = JSON.stringify(contentOnly, null, 2);
+    } else if (typeof piece === 'object') {
+      content = JSON.stringify(piece, null, 2);
+    }
+    return `### ${agent}
 ${content}
 `;
-    }
-  )
+  })
   .join('\n')}`
         : JSON.stringify(state.finalContent, null, 2);
 

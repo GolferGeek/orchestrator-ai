@@ -57,9 +57,7 @@ export class TaskStatusService {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly supabaseService: SupabaseService,
-  ) {
-
-  }
+  ) {}
 
   /**
    * Create a new task with initial status
@@ -71,9 +69,10 @@ export class TaskStatusService {
     initialData: Partial<TaskStatus> = {},
   ): Promise<void> {
     // Default to ephemeral behavior if no task type specified
-    const normalizedTaskType = (taskType === 'long_running' || taskType === 'swarm')
-      ? taskType as 'long_running' | 'swarm'
-      : 'ephemeral';
+    const normalizedTaskType =
+      taskType === 'long_running' || taskType === 'swarm'
+        ? taskType
+        : 'ephemeral';
     const taskStatus: TaskStatus = {
       taskId,
       userId,
@@ -108,13 +107,9 @@ export class TaskStatusService {
           .eq('user_id', userId);
 
         if (error) {
-
         } else {
-
         }
-      } catch (error) {
-
-      }
+      } catch (error) {}
     }
 
     this.emitStatusChange(taskId, taskStatus);
@@ -131,13 +126,11 @@ export class TaskStatusService {
   ): Promise<void> {
     const currentStatus = this.activeTaskStatuses.get(taskId);
     if (!currentStatus) {
-
       return;
     }
 
     // Verify user ownership
     if (currentStatus.userId !== userId) {
-
       return;
     }
 
@@ -170,19 +163,22 @@ export class TaskStatusService {
             typeof newStatus.result === 'string'
               ? newStatus.result
               : JSON.stringify(newStatus.result);
-          
+
           // Extract and store LLM metadata if present in the result
-          if (typeof newStatus.result === 'object' && newStatus.result.metadata) {
+          if (
+            typeof newStatus.result === 'object' &&
+            newStatus.result.metadata
+          ) {
             const resultMetadata = newStatus.result.metadata;
-            
+
             // Store general metadata
             updateData.metadata = resultMetadata;
-            
+
             // Extract and store LLM-specific metadata
             if (resultMetadata.llmUsed) {
               updateData.llm_metadata = resultMetadata.llmUsed;
             }
-            
+
             // Store response metadata (for compatibility)
             updateData.response_metadata = resultMetadata;
           }
@@ -200,11 +196,8 @@ export class TaskStatusService {
           .eq('user_id', userId);
 
         if (error) {
-
         }
-      } catch (error) {
-
-      }
+      } catch (error) {}
     }
 
     // Emit status change event
@@ -262,7 +255,6 @@ export class TaskStatusService {
     };
 
     messages.push(newMessage);
-
   }
 
   /**
@@ -283,7 +275,6 @@ export class TaskStatusService {
     // Check if user owns this task
     const taskStatus = this.getTaskStatus(taskId, userId);
     if (!taskStatus) {
-
       return [];
     }
 
@@ -385,7 +376,6 @@ export class TaskStatusService {
     }, cleanupDelayMs);
 
     this.cleanupTimers.set(taskId, cleanupTimer);
-
   }
 
   /**
@@ -395,7 +385,6 @@ export class TaskStatusService {
     this.activeTaskStatuses.delete(taskId);
     this.activeTaskMessages.delete(taskId); // Clean up live messages too
     this.cleanupTimers.delete(taskId);
-
   }
 
   /**

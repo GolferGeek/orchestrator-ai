@@ -3,10 +3,10 @@ import { MCPService } from '../mcp.service';
 
 /**
  * Generic MCP Client
- * 
+ *
  * Provides a clean, simple interface for agents to use MCP tools
  * without needing to know about JSON-RPC protocol details, tool names, or response parsing.
- * 
+ *
  * This client abstracts away all MCP protocol complexity and provides intuitive method names.
  */
 @Injectable()
@@ -49,13 +49,13 @@ export class GenericMCPClient {
           query: options.query,
           tables: options.tables || [],
           max_rows: options.maxRows || 100,
-        }
+        },
       });
 
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'SQL generation failed'
+          error: response.content[0]?.text || 'SQL generation failed',
         };
       }
 
@@ -69,7 +69,7 @@ export class GenericMCPClient {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -77,10 +77,7 @@ export class GenericMCPClient {
   /**
    * Execute SQL query
    */
-  async executeSQL(options: {
-    sql: string;
-    maxRows?: number;
-  }): Promise<{
+  async executeSQL(options: { sql: string; maxRows?: number }): Promise<{
     success: boolean;
     data?: any[];
     rowCount?: number;
@@ -94,13 +91,13 @@ export class GenericMCPClient {
         arguments: {
           sql: options.sql,
           max_rows: options.maxRows || 1000,
-        }
+        },
       });
 
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'SQL execution failed'
+          error: response.content[0]?.text || 'SQL execution failed',
         };
       }
 
@@ -115,7 +112,7 @@ export class GenericMCPClient {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -143,13 +140,13 @@ export class GenericMCPClient {
           analysis_prompt: options.prompt,
           provider: options.provider || 'anthropic',
           model: options.model || 'claude-3-5-sonnet-20241022',
-        }
+        },
       });
 
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'Analysis failed'
+          error: response.content[0]?.text || 'Analysis failed',
         };
       }
 
@@ -163,7 +160,7 @@ export class GenericMCPClient {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -171,9 +168,7 @@ export class GenericMCPClient {
   /**
    * Get database schema information
    */
-  async getSchema(options: {
-    domain?: string;
-  }): Promise<{
+  async getSchema(options: { domain?: string }): Promise<{
     success: boolean;
     schema?: any;
     error?: string;
@@ -183,13 +178,13 @@ export class GenericMCPClient {
         name: 'supabase/get-schema',
         arguments: {
           domain: options.domain || 'core',
-        }
+        },
       });
 
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'Schema retrieval failed'
+          error: response.content[0]?.text || 'Schema retrieval failed',
         };
       }
 
@@ -201,7 +196,7 @@ export class GenericMCPClient {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -238,7 +233,7 @@ export class GenericMCPClient {
     if (!sqlResult.success) {
       return {
         success: false,
-        error: `SQL Generation failed: ${sqlResult.error}`
+        error: `SQL Generation failed: ${sqlResult.error}`,
       };
     }
 
@@ -252,13 +247,17 @@ export class GenericMCPClient {
       return {
         success: false,
         sql: sqlResult.sql,
-        error: `SQL Execution failed: ${executeResult.error}`
+        error: `SQL Execution failed: ${executeResult.error}`,
       };
     }
 
     // Step 3: Analyze Results (if prompt provided)
     let analysisResult = null;
-    if (options.analysisPrompt && executeResult.data && executeResult.data.length > 0) {
+    if (
+      options.analysisPrompt &&
+      executeResult.data &&
+      executeResult.data.length > 0
+    ) {
       analysisResult = await this.analyzeResults({
         data: executeResult.data,
         prompt: options.analysisPrompt,
@@ -276,7 +275,7 @@ export class GenericMCPClient {
         rowCount: executeResult.rowCount,
         executionTimeMs: executeResult.executionTimeMs,
         tablesUsed: sqlResult.tablesUsed,
-      }
+      },
     };
   }
 }

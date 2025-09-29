@@ -54,7 +54,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
     input: OrchestratorInput,
     delegationContext?: string,
   ): Promise<OrchestratorResponse> {
-
     try {
       // Route based on A2A method (explicit operations)
       switch (method) {
@@ -87,7 +86,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           return await this.handleIntelligentRouting(input, delegationContext);
       }
     } catch (error) {
-
       return {
         success: false,
         message: `Request processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -108,7 +106,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleCreateProject(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       // Step 1: Create project plan using PlanningService
       const plan = await this.planningService.createPlan(input);
@@ -143,7 +140,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
         sessionId: input.sessionId,
       };
     } catch (error) {
-
       throw new Error(
         `Project creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -156,7 +152,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleUpdateProjectPlan(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for plan updates');
@@ -204,7 +199,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
         sessionId: input.sessionId,
       };
     } catch (error) {
-
       throw new Error(
         `Plan update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -217,7 +211,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleApproveProjectPlan(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for plan approval');
@@ -262,7 +255,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
         sessionId: input.sessionId,
       };
     } catch (error) {
-
       throw new Error(
         `Plan approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -275,7 +267,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleResumeProject(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for resumption');
@@ -307,7 +298,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleRetryProjectStep(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       if (!input.projectId || !input.stepId) {
         throw new Error('Project ID and Step ID required for retry');
@@ -340,7 +330,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleAbortProject(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for abortion');
@@ -372,7 +361,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleDelegateTask(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       // TODO: Extract agent name from input or metadata
       const agentName = input.metadata?.agentName;
@@ -400,7 +388,6 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleConverse(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     try {
       // Use LLM to generate orchestrator responses based on the user's message
       const systemPrompt = `You are an intelligent orchestrator agent that helps coordinate complex projects and delegate tasks to specialist agents. 
@@ -428,9 +415,11 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       );
 
       // Note: generateResponseWithHistory method not available, using generateResponse with history in prompt
-      const historyPrompt = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const historyPrompt = conversationHistory
+        .map((msg) => `${msg.role}: ${msg.content}`)
+        .join('\n');
       const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
-      
+
       const llmResponse = await this.llmService.generateResponse(
         fullPrompt,
         '',
@@ -457,7 +446,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
 
       return response;
     } catch (error) {
-
       // Fallback to a helpful static message if LLM fails
       return {
         success: true,
@@ -488,13 +476,10 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
     input: OrchestratorInput,
     delegationContext?: string,
   ): Promise<OrchestratorResponse> {
-
     if (delegationContext) {
-
     }
 
     try {
-
       // Use intent recognition to determine action
       const intent = await this.intentRecognitionService.classifyIntent(
         input,
@@ -533,9 +518,7 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
           return await this.handleResumeProject(input);
 
         case 'DELEGATE':
-
           if (intent.agentName) {
-
             try {
               const delegationResult =
                 await this.delegationService.delegateToAgent(
@@ -546,11 +529,9 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
 
               return delegationResult;
             } catch (delegationError) {
-
               throw delegationError;
             }
           } else {
-
             return await this.handleConverse(input);
           }
 
@@ -579,7 +560,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
           return await this.handleConverse(input);
       }
     } catch (error) {
-
       // If it's a delegation error, provide a more specific response instead of generic conversation fallback
       if (
         error instanceof Error &&
@@ -652,7 +632,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
 
       return projectId;
     } catch (error) {
-
       throw error;
     }
   }
@@ -688,7 +667,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
         throw new Error(`Database insert failed: ${error.message}`);
       }
     } catch (error) {
-
       throw error;
     }
   }
@@ -714,7 +692,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
 
       return data;
     } catch (error) {
-
       return null;
     }
   }
@@ -747,7 +724,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
         throw new Error(`Database update failed: ${error.message}`);
       }
     } catch (error) {
-
       throw error;
     }
   }
@@ -776,7 +752,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       // Create new steps
       await this.createProjectSteps(projectId, plan);
     } catch (error) {
-
       throw error;
     }
   }
@@ -814,7 +789,6 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
         throw new Error(`Database update failed: ${error.message}`);
       }
     } catch (error) {
-
       throw error;
     }
   }

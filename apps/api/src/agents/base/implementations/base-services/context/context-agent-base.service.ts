@@ -54,18 +54,32 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
-    
+
     // DEBUG: Log what the agent receives
-    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] Agent received params keys:`, Object.keys(params));
-    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] params.piiMetadata exists:`, !!params.piiMetadata);
-    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] params.routingDecision exists:`, !!params.routingDecision);
-    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] params.metadata exists:`, !!params.metadata);
+    this.contextLogger.debug(
+      `🔍 [AGENT-PARAMS-DEBUG] Agent received params keys:`,
+      Object.keys(params),
+    );
+    this.contextLogger.debug(
+      `🔍 [AGENT-PARAMS-DEBUG] params.piiMetadata exists:`,
+      !!params.piiMetadata,
+    );
+    this.contextLogger.debug(
+      `🔍 [AGENT-PARAMS-DEBUG] params.routingDecision exists:`,
+      !!params.routingDecision,
+    );
+    this.contextLogger.debug(
+      `🔍 [AGENT-PARAMS-DEBUG] params.metadata exists:`,
+      !!params.metadata,
+    );
     const agentType = this.getAgentType();
 
     try {
       // NEW ARCHITECTURE: Check for PII blocking first
       if (this.shouldBlockForPII(params)) {
-        this.contextLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+        this.contextLogger.warn(
+          `🛑 [${agentName}] Request blocked due to PII policy violation`,
+        );
         return this.generatePIIBlockedResponse(params);
       }
 
@@ -73,9 +87,13 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const userMessage = this.extractUserMessage(params);
 
       // Check for metadata-driven routing first
-      
+
       if (params.metadata?.context && params.metadata?.method) {
-        return await this.handleMetadataRouting(params.metadata, userMessage, params);
+        return await this.handleMetadataRouting(
+          params.metadata,
+          userMessage,
+          params,
+        );
       }
 
       // Check if this is a simple greeting request
@@ -97,7 +115,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       // If no context data available, use fallback
       if (!this.contextData) {
-        this.contextLogger.warn(`🤖 [${agentName}] No context data available, using fallback processing`);
+        this.contextLogger.warn(
+          `🤖 [${agentName}] No context data available, using fallback processing`,
+        );
         return this.processWithoutContext(method, params, agentName, agentType);
       }
 
@@ -116,12 +136,13 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         }));
 
         // Note: generateResponseWithHistory method not available, using generateResponse with history in prompt
-        const historyPrompt = formattedHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n');
+        const historyPrompt = formattedHistory
+          .map((msg: any) => `${msg.role}: ${msg.content}`)
+          .join('\n');
         const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
-        
-        
+
         const startTime = Date.now();
-        
+
         // Always use frontend model selection - no backend override
         const llmOptions: any = {
           callerType: 'agent',
@@ -136,8 +157,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           cidafmOptions: params.llmSelection?.cidafmOptions,
           temperature: params.llmSelection?.temperature,
         };
-        
-        
+
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
           `${historyPrompt}\n\nCurrent User Message: ${userMessage}`,
@@ -149,10 +169,16 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         // Use standard LLM processing for first message
         const extractedPiiMetadata = this.extractPIIMetadata(params);
         const extractedRoutingDecision = this.extractRoutingDecision(params);
-        
-        this.contextLogger.debug(`🔍 [AGENT-PII-DEBUG] extractPIIMetadata result:`, extractedPiiMetadata);
-        this.contextLogger.debug(`🔍 [AGENT-PII-DEBUG] extractRoutingDecision result:`, extractedRoutingDecision);
-        
+
+        this.contextLogger.debug(
+          `🔍 [AGENT-PII-DEBUG] extractPIIMetadata result:`,
+          extractedPiiMetadata,
+        );
+        this.contextLogger.debug(
+          `🔍 [AGENT-PII-DEBUG] extractRoutingDecision result:`,
+          extractedRoutingDecision,
+        );
+
         const llmOptions = {
           ...params,
           userId: this.extractUserId(params), // Add user ID for LLM usage tracking
@@ -170,21 +196,31 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           piiMetadata: extractedPiiMetadata,
           routingDecision: extractedRoutingDecision,
         };
-        
-        this.contextLogger.debug(`🔍 [AGENT-PII-DEBUG] Final llmOptions.piiMetadata:`, llmOptions.piiMetadata);
-        
+
+        this.contextLogger.debug(
+          `🔍 [AGENT-PII-DEBUG] Final llmOptions.piiMetadata:`,
+          llmOptions.piiMetadata,
+        );
+
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
           userMessage,
           llmOptions,
         );
-        
       }
 
       // 🔍 DEBUG: Log LLM result structure
-      this.contextLogger.log(`🔍 [AGENT-DEBUG] LLM result type: ${typeof llmResult}`);
-      this.contextLogger.log(`🔍 [AGENT-DEBUG] LLM result keys:`, typeof llmResult === 'object' ? Object.keys(llmResult) : 'N/A');
-      this.contextLogger.log(`🔍 [AGENT-DEBUG] LLM result sanitizationMetadata:`, typeof llmResult === 'object' ? llmResult.sanitizationMetadata : 'N/A');
+      this.contextLogger.log(
+        `🔍 [AGENT-DEBUG] LLM result type: ${typeof llmResult}`,
+      );
+      this.contextLogger.log(
+        `🔍 [AGENT-DEBUG] LLM result keys:`,
+        typeof llmResult === 'object' ? Object.keys(llmResult) : 'N/A',
+      );
+      this.contextLogger.log(
+        `🔍 [AGENT-DEBUG] LLM result sanitizationMetadata:`,
+        typeof llmResult === 'object' ? llmResult.sanitizationMetadata : 'N/A',
+      );
 
       // Extract response content and metadata
       const responseContent =
@@ -192,7 +228,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const llmMetadata =
         typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
       const sanitizationMetadata =
-        typeof llmResult === 'object' ? llmResult.sanitizationMetadata : undefined;
+        typeof llmResult === 'object'
+          ? llmResult.sanitizationMetadata
+          : undefined;
       // NEW ARCHITECTURE: Extract PII metadata from LLM response
       const llmPiiMetadata =
         typeof llmResult === 'object' ? llmResult.piiMetadata : undefined;
@@ -230,7 +268,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       if (params.taskId && params.currentUser?.id) {
         try {
-
           // Use completeTaskWithDeliverableContext to enable auto-deliverable creation
           await this.completeTaskWithDeliverableContext(
             params.taskId,
@@ -345,10 +382,19 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   private buildSystemPrompt(agentName: string, agentType: string): string {
     // Debug logging to see what's happening with agent names
-    this.contextLogger.debug('🔍 [AGENT-DEBUG] buildSystemPrompt called with:', { agentName, agentType });
-    this.contextLogger.debug('🔍 [AGENT-DEBUG] contextData available:', !!this.contextData);
-    this.contextLogger.debug('🔍 [AGENT-DEBUG] contextData preview:', this.contextData?.substring(0, 100));
-    
+    this.contextLogger.debug(
+      '🔍 [AGENT-DEBUG] buildSystemPrompt called with:',
+      { agentName, agentType },
+    );
+    this.contextLogger.debug(
+      '🔍 [AGENT-DEBUG] contextData available:',
+      !!this.contextData,
+    );
+    this.contextLogger.debug(
+      '🔍 [AGENT-DEBUG] contextData preview:',
+      this.contextData?.substring(0, 100),
+    );
+
     let prompt = `You are ${agentName}, a ${agentType} agent. Help the user with their request.`;
 
     if (this.contextData) {
@@ -356,7 +402,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       prompt += `\n\nUse this context to provide accurate and helpful responses. If the user's question is not covered by the context, say so and provide general assistance.`;
     }
 
-    this.contextLogger.debug('🔍 [AGENT-DEBUG] Final system prompt:', prompt.substring(0, 200));
+    this.contextLogger.debug(
+      '🔍 [AGENT-DEBUG] Final system prompt:',
+      prompt.substring(0, 200),
+    );
     return prompt;
   }
 
@@ -393,7 +442,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     agentName: string,
     agentType: string,
   ): Promise<any> {
-
     return {
       success: true,
       response: `Hello! I'm the ${agentName} agent. I'm ready to help, but my context data isn't loaded yet. Please check back soon!`,
@@ -475,7 +523,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       };
 
       await this.services.tasksService.updateTask(taskId, userId, updateData);
-
     } catch (error) {
       this.contextLogger.error(
         `Error saving task result for ${taskId}:`,
@@ -488,7 +535,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Handle metadata-driven routing for version management operations
    */
-  private async handleMetadataRouting(metadata: any, userMessage: string, params: any): Promise<any> {
+  private async handleMetadataRouting(
+    metadata: any,
+    userMessage: string,
+    params: any,
+  ): Promise<any> {
     const agentName = this.getAgentName();
     const agentType = this.getAgentType();
 
@@ -499,15 +550,32 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       // Route based on context
       switch (metadata.context) {
         case 'deliverable':
-          return await this.handleDeliverableContext(metadata, userMessage, userId, agentName, agentType);
-        
+          return await this.handleDeliverableContext(
+            metadata,
+            userMessage,
+            userId,
+            agentName,
+            agentType,
+          );
+
         case 'project':
-          return await this.handleProjectContext(metadata, userMessage, userId, agentName, agentType);
-        
+          return await this.handleProjectContext(
+            metadata,
+            userMessage,
+            userId,
+            agentName,
+            agentType,
+          );
+
         case 'conversation':
         default:
           // Fall back to normal conversation processing
-          return await this.processRegularConversation(userMessage, params, agentName, agentType);
+          return await this.processRegularConversation(
+            userMessage,
+            params,
+            agentName,
+            agentType,
+          );
       }
     } catch (error) {
       this.contextLogger.error('Metadata routing failed:', error);
@@ -539,29 +607,58 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     if (!this.deliverableVersionsService) {
       return {
         success: false,
-        response: 'Deliverable version management is not available for this agent',
+        response:
+          'Deliverable version management is not available for this agent',
         metadata: { agentName, agentType, error: true },
       };
     }
 
     switch (metadata.method) {
       case 'delete':
-        return await this.handleVersionDeletion(metadata, userId, agentName, agentType);
-      
+        return await this.handleVersionDeletion(
+          metadata,
+          userId,
+          agentName,
+          agentType,
+        );
+
       case 'newVersion':
-        return await this.handleVersionCreation(metadata, userMessage, userId, agentName, agentType);
-      
+        return await this.handleVersionCreation(
+          metadata,
+          userMessage,
+          userId,
+          agentName,
+          agentType,
+        );
+
       case 'merge':
-        return await this.handleVersionMerge(metadata, userMessage, userId, agentName, agentType);
-      
+        return await this.handleVersionMerge(
+          metadata,
+          userMessage,
+          userId,
+          agentName,
+          agentType,
+        );
+
       case 'create':
-        return await this.handleNewDeliverableCreation(metadata, userMessage, userId, agentName, agentType);
-      
+        return await this.handleNewDeliverableCreation(
+          metadata,
+          userMessage,
+          userId,
+          agentName,
+          agentType,
+        );
+
       default:
         return {
           success: false,
           response: `I don't understand the deliverable operation "${metadata.method}". I can help with delete, newVersion, merge, or create operations.`,
-          metadata: { agentName, agentType, error: true, unknownMethod: metadata.method },
+          metadata: {
+            agentName,
+            agentType,
+            error: true,
+            unknownMethod: metadata.method,
+          },
         };
     }
   }
@@ -569,41 +666,63 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Handle version deletion
    */
-  private async handleVersionDeletion(metadata: any, userId: string, agentName: string, agentType: string): Promise<any> {
-    if (!metadata.versionIds || !Array.isArray(metadata.versionIds) || metadata.versionIds.length === 0) {
+  private async handleVersionDeletion(
+    metadata: any,
+    userId: string,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
+    if (
+      !metadata.versionIds ||
+      !Array.isArray(metadata.versionIds) ||
+      metadata.versionIds.length === 0
+    ) {
       return {
         success: false,
-        response: 'I need version IDs to delete. Please specify which versions you want me to delete.',
+        response:
+          'I need version IDs to delete. Please specify which versions you want me to delete.',
         metadata: { agentName, agentType, error: true },
       };
     }
 
     try {
       const deleteResults = await Promise.all(
-        metadata.versionIds.map((versionId: string) => 
-          this.deliverableVersionsService!.deleteVersion(versionId, userId)
-        )
+        metadata.versionIds.map((versionId: string) =>
+          this.deliverableVersionsService!.deleteVersion(versionId, userId),
+        ),
       );
 
-      const successCount = deleteResults.filter(r => r.success).length;
+      const successCount = deleteResults.filter((r) => r.success).length;
       const failureCount = deleteResults.length - successCount;
 
       if (failureCount === 0) {
         return {
           success: true,
           response: `I've successfully deleted ${successCount} version${successCount > 1 ? 's' : ''}.`,
-          metadata: { agentName, agentType, deletedVersions: metadata.versionIds },
+          metadata: {
+            agentName,
+            agentType,
+            deletedVersions: metadata.versionIds,
+          },
         };
       } else {
         const failedVersions = deleteResults
-          .map((result, index) => ({ result, versionId: metadata.versionIds[index] }))
-          .filter(item => !item.result.success)
-          .map(item => `${item.versionId}: ${item.result.message}`);
+          .map((result, index) => ({
+            result,
+            versionId: metadata.versionIds[index],
+          }))
+          .filter((item) => !item.result.success)
+          .map((item) => `${item.versionId}: ${item.result.message}`);
 
         return {
           success: false,
           response: `I could delete ${successCount} version${successCount > 1 ? 's' : ''}, but ${failureCount} failed: ${failedVersions.join(', ')}`,
-          metadata: { agentName, agentType, partialSuccess: true, failures: failedVersions },
+          metadata: {
+            agentName,
+            agentType,
+            partialSuccess: true,
+            failures: failedVersions,
+          },
         };
       }
     } catch (error) {
@@ -618,7 +737,13 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Handle version creation from task
    */
-  private async handleVersionCreation(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
+  private async handleVersionCreation(
+    metadata: any,
+    userMessage: string,
+    userId: string,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
     if (!metadata.deliverableId) {
       return {
         success: false,
@@ -628,19 +753,20 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     }
 
     try {
-      const newVersion = await this.deliverableVersionsService!.createVersionFromTask(
-        metadata.deliverableId,
-        userMessage,
-        userId,
-        metadata.baseVersionId
-      );
+      const newVersion =
+        await this.deliverableVersionsService!.createVersionFromTask(
+          metadata.deliverableId,
+          userMessage,
+          userId,
+          metadata.baseVersionId,
+        );
 
       return {
         success: true,
         response: `I've created version ${newVersion.versionNumber} with your requested changes.`,
-        metadata: { 
-          agentName, 
-          agentType, 
+        metadata: {
+          agentName,
+          agentType,
           newVersionId: newVersion.id,
           versionNumber: newVersion.versionNumber,
         },
@@ -657,11 +783,23 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Handle version merging
    */
-  private async handleVersionMerge(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
-    if (!metadata.deliverableId || !metadata.versionIds || !Array.isArray(metadata.versionIds) || metadata.versionIds.length < 2) {
+  private async handleVersionMerge(
+    metadata: any,
+    userMessage: string,
+    userId: string,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
+    if (
+      !metadata.deliverableId ||
+      !metadata.versionIds ||
+      !Array.isArray(metadata.versionIds) ||
+      metadata.versionIds.length < 2
+    ) {
       return {
         success: false,
-        response: 'I need a deliverable ID and at least 2 version IDs to merge versions.',
+        response:
+          'I need a deliverable ID and at least 2 version IDs to merge versions.',
         metadata: { agentName, agentType, error: true },
       };
     }
@@ -671,11 +809,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         metadata.deliverableId,
         metadata.versionIds,
         userMessage,
-        userId
+        userId,
       );
 
       let response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
-      
+
       if (mergeResult.conflictSummary) {
         response += ` ${mergeResult.conflictSummary}`;
       }
@@ -683,9 +821,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       return {
         success: true,
         response,
-        metadata: { 
-          agentName, 
-          agentType, 
+        metadata: {
+          agentName,
+          agentType,
           newVersionId: mergeResult.newVersion.id,
           versionNumber: mergeResult.newVersion.versionNumber,
           mergedVersions: metadata.versionIds,
@@ -704,7 +842,13 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Handle new deliverable creation
    */
-  private async handleNewDeliverableCreation(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
+  private async handleNewDeliverableCreation(
+    metadata: any,
+    userMessage: string,
+    userId: string,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
     if (!this.deliverablesService) {
       return {
         success: false,
@@ -715,12 +859,13 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
     try {
       // Extract title from the user's prompt (simple heuristic)
-      const title = this.extractTitleFromPrompt(userMessage) || 'New Deliverable';
-      
+      const title =
+        this.extractTitleFromPrompt(userMessage) || 'New Deliverable';
+
       // For now, use the user's prompt as initial content
       // TODO: Generate content using agent's LLM processing
       const initialContent = userMessage;
-      
+
       // Create the deliverable with the user's prompt as initial content
       const createDeliverableDto = {
         title,
@@ -737,14 +882,17 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         },
       };
 
-      const newDeliverable = await this.deliverablesService!.create(createDeliverableDto, userId);
+      const newDeliverable = await this.deliverablesService.create(
+        createDeliverableDto,
+        userId,
+      );
 
       return {
         success: true,
         response: `I've created a new deliverable: "${title}". You can find it in your deliverables list.`,
-        metadata: { 
-          agentName, 
-          agentType, 
+        metadata: {
+          agentName,
+          agentType,
           deliverableId: newDeliverable.id,
           deliverableTitle: title,
         },
@@ -765,29 +913,38 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     // Simple heuristic to extract title from prompts like:
     // "Write a blog post about AI trends" -> "Blog Post About AI Trends"
     // "Create a market analysis" -> "Market Analysis"
-    
+
     const cleanPrompt = prompt.trim();
-    
+
     // Remove common prefixes
     let title = cleanPrompt
-      .replace(/^(write|create|draft|generate|make|build)\s+(a|an|the)?\s*/i, '')
+      .replace(
+        /^(write|create|draft|generate|make|build)\s+(a|an|the)?\s*/i,
+        '',
+      )
       .replace(/^(please\s+)?(can\s+you\s+)?(help\s+me\s+)?/i, '');
-    
+
     // Capitalize first letter of each word
-    title = title.replace(/\b\w/g, l => l.toUpperCase());
-    
+    title = title.replace(/\b\w/g, (l) => l.toUpperCase());
+
     // Limit length
     if (title.length > 100) {
       title = title.substring(0, 97) + '...';
     }
-    
+
     return title || 'New Deliverable';
   }
 
   /**
    * Handle project context operations
    */
-  private async handleProjectContext(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
+  private async handleProjectContext(
+    metadata: any,
+    userMessage: string,
+    userId: string,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
     // TODO: Implement project context operations
     return {
       success: false,
@@ -799,16 +956,26 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Process regular conversation (fallback for conversation context or no metadata)
    */
-  private async processRegularConversation(userMessage: string, params: any, agentName: string, agentType: string): Promise<any> {
+  private async processRegularConversation(
+    userMessage: string,
+    params: any,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
     // Continue with existing conversation processing logic
     if (!this.contextData) {
-      return this.processWithoutContext('process', params, agentName, agentType);
+      return this.processWithoutContext(
+        'process',
+        params,
+        agentName,
+        agentType,
+      );
     }
 
     // Process with LLM using context
     const systemPrompt = this.buildSystemPrompt(agentName, agentType);
     const conversationHistory = params.conversationHistory || [];
-    
+
     if (conversationHistory.length > 0) {
       const formattedHistory = conversationHistory.map((msg: any) => ({
         role: msg.role === 'assistant' ? 'assistant' : 'user',
@@ -816,26 +983,24 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       }));
 
       // Note: generateResponseWithHistory method not available, using generateResponse with history in prompt
-      const historyPrompt = formattedHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n');
+      const historyPrompt = formattedHistory
+        .map((msg: any) => `${msg.role}: ${msg.content}`)
+        .join('\n');
       const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
-      
-      return await this.services.llmService.generateResponse(
-        fullPrompt,
-        '',
-        {
-          // Ensure we preserve LLM metadata (PII, tokens, timing)
-          includeMetadata: true,
-          // Honor explicit provider/model if provided by UI selection
-          providerName: params?.llmSelection?.providerName,
-          modelName: params?.llmSelection?.modelName,
-          // Caller/context info
-          callerType: 'agent',
-          callerName: this.getAgentName(),
-          userId: this.extractUserId(params),
-          conversationId: params?.conversationId,
-          dataClassification: 'internal',
-        }
-      );
+
+      return await this.services.llmService.generateResponse(fullPrompt, '', {
+        // Ensure we preserve LLM metadata (PII, tokens, timing)
+        includeMetadata: true,
+        // Honor explicit provider/model if provided by UI selection
+        providerName: params?.llmSelection?.providerName,
+        modelName: params?.llmSelection?.modelName,
+        // Caller/context info
+        callerType: 'agent',
+        callerName: this.getAgentName(),
+        userId: this.extractUserId(params),
+        conversationId: params?.conversationId,
+        dataClassification: 'internal',
+      });
     } else {
       return await this.services.llmService.generateResponse(
         systemPrompt,
@@ -852,7 +1017,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           userId: this.extractUserId(params),
           conversationId: params?.conversationId,
           dataClassification: 'internal',
-        }
+        },
       );
     }
   }
@@ -862,6 +1027,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   private extractUserId(params: any): string {
     // Try various possible locations for userId
-    return params.userId || params.user?.id || params.user?.sub || params.currentUser?.id || 'unknown';
+    return (
+      params.userId ||
+      params.user?.id ||
+      params.user?.sub ||
+      params.currentUser?.id ||
+      'unknown'
+    );
   }
 }

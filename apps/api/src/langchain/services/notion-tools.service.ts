@@ -51,7 +51,6 @@ export class LangChainNotionService {
 
           return JSON.stringify(mockResponse);
         } catch (error) {
-
           return JSON.stringify({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -99,7 +98,6 @@ export class LangChainNotionService {
 
           return JSON.stringify(mockResponse);
         } catch (error) {
-
           return JSON.stringify({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -135,7 +133,6 @@ export class LangChainNotionService {
 
           return JSON.stringify(mockResponse);
         } catch (error) {
-
           return JSON.stringify({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -202,7 +199,6 @@ Respond with JSON containing:
         response: `I understand you want to ${parsed.intent}. I'll ${parsed.action} for you.`,
       };
     } catch (error) {
-
       return {
         intent: 'Unknown',
         action: 'error',

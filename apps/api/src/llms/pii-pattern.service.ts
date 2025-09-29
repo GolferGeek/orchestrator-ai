@@ -1,7 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 
-export type PIIDataType = 'email' | 'phone' | 'name' | 'address' | 'ip_address' | 'username' | 'credit_card' | 'ssn' | 'custom';
+export type PIIDataType =
+  | 'email'
+  | 'phone'
+  | 'name'
+  | 'address'
+  | 'ip_address'
+  | 'username'
+  | 'credit_card'
+  | 'ssn'
+  | 'custom';
 
 export interface PIIPattern {
   name: string;
@@ -40,10 +49,11 @@ export class PIIPatternService {
   private patternsLoaded = false;
 
   constructor(private readonly supabaseService: SupabaseService) {
-    this.logger.log(`PIIPatternService initialized - all patterns loaded from database`);
+    this.logger.log(
+      `PIIPatternService initialized - all patterns loaded from database`,
+    );
     this.logger.log(`✅ SupabaseService injected: ${!!this.supabaseService}`);
   }
-
 
   /**
    * Detect PII in text using all enabled patterns
@@ -54,23 +64,18 @@ export class PIIPatternService {
       dataTypes?: PIIDataType[];
       minConfidence?: number;
       maxMatches?: number;
-    } = {}
+    } = {},
   ): Promise<PIIDetectionResult> {
     const startTime = Date.now();
-    const {
-      dataTypes,
-      minConfidence = 0.7,
-      maxMatches = 100,
-    } = options;
-
+    const { dataTypes, minConfidence = 0.7, maxMatches = 100 } = options;
 
     // Load patterns from database on first use
     await this.ensurePatternsLoaded();
 
     // Get all enabled patterns from database
     const allPatterns = this.databasePatterns
-      .filter(pattern => pattern.enabled !== false)
-      .filter(pattern => !dataTypes || dataTypes.includes(pattern.dataType))
+      .filter((pattern) => pattern.enabled !== false)
+      .filter((pattern) => !dataTypes || dataTypes.includes(pattern.dataType))
       .sort((a, b) => (a.priority || 50) - (b.priority || 50));
 
     const matches: PIIMatch[] = [];
@@ -80,14 +85,17 @@ export class PIIPatternService {
       if (matches.length >= maxMatches) break;
 
       patternsChecked++;
-      
+
       // Reset regex to avoid issues with global flag
       pattern.pattern.lastIndex = 0;
-      
+
       let match: RegExpExecArray | null;
-      while ((match = pattern.pattern.exec(text)) !== null && matches.length < maxMatches) {
+      while (
+        (match = pattern.pattern.exec(text)) !== null &&
+        matches.length < maxMatches
+      ) {
         const value = match[0];
-        
+
         // Apply validator if present
         let confidence = 1.0;
         if (pattern.validator) {
@@ -101,14 +109,14 @@ export class PIIPatternService {
         }
 
         // Check for overlapping matches (keep higher priority)
-        const hasOverlap = matches.some(existingMatch => {
+        const hasOverlap = matches.some((existingMatch) => {
           if (!match) return false;
           const start1 = match.index;
           const end1 = match.index + value.length;
           const start2 = existingMatch.startIndex;
           const end2 = existingMatch.endIndex;
-          
-          return (start1 < end2 && end1 > start2);
+
+          return start1 < end2 && end1 > start2;
         });
 
         if (!hasOverlap && match) {
@@ -143,8 +151,15 @@ export class PIIPatternService {
   async addCustomPattern(pattern: Omit<PIIPattern, 'enabled'>): Promise<void> {
     try {
       // Validate pattern
-      if (!pattern.name || !pattern.pattern || !pattern.dataType || !pattern.severity) {
-        throw new Error('Invalid pattern: name, pattern, dataType, and severity are required');
+      if (
+        !pattern.name ||
+        !pattern.pattern ||
+        !pattern.dataType ||
+        !pattern.severity
+      ) {
+        throw new Error(
+          'Invalid pattern: name, pattern, dataType, and severity are required',
+        );
       }
 
       // Test pattern compilation
@@ -165,10 +180,12 @@ export class PIIPatternService {
 
       // Reload patterns from database to include the new one
       await this.loadPatternsFromDatabase();
-      
+
       this.logger.log(`Added custom PII pattern: ${pattern.name}`);
     } catch (error) {
-      this.logger.error(`Failed to add custom pattern: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to add custom pattern: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw error;
     }
   }
@@ -184,35 +201,40 @@ export class PIIPatternService {
    * Get patterns by data type
    */
   getPatternsByDataType(dataType: PIIDataType): PIIPattern[] {
-    return this.getAllPatterns().filter(pattern => pattern.dataType === dataType);
+    return this.getAllPatterns().filter(
+      (pattern) => pattern.dataType === dataType,
+    );
   }
 
   /**
    * Test a pattern against sample text
    */
-  testPattern(pattern: PIIPattern, testText: string): {
+  testPattern(
+    pattern: PIIPattern,
+    testText: string,
+  ): {
     matches: string[];
     validMatches: string[];
     performance: number;
   } {
     const startTime = Date.now();
-    
+
     pattern.pattern.lastIndex = 0;
     const matches: string[] = [];
     const validMatches: string[] = [];
-    
+
     let match;
     while ((match = pattern.pattern.exec(testText)) !== null) {
       const value = match[0];
       matches.push(value);
-      
+
       if (!pattern.validator || pattern.validator(value)) {
         validMatches.push(value);
       }
     }
-    
+
     const performance = Date.now() - startTime;
-    
+
     return { matches, validMatches, performance };
   }
 
@@ -244,7 +266,7 @@ export class PIIPatternService {
 
       if (data) {
         // Load ALL patterns from database (built-in and custom)
-        this.databasePatterns = data.map(row => ({
+        this.databasePatterns = data.map((row) => ({
           name: row.name,
           dataType: row.data_type as PIIDataType,
           pattern: new RegExp(row.pattern_regex, 'g'),
@@ -256,22 +278,28 @@ export class PIIPatternService {
         }));
 
         this.patternsLoaded = true;
-        this.logger.debug(`Loaded ${this.databasePatterns.length} PII patterns from database`);
-        
+        this.logger.debug(
+          `Loaded ${this.databasePatterns.length} PII patterns from database`,
+        );
+
         // Log pattern breakdown by severity
-        const bySeverity = this.databasePatterns.reduce((acc, p) => {
-          acc[p.severity || 'unknown'] = (acc[p.severity || 'unknown'] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        
+        const bySeverity = this.databasePatterns.reduce(
+          (acc, p) => {
+            acc[p.severity || 'unknown'] =
+              (acc[p.severity || 'unknown'] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
+
         this.logger.debug(`Pattern breakdown: ${JSON.stringify(bySeverity)}`);
       }
     } catch (error) {
-      this.logger.warn(`Failed to load patterns from database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.warn(
+        `Failed to load patterns from database: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
-
-
 
   /**
    * Force reload of patterns from database (used when patterns are modified externally)
@@ -291,12 +319,15 @@ export class PIIPatternService {
     patternsLoaded: boolean;
   } {
     const allPatterns = this.getAllPatterns();
-    
+
     return {
       totalPatterns: allPatterns.length,
-      enabledPatterns: allPatterns.filter(p => p.enabled !== false).length,
-      showstopperPatterns: allPatterns.filter(p => p.severity === 'showstopper').length,
-      flaggerPatterns: allPatterns.filter(p => p.severity === 'flagger').length,
+      enabledPatterns: allPatterns.filter((p) => p.enabled !== false).length,
+      showstopperPatterns: allPatterns.filter(
+        (p) => p.severity === 'showstopper',
+      ).length,
+      flaggerPatterns: allPatterns.filter((p) => p.severity === 'flagger')
+        .length,
       patternsLoaded: this.patternsLoaded,
     };
   }

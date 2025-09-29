@@ -16,7 +16,10 @@ import {
   AgentInfo,
 } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { AgentType } from '../../../../../common/types/agent-conversations.types';
-import { PIIProcessingMetadata, RoutingDecisionWithPII } from '../../../../../common/types/pii-metadata.types';
+import {
+  PIIProcessingMetadata,
+  RoutingDecisionWithPII,
+} from '../../../../../common/types/pii-metadata.types';
 import {
   JsonRpcProtocolService,
   JsonRpcRequest,
@@ -116,9 +119,8 @@ export abstract class A2AAgentBaseService
     this.deliverableVersionsService = deliverableVersionsService;
     this.tasksService = tasksService;
     this.llmService = llmService;
-    
-    // Debug logging to track service injection
 
+    // Debug logging to track service injection
   }
 
   // ============================================================================
@@ -167,7 +169,9 @@ export abstract class A2AAgentBaseService
     try {
       const yamlConfig = await this.loadAgentYamlConfig();
       const configuration = (yamlConfig && yamlConfig.configuration) || {};
-      const profile = normalizeExecutionProfile(configuration.execution_profile);
+      const profile = normalizeExecutionProfile(
+        configuration.execution_profile,
+      );
       const overrides = this.normalizeExecutionCapabilityOverrides(
         configuration.execution_capabilities,
       );
@@ -400,12 +404,19 @@ export abstract class A2AAgentBaseService
       return this.processJsonRpcRequest(taskRequest);
     } else {
       // Legacy direct call – optionally block and always normalize
-      const disableLegacy = (process.env.DISABLE_LEGACY_A2A_DIRECT ?? 'true') === 'true';
+      const disableLegacy =
+        (process.env.DISABLE_LEGACY_A2A_DIRECT ?? 'true') === 'true';
       if (disableLegacy) {
-        this.logger.warn(`Legacy A2A direct task path blocked. Agent=${this.getAgentName()}`);
-        throw new Error('Legacy A2A direct path is disabled. Please use JSON-RPC request shape.');
+        this.logger.warn(
+          `Legacy A2A direct task path blocked. Agent=${this.getAgentName()}`,
+        );
+        throw new Error(
+          'Legacy A2A direct path is disabled. Please use JSON-RPC request shape.',
+        );
       }
-      this.logger.warn(`Using legacy A2A direct task path. Consider migrating to JSON-RPC. Agent=${this.getAgentName()}`);
+      this.logger.warn(
+        `Using legacy A2A direct task path. Consider migrating to JSON-RPC. Agent=${this.getAgentName()}`,
+      );
       return this.normalizeAndExecute('processTask', taskRequest);
     }
   }
@@ -419,11 +430,15 @@ export abstract class A2AAgentBaseService
   /**
    * Normalize params (mode gating, quick flags, LLM selection) and delegate to executeTask
    */
-  protected async normalizeAndExecute(method: string, params: any): Promise<any> {
+  protected async normalizeAndExecute(
+    method: string,
+    params: any,
+  ): Promise<any> {
     const normalized = { ...(params || {}) };
 
     // Determine mode from params or method
-    const requestedMode = (normalized.mode as string) ||
+    const requestedMode =
+      (normalized.mode as string) ||
       (['converse', 'plan', 'build'].includes(method) ? method : undefined) ||
       'converse';
     normalized.mode = requestedMode;
@@ -438,15 +453,11 @@ export abstract class A2AAgentBaseService
     }
 
     if (requestedMode === 'plan' && !executionCapabilities.can_plan) {
-      throw new Error(
-        `${this.getAgentName()} cannot run in plan mode.`,
-      );
+      throw new Error(`${this.getAgentName()} cannot run in plan mode.`);
     }
 
     if (requestedMode === 'build' && !executionCapabilities.can_build) {
-      throw new Error(
-        `${this.getAgentName()} cannot run in build mode.`,
-      );
+      throw new Error(`${this.getAgentName()} cannot run in build mode.`);
     }
 
     // Early gating and fast-path hints
@@ -455,31 +466,44 @@ export abstract class A2AAgentBaseService
       normalized.noDeliverable = normalized.noDeliverable ?? true;
 
       // Optionally ignore UI-provided model selection for conversational consistency
-      const ignoreUi = (process.env.A2A_CONVERSE_IGNORE_UI_SELECTION ?? 'true') === 'true';
-      const forceLocal = (process.env.A2A_CONVERSE_FORCE_LOCAL ?? 'false') === 'true';
+      const ignoreUi =
+        (process.env.A2A_CONVERSE_IGNORE_UI_SELECTION ?? 'true') === 'true';
+      const forceLocal =
+        (process.env.A2A_CONVERSE_FORCE_LOCAL ?? 'false') === 'true';
       if (ignoreUi || forceLocal) {
-        const sys = forceLocal ? { providerName: 'ollama', modelName: 'llama3.2:1b' } : this.getSystemModelSelection(true /*preferLocalForConverse*/);
+        const sys = forceLocal
+          ? { providerName: 'ollama', modelName: 'llama3.2:1b' }
+          : this.getSystemModelSelection(true /*preferLocalForConverse*/);
         if (sys) {
           normalized.llmSelection = {
             providerName: sys.providerName,
             modelName: sys.modelName,
             temperature: sys.temperature,
             maxTokens: sys.maxTokens,
-            ...(normalized.llmSelection?.cidafmOptions ? { cidafmOptions: normalized.llmSelection.cidafmOptions } : {}),
+            ...(normalized.llmSelection?.cidafmOptions
+              ? { cidafmOptions: normalized.llmSelection.cidafmOptions }
+              : {}),
           };
         }
       } else {
         // Ensure an explicit provider/model is present for uniform behavior
-        const hasSelection = normalized.llmSelection && normalized.llmSelection.providerName && normalized.llmSelection.modelName;
+        const hasSelection =
+          normalized.llmSelection &&
+          normalized.llmSelection.providerName &&
+          normalized.llmSelection.modelName;
         if (!hasSelection) {
-          const sys = this.getSystemModelSelection(true /*preferLocalForConverse*/);
+          const sys = this.getSystemModelSelection(
+            true /*preferLocalForConverse*/,
+          );
           if (sys) {
             normalized.llmSelection = {
               providerName: sys.providerName,
               modelName: sys.modelName,
               temperature: sys.temperature,
               maxTokens: sys.maxTokens,
-              ...(normalized.llmSelection?.cidafmOptions ? { cidafmOptions: normalized.llmSelection.cidafmOptions } : {}),
+              ...(normalized.llmSelection?.cidafmOptions
+                ? { cidafmOptions: normalized.llmSelection.cidafmOptions }
+                : {}),
             };
           }
         }
@@ -488,17 +512,23 @@ export abstract class A2AAgentBaseService
       // Planning should also be lightweight and avoid full content generation
       normalized.quick = normalized.quick ?? true;
       normalized.noDeliverable = normalized.noDeliverable ?? true;
-      const ignoreUiPlan = (process.env.A2A_PLAN_IGNORE_UI_SELECTION ?? 'true') === 'true';
-      const forceLocalPlan = (process.env.A2A_PLAN_FORCE_LOCAL ?? 'false') === 'true';
+      const ignoreUiPlan =
+        (process.env.A2A_PLAN_IGNORE_UI_SELECTION ?? 'true') === 'true';
+      const forceLocalPlan =
+        (process.env.A2A_PLAN_FORCE_LOCAL ?? 'false') === 'true';
       if (ignoreUiPlan || forceLocalPlan) {
-        const sys = forceLocalPlan ? { providerName: 'ollama', modelName: 'llama3.2:1b' } : this.getSystemModelSelection(true /*preferLocalForConverse*/);
+        const sys = forceLocalPlan
+          ? { providerName: 'ollama', modelName: 'llama3.2:1b' }
+          : this.getSystemModelSelection(true /*preferLocalForConverse*/);
         if (sys) {
           normalized.llmSelection = {
             providerName: sys.providerName,
             modelName: sys.modelName,
             temperature: sys.temperature,
             maxTokens: sys.maxTokens,
-            ...(normalized.llmSelection?.cidafmOptions ? { cidafmOptions: normalized.llmSelection.cidafmOptions } : {}),
+            ...(normalized.llmSelection?.cidafmOptions
+              ? { cidafmOptions: normalized.llmSelection.cidafmOptions }
+              : {}),
           };
         }
       }
@@ -518,14 +548,19 @@ export abstract class A2AAgentBaseService
 
     // Short-circuit Converse/Plan using agent context + small local LLM
     const shortCircuitEnabled =
-      (requestedMode === 'converse' && (process.env.A2A_SHORTCIRCUIT_CONVERSE ?? 'true') !== 'false') ||
-      (requestedMode === 'plan' && (process.env.A2A_SHORTCIRCUIT_PLAN ?? 'true') !== 'false');
+      (requestedMode === 'converse' &&
+        (process.env.A2A_SHORTCIRCUIT_CONVERSE ?? 'true') !== 'false') ||
+      (requestedMode === 'plan' &&
+        (process.env.A2A_SHORTCIRCUIT_PLAN ?? 'true') !== 'false');
 
     const allowShortCircuit =
       shortCircuitEnabled && executionMetadata.profile !== 'conversation_only';
 
     if (allowShortCircuit) {
-      const result = await this.shortCircuitConversePlan(requestedMode as any, normalized);
+      const result = await this.shortCircuitConversePlan(
+        requestedMode as any,
+        normalized,
+      );
       if (result) {
         return result;
       }
@@ -555,21 +590,24 @@ export abstract class A2AAgentBaseService
         .join('\n');
 
       const agentName = this.getAgentName ? this.getAgentName() : 'Agent';
-      const agentType = (this as any).getAgentType ? (this as any).getAgentType() : 'unknown';
+      const agentType = (this as any).getAgentType
+        ? (this as any).getAgentType()
+        : 'unknown';
 
       // Build system prompt
-      const guidelines = mode === 'converse'
-        ? [
-            'Provide a brief, conversational reply.',
-            'Do NOT write full documents, drafts, or deliverables.',
-            "Avoid long structured markdown (no '# Title' or multi-section outlines).",
-            'Ask one clarifying or follow-up question at the end if appropriate.',
-          ]
-        : [
-            'Provide a concise plan/outline only (no full content).',
-            'Prefer sections like: Objectives, Audience, Outline, Acceptance Criteria.',
-            'End by asking whether to proceed to Build.',
-          ];
+      const guidelines =
+        mode === 'converse'
+          ? [
+              'Provide a brief, conversational reply.',
+              'Do NOT write full documents, drafts, or deliverables.',
+              "Avoid long structured markdown (no '# Title' or multi-section outlines).",
+              'Ask one clarifying or follow-up question at the end if appropriate.',
+            ]
+          : [
+              'Provide a concise plan/outline only (no full content).',
+              'Prefer sections like: Objectives, Audience, Outline, Acceptance Criteria.',
+              'End by asking whether to proceed to Build.',
+            ];
 
       const contextHeader = contextText
         ? `Agent Context (trimmed):\n${contextText.substring(0, 4000)}\n\n`
@@ -579,37 +617,62 @@ export abstract class A2AAgentBaseService
         ? `Conversation History (recent):\n${historyLines}\n\n`
         : '';
 
-      const systemPrompt = `You are ${agentName}, a ${agentType} agent.\n` +
+      const systemPrompt =
+        `You are ${agentName}, a ${agentType} agent.\n` +
         `${contextHeader}` +
         `${historyBlock}` +
         `${mode === 'converse' ? 'Converse Mode' : 'Plan Mode'} Guidelines:\n- ${guidelines.join('\n- ')}\n`;
 
       // Infer user message: last user entry or params.prompt
-      const lastUser = [...history].reverse().find((m: any) => m.role === 'user' && m.content?.trim());
-      const userMessage = lastUser?.content || params.prompt || params.message || 'Please respond.';
+      const lastUser = [...history]
+        .reverse()
+        .find((m: any) => m.role === 'user' && m.content?.trim());
+      const userMessage =
+        lastUser?.content ||
+        params.prompt ||
+        params.message ||
+        'Please respond.';
 
       // Select model/provider: honor caller llmSelection if provided; otherwise use system config (prefer local for converse); final fallback = local ollama
       // Determine selection honoring ignore flags for modes
-      const ignoreUi = (mode === 'converse' && (process.env.A2A_CONVERSE_IGNORE_UI_SELECTION ?? 'true') === 'true') ||
-                       (mode === 'plan' && (process.env.A2A_PLAN_IGNORE_UI_SELECTION ?? 'true') === 'true');
-      const forceLocal = (mode === 'converse' && (process.env.A2A_CONVERSE_FORCE_LOCAL ?? 'false') === 'true') ||
-                         (mode === 'plan' && (process.env.A2A_PLAN_FORCE_LOCAL ?? 'false') === 'true');
+      const ignoreUi =
+        (mode === 'converse' &&
+          (process.env.A2A_CONVERSE_IGNORE_UI_SELECTION ?? 'true') ===
+            'true') ||
+        (mode === 'plan' &&
+          (process.env.A2A_PLAN_IGNORE_UI_SELECTION ?? 'true') === 'true');
+      const forceLocal =
+        (mode === 'converse' &&
+          (process.env.A2A_CONVERSE_FORCE_LOCAL ?? 'false') === 'true') ||
+        (mode === 'plan' &&
+          (process.env.A2A_PLAN_FORCE_LOCAL ?? 'false') === 'true');
 
       let sys;
       if (forceLocal) {
         sys = { providerName: 'ollama', modelName: 'llama3.2:1b' };
       } else if (ignoreUi) {
-        sys = this.getSystemModelSelection(true) || { providerName: 'ollama', modelName: 'llama3.2:1b' };
+        sys = this.getSystemModelSelection(true) || {
+          providerName: 'ollama',
+          modelName: 'llama3.2:1b',
+        };
       } else {
-        const callerSel = (params && params.llmSelection && params.llmSelection.providerName && params.llmSelection.modelName)
-          ? {
-              providerName: params.llmSelection.providerName,
-              modelName: params.llmSelection.modelName,
-              temperature: params.llmSelection.temperature,
-              maxTokens: params.llmSelection.maxTokens,
-            }
-          : null;
-        sys = callerSel || this.getSystemModelSelection(true) || { providerName: 'ollama', modelName: 'llama3.2:1b' };
+        const callerSel =
+          params &&
+          params.llmSelection &&
+          params.llmSelection.providerName &&
+          params.llmSelection.modelName
+            ? {
+                providerName: params.llmSelection.providerName,
+                modelName: params.llmSelection.modelName,
+                temperature: params.llmSelection.temperature,
+                maxTokens: params.llmSelection.maxTokens,
+              }
+            : null;
+        sys = callerSel ||
+          this.getSystemModelSelection(true) || {
+            providerName: 'ollama',
+            modelName: 'llama3.2:1b',
+          };
       }
       const maxTokens = mode === 'converse' ? 200 : 400;
 
@@ -620,8 +683,10 @@ export abstract class A2AAgentBaseService
           includeMetadata: true,
           providerName: sys.providerName,
           modelName: sys.modelName,
-          temperature: typeof sys.temperature === 'number' ? sys.temperature : 0.2,
-          maxTokens: typeof sys.maxTokens === 'number' ? sys.maxTokens : maxTokens,
+          temperature:
+            typeof sys.temperature === 'number' ? sys.temperature : 0.2,
+          maxTokens:
+            typeof sys.maxTokens === 'number' ? sys.maxTokens : maxTokens,
           quick: true,
           callerType: 'agent',
           callerName: agentName,
@@ -631,7 +696,10 @@ export abstract class A2AAgentBaseService
         },
       );
 
-      const content = typeof llmResult === 'string' ? llmResult : (llmResult.content || llmResult.response || '');
+      const content =
+        typeof llmResult === 'string'
+          ? llmResult
+          : llmResult.content || llmResult.response || '';
       return {
         success: true,
         response: content,
@@ -644,7 +712,10 @@ export abstract class A2AAgentBaseService
         },
       };
     } catch (error) {
-      this.logger.warn('Short-circuit converse/plan failed. Falling through to agent execution.', error);
+      this.logger.warn(
+        'Short-circuit converse/plan failed. Falling through to agent execution.',
+        error,
+      );
       return null;
     }
   }
@@ -663,7 +734,14 @@ export abstract class A2AAgentBaseService
 
       const tryPaths = [
         path.join(process.cwd(), 'src', 'agents', 'demo', basePath, fileName),
-        path.join(process.cwd(), 'src', 'agents', 'demo', basePath, 'context.md'),
+        path.join(
+          process.cwd(),
+          'src',
+          'agents',
+          'demo',
+          basePath,
+          'context.md',
+        ),
       ];
       for (const p of tryPaths) {
         if (fs.existsSync(p)) {
@@ -680,7 +758,12 @@ export abstract class A2AAgentBaseService
    * Resolve system model selection from environment MODEL_CONFIG_GLOBAL_JSON
    * Supports shapes: {provider, model, parameters?} or {default, localOnly?}
    */
-  private getSystemModelSelection(preferLocalForConverse = false): { providerName: string; modelName: string; temperature?: number; maxTokens?: number } | null {
+  private getSystemModelSelection(preferLocalForConverse = false): {
+    providerName: string;
+    modelName: string;
+    temperature?: number;
+    maxTokens?: number;
+  } | null {
     try {
       const raw = process.env.MODEL_CONFIG_GLOBAL_JSON;
       if (!raw) return null;
@@ -697,7 +780,7 @@ export abstract class A2AAgentBaseService
           };
         }
       }
-      const selected = (cfg.default || cfg);
+      const selected = cfg.default || cfg;
       if (selected?.provider && selected?.model) {
         return {
           providerName: selected.provider,
@@ -752,9 +835,7 @@ export abstract class A2AAgentBaseService
             card.configuration = yamlConfig.configuration;
           }
         }
-      } catch (error) {
-
-      }
+      } catch (error) {}
     }
 
     // Add task type and status schema if defined
@@ -825,7 +906,6 @@ export abstract class A2AAgentBaseService
    */
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
-
   }
 
   // ============================================================================
@@ -944,8 +1024,6 @@ export abstract class A2AAgentBaseService
       agentName: this.getAgentName(),
       agentType: this.getAgentType(),
     });
-
-
   }
 
   /**
@@ -995,21 +1073,18 @@ export abstract class A2AAgentBaseService
     // Auto-persist deliverable if result contains deliverable content
     // This must happen BEFORE marking task complete so we can attach deliverable ID
 
-
-    
     const deliverableId = await this.persistDeliverableIfPresent(
       result,
       userId,
       taskId,
       enhanceDeliverableId,
     );
-    
-
 
     if (deliverableId) {
-      this.logger.log(`📄 Deliverable ${deliverableId} created for task ${taskId}`);
+      this.logger.log(
+        `📄 Deliverable ${deliverableId} created for task ${taskId}`,
+      );
     } else {
-
     }
 
     // If deliverable was created, attach ID to the result
@@ -1021,7 +1096,7 @@ export abstract class A2AAgentBaseService
         result.enhancedFrom = enhanceDeliverableId;
       }
     }
-    
+
     // If version was created (check result metadata), promote to top level
     if (typeof result === 'object' && result !== null && result.metadata) {
       if (result.metadata.newVersionId) {
@@ -1036,9 +1111,9 @@ export abstract class A2AAgentBaseService
 
     if (result && typeof result === 'object') {
       try {
-        (result as any).__taskCompletionHandled = true;
-        if ((result as any).metadata && typeof (result as any).metadata === 'object') {
-          (result as any).metadata.taskCompletionHandled = true;
+        result.__taskCompletionHandled = true;
+        if (result.metadata && typeof result.metadata === 'object') {
+          result.metadata.taskCompletionHandled = true;
         }
       } catch (markError) {
         this.logger.debug(
@@ -1056,8 +1131,6 @@ export abstract class A2AAgentBaseService
         additionalData,
       );
     }
-
-
   }
 
   /**
@@ -1086,8 +1159,6 @@ export abstract class A2AAgentBaseService
         additionalData,
       );
     }
-
-
   }
 
   /**
@@ -1119,24 +1190,26 @@ export abstract class A2AAgentBaseService
   private async getTaskContext(
     taskId: string,
     userId: string,
-  ): Promise<{ conversationId?: string; projectStepId?: string; mode?: string }> {
+  ): Promise<{
+    conversationId?: string;
+    projectStepId?: string;
+    mode?: string;
+  }> {
     if (!this.tasksService) {
-
       return {};
     }
 
     try {
       const task = await this.tasksService.getTaskById(taskId, userId);
       if (!task) {
-
         return {};
       }
 
       // Check for project step ID in task params (for project-based tasks)
       let projectStepId: string | undefined;
       if (task.params && typeof task.params === 'object') {
-        projectStepId = 
-          task.params.projectStepId || 
+        projectStepId =
+          task.params.projectStepId ||
           task.params.project_step_id ||
           task.params.workProduct?.id; // WorkProductContext.id might be project step
       }
@@ -1163,11 +1236,7 @@ export abstract class A2AAgentBaseService
     taskId?: string,
     enhanceDeliverableId?: string,
   ): Promise<string | null> {
-
-    
     if (!this.deliverablesService) {
-
-
       return null;
     }
 
@@ -1184,10 +1253,13 @@ export abstract class A2AAgentBaseService
 
     try {
       // Enforce deliverable gating: only create when params.mode === 'build'
-      const requireBuild = (process.env.DELIVERABLES_REQUIRE_BUILD ?? 'true') !== 'false';
+      const requireBuild =
+        (process.env.DELIVERABLES_REQUIRE_BUILD ?? 'true') !== 'false';
       if (requireBuild && taskId) {
         const ctx = await this.getTaskContext(taskId, userId);
-        const mode = ctx.mode || (typeof result === 'object' ? (result as any).metadata?.mode : undefined);
+        const mode =
+          ctx.mode ||
+          (typeof result === 'object' ? result.metadata?.mode : undefined);
         if (mode !== 'build') {
           return null;
         }
@@ -1202,27 +1274,21 @@ export abstract class A2AAgentBaseService
 
       // Check if content contains deliverable markers
       const isDeliverable = this.isDeliverableContent(content);
-      
+
       if (!isDeliverable) {
         return null;
       }
 
-
-
       // Extract deliverable information
       const deliverableData = this.extractDeliverableFromContent(content);
       if (!deliverableData) {
-
         return null;
       }
-
-
 
       // Get conversation context from task if available
       let taskContext: { conversationId?: string; projectStepId?: string } = {};
       if (taskId) {
         taskContext = await this.getTaskContext(taskId, userId);
-
       }
 
       // Create new deliverable or enhance existing one
@@ -1234,31 +1300,34 @@ export abstract class A2AAgentBaseService
         );
         // Creating a new version of an existing deliverable
         if (!this.deliverableVersionsService) {
-          throw new Error('DeliverableVersionsService not available for creating deliverable versions');
+          throw new Error(
+            'DeliverableVersionsService not available for creating deliverable versions',
+          );
         }
-        const deliverableVersion = await this.deliverableVersionsService.createVersion(
-          enhanceDeliverableId,
-          {
-            content: deliverableData.content,
-            format: deliverableData.format || 'markdown',
-            createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
-            taskId: taskId || 'unknown',
-            metadata: {
-              agentName: this.getAgentName(),
-              agentType: this.getAgentType(),
+        const deliverableVersion =
+          await this.deliverableVersionsService.createVersion(
+            enhanceDeliverableId,
+            {
+              content: deliverableData.content,
+              format: deliverableData.format || 'markdown',
+              createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
               taskId: taskId || 'unknown',
-              generatedAt: new Date().toISOString(),
-              enhancedFrom: enhanceDeliverableId,
-              ...deliverableData.metadata,
+              metadata: {
+                agentName: this.getAgentName(),
+                agentType: this.getAgentType(),
+                taskId: taskId || 'unknown',
+                generatedAt: new Date().toISOString(),
+                enhancedFrom: enhanceDeliverableId,
+                ...deliverableData.metadata,
+              },
             },
-          },
-          userId,
-        );
+            userId,
+          );
 
         this.logger.log(
           `📄 Deliverable enhanced: Version ${deliverableVersion.versionNumber} (Version ID: ${deliverableVersion.id}, Enhanced from: ${enhanceDeliverableId})`,
         );
-        
+
         return enhanceDeliverableId; // Return the deliverable ID, not the version ID
       } else {
         // Creating a new deliverable
@@ -1274,7 +1343,11 @@ export abstract class A2AAgentBaseService
         let existingDeliverable = null;
         if (taskContext.conversationId) {
           try {
-            const existingDeliverables = await this.deliverablesService.findByConversationId(taskContext.conversationId, userId);
+            const existingDeliverables =
+              await this.deliverablesService.findByConversationId(
+                taskContext.conversationId,
+                userId,
+              );
             if (existingDeliverables && existingDeliverables.length > 0) {
               existingDeliverable = existingDeliverables[0];
             }
@@ -1289,32 +1362,35 @@ export abstract class A2AAgentBaseService
           );
           // Create a new version of the existing deliverable
           if (!this.deliverableVersionsService) {
-            throw new Error('DeliverableVersionsService not available for creating deliverable versions');
+            throw new Error(
+              'DeliverableVersionsService not available for creating deliverable versions',
+            );
           }
 
-          const deliverableVersion = await this.deliverableVersionsService.createVersion(
-            existingDeliverable.id,
-            {
-              content: deliverableData.content,
-              format: deliverableData.format || 'markdown',
-              createdByType: DeliverableVersionCreationType.AI_RESPONSE,
-              taskId: taskId || 'unknown',
-              metadata: {
-                agentName: this.getAgentName(),
-                agentType: this.getAgentType(),
+          const deliverableVersion =
+            await this.deliverableVersionsService.createVersion(
+              existingDeliverable.id,
+              {
+                content: deliverableData.content,
+                format: deliverableData.format || 'markdown',
+                createdByType: DeliverableVersionCreationType.AI_RESPONSE,
                 taskId: taskId || 'unknown',
-                generatedAt: new Date().toISOString(),
-                conversationId: taskContext.conversationId,
-                projectStepId: taskContext.projectStepId,
+                metadata: {
+                  agentName: this.getAgentName(),
+                  agentType: this.getAgentType(),
+                  taskId: taskId || 'unknown',
+                  generatedAt: new Date().toISOString(),
+                  conversationId: taskContext.conversationId,
+                  projectStepId: taskContext.projectStepId,
+                },
               },
-            },
-            userId,
-          );
-          
+              userId,
+            );
+
           this.logger.log(
             `📄 Deliverable version created: Version ${deliverableVersion.versionNumber} for existing deliverable ${existingDeliverable.id}`,
           );
-          
+
           return existingDeliverable.id; // Return the deliverable ID, not the version ID
         }
 
@@ -1378,7 +1454,6 @@ export abstract class A2AAgentBaseService
         result.response || result.message || result.content || result.data;
 
       if (typeof content === 'string') {
-
         return content;
       }
 
@@ -1389,7 +1464,6 @@ export abstract class A2AAgentBaseService
         return stringified;
       }
     }
-
 
     return null;
   }
@@ -1415,9 +1489,9 @@ export abstract class A2AAgentBaseService
     // Check for structured content (multiple sections OR substantial length)
     // Lowered threshold to catch more content as deliverables
     const hasStructure = content.includes('\n\n') || content.length > 300;
-    const hasMarkers = deliverableMarkers.some(marker => marker.test(content));
-
-
+    const hasMarkers = deliverableMarkers.some((marker) =>
+      marker.test(content),
+    );
 
     return hasStructure || hasMarkers;
   }
@@ -1667,14 +1741,9 @@ export abstract class A2AAgentBaseService
       );
     }
 
-    const yamlPath = path.join(
-      agentsBasePath,
-      this.agentPath,
-      'agent.yaml',
-    );
+    const yamlPath = path.join(agentsBasePath, this.agentPath, 'agent.yaml');
 
     if (!fs.existsSync(yamlPath)) {
-
       return null;
     }
 
@@ -1684,10 +1753,7 @@ export abstract class A2AAgentBaseService
 
       return parsed;
     } catch (error) {
-      this.logger.warn(
-        `Failed to parse agent.yaml at ${yamlPath}:`,
-        error,
-      );
+      this.logger.warn(`Failed to parse agent.yaml at ${yamlPath}:`, error);
       return null;
     }
   }
@@ -1704,11 +1770,23 @@ export abstract class A2AAgentBaseService
     // Check multiple possible locations for PII metadata
     // Check for truthy values, not just existence
     let result = null;
-    if (params.piiMetadata && typeof params.piiMetadata === 'object' && params.piiMetadata.piiDetected !== undefined) {
+    if (
+      params.piiMetadata &&
+      typeof params.piiMetadata === 'object' &&
+      params.piiMetadata.piiDetected !== undefined
+    ) {
       result = params.piiMetadata;
-    } else if (params.metadata?.piiMetadata && typeof params.metadata.piiMetadata === 'object' && params.metadata.piiMetadata.piiDetected !== undefined) {
+    } else if (
+      params.metadata?.piiMetadata &&
+      typeof params.metadata.piiMetadata === 'object' &&
+      params.metadata.piiMetadata.piiDetected !== undefined
+    ) {
       result = params.metadata.piiMetadata;
-    } else if (params.routingDecision?.piiMetadata && typeof params.routingDecision.piiMetadata === 'object' && params.routingDecision.piiMetadata.piiDetected !== undefined) {
+    } else if (
+      params.routingDecision?.piiMetadata &&
+      typeof params.routingDecision.piiMetadata === 'object' &&
+      params.routingDecision.piiMetadata.piiDetected !== undefined
+    ) {
       result = params.routingDecision.piiMetadata;
     }
 
@@ -1718,12 +1796,22 @@ export abstract class A2AAgentBaseService
   /**
    * Extract routing decision with PII information
    */
-  protected extractRoutingDecision(params: any): RoutingDecisionWithPII | undefined {
+  protected extractRoutingDecision(
+    params: any,
+  ): RoutingDecisionWithPII | undefined {
     // Check for truthy values with proper structure
     let result = null;
-    if (params.routingDecision && typeof params.routingDecision === 'object' && params.routingDecision.provider) {
+    if (
+      params.routingDecision &&
+      typeof params.routingDecision === 'object' &&
+      params.routingDecision.provider
+    ) {
       result = params.routingDecision;
-    } else if (params.metadata?.routingDecision && typeof params.metadata.routingDecision === 'object' && params.metadata.routingDecision.provider) {
+    } else if (
+      params.metadata?.routingDecision &&
+      typeof params.metadata.routingDecision === 'object' &&
+      params.metadata.routingDecision.provider
+    ) {
       result = params.metadata.routingDecision;
     }
 
@@ -1734,9 +1822,11 @@ export abstract class A2AAgentBaseService
    * Extract original prompt before any PII processing
    */
   protected extractOriginalPrompt(params: any): string | undefined {
-    return params.originalPrompt || 
-           params.metadata?.originalPrompt ||
-           params.routingDecision?.originalPrompt;
+    return (
+      params.originalPrompt ||
+      params.metadata?.originalPrompt ||
+      params.routingDecision?.originalPrompt
+    );
   }
 
   /**
@@ -1752,7 +1842,7 @@ export abstract class A2AAgentBaseService
    */
   protected generatePIIBlockedResponse(params: any): any {
     const piiMetadata = this.extractPIIMetadata(params);
-    
+
     return {
       success: false,
       response: 'Request blocked due to sensitive information policy.',
@@ -1763,10 +1853,11 @@ export abstract class A2AAgentBaseService
         blockingReason: 'pii-policy-violation',
         piiMetadata,
         userMessage: piiMetadata?.userMessage || {
-          summary: 'Request contains sensitive information that cannot be processed.',
+          summary:
+            'Request contains sensitive information that cannot be processed.',
           details: ['Sensitive information detected in your request'],
           actionsTaken: ['Request blocked for security'],
-          isBlocked: true
+          isBlocked: true,
         },
         processedAt: new Date().toISOString(),
       },
@@ -1779,7 +1870,7 @@ export abstract class A2AAgentBaseService
   protected enrichResponseWithPIIMetadata(response: any, params: any): any {
     const piiMetadata = this.extractPIIMetadata(params);
     const routingDecision = this.extractRoutingDecision(params);
-    
+
     if (!piiMetadata && !routingDecision) {
       return response;
     }
@@ -1791,7 +1882,7 @@ export abstract class A2AAgentBaseService
         piiMetadata,
         routingDecision,
         piiProcessingApplied: !!piiMetadata,
-      }
+      },
     };
   }
 }

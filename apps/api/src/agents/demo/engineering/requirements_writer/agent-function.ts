@@ -357,16 +357,23 @@ export async function execute(
       'Assessing complexity, effort, and risk profile...',
     );
 
-    const complexityAssessment = await callLlmForJson<ComplexityAssessmentResult>(
-      llmService,
-      baseLlmOptions,
-      buildComplexitySystemPrompt(),
-      buildComplexityUserPrompt(userMessage, analysis, featureSet, documentType),
-      DEFAULT_COMPLEXITY,
-    );
+    const complexityAssessment =
+      await callLlmForJson<ComplexityAssessmentResult>(
+        llmService,
+        baseLlmOptions,
+        buildComplexitySystemPrompt(),
+        buildComplexityUserPrompt(
+          userMessage,
+          analysis,
+          featureSet,
+          documentType,
+        ),
+        DEFAULT_COMPLEXITY,
+      );
 
-    const complexityLevel =
-      (complexityAssessment.overall_complexity || 'medium').toLowerCase();
+    const complexityLevel = (
+      complexityAssessment.overall_complexity || 'medium'
+    ).toLowerCase();
 
     updateProgress(
       'assess_complexity',
@@ -495,10 +502,7 @@ function resolveLlmOptions(params: AgentFunctionParams): Record<string, any> {
     routingDecision.provider ||
     undefined;
   const modelName =
-    selection.modelName ||
-    meta.modelName ||
-    routingDecision.model ||
-    undefined;
+    selection.modelName || meta.modelName || routingDecision.model || undefined;
 
   const temperature =
     selection.temperature ??
@@ -507,10 +511,7 @@ function resolveLlmOptions(params: AgentFunctionParams): Record<string, any> {
     0.2;
 
   const maxTokens =
-    selection.maxTokens ||
-    meta.maxTokens ||
-    routingDecision.maxTokens ||
-    3500;
+    selection.maxTokens || meta.maxTokens || routingDecision.maxTokens || 3500;
 
   return {
     providerName,
@@ -816,7 +817,10 @@ function buildFeatureList(result: FeatureExtractionResult): string[] {
     result.priority_features,
   ].filter(Array.isArray) as string[][];
 
-  const combined = lists.flat().map((feature) => feature?.trim()).filter(Boolean);
+  const combined = lists
+    .flat()
+    .map((feature) => feature?.trim())
+    .filter(Boolean);
 
   return Array.from(new Set(combined));
 }
@@ -830,14 +834,10 @@ function buildConversationContext(
 
   const recent = conversationHistory.slice(-20);
 
-  return recent
-    .map((entry) => `${entry.role}: ${entry.content}`)
-    .join('\n');
+  return recent.map((entry) => `${entry.role}: ${entry.content}`).join('\n');
 }
 
-function normalizeDocumentType(
-  documentType?: string,
-): DocumentTemplateKey {
+function normalizeDocumentType(documentType?: string): DocumentTemplateKey {
   if (!documentType) {
     return 'prd';
   }
@@ -888,11 +888,11 @@ function extractPlanContent(params: AgentFunctionParams): string | undefined {
 
 function extractMode(params: AgentFunctionParams): string {
   return (
-    ((params as any)?.mode ||
-      params.metadata?.mode ||
-      (params.routingDecision as any)?.mode ||
-      'converse')
-      .toString()
-      .toLowerCase()
-  );
+    (params as any)?.mode ||
+    params.metadata?.mode ||
+    (params.routingDecision as any)?.mode ||
+    'converse'
+  )
+    .toString()
+    .toLowerCase();
 }

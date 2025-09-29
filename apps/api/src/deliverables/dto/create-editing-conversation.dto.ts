@@ -3,7 +3,8 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateEditingConversationDto {
   @ApiPropertyOptional({
-    description: 'Agent to use for the editing conversation (overrides deliverable agent_name if provided)',
+    description:
+      'Agent to use for the editing conversation (overrides deliverable agent_name if provided)',
     example: 'document-writer',
   })
   @IsOptional()
@@ -28,4 +29,3 @@ export class CreateEditingConversationDto {
   @IsIn(['edit', 'enhance', 'revise', 'discuss', 'new-version'])
   action?: string;
 }
-

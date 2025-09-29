@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
-import { SourceBlindingService, SourceBlindingConfig } from './source-blinding.service';
+import {
+  SourceBlindingService,
+  SourceBlindingConfig,
+} from './source-blinding.service';
 import { AxiosResponse } from 'axios';
 
 describe('SourceBlindingService', () => {
@@ -33,12 +36,12 @@ describe('SourceBlindingService', () => {
         url: 'https://api.openai.com/v1/chat/completions',
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sk-test',
+          Authorization: 'Bearer sk-test',
           'Content-Type': 'application/json',
           'User-Agent': 'MyApp/1.0',
-          'Host': 'internal.company.com',
-          'Origin': 'https://company.com',
-          'Referer': 'https://company.com/dashboard',
+          Host: 'internal.company.com',
+          Origin: 'https://company.com',
+          Referer: 'https://company.com/dashboard',
           'X-Forwarded-For': '192.168.1.100',
           'X-Company-ID': 'company-123',
           'X-Request-ID': 'req-456',
@@ -86,7 +89,7 @@ describe('SourceBlindingService', () => {
         url: 'https://api.openai.com/v1/chat/completions',
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sk-test',
+          Authorization: 'Bearer sk-test',
           'Content-Type': 'application/json',
         },
       };
@@ -112,11 +115,11 @@ describe('SourceBlindingService', () => {
         url: 'https://api.anthropic.com/v1/messages',
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sk-ant-test',
+          Authorization: 'Bearer sk-ant-test',
           'Content-Type': 'application/json',
           'anthropic-version': '2023-06-01',
           'x-api-key': 'key-123',
-          'accept': 'application/json',
+          accept: 'application/json',
         },
       };
 
@@ -124,7 +127,9 @@ describe('SourceBlindingService', () => {
         provider: 'anthropic',
       });
 
-      expect(blindedRequest.headers['authorization']).toBe('Bearer sk-ant-test');
+      expect(blindedRequest.headers['authorization']).toBe(
+        'Bearer sk-ant-test',
+      );
       expect(blindedRequest.headers['content-type']).toBe('application/json');
       expect(blindedRequest.headers['anthropic-version']).toBe('2023-06-01');
       expect(blindedRequest.headers['x-api-key']).toBe('key-123');
@@ -148,9 +153,9 @@ describe('SourceBlindingService', () => {
         url: 'https://api.openai.com/v1/chat/completions',
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sk-test',
-          'Host': 'internal.company.com',
-          'Origin': 'https://company.com',
+          Authorization: 'Bearer sk-test',
+          Host: 'internal.company.com',
+          Origin: 'https://company.com',
         },
         data: { model: 'gpt-4', messages: [] },
       };
@@ -161,7 +166,7 @@ describe('SourceBlindingService', () => {
       });
 
       expect(result).toBe(mockResponse);
-      
+
       // Verify the request was made with blinded headers
       const requestConfig = httpService.request.mock.calls[0][0];
       expect(requestConfig.headers['authorization']).toBe('Bearer sk-test');
@@ -205,7 +210,7 @@ describe('SourceBlindingService', () => {
       const config = {
         url: 'https://api.openai.com/v1/chat/completions',
         method: 'POST',
-        headers: { 'Authorization': 'Bearer sk-test' },
+        headers: { Authorization: 'Bearer sk-test' },
       };
 
       await service.makeBlindedRequest(config, { provider: 'openai' });
@@ -252,10 +257,10 @@ describe('SourceBlindingService', () => {
   describe('testSourceBlinding', () => {
     it('should demonstrate header stripping', () => {
       const originalHeaders = {
-        'Authorization': 'Bearer token',
+        Authorization: 'Bearer token',
         'Content-Type': 'application/json',
-        'Host': 'internal.company.com',
-        'Origin': 'https://company.com',
+        Host: 'internal.company.com',
+        Origin: 'https://company.com',
         'X-Company-ID': 'company-123',
       };
 

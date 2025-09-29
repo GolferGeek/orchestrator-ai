@@ -18,9 +18,7 @@ export class AgentFactoryServicePure {
     // Orchestrators still handled by NestJS DI (they have complex dependencies)
     // @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
     // ... other orchestrators
-  ) {
-
-  }
+  ) {}
 
   /**
    * Instantiate agent - MUCH simpler now!
@@ -38,26 +36,22 @@ export class AgentFactoryServicePure {
         }
 
         case 'function': {
-
           // For function agents, you could create a FunctionAgentServicesContext too
           return new ServiceClass(this.agentServices);
         }
 
         case 'context': {
-
           // 🎉 THE MAGIC: No matter how many services you add to AgentServicesContext,
           // this line never changes! All context agents get all services automatically.
           return new ServiceClass(this.agentServices);
         }
 
         case 'api': {
-
           // For API agents, you could create an ApiAgentServicesContext
           return new ServiceClass(this.agentServices);
         }
 
         case 'python-function': {
-
           // Python agents might need different services
           return new ServiceClass(
             this.agentServices.httpService,
@@ -69,7 +63,6 @@ export class AgentFactoryServicePure {
         }
 
         case 'external': {
-
           return new ServiceClass(
             this.agentServices.httpService,
             this.agentServices.configurationService,
@@ -78,12 +71,10 @@ export class AgentFactoryServicePure {
         }
 
         default: {
-
           return new ServiceClass(this.agentServices.httpService);
         }
       }
     } catch (error: any) {
-
       throw error;
     }
   }

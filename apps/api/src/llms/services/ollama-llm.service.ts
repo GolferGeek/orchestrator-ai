@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { BaseLLMService } from './base-llm.service';
-import { 
-  GenerateResponseParams, 
-  LLMResponse, 
+import {
+  GenerateResponseParams,
+  LLMResponse,
   LLMServiceConfig,
   ResponseMetadata,
   LocalLLMRequest,
-  LocalLLMResponse 
+  LocalLLMResponse,
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
@@ -38,7 +38,7 @@ interface OllamaResponseMetadata extends ResponseMetadata {
 
 /**
  * Ollama LLM Service Implementation
- * 
+ *
  * This example shows how to extend BaseLLMService for local Ollama models
  * with local-specific functionality, model management, and performance metrics.
  */
@@ -63,8 +63,11 @@ export class OllamaLLMService extends BaseLLMService {
       providerConfigService,
     );
 
-    this.ollamaBaseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    this.logger.log(`OllamaLLMService initialized (URL: ${this.ollamaBaseUrl})`);
+    this.ollamaBaseUrl =
+      config.baseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    this.logger.log(
+      `OllamaLLMService initialized (URL: ${this.ollamaBaseUrl})`,
+    );
   }
 
   /**
@@ -73,21 +76,23 @@ export class OllamaLLMService extends BaseLLMService {
   async generateResponse(params: GenerateResponseParams): Promise<LLMResponse> {
     const startTime = Date.now();
     const requestId = this.generateRequestId('ollama');
-    
+
     try {
       // Validate configuration
       this.validateConfig(params.config);
-      
+
       // Skip PII processing for local models (data never leaves the machine)
       const piiResult = await this.handlePiiInput(params.userMessage, {
         enablePseudonymization: false,
         useDictionaryPseudonymizer: false,
       });
-      
+
       // Ensure model is loaded
       const modelLoadResult = await this.ensureModelLoaded(params.config.model);
       if (!modelLoadResult.success) {
-        throw new Error(`Failed to load model ${params.config.model}: ${modelLoadResult.message}`);
+        throw new Error(
+          `Failed to load model ${params.config.model}: ${modelLoadResult.message}`,
+        );
       }
 
       // Prepare Ollama request
@@ -96,8 +101,10 @@ export class OllamaLLMService extends BaseLLMService {
         prompt: piiResult.processedText,
         system: params.systemPrompt,
         options: {
-          temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
-          max_tokens: params.options?.maxTokens ?? params.config.maxTokens ?? 2000,
+          temperature:
+            params.options?.temperature ?? params.config.temperature ?? 0.7,
+          max_tokens:
+            params.options?.maxTokens ?? params.config.maxTokens ?? 2000,
           top_p: 0.9,
           top_k: 40,
         },
@@ -106,18 +113,22 @@ export class OllamaLLMService extends BaseLLMService {
       // Make Ollama API call
       const apiStartTime = Date.now();
       const response = await firstValueFrom(
-        this.httpService.post(`${this.ollamaBaseUrl}/api/generate`, {
-          ...ollamaRequest,
-          stream: false,
-          options: {
-            temperature: ollamaRequest.options?.temperature,
-            num_predict: ollamaRequest.options?.max_tokens,
-            top_p: ollamaRequest.options?.top_p,
-            top_k: ollamaRequest.options?.top_k,
+        this.httpService.post(
+          `${this.ollamaBaseUrl}/api/generate`,
+          {
+            ...ollamaRequest,
+            stream: false,
+            options: {
+              temperature: ollamaRequest.options?.temperature,
+              num_predict: ollamaRequest.options?.max_tokens,
+              top_p: ollamaRequest.options?.top_p,
+              top_k: ollamaRequest.options?.top_k,
+            },
           },
-        }, {
-          timeout: 120000, // 2 minute timeout for local models
-        })
+          {
+            timeout: 120000, // 2 minute timeout for local models
+          },
+        ),
       );
       const apiDuration = Date.now() - apiStartTime;
 
@@ -126,10 +137,13 @@ export class OllamaLLMService extends BaseLLMService {
       }
 
       // Handle PII in output (usually not needed for local models)
-      const finalContent = await this.handlePiiOutput(response.data.response, requestId);
-      
+      const finalContent = await this.handlePiiOutput(
+        response.data.response,
+        requestId,
+      );
+
       const endTime = Date.now();
-      
+
       // Create Ollama-specific metadata
       const metadata = this.createOllamaMetadata(
         response.data,
@@ -138,9 +152,9 @@ export class OllamaLLMService extends BaseLLMService {
         endTime,
         requestId,
         modelLoadResult,
-        apiDuration
+        apiDuration,
       );
-      
+
       // Track usage with full metadata for database persistence (local models have different cost structure)
       await this.trackUsage(
         params.config.provider,
@@ -151,24 +165,25 @@ export class OllamaLLMService extends BaseLLMService {
         {
           requestId,
           userId: params.userId || params.options?.userId,
-          conversationId: params.conversationId || params.options?.conversationId,
+          conversationId:
+            params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
           piiMetadata: piiResult.piiMetadata,
           startTime,
           endTime,
-        }
+        },
       );
-      
+
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
         piiMetadata: piiResult.piiMetadata,
       };
-      
+
       // Log request/response
       this.logRequestResponse(params, llmResponse, metadata.timing.duration);
-      
+
       return llmResponse;
     } catch (error) {
       this.handleError(error, 'OllamaLLMService.generateResponse');
@@ -178,9 +193,11 @@ export class OllamaLLMService extends BaseLLMService {
   /**
    * Ensure the model is loaded and ready for use
    */
-  private async ensureModelLoaded(model: string): Promise<{ success: boolean; message?: string; loadTime?: number }> {
+  private async ensureModelLoaded(
+    model: string,
+  ): Promise<{ success: boolean; message?: string; loadTime?: number }> {
     const loadStartTime = Date.now();
-    
+
     try {
       // Check if model is already loaded
       if (this.loadedModels.has(model)) {
@@ -189,41 +206,48 @@ export class OllamaLLMService extends BaseLLMService {
 
       // Check if model exists
       const modelsResponse = await firstValueFrom(
-        this.httpService.get(`${this.ollamaBaseUrl}/api/tags`)
+        this.httpService.get(`${this.ollamaBaseUrl}/api/tags`),
       );
-      
+
       const availableModels = modelsResponse.data.models || [];
       const modelExists = availableModels.some((m: any) => m.name === model);
-      
+
       if (!modelExists) {
-        return { 
-          success: false, 
-          message: `Model ${model} not found. Available models: ${availableModels.map((m: any) => m.name).join(', ')}` 
+        return {
+          success: false,
+          message: `Model ${model} not found. Available models: ${availableModels.map((m: any) => m.name).join(', ')}`,
         };
       }
 
       // Load the model by making a small request
       await firstValueFrom(
-        this.httpService.post(`${this.ollamaBaseUrl}/api/generate`, {
-          model,
-          prompt: 'test',
-          stream: false,
-          options: { num_predict: 1 },
-        }, { timeout: 60000 })
+        this.httpService.post(
+          `${this.ollamaBaseUrl}/api/generate`,
+          {
+            model,
+            prompt: 'test',
+            stream: false,
+            options: { num_predict: 1 },
+          },
+          { timeout: 60000 },
+        ),
       );
 
       const loadTime = Date.now() - loadStartTime;
       this.loadedModels.add(model);
       this.logger.log(`Model ${model} loaded successfully in ${loadTime}ms`);
-      
+
       return { success: true, loadTime };
     } catch (error) {
       const loadTime = Date.now() - loadStartTime;
-      this.logger.error(`Failed to load model ${model} after ${loadTime}ms:`, error);
-      return { 
-        success: false, 
+      this.logger.error(
+        `Failed to load model ${model} after ${loadTime}ms:`,
+        error,
+      );
+      return {
+        success: false,
         message: error instanceof Error ? error.message : 'Unknown error',
-        loadTime 
+        loadTime,
       };
     }
   }
@@ -238,12 +262,15 @@ export class OllamaLLMService extends BaseLLMService {
     endTime: number,
     requestId: string,
     modelLoadResult: { success: boolean; loadTime?: number },
-    apiDuration: number
+    apiDuration: number,
   ): OllamaResponseMetadata {
     // Estimate tokens for local models (Ollama doesn't always provide exact counts)
-    const inputTokens = ollamaResponse.prompt_eval_count || this.estimateTokens(params.systemPrompt + params.userMessage);
-    const outputTokens = ollamaResponse.eval_count || this.estimateTokens(ollamaResponse.response);
-    
+    const inputTokens =
+      ollamaResponse.prompt_eval_count ||
+      this.estimateTokens(params.systemPrompt + params.userMessage);
+    const outputTokens =
+      ollamaResponse.eval_count || this.estimateTokens(ollamaResponse.response);
+
     return {
       provider: 'ollama',
       model: ollamaResponse.model,
@@ -282,11 +309,11 @@ export class OllamaLLMService extends BaseLLMService {
    */
   protected validateConfig(config: LLMServiceConfig): void {
     super.validateConfig(config);
-    
+
     if (config.provider !== 'ollama') {
       throw new Error('OllamaLLMService requires provider to be "ollama"');
     }
-    
+
     // Validate Ollama connection
     if (!this.ollamaBaseUrl) {
       throw new Error('Ollama base URL is required');
@@ -298,7 +325,11 @@ export class OllamaLLMService extends BaseLLMService {
    */
   protected handleError(error: any, context: string): never {
     try {
-      const mapped = LLMErrorMapper.fromOllamaError(error, 'ollama', this.config?.model);
+      const mapped = LLMErrorMapper.fromOllamaError(
+        error,
+        'ollama',
+        this.config?.model,
+      );
       super.handleError(mapped, context);
     } catch {
       super.handleError(error, context);
@@ -311,7 +342,7 @@ export class OllamaLLMService extends BaseLLMService {
   async getAvailableModels(): Promise<string[]> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.ollamaBaseUrl}/api/tags`)
+        this.httpService.get(`${this.ollamaBaseUrl}/api/tags`),
       );
       return response.data.models?.map((model: any) => model.name) || [];
     } catch (error) {
@@ -323,13 +354,19 @@ export class OllamaLLMService extends BaseLLMService {
   /**
    * Check Ollama server health
    */
-  async checkHealth(): Promise<{ healthy: boolean; version?: string; models?: string[] }> {
+  async checkHealth(): Promise<{
+    healthy: boolean;
+    version?: string;
+    models?: string[];
+  }> {
     try {
       const [versionResponse, modelsResponse] = await Promise.all([
-        firstValueFrom(this.httpService.get(`${this.ollamaBaseUrl}/api/version`)),
+        firstValueFrom(
+          this.httpService.get(`${this.ollamaBaseUrl}/api/version`),
+        ),
         firstValueFrom(this.httpService.get(`${this.ollamaBaseUrl}/api/tags`)),
       ]);
-      
+
       return {
         healthy: true,
         version: versionResponse.data.version,
@@ -352,7 +389,7 @@ export function createOllamaService(
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
     httpService: HttpService;
-  }
+  },
 ): OllamaLLMService {
   return new OllamaLLMService(
     { ...config, provider: 'ollama' },
@@ -387,11 +424,11 @@ export async function testOllamaService() {
   };
 
   const service = createOllamaService(config, mockDependencies);
-  
+
   // Check health first
   const health = await service.checkHealth();
   console.log('Ollama Health:', health);
-  
+
   if (!health.healthy) {
     throw new Error('Ollama server is not healthy');
   }

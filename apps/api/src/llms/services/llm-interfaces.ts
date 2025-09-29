@@ -1,6 +1,6 @@
 /**
  * LLM Service Interfaces
- * 
+ *
  * This file contains all standardized interfaces for LLM service implementations.
  * These interfaces ensure consistent behavior and metadata handling across all
  * provider-specific services.
@@ -193,10 +193,14 @@ export interface ToolCall {
 /**
  * Extended parameters for chat-based LLM interactions
  */
-export interface ChatGenerateResponseParams extends Omit<GenerateResponseParams, 'systemPrompt' | 'userMessage'> {
+export interface ChatGenerateResponseParams
+  extends Omit<GenerateResponseParams, 'systemPrompt' | 'userMessage'> {
   messages: ChatMessage[];
   tools?: ToolDefinition[];
-  toolChoice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
+  toolChoice?:
+    | 'auto'
+    | 'none'
+    | { type: 'function'; function: { name: string } };
 }
 
 /**

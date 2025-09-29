@@ -29,7 +29,7 @@ function getErrorMessage(error: unknown): string {
 
 /**
  * Supabase MCP Server
- * 
+ *
  * HTTP-based MCP server implementing 2025-03-26 specification
  * Context-driven SQL generation using schema files, not database introspection
  */
@@ -41,35 +41,40 @@ export class SupabaseMCPServer implements IMCPServer {
 
   constructor(
     private configService: ConfigService,
-    private llmService: LLMService
+    private llmService: LLMService,
   ) {
     // Initialize Supabase client with configuration service
-    const supabaseUrl = 
+    const supabaseUrl =
       this.configService.get<string>('supabase.url') ||
       this.configService.get<string>('SUPABASE_URL');
-    const supabaseServiceKey = 
+    const supabaseServiceKey =
       this.configService.get<string>('supabase.serviceKey') ||
       this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required');
+      throw new Error(
+        'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required',
+      );
     }
 
     this.supabaseUrl = supabaseUrl;
     this.supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Point to context directory - handle both development and production paths
     // In development: process.cwd() = project root
     // In production: process.cwd() = apps/api (where the server runs from)
-    
+
     let contextPath: string;
-    const devPath = join(process.cwd(), 'apps/api/src/mcp/services/supabase/context');
+    const devPath = join(
+      process.cwd(),
+      'apps/api/src/mcp/services/supabase/context',
+    );
     const prodPath = join(process.cwd(), 'src/mcp/services/supabase/context');
-    
+
     // Try development path first (from project root)
     if (existsSync(join(devPath, 'core-schema.md'))) {
       contextPath = devPath;
-    } 
+    }
     // Try production path (from apps/api directory)
     else if (existsSync(join(prodPath, 'core-schema.md'))) {
       contextPath = prodPath;
@@ -77,11 +82,12 @@ export class SupabaseMCPServer implements IMCPServer {
     // Try relative to __dirname as fallback
     else if (existsSync(join(__dirname, 'context/core-schema.md'))) {
       contextPath = join(__dirname, 'context');
+    } else {
+      throw new Error(
+        `Context files not found. Tried paths: ${devPath}, ${prodPath}, ${join(__dirname, 'context')}`,
+      );
     }
-    else {
-      throw new Error(`Context files not found. Tried paths: ${devPath}, ${prodPath}, ${join(__dirname, 'context')}`);
-    }
-    
+
     this.contextPath = contextPath;
   }
 
@@ -105,7 +111,8 @@ export class SupabaseMCPServer implements IMCPServer {
       serverInfo: {
         name: 'Supabase Data MCP Server',
         version: '1.0.0',
-        description: 'Context-driven SQL generation and database operations for Supabase',
+        description:
+          'Context-driven SQL generation and database operations for Supabase',
       },
       capabilities: {
         tools: {
@@ -161,11 +168,13 @@ export class SupabaseMCPServer implements IMCPServer {
             tables: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Tables that should be included in the SQL generation context',
+              description:
+                'Tables that should be included in the SQL generation context',
             },
             domain_hint: {
               type: 'string',
-              description: 'Domain hint for context selection (e.g., KPI & Analytics)',
+              description:
+                'Domain hint for context selection (e.g., KPI & Analytics)',
             },
             max_rows: {
               type: 'number',
@@ -254,37 +263,54 @@ export class SupabaseMCPServer implements IMCPServer {
     try {
       switch (request.name) {
         case 'get-schema':
-          return await this.handleGetSchema(request.arguments as SupabaseSchemaRequest);
-        
+          return await this.handleGetSchema(
+            request.arguments as SupabaseSchemaRequest,
+          );
+
         case 'generate-sql':
-          return await this.handleGenerateSQL(request.arguments as SupabaseSQLRequest);
-        
+          return await this.handleGenerateSQL(
+            request.arguments as SupabaseSQLRequest,
+          );
+
         case 'execute-sql':
-          return await this.handleExecuteSQL(request.arguments as SupabaseExecuteRequest);
-        
+          return await this.handleExecuteSQL(
+            request.arguments as SupabaseExecuteRequest,
+          );
+
         case 'analyze-results':
-          return await this.handleAnalyzeResults(request.arguments as SupabaseAnalyzeRequest);
-        
+          return await this.handleAnalyzeResults(
+            request.arguments as SupabaseAnalyzeRequest,
+          );
+
         default:
           return {
-            content: [{
-              type: 'text',
-              text: `Unknown tool: ${request.name}`,
-            }],
+            content: [
+              {
+                type: 'text',
+                text: `Unknown tool: ${request.name}`,
+              },
+            ],
             isError: true,
             _meta: {
               error_type: 'unknown_tool',
-              available_tools: ['get-schema', 'generate-sql', 'execute-sql', 'analyze-results'],
+              available_tools: [
+                'get-schema',
+                'generate-sql',
+                'execute-sql',
+                'analyze-results',
+              ],
             },
           };
       }
     } catch (error) {
       const executionTime = Date.now() - startTime;
       return {
-        content: [{
-          type: 'text',
-          text: `Tool execution failed: ${getErrorMessage(error)}`,
-        }],
+        content: [
+          {
+            type: 'text',
+            text: `Tool execution failed: ${getErrorMessage(error)}`,
+          },
+        ],
         isError: true,
         _meta: {
           error_type: 'execution_error',
@@ -299,7 +325,9 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * Handle get-schema tool
    */
-  private async handleGetSchema(args: SupabaseSchemaRequest): Promise<MCPToolResponse> {
+  private async handleGetSchema(
+    args: SupabaseSchemaRequest,
+  ): Promise<MCPToolResponse> {
     const { tables, domain } = args || {};
 
     try {
@@ -308,21 +336,25 @@ export class SupabaseMCPServer implements IMCPServer {
       // Determine which schema files to read based on domain and tables
       if (domain === 'kpi' || (tables && this.isKpiTables(tables))) {
         schemaContent += this.readContextFile('kpi-schema.md') + '\n\n';
-      } 
-      
+      }
+
       if (domain === 'core' || (tables && this.isCoreTables(tables))) {
         schemaContent += this.readContextFile('core-schema.md') + '\n\n';
       }
 
       // If no specific domain and no tables specified, provide overview
       if (!domain && (!tables || tables.length === 0)) {
-        schemaContent = this.readContextFile('core-schema.md') + '\n\n' + 
-                       this.readContextFile('kpi-schema.md');
+        schemaContent =
+          this.readContextFile('core-schema.md') +
+          '\n\n' +
+          this.readContextFile('kpi-schema.md');
       }
 
       // Add relationships if multiple domains are involved
-      if ((!domain && tables && this.isKpiTables(tables)) || 
-          (!domain && tables && this.hasCrossDomainTables(tables))) {
+      if (
+        (!domain && tables && this.isKpiTables(tables)) ||
+        (!domain && tables && this.hasCrossDomainTables(tables))
+      ) {
         schemaContent += '\n\n' + this.readContextFile('relationships.md');
       }
 
@@ -332,10 +364,12 @@ export class SupabaseMCPServer implements IMCPServer {
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: schemaContent,
-        }],
+        content: [
+          {
+            type: 'text',
+            text: schemaContent,
+          },
+        ],
         _meta: {
           domain: domain || 'mixed',
           tables_requested: tables || [],
@@ -350,43 +384,71 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * Handle generate-sql tool
    */
-  private async handleGenerateSQL(args: SupabaseSQLRequest): Promise<MCPToolResponse> {
-    const { query, tables, domain_hint, max_rows = 100, provider, model } = args;
+  private async handleGenerateSQL(
+    args: SupabaseSQLRequest,
+  ): Promise<MCPToolResponse> {
+    const {
+      query,
+      tables,
+      domain_hint,
+      max_rows = 100,
+      provider,
+      model,
+    } = args;
 
     console.log('\n[MCP-SQL-DEBUG] ====== handleGenerateSQL START ======');
     console.log('[MCP-SQL-DEBUG] Input args:', {
       query,
       tables,
       domain_hint,
-      max_rows
+      max_rows,
     });
 
     try {
       // Get relevant schema context for specified tables
-      console.log('[MCP-SQL-DEBUG] Building schema context for tables:', tables);
+      console.log(
+        '[MCP-SQL-DEBUG] Building schema context for tables:',
+        tables,
+      );
       const schemaContext = await this.buildSchemaContext(tables, domain_hint);
-      console.log('[MCP-SQL-DEBUG] Schema context length:', schemaContext.length);
-      console.log('[MCP-SQL-DEBUG] Schema context preview:', schemaContext.substring(0, 500));
-      
+      console.log(
+        '[MCP-SQL-DEBUG] Schema context length:',
+        schemaContext.length,
+      );
+      console.log(
+        '[MCP-SQL-DEBUG] Schema context preview:',
+        schemaContext.substring(0, 500),
+      );
+
       // Generate SQL using LLM with proper schema context
       console.log('[MCP-SQL-DEBUG] Calling generateSQLFromQuery...');
-      const generatedSQL = await this.generateSQLFromQuery(query, tables, schemaContext, max_rows, provider, model);
+      const generatedSQL = await this.generateSQLFromQuery(
+        query,
+        tables,
+        schemaContext,
+        max_rows,
+        provider,
+        model,
+      );
       console.log('[MCP-SQL-DEBUG] Generated SQL:', generatedSQL);
 
       // Return structured JSON so clients can reliably parse { sql, ... }
       const responsePayload = {
         sql: generatedSQL,
-        explanation: 'SQL generated from natural language using context-driven schema.',
+        explanation:
+          'SQL generated from natural language using context-driven schema.',
         tables_used: tables || [],
         max_rows,
         domain_hint: domain_hint || null,
       };
 
       const response: MCPToolResponse = {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify(responsePayload),
-        }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(responsePayload),
+          },
+        ],
         _meta: {
           query_type: 'sql_generation',
           tables_context: tables,
@@ -400,7 +462,10 @@ export class SupabaseMCPServer implements IMCPServer {
       return response;
     } catch (error) {
       console.error('[MCP-SQL-DEBUG] ERROR in handleGenerateSQL:', error);
-      console.error('[MCP-SQL-DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error(
+        '[MCP-SQL-DEBUG] Error stack:',
+        error instanceof Error ? error.stack : 'No stack',
+      );
       throw new Error(`SQL generation failed: ${getErrorMessage(error)}`);
     }
   }
@@ -408,19 +473,21 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * Handle execute-sql tool
    */
-  private async handleExecuteSQL(args: SupabaseExecuteRequest): Promise<MCPToolResponse> {
+  private async handleExecuteSQL(
+    args: SupabaseExecuteRequest,
+  ): Promise<MCPToolResponse> {
     const { sql, max_rows = 1000 } = args;
     const startTime = Date.now();
 
     try {
       // Add LIMIT if not present and max_rows specified
       let finalSQL = sql.trim();
-      
+
       // Remove trailing semicolon which causes syntax errors in the exec_sql function
       if (finalSQL.endsWith(';')) {
         finalSQL = finalSQL.slice(0, -1);
       }
-      
+
       if (!finalSQL.toLowerCase().includes('limit') && max_rows) {
         finalSQL += ` LIMIT ${max_rows}`;
       }
@@ -438,7 +505,9 @@ export class SupabaseMCPServer implements IMCPServer {
 
       // Check if the data itself is an error object (returned by exec_sql function)
       if (data && typeof data === 'object' && data.error === true) {
-        throw new Error(`SQL execution error: ${data.message} (Code: ${data.code})`);
+        throw new Error(
+          `SQL execution error: ${data.message} (Code: ${data.code})`,
+        );
       }
 
       const results = Array.isArray(data) ? data : [];
@@ -454,10 +523,12 @@ export class SupabaseMCPServer implements IMCPServer {
       };
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(payload),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(payload),
+          },
+        ],
         _meta: {
           query_type: 'sql_execution',
           row_count: results.length,
@@ -469,30 +540,47 @@ export class SupabaseMCPServer implements IMCPServer {
       };
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      throw new Error(`SQL execution failed after ${executionTime}ms: ${getErrorMessage(error)}`);
+      throw new Error(
+        `SQL execution failed after ${executionTime}ms: ${getErrorMessage(error)}`,
+      );
     }
   }
 
   /**
    * Handle analyze-results tool
    */
-  private async handleAnalyzeResults(args: SupabaseAnalyzeRequest): Promise<MCPToolResponse> {
-    const { data, analysis_prompt, provider = 'anthropic', model = 'claude-3-5-sonnet-20241022' } = args;
+  private async handleAnalyzeResults(
+    args: SupabaseAnalyzeRequest,
+  ): Promise<MCPToolResponse> {
+    const {
+      data,
+      analysis_prompt,
+      provider = 'anthropic',
+      model = 'claude-3-5-sonnet-20241022',
+    } = args;
 
     try {
       // Use LLM service for analysis
-      const analysis = await this.generateLLMAnalysis(data, analysis_prompt, provider, model);
+      const analysis = await this.generateLLMAnalysis(
+        data,
+        analysis_prompt,
+        provider,
+        model,
+      );
 
       // Format analysis as clean string for the 4-step architecture
-      const analysisText = typeof analysis === 'object' 
-        ? JSON.stringify(analysis, null, 2)
-        : String(analysis);
+      const analysisText =
+        typeof analysis === 'object'
+          ? JSON.stringify(analysis, null, 2)
+          : String(analysis);
 
       return {
-        content: [{
-          type: 'text',
-          text: analysisText, // Return clean analysis string
-        }],
+        content: [
+          {
+            type: 'text',
+            text: analysisText, // Return clean analysis string
+          },
+        ],
         _meta: {
           query_type: 'data_analysis',
           data_points: data.length,
@@ -512,18 +600,34 @@ export class SupabaseMCPServer implements IMCPServer {
       const filePath = join(this.contextPath, filename);
       return readFileSync(filePath, 'utf-8');
     } catch (error) {
-      throw new Error(`Context file ${filename} not found: ${getErrorMessage(error)}`);
+      throw new Error(
+        `Context file ${filename} not found: ${getErrorMessage(error)}`,
+      );
     }
   }
 
   private isKpiTables(tables: string[]): boolean {
-    const kpiTables = ['companies', 'departments', 'kpi_metrics', 'kpi_goals', 'kpi_data'];
-    return tables.some(table => kpiTables.includes(table.toLowerCase()));
+    const kpiTables = [
+      'companies',
+      'departments',
+      'kpi_metrics',
+      'kpi_goals',
+      'kpi_data',
+    ];
+    return tables.some((table) => kpiTables.includes(table.toLowerCase()));
   }
 
   private isCoreTables(tables: string[]): boolean {
-    const coreTables = ['users', 'conversations', 'messages', 'tasks', 'agents', 'projects', 'deliverables'];
-    return tables.some(table => coreTables.includes(table.toLowerCase()));
+    const coreTables = [
+      'users',
+      'conversations',
+      'messages',
+      'tasks',
+      'agents',
+      'projects',
+      'deliverables',
+    ];
+    return tables.some((table) => coreTables.includes(table.toLowerCase()));
   }
 
   private hasCrossDomainTables(tables: string[]): boolean {
@@ -532,11 +636,11 @@ export class SupabaseMCPServer implements IMCPServer {
 
   private getSchemaFilesUsed(domain?: string, tables?: string[]): string[] {
     const filesUsed: string[] = [];
-    
+
     if (domain === 'kpi' || (tables && this.isKpiTables(tables))) {
       filesUsed.push('kpi-schema.md');
     }
-    
+
     if (domain === 'core' || (tables && this.isCoreTables(tables))) {
       filesUsed.push('core-schema.md');
     }
@@ -548,23 +652,31 @@ export class SupabaseMCPServer implements IMCPServer {
     return filesUsed;
   }
 
-  private filterSchemaByTables(schemaContent: string, tables: string[]): string {
+  private filterSchemaByTables(
+    schemaContent: string,
+    tables: string[],
+  ): string {
     // Simple filtering - in production, you'd want more sophisticated parsing
-    const tableNames = tables.map(t => t.toLowerCase());
+    const tableNames = tables.map((t) => t.toLowerCase());
     const lines = schemaContent.split('\n');
     const filtered: string[] = [];
     let includeSection = false;
 
     for (const line of lines) {
       // Check if this line starts a table section
-      if (line.startsWith('### ') && tableNames.some(table => 
-        line.toLowerCase().includes(table)
-      )) {
+      if (
+        line.startsWith('### ') &&
+        tableNames.some((table) => line.toLowerCase().includes(table))
+      ) {
         includeSection = true;
         filtered.push(line);
       } else if (line.startsWith('### ')) {
         includeSection = false;
-      } else if (includeSection || line.startsWith('#') || line.startsWith('##')) {
+      } else if (
+        includeSection ||
+        line.startsWith('#') ||
+        line.startsWith('##')
+      ) {
         filtered.push(line);
       }
     }
@@ -572,20 +684,33 @@ export class SupabaseMCPServer implements IMCPServer {
     return filtered.join('\n');
   }
 
-  private async buildSchemaContext(tables: string[], domain_hint?: string): Promise<string> {
-    console.log('[MCP-SQL-DEBUG] buildSchemaContext - tables:', tables, 'domain_hint:', domain_hint);
+  private async buildSchemaContext(
+    tables: string[],
+    domain_hint?: string,
+  ): Promise<string> {
+    console.log(
+      '[MCP-SQL-DEBUG] buildSchemaContext - tables:',
+      tables,
+      'domain_hint:',
+      domain_hint,
+    );
     let context = '';
 
     // Add relevant schema information
     const isKpi = this.isKpiTables(tables);
     const isCore = this.isCoreTables(tables);
-    console.log('[MCP-SQL-DEBUG] Table classification - isKpi:', isKpi, 'isCore:', isCore);
+    console.log(
+      '[MCP-SQL-DEBUG] Table classification - isKpi:',
+      isKpi,
+      'isCore:',
+      isCore,
+    );
 
     if (domain_hint?.toLowerCase().includes('kpi') || isKpi) {
       console.log('[MCP-SQL-DEBUG] Adding KPI schema context');
       context += this.readContextFile('kpi-schema.md') + '\n\n';
     }
-    
+
     if (isCore) {
       console.log('[MCP-SQL-DEBUG] Adding Core schema context');
       context += this.readContextFile('core-schema.md') + '\n\n';
@@ -596,7 +721,10 @@ export class SupabaseMCPServer implements IMCPServer {
     context += this.readContextFile('sql-patterns.md');
 
     const filtered = this.filterSchemaByTables(context, tables);
-    console.log('[MCP-SQL-DEBUG] Context after filtering - length:', filtered.length);
+    console.log(
+      '[MCP-SQL-DEBUG] Context after filtering - length:',
+      filtered.length,
+    );
     return filtered;
   }
 
@@ -612,11 +740,13 @@ export class SupabaseMCPServer implements IMCPServer {
     console.log('[MCP-SQL-DEBUG] Query:', query);
     console.log('[MCP-SQL-DEBUG] Tables:', tables);
     console.log('[MCP-SQL-DEBUG] MaxRows:', maxRows);
-    
+
     // Let LLMService choose the best available provider/model combination
     // This allows the system to route to local models (Ollama) when available
     // or fall back to external providers as needed
-    console.log('[MCP-SQL-DEBUG] Using system default routing for provider/model selection');
+    console.log(
+      '[MCP-SQL-DEBUG] Using system default routing for provider/model selection',
+    );
     // Use LLM to generate SQL with proper schema context
     const systemPrompt = `You are an expert SQL query generator for a Supabase PostgreSQL database. 
 
@@ -656,7 +786,7 @@ Return ONLY the SQL query, no explanation or formatting.`;
       console.log('[MCP-SQL-DEBUG] Calling llmService.generateResponse...');
       console.log('[MCP-SQL-DEBUG] System prompt length:', systemPrompt.length);
       console.log('[MCP-SQL-DEBUG] User prompt:', userPrompt);
-      
+
       const llmParams = {
         temperature: 0.1,
         maxTokens: 1000,
@@ -669,16 +799,22 @@ Return ONLY the SQL query, no explanation or formatting.`;
         includeMetadata: false,
       } as any;
       console.log('[MCP-SQL-DEBUG] LLM params:', llmParams);
-      
+
       const response = await this.llmService.generateResponse(
         systemPrompt,
         userPrompt,
-        llmParams
+        llmParams,
       );
 
-      console.log('[MCP-SQL-DEBUG] LLM response received - type:', typeof response);
+      console.log(
+        '[MCP-SQL-DEBUG] LLM response received - type:',
+        typeof response,
+      );
       console.log('[MCP-SQL-DEBUG] Response has content:', !!response?.content);
-      console.log('[MCP-SQL-DEBUG] Response content type:', typeof response?.content);
+      console.log(
+        '[MCP-SQL-DEBUG] Response content type:',
+        typeof response?.content,
+      );
 
       // Extract the actual response text from the LLM service response
       // The response is now an LLMResponse object with content and metadata
@@ -688,16 +824,20 @@ Return ONLY the SQL query, no explanation or formatting.`;
         console.log('[MCP-SQL-DEBUG] Using string response directly');
       } else if (response && typeof response === 'object' && response.content) {
         responseText = response.content;
-        console.log('[MCP-SQL-DEBUG] Extracted content from LLM response object');
+        console.log(
+          '[MCP-SQL-DEBUG] Extracted content from LLM response object',
+        );
       } else if (response && typeof response === 'object') {
         // Fallback to other possible properties
         responseText = response.response || response.text || String(response);
-        console.log('[MCP-SQL-DEBUG] Using fallback extraction from response object');
+        console.log(
+          '[MCP-SQL-DEBUG] Using fallback extraction from response object',
+        );
       } else {
         responseText = String(response || '');
         console.log('[MCP-SQL-DEBUG] Using fallback string conversion');
       }
-      
+
       console.log('[MCP-SQL-DEBUG] Extracted response text:', responseText);
       console.log('[MCP-SQL-DEBUG] Response text type:', typeof responseText);
 
@@ -709,7 +849,7 @@ Return ONLY the SQL query, no explanation or formatting.`;
       // Clean up the response to ensure it's just SQL
       let sql = responseText.trim();
       console.log('[MCP-SQL-DEBUG] Trimmed SQL:', sql);
-      
+
       // Handle models that return structured responses with thinking
       // Some models return JSON like: { thinking: "...", sql: "..." }
       // Others return text with <thinking>...</thinking> tags
@@ -718,7 +858,7 @@ Return ONLY the SQL query, no explanation or formatting.`;
         sql = sql.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
         console.log('[MCP-SQL-DEBUG] Removed <thinking> tags');
       }
-      
+
       // Try to parse as JSON in case model returned structured response
       if (sql.startsWith('{') && sql.endsWith('}')) {
         try {
@@ -735,69 +875,109 @@ Return ONLY the SQL query, no explanation or formatting.`;
           }
         } catch {
           // Not valid JSON, continue with raw text
-          console.log('[MCP-SQL-DEBUG] Not a JSON response, continuing with raw text');
+          console.log(
+            '[MCP-SQL-DEBUG] Not a JSON response, continuing with raw text',
+          );
         }
       }
-      
+
       // If the response contains both thinking and SQL, extract just the SQL
       // Look for the SELECT statement and take everything from there
       if (sql.includes('SELECT') && !sql.startsWith('SELECT')) {
         const selectIndex = sql.indexOf('SELECT');
         // Check if there's thinking text before SELECT
         const beforeSelect = sql.substring(0, selectIndex);
-        if (beforeSelect.length > 50) { // Likely contains thinking
+        if (beforeSelect.length > 50) {
+          // Likely contains thinking
           sql = sql.substring(selectIndex);
-          console.log('[MCP-SQL-DEBUG] Extracted SQL starting from SELECT statement');
+          console.log(
+            '[MCP-SQL-DEBUG] Extracted SQL starting from SELECT statement',
+          );
         }
       }
-      
+
       // Remove common markdown formatting that might appear
       sql = sql.replace(/^```sql\n/, '').replace(/\n```$/, '');
       sql = sql.replace(/^```\n/, '').replace(/\n```$/, '');
       sql = sql.replace(/^```sql/, '').replace(/```$/, '');
-      
+
       // Additional cleanup for edge cases
       sql = sql.trim();
       console.log('[MCP-SQL-DEBUG] Generated SQL:', sql);
-      
+
       // Final guardrail: normalize any lingering 'sales' filters to revenue
       // and prefer km.name LIKE '%revenue%'
       const canonicalRewrites: Array<{ pattern: RegExp; replace: string }> = [
-        { pattern: /km\.name\s+ILIKE\s+'%\s*sales\s*%'/gi, replace: "km.name ILIKE '%Revenue%'" },
-        { pattern: /km\.name\s+LIKE\s+'%\s*sales\s*%'/gi,  replace: "km.name ILIKE '%Revenue%'" },
-        { pattern: /km\.name\s*=\s*'\s*sales\s*'/gi,       replace: "km.name ILIKE '%Revenue%'" },
-        { pattern: /km\.metric_type\s+ILIKE\s+'%\s*sales\s*%'/gi, replace: "km.name ILIKE '%Revenue%'" },
-        { pattern: /km\.name\s+ILIKE\s+'%\s*revenue\s*%'/gi, replace: "km.name ILIKE '%Revenue%'" },
-        { pattern: /km\.name\s+LIKE\s+'%\s*revenue\s*%'/gi,  replace: "km.name ILIKE '%Revenue%'" },
-        { pattern: /km\.name\s*=\s*'\s*Revenue\s*'/g,      replace: "km.name ILIKE '%Revenue%'" },
+        {
+          pattern: /km\.name\s+ILIKE\s+'%\s*sales\s*%'/gi,
+          replace: "km.name ILIKE '%Revenue%'",
+        },
+        {
+          pattern: /km\.name\s+LIKE\s+'%\s*sales\s*%'/gi,
+          replace: "km.name ILIKE '%Revenue%'",
+        },
+        {
+          pattern: /km\.name\s*=\s*'\s*sales\s*'/gi,
+          replace: "km.name ILIKE '%Revenue%'",
+        },
+        {
+          pattern: /km\.metric_type\s+ILIKE\s+'%\s*sales\s*%'/gi,
+          replace: "km.name ILIKE '%Revenue%'",
+        },
+        {
+          pattern: /km\.name\s+ILIKE\s+'%\s*revenue\s*%'/gi,
+          replace: "km.name ILIKE '%Revenue%'",
+        },
+        {
+          pattern: /km\.name\s+LIKE\s+'%\s*revenue\s*%'/gi,
+          replace: "km.name ILIKE '%Revenue%'",
+        },
+        {
+          pattern: /km\.name\s*=\s*'\s*Revenue\s*'/g,
+          replace: "km.name ILIKE '%Revenue%'",
+        },
       ];
-      canonicalRewrites.forEach(r => {
+      canonicalRewrites.forEach((r) => {
         if (r.pattern.test(sql)) sql = sql.replace(r.pattern, r.replace);
       });
-      if (/\btotal_sales\b/i.test(sql)) sql = sql.replace(/\btotal_sales\b/gi, 'total_revenue');
+      if (/\btotal_sales\b/i.test(sql))
+        sql = sql.replace(/\btotal_sales\b/gi, 'total_revenue');
 
       // Validate that we have meaningful SQL content
-      if (!sql || sql.length < 10 || sql === 'SELECT' || sql === 'SELECT ' || !sql.includes(' ')) {
+      if (
+        !sql ||
+        sql.length < 10 ||
+        sql === 'SELECT' ||
+        sql === 'SELECT ' ||
+        !sql.includes(' ')
+      ) {
         console.log('[MCP-SQL-DEBUG] Invalid or incomplete SQL detected:', sql);
-        throw new Error(`LLM generated incomplete or invalid SQL: "${sql}". The LLM response was too short or incomplete.`);
+        throw new Error(
+          `LLM generated incomplete or invalid SQL: "${sql}". The LLM response was too short or incomplete.`,
+        );
       }
-      
+
       // Ensure this is actually a SELECT statement
       if (!sql.toLowerCase().trim().startsWith('select')) {
-        console.log('[MCP-SQL-DEBUG] Generated content is not a SELECT statement:', sql);
-        throw new Error(`LLM did not generate a valid SELECT statement. Generated: "${sql}"`);
+        console.log(
+          '[MCP-SQL-DEBUG] Generated content is not a SELECT statement:',
+          sql,
+        );
+        throw new Error(
+          `LLM did not generate a valid SELECT statement. Generated: "${sql}"`,
+        );
       }
-      
+
       // Remove trailing semicolon - PostgreSQL functions don't handle them well
       if (sql.endsWith(';')) {
         sql = sql.slice(0, -1);
       }
-      
+
       // Ensure LIMIT is present
       if (!sql.toLowerCase().includes('limit')) {
         sql += ` LIMIT ${maxRows}`;
       }
-      
+
       // Log the generated SQL for debugging
       console.log('\n🧠 GENERATED SQL:');
       console.log('='.repeat(50));
@@ -806,18 +986,20 @@ Return ONLY the SQL query, no explanation or formatting.`;
       console.log('Generated SQL:');
       console.log(sql);
       console.log('='.repeat(50));
-      
-      return sql;
 
+      return sql;
     } catch (error) {
       // Do NOT fallback to a generic SELECT *; surface the failure for proper handling
       const msg = getErrorMessage(error);
       console.error('[MCP-SQL-DEBUG] ERROR in generateSQLFromQuery:', msg);
       console.error('[MCP-SQL-DEBUG] Full error:', error);
-      console.error('[MCP-SQL-DEBUG] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error(
+        '[MCP-SQL-DEBUG] Error stack:',
+        error instanceof Error ? error.stack : 'No stack',
+      );
       console.error('[MCP-SQL-DEBUG] userPrompt:', userPrompt);
       console.error('[MCP-SQL-DEBUG] tables:', tables);
-      
+
       if (process.env.MCP_SQL_DEBUG === 'true') {
         console.error('[MCP SQL DEBUG] generation failed:', msg);
         console.error('[MCP SQL DEBUG] userPrompt:', userPrompt);
@@ -827,7 +1009,12 @@ Return ONLY the SQL query, no explanation or formatting.`;
     }
   }
 
-  private async generateLLMAnalysis(data: any[], prompt: string, provider: string, model: string): Promise<any> {
+  private async generateLLMAnalysis(
+    data: any[],
+    prompt: string,
+    provider: string,
+    model: string,
+  ): Promise<any> {
     try {
       const analysisPrompt = `Analyze the following data and provide insights based on this request: "${prompt}"
 
@@ -844,18 +1031,30 @@ Please provide:
 Format your response as a structured JSON object with these sections.`;
 
       // Resolve local-only if requested
-      const forceLocal = (process.env.MCP_LOCAL_ONLY || process.env.SOVEREIGN_MODE_ENFORCED) === 'true';
-      let providerName = (provider || process.env.MCP_SQL_PROVIDER || '').toLowerCase();
-      let modelName = model || process.env.MCP_SQL_ANALYSIS_MODEL || process.env.MCP_SQL_MODEL || '';
+      const forceLocal =
+        (process.env.MCP_LOCAL_ONLY || process.env.SOVEREIGN_MODE_ENFORCED) ===
+        'true';
+      let providerName = (
+        provider ||
+        process.env.MCP_SQL_PROVIDER ||
+        ''
+      ).toLowerCase();
+      let modelName =
+        model ||
+        process.env.MCP_SQL_ANALYSIS_MODEL ||
+        process.env.MCP_SQL_MODEL ||
+        '';
       if (forceLocal) {
         providerName = 'ollama';
         if (!modelName) {
           try {
             // TODO: Fix this - getBestModelForTask doesn't exist on llmService
-          const best = null; // await this.llmService.getBestModelForTask('medium', false, 'fast');
-            modelName = best || process.env.LOCAL_LLM_DEFAULT_MODEL || 'llama3.2:latest';
+            const best = null; // await this.llmService.getBestModelForTask('medium', false, 'fast');
+            modelName =
+              best || process.env.LOCAL_LLM_DEFAULT_MODEL || 'llama3.2:latest';
           } catch {
-            modelName = process.env.LOCAL_LLM_DEFAULT_MODEL || 'llama3.2:latest';
+            modelName =
+              process.env.LOCAL_LLM_DEFAULT_MODEL || 'llama3.2:latest';
           }
         }
       }
@@ -873,29 +1072,37 @@ Format your response as a structured JSON object with these sections.`;
           dataClassification: 'internal',
           // Keep lean responses to reduce debug noise
           includeMetadata: false,
-        }
+        },
       );
 
       // Extract the actual response text from the LLM service response
       // The response is now an LLMResponse object with content and metadata
-      const responseText = typeof response === 'string' 
-        ? response 
-        : response?.content || response?.response || JSON.stringify(response);
-      
+      const responseText =
+        typeof response === 'string'
+          ? response
+          : response?.content || response?.response || JSON.stringify(response);
+
       // Ensure we have a string to work with
       if (typeof responseText !== 'string') {
-        throw new Error(`Expected string response, got ${typeof responseText}: ${JSON.stringify(responseText)}`);
+        throw new Error(
+          `Expected string response, got ${typeof responseText}: ${JSON.stringify(responseText)}`,
+        );
       }
 
       // Clean up the response text
       let analysisText = responseText.trim();
-      
+
       // Handle models that return structured responses with thinking
-      if (analysisText.includes('<thinking>') && analysisText.includes('</thinking>')) {
+      if (
+        analysisText.includes('<thinking>') &&
+        analysisText.includes('</thinking>')
+      ) {
         // Remove thinking tags and their content
-        analysisText = analysisText.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+        analysisText = analysisText
+          .replace(/<thinking>[\s\S]*?<\/thinking>/g, '')
+          .trim();
       }
-      
+
       // Try to parse as JSON, fallback to structured text
       try {
         return JSON.parse(analysisText);
@@ -905,7 +1112,7 @@ Format your response as a structured JSON object with these sections.`;
           data_summary: {
             row_count: data.length,
             columns: data.length > 0 ? Object.keys(data[0]) : [],
-          }
+          },
         };
       }
     } catch (error) {
@@ -917,7 +1124,7 @@ Format your response as a structured JSON object with these sections.`;
   private generateSimpleAnalysis(data: any[], prompt: string): any {
     const rowCount = data.length;
     const columns = rowCount > 0 ? Object.keys(data[0]) : [];
-    
+
     return {
       analysis: `Analysis of ${rowCount} records with ${columns.length} columns for: "${prompt}"`,
       insights: [

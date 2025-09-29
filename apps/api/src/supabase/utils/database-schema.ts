@@ -71,7 +71,6 @@ function getSupabaseClient() {
     }
 
     supabaseClient = createClient(supabaseUrl, serviceKey);
-
   }
   return supabaseClient;
 }
@@ -131,7 +130,6 @@ async function discoverFullSchema(): Promise<void> {
   categorizeBusinessDomains();
 
   schemaCache.initialized = true;
-
 }
 
 /**
@@ -162,7 +160,6 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
     });
 
     if (error) {
-
       return inferRelationshipsFromNaming();
     }
 
@@ -176,7 +173,6 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
 
     return relationships;
   } catch (error) {
-
     return inferRelationshipsFromNaming();
   }
 }
@@ -406,7 +402,6 @@ function categorizeBusinessDomains(): void {
       }
     });
   });
-
 }
 
 /**

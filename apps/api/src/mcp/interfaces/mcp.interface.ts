@@ -1,6 +1,6 @@
 /**
  * MCP 2025-03-26 Specification Interfaces
- * 
+ *
  * TypeScript interfaces for Model Context Protocol
  * Based on the official MCP specification
  */
@@ -142,7 +142,7 @@ export enum MCPErrorCode {
   METHOD_NOT_FOUND = -32601,
   INVALID_PARAMS = -32602,
   INTERNAL_ERROR = -32603,
-  
+
   // MCP-specific errors (reserved range -32099 to -32000)
   TOOL_NOT_FOUND = -32000,
   TOOL_EXECUTION_ERROR = -32001,
@@ -157,7 +157,10 @@ export interface IMCPClient {
   /**
    * Initialize MCP connection
    */
-  initialize(clientInfo?: { name: string; version: string }): Promise<MCPServerInfo>;
+  initialize(clientInfo?: {
+    name: string;
+    version: string;
+  }): Promise<MCPServerInfo>;
 
   /**
    * Get server information (legacy compatibility)

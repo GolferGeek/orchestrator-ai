@@ -81,7 +81,6 @@ export class JsonRpcProtocolService {
     notificationHandler?: JsonRpcNotificationHandler,
     options: JsonRpcProcessingOptions = {},
   ): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
-
     // Handle batch requests
     if (Array.isArray(request)) {
       if (!options.enableBatchProcessing) {
@@ -134,9 +133,7 @@ export class JsonRpcProtocolService {
       if (notificationHandler) {
         try {
           await notificationHandler(jsonRpcRequest as JsonRpcNotification);
-        } catch (error) {
-
-        }
+        } catch (error) {}
       }
       return null;
     }
@@ -169,7 +166,6 @@ export class JsonRpcProtocolService {
     notificationHandler?: JsonRpcNotificationHandler,
     options: JsonRpcProcessingOptions = {},
   ): Promise<JsonRpcResponse[]> {
-
     // Validate batch size
     if (batchRequest.length === 0) {
       return [

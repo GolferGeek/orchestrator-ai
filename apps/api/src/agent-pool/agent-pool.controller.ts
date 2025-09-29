@@ -50,7 +50,6 @@ export class AgentPoolController {
         agentId: registration.id,
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -82,7 +81,6 @@ export class AgentPoolController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -111,7 +109,6 @@ export class AgentPoolController {
         agentId,
       };
     } catch (error) {
-
       throw error;
     }
   }

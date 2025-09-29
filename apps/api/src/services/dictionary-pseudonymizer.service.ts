@@ -23,10 +23,10 @@ export interface DictionaryReversalResult {
 
 /**
  * Dictionary-Based Pseudonymizer Service
- * 
+ *
  * Simple, fast pseudonymization using a predefined dictionary.
  * No hashing, no complex pattern matching - just direct string replacement.
- * 
+ *
  * Flow:
  * 1. Load dictionary entries from database
  * 2. Case-insensitive search and replace original_value → pseudonym
@@ -36,14 +36,16 @@ export interface DictionaryReversalResult {
 @Injectable()
 export class DictionaryPseudonymizerService {
   private readonly logger = new Logger(DictionaryPseudonymizerService.name);
-  
+
   // Cache dictionary entries to avoid repeated DB calls
   private dictionaryCache: DictionaryPseudonymMapping[] | null = null;
   private cacheExpiry: number = 0;
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(private readonly supabaseService: SupabaseService) {
-    this.logger.log('🎯 DictionaryPseudonymizerService initialized - simple dictionary-based pseudonymization');
+    this.logger.log(
+      '🎯 DictionaryPseudonymizerService initialized - simple dictionary-based pseudonymization',
+    );
   }
 
   /**
@@ -51,14 +53,15 @@ export class DictionaryPseudonymizerService {
    */
   private async loadDictionary(): Promise<DictionaryPseudonymMapping[]> {
     const now = Date.now();
-    
+
     // Return cached entries if still valid
     if (this.dictionaryCache && now < this.cacheExpiry) {
       return this.dictionaryCache;
     }
 
     try {
-      const { data, error } = await this.supabaseService.getServiceClient()
+      const { data, error } = await this.supabaseService
+        .getServiceClient()
         .from('pseudonym_dictionaries')
         .select('original_value, pseudonym, data_type, category')
         .eq('is_active', true)
@@ -70,12 +73,14 @@ export class DictionaryPseudonymizerService {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      const dictionary: DictionaryPseudonymMapping[] = (data || []).map((row: any) => ({
-        originalValue: row.original_value,
-        pseudonym: row.pseudonym,
-        dataType: row.data_type,
-        category: row.category,
-      }));
+      const dictionary: DictionaryPseudonymMapping[] = (data || []).map(
+        (row: any) => ({
+          originalValue: row.original_value,
+          pseudonym: row.pseudonym,
+          dataType: row.data_type,
+          category: row.category,
+        }),
+      );
 
       // Cache the results
       this.dictionaryCache = dictionary;
@@ -92,7 +97,9 @@ export class DictionaryPseudonymizerService {
   /**
    * Pseudonymize text using dictionary entries
    */
-  async pseudonymizeText(text: string): Promise<DictionaryPseudonymizationResult> {
+  async pseudonymizeText(
+    text: string,
+  ): Promise<DictionaryPseudonymizationResult> {
     const startTime = Date.now();
     let processedText = text;
     const mappings: DictionaryPseudonymMapping[] = [];
@@ -110,11 +117,13 @@ export class DictionaryPseudonymizerService {
         if (matches && matches.length > 0) {
           // Replace all occurrences with the pseudonym
           processedText = processedText.replace(regex, entry.pseudonym);
-          
+
           // Track this mapping for reversal
           mappings.push(entry);
-          
-          this.logger.log(`🎯 Replaced "${entry.originalValue}" → "${entry.pseudonym}" (${matches.length} occurrences)`);
+
+          this.logger.log(
+            `🎯 Replaced "${entry.originalValue}" → "${entry.pseudonym}" (${matches.length} occurrences)`,
+          );
         }
       }
 
@@ -135,7 +144,10 @@ export class DictionaryPseudonymizerService {
   /**
    * Reverse pseudonyms back to original values
    */
-  async reversePseudonyms(text: string, mappings: DictionaryPseudonymMapping[]): Promise<DictionaryReversalResult> {
+  async reversePseudonyms(
+    text: string,
+    mappings: DictionaryPseudonymMapping[],
+  ): Promise<DictionaryReversalResult> {
     const startTime = Date.now();
     let processedText = text;
     let reversalCount = 0;
@@ -151,8 +163,10 @@ export class DictionaryPseudonymizerService {
           // Replace all occurrences with the original value
           processedText = processedText.replace(regex, mapping.originalValue);
           reversalCount += matches.length;
-          
-          this.logger.log(`🔄 Reversed "${mapping.pseudonym}" → "${mapping.originalValue}" (${matches.length} occurrences)`);
+
+          this.logger.log(
+            `🔄 Reversed "${mapping.pseudonym}" → "${mapping.originalValue}" (${matches.length} occurrences)`,
+          );
         }
       }
 

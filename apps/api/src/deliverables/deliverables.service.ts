@@ -39,27 +39,26 @@ export class DeliverablesService {
     createDto: CreateDeliverableDto,
     userId: string,
   ): Promise<Deliverable> {
-
     try {
       // First, create the deliverable record
-      const { data: deliverableData, error: deliverableError } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverables'))
-        .insert([
-          {
-            user_id: userId,
-            conversation_id: createDto.conversationId,
-            project_step_id: createDto.projectStepId || null,
-            agent_name: createDto.agentName || null,
-            title: createDto.title,
-            type: createDto.type || null,
-          },
-        ])
-        .select('*')
-        .single();
+      const { data: deliverableData, error: deliverableError } =
+        await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverables'))
+          .insert([
+            {
+              user_id: userId,
+              conversation_id: createDto.conversationId,
+              project_step_id: createDto.projectStepId || null,
+              agent_name: createDto.agentName || null,
+              title: createDto.title,
+              type: createDto.type || null,
+            },
+          ])
+          .select('*')
+          .single();
 
       if (deliverableError) {
-
         throw new BadRequestException(
           `Failed to create deliverable: ${deliverableError.message}`,
         );
@@ -69,11 +68,9 @@ export class DeliverablesService {
       // Log what content we're working with for debugging
 
       if (createDto.initialContent) {
-
       } else {
-
       }
-      
+
       const initialVersion = await this.createInitialVersion(
         deliverableData.id,
         createDto,
@@ -103,13 +100,13 @@ export class DeliverablesService {
     offset: number;
     hasMore: boolean;
   }> {
-
     try {
       // Build query with deliverable and version data
       let query = this.supabaseService
         .getServiceClient()
         .from(getTableName('deliverables'))
-        .select(`
+        .select(
+          `
           *,
           deliverable_versions!deliverable_versions_deliverable_id_fkey(
             id,
@@ -120,12 +117,15 @@ export class DeliverablesService {
             created_at,
             is_current_version
           )
-        `)
+        `,
+        )
         .eq('user_id', userId);
 
       // Add search filter if provided
       if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`,
+        );
       }
 
       // Add type filter if provided
@@ -143,12 +143,14 @@ export class DeliverablesService {
       // Add ordering, limit, and offset
       query = query
         .order('created_at', { ascending: false })
-        .range(filters.offset || 0, (filters.offset || 0) + (filters.limit || 50) - 1);
+        .range(
+          filters.offset || 0,
+          (filters.offset || 0) + (filters.limit || 50) - 1,
+        );
 
       const { data, error } = await query;
 
       if (error) {
-
         throw new BadRequestException(
           `Failed to find deliverables: ${error.message}`,
         );
@@ -157,8 +159,10 @@ export class DeliverablesService {
       const deliverables = data || [];
       const items = deliverables.map((deliverable: any) => {
         // Get the current version or the first version if no current version is marked
-        const currentVersion = deliverable.deliverable_versions?.find((v: any) => v.is_current_version) ||
-                              deliverable.deliverable_versions?.[0];
+        const currentVersion =
+          deliverable.deliverable_versions?.find(
+            (v: any) => v.is_current_version,
+          ) || deliverable.deliverable_versions?.[0];
 
         return {
           id: deliverable.id,
@@ -199,7 +203,10 @@ export class DeliverablesService {
   /**
    * Find deliverables by conversation ID
    */
-  async findByConversationId(conversationId: string, userId: string): Promise<Deliverable[]> {
+  async findByConversationId(
+    conversationId: string,
+    userId: string,
+  ): Promise<Deliverable[]> {
     try {
       const { data, error } = await this.supabaseService
         .getServiceClient()
@@ -214,7 +221,8 @@ export class DeliverablesService {
         );
       }
 
-      const deliverables = data?.map(item => this.mapToDeliverable(item)) || [];
+      const deliverables =
+        data?.map((item) => this.mapToDeliverable(item)) || [];
       return deliverables;
     } catch (error) {
       throw error;
@@ -225,16 +233,16 @@ export class DeliverablesService {
    * Find a specific deliverable by ID with current version data
    */
   async findOne(id: string, userId: string): Promise<Deliverable> {
-
     try {
       // Get the deliverable record
-      const { data: deliverableData, error: deliverableError } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverables'))
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', userId)
-        .single();
+      const { data: deliverableData, error: deliverableError } =
+        await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverables'))
+          .select('*')
+          .eq('id', id)
+          .eq('user_id', userId)
+          .single();
 
       if (deliverableError) {
         if (deliverableError.code === 'PGRST116') {
@@ -247,18 +255,18 @@ export class DeliverablesService {
       }
 
       const deliverable = this.mapToDeliverable(deliverableData);
-      
+
       // Get current version using the versions service
       try {
-        const currentVersion = await this.versionsService.getCurrentVersion(id, userId);
+        const currentVersion = await this.versionsService.getCurrentVersion(
+          id,
+          userId,
+        );
         if (currentVersion) {
           deliverable.currentVersion = currentVersion;
-
         } else {
-
         }
       } catch (error) {
-
         // Don't throw here, just return deliverable without current version
       }
 
@@ -278,8 +286,10 @@ export class DeliverablesService {
   /**
    * Find deliverables by conversation ID
    */
-  async findByConversation(conversationId: string, userId: string): Promise<Deliverable[]> {
-
+  async findByConversation(
+    conversationId: string,
+    userId: string,
+  ): Promise<Deliverable[]> {
     try {
       const { data, error } = await this.supabaseService
         .getServiceClient()
@@ -290,8 +300,9 @@ export class DeliverablesService {
         .order('created_at', { ascending: false });
 
       if (error) {
-
-        throw new BadRequestException(`Failed to find deliverables by conversation: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to find deliverables by conversation: ${error.message}`,
+        );
       }
 
       // Get current versions for each deliverable
@@ -299,20 +310,22 @@ export class DeliverablesService {
       const deliverableResults = await Promise.all(
         deliverables.map(async (deliverableData) => {
           const deliverable = this.mapToDeliverable(deliverableData);
-          
+
           // Get current version using the versions service
           try {
-            const currentVersion = await this.versionsService.getCurrentVersion(deliverableData.id, userId);
+            const currentVersion = await this.versionsService.getCurrentVersion(
+              deliverableData.id,
+              userId,
+            );
             if (currentVersion) {
               deliverable.currentVersion = currentVersion;
             }
           } catch (error) {
-
             // Continue without current version
           }
 
           return deliverable;
-        })
+        }),
       );
 
       return deliverableResults;
@@ -321,7 +334,9 @@ export class DeliverablesService {
         throw error;
       }
 
-      throw new BadRequestException('Failed to find deliverables by conversation');
+      throw new BadRequestException(
+        'Failed to find deliverables by conversation',
+      );
     }
   }
 
@@ -350,9 +365,10 @@ export class DeliverablesService {
     }
 
     // Check for document-like structure
-    return content.includes('#') || content.includes('\n\n') || content.length > 500;
+    return (
+      content.includes('#') || content.includes('\n\n') || content.length > 500
+    );
   }
-
 
   /**
    * Extract title from content
@@ -382,7 +398,6 @@ export class DeliverablesService {
     updateDto: UpdateDeliverableDto,
     userId: string,
   ): Promise<Deliverable> {
-
     try {
       // First verify the deliverable exists and belongs to the user
       await this.findOne(id, userId);
@@ -394,8 +409,10 @@ export class DeliverablesService {
       // Only update fields that are provided
       if (updateDto.title !== undefined) updateData.title = updateDto.title;
       if (updateDto.type !== undefined) updateData.type = updateDto.type;
-      if (updateDto.projectStepId !== undefined) updateData.project_step_id = updateDto.projectStepId;
-      if (updateDto.agentName !== undefined) updateData.agent_name = updateDto.agentName;
+      if (updateDto.projectStepId !== undefined)
+        updateData.project_step_id = updateDto.projectStepId;
+      if (updateDto.agentName !== undefined)
+        updateData.agent_name = updateDto.agentName;
 
       const { data, error } = await this.supabaseService
         .getServiceClient()
@@ -407,7 +424,6 @@ export class DeliverablesService {
         .single();
 
       if (error) {
-
         throw new BadRequestException(
           `Failed to update deliverable: ${error.message}`,
         );
@@ -434,7 +450,6 @@ export class DeliverablesService {
     dto: CreateEditingConversationDto,
     userId: string,
   ): Promise<{ conversationId: string; message: string }> {
-
     try {
       // First, verify the deliverable exists and belongs to the user
       const deliverable = await this.findOne(deliverableId, userId);
@@ -443,14 +458,15 @@ export class DeliverablesService {
       }
 
       // Determine which agent to use (from DTO or from deliverable)
-      const agentName = dto.agentName || deliverable.agentName || 'write_blog_post';
-      
+      const agentName =
+        dto.agentName || deliverable.agentName || 'write_blog_post';
+
       // Note: We default to 'write_blog_post' agent for editing deliverables when no agent is specified
       // This provides a sensible fallback for document editing tasks
-      
+
       // Determine the action type for context
       const action = dto.action || 'edit';
-      
+
       // Create context metadata for the conversation
       const conversationMetadata = {
         deliverableId,
@@ -471,19 +487,19 @@ export class DeliverablesService {
         },
       };
 
-      const conversation = await this.agentConversationsService.createConversation(
-        userId,
-        conversationDto,
-      );
+      const conversation =
+        await this.agentConversationsService.createConversation(
+          userId,
+          conversationDto,
+        );
 
       // Link the deliverable to the new conversation
       await this.linkToConversation(deliverableId, conversation.id, userId);
 
       // Generate an appropriate initial message based on the action
-      const initialMessage = dto.initialMessage || this.generateInitialMessage(
-        action,
-        deliverable.title,
-      );
+      const initialMessage =
+        dto.initialMessage ||
+        this.generateInitialMessage(action, deliverable.title);
 
       return {
         conversationId: conversation.id,
@@ -509,7 +525,6 @@ export class DeliverablesService {
     conversationId: string,
     userId: string,
   ): Promise<void> {
-
     try {
       const { error } = await this.supabaseService
         .getServiceClient()
@@ -519,7 +534,6 @@ export class DeliverablesService {
         .eq('user_id', userId);
 
       if (error) {
-
         throw new BadRequestException(
           `Failed to link deliverable to conversation: ${error.message}`,
         );
@@ -529,14 +543,19 @@ export class DeliverablesService {
         throw error;
       }
 
-      throw new BadRequestException('Failed to link deliverable to conversation');
+      throw new BadRequestException(
+        'Failed to link deliverable to conversation',
+      );
     }
   }
 
   /**
    * Generate an appropriate initial message for the editing conversation
    */
-  private generateInitialMessage(action: string, deliverableTitle: string): string {
+  private generateInitialMessage(
+    action: string,
+    deliverableTitle: string,
+  ): string {
     switch (action) {
       case 'edit':
         return `I'd like to edit the deliverable "${deliverableTitle}". Please help me make improvements to the content.`;
@@ -581,8 +600,9 @@ export class DeliverablesService {
       .single();
 
     if (error) {
-
-      throw new BadRequestException(`Failed to create initial version: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to create initial version: ${error.message}`,
+      );
     }
 
     return this.mapToVersion(data);
@@ -592,7 +612,6 @@ export class DeliverablesService {
    * Delete a deliverable (soft delete by marking as deleted)
    */
   async remove(id: string, userId: string): Promise<void> {
-
     try {
       // Verify the deliverable exists and belongs to the user
       await this.findOne(id, userId);
@@ -605,12 +624,10 @@ export class DeliverablesService {
         .eq('user_id', userId);
 
       if (error) {
-
         throw new BadRequestException(
           `Failed to delete deliverable: ${error.message}`,
         );
       }
-
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -718,5 +735,4 @@ export class DeliverablesService {
       versionId: data.version_id,
     };
   }
-
 }

@@ -28,7 +28,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
 
     // Keep our own reference for custom authentication
     this.customHttpService = services.httpService;
-
   }
 
   /**
@@ -56,13 +55,10 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       // Test authentication on startup (non-blocking)
       try {
         await this.ensureAuthenticated();
-
       } catch (authError) {
-
         // Don't throw - allow the agent to initialize but mark as unauthenticated
       }
     } catch (error) {
-
       throw error;
     }
   }
@@ -72,7 +68,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
    * This is the standard interface expected by the dynamic controller
    */
   async processTask(taskRequest: any): Promise<any> {
-
     try {
       // Ensure we have a valid authentication token
       await this.ensureAuthenticated();
@@ -83,7 +78,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       // Forward the task request to the external Hiverarchy agent
       return await this.executeTaskWithAuth('processTask', hiverarchyParams);
     } catch (error) {
-
       throw error;
     }
   }
@@ -131,12 +125,10 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         // Token expires in 1 hour (3600 seconds)
         this.tokenExpiry =
           Date.now() + (response.data.expiresIn || 3600) * 1000;
-
       } else {
         throw new Error('No access token received from Hiverarchy');
       }
     } catch (error) {
-
       throw new Error(
         `Hiverarchy authentication failed: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -209,7 +201,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       );
 
       if (response.status >= 200 && response.status < 300) {
-
         // Handle the exact response format from external agent
         let actualResponse = response.data;
         let metadata: any = {
@@ -255,10 +246,8 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error: any) {
-
       // Log more details about the error
       if (error.response) {
-
       }
 
       throw error;

@@ -1,22 +1,42 @@
 /**
  * Provider Test Suite
- * 
+ *
  * This file demonstrates how to test all your LLM providers using the standardized
  * BaseLLMService interface. This is exactly what you mentioned - being able to
  * easily test all your models and providers!
  */
 
-import { 
-  LLMServiceConfig, 
-  GenerateResponseParams, 
+import {
+  LLMServiceConfig,
+  GenerateResponseParams,
   LLMResponse,
-  ProviderHealthStatus 
+  ProviderHealthStatus,
 } from './llm-interfaces';
-import { OpenAILLMService, createOpenAIService, testOpenAIService } from './openai-llm.service';
-import { AnthropicLLMService, createAnthropicService, testAnthropicService } from './anthropic-llm.service';
-import { OllamaLLMService, createOllamaService, testOllamaService } from './ollama-llm.service';
-import { GrokLLMService, createGrokService, testGrokService } from './grok-llm.service';
-import { GoogleLLMService, createGoogleService, testGoogleService } from './google-llm.service';
+import {
+  OpenAILLMService,
+  createOpenAIService,
+  testOpenAIService,
+} from './openai-llm.service';
+import {
+  AnthropicLLMService,
+  createAnthropicService,
+  testAnthropicService,
+} from './anthropic-llm.service';
+import {
+  OllamaLLMService,
+  createOllamaService,
+  testOllamaService,
+} from './ollama-llm.service';
+import {
+  GrokLLMService,
+  createGrokService,
+  testGrokService,
+} from './grok-llm.service';
+import {
+  GoogleLLMService,
+  createGoogleService,
+  testGoogleService,
+} from './google-llm.service';
 
 /**
  * Provider test configuration
@@ -169,7 +189,8 @@ export class ProviderTestSuite {
       testPrompts: {
         simple: 'Hello, how can you help me?',
         complex: 'Explain the advantages of multimodal AI systems.',
-        creative: 'Write a poem about the intersection of technology and creativity.',
+        creative:
+          'Write a poem about the intersection of technology and creativity.',
       },
     },
     {
@@ -183,8 +204,10 @@ export class ProviderTestSuite {
       enabled: !!process.env.GOOGLE_API_KEY,
       testPrompts: {
         simple: 'Hello, how can you help me?',
-        complex: 'Analyze the current state of artificial general intelligence research.',
-        creative: 'Create a detailed story about AI helping solve climate change.',
+        complex:
+          'Analyze the current state of artificial general intelligence research.',
+        creative:
+          'Create a detailed story about AI helping solve climate change.',
       },
     },
   ];
@@ -194,51 +217,51 @@ export class ProviderTestSuite {
    */
   async runAllTests(): Promise<TestResult[]> {
     console.log('🚀 Starting comprehensive provider test suite...\n');
-    
+
     const results: TestResult[] = [];
-    
+
     for (const testConfig of this.testConfigs) {
       if (!testConfig.enabled) {
         console.log(`⏭️  Skipping ${testConfig.name} (not enabled)\n`);
         continue;
       }
-      
+
       console.log(`🧪 Testing ${testConfig.name}...`);
-      
+
       // Test simple prompt
       const simpleResult = await this.testProvider(
         testConfig,
         'You are a helpful assistant.',
-        testConfig.testPrompts.simple
+        testConfig.testPrompts.simple,
       );
       results.push(simpleResult);
-      
+
       // Test complex prompt (only if simple succeeded)
       if (simpleResult.success) {
         const complexResult = await this.testProvider(
           testConfig,
           'You are an expert educator who explains complex topics clearly.',
-          testConfig.testPrompts.complex
+          testConfig.testPrompts.complex,
         );
         results.push(complexResult);
-        
+
         // Test creative prompt (only if complex succeeded)
         if (complexResult.success) {
           const creativeResult = await this.testProvider(
             testConfig,
             'You are a creative writer and poet.',
-            testConfig.testPrompts.creative
+            testConfig.testPrompts.creative,
           );
           results.push(creativeResult);
         }
       }
-      
+
       console.log(''); // Add spacing between providers
     }
-    
+
     // Print summary
     this.printTestSummary(results);
-    
+
     return results;
   }
 
@@ -248,10 +271,10 @@ export class ProviderTestSuite {
   private async testProvider(
     testConfig: ProviderTestConfig,
     systemPrompt: string,
-    userMessage: string
+    userMessage: string,
   ): Promise<TestResult> {
     const startTime = Date.now();
-    
+
     try {
       const params: GenerateResponseParams = {
         systemPrompt,
@@ -264,7 +287,7 @@ export class ProviderTestSuite {
       };
 
       let response: LLMResponse;
-      
+
       // Route to appropriate service based on provider
       switch (testConfig.config.provider) {
         case 'openai':
@@ -285,16 +308,20 @@ export class ProviderTestSuite {
         default:
           throw new Error(`Unknown provider: ${testConfig.config.provider}`);
       }
-      
+
       const duration = Date.now() - startTime;
-      
+
       console.log(`  ✅ Success (${duration}ms)`);
-      console.log(`     Response: ${response.content.substring(0, 100)}${response.content.length > 100 ? '...' : ''}`);
-      console.log(`     Tokens: ${response.metadata.usage.inputTokens} → ${response.metadata.usage.outputTokens}`);
+      console.log(
+        `     Response: ${response.content.substring(0, 100)}${response.content.length > 100 ? '...' : ''}`,
+      );
+      console.log(
+        `     Tokens: ${response.metadata.usage.inputTokens} → ${response.metadata.usage.outputTokens}`,
+      );
       if (response.metadata.usage.cost) {
         console.log(`     Cost: $${response.metadata.usage.cost.toFixed(4)}`);
       }
-      
+
       return {
         provider: testConfig.config.provider,
         model: testConfig.config.model,
@@ -303,13 +330,13 @@ export class ProviderTestSuite {
         duration,
         cost: response.metadata.usage.cost,
       };
-      
     } catch (error) {
       const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
       console.log(`  ❌ Failed (${duration}ms): ${errorMessage}`);
-      
+
       return {
         provider: testConfig.config.provider,
         model: testConfig.config.model,
@@ -326,32 +353,42 @@ export class ProviderTestSuite {
   private printTestSummary(results: TestResult[]): void {
     console.log('📊 Test Summary');
     console.log('================');
-    
-    const byProvider = results.reduce((acc, result) => {
-      if (!acc[result.provider]) {
-        acc[result.provider] = { total: 0, success: 0, totalCost: 0 };
-      }
-      const providerStats = acc[result.provider]!; // We just ensured it exists above
-      providerStats.total++;
-      if (result.success) {
-        providerStats.success++;
-        providerStats.totalCost += result.cost || 0;
-      }
-      return acc;
-    }, {} as Record<string, { total: number; success: number; totalCost: number }>);
-    
+
+    const byProvider = results.reduce(
+      (acc, result) => {
+        if (!acc[result.provider]) {
+          acc[result.provider] = { total: 0, success: 0, totalCost: 0 };
+        }
+        const providerStats = acc[result.provider]!; // We just ensured it exists above
+        providerStats.total++;
+        if (result.success) {
+          providerStats.success++;
+          providerStats.totalCost += result.cost || 0;
+        }
+        return acc;
+      },
+      {} as Record<
+        string,
+        { total: number; success: number; totalCost: number }
+      >,
+    );
+
     for (const [provider, stats] of Object.entries(byProvider)) {
       const successRate = ((stats.success / stats.total) * 100).toFixed(1);
-      console.log(`${provider.toUpperCase()}: ${stats.success}/${stats.total} (${successRate}%) - Cost: $${stats.totalCost.toFixed(4)}`);
+      console.log(
+        `${provider.toUpperCase()}: ${stats.success}/${stats.total} (${successRate}%) - Cost: $${stats.totalCost.toFixed(4)}`,
+      );
     }
-    
+
     const totalTests = results.length;
-    const totalSuccess = results.filter(r => r.success).length;
+    const totalSuccess = results.filter((r) => r.success).length;
     const totalCost = results.reduce((sum, r) => sum + (r.cost || 0), 0);
     const overallSuccessRate = ((totalSuccess / totalTests) * 100).toFixed(1);
-    
+
     console.log('');
-    console.log(`Overall: ${totalSuccess}/${totalTests} (${overallSuccessRate}%) - Total Cost: $${totalCost.toFixed(4)}`);
+    console.log(
+      `Overall: ${totalSuccess}/${totalTests} (${overallSuccessRate}%) - Total Cost: $${totalCost.toFixed(4)}`,
+    );
   }
 
   /**
@@ -359,16 +396,16 @@ export class ProviderTestSuite {
    */
   async checkProviderHealth(): Promise<ProviderHealthStatus[]> {
     console.log('🏥 Checking provider health...\n');
-    
+
     const healthChecks: ProviderHealthStatus[] = [];
-    
+
     // Check OpenAI
     if (process.env.OPENAI_API_KEY) {
       try {
         const startTime = Date.now();
         await testOpenAIService();
         const latency = Date.now() - startTime;
-        
+
         healthChecks.push({
           provider: 'openai',
           status: 'healthy',
@@ -383,19 +420,21 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        console.log(`❌ OpenAI: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.log(
+          `❌ OpenAI: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     } else {
       console.log(`⏭️  OpenAI: Skipped (no API key)`);
     }
-    
+
     // Check Anthropic
     if (process.env.ANTHROPIC_API_KEY) {
       try {
         const startTime = Date.now();
         await testAnthropicService();
         const latency = Date.now() - startTime;
-        
+
         healthChecks.push({
           provider: 'anthropic',
           status: 'healthy',
@@ -410,18 +449,20 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        console.log(`❌ Anthropic: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.log(
+          `❌ Anthropic: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     } else {
       console.log(`⏭️  Anthropic: Skipped (no API key)`);
     }
-    
+
     // Check Ollama
     try {
       const startTime = Date.now();
       await testOllamaService();
       const latency = Date.now() - startTime;
-      
+
       healthChecks.push({
         provider: 'ollama',
         status: 'healthy',
@@ -436,16 +477,18 @@ export class ProviderTestSuite {
         lastChecked: new Date().toISOString(),
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      console.log(`❌ Ollama: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(
+        `❌ Ollama: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
-    
+
     // Check Grok
     if (process.env.XAI_API_KEY) {
       try {
         const startTime = Date.now();
         await testGrokService();
         const latency = Date.now() - startTime;
-        
+
         healthChecks.push({
           provider: 'grok',
           status: 'healthy',
@@ -460,19 +503,21 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        console.log(`❌ Grok: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.log(
+          `❌ Grok: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     } else {
       console.log(`⏭️  Grok: Skipped (no API key)`);
     }
-    
+
     // Check Google
     if (process.env.GOOGLE_API_KEY) {
       try {
         const startTime = Date.now();
         await testGoogleService();
         const latency = Date.now() - startTime;
-        
+
         healthChecks.push({
           provider: 'google',
           status: 'healthy',
@@ -487,12 +532,14 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        console.log(`❌ Google: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.log(
+          `❌ Google: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     } else {
       console.log(`⏭️  Google: Skipped (no API key)`);
     }
-    
+
     console.log('');
     return healthChecks;
   }
@@ -502,10 +549,11 @@ export class ProviderTestSuite {
    */
   async runPerformanceBenchmark(): Promise<void> {
     console.log('⚡ Running performance benchmark...\n');
-    
-    const benchmarkPrompt = 'Write a brief explanation of artificial intelligence.';
+
+    const benchmarkPrompt =
+      'Write a brief explanation of artificial intelligence.';
     const systemPrompt = 'You are a helpful assistant.';
-    
+
     const results: Array<{
       provider: string;
       model: string;
@@ -513,11 +561,11 @@ export class ProviderTestSuite {
       tokensPerSecond: number;
       cost: number;
     }> = [];
-    
-    for (const testConfig of this.testConfigs.filter(c => c.enabled)) {
+
+    for (const testConfig of this.testConfigs.filter((c) => c.enabled)) {
       try {
         const startTime = Date.now();
-        
+
         const params: GenerateResponseParams = {
           systemPrompt,
           userMessage: benchmarkPrompt,
@@ -526,7 +574,7 @@ export class ProviderTestSuite {
         };
 
         let response: LLMResponse;
-        
+
         switch (testConfig.config.provider) {
           case 'openai':
             response = await testOpenAIService();
@@ -546,10 +594,11 @@ export class ProviderTestSuite {
           default:
             continue;
         }
-        
+
         const duration = Date.now() - startTime;
-        const tokensPerSecond = (response.metadata.usage.outputTokens / duration) * 1000;
-        
+        const tokensPerSecond =
+          (response.metadata.usage.outputTokens / duration) * 1000;
+
         results.push({
           provider: testConfig.config.provider,
           model: testConfig.config.model,
@@ -557,20 +606,25 @@ export class ProviderTestSuite {
           tokensPerSecond,
           cost: response.metadata.usage.cost || 0,
         });
-        
-        console.log(`${testConfig.name}: ${duration}ms, ${tokensPerSecond.toFixed(2)} tokens/sec, $${(response.metadata.usage.cost || 0).toFixed(4)}`);
-        
+
+        console.log(
+          `${testConfig.name}: ${duration}ms, ${tokensPerSecond.toFixed(2)} tokens/sec, $${(response.metadata.usage.cost || 0).toFixed(4)}`,
+        );
       } catch (error) {
-        console.log(`${testConfig.name}: Failed - ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.log(
+          `${testConfig.name}: Failed - ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     }
-    
+
     // Sort by performance
     results.sort((a, b) => b.tokensPerSecond - a.tokensPerSecond);
-    
+
     console.log('\n🏆 Performance Ranking:');
     results.forEach((result, index) => {
-      console.log(`${index + 1}. ${result.provider}/${result.model}: ${result.tokensPerSecond.toFixed(2)} tokens/sec`);
+      console.log(
+        `${index + 1}. ${result.provider}/${result.model}: ${result.tokensPerSecond.toFixed(2)} tokens/sec`,
+      );
     });
   }
 }
@@ -580,19 +634,19 @@ export class ProviderTestSuite {
  */
 export async function runProviderTests(): Promise<void> {
   const testSuite = new ProviderTestSuite();
-  
+
   console.log('🎯 LLM Provider Test Suite');
   console.log('===========================\n');
-  
+
   // Check health first
   await testSuite.checkProviderHealth();
-  
+
   // Run comprehensive tests
   await testSuite.runAllTests();
-  
+
   // Run performance benchmark
   await testSuite.runPerformanceBenchmark();
-  
+
   console.log('\n✅ Test suite completed!');
 }
 

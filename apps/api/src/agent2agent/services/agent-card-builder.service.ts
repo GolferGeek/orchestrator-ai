@@ -14,7 +14,10 @@ export class AgentCardBuilderService {
     agentSlug: string,
     options: AgentCardOptions = {},
   ): Promise<any> {
-    const agent = await this.agentsRepository.findBySlug(organizationSlug, agentSlug);
+    const agent = await this.agentsRepository.findBySlug(
+      organizationSlug,
+      agentSlug,
+    );
 
     if (!agent) {
       throw new NotFoundException('Agent not found');

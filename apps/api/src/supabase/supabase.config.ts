@@ -8,17 +8,21 @@ export function getTableName(tableName: string, schema?: string): string {
 }
 
 // Helper function to get the appropriate schema for a table
-export function getSchemaForTable(tableName: string, explicitSchema?: string): string {
+export function getSchemaForTable(
+  tableName: string,
+  explicitSchema?: string,
+): string {
   // Since we've consolidated everything to public schema, always use public
   // Environment variables are kept for backward compatibility but both default to 'public'
   const getCoreSchema = () => process.env.SUPABASE_CORE_SCHEMA || 'public';
-  const getCompanySchema = () => process.env.SUPABASE_COMPANY_SCHEMA || 'public';
-  
+  const getCompanySchema = () =>
+    process.env.SUPABASE_COMPANY_SCHEMA || 'public';
+
   // Use explicit schema if provided
   if (explicitSchema) {
     return explicitSchema;
   }
-  
+
   // All tables are now in public schema after consolidation
   // Company tables (companies, departments, kpi_data, kpi_goals, kpi_metrics) are now in public
   return 'public';
@@ -36,9 +40,18 @@ export default registerAs('supabase', () => {
 
   return {
     url: getEnvValue('SUPABASE_URL', 'http://localhost:9010'),
-    anonKey: getEnvValue('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'),
-    serviceKey: getEnvValue('SUPABASE_SERVICE_ROLE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'),
-    jwtSecret: getEnvValue('SUPABASE_JWT_SECRET', 'super-secret-jwt-token-with-at-least-32-characters-long'),
+    anonKey: getEnvValue(
+      'SUPABASE_ANON_KEY',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
+    ),
+    serviceKey: getEnvValue(
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+    ),
+    jwtSecret: getEnvValue(
+      'SUPABASE_JWT_SECRET',
+      'super-secret-jwt-token-with-at-least-32-characters-long',
+    ),
     coreSchema: getEnvValue('SUPABASE_CORE_SCHEMA', 'public'),
     companySchema: getEnvValue('SUPABASE_COMPANY_SCHEMA', 'public'),
   };

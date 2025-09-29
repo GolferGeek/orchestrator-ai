@@ -62,7 +62,6 @@ export class TaskMessageService {
         .single();
 
       if (error) {
-
         throw new Error(`Failed to create task message: ${error.message}`);
       }
 
@@ -89,7 +88,6 @@ export class TaskMessageService {
 
       return taskMessage;
     } catch (error) {
-
       throw error;
     }
   }
@@ -125,7 +123,6 @@ export class TaskMessageService {
       const { data, error, count } = await query;
 
       if (error) {
-
         throw new Error(`Failed to fetch task messages: ${error.message}`);
       }
 
@@ -134,7 +131,6 @@ export class TaskMessageService {
         total: count || 0,
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -168,7 +164,6 @@ export class TaskMessageService {
       const { data, error, count } = await query;
 
       if (error) {
-
         throw new Error(`Failed to fetch recent messages: ${error.message}`);
       }
 
@@ -177,7 +172,6 @@ export class TaskMessageService {
         total: count || 0,
       };
     } catch (error) {
-
       throw error;
     }
   }
@@ -195,12 +189,9 @@ export class TaskMessageService {
         .eq('user_id', userId);
 
       if (error) {
-
         throw new Error(`Failed to delete task messages: ${error.message}`);
       }
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -228,7 +219,6 @@ export class TaskMessageService {
         .order('created_at', { ascending: false });
 
       if (error) {
-
         throw new Error(`Failed to fetch task message stats: ${error.message}`);
       }
 
@@ -251,7 +241,6 @@ export class TaskMessageService {
         lastMessage: messages[0], // Most recent message
       };
     } catch (error) {
-
       throw error;
     }
   }

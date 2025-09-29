@@ -61,11 +61,11 @@ export class RunMetadataService {
     'gpt-4-turbo': { input: 0.01, output: 0.03 },
     'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
     'gpt-3.5-turbo-instruct': { input: 0.0015, output: 0.002 },
-    
+
     // Anthropic pricing
     'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
     'claude-3-haiku-20240307': { input: 0.00025, output: 0.00125 },
-    
+
     // Local models (estimated electricity cost)
     'llama3.2:1b': { input: 0.0001, output: 0.0001 },
     'llama3.2:3b': { input: 0.0002, output: 0.0002 },
@@ -73,9 +73,9 @@ export class RunMetadataService {
     'gpt-oss-2b': { input: 0.0001, output: 0.0001 },
     'gpt-oss-20b': { input: 0.001, output: 0.001 },
     'qwen2.5:7b': { input: 0.0004, output: 0.0004 },
-    
+
     // Default fallback
-    'default': { input: 0.001, output: 0.002 },
+    default: { input: 0.001, output: 0.002 },
   };
 
   // Constructor already defined above
@@ -83,28 +83,33 @@ export class RunMetadataService {
   /**
    * Start tracking a new LLM request
    */
-  async startRequest(routingDecision: {
-    provider: string;
-    model: string;
-    isLocal: boolean;
-    modelTier?: string;
-    fallbackUsed?: boolean;
-    complexityLevel?: string;
-    complexityScore?: number;
-    routingReason?: string;
-  }, options?: {
-    userId?: string;
-    callerType?: string;
-    callerName?: string;
-    conversationId?: string;
-    dataClassification?: string;
-  }): Promise<MetadataContext> {
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] RunMetadataService.startRequest called with provider: ${routingDecision.provider}, model: ${routingDecision.model}, callerName: ${options?.callerName}`);
+  async startRequest(
+    routingDecision: {
+      provider: string;
+      model: string;
+      isLocal: boolean;
+      modelTier?: string;
+      fallbackUsed?: boolean;
+      complexityLevel?: string;
+      complexityScore?: number;
+      routingReason?: string;
+    },
+    options?: {
+      userId?: string;
+      callerType?: string;
+      callerName?: string;
+      conversationId?: string;
+      dataClassification?: string;
+    },
+  ): Promise<MetadataContext> {
+    this.logger.debug(
+      `🔍 [LLM-USAGE-DEBUG] RunMetadataService.startRequest called with provider: ${routingDecision.provider}, model: ${routingDecision.model}, callerName: ${options?.callerName}`,
+    );
     const runId = this.generateRunId();
     const startTime = Date.now();
-    
-    const tier: 'local' | 'centralized' | 'external' = routingDecision.isLocal 
-      ? 'local' 
+
+    const tier: 'local' | 'centralized' | 'external' = routingDecision.isLocal
+      ? 'local'
       : 'external'; // TODO: Add 'centralized' tier logic when implemented
 
     const context: MetadataContext = {
@@ -140,19 +145,26 @@ export class RunMetadataService {
       inputTokens?: number;
       outputTokens?: number;
       enhancedMetrics?: LLMUsageMetrics;
-    }
+    },
   ): Promise<RunMetadata> {
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] RunMetadataService.completeRequest called for runId: ${context.runId}`);
+    this.logger.debug(
+      `🔍 [LLM-USAGE-DEBUG] RunMetadataService.completeRequest called for runId: ${context.runId}`,
+    );
     const endTime = Date.now();
     const duration = endTime - context.startTime;
-    
+
     // Estimate tokens if not provided
     const inputTokens = response.inputTokens || this.estimateTokens(''); // TODO: Pass actual input
-    const outputTokens = response.outputTokens || this.estimateTokens(response.content);
-    
+    const outputTokens =
+      response.outputTokens || this.estimateTokens(response.content);
+
     // Calculate cost
-    const costEstimate = this.calculateCost(context.model, inputTokens, outputTokens);
-    
+    const costEstimate = this.calculateCost(
+      context.model,
+      inputTokens,
+      outputTokens,
+    );
+
     const metadata: RunMetadata = {
       runId: context.runId,
       provider: context.provider,
@@ -219,7 +231,8 @@ export class RunMetadataService {
       // Compute fallback cost if not provided
       const inTok = params.inputTokens ?? 0;
       const outTok = params.outputTokens ?? 0;
-      const needsCost = params.totalCost === undefined || params.totalCost === null;
+      const needsCost =
+        params.totalCost === undefined || params.totalCost === null;
       const estimated = this.calculateCost(params.model, inTok, outTok);
       const inputCost = needsCost ? estimated.inputCost : undefined;
       const outputCost = needsCost ? estimated.outputCost : undefined;
@@ -250,7 +263,8 @@ export class RunMetadataService {
       // Map enhanced metrics if provided
       if (params.enhancedMetrics) {
         const m = params.enhancedMetrics as any;
-        insertData.data_sanitization_applied = m.dataSanitizationApplied ?? null;
+        insertData.data_sanitization_applied =
+          m.dataSanitizationApplied ?? null;
         insertData.sanitization_level = m.sanitizationLevel ?? null;
         insertData.pii_detected = m.piiDetected ?? null;
         insertData.pii_types = m.piiTypes ?? null;
@@ -280,10 +294,15 @@ export class RunMetadataService {
         .insert(insertData);
 
       if (error) {
-        this.logger.error(`🔍 [LLM-USAGE-DEBUG] Insert usage failed for runId: ${runId}:`, error);
+        this.logger.error(
+          `🔍 [LLM-USAGE-DEBUG] Insert usage failed for runId: ${runId}:`,
+          error,
+        );
         throw new Error(`Failed to insert usage record: ${error.message}`);
       } else {
-        this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Inserted completed usage for runId: ${runId}`);
+        this.logger.debug(
+          `🔍 [LLM-USAGE-DEBUG] Inserted completed usage for runId: ${runId}`,
+        );
       }
     } catch (err) {
       this.logger.error('Failed to insert completed usage:', err);
@@ -295,11 +314,11 @@ export class RunMetadataService {
    */
   async completeRequestWithError(
     context: MetadataContext,
-    error: Error
+    error: Error,
   ): Promise<RunMetadata> {
     const endTime = Date.now();
     const duration = endTime - context.startTime;
-    
+
     const metadata: RunMetadata = {
       runId: context.runId,
       provider: context.provider,
@@ -318,15 +337,20 @@ export class RunMetadataService {
       durationMs: duration,
       errorMessage: error.message,
       completedAt: new Date().toISOString(),
-    }).catch(dbError => {
-      this.logger.error(`Failed to update error record for ${context.runId}:`, dbError);
+    }).catch((dbError) => {
+      this.logger.error(
+        `Failed to update error record for ${context.runId}:`,
+        dbError,
+      );
     });
 
     // Clean up active tracking
     this.activeRuns.delete(context.runId);
-    
-    this.logger.warn(`Failed run ${context.runId}: ${error.message} (${duration}ms)`);
-    
+
+    this.logger.warn(
+      `Failed run ${context.runId}: ${error.message} (${duration}ms)`,
+    );
+
     return metadata;
   }
 
@@ -348,9 +372,15 @@ export class RunMetadataService {
   /**
    * Calculate cost estimate based on model and token usage
    */
-  private calculateCost(model: string, inputTokens: number, outputTokens: number): CostEstimate {
-    const pricing = this.costTable[model as keyof typeof this.costTable] || this.costTable['default'];
-    
+  private calculateCost(
+    model: string,
+    inputTokens: number,
+    outputTokens: number,
+  ): CostEstimate {
+    const pricing =
+      this.costTable[model as keyof typeof this.costTable] ||
+      this.costTable['default'];
+
     const inputCost = (inputTokens / 1000) * pricing.input;
     const outputCost = (outputTokens / 1000) * pricing.output;
     const totalCost = inputCost + outputCost;
@@ -392,7 +422,10 @@ export class RunMetadataService {
 
       return data;
     } catch (err) {
-      this.logger.error(`Failed to fetch usage details for runId ${runId}:`, err);
+      this.logger.error(
+        `Failed to fetch usage details for runId ${runId}:`,
+        err,
+      );
       throw err;
     }
   }
@@ -408,8 +441,8 @@ export class RunMetadataService {
    * Clean up stale runs (older than 5 minutes)
    */
   cleanupStaleRuns(): void {
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+
     for (const [runId, context] of this.activeRuns.entries()) {
       if (context.startTime < fiveMinutesAgo) {
         this.activeRuns.delete(runId);
@@ -429,10 +462,12 @@ export class RunMetadataService {
   }> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       // Get last 24 hours of completed runs (more flexible than "today")
-      const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      
+      const last24Hours = new Date(
+        Date.now() - 24 * 60 * 60 * 1000,
+      ).toISOString();
+
       const { data: recentRuns, error: recentError } = await client
         .from(getTableName('llm_usage'))
         .select('duration_ms, input_cost, output_cost')
@@ -450,12 +485,19 @@ export class RunMetadataService {
       }
 
       const totalRunsToday = recentRuns?.length || 0;
-      const avgDuration = totalRunsToday > 0
-        ? recentRuns.reduce((sum, run) => sum + (run.duration_ms || 0), 0) / totalRunsToday
-        : 0;
-      const avgCost = totalRunsToday > 0
-        ? recentRuns.reduce((sum, run) => sum + ((run.input_cost || 0) + (run.output_cost || 0)), 0) / totalRunsToday
-        : 0;
+      const avgDuration =
+        totalRunsToday > 0
+          ? recentRuns.reduce((sum, run) => sum + (run.duration_ms || 0), 0) /
+            totalRunsToday
+          : 0;
+      const avgCost =
+        totalRunsToday > 0
+          ? recentRuns.reduce(
+              (sum, run) =>
+                sum + ((run.input_cost || 0) + (run.output_cost || 0)),
+              0,
+            ) / totalRunsToday
+          : 0;
 
       return {
         activeRuns: this.activeRuns.size,
@@ -477,9 +519,12 @@ export class RunMetadataService {
   /**
    * Insert initial usage record into database
    */
-  private async insertUsageRecord(context: MetadataContext, status: string): Promise<void> {
+  private async insertUsageRecord(
+    context: MetadataContext,
+    status: string,
+  ): Promise<void> {
     const client = this.supabaseService.getServiceClient();
-    
+
     const insertData = {
       run_id: context.runId,
       user_id: context.userId, // Ensure user_id is populated
@@ -499,9 +544,12 @@ export class RunMetadataService {
       started_at: new Date(context.startTime).toISOString(),
       duration_ms: 0,
     };
-    
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Inserting into ${getTableName('llm_usage')} table:`, insertData);
-    
+
+    this.logger.debug(
+      `🔍 [LLM-USAGE-DEBUG] Inserting into ${getTableName('llm_usage')} table:`,
+      insertData,
+    );
+
     const { error } = await client
       .from(getTableName('llm_usage'))
       .insert(insertData);
@@ -510,35 +558,46 @@ export class RunMetadataService {
       this.logger.error(`🔍 [LLM-USAGE-DEBUG] Database insert failed:`, error);
       throw new Error(`Failed to insert usage record: ${error.message}`);
     } else {
-      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Database insert successful for runId: ${context.runId}`);
+      this.logger.debug(
+        `🔍 [LLM-USAGE-DEBUG] Database insert successful for runId: ${context.runId}`,
+      );
     }
   }
 
   /**
    * Update usage record in database
    */
-  private async updateUsageRecord(runId: string, updates: {
-    status: string;
-    inputTokens?: number;
-    outputTokens?: number;
-    inputCost?: number;
-    outputCost?: number;
-    durationMs?: number;
-    completedAt?: string;
-    errorMessage?: string;
-    enhancedMetrics?: LLMUsageMetrics;
-  }): Promise<void> {
+  private async updateUsageRecord(
+    runId: string,
+    updates: {
+      status: string;
+      inputTokens?: number;
+      outputTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      durationMs?: number;
+      completedAt?: string;
+      errorMessage?: string;
+      enhancedMetrics?: LLMUsageMetrics;
+    },
+  ): Promise<void> {
     const client = this.supabaseService.getServiceClient();
-    
-    this.logger.debug(`🔍 [PII-METADATA-DEBUG] updateUsageRecord - updates.enhancedMetrics exists:`, !!updates.enhancedMetrics);
+
+    this.logger.debug(
+      `🔍 [PII-METADATA-DEBUG] updateUsageRecord - updates.enhancedMetrics exists:`,
+      !!updates.enhancedMetrics,
+    );
     if (updates.enhancedMetrics) {
-      this.logger.debug(`🔍 [PII-METADATA-DEBUG] updateUsageRecord - enhancedMetrics content:`, {
-        piiDetected: updates.enhancedMetrics.piiDetected,
-        pseudonymsUsed: updates.enhancedMetrics.pseudonymsUsed,
-        pseudonymTypes: updates.enhancedMetrics.pseudonymTypes,
-        redactionsApplied: updates.enhancedMetrics.redactionsApplied,
-        redactionTypes: updates.enhancedMetrics.redactionTypes
-      });
+      this.logger.debug(
+        `🔍 [PII-METADATA-DEBUG] updateUsageRecord - enhancedMetrics content:`,
+        {
+          piiDetected: updates.enhancedMetrics.piiDetected,
+          pseudonymsUsed: updates.enhancedMetrics.pseudonymsUsed,
+          pseudonymTypes: updates.enhancedMetrics.pseudonymTypes,
+          redactionsApplied: updates.enhancedMetrics.redactionsApplied,
+          redactionTypes: updates.enhancedMetrics.redactionTypes,
+        },
+      );
     }
 
     const updateData = {
@@ -552,7 +611,8 @@ export class RunMetadataService {
       completed_at: updates.completedAt,
       error_message: updates.errorMessage,
       ...(updates.enhancedMetrics && {
-        data_sanitization_applied: updates.enhancedMetrics.dataSanitizationApplied,
+        data_sanitization_applied:
+          updates.enhancedMetrics.dataSanitizationApplied,
         sanitization_level: updates.enhancedMetrics.sanitizationLevel,
         pii_detected: updates.enhancedMetrics.piiDetected,
         pii_types: updates.enhancedMetrics.piiTypes,
@@ -572,32 +632,48 @@ export class RunMetadataService {
         sovereign_mode: updates.enhancedMetrics.sovereignMode,
         compliance_flags: updates.enhancedMetrics.complianceFlags,
         pseudonym_mappings: updates.enhancedMetrics.pseudonymMappings,
-      })
+      }),
     };
-    
-    this.logger.debug(`🔍 [PII-METADATA-DEBUG] updateUsageRecord - Final updateData PII fields:`, {
-      pii_detected: updateData.pii_detected,
-      pseudonyms_used: updateData.pseudonyms_used,
-      pseudonym_types: updateData.pseudonym_types,
-      redactions_applied: updateData.redactions_applied,
-      redaction_types: updateData.redaction_types
-    });
 
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating runId ${runId} in ${getTableName('llm_usage')} with:`, updateData);
-    
+    this.logger.debug(
+      `🔍 [PII-METADATA-DEBUG] updateUsageRecord - Final updateData PII fields:`,
+      {
+        pii_detected: updateData.pii_detected,
+        pseudonyms_used: updateData.pseudonyms_used,
+        pseudonym_types: updateData.pseudonym_types,
+        redactions_applied: updateData.redactions_applied,
+        redaction_types: updateData.redaction_types,
+      },
+    );
+
+    this.logger.debug(
+      `🔍 [LLM-USAGE-DEBUG] Updating runId ${runId} in ${getTableName('llm_usage')} with:`,
+      updateData,
+    );
+
     const { data: updatedRow, error } = await client
       .from(getTableName('llm_usage'))
       .update(updateData)
       .eq('run_id', runId)
-      .select('run_id,status,input_tokens,output_tokens,duration_ms,pii_detected,pseudonyms_used,sanitization_level,total_cost')
+      .select(
+        'run_id,status,input_tokens,output_tokens,duration_ms,pii_detected,pseudonyms_used,sanitization_level,total_cost',
+      )
       .single();
 
     if (error) {
-      this.logger.error(`🔍 [LLM-USAGE-DEBUG] Database update failed for runId: ${runId}:`, error);
+      this.logger.error(
+        `🔍 [LLM-USAGE-DEBUG] Database update failed for runId: ${runId}:`,
+        error,
+      );
       throw new Error(`Failed to update usage record: ${error.message}`);
     } else {
-      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Database update successful for runId: ${runId}`);
-      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updated row snapshot:`, updatedRow);
+      this.logger.debug(
+        `🔍 [LLM-USAGE-DEBUG] Database update successful for runId: ${runId}`,
+      );
+      this.logger.debug(
+        `🔍 [LLM-USAGE-DEBUG] Updated row snapshot:`,
+        updatedRow,
+      );
     }
   }
 
@@ -614,22 +690,26 @@ export class RunMetadataService {
     limit?: number;
   }): Promise<any[]> {
     const client = this.supabaseService.getServiceClient();
-    
+
     let query = client
       .from(getTableName('llm_usage'))
       .select('*')
       .order('started_at', { ascending: false });
 
     if (filters?.userId) query = query.eq('user_id', filters.userId);
-    if (filters?.callerType) query = query.eq('caller_type', filters.callerType);
-    if (filters?.callerName) query = query.eq('caller_name', filters.callerName);
-    if (filters?.conversationId) query = query.eq('conversation_id', filters.conversationId);
+    if (filters?.callerType)
+      query = query.eq('caller_type', filters.callerType);
+    if (filters?.callerName)
+      query = query.eq('caller_name', filters.callerName);
+    if (filters?.conversationId)
+      query = query.eq('conversation_id', filters.conversationId);
     if (filters?.startDate) query = query.gte('started_at', filters.startDate);
     if (filters?.endDate) query = query.lte('started_at', filters.endDate);
     if (filters?.limit) query = query.limit(filters.limit);
 
     const { data, error } = await query;
-    if (error) throw new Error(`Failed to fetch usage records: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to fetch usage records: ${error.message}`);
     return data || [];
   }
 
@@ -642,7 +722,7 @@ export class RunMetadataService {
     callerType?: string;
   }): Promise<any[]> {
     const client = this.supabaseService.getServiceClient();
-    
+
     let query = client
       .from('llm_usage_analytics')
       .select('*')
@@ -650,10 +730,12 @@ export class RunMetadataService {
 
     if (filters?.startDate) query = query.gte('date', filters.startDate);
     if (filters?.endDate) query = query.lte('date', filters.endDate);
-    if (filters?.callerType) query = query.eq('caller_type', filters.callerType);
+    if (filters?.callerType)
+      query = query.eq('caller_type', filters.callerType);
 
     const { data, error } = await query;
-    if (error) throw new Error(`Failed to fetch usage analytics: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to fetch usage analytics: ${error.message}`);
     return data || [];
   }
 }

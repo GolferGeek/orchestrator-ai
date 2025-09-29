@@ -120,7 +120,7 @@ export function mapModelToDb(model: Partial<Model>): any {
   };
 }
 
-// New mapping function specifically for llm_models table structure  
+// New mapping function specifically for llm_models table structure
 export function mapLLMModelFromDb(dbModel: any): ModelResponseDto {
   // Extract pricing info from JSON
   const pricingInfo = dbModel.pricing_info_json || {};

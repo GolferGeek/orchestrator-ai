@@ -64,7 +64,6 @@ export class ConfigurationService {
     filePath: string,
     options: ConfigurationOptions = {},
   ): Promise<ParsedConfiguration<T>> {
-
     // Resolve the file path
     const resolvedPath = this.resolveFilePath(filePath, options.baseDirectory);
 
@@ -104,7 +103,6 @@ export class ConfigurationService {
 
       return result;
     } catch (error) {
-
       throw new Error(
         `Failed to parse YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -145,7 +143,6 @@ export class ConfigurationService {
     const data = substitute(config);
 
     if (substitutedVars.length > 0) {
-
     }
 
     return { data, substitutedVars };
@@ -171,14 +168,12 @@ export class ConfigurationService {
         substitutedVars.push(fullVarName);
         return envValue;
       } else if (defaultValue !== undefined) {
-
         return defaultValue;
       } else if (strict) {
         throw new Error(
           `Required environment variable not found: ${fullVarName}`,
         );
       } else {
-
         return match; // Keep the original placeholder
       }
     });
@@ -191,7 +186,6 @@ export class ConfigurationService {
     config: T,
     SchemaClass: new () => T,
   ): Promise<ValidationError[]> {
-
     try {
       // Create an instance of the schema class and copy properties
       const instance = new SchemaClass();
@@ -204,17 +198,12 @@ export class ConfigurationService {
       });
 
       if (errors.length > 0) {
-
-        errors.forEach((error) => {
-
-        });
+        errors.forEach((error) => {});
       } else {
-
       }
 
       return errors;
     } catch (error) {
-
       throw new Error(
         `Schema validation failed: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -256,7 +245,6 @@ export class ConfigurationService {
     try {
       return fs.statSync(resolvedPath);
     } catch (error) {
-
       return null;
     }
   }
@@ -268,7 +256,6 @@ export class ConfigurationService {
     yamlContent: string,
     options: ConfigurationOptions = {},
   ): ParsedConfiguration<T> {
-
     try {
       const parsed = yaml.load(yamlContent) as T;
 
@@ -296,7 +283,6 @@ export class ConfigurationService {
 
       return result;
     } catch (error) {
-
       throw new Error(
         `Failed to parse YAML content: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -330,9 +316,7 @@ export class ConfigurationService {
 
       // Write the file
       fs.writeFileSync(resolvedPath, yamlContent, 'utf8');
-
     } catch (error) {
-
       throw new Error(
         `Failed to write YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
       );

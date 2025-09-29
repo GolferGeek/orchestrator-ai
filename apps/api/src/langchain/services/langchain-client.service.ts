@@ -18,8 +18,6 @@ export class LangChainClientService {
     private readonly llmService: LLMService,
   ) {}
 
-
-
   /**
    * Execute a simple LLM call with system and user messages
    * Now uses centralized LLMService for consistent routing and monitoring
@@ -40,7 +38,11 @@ export class LangChainClientService {
         userMessage,
         {
           temperature: options?.temperature || 0.7,
-          provider: options?.provider as 'openai' | 'anthropic' | 'google' | 'ollama', // Only specify if explicitly requested
+          provider: options?.provider as
+            | 'openai'
+            | 'anthropic'
+            | 'google'
+            | 'ollama', // Only specify if explicitly requested
           modelName: options?.model, // Only specify if explicitly requested
           complexity: 'simple', // LangChain tool operations are typically simple
           callerType: 'service',
@@ -51,7 +53,6 @@ export class LangChainClientService {
 
       return result.response;
     } catch (error) {
-
       throw error;
     }
   }

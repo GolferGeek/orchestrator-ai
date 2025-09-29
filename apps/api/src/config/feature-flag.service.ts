@@ -28,7 +28,7 @@ export class FeatureFlagService {
    */
   isEnabled(flagName: string, context: FeatureFlagContext = {}): boolean {
     const config = this.getFlagConfig(flagName);
-    
+
     if (!config.enabled) {
       return false;
     }
@@ -45,7 +45,11 @@ export class FeatureFlagService {
 
     // Check rollout percentage
     if (config.rolloutPercentage !== undefined) {
-      return this.isInRolloutPercentage(flagName, context, config.rolloutPercentage);
+      return this.isInRolloutPercentage(
+        flagName,
+        context,
+        config.rolloutPercentage,
+      );
     }
 
     // Default to enabled if no specific rules
@@ -57,13 +61,24 @@ export class FeatureFlagService {
    */
   private getFlagConfig(flagName: string): FeatureFlagConfig {
     const envPrefix = `FEATURE_FLAG_${flagName.toUpperCase()}`;
-    
-    const enabled = this.configService.get(`${envPrefix}_ENABLED`, 'false') === 'true';
-    const rolloutPercentage = this.parseNumber(this.configService.get(`${envPrefix}_ROLLOUT_PERCENTAGE`));
-    const targetUsers = this.parseArray(this.configService.get(`${envPrefix}_TARGET_USERS`));
-    const targetOrganizations = this.parseArray(this.configService.get(`${envPrefix}_TARGET_ORGANIZATIONS`));
-    const excludeUsers = this.parseArray(this.configService.get(`${envPrefix}_EXCLUDE_USERS`));
-    const excludeOrganizations = this.parseArray(this.configService.get(`${envPrefix}_EXCLUDE_ORGANIZATIONS`));
+
+    const enabled =
+      this.configService.get(`${envPrefix}_ENABLED`, 'false') === 'true';
+    const rolloutPercentage = this.parseNumber(
+      this.configService.get(`${envPrefix}_ROLLOUT_PERCENTAGE`),
+    );
+    const targetUsers = this.parseArray(
+      this.configService.get(`${envPrefix}_TARGET_USERS`),
+    );
+    const targetOrganizations = this.parseArray(
+      this.configService.get(`${envPrefix}_TARGET_ORGANIZATIONS`),
+    );
+    const excludeUsers = this.parseArray(
+      this.configService.get(`${envPrefix}_EXCLUDE_USERS`),
+    );
+    const excludeOrganizations = this.parseArray(
+      this.configService.get(`${envPrefix}_EXCLUDE_ORGANIZATIONS`),
+    );
 
     return {
       enabled,
@@ -78,12 +93,23 @@ export class FeatureFlagService {
   /**
    * Check if the context is excluded from the feature
    */
-  private isExcluded(config: FeatureFlagConfig, context: FeatureFlagContext): boolean {
-    if (config.excludeUsers && context.userId && config.excludeUsers.includes(context.userId)) {
+  private isExcluded(
+    config: FeatureFlagConfig,
+    context: FeatureFlagContext,
+  ): boolean {
+    if (
+      config.excludeUsers &&
+      context.userId &&
+      config.excludeUsers.includes(context.userId)
+    ) {
       return true;
     }
 
-    if (config.excludeOrganizations && context.organizationId && config.excludeOrganizations.includes(context.organizationId)) {
+    if (
+      config.excludeOrganizations &&
+      context.organizationId &&
+      config.excludeOrganizations.includes(context.organizationId)
+    ) {
       return true;
     }
 
@@ -93,12 +119,23 @@ export class FeatureFlagService {
   /**
    * Check if the context is specifically targeted
    */
-  private isSpecificallyTargeted(config: FeatureFlagConfig, context: FeatureFlagContext): boolean {
-    if (config.targetUsers && context.userId && config.targetUsers.includes(context.userId)) {
+  private isSpecificallyTargeted(
+    config: FeatureFlagConfig,
+    context: FeatureFlagContext,
+  ): boolean {
+    if (
+      config.targetUsers &&
+      context.userId &&
+      config.targetUsers.includes(context.userId)
+    ) {
       return true;
     }
 
-    if (config.targetOrganizations && context.organizationId && config.targetOrganizations.includes(context.organizationId)) {
+    if (
+      config.targetOrganizations &&
+      context.organizationId &&
+      config.targetOrganizations.includes(context.organizationId)
+    ) {
       return true;
     }
 
@@ -108,7 +145,11 @@ export class FeatureFlagService {
   /**
    * Check if the context falls within the rollout percentage
    */
-  private isInRolloutPercentage(flagName: string, context: FeatureFlagContext, percentage: number): boolean {
+  private isInRolloutPercentage(
+    flagName: string,
+    context: FeatureFlagContext,
+    percentage: number,
+  ): boolean {
     if (percentage <= 0) return false;
     if (percentage >= 100) return true;
 
@@ -116,10 +157,10 @@ export class FeatureFlagService {
     const identifier = context.userId || context.organizationId || 'anonymous';
     const hashInput = `${flagName}:${identifier}`;
     const hash = this.simpleHash(hashInput);
-    
+
     // Convert hash to percentage (0-99)
     const userPercentage = hash % 100;
-    
+
     return userPercentage < percentage;
   }
 
@@ -130,7 +171,7 @@ export class FeatureFlagService {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);
@@ -143,7 +184,10 @@ export class FeatureFlagService {
     if (!value || value.trim() === '') {
       return undefined;
     }
-    return value.split(',').map(item => item.trim()).filter(Boolean);
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   /**
@@ -165,11 +209,11 @@ export class FeatureFlagService {
     // For now, return known flags
     const knownFlags = ['SOVEREIGN_ROUTING'];
     const flags: Record<string, FeatureFlagConfig> = {};
-    
+
     for (const flagName of knownFlags) {
       flags[flagName] = this.getFlagConfig(flagName);
     }
-    
+
     return flags;
   }
 

@@ -48,7 +48,8 @@ export class UsageService {
       // Query tasks table for usage stats - tasks have llm_metadata with usage info
       const { data: tasks, error } = await client
         .from(getTableName('tasks'))
-        .select(`
+        .select(
+          `
           id, 
           created_at, 
           completed_at,
@@ -56,7 +57,8 @@ export class UsageService {
           llm_metadata,
           evaluation,
           status
-        `)
+        `,
+        )
         .eq('user_id', userId)
         .gte('created_at', startDate)
         .lte('created_at', endDate)
@@ -67,21 +69,24 @@ export class UsageService {
       }
 
       // Calculate basic stats from tasks
-      const completedTasks = tasks?.filter(t => t.status === 'completed') || [];
+      const completedTasks =
+        tasks?.filter((t) => t.status === 'completed') || [];
       const totalRequests = tasks?.length || 0;
-      
+
       // Extract usage metrics from llm_metadata if available
       let totalTokens = 0;
       let totalCost = 0;
       let totalResponseTime = 0;
       let responseTimeCount = 0;
 
-      completedTasks.forEach(task => {
+      completedTasks.forEach((task) => {
         const metadata = task.llm_metadata;
         if (metadata) {
           // Extract token usage if available
           if (metadata.usage) {
-            totalTokens += (metadata.usage.input_tokens || 0) + (metadata.usage.output_tokens || 0);
+            totalTokens +=
+              (metadata.usage.input_tokens || 0) +
+              (metadata.usage.output_tokens || 0);
           }
           // Extract cost if available
           if (metadata.cost) {
@@ -89,41 +94,43 @@ export class UsageService {
           }
           // Calculate response time from timestamps
           if (task.started_at && task.completed_at) {
-            const responseTime = new Date(task.completed_at).getTime() - new Date(task.started_at).getTime();
+            const responseTime =
+              new Date(task.completed_at).getTime() -
+              new Date(task.started_at).getTime();
             totalResponseTime += responseTime;
             responseTimeCount++;
           }
         }
       });
 
-      const averageResponseTime = responseTimeCount > 0 ? totalResponseTime / responseTimeCount : 0;
+      const averageResponseTime =
+        responseTimeCount > 0 ? totalResponseTime / responseTimeCount : 0;
 
       return {
         userId,
         dateRange: {
           startDate,
-          endDate
+          endDate,
         },
         totalRequests,
         totalTokens,
         totalCost,
         averageResponseTime,
-        averageUserRating: 0 // TODO: Extract from evaluation data
+        averageUserRating: 0, // TODO: Extract from evaluation data
       };
-
     } catch (error) {
       // Return empty stats on error
       return {
         userId,
         dateRange: {
           startDate,
-          endDate
+          endDate,
         },
         totalRequests: 0,
         totalTokens: 0,
         totalCost: 0,
         averageResponseTime: 0,
-        averageUserRating: 0
+        averageUserRating: 0,
       };
     }
   }

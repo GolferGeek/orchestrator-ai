@@ -4,7 +4,7 @@ import { SupabaseService } from '@/supabase/supabase.service';
 const createSupabaseMock = () => {
   const fromMock = jest.fn();
   const service: Partial<SupabaseService> = {
-    getServiceClient: jest.fn(() => ({ from: fromMock } as any)),
+    getServiceClient: jest.fn(() => ({ from: fromMock }) as any),
   };
   return { fromMock, service: service as SupabaseService };
 };
@@ -35,7 +35,9 @@ describe('AgentsRepository', () => {
   it('upserts agents with conflict on organization_slug + slug', async () => {
     const { fromMock, service } = createSupabaseMock();
 
-    const maybeSingle = jest.fn().mockResolvedValue({ data: sampleAgent, error: null });
+    const maybeSingle = jest
+      .fn()
+      .mockResolvedValue({ data: sampleAgent, error: null });
     const select = jest.fn().mockReturnValue({ maybeSingle });
     const upsert = jest.fn().mockReturnValue({ select });
 
@@ -91,7 +93,9 @@ describe('AgentsRepository', () => {
       error: null,
     } as any;
 
-    listChain.order = jest.fn().mockResolvedValue({ data: [sampleAgent], error: null });
+    listChain.order = jest
+      .fn()
+      .mockResolvedValue({ data: [sampleAgent], error: null });
 
     fromMock.mockReturnValue(listChain);
 

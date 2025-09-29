@@ -47,7 +47,8 @@ export class SpeechController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Process a conversational speech request with a specific agent',
-    description: 'Takes audio input, transcribes it, processes through the specified AI agent, and returns spoken response',
+    description:
+      'Takes audio input, transcribes it, processes through the specified AI agent, and returns spoken response',
   })
   @ApiParam({
     name: 'agentName',
@@ -126,7 +127,8 @@ export class SpeechController {
       return result;
     } catch (error) {
       this.logger.error('Conversation processing failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Conversation processing failed: ${errorMessage}`);
     }
   }
@@ -139,7 +141,8 @@ export class SpeechController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Transcribe audio to text',
-    description: 'Converts audio input to text using Deepgram Speech-to-Text API',
+    description:
+      'Converts audio input to text using Deepgram Speech-to-Text API',
   })
   @ApiResponse({
     status: 200,
@@ -175,7 +178,8 @@ export class SpeechController {
       return result;
     } catch (error) {
       this.logger.error('Audio transcription failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Audio transcription failed: ${errorMessage}`);
     }
   }
@@ -224,7 +228,8 @@ export class SpeechController {
       return result;
     } catch (error) {
       this.logger.error('Text-to-speech synthesis failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Text-to-speech synthesis failed: ${errorMessage}`);
     }
   }

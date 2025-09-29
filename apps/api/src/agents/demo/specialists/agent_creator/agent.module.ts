@@ -9,7 +9,7 @@ import { DeliverablesModule } from '../../../../deliverables/deliverables.module
 
 @Module({
   imports: [
-    SupabaseModule, 
+    SupabaseModule,
     AgentServicesContextModule,
     TasksModule,
     DeliverablesModule,

@@ -165,7 +165,7 @@ export class ProviderConfigService {
       noTrain?: boolean;
       noRetain?: boolean;
       customHeaders?: Record<string, string>;
-    } = {}
+    } = {},
   ): RequestHeaders {
     const provider = this.getProviderConfig(providerName);
     const defaultHeaders = provider?.defaultHeaders || {};
@@ -178,7 +178,7 @@ export class ProviderConfigService {
     };
 
     // Add no-train/no-retain headers if supported and requested
-    if (provider?.features.supportsNoTrain && (options.noTrain !== false)) {
+    if (provider?.features.supportsNoTrain && options.noTrain !== false) {
       headers['X-No-Train'] = 'true';
     }
 
@@ -216,7 +216,10 @@ export class ProviderConfigService {
   /**
    * Check if provider supports a specific feature
    */
-  supportsFeature(providerName: string, feature: keyof ProviderConfig['features']): boolean {
+  supportsFeature(
+    providerName: string,
+    feature: keyof ProviderConfig['features'],
+  ): boolean {
     const provider = this.getProviderConfig(providerName);
     return provider?.features[feature] || false;
   }
@@ -224,7 +227,9 @@ export class ProviderConfigService {
   /**
    * Get rate limit information for a provider
    */
-  getRateLimits(providerName: string): { requestsPerMinute: number; tokensPerMinute: number } | null {
+  getRateLimits(
+    providerName: string,
+  ): { requestsPerMinute: number; tokensPerMinute: number } | null {
     const provider = this.getProviderConfig(providerName);
     return provider?.rateLimits || null;
   }
@@ -232,14 +237,19 @@ export class ProviderConfigService {
   /**
    * Update provider configuration (for dynamic configuration)
    */
-  updateProviderConfig(providerName: string, updates: Partial<ProviderConfig>): void {
+  updateProviderConfig(
+    providerName: string,
+    updates: Partial<ProviderConfig>,
+  ): void {
     const existing = this.getProviderConfig(providerName);
     if (existing) {
       const updated = { ...existing, ...updates };
       this.providerConfigs.set(providerName.toLowerCase(), updated);
       this.logger.log(`Updated configuration for provider: ${providerName}`);
     } else {
-      this.logger.warn(`Attempted to update non-existent provider: ${providerName}`);
+      this.logger.warn(
+        `Attempted to update non-existent provider: ${providerName}`,
+      );
     }
   }
 
@@ -293,7 +303,10 @@ export class ProviderConfigService {
   /**
    * Validate provider configuration
    */
-  validateProviderConfig(providerName: string): { valid: boolean; errors: string[] } {
+  validateProviderConfig(providerName: string): {
+    valid: boolean;
+    errors: string[];
+  } {
     const config = this.getEnhancedProviderConfig(providerName);
     const errors: string[] = [];
 
@@ -331,12 +344,12 @@ export class ProviderConfigService {
     externalProviders: number;
   } {
     const providers = Array.from(this.providerConfigs.values());
-    
+
     return {
       totalProviders: providers.length,
       totalModels: this.modelConfigs.size,
-      localProviders: providers.filter(p => p.name === 'Ollama').length,
-      externalProviders: providers.filter(p => p.name !== 'Ollama').length,
+      localProviders: providers.filter((p) => p.name === 'Ollama').length,
+      externalProviders: providers.filter((p) => p.name !== 'Ollama').length,
     };
   }
 }

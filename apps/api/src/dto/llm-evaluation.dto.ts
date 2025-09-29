@@ -111,10 +111,16 @@ export class ModelNameDto {
   @ApiProperty({ description: 'Provider name', example: 'openai' })
   providerName!: string;
 
-  @ApiProperty({ description: 'Model name for API calls', example: 'gpt-4o-mini' })
+  @ApiProperty({
+    description: 'Model name for API calls',
+    example: 'gpt-4o-mini',
+  })
   modelName!: string;
 
-  @ApiProperty({ description: 'Human-readable display name', example: 'GPT-4o Mini' })
+  @ApiProperty({
+    description: 'Human-readable display name',
+    example: 'GPT-4o Mini',
+  })
   displayName!: string;
 }
 

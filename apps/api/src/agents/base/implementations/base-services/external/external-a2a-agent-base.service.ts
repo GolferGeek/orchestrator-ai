@@ -90,9 +90,7 @@ export class ExternalA2AAgentBaseService
    * Initialize the external A2A agent proxy
    */
   async onModuleInit() {
-
     if (!this.agentPath) {
-
       return;
     }
 
@@ -104,7 +102,6 @@ export class ExternalA2AAgentBaseService
       try {
         await this.discoverRemoteAgent();
       } catch (error) {
-
         // Create a minimal agent card for registration
         this.remoteAgentCard = {
           id: this.getAgentId(),
@@ -121,9 +118,7 @@ export class ExternalA2AAgentBaseService
       // No longer self-registering here to avoid conflicts
 
       this.isInitialized = true;
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -137,10 +132,7 @@ export class ExternalA2AAgentBaseService
         await this.services.agentRegistrationService.unregisterAgent(
           this.getAgentId(),
         );
-
-      } catch (error) {
-
-      }
+      } catch (error) {}
     }
   }
 
@@ -150,7 +142,6 @@ export class ExternalA2AAgentBaseService
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
     this.agentName = this.extractAgentNameFromPath(path);
-
   }
 
   /**
@@ -188,7 +179,6 @@ export class ExternalA2AAgentBaseService
    * Execute a task by forwarding to the external A2A agent
    */
   async executeTask(method: string, params: any): Promise<any> {
-
     if (!this.isInitialized || !this.externalConfig) {
       throw new Error(
         `External A2A agent not properly initialized: ${this.getAgentName()}`,
@@ -258,7 +248,6 @@ export class ExternalA2AAgentBaseService
 
       return response;
     } catch (error) {
-
       // Log the error if logging service is available
       if (this.services.loggingService) {
         this.services.loggingService.logError(
@@ -311,7 +300,6 @@ export class ExternalA2AAgentBaseService
    * Load local configuration from agent.yaml
    */
   private async loadLocalConfiguration(): Promise<void> {
-
     if (!this.agentPath) {
       throw new Error('Agent path not set');
     }
@@ -340,9 +328,7 @@ export class ExternalA2AAgentBaseService
 
       // Validate configuration
       this.validateConfiguration(this.externalConfig);
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -351,7 +337,6 @@ export class ExternalA2AAgentBaseService
    * Discover remote agent capabilities from /.well-known/agent.json
    */
   private async discoverRemoteAgent(): Promise<void> {
-
     try {
       // Extract base URL from endpoint (remove path if present)
       const endpointUrl = new URL(this.externalConfig!.endpoint);
@@ -370,9 +355,7 @@ export class ExternalA2AAgentBaseService
       }
 
       this.remoteAgentCard = response.data as ExternalAgentCard;
-
     } catch (error) {
-
       throw new Error(
         `Remote agent discovery failed: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -383,7 +366,6 @@ export class ExternalA2AAgentBaseService
    * Register with local agent pool using remote agent's capabilities
    */
   private async registerWithAgentPool(): Promise<void> {
-
     try {
       const agentInfo: AgentInfo = {
         id: this.getAgentId(),
@@ -414,9 +396,7 @@ export class ExternalA2AAgentBaseService
           `Registration failed: ${this.registrationResult.error}`,
         );
       }
-
     } catch (error) {
-
       throw error;
     }
   }
@@ -427,7 +407,6 @@ export class ExternalA2AAgentBaseService
   private async forwardToExternalAgent(
     params: ExternalA2AParams,
   ): Promise<ExternalA2AResponse> {
-
     const maxAttempts = this.externalConfig!.retry?.attempts || 3;
     const baseDelay = this.externalConfig!.retry?.delay || 1000;
     const backoffType = this.externalConfig!.retry?.backoff || 'linear';
@@ -467,7 +446,6 @@ export class ExternalA2AAgentBaseService
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
       } catch (error) {
-
         if (attempt === maxAttempts) {
           return {
             success: false,
@@ -540,7 +518,6 @@ export class ExternalA2AAgentBaseService
         yamlData.external_a2a_configuration || yamlData.external_configuration;
 
       if (!config) {
-
         return null;
       }
 
@@ -554,7 +531,6 @@ export class ExternalA2AAgentBaseService
         required_env_vars: config.required_env_vars || [],
       };
     } catch (error) {
-
       return null;
     }
   }
@@ -599,7 +575,9 @@ export class ExternalA2AAgentBaseService
    * Build agent URL for registration
    */
   private buildAgentUrl(): string {
-          const baseUrl = process.env.AGENT_BASE_URL || `http://localhost:${process.env.WEB_PORT || '7101'}`;
+    const baseUrl =
+      process.env.AGENT_BASE_URL ||
+      `http://localhost:${process.env.WEB_PORT || '7101'}`;
     return `${baseUrl}/agents/external/${this.getAgentName()}`;
   }
 

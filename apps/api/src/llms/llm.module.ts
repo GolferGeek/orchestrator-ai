@@ -33,8 +33,20 @@ import { OllamaLLMService } from './services/ollama-llm.service';
 import { GrokLLMService } from './services/grok-llm.service';
 
 @Module({
-  imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, ModelConfigurationModule, HttpModule],
-  controllers: [LLMController, LlmUsageController, ProductionOptimizationController, SanitizationController],
+  imports: [
+    SupabaseModule,
+    CIDAFMModule,
+    SovereignPolicyModule,
+    FeatureFlagModule,
+    ModelConfigurationModule,
+    HttpModule,
+  ],
+  controllers: [
+    LLMController,
+    LlmUsageController,
+    ProductionOptimizationController,
+    SanitizationController,
+  ],
   providers: [
     LLMService,
     CentralizedRoutingService,

@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ModelConfigurationService, SystemModelConfiguration, ModelConfiguration } from './model-configuration.service';
+import {
+  ModelConfigurationService,
+  SystemModelConfiguration,
+  ModelConfiguration,
+} from './model-configuration.service';
 import * as fs from 'fs';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { SupabaseService } from '../supabase/supabase.service';
 
 function deepMerge<T>(base: T, patch: Partial<T>): T {
-  const out: any = Array.isArray(base) ? [...(base as any)] : { ...(base as any) };
+  const out: any = Array.isArray(base)
+    ? [...(base as any)]
+    : { ...(base as any) };
   for (const [k, v] of Object.entries(patch || {})) {
     if (v && typeof v === 'object' && !Array.isArray(v)) {
       out[k] = deepMerge(out[k] || {}, v as any);
@@ -22,29 +28,44 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
   providers: [
     {
       provide: ModelConfigurationService,
-      useFactory: async (configService: ConfigService, supabase: SupabaseService) => {
+      useFactory: async (
+        configService: ConfigService,
+        supabase: SupabaseService,
+      ) => {
         const json = configService.get<string>('MODEL_CONFIG_JSON');
         const path = configService.get<string>('MODEL_CONFIG_PATH');
         const patchJson = configService.get<string>('MODEL_CONFIG_PATCH_JSON');
-        const globalJson = configService.get<string>('MODEL_CONFIG_GLOBAL_JSON');
+        const globalJson = configService.get<string>(
+          'MODEL_CONFIG_GLOBAL_JSON',
+        );
 
         if ((json || path) && globalJson) {
-          throw new Error('MODEL_CONFIG_GLOBAL_JSON is mutually exclusive with MODEL_CONFIG_JSON/MODEL_CONFIG_PATH');
+          throw new Error(
+            'MODEL_CONFIG_GLOBAL_JSON is mutually exclusive with MODEL_CONFIG_JSON/MODEL_CONFIG_PATH',
+          );
         }
 
         let baseConfig: SystemModelConfiguration | undefined;
-        let globalConfig: ModelConfiguration | undefined | { default: ModelConfiguration; localOnly?: ModelConfiguration };
+        let globalConfig:
+          | ModelConfiguration
+          | undefined
+          | { default: ModelConfiguration; localOnly?: ModelConfiguration };
         if (globalJson) {
           try {
             const parsed = JSON.parse(globalJson);
             // Support either a flat ModelConfiguration or a dual config { default, localOnly }
             if (parsed && typeof parsed === 'object' && 'default' in parsed) {
-              globalConfig = parsed as { default: ModelConfiguration; localOnly?: ModelConfiguration };
+              globalConfig = parsed as {
+                default: ModelConfiguration;
+                localOnly?: ModelConfiguration;
+              };
             } else {
               globalConfig = parsed as ModelConfiguration;
             }
           } catch (parseError) {
-            throw new Error(`Invalid MODEL_CONFIG_GLOBAL_JSON: ${(parseError as Error).message}. Value: ${globalJson}`);
+            throw new Error(
+              `Invalid MODEL_CONFIG_GLOBAL_JSON: ${(parseError as Error).message}. Value: ${globalJson}`,
+            );
           }
         }
 
@@ -57,7 +78,10 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
             if (!error && data) {
               const parsed = typeof data === 'string' ? JSON.parse(data) : data;
               if (parsed && typeof parsed === 'object' && 'default' in parsed) {
-                globalConfig = parsed as { default: ModelConfiguration; localOnly?: ModelConfiguration };
+                globalConfig = parsed as {
+                  default: ModelConfiguration;
+                  localOnly?: ModelConfiguration;
+                };
               } else if (parsed) {
                 globalConfig = parsed as ModelConfiguration;
               }
@@ -83,7 +107,9 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
           baseConfig = deepMerge(baseConfig, patch);
         }
 
-        const service = new ModelConfigurationService(baseConfig ?? globalConfig);
+        const service = new ModelConfigurationService(
+          baseConfig ?? globalConfig,
+        );
         service.validateConfig();
         return service;
       },

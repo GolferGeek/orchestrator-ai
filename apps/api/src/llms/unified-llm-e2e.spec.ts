@@ -6,7 +6,7 @@ import { LLMServiceFactory } from '../../src/llms/services/llm-service-factory';
 
 /**
  * End-to-End Tests for Unified LLM Architecture
- * 
+ *
  * These tests validate the complete flow from request to response
  * using real provider services (when available) to ensure the
  * entire architecture works correctly in realistic scenarios.
@@ -24,7 +24,7 @@ describe('Unified LLM Architecture (E2E)', () => {
     app = moduleFixture.createNestApplication();
     llmService = moduleFixture.get<LLMService>(LLMService);
     llmServiceFactory = moduleFixture.get<LLMServiceFactory>(LLMServiceFactory);
-    
+
     await app.init();
   }, 60000);
 
@@ -47,36 +47,36 @@ describe('Unified LLM Architecture (E2E)', () => {
           includeMetadata: true,
           callerType: 'e2e-test',
           callerName: 'unified-architecture-test',
-        }
+        },
       });
 
       // Validate response structure
       expect(result).toBeDefined();
       expect(typeof result).toBe('object');
-      
+
       const response = result as any;
       expect(response.content).toBeDefined();
       expect(typeof response.content).toBe('string');
       expect(response.content.length).toBeGreaterThan(0);
-      
+
       // Validate unified metadata structure
       expect(response.metadata).toBeDefined();
       expect(response.metadata.provider).toBe('ollama');
       expect(response.metadata.model).toBe('llama3.2:1b');
       expect(response.metadata.requestId).toBeDefined();
       expect(response.metadata.timestamp).toBeDefined();
-      
+
       // Validate usage tracking
       expect(response.metadata.usage).toBeDefined();
       expect(typeof response.metadata.usage.inputTokens).toBe('number');
       expect(typeof response.metadata.usage.outputTokens).toBe('number');
       expect(typeof response.metadata.usage.totalTokens).toBe('number');
-      
+
       // Validate timing
       expect(response.metadata.timing).toBeDefined();
       expect(typeof response.metadata.timing.duration).toBe('number');
       expect(response.metadata.timing.duration).toBeGreaterThan(0);
-      
+
       console.log('✅ Ollama E2E Test Result:', {
         provider: response.metadata.provider,
         model: response.metadata.model,
@@ -104,34 +104,34 @@ describe('Unified LLM Architecture (E2E)', () => {
           includeMetadata: true,
           callerType: 'e2e-test',
           callerName: 'openai-test',
-        }
+        },
       });
 
       // Validate response structure
       expect(result).toBeDefined();
       expect(typeof result).toBe('object');
-      
+
       const response = result as any;
       expect(response.content).toBeDefined();
       expect(typeof response.content).toBe('string');
       expect(response.content.length).toBeGreaterThan(0);
-      
+
       // Validate unified metadata structure
       expect(response.metadata).toBeDefined();
       expect(response.metadata.provider).toBe('openai');
       expect(response.metadata.model).toContain('gpt-4o-mini'); // OpenAI returns versioned model names
       expect(response.metadata.requestId).toBeDefined();
-      
+
       // Validate OpenAI-specific metadata
       expect(response.metadata.usage.inputTokens).toBeGreaterThan(0);
       expect(response.metadata.usage.outputTokens).toBeGreaterThan(0);
       expect(response.metadata.timing.duration).toBeGreaterThan(0);
-      
+
       // Check for provider-specific fields
       if (response.metadata.providerSpecific) {
         expect(response.metadata.providerSpecific.finish_reason).toBeDefined();
       }
-      
+
       console.log('✅ OpenAI E2E Test Result:', {
         provider: response.metadata.provider,
         model: response.metadata.model,
@@ -160,7 +160,7 @@ describe('Unified LLM Architecture (E2E)', () => {
           includeMetadata: true,
           callerType: 'e2e-test',
           callerName: 'anthropic-test',
-        }
+        },
       });
 
       // Validate response structure
@@ -169,7 +169,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       expect(response.metadata.provider).toBe('anthropic');
       expect(response.metadata.model).toBe('claude-3-5-sonnet-20241022');
       expect(response.metadata.usage.totalTokens).toBeGreaterThan(0);
-      
+
       console.log('✅ Anthropic E2E Test Result:', {
         provider: response.metadata.provider,
         model: response.metadata.model,
@@ -189,7 +189,7 @@ describe('Unified LLM Architecture (E2E)', () => {
           systemPrompt: 'Test',
           userMessage: 'Test',
         });
-        
+
         // Should not reach here
         expect(true).toBe(false);
       } catch (error) {
@@ -200,11 +200,11 @@ describe('Unified LLM Architecture (E2E)', () => {
         expect(llmError.code).toBeDefined();
         expect(llmError.provider).toBe('invalid-provider');
         expect(llmError.getUserFriendlyMessage).toBeDefined();
-        
+
         const userMessage = llmError.getUserFriendlyMessage();
         expect(typeof userMessage).toBe('string');
         expect(userMessage.length).toBeGreaterThan(0);
-        
+
         console.log('✅ Invalid Provider Error:', {
           type: llmError.type,
           code: llmError.code,
@@ -222,7 +222,7 @@ describe('Unified LLM Architecture (E2E)', () => {
           systemPrompt: 'Test',
           userMessage: 'Test',
         });
-        
+
         expect(true).toBe(false);
       } catch (error) {
         expect((error as any).message).toContain('provider is required');
@@ -237,9 +237,9 @@ describe('Unified LLM Architecture (E2E)', () => {
           model: 'nonexistent-model-xyz-123',
           systemPrompt: 'Test',
           userMessage: 'Test',
-          options: { maxTokens: 5 }
+          options: { maxTokens: 5 },
         });
-        
+
         expect(true).toBe(false);
       } catch (error) {
         // Should get a model-related error
@@ -321,7 +321,7 @@ describe('Unified LLM Architecture (E2E)', () => {
           sessionId: 'test-session-456',
           userId: 'test-user-789',
           dataClassification: 'public',
-        }
+        },
       });
 
       const endTime = Date.now();
@@ -330,26 +330,26 @@ describe('Unified LLM Architecture (E2E)', () => {
       // Validate complete response
       expect(response.content).toBeDefined();
       expect(response.metadata).toBeDefined();
-      
+
       // Validate metadata completeness
       expect(response.metadata.provider).toBe('ollama');
       expect(response.metadata.model).toBe('llama3.2:1b');
       expect(response.metadata.requestId).toBeDefined();
       expect(response.metadata.timestamp).toBeDefined();
       expect(response.metadata.status).toBe('completed');
-      
+
       // Validate timing is reasonable
       expect(response.metadata.timing.duration).toBeGreaterThan(0);
       expect(response.metadata.timing.duration).toBeLessThan(30000); // Less than 30 seconds
-      
+
       // Validate usage tracking
       expect(response.metadata.usage.inputTokens).toBeGreaterThan(0);
       expect(response.metadata.usage.outputTokens).toBeGreaterThan(0);
       expect(response.metadata.usage.totalTokens).toBeGreaterThan(0);
-      
+
       // Local model should have zero cost
       expect(response.metadata.usage.cost).toBe(0);
-      
+
       console.log('✅ Complete Flow E2E Test:', {
         provider: response.metadata.provider,
         model: response.metadata.model,
@@ -373,33 +373,35 @@ describe('Unified LLM Architecture (E2E)', () => {
             temperature: 0.1,
             includeMetadata: true,
             callerName: `concurrent-test-${i + 1}`,
-          }
-        })
+          },
+        }),
       );
 
       const results = await Promise.all(concurrentRequests);
 
       // All requests should succeed
       expect(results).toHaveLength(5);
-      
+
       results.forEach((result, i) => {
         const response = result as any;
         expect(response.content).toBeDefined();
         expect(response.metadata.provider).toBe('ollama');
         expect(response.metadata.model).toBe('llama3.2:1b');
         expect(response.metadata.requestId).toBeDefined();
-        
+
         // Each should have unique request ID
         const otherIds = results
           .filter((_, j) => j !== i)
-          .map(r => (r as any).metadata.requestId);
+          .map((r) => (r as any).metadata.requestId);
         expect(otherIds).not.toContain(response.metadata.requestId);
       });
 
       console.log('✅ Concurrent Requests E2E:', {
         totalRequests: results.length,
-        allSucceeded: results.every(r => (r as any).content),
-        uniqueRequestIds: new Set(results.map(r => (r as any).metadata.requestId)).size,
+        allSucceeded: results.every((r) => (r as any).content),
+        uniqueRequestIds: new Set(
+          results.map((r) => (r as any).metadata.requestId),
+        ).size,
       });
     }, 45000);
   });
@@ -411,10 +413,10 @@ describe('Unified LLM Architecture (E2E)', () => {
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
         userMessage: 'Say hello.',
-        options: { 
+        options: {
           maxTokens: 10,
-          includeMetadata: true // Need metadata to get object response
-        }
+          includeMetadata: true, // Need metadata to get object response
+        },
       };
 
       const invalidRequest = {
@@ -422,26 +424,30 @@ describe('Unified LLM Architecture (E2E)', () => {
         model: 'nonexistent-model',
         systemPrompt: 'You are helpful.',
         userMessage: 'Say hello.',
-        options: { maxTokens: 10 }
+        options: { maxTokens: 10 },
       };
 
       // Valid request should work
-      const validResult = await llmService.generateUnifiedResponse(validRequest);
+      const validResult =
+        await llmService.generateUnifiedResponse(validRequest);
       expect((validResult as any).content).toBeDefined();
 
       // Invalid request should throw standardized error
       try {
         await llmService.generateUnifiedResponse(invalidRequest);
         expect(true).toBe(false);
-        } catch (error) {
-          expect((error as any).name).toBe('LLMError');
+      } catch (error) {
+        expect((error as any).name).toBe('LLMError');
       }
 
       // Valid request should still work after error
-      const validResult2 = await llmService.generateUnifiedResponse(validRequest);
+      const validResult2 =
+        await llmService.generateUnifiedResponse(validRequest);
       expect((validResult2 as any).content).toBeDefined();
 
-      console.log('✅ Error Recovery E2E: System recovered gracefully after error');
+      console.log(
+        '✅ Error Recovery E2E: System recovered gracefully after error',
+      );
     }, 30000);
   });
 
@@ -458,7 +464,7 @@ describe('Unified LLM Architecture (E2E)', () => {
           maxTokens: 20,
           temperature: 0.1,
           includeMetadata: true,
-        }
+        },
       });
 
       const endTime = Date.now();
@@ -468,7 +474,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       // Validate performance
       expect(totalTime).toBeLessThan(30000); // Less than 30 seconds
       expect(response.metadata.timing.duration).toBeLessThan(25000); // LLM processing < 25 seconds
-      
+
       // Content should be reasonable
       expect(response.content.length).toBeGreaterThan(5);
       expect(response.content.length).toBeLessThan(500);
@@ -477,7 +483,10 @@ describe('Unified LLM Architecture (E2E)', () => {
         frontendTime: totalTime,
         llmProcessingTime: response.metadata.timing.duration,
         contentLength: response.content.length,
-        tokensPerSecond: Math.round(response.metadata.usage.totalTokens / (response.metadata.timing.duration / 1000)),
+        tokensPerSecond: Math.round(
+          response.metadata.usage.totalTokens /
+            (response.metadata.timing.duration / 1000),
+        ),
       });
     }, 35000);
   });
@@ -488,7 +497,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       const result = await llmService.generateSystemResponse(
         'default',
         'You are a system assistant.',
-        'Respond with "System test successful"'
+        'Respond with "System test successful"',
       );
 
       expect(result).toBeDefined();
@@ -511,7 +520,8 @@ describe('Unified LLM Architecture (E2E)', () => {
       }
 
       const provider = process.env.OPENAI_API_KEY ? 'openai' : 'anthropic';
-      const model = provider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022';
+      const model =
+        provider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022';
 
       const result = await llmService.generateUnifiedResponse({
         provider,
@@ -524,15 +534,15 @@ describe('Unified LLM Architecture (E2E)', () => {
           includeMetadata: true,
           callerType: 'e2e-test',
           callerName: 'pii-test',
-        }
+        },
       });
 
       const response = result as any;
       expect(response.content).toBeDefined();
-      
+
       // Should contain original names (pseudonyms reversed)
       expect(response.content.toLowerCase()).toContain('golfergeek');
-      
+
       // Check for PII metadata if available
       if (response.piiMetadata) {
         console.log('✅ PII Processing E2E:', {
@@ -555,12 +565,12 @@ describe('Unified LLM Architecture (E2E)', () => {
           includeMetadata: true,
           callerType: 'e2e-test',
           callerName: 'local-pii-test',
-        }
+        },
       });
 
       const response = result as any;
       expect(response.content).toBeDefined();
-      
+
       console.log('✅ Local PII Skip E2E:', {
         provider: response.metadata.provider,
         contentIncludesOriginal: response.content.includes('GolferGeek'),
@@ -579,7 +589,7 @@ describe('Unified LLM Architecture (E2E)', () => {
           model: 'llama3.2:1b',
           prompt: 'Say hello',
           expectedProvider: 'ollama',
-        }
+        },
       ];
 
       // Add external provider tests if API keys are available
@@ -617,11 +627,11 @@ describe('Unified LLM Architecture (E2E)', () => {
               temperature: 0.1,
               includeMetadata: true,
               callerName: `architecture-validation-${scenario.name.toLowerCase().replace(/\s+/g, '-')}`,
-            }
+            },
           });
 
           const response = result as any;
-          
+
           results.push({
             scenario: scenario.name,
             success: true,
@@ -641,13 +651,13 @@ describe('Unified LLM Architecture (E2E)', () => {
       }
 
       // At least one scenario should succeed (Ollama should always work)
-      const successfulResults = results.filter(r => r.success);
+      const successfulResults = results.filter((r) => r.success);
       expect(successfulResults.length).toBeGreaterThan(0);
 
       console.log('✅ Architecture Validation E2E Results:', results);
 
       // Validate that successful results have proper structure
-      successfulResults.forEach(result => {
+      successfulResults.forEach((result) => {
         expect(result.provider).toBeDefined();
         expect(result.model).toBeDefined();
         expect(result.contentLength).toBeGreaterThan(0);

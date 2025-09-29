@@ -41,6 +41,7 @@ export class UniversalAgentServicesContext {
     // Task and deliverable services (optional)
     @Optional() public readonly taskStatusService?: TaskStatusService,
     @Optional() public readonly deliverablesService?: DeliverablesService,
-    @Optional() public readonly deliverableVersionsService?: DeliverableVersionsService,
+    @Optional()
+    public readonly deliverableVersionsService?: DeliverableVersionsService,
   ) {}
 }

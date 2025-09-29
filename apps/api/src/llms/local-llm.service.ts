@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { LocalModelStatusService, ModelStatus } from './local-model-status.service';
+import {
+  LocalModelStatusService,
+  ModelStatus,
+} from './local-model-status.service';
 import { SupabaseService } from '../supabase/supabase.service';
 
 export interface LocalLLMRequest {
@@ -49,8 +52,11 @@ export class LocalLLMService {
     private readonly localModelStatusService: LocalModelStatusService,
     private readonly supabaseService: SupabaseService,
   ) {
-    this.ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    this.logger.log(`LocalLLMService initialized (Ollama: ${this.ollamaBaseUrl})`);
+    this.ollamaBaseUrl =
+      process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    this.logger.log(
+      `LocalLLMService initialized (Ollama: ${this.ollamaBaseUrl})`,
+    );
   }
 
   /**
@@ -58,12 +64,14 @@ export class LocalLLMService {
    */
   async generateResponse(request: LocalLLMRequest): Promise<LocalLLMResponse> {
     const startTime = Date.now();
-    
+
     try {
       // Ensure the model is loaded
       const loadResult = await this.ensureModelLoaded(request.model);
       if (!loadResult.success) {
-        throw new Error(`Failed to load model ${request.model}: ${loadResult.message}`);
+        throw new Error(
+          `Failed to load model ${request.model}: ${loadResult.message}`,
+        );
       }
 
       // Prepare the request payload
@@ -80,18 +88,19 @@ export class LocalLLMService {
         },
       };
 
-
       // Make the API call to Ollama
       const apiStartTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.post(`${this.ollamaBaseUrl}/api/generate`, payload, {
           timeout: 120000, // 2 minute timeout
-        })
+        }),
       );
       const apiDuration = Date.now() - apiStartTime;
-      
+
       if (response.data.response?.length === 0) {
-        this.logger.warn(`🚨 [LocalLLM] Empty response from model ${request.model} - this is unexpected for a blog post request`);
+        this.logger.warn(
+          `🚨 [LocalLLM] Empty response from model ${request.model} - this is unexpected for a blog post request`,
+        );
       }
 
       const result: LocalLLMResponse = {
@@ -108,14 +117,20 @@ export class LocalLLMService {
       };
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Local LLM response generated in ${duration}ms (model: ${request.model})`);
+      this.logger.log(
+        `Local LLM response generated in ${duration}ms (model: ${request.model})`,
+      );
 
       return result;
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.logger.error(`Local LLM generation failed after ${duration}ms`, error);
-      throw new Error(`Local LLM generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Local LLM generation failed after ${duration}ms`,
+        error,
+      );
+      throw new Error(
+        `Local LLM generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -126,7 +141,7 @@ export class LocalLLMService {
     try {
       // Check if model is already loaded using fast loaded models check
       const loadedModels = await this.localModelStatusService.getLoadedModels();
-      const loadedModel = loadedModels.find(m => m.name === modelName);
+      const loadedModel = loadedModels.find((m) => m.name === modelName);
 
       if (loadedModel) {
         this.logger.debug(`Model ${modelName} already loaded`);
@@ -135,13 +150,14 @@ export class LocalLLMService {
 
       // Check if model is currently being loaded
       if (this.currentlyLoading.has(modelName)) {
-        this.logger.debug(`Model ${modelName} is currently loading, waiting...`);
+        this.logger.debug(
+          `Model ${modelName} is currently loading, waiting...`,
+        );
         return await this.waitForModelLoad(modelName);
       }
 
       // Load the model
       return await this.loadModel(modelName);
-
     } catch (error) {
       this.logger.error(`Failed to ensure model ${modelName} is loaded`, error);
       return {
@@ -157,7 +173,7 @@ export class LocalLLMService {
    */
   private async loadModel(modelName: string): Promise<ModelLoadResult> {
     const startTime = Date.now();
-    
+
     try {
       this.currentlyLoading.add(modelName);
       this.logger.log(`Loading model: ${modelName}`);
@@ -172,22 +188,26 @@ export class LocalLLMService {
       await firstValueFrom(
         this.httpService.post(`${this.ollamaBaseUrl}/api/generate`, payload, {
           timeout: 300000, // 5 minute timeout for loading
-        })
+        }),
       );
 
       const loadTime = Date.now() - startTime;
-      this.logger.log(`Model ${modelName} loaded successfully in ${loadTime}ms`);
+      this.logger.log(
+        `Model ${modelName} loaded successfully in ${loadTime}ms`,
+      );
 
       return {
         success: true,
         model: modelName,
         loadTime,
       };
-
     } catch (error) {
       const loadTime = Date.now() - startTime;
-      this.logger.error(`Failed to load model ${modelName} after ${loadTime}ms`, error);
-      
+      this.logger.error(
+        `Failed to load model ${modelName} after ${loadTime}ms`,
+        error,
+      );
+
       return {
         success: false,
         model: modelName,
@@ -202,7 +222,10 @@ export class LocalLLMService {
   /**
    * Wait for a model that's currently loading
    */
-  private async waitForModelLoad(modelName: string, maxWaitMs = 300000): Promise<ModelLoadResult> {
+  private async waitForModelLoad(
+    modelName: string,
+    maxWaitMs = 300000,
+  ): Promise<ModelLoadResult> {
     const startTime = Date.now();
     const checkInterval = 1000; // Check every second
 
@@ -215,12 +238,12 @@ export class LocalLLMService {
         };
       }
 
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
     }
 
     // Check if model is now loaded
     const loadedModels = await this.localModelStatusService.getLoadedModels();
-    const loadedModel = loadedModels.find(m => m.name === modelName);
+    const loadedModel = loadedModels.find((m) => m.name === modelName);
 
     return {
       success: !!loadedModel,
@@ -235,18 +258,20 @@ export class LocalLLMService {
   async getBestModelForTask(
     taskComplexity: 'simple' | 'medium' | 'complex' | 'reasoning',
     requiresThinking?: boolean,
-    speedPreference?: 'ultra-fast' | 'fast' | 'medium' | 'slow'
+    speedPreference?: 'ultra-fast' | 'fast' | 'medium' | 'slow',
   ): Promise<string | null> {
     try {
       // First, get currently loaded models
       const loadedModels = await this.getCurrentlyLoadedModels();
-      
+
       const client = this.supabaseService.getServiceClient();
-      
+
       // Build query for suitable models
       let query = client
         .from('llm_models')
-        .select('model_name, complexity_level, thinking_mode, speed_tier, resource_requirements')
+        .select(
+          'model_name, complexity_level, thinking_mode, speed_tier, resource_requirements',
+        )
         .eq('is_local', true)
         .eq('is_active', true)
         .lte('complexity_level', this.getComplexityOrder(taskComplexity));
@@ -257,14 +282,19 @@ export class LocalLLMService {
       }
 
       // Order by speed preference and loading priority
-      const speedOrder = speedPreference ? 
-        `speed_tier.${speedPreference}, loading_priority desc` : 
-        'loading_priority desc';
-      
-      const { data, error } = await query.order('loading_priority', { ascending: false });
+      const speedOrder = speedPreference
+        ? `speed_tier.${speedPreference}, loading_priority desc`
+        : 'loading_priority desc';
+
+      const { data, error } = await query.order('loading_priority', {
+        ascending: false,
+      });
 
       if (error) {
-        this.logger.error('Failed to get best model for task from database', error);
+        this.logger.error(
+          'Failed to get best model for task from database',
+          error,
+        );
         return null;
       }
 
@@ -273,11 +303,15 @@ export class LocalLLMService {
       }
 
       // Prefer already loaded models to avoid loading delays
-      const loadedModelNames = loadedModels.map(m => m.name);
-      const alreadyLoaded = data.find(model => loadedModelNames.includes(model.model_name));
-      
+      const loadedModelNames = loadedModels.map((m) => m.name);
+      const alreadyLoaded = data.find((model) =>
+        loadedModelNames.includes(model.model_name),
+      );
+
       if (alreadyLoaded) {
-        this.logger.debug(`Using already loaded model: ${alreadyLoaded.model_name}`);
+        this.logger.debug(
+          `Using already loaded model: ${alreadyLoaded.model_name}`,
+        );
         return alreadyLoaded.model_name;
       }
 
@@ -292,10 +326,12 @@ export class LocalLLMService {
   /**
    * Get currently loaded models from ollama ps
    */
-  private async getCurrentlyLoadedModels(): Promise<Array<{name: string, size: string}>> {
+  private async getCurrentlyLoadedModels(): Promise<
+    Array<{ name: string; size: string }>
+  > {
     try {
       const loadedModels = await this.localModelStatusService.getLoadedModels();
-      return loadedModels.map(m => ({ name: m.name, size: m.size || '0' }));
+      return loadedModels.map((m) => ({ name: m.name, size: m.size || '0' }));
     } catch (error) {
       this.logger.warn('Failed to get currently loaded models', error);
       return [];
@@ -306,31 +342,33 @@ export class LocalLLMService {
    * Convert complexity level to numeric order for comparison
    */
   private getComplexityOrder(complexity: string): number {
-    const order = { 'simple': 1, 'medium': 2, 'complex': 3, 'reasoning': 4 };
+    const order = { simple: 1, medium: 2, complex: 3, reasoning: 4 };
     return order[complexity as keyof typeof order] || 2;
   }
 
   /**
    * Get the best local model for a given tier (legacy method)
    */
-  async getBestModelForTier(tier: 'ultra-fast' | 'balanced' | 'high-quality'): Promise<string | null> {
+  async getBestModelForTier(
+    tier: 'ultra-fast' | 'balanced' | 'high-quality',
+  ): Promise<string | null> {
     // Map legacy tiers to new complexity system
     const complexityMap = {
       'ultra-fast': 'simple',
-      'balanced': 'medium', 
-      'high-quality': 'reasoning'
+      balanced: 'medium',
+      'high-quality': 'reasoning',
     };
-    
+
     const speedMap = {
       'ultra-fast': 'ultra-fast',
-      'balanced': 'fast',
-      'high-quality': 'medium'
+      balanced: 'fast',
+      'high-quality': 'medium',
     };
 
     return this.getBestModelForTask(
       complexityMap[tier] as any,
       tier === 'high-quality', // Only high-quality tier requires thinking
-      speedMap[tier] as any
+      speedMap[tier] as any,
     );
   }
 
@@ -348,11 +386,14 @@ export class LocalLLMService {
         .order('loading_priority', { ascending: false });
 
       if (error) {
-        this.logger.error('Failed to get available models from database', error);
+        this.logger.error(
+          'Failed to get available models from database',
+          error,
+        );
         return [];
       }
 
-      return data?.map(row => row.model_name) || [];
+      return data?.map((row) => row.model_name) || [];
     } catch (error) {
       this.logger.error('Failed to query available models', error);
       return [];
@@ -365,7 +406,9 @@ export class LocalLLMService {
   async unloadModel(modelName: string): Promise<boolean> {
     // Ollama doesn't currently have an explicit unload API
     // Models are automatically unloaded when memory is needed
-    this.logger.debug(`Unload requested for model: ${modelName} (not supported by Ollama)`);
+    this.logger.debug(
+      `Unload requested for model: ${modelName} (not supported by Ollama)`,
+    );
     return false;
   }
 

@@ -3,7 +3,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import { AgentConfigurationService, AgentConfigurationData } from './agents/demo/specialists/agent_creator/services/agent-configuration.service';
+import {
+  AgentConfigurationService,
+  AgentConfigurationData,
+} from './agents/demo/specialists/agent_creator/services/agent-configuration.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -66,9 +69,7 @@ export class AgentDiscoveryService {
   private hierarchyCache: Map<string, AgentHierarchy> = new Map();
   private namespaceConfigs: AgentNamespaceConfig[] = [];
 
-  constructor(
-    private agentConfigService?: AgentConfigurationService
-  ) {
+  constructor(private agentConfigService?: AgentConfigurationService) {
     this.logger.log('🔍 AgentDiscoveryService initialized');
     this.namespaceConfigs = this.parseNamespaceConfigs();
   }
@@ -94,10 +95,16 @@ export class AgentDiscoveryService {
     await this.loadAgentConfigurations();
     this.buildAgentHierarchy();
 
-    const filesystemCount = this.discoveredAgents.filter(a => !a.isDatabaseAgent).length;
-    const databaseCount = this.discoveredAgents.filter(a => a.isDatabaseAgent).length;
-    
-    this.logger.log(`✅ Discovered ${this.discoveredAgents.length} agents (${filesystemCount} filesystem, ${databaseCount} database)`);
+    const filesystemCount = this.discoveredAgents.filter(
+      (a) => !a.isDatabaseAgent,
+    ).length;
+    const databaseCount = this.discoveredAgents.filter(
+      (a) => a.isDatabaseAgent,
+    ).length;
+
+    this.logger.log(
+      `✅ Discovered ${this.discoveredAgents.length} agents (${filesystemCount} filesystem, ${databaseCount} database)`,
+    );
     return this.discoveredAgents;
   }
 
@@ -129,11 +136,13 @@ export class AgentDiscoveryService {
     if (rawConfig && rawConfig.trim().length > 0) {
       const entries = rawConfig
         .split(',')
-        .map(entry => entry.trim())
+        .map((entry) => entry.trim())
         .filter(Boolean);
 
       for (const entry of entries) {
-        const [key, relativePath] = entry.split(':').map(part => part?.trim());
+        const [key, relativePath] = entry
+          .split(':')
+          .map((part) => part?.trim());
         if (!key || !relativePath) {
           this.logger.warn(`⚠️ Invalid AGENT_NAMESPACES entry: "${entry}"`);
           continue;
@@ -149,7 +158,7 @@ export class AgentDiscoveryService {
 
     this.logger.log(
       `🧭 Namespaces configured: ${configs
-        .map(config => `${config.key} → ${config.relativePath}`)
+        .map((config) => `${config.key} → ${config.relativePath}`)
         .join(', ')}`,
     );
 
@@ -158,10 +167,7 @@ export class AgentDiscoveryService {
 
   private resolveSourceRoot(): string {
     const cwd = process.cwd();
-    const candidates = [
-      join(cwd, 'src'),
-      join(cwd, 'apps', 'api', 'src'),
-    ];
+    const candidates = [join(cwd, 'src'), join(cwd, 'apps', 'api', 'src')];
 
     for (const candidate of candidates) {
       if (fs.existsSync(join(candidate, 'agents'))) {
@@ -181,7 +187,10 @@ export class AgentDiscoveryService {
         `🗂️ Namespace ${namespaceConfig.key} mapped to ${namespaceConfig.relativePath}`,
       );
 
-      await this.traverseDirectory(namespaceConfig.absolutePath, namespaceConfig.key);
+      await this.traverseDirectory(
+        namespaceConfig.absolutePath,
+        namespaceConfig.key,
+      );
     }
 
     // Discover agent functions after service discovery
@@ -193,15 +202,18 @@ export class AgentDiscoveryService {
    */
   private async discoverDatabaseAgents(): Promise<void> {
     if (!this.agentConfigService) {
-      this.logger.debug('⏭️ AgentConfigurationService not available, skipping database agents');
+      this.logger.debug(
+        '⏭️ AgentConfigurationService not available, skipping database agents',
+      );
       return;
     }
 
     try {
       this.logger.log('🗄️ Discovering database agents...');
-      
-      const databaseAgents = await this.agentConfigService.listAgentConfigurations();
-      
+
+      const databaseAgents =
+        await this.agentConfigService.listAgentConfigurations();
+
       for (const agentConfig of databaseAgents) {
         const namespaceKey =
           (agentConfig.metadata?.namespace as string) || 'database';
@@ -221,14 +233,14 @@ export class AgentDiscoveryService {
             displayName: agentConfig.displayName,
             description: agentConfig.primaryPurpose,
             category: agentConfig.department,
-            version: '1.0.0'
-          }
+            version: '1.0.0',
+          },
         };
 
         this.discoveredAgents.push(agent);
         this.logger.debug(`🗄️ Found database agent: ${agent.path}`);
       }
-      
+
       this.logger.log(`🗄️ Discovered ${databaseAgents.length} database agents`);
     } catch (error) {
       this.logger.warn('⚠️ Failed to discover database agents:', error);
@@ -244,7 +256,9 @@ export class AgentDiscoveryService {
   ): Promise<void> {
     try {
       if (!fs.existsSync(dirPath)) {
-        this.logger.debug(`ℹ️ Namespace ${namespaceKey}: path not found (${dirPath}), skipping`);
+        this.logger.debug(
+          `ℹ️ Namespace ${namespaceKey}: path not found (${dirPath}), skipping`,
+        );
         return;
       }
 
@@ -261,7 +275,6 @@ export class AgentDiscoveryService {
             process.env.ENABLE_EXTERNAL_AGENTS !== 'false';
 
           if (isExternalDir && !enableExternalAgents) {
-
             continue;
           }
 
@@ -272,9 +285,7 @@ export class AgentDiscoveryService {
           this.processAgentService(fullPath, namespaceKey);
         }
       }
-    } catch (error: any) {
-
-    }
+    } catch (error: any) {}
   }
 
   /**
@@ -282,7 +293,6 @@ export class AgentDiscoveryService {
    */
   private processAgentService(servicePath: string, namespaceKey: string): void {
     try {
-
       // Extract agent information from path
       const pathParts = servicePath.split('/');
       const agentIndex = pathParts.findIndex((part) => part === 'agents');
@@ -318,23 +328,17 @@ export class AgentDiscoveryService {
           };
 
           this.discoveredAgents.push(agent);
-
         } else {
-
         }
       } else {
-
       }
-    } catch (error: any) {
-
-    }
+    } catch (error: any) {}
   }
 
   /**
    * Discover agent functions (TypeScript and Python)
    */
   private discoverAgentFunctions(): void {
-
     for (const agent of this.discoveredAgents) {
       try {
         const agentDirectory = agent.servicePath.replace(
@@ -346,24 +350,19 @@ export class AgentDiscoveryService {
         const functionPath = join(agentDirectory, 'agent-function.ts');
         if (fs.existsSync(functionPath)) {
           agent.functionPath = functionPath;
-
         }
 
         // Look for Python function
         const pythonFunctionPath = join(agentDirectory, 'agent-function.py');
         if (fs.existsSync(pythonFunctionPath)) {
           agent.pythonFunctionPath = pythonFunctionPath;
-
         }
-      } catch (error: any) {
-
-      }
+      } catch (error: any) {}
     }
 
     const withFunctions = this.discoveredAgents.filter(
       (a) => a.functionPath || a.pythonFunctionPath,
     );
-
   }
 
   /**
@@ -386,7 +385,10 @@ export class AgentDiscoveryService {
   /**
    * Get agent by path (supports both filesystem and database agents)
    */
-  getAgentByPath(agentPath: string, namespace?: string): DiscoveredAgent | undefined {
+  getAgentByPath(
+    agentPath: string,
+    namespace?: string,
+  ): DiscoveredAgent | undefined {
     return this.discoveredAgents.find((agent) => {
       const pathMatches =
         agent.path === agentPath || agent.relativePath === agentPath;
@@ -422,7 +424,6 @@ export class AgentDiscoveryService {
    * Load agent configurations and parse metadata
    */
   private async loadAgentConfigurations(): Promise<void> {
-
     for (const agent of this.discoveredAgents) {
       try {
         const agentDirectory = agent.servicePath.replace(
@@ -453,13 +454,13 @@ export class AgentDiscoveryService {
 
             // Extract metadata
             const metadata = parsed.metadata || {};
-            
+
             // Extract hierarchy information
             const hierarchy = parsed.hierarchy || {};
             if (hierarchy.reportsTo) {
               agent.reportsTo = hierarchy.reportsTo;
             }
-            
+
             // Extract team information for team-based hierarchy
             if (hierarchy.team) {
               agent.hierarchy = agent.hierarchy || {};
@@ -472,10 +473,7 @@ export class AgentDiscoveryService {
               category: metadata.category,
               version: metadata.version,
             };
-
-          } catch (configError) {
-
-          }
+          } catch (configError) {}
         } else {
           // Set default metadata
           agent.metadata = {
@@ -483,20 +481,16 @@ export class AgentDiscoveryService {
             description: `${agent.type} agent`,
           };
         }
-      } catch (error) {
-
-      }
+      } catch (error) {}
     }
 
     const withConfigs = this.discoveredAgents.filter((a) => a.configPath);
-
   }
 
   /**
    * Build agent hierarchy from discovered agents
    */
   private buildAgentHierarchy(): void {
-
     // Clear previous hierarchy
     this.agentHierarchy = [];
     this.hierarchyCache.clear();
@@ -529,22 +523,27 @@ export class AgentDiscoveryService {
     // First pass: Build parent-child relationships from team definitions
     for (const agent of this.discoveredAgents) {
       const node = nodeMap.get(agent.namespacedPath)!;
-      
+
       // Check if this agent has a team (is a manager/orchestrator)
       if (agent.hierarchy?.team && Array.isArray(agent.hierarchy.team)) {
         for (const teamMemberName of agent.hierarchy.team) {
           // Find the team member node by name
           const teamMemberNode = Array.from(nodeMap.values()).find(
-            (n) => n.name === teamMemberName || n.name.toLowerCase() === teamMemberName.toLowerCase()
+            (n) =>
+              n.name === teamMemberName ||
+              n.name.toLowerCase() === teamMemberName.toLowerCase(),
           );
-          
+
           if (teamMemberNode) {
             node.children.push(teamMemberNode);
             assignedNodes.add(
-              teamMemberNode.namespacedPath || `${node.namespace}/${teamMemberNode.path}`,
+              teamMemberNode.namespacedPath ||
+                `${node.namespace}/${teamMemberNode.path}`,
             );
           } else {
-            this.logger.warn(`Team member not found: ${teamMemberName} for ${agent.name}`);
+            this.logger.warn(
+              `Team member not found: ${teamMemberName} for ${agent.name}`,
+            );
           }
         }
       }
@@ -557,7 +556,6 @@ export class AgentDiscoveryService {
       if (!assignedNodes.has(agent.namespacedPath)) {
         rootNodes.push(node);
       }
-      
     }
 
     // Sort children by type and name
@@ -578,17 +576,18 @@ export class AgentDiscoveryService {
     };
 
     // Ensure CEO appears first in root nodes
-    const ceoIndex = rootNodes.findIndex(node => node.name === 'ceo_orchestrator');
+    const ceoIndex = rootNodes.findIndex(
+      (node) => node.name === 'ceo_orchestrator',
+    );
     if (ceoIndex > 0) {
       const [ceoNode] = rootNodes.splice(ceoIndex, 1);
       if (ceoNode) {
         rootNodes.unshift(ceoNode);
       }
     }
-    
+
     sortHierarchy(rootNodes);
     this.agentHierarchy = rootNodes;
-
   }
 
   /**
@@ -602,7 +601,9 @@ export class AgentDiscoveryService {
     return this.filterHierarchyByNamespaces(new Set(namespaces));
   }
 
-  private filterHierarchyByNamespaces(allowedNamespaces: Set<string>): AgentHierarchy[] {
+  private filterHierarchyByNamespaces(
+    allowedNamespaces: Set<string>,
+  ): AgentHierarchy[] {
     const allowedAgentPaths = new Set(
       this.discoveredAgents
         .filter((agent) => allowedNamespaces.has(agent.namespace))

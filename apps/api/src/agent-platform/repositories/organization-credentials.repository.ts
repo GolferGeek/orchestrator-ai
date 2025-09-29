@@ -101,10 +101,7 @@ export class OrganizationCredentialsRepository {
     return data ?? [];
   }
 
-  async delete(
-    organizationSlug: string,
-    alias: string,
-  ): Promise<void> {
+  async delete(organizationSlug: string, alias: string): Promise<void> {
     const { error } = await this.client()
       .from(TABLE)
       .delete()

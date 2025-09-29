@@ -4,7 +4,7 @@ import { SupabaseService } from '@/supabase/supabase.service';
 const createSupabaseMock = () => {
   const fromMock = jest.fn();
   const service: Partial<SupabaseService> = {
-    getServiceClient: jest.fn(() => ({ from: fromMock } as any)),
+    getServiceClient: jest.fn(() => ({ from: fromMock }) as any),
   };
   return { fromMock, service: service as SupabaseService };
 };
@@ -26,7 +26,9 @@ describe('OrganizationCredentialsRepository', () => {
 
   it('upserts credentials', async () => {
     const { fromMock, service } = createSupabaseMock();
-    const maybeSingle = jest.fn().mockResolvedValue({ data: credential, error: null });
+    const maybeSingle = jest
+      .fn()
+      .mockResolvedValue({ data: credential, error: null });
     const select = jest.fn().mockReturnValue({ maybeSingle });
     const upsert = jest.fn().mockReturnValue({ select });
     fromMock.mockReturnValue({ upsert });
@@ -47,7 +49,9 @@ describe('OrganizationCredentialsRepository', () => {
 
   it('retrieves credential by alias', async () => {
     const { fromMock, service } = createSupabaseMock();
-    const maybeSingle = jest.fn().mockResolvedValue({ data: credential, error: null });
+    const maybeSingle = jest
+      .fn()
+      .mockResolvedValue({ data: credential, error: null });
     const match = jest.fn().mockReturnValue({ maybeSingle });
     const select = jest.fn().mockReturnValue({ match });
     fromMock.mockReturnValue({ select });
@@ -65,7 +69,9 @@ describe('OrganizationCredentialsRepository', () => {
 
   it('lists credentials for an organization', async () => {
     const { fromMock, service } = createSupabaseMock();
-    const order = jest.fn().mockResolvedValue({ data: [credential], error: null });
+    const order = jest
+      .fn()
+      .mockResolvedValue({ data: [credential], error: null });
     const eq = jest.fn().mockReturnValue({ order });
     const select = jest.fn().mockReturnValue({ eq });
     fromMock.mockReturnValue({ select });

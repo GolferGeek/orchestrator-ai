@@ -20,7 +20,8 @@ import {
 export async function execute(
   params: AgentFunctionParams,
 ): Promise<AgentFunctionResponse> {
-  const { userMessage, llmService, progressCallback, metadata, mcpService } = params;
+  const { userMessage, llmService, progressCallback, metadata, mcpService } =
+    params;
 
   try {
     // Step 1: Initialize MCP connection and validate server health
@@ -33,8 +34,8 @@ export async function execute(
 
     console.log('[METRICS-AGENT] Starting with mcpService:', !!mcpService);
     console.log('[METRICS-AGENT] User message:', userMessage);
-    
-        // Check if MCP service is available
+
+    // Check if MCP service is available
     if (!mcpService) {
       console.error('[METRICS-AGENT] MCP service is not injected!');
       throw new Error('MCP service is not injected or not available');
@@ -52,7 +53,7 @@ export async function execute(
     // Step 1.5: Use context file schema information for SQL generation
     const availableTables = [
       'companies',
-      'departments', 
+      'departments',
       'kpi_data',
       'kpi_metrics',
       'kpi_goals',
@@ -60,9 +61,9 @@ export async function execute(
       'deliverables',
       'users',
       'projects',
-      'agent_conversations'
+      'agent_conversations',
     ];
-    
+
     progressCallback?.(
       'Database schema',
       0,
@@ -114,8 +115,10 @@ Respond with JSON only:
       {
         temperature: 0.1,
         // Use unified keys; prefer llmSelection passed by UI, then metadata
-        providerName: (params as any)?.llmSelection?.providerName || metadata?.providerName,
-        modelName: (params as any)?.llmSelection?.modelName || metadata?.modelName,
+        providerName:
+          (params as any)?.llmSelection?.providerName || metadata?.providerName,
+        modelName:
+          (params as any)?.llmSelection?.modelName || metadata?.modelName,
         maxTokens: 1000,
         callerType: 'agent',
         callerName: metadata?.agentName || 'metrics-agent',
@@ -138,7 +141,6 @@ Respond with JSON only:
         `${analysis.intent}`,
       );
     } catch (e) {
-
       progressCallback?.(
         'Request analysis',
         1,
@@ -178,24 +180,30 @@ Respond with JSON only:
     let queryResult: any[] = [];
     let sqlError = '';
     let executionError = '';
-    
+
     try {
       // Step 3.1: Generate SQL using MCP client
       // Heuristic: if the user asks "how many X" or "count X", steer the NL query toward COUNT(*)
       // Pure LLM-driven SQL generation using MCP, guided only by schema context
       const nlQuery = userMessage;
       const schemaTables = availableTables;
-      console.log('[METRICS-AGENT] Calling generateSQL with:', { nlQuery, schemaTables });
-      
+      console.log('[METRICS-AGENT] Calling generateSQL with:', {
+        nlQuery,
+        schemaTables,
+      });
+
       let sqlGenResult;
       try {
         // Call generateSQL with explicit provider/model passthrough to MCP
         // Source order: routingDecision -> originalParams.llmSelection -> direct params/metadata
-        const providerName = (params as any)?.routingDecision?.provider ||
-          (params as any)?.metadata?.originalParams?.llmSelection?.providerName ||
+        const providerName =
+          (params as any)?.routingDecision?.provider ||
+          (params as any)?.metadata?.originalParams?.llmSelection
+            ?.providerName ||
           (params as any)?.llmSelection?.providerName ||
           metadata?.providerName;
-        const modelName = (params as any)?.routingDecision?.model ||
+        const modelName =
+          (params as any)?.routingDecision?.model ||
           (params as any)?.metadata?.originalParams?.llmSelection?.modelName ||
           (params as any)?.llmSelection?.modelName ||
           metadata?.modelName;
@@ -211,35 +219,46 @@ Respond with JSON only:
         console.error('[METRICS-AGENT] Error details:', {
           message: innerError?.message,
           stack: innerError?.stack,
-          name: innerError?.name
+          name: innerError?.name,
         });
         throw innerError;
       }
 
       console.log('[METRICS-AGENT] SQL Generation result:', sqlGenResult);
-      console.log('[METRICS-AGENT] SQL Generation result type:', typeof sqlGenResult);
-      console.log('[METRICS-AGENT] SQL Generation result keys:', sqlGenResult ? Object.keys(sqlGenResult) : 'null/undefined');
-      
+      console.log(
+        '[METRICS-AGENT] SQL Generation result type:',
+        typeof sqlGenResult,
+      );
+      console.log(
+        '[METRICS-AGENT] SQL Generation result keys:',
+        sqlGenResult ? Object.keys(sqlGenResult) : 'null/undefined',
+      );
+
       // Check if it's an error response
       if (sqlGenResult?.isError) {
-        console.error('[METRICS-AGENT] MCP returned error:', sqlGenResult.content);
-        const errorText = sqlGenResult.content?.[0]?.text || JSON.stringify(sqlGenResult.content);
+        console.error(
+          '[METRICS-AGENT] MCP returned error:',
+          sqlGenResult.content,
+        );
+        const errorText =
+          sqlGenResult.content?.[0]?.text ||
+          JSON.stringify(sqlGenResult.content);
         sqlError = `MCP SQL generation error: ${errorText}`;
         throw new Error(sqlError);
       }
-      
+
       // Extract SQL from MCP response format
       // MCP returns { content: [{ type: 'text', text: JSON.stringify({sql, ...}) }] }
       if (sqlGenResult?.content && Array.isArray(sqlGenResult.content)) {
         const textContent = sqlGenResult.content[0]?.text;
         console.log('[METRICS-AGENT] Text content from MCP:', textContent);
-        
+
         if (textContent) {
           try {
             // Parse the JSON from the text content
             const parsed = JSON.parse(textContent);
             console.log('[METRICS-AGENT] Parsed content:', parsed);
-            
+
             if (parsed.sql) {
               generatedSQL = parsed.sql;
               console.log('[METRICS-AGENT] Extracted SQL:', generatedSQL);
@@ -253,7 +272,7 @@ Respond with JSON only:
           }
         }
       }
-      
+
       if (!generatedSQL) {
         sqlError = `MCP SQL generation failed - no SQL found in response: ${JSON.stringify(sqlGenResult)}`;
         throw new Error(sqlError);
@@ -278,38 +297,50 @@ Respond with JSON only:
       // executeSQL expects a params object with sql_query and max_rows
       const sqlExecResult = await mcpService.executeSQL({
         sql_query: generatedSQL,
-        max_rows: 100
+        max_rows: 100,
       });
 
       console.log('[METRICS-AGENT] SQL Execution result:', sqlExecResult);
-      console.log('[METRICS-AGENT] SQL Execution result keys:', sqlExecResult ? Object.keys(sqlExecResult) : 'null');
-      
+      console.log(
+        '[METRICS-AGENT] SQL Execution result keys:',
+        sqlExecResult ? Object.keys(sqlExecResult) : 'null',
+      );
+
       // Check if it's an error response
       if (sqlExecResult?.isError) {
-        const errorText = sqlExecResult.content?.[0]?.text || JSON.stringify(sqlExecResult.content);
+        const errorText =
+          sqlExecResult.content?.[0]?.text ||
+          JSON.stringify(sqlExecResult.content);
         executionError = `MCP SQL execution error: ${errorText}`;
         throw new Error(executionError);
       }
-      
+
       // Extract results from MCP response format
       // MCP returns { content: [{ type: 'text', text: JSON.stringify({data, ...}) }] }
       if (sqlExecResult?.content && Array.isArray(sqlExecResult.content)) {
         const textContent = sqlExecResult.content[0]?.text;
         console.log('[METRICS-AGENT] SQL exec text content:', textContent);
-        
+
         if (textContent) {
           try {
             const parsed = JSON.parse(textContent);
             console.log('[METRICS-AGENT] Parsed SQL exec result:', parsed);
-            
+
             if (parsed.data !== undefined) {
               queryResult = parsed.data;
-              console.log('[METRICS-AGENT] Extracted data:', queryResult?.length, 'rows');
+              console.log(
+                '[METRICS-AGENT] Extracted data:',
+                queryResult?.length,
+                'rows',
+              );
             } else {
               throw new Error('No data field in execution response');
             }
           } catch (e) {
-            console.error('[METRICS-AGENT] Failed to parse SQL exec response:', e);
+            console.error(
+              '[METRICS-AGENT] Failed to parse SQL exec response:',
+              e,
+            );
             executionError = `Failed to parse SQL execution result: ${e}`;
             throw new Error(executionError);
           }
@@ -318,20 +349,20 @@ Respond with JSON only:
         executionError = `MCP SQL execution failed - unexpected response format: ${JSON.stringify(sqlExecResult)}`;
         throw new Error(executionError);
       }
-      
+
       progressCallback?.(
         'SQL Execution',
         2.7,
         'completed',
         `MCP query executed successfully - ${queryResult.length || 0} rows returned`,
       );
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       if (!sqlError && !executionError) {
         sqlError = `MCP operation failed: ${errorMessage}`;
       }
-      
+
       progressCallback?.(
         sqlError.includes('generation') ? 'SQL Generation' : 'SQL Execution',
         sqlError.includes('generation') ? 2.5 : 2.7,
@@ -356,7 +387,6 @@ Respond with JSON only:
     // All SQL generation and execution now handled by MCP tools above
 
     if (userQueryResult.error) {
-
       progressCallback?.(
         'SQL Execution',
         2.7,
@@ -364,7 +394,6 @@ Respond with JSON only:
         `SQL execution failed: ${userQueryResult.error}`,
       );
     } else {
-
       progressCallback?.(
         'SQL Generation',
         2.5,
@@ -443,8 +472,10 @@ ${
       reportPrompt,
       {
         temperature: 0.3,
-        providerName: (params as any)?.llmSelection?.providerName || metadata?.providerName,
-        modelName: (params as any)?.llmSelection?.modelName || metadata?.modelName,
+        providerName:
+          (params as any)?.llmSelection?.providerName || metadata?.providerName,
+        modelName:
+          (params as any)?.llmSelection?.modelName || metadata?.modelName,
         maxTokens: 4000,
         callerType: 'agent',
         callerName: metadata?.agentName || 'metrics-agent',
@@ -466,7 +497,8 @@ ${
     const finalContent =
       typeof finalResponse === 'string'
         ? finalResponse
-        : (finalResponse && (finalResponse.content || finalResponse.response)) ||
+        : (finalResponse &&
+            (finalResponse.content || finalResponse.response)) ||
           JSON.stringify(finalResponse);
 
     return {
@@ -481,7 +513,7 @@ ${
             : Date.now()),
         toolsUsed: [
           'MCP get-schema tool',
-          'MCP generate-sql tool', 
+          'MCP generate-sql tool',
           'MCP execute-sql tool',
           'PostgreSQL via MCP',
           'Context-driven schema files',
@@ -495,8 +527,11 @@ ${
     };
   } catch (error) {
     console.error('[METRICS-AGENT] Fatal error:', error);
-    console.error('[METRICS-AGENT] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    
+    console.error(
+      '[METRICS-AGENT] Error stack:',
+      error instanceof Error ? error.stack : 'No stack',
+    );
+
     // Report error in progress
     progressCallback?.(
       'Analysis failed',

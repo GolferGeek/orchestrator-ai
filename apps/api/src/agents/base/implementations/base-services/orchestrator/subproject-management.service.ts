@@ -103,7 +103,6 @@ export class SubprojectManagementService {
     reasoning: string;
     complexity: 'low' | 'medium' | 'high';
   }> {
-
     const availableOrchestrators = this.getAvailableOrchestrators();
     const departmentCapacities = await this.analyzeDepartmentCapacities();
 
@@ -170,7 +169,6 @@ Respond in JSON format:
 
       return analysis;
     } catch (error) {
-
       throw new Error(
         `Subproject analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -186,7 +184,6 @@ Respond in JSON format:
     subprojectScopes: SubprojectScope[],
     input: OrchestratorInput,
   ): Promise<SubprojectPlan[]> {
-
     const subprojects: SubprojectPlan[] = [];
 
     for (const scope of subprojectScopes) {
@@ -199,7 +196,6 @@ Respond in JSON format:
         );
         subprojects.push(subproject);
       } catch (error) {
-
         throw error;
       }
     }
@@ -304,7 +300,6 @@ Respond in JSON format:
 
       return subproject;
     } catch (error) {
-
       throw new Error(
         `Subproject planning failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -318,7 +313,6 @@ Respond in JSON format:
     subproject: SubprojectPlan,
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-
     // Prepare delegation context with subproject details
     const delegationPrompt = `
 SUBPROJECT DELEGATION
@@ -399,7 +393,6 @@ Original user request context: ${input.prompt}
         },
       };
     } catch (error) {
-
       throw new Error(
         `Subproject delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -428,7 +421,6 @@ Original user request context: ${input.prompt}
       mitigationActions: string[];
     };
   }> {
-
     const now = new Date();
     const completedSubprojects = subprojects.filter(
       (sp) => sp.status === 'completed',
@@ -527,7 +519,6 @@ Original user request context: ${input.prompt}
   private async validateSubprojectCoordination(
     subprojects: SubprojectPlan[],
   ): Promise<void> {
-
     // Check for circular dependencies
     const dependencyGraph = new Map<string, string[]>();
     subprojects.forEach((sp) => {
@@ -538,7 +529,6 @@ Original user request context: ${input.prompt}
 
     // Validate timeline coordination
     this.validateTimelineCoordination(subprojects);
-
   }
 
   /**
@@ -703,7 +693,6 @@ Original user request context: ${input.prompt}
       sp.scope.dependencies.forEach((depId) => {
         const depTimeline = projectTimelines.get(depId);
         if (depTimeline && currentTimeline.start < depTimeline.end) {
-
         }
       });
     });

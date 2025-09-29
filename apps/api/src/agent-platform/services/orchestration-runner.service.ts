@@ -30,9 +30,7 @@ export type OrchestrationProgressUpdate = {
 export class OrchestrationRunnerService {
   private readonly logger = new Logger(OrchestrationRunnerService.name);
 
-  constructor(
-    private readonly runsRepository: OrchestrationRunsRepository,
-  ) {}
+  constructor(private readonly runsRepository: OrchestrationRunsRepository) {}
 
   async startRun(
     input: OrchestrationStartInput,
@@ -40,10 +38,9 @@ export class OrchestrationRunnerService {
     this.logger.debug(
       `Starting orchestration run for plan ${input.planId ?? 'n/a'}`,
     );
-    const originType =
-      input.originType ?? (input.planId ? 'plan' : 'ad_hoc');
+    const originType = input.originType ?? (input.planId ? 'plan' : 'ad_hoc');
     const originId =
-      input.originId ?? (originType === 'plan' ? input.planId ?? null : null);
+      input.originId ?? (originType === 'plan' ? (input.planId ?? null) : null);
     return this.runsRepository.start({
       plan_id: input.planId,
       origin_type: originType,

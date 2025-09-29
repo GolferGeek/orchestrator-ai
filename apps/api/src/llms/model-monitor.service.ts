@@ -1,5 +1,13 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { LocalModelStatusService, ModelHealth } from './local-model-status.service';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
+import {
+  LocalModelStatusService,
+  ModelHealth,
+} from './local-model-status.service';
 import { MemoryManagerService, MemoryStats } from './memory-manager.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { getTableName } from '../supabase/supabase.config';
@@ -38,7 +46,12 @@ export interface SystemHealthMetrics {
 
 export interface Alert {
   id: string;
-  type: 'model-unavailable' | 'slow-response' | 'high-error-rate' | 'memory-pressure' | 'system-error';
+  type:
+    | 'model-unavailable'
+    | 'slow-response'
+    | 'high-error-rate'
+    | 'memory-pressure'
+    | 'system-error';
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
   modelName?: string;
@@ -56,7 +69,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   private memoryCheckInterval!: NodeJS.Timeout;
   private systemCheckInterval!: NodeJS.Timeout;
   private startTime = Date.now();
-  
+
   private alertThresholds: AlertThresholds = {
     responseTime: 10000, // 10 seconds
     errorRate: 0.1, // 10%
@@ -81,7 +94,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     // Load alert thresholds from environment or database
     await this.loadAlertThresholds();
-    
+
     // Skip automatic model metrics initialization and monitoring
     // Only initialize metrics when models are explicitly requested
     // await this.initializeModelMetrics();
@@ -101,24 +114,24 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.isMonitoring = true;
-    
+
     // Model health checks every 2 minutes
     this.healthCheckInterval = setInterval(() => {
-      this.performHealthChecks().catch(error => {
+      this.performHealthChecks().catch((error) => {
         this.logger.error('Health check failed', error);
       });
     }, 120000);
 
     // Memory checks every 1 minute
     this.memoryCheckInterval = setInterval(() => {
-      this.checkMemoryHealth().catch(error => {
+      this.checkMemoryHealth().catch((error) => {
         this.logger.error('Memory health check failed', error);
       });
     }, 60000);
 
     // System checks every 5 minutes
     this.systemCheckInterval = setInterval(() => {
-      this.checkSystemHealth().catch(error => {
+      this.checkSystemHealth().catch((error) => {
         this.logger.error('System health check failed', error);
       });
     }, 300000);
@@ -155,11 +168,20 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     try {
       // Override with environment variables if present
       this.alertThresholds = {
-        responseTime: parseInt(process.env.ALERT_RESPONSE_TIME_MS || '10000', 10),
+        responseTime: parseInt(
+          process.env.ALERT_RESPONSE_TIME_MS || '10000',
+          10,
+        ),
         errorRate: parseFloat(process.env.ALERT_ERROR_RATE || '0.1'),
         memoryUsage: parseFloat(process.env.ALERT_MEMORY_USAGE || '0.9'),
-        modelUnavailableTime: parseInt(process.env.ALERT_UNAVAILABLE_TIME_MS || '300000', 10),
-        consecutiveFailures: parseInt(process.env.ALERT_CONSECUTIVE_FAILURES || '3', 10),
+        modelUnavailableTime: parseInt(
+          process.env.ALERT_UNAVAILABLE_TIME_MS || '300000',
+          10,
+        ),
+        consecutiveFailures: parseInt(
+          process.env.ALERT_CONSECUTIVE_FAILURES || '3',
+          10,
+        ),
       };
 
       this.logger.debug('Alert thresholds loaded', this.alertThresholds);
@@ -173,8 +195,9 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
    */
   private async initializeModelMetrics(): Promise<void> {
     try {
-      const models = await this.localModelStatusService.getLocalModelsFromDatabase();
-      
+      const models =
+        await this.localModelStatusService.getLocalModelsFromDatabase();
+
       for (const model of models) {
         const metrics: ModelHealthMetrics = {
           modelName: model.modelName,
@@ -187,11 +210,13 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
           checksPerformed: 0,
           totalErrors: 0,
         };
-        
+
         this.modelMetrics.set(model.modelName, metrics);
       }
 
-      this.logger.debug(`Initialized metrics for ${this.modelMetrics.size} models`);
+      this.logger.debug(
+        `Initialized metrics for ${this.modelMetrics.size} models`,
+      );
     } catch (error) {
       this.logger.error('Failed to initialize model metrics', error);
     }
@@ -203,7 +228,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   async performHealthChecks(): Promise<void> {
     try {
       const models = Array.from(this.modelMetrics.keys());
-      
+
       for (const modelName of models) {
         await this.checkModelHealth(modelName);
       }
@@ -224,26 +249,28 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      const health = await this.localModelStatusService.checkModelHealth(modelName);
-      
+      const health =
+        await this.localModelStatusService.checkModelHealth(modelName);
+
       // Update metrics
       metrics.checksPerformed++;
-      
+
       if (health.available) {
         metrics.isAvailable = true;
         metrics.consecutiveFailures = 0;
         metrics.lastSuccessfulCheck = new Date().toISOString();
-        
+
         // Update average response time
         if (metrics.checksPerformed === 1) {
           metrics.averageResponseTime = health.responseTime;
         } else {
-          metrics.averageResponseTime = (metrics.averageResponseTime * 0.8) + (health.responseTime * 0.2);
+          metrics.averageResponseTime =
+            metrics.averageResponseTime * 0.8 + health.responseTime * 0.2;
         }
-        
+
         // Resolve availability alert if exists
         this.resolveAlert(`model-unavailable-${modelName}`);
-        
+
         // Check for slow response
         if (health.responseTime > this.alertThresholds.responseTime) {
           this.createAlert({
@@ -252,7 +279,10 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
             modelName,
             tier: metrics.tier,
             message: `Model ${modelName} response time (${health.responseTime}ms) exceeds threshold (${this.alertThresholds.responseTime}ms)`,
-            metrics: { responseTime: health.responseTime, threshold: this.alertThresholds.responseTime },
+            metrics: {
+              responseTime: health.responseTime,
+              threshold: this.alertThresholds.responseTime,
+            },
           });
         }
       } else {
@@ -260,44 +290,57 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
         metrics.consecutiveFailures++;
         metrics.totalErrors++;
         metrics.lastErrorMessage = health.errorMessage;
-        
+
         // Update error rate
         metrics.errorRate = metrics.totalErrors / metrics.checksPerformed;
-        
+
         // Check for consecutive failures
-        if (metrics.consecutiveFailures >= this.alertThresholds.consecutiveFailures) {
+        if (
+          metrics.consecutiveFailures >=
+          this.alertThresholds.consecutiveFailures
+        ) {
           this.createAlert({
             type: 'model-unavailable',
             severity: 'high',
             modelName,
             tier: metrics.tier,
             message: `Model ${modelName} has ${metrics.consecutiveFailures} consecutive failures`,
-            metrics: { consecutiveFailures: metrics.consecutiveFailures, errorMessage: health.errorMessage },
+            metrics: {
+              consecutiveFailures: metrics.consecutiveFailures,
+              errorMessage: health.errorMessage,
+            },
           });
         }
-        
+
         // Check for high error rate
-        if (metrics.errorRate > this.alertThresholds.errorRate && metrics.checksPerformed >= 10) {
+        if (
+          metrics.errorRate > this.alertThresholds.errorRate &&
+          metrics.checksPerformed >= 10
+        ) {
           this.createAlert({
             type: 'high-error-rate',
             severity: 'medium',
             modelName,
             tier: metrics.tier,
             message: `Model ${modelName} error rate (${(metrics.errorRate * 100).toFixed(1)}%) exceeds threshold (${(this.alertThresholds.errorRate * 100).toFixed(1)}%)`,
-            metrics: { errorRate: metrics.errorRate, threshold: this.alertThresholds.errorRate },
+            metrics: {
+              errorRate: metrics.errorRate,
+              threshold: this.alertThresholds.errorRate,
+            },
           });
         }
       }
-      
+
       this.modelMetrics.set(modelName, metrics);
     } catch (error) {
       this.logger.error(`Failed to check health for ${modelName}`, error);
-      
+
       if (metrics) {
         metrics.consecutiveFailures++;
         metrics.totalErrors++;
         metrics.checksPerformed++;
-        metrics.lastErrorMessage = error instanceof Error ? error.message : 'Unknown error';
+        metrics.lastErrorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
         this.modelMetrics.set(modelName, metrics);
       }
     }
@@ -310,14 +353,15 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     try {
       const memoryStats = this.memoryManagerService.getMemoryStats();
       const usageRatio = memoryStats.currentUsage / memoryStats.totalAllocated;
-      
+
       if (usageRatio > this.alertThresholds.memoryUsage) {
         this.createAlert({
           type: 'memory-pressure',
-          severity: memoryStats.memoryPressure === 'critical' ? 'critical' : 'high',
+          severity:
+            memoryStats.memoryPressure === 'critical' ? 'critical' : 'high',
           message: `Memory usage (${(usageRatio * 100).toFixed(1)}%) exceeds threshold (${(this.alertThresholds.memoryUsage * 100).toFixed(1)}%)`,
-          metrics: { 
-            usageRatio, 
+          metrics: {
+            usageRatio,
             threshold: this.alertThresholds.memoryUsage,
             memoryPressure: memoryStats.memoryPressure,
             currentUsageGB: memoryStats.currentUsage / 1024 / 1024 / 1024,
@@ -339,7 +383,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   private async checkSystemHealth(): Promise<void> {
     try {
       const status = await this.localModelStatusService.getOllamaStatus();
-      
+
       if (!status.connected) {
         this.createAlert({
           type: 'system-error',
@@ -352,12 +396,15 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       }
     } catch (error) {
       this.logger.error('System health check failed', error);
-      
+
       this.createAlert({
         type: 'system-error',
         severity: 'high',
         message: `System health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        metrics: { errorMessage: error instanceof Error ? error.message : 'Unknown error' },
+        metrics: {
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
+        },
       });
     }
   }
@@ -374,7 +421,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     metrics?: any;
   }): void {
     const alertId = `${alertData.type}${alertData.modelName ? `-${alertData.modelName}` : ''}`;
-    
+
     // Check if alert already exists and is not resolved
     const existingAlert = this.activeAlerts.get(alertId);
     if (existingAlert && !existingAlert.resolved) {
@@ -413,7 +460,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Store alert in database (optional)
-    this.storeAlert(alert).catch(error => {
+    this.storeAlert(alert).catch((error) => {
       this.logger.debug('Failed to store alert in database', error);
     });
   }
@@ -426,11 +473,11 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     if (alert && !alert.resolved) {
       alert.resolved = true;
       alert.resolvedAt = new Date().toISOString();
-      
+
       this.logger.log(`✅ RESOLVED: ${alert.message}`);
-      
+
       // Update in database
-      this.updateAlertInDatabase(alert).catch(error => {
+      this.updateAlertInDatabase(alert).catch((error) => {
         this.logger.debug('Failed to update resolved alert in database', error);
       });
     }
@@ -442,25 +489,26 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   private async storeAlert(alert: Alert): Promise<void> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
-      const { error } = await client
-        .from('model_alerts')
-        .insert({
-          alert_id: alert.id,
-          alert_type: alert.type,
-          severity: alert.severity,
-          message: alert.message,
-          model_name: alert.modelName,
-          tier: alert.tier,
-          metrics: alert.metrics,
-          timestamp: alert.timestamp,
-          resolved: alert.resolved,
-          resolved_at: alert.resolvedAt,
-        });
+
+      const { error } = await client.from('model_alerts').insert({
+        alert_id: alert.id,
+        alert_type: alert.type,
+        severity: alert.severity,
+        message: alert.message,
+        model_name: alert.modelName,
+        tier: alert.tier,
+        metrics: alert.metrics,
+        timestamp: alert.timestamp,
+        resolved: alert.resolved,
+        resolved_at: alert.resolvedAt,
+      });
 
       if (error) {
         // Only log debug message for database errors to avoid spam
-        this.logger.debug('Alert storage failed (database may not be configured)', error);
+        this.logger.debug(
+          'Alert storage failed (database may not be configured)',
+          error,
+        );
       }
     } catch (error) {
       // Fail silently if table doesn't exist
@@ -474,7 +522,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   private async updateAlertInDatabase(alert: Alert): Promise<void> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       const { error } = await client
         .from('model_alerts')
         .update({
@@ -500,9 +548,9 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     try {
       status = await Promise.race([
         this.localModelStatusService.getOllamaStatus(),
-        new Promise<any>((_, reject) => 
-          setTimeout(() => reject(new Error('Ollama status timeout')), 5000)
-        )
+        new Promise<any>((_, reject) =>
+          setTimeout(() => reject(new Error('Ollama status timeout')), 5000),
+        ),
       ]);
     } catch (error) {
       // Fallback status if Ollama is unavailable
@@ -510,25 +558,27 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
         connected: false,
         version: 'unknown',
         models: [],
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
-    
+
     const memoryStats = this.memoryManagerService.getMemoryStats();
     const stats = this.localModelStatusService.getStats();
-    
-    const healthyModels = Array.from(this.modelMetrics.values())
-      .filter(m => m.isAvailable).length;
-    
+
+    const healthyModels = Array.from(this.modelMetrics.values()).filter(
+      (m) => m.isAvailable,
+    ).length;
+
     const unhealthyModels = this.modelMetrics.size - healthyModels;
-    
+
     const responseTimes = Array.from(this.modelMetrics.values())
-      .filter(m => m.averageResponseTime > 0)
-      .map(m => m.averageResponseTime);
-    
-    const averageResponseTime = responseTimes.length > 0
-      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-      : 0;
+      .filter((m) => m.averageResponseTime > 0)
+      .map((m) => m.averageResponseTime);
+
+    const averageResponseTime =
+      responseTimes.length > 0
+        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+        : 0;
 
     return {
       ollamaConnected: status.connected,
@@ -553,7 +603,9 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
    * Get active alerts
    */
   getActiveAlerts(): Alert[] {
-    return Array.from(this.activeAlerts.values()).filter(alert => !alert.resolved);
+    return Array.from(this.activeAlerts.values()).filter(
+      (alert) => !alert.resolved,
+    );
   }
 
   /**
@@ -562,7 +614,10 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   getAlertHistory(limit = 100): Alert[] {
     return this.alertHistory
       .slice(-limit)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
   }
 
   /**

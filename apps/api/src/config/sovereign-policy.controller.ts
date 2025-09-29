@@ -1,6 +1,22 @@
-import { Controller, Get, Post, Body, HttpStatus, HttpException, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { SovereignPolicyService, SovereignPolicy } from './sovereign-policy.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  HttpStatus,
+  HttpException,
+  Logger,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import {
+  SovereignPolicyService,
+  SovereignPolicy,
+} from './sovereign-policy.service';
 import {
   SovereignPolicyDto,
   SovereignPolicyStatusDto,
@@ -14,7 +30,9 @@ import { PolicyValidationRequestDto } from './dto/policy-validation-request.dto'
 export class SovereignPolicyController {
   private readonly logger = new Logger(SovereignPolicyController.name);
 
-  constructor(private readonly sovereignPolicyService: SovereignPolicyService) {}
+  constructor(
+    private readonly sovereignPolicyService: SovereignPolicyService,
+  ) {}
 
   /**
    * Get the current sovereign mode policy
@@ -23,7 +41,8 @@ export class SovereignPolicyController {
   @Get()
   @ApiOperation({
     summary: 'Get current sovereign mode policy',
-    description: 'Returns the current sovereign mode policy configuration including validation status',
+    description:
+      'Returns the current sovereign mode policy configuration including validation status',
   })
   @ApiResponse({
     status: 200,
@@ -35,12 +54,14 @@ export class SovereignPolicyController {
     description: 'Internal server error',
     type: ApiErrorResponseDto,
   })
-  getPolicy(): SovereignPolicy & { validation: { valid: boolean; warnings: string[] } } {
+  getPolicy(): SovereignPolicy & {
+    validation: { valid: boolean; warnings: string[] };
+  } {
     this.logger.debug('Fetching sovereign mode policy');
-    
+
     const policy = this.sovereignPolicyService.getPolicy();
     const validation = this.sovereignPolicyService.validatePolicy();
-    
+
     return {
       ...policy,
       validation,
@@ -54,7 +75,8 @@ export class SovereignPolicyController {
   @Get('status')
   @ApiOperation({
     summary: 'Get sovereign mode status',
-    description: 'Returns simplified sovereign mode status including allowed providers',
+    description:
+      'Returns simplified sovereign mode status including allowed providers',
   })
   @ApiResponse({
     status: 200,
@@ -66,13 +88,19 @@ export class SovereignPolicyController {
     description: 'Internal server error',
     type: ApiErrorResponseDto,
   })
-  getStatus(): { enforced: boolean; defaultMode: string; allowedProviders: string[] } {
+  getStatus(): {
+    enforced: boolean;
+    defaultMode: string;
+    allowedProviders: string[];
+  } {
     const policy = this.sovereignPolicyService.getPolicy();
-    
+
     return {
       enforced: policy.enforced,
       defaultMode: policy.defaultMode,
-      allowedProviders: policy.enforced ? ['ollama'] : ['ollama', 'openai', 'anthropic'],
+      allowedProviders: policy.enforced
+        ? ['ollama']
+        : ['ollama', 'openai', 'anthropic'],
     };
   }
 
@@ -83,7 +111,8 @@ export class SovereignPolicyController {
   @Post('validate')
   @ApiOperation({
     summary: 'Validate policy configuration',
-    description: 'Validates sovereign mode policy configuration and returns effective settings based on precedence rules',
+    description:
+      'Validates sovereign mode policy configuration and returns effective settings based on precedence rules',
   })
   @ApiResponse({
     status: 200,
@@ -100,7 +129,9 @@ export class SovereignPolicyController {
     description: 'Internal server error',
     type: ApiErrorResponseDto,
   })
-  validatePolicy(@Body() request: PolicyValidationRequestDto): PolicyValidationResponseDto {
+  validatePolicy(
+    @Body() request: PolicyValidationRequestDto,
+  ): PolicyValidationResponseDto {
     this.logger.debug('Validating policy configuration', request);
 
     try {
@@ -120,13 +151,17 @@ export class SovereignPolicyController {
       // Validate precedence logic
       let precedenceExplanation = '';
       if (effectiveEnforced && !effectiveUserMode) {
-        precedenceExplanation = 'Organization enforcement takes precedence over user preference';
+        precedenceExplanation =
+          'Organization enforcement takes precedence over user preference';
       } else if (effectiveEnforced && effectiveUserMode) {
-        precedenceExplanation = 'Organization enforcement and user preference both enable sovereign mode';
+        precedenceExplanation =
+          'Organization enforcement and user preference both enable sovereign mode';
       } else if (!effectiveEnforced && effectiveUserMode) {
-        precedenceExplanation = 'User preference enables sovereign mode (organization allows user choice)';
+        precedenceExplanation =
+          'User preference enables sovereign mode (organization allows user choice)';
       } else {
-        precedenceExplanation = 'Sovereign mode disabled (neither organization nor user enables it)';
+        precedenceExplanation =
+          'Sovereign mode disabled (neither organization nor user enables it)';
       }
 
       // Additional validation warnings
@@ -135,7 +170,9 @@ export class SovereignPolicyController {
       }
 
       if (request.enforced === true && request.auditLevel === 'none') {
-        warnings.push('Enforced mode should have audit logging enabled for compliance');
+        warnings.push(
+          'Enforced mode should have audit logging enabled for compliance',
+        );
       }
 
       return {

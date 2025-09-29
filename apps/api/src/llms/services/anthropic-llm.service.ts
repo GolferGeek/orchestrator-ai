@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
-import { 
-  GenerateResponseParams, 
-  LLMResponse, 
+import {
+  GenerateResponseParams,
+  LLMResponse,
   LLMServiceConfig,
-  ResponseMetadata 
+  ResponseMetadata,
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
@@ -34,7 +34,7 @@ interface AnthropicResponseMetadata extends ResponseMetadata {
 
 /**
  * Anthropic LLM Service Implementation
- * 
+ *
  * This example shows how to extend BaseLLMService for Anthropic Claude models
  * with provider-specific functionality and metadata handling.
  */
@@ -68,7 +68,10 @@ export class AnthropicLLMService extends BaseLLMService {
    * Extract thinking from response content
    * Handles both <thinking> tags and structured JSON responses
    */
-  private extractThinking(rawContent: string): { content: string; thinking?: string } {
+  private extractThinking(rawContent: string): {
+    content: string;
+    thinking?: string;
+  } {
     let content = rawContent;
     let thinking: string | undefined;
 
@@ -83,13 +86,18 @@ export class AnthropicLLMService extends BaseLLMService {
     }
 
     // Check if response is JSON with thinking field
-    if (!thinking && content.startsWith('{') && content.includes('"thinking"')) {
+    if (
+      !thinking &&
+      content.startsWith('{') &&
+      content.includes('"thinking"')
+    ) {
       try {
         const parsed = JSON.parse(content);
         if (parsed.thinking) {
           thinking = parsed.thinking;
           // Extract the actual response content
-          content = parsed.response || parsed.content || parsed.answer || content;
+          content =
+            parsed.response || parsed.content || parsed.answer || content;
         }
       } catch {
         // Not valid JSON or parsing failed, continue with raw content
@@ -99,27 +107,31 @@ export class AnthropicLLMService extends BaseLLMService {
     // Check for model-specific reasoning patterns
     if (!thinking) {
       let reasoningPatterns: RegExp[] = [];
-      
-      if (this.config?.model?.includes('claude-4') || this.config?.model?.includes('claude-sonnet-4') || this.config?.model?.includes('claude-opus-4')) {
+
+      if (
+        this.config?.model?.includes('claude-4') ||
+        this.config?.model?.includes('claude-sonnet-4') ||
+        this.config?.model?.includes('claude-opus-4')
+      ) {
         // Claude 4 models - enhanced reasoning patterns
         reasoningPatterns = [
           /^Let me think[\s\S]*?(?=Now,|So,|Therefore,|The answer|In conclusion|Based on)/i,
           /^I need to[\s\S]*?(?=The solution|The answer|Based on|Here's)/i,
           /^First,? I'll[\s\S]*?(?=The result|The answer|So|Now)/i,
           /^To solve this[\s\S]*?(?=The answer|Therefore|So|Now)/i,
-          /^Looking at this[\s\S]*?(?=The answer|Therefore|So|Now)/i
+          /^Looking at this[\s\S]*?(?=The answer|Therefore|So|Now)/i,
         ];
       } else if (this.config?.model?.includes('claude-3-5-sonnet')) {
         // Sonnet-specific patterns
         reasoningPatterns = [
           /^Let me think[\s\S]*?(?=Now,|So,|Therefore,|The answer|In conclusion)/i,
           /^I need to[\s\S]*?(?=The solution|The answer|Based on)/i,
-          /^First,? I'll[\s\S]*?(?=The result|The answer|So)/i
+          /^First,? I'll[\s\S]*?(?=The result|The answer|So)/i,
         ];
       } else if (this.config?.model?.includes('claude-3-5-haiku')) {
         // Haiku-specific patterns - look for analytical sections that show reasoning
         reasoningPatterns = [
-          /## 🔍[\s\S]*?### Key Observations/i,  // Analysis sections
+          /## 🔍[\s\S]*?### Key Observations/i, // Analysis sections
           /Based on the query results[\s\S]*?(?=###|##|$)/i, // Analysis based on data
           /### Key Observations[\s\S]*?(?=###|##|$)/i, // Key insights section
           /Analysis is based[\s\S]*?(?=###|##|Note:|$)/i, // Analysis disclaimers
@@ -142,28 +154,31 @@ export class AnthropicLLMService extends BaseLLMService {
     return { content, thinking };
   }
 
-
   /**
    * Implementation of the abstract generateResponse method for Anthropic
    */
   async generateResponse(params: GenerateResponseParams): Promise<LLMResponse> {
     const startTime = Date.now();
     const requestId = this.generateRequestId('anthropic');
-    
+
     try {
       // Validate configuration
       this.validateConfig(params.config);
-      
+
       // Use LLM Service level PII pre-processing when provided
-      let processedText = params.userMessage;
-      let piiMetadata = params.options?.piiMetadata || null;
-      let dictionaryMappings = params.options?.dictionaryMappings || [];
+      const processedText = params.userMessage;
+      const piiMetadata = params.options?.piiMetadata || null;
+      const dictionaryMappings = params.options?.dictionaryMappings || [];
       if (!piiMetadata) {
-        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] AnthropicLLMService - No PII metadata from LLM Service, using raw message`);
+        this.logger.warn(
+          `⚠️ [PII-METADATA-DEBUG] AnthropicLLMService - No PII metadata from LLM Service, using raw message`,
+        );
       } else {
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] AnthropicLLMService - Using preprocessed text and PII metadata`);
+        this.logger.debug(
+          `🔍 [PII-METADATA-DEBUG] AnthropicLLMService - Using preprocessed text and PII metadata`,
+        );
       }
-      
+
       // Prepare Anthropic request
       const messages: Anthropic.Messages.MessageParam[] = [
         { role: 'user', content: processedText },
@@ -174,8 +189,10 @@ export class AnthropicLLMService extends BaseLLMService {
         model: params.config.model,
         messages,
         system: params.systemPrompt,
-        temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
-        max_tokens: params.options?.maxTokens ?? params.config.maxTokens ?? 1000,
+        temperature:
+          params.options?.temperature ?? params.config.temperature ?? 0.7,
+        max_tokens:
+          params.options?.maxTokens ?? params.config.maxTokens ?? 1000,
       });
 
       if (!completion.content || completion.content.length === 0) {
@@ -184,8 +201,11 @@ export class AnthropicLLMService extends BaseLLMService {
 
       // Extract text content (Anthropic returns array of content blocks)
       const rawContent = completion.content
-        .filter((block): block is Anthropic.Messages.TextBlock => block.type === 'text')
-        .map(block => block.text)
+        .filter(
+          (block): block is Anthropic.Messages.TextBlock =>
+            block.type === 'text',
+        )
+        .map((block) => block.text)
         .join('');
 
       if (!rawContent) {
@@ -193,13 +213,14 @@ export class AnthropicLLMService extends BaseLLMService {
       }
 
       // Extract thinking and clean the response
-      const { content: textContent, thinking } = this.extractThinking(rawContent);
+      const { content: textContent, thinking } =
+        this.extractThinking(rawContent);
 
       // Do not reverse here; LLMService handles dictionary reversal consistently
       const finalContent = textContent;
-      
+
       const endTime = Date.now();
-      
+
       // Create Anthropic-specific metadata
       const metadata = this.createAnthropicMetadata(
         completion,
@@ -207,9 +228,9 @@ export class AnthropicLLMService extends BaseLLMService {
         startTime,
         endTime,
         requestId,
-        thinking
+        thinking,
       );
-      
+
       // Track usage with full metadata for database persistence
       await this.trackUsage(
         params.config.provider,
@@ -220,30 +241,31 @@ export class AnthropicLLMService extends BaseLLMService {
         {
           requestId,
           userId: params.userId || params.options?.userId,
-          conversationId: params.conversationId || params.options?.conversationId,
+          conversationId:
+            params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
           piiMetadata: piiMetadata,
           startTime,
           endTime,
-        }
+        },
       );
-      
+
       const response: LLMResponse = {
         content: finalContent,
         metadata,
         piiMetadata: piiMetadata,
       };
-      
+
       // Optional LangSmith integration
       const langsmithRunId = await this.integrateLangSmith(params, response);
       if (langsmithRunId) {
         response.metadata.langsmithRunId = langsmithRunId;
       }
-      
+
       // Log request/response
       this.logRequestResponse(params, response, metadata.timing.duration);
-      
+
       return response;
     } catch (error) {
       this.handleError(error, 'AnthropicLLMService.generateResponse');
@@ -259,10 +281,10 @@ export class AnthropicLLMService extends BaseLLMService {
     startTime: number,
     endTime: number,
     requestId: string,
-    thinking?: string
+    thinking?: string,
   ): AnthropicResponseMetadata {
     const usage = completion.usage;
-    
+
     return {
       provider: 'anthropic',
       model: completion.model,
@@ -272,7 +294,12 @@ export class AnthropicLLMService extends BaseLLMService {
         inputTokens: usage.input_tokens,
         outputTokens: usage.output_tokens,
         totalTokens: usage.input_tokens + usage.output_tokens,
-        cost: this.calculateCost('anthropic', completion.model, usage.input_tokens, usage.output_tokens),
+        cost: this.calculateCost(
+          'anthropic',
+          completion.model,
+          usage.input_tokens,
+          usage.output_tokens,
+        ),
       },
       timing: {
         startTime,
@@ -303,10 +330,13 @@ export class AnthropicLLMService extends BaseLLMService {
    */
   protected async integrateLangSmith(
     params: GenerateResponseParams,
-    response: LLMResponse
+    response: LLMResponse,
   ): Promise<string | undefined> {
     // Example Anthropic-specific LangSmith integration
-    if (process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_TRACING === 'true') {
+    if (
+      process.env.LANGSMITH_API_KEY &&
+      process.env.LANGSMITH_TRACING === 'true'
+    ) {
       try {
         // This would integrate with LangSmith for Anthropic-specific tracing
         const runId = `anthropic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -324,35 +354,48 @@ export class AnthropicLLMService extends BaseLLMService {
    */
   protected validateConfig(config: LLMServiceConfig): void {
     super.validateConfig(config);
-    
+
     if (config.provider !== 'anthropic') {
-      throw new Error('AnthropicLLMService requires provider to be "anthropic"');
+      throw new Error(
+        'AnthropicLLMService requires provider to be "anthropic"',
+      );
     }
-    
+
     if (!config.apiKey && !process.env.ANTHROPIC_API_KEY) {
       throw new Error('Anthropic API key is required');
     }
-    
+
     // Validate Anthropic-specific model names
     const validModels = [
       // Claude 4 models
-      'claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-opus-4-1-20250805',
+      'claude-sonnet-4-20250514',
+      'claude-opus-4-20250514',
+      'claude-opus-4-1-20250805',
       // Database aliases for Claude 4 models
-      'claude-4-sonnet', 'claude-4-opus',
+      'claude-4-sonnet',
+      'claude-4-opus',
       // Claude 3.7 models
       'claude-3-7-sonnet-20250219',
-      // Claude 3.5 models  
-      'claude-3-5-sonnet-20241022', 'claude-3-5-sonnet-20240620',
+      // Claude 3.5 models
+      'claude-3-5-sonnet-20241022',
+      'claude-3-5-sonnet-20240620',
       'claude-3-5-haiku-20241022',
       // Claude 3 models
-      'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'
+      'claude-3-opus-20240229',
+      'claude-3-sonnet-20240229',
+      'claude-3-haiku-20240307',
     ];
-    
-    if (!validModels.some(model => config.model.includes(model.split('-').slice(0, 3).join('-')))) {
-      this.logger.warn(`Unknown Anthropic model: ${config.model}. Proceeding anyway.`);
+
+    if (
+      !validModels.some((model) =>
+        config.model.includes(model.split('-').slice(0, 3).join('-')),
+      )
+    ) {
+      this.logger.warn(
+        `Unknown Anthropic model: ${config.model}. Proceeding anyway.`,
+      );
     }
   }
-
 
   /**
    * Anthropic-specific error handling
@@ -360,7 +403,11 @@ export class AnthropicLLMService extends BaseLLMService {
   protected handleError(error: any, context: string): never {
     // Map to standardized error and delegate to base handler
     try {
-      const mapped = LLMErrorMapper.fromAnthropicError(error, 'anthropic', this.config?.model);
+      const mapped = LLMErrorMapper.fromAnthropicError(
+        error,
+        'anthropic',
+        this.config?.model,
+      );
       super.handleError(mapped, context);
     } catch {
       super.handleError(error, context);
@@ -378,7 +425,7 @@ export function createAnthropicService(
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
-  }
+  },
 ): AnthropicLLMService {
   return new AnthropicLLMService(
     { ...config, provider: 'anthropic' },
@@ -410,7 +457,7 @@ export async function testAnthropicService() {
   };
 
   const service = createAnthropicService(config, mockDependencies);
-  
+
   const params: GenerateResponseParams = {
     systemPrompt: 'You are Claude, an AI assistant created by Anthropic.',
     userMessage: 'Hello, how are you today?',

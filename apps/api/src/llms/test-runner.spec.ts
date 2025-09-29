@@ -31,24 +31,27 @@ describe('Sanitization System Integration', () => {
     }).compile();
 
     piiPatternService = module.get<PIIPatternService>(PIIPatternService);
-    secretRedactionService = module.get<SecretRedactionService>(SecretRedactionService);
+    secretRedactionService = module.get<SecretRedactionService>(
+      SecretRedactionService,
+    );
   });
 
   describe('Basic Functionality Tests', () => {
     it('should detect emails with PII pattern service', async () => {
       const text = 'Contact john@example.com for info';
       const result = await piiPatternService.detectPII(text);
-      
+
       expect(result.matches.length).toBeGreaterThan(0);
-      const emailMatch = result.matches.find(m => m.dataType === 'email');
+      const emailMatch = result.matches.find((m) => m.dataType === 'email');
       expect(emailMatch).toBeDefined();
       expect(emailMatch?.value).toBe('john@example.com');
     });
 
     it('should redact API keys with secret redaction service', () => {
-      const text = 'My API key is sk-1234567890abcdef1234567890abcdef1234567890abcdef';
+      const text =
+        'My API key is sk-1234567890abcdef1234567890abcdef1234567890abcdef';
       const result = secretRedactionService.redactSecrets(text);
-      
+
       expect(result.redactedText).toContain('[REDACTED]');
       expect(result.result.redactionCount).toBeGreaterThan(0);
     });
@@ -57,13 +60,15 @@ describe('Sanitization System Integration', () => {
       // Test that both services can be instantiated and work
       expect(piiPatternService).toBeDefined();
       expect(secretRedactionService).toBeDefined();
-      
+
       // PII detection
       const piiResult = await piiPatternService.detectPII('john@example.com');
       expect(piiResult.matches.length).toBeGreaterThan(0);
-      
-      // Secret redaction  
-      const redactionResult = secretRedactionService.redactSecrets('api_key=sk-1234567890abcdef1234567890abcdef1234567890abcdef');
+
+      // Secret redaction
+      const redactionResult = secretRedactionService.redactSecrets(
+        'api_key=sk-1234567890abcdef1234567890abcdef1234567890abcdef',
+      );
       expect(redactionResult.result.redactionCount).toBeGreaterThan(0);
     });
   });
@@ -85,7 +90,7 @@ describe('Sanitization System Integration', () => {
     it('should handle empty inputs gracefully', async () => {
       const piiResult = await piiPatternService.detectPII('');
       expect(piiResult.matches).toHaveLength(0);
-      
+
       const redactionResult = secretRedactionService.redactSecrets('');
       expect(redactionResult.redactedText).toBe('');
     });
@@ -93,8 +98,9 @@ describe('Sanitization System Integration', () => {
     it('should handle null inputs gracefully', async () => {
       const piiResult = await piiPatternService.detectPII('no PII here');
       expect(piiResult.matches).toHaveLength(0);
-      
-      const redactionResult = secretRedactionService.redactSecrets('no secrets here');
+
+      const redactionResult =
+        secretRedactionService.redactSecrets('no secrets here');
       expect(redactionResult.redactedText).toBe('no secrets here');
       expect(redactionResult.result.redactionCount).toBe(0);
     });
@@ -103,16 +109,16 @@ describe('Sanitization System Integration', () => {
   describe('Performance Tests', () => {
     it('should handle reasonable loads efficiently', async () => {
       const testText = 'Contact john@example.com with API key abc123def456';
-      
+
       const startTime = Date.now();
-      
+
       // Run multiple operations
       const piiPromise = piiPatternService.detectPII(testText);
       const redactionResult = secretRedactionService.redactSecrets(testText);
       const piiResult = await piiPromise;
-      
+
       const endTime = Date.now();
-      
+
       expect(endTime - startTime).toBeLessThan(1000);
       expect(piiResult).toBeDefined();
       expect(redactionResult).toBeDefined();

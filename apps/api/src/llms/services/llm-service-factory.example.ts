@@ -1,6 +1,6 @@
 /**
  * Example usage of LLMServiceFactory with full metadata preservation
- * 
+ *
  * This example demonstrates how to use the factory to create LLM services
  * while ensuring all metadata (usage, timing, costs, provider-specific data)
  * flows through properly.
@@ -104,7 +104,7 @@ export class LLMServiceFactoryExample {
 
       try {
         const response = await this.factory.generateResponse(config, params);
-        
+
         results.push({
           provider,
           model,
@@ -141,11 +141,15 @@ export class LLMServiceFactoryExample {
       config: openaiConfig,
     };
 
-    const openaiResponse = await this.factory.generateResponse(openaiConfig, openaiParams);
-    
+    const openaiResponse = await this.factory.generateResponse(
+      openaiConfig,
+      openaiParams,
+    );
+
     console.log('OpenAI Provider-Specific Metadata:', {
       finishReason: openaiResponse.metadata.providerSpecific?.finish_reason,
-      systemFingerprint: openaiResponse.metadata.providerSpecific?.system_fingerprint,
+      systemFingerprint:
+        openaiResponse.metadata.providerSpecific?.system_fingerprint,
     });
 
     // Google with safety ratings
@@ -160,11 +164,15 @@ export class LLMServiceFactoryExample {
       config: googleConfig,
     };
 
-    const googleResponse = await this.factory.generateResponse(googleConfig, googleParams);
-    
+    const googleResponse = await this.factory.generateResponse(
+      googleConfig,
+      googleParams,
+    );
+
     console.log('Google Provider-Specific Metadata:', {
       safetyRatings: googleResponse.metadata.providerSpecific?.safety_ratings,
-      citationMetadata: googleResponse.metadata.providerSpecific?.citation_metadata,
+      citationMetadata:
+        googleResponse.metadata.providerSpecific?.citation_metadata,
     });
 
     return { openaiResponse, googleResponse };
@@ -183,7 +191,10 @@ export class LLMServiceFactoryExample {
 
       await this.factory.createService(invalidConfig);
     } catch (error) {
-      console.log('Expected validation error:', error instanceof Error ? error.message : String(error));
+      console.log(
+        'Expected validation error:',
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     try {
@@ -196,7 +207,10 @@ export class LLMServiceFactoryExample {
 
       await this.factory.createService(badConfig);
     } catch (error) {
-      console.log('Expected temperature validation error:', error instanceof Error ? error.message : String(error));
+      console.log(
+        'Expected temperature validation error:',
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 

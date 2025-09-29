@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../../../llms/llm.service';
 import { SupabaseMCPServer } from './supabase.mcp';
@@ -23,7 +28,7 @@ function getErrorMessage(error: unknown): string {
 
 /**
  * NestJS Service Wrapper for Supabase MCP Server
- * 
+ *
  * Provides HTTP endpoints and lifecycle management for the MCP server
  * Integrates with NestJS dependency injection and startup/shutdown hooks
  */
@@ -37,10 +42,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
     private configService: ConfigService,
     private llmService: LLMService,
   ) {
-    this.mcpServer = new SupabaseMCPServer(
-      configService,
-      llmService,
-    );
+    this.mcpServer = new SupabaseMCPServer(configService, llmService);
   }
 
   /**
@@ -52,7 +54,9 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
       this.isReady = true;
       this.logger.log('✅ Supabase MCP Service ready');
     } catch (error) {
-      this.logger.error(`❌ Supabase MCP Service initialization failed: ${getErrorMessage(error)}`);
+      this.logger.error(
+        `❌ Supabase MCP Service initialization failed: ${getErrorMessage(error)}`,
+      );
       throw error;
     }
   }
@@ -95,10 +99,12 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Handle JSON-RPC requests (HTTP endpoint handler)
-   * 
+   *
    * This is the main entry point for MCP HTTP transport
    */
-  async handleJsonRpcRequest(request: MCPJsonRpcRequest): Promise<MCPJsonRpcResponse> {
+  async handleJsonRpcRequest(
+    request: MCPJsonRpcRequest,
+  ): Promise<MCPJsonRpcResponse> {
     const startTime = Date.now();
 
     if (!this.isReady) {
@@ -150,7 +156,6 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
         id: request.id,
         result,
       };
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
 
@@ -206,7 +211,10 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
    * Get database schema (convenience method)
    */
   async getSchema(tables?: string[], domain?: 'core' | 'kpi'): Promise<string> {
-    const result = await this.executeToolInternal('get-schema', { tables, domain });
+    const result = await this.executeToolInternal('get-schema', {
+      tables,
+      domain,
+    });
     return typeof result === 'string' ? result : result.toString();
   }
 
@@ -214,10 +222,10 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
    * Generate SQL from natural language (convenience method)
    */
   async generateSQL(
-    query: string, 
-    tables: string[], 
-    domainHint?: string, 
-    maxRows = 100
+    query: string,
+    tables: string[],
+    domainHint?: string,
+    maxRows = 100,
   ): Promise<any> {
     return await this.executeToolInternal('generate-sql', {
       query,
@@ -244,10 +252,10 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
    * Analyze query results (convenience method)
    */
   async analyzeResults(
-    data: any[], 
-    prompt: string, 
-    provider = 'anthropic', 
-    model = 'claude-3-5-sonnet-20241022'
+    data: any[],
+    prompt: string,
+    provider = 'anthropic',
+    model = 'claude-3-5-sonnet-20241022',
   ): Promise<any> {
     return await this.executeTool({
       name: 'analyze-results',
@@ -299,7 +307,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
       schema_domains: ['core', 'kpi'],
       context_files: [
         'core-schema.md',
-        'kpi-schema.md', 
+        'kpi-schema.md',
         'relationships.md',
         'sql-patterns.md',
       ],
