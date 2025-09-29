@@ -22,9 +22,12 @@ const createMocks = () => {
   } as unknown as jest.Mocked<PlanEngineService>;
   const orchestrationRunner = {
     startRun: jest.fn(),
+    updateRun: jest.fn(),
+    getRun: jest.fn(),
   } as unknown as jest.Mocked<OrchestrationRunnerService>;
   const agentOrchestrations = {
     findBySlug: jest.fn(),
+    upsert: jest.fn(),
   } as unknown as jest.Mocked<AgentOrchestrationsRepository>;
 
   return {
@@ -244,6 +247,160 @@ describe('AgentExecutionGateway', () => {
     });
   });
 
+  it('creates orchestration drafts through new mode', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    planEngine.generateDraft.mockResolvedValue({ id: 'plan-1', status: 'draft' } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    const result = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_CREATE,
+      conversationId: 'conv-1',
+      payload: { planDraft: { phases: [] } },
+    } as any);
+
+    expect(planEngine.generateDraft).toHaveBeenCalled();
+    expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_CREATE);
+    expect(result.payload?.content).toMatchObject({ id: 'plan-1' });
+  });
+
+  it('executes orchestration via new mode', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    orchestrationRunner.startRun.mockResolvedValue({ id: 'run-1', origin_type: 'plan' } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    const result = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_EXECUTE,
+      conversationId: 'conv-1',
+      planId: 'plan-2',
+    } as any);
+
+    expect(orchestrationRunner.startRun).toHaveBeenCalledWith({
+      planId: 'plan-2',
+      originType: 'plan',
+      originId: 'plan-2',
+      organizationSlug: 'demo',
+      promptInputs: {},
+      metadata: {},
+    });
+    expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_EXECUTE);
+  });
+
+  it('continues orchestration run', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    orchestrationRunner.updateRun.mockResolvedValue({ id: 'run-1', status: 'running' } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    const result = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_CONTINUE,
+      conversationId: 'conv-1',
+      orchestrationRunId: 'run-1',
+      payload: { update: { status: 'running' } },
+    } as any);
+
+    expect(orchestrationRunner.updateRun).toHaveBeenCalledWith({
+      runId: 'run-1',
+      status: 'running',
+      currentStepIndex: undefined,
+      completedSteps: undefined,
+      stepState: undefined,
+      humanCheckpointId: undefined,
+      metadata: undefined,
+      completedAt: undefined,
+    });
+    expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_CONTINUE);
+  });
+
+  it('saves orchestration recipe', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    agentOrchestrations.upsert.mockResolvedValue({ id: 'orch-1', slug: 'recipe' } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    const result = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_SAVE_RECIPE,
+      conversationId: 'conv-1',
+      payload: {
+        orchestration: {
+          slug: 'recipe',
+          displayName: 'Recipe',
+          orchestrationJson: { phases: [] },
+        },
+      },
+    } as any);
+
+    expect(agentOrchestrations.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: 'recipe', organization_slug: 'demo' }),
+    );
+    expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_SAVE_RECIPE);
+  });
+
   it('throws when required prompt parameter missing', async () => {
     const {
       agentsRepo,
@@ -287,7 +444,7 @@ describe('AgentExecutionGateway', () => {
     ).rejects.toThrow('Missing prompt parameter topic');
   });
 
-  it('falls back to ad-hoc orchestration when no plan or recipe provided', async () => {
+  it('falls back to single-call execution when no plan or recipe provided', async () => {
     const {
       agentsRepo,
       routing,
@@ -298,7 +455,11 @@ describe('AgentExecutionGateway', () => {
     } = createMocks();
     agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
-    orchestrationRunner.startRun.mockResolvedValue({ id: 'run-adhoc' } as any);
+    modeRouter.execute.mockResolvedValue({
+      success: true,
+      mode: AgentTaskMode.BUILD,
+      payload: { content: { status: 'build_started' } },
+    } as any);
 
     const gateway = new AgentExecutionGateway(
       agentsRepo,
@@ -315,12 +476,18 @@ describe('AgentExecutionGateway', () => {
       payload: { metadata: { trigger: 'manual' } },
     } as any);
 
-    expect(orchestrationRunner.startRun).toHaveBeenCalledWith({
-      organizationSlug: 'demo',
-      originType: 'ad_hoc',
-      promptInputs: {},
-      metadata: { trigger: 'manual' },
-    });
-    expect(result.payload?.metadata).toMatchObject({ originType: 'ad_hoc' });
+    expect(orchestrationRunner.startRun).not.toHaveBeenCalled();
+    expect(modeRouter.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: { slug: 'agent-1' },
+        request: expect.objectContaining({
+          mode: AgentTaskMode.BUILD,
+          conversationId: 'conv-1',
+          payload: { metadata: { trigger: 'manual' } },
+        }),
+        routingMetadata: undefined,
+      }),
+    );
+    expect(result.mode).toBe(AgentTaskMode.BUILD);
   });
 });

@@ -73,6 +73,11 @@ The current project-centric approach suffers from several gaps:
 - Present checkpoint context, deliverables, and decisions through existing dashboards.
 - Resume orchestration execution once approvals are recorded in Supabase.
 
+### 6. Orchestration Modes
+- Introduce explicit agent modes (`orchestrate_create`, `orchestrate_execute`, `orchestrate_continue`, `orchestrate_save_recipe`) to gate multi-call orchestration flows.
+- Keep existing `plan`/`build` paths optimized for single-call work while routing orchestration traffic through the new modes.
+- Attach orchestration-specific metadata (prompt templates, checkpoints, run identifiers) to these modes for API/UI handling.
+
 ## Technical Architecture
 
 ### 1. Domain Data Structures
@@ -155,6 +160,7 @@ interface OrchestrationRun {
 - Build repositories for agents, orchestrations, conversation plans, and runs.
 - Expose CRUD endpoints for orchestration definitions and prompt templates.
 - Wire organization credential usage into orchestration execution configuration.
+- Add new orchestration agent modes to the API contract (enums, routing, validation) while keeping UI wiring for a later slice.
 
 ### Phase 3: Execution Runtime (5-6 weeks)
 - Replace project-run execution path with orchestration-run service.

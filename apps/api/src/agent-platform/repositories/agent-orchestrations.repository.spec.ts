@@ -2,16 +2,21 @@ import { AgentOrchestrationsRepository } from './agent-orchestrations.repository
 import { SupabaseService } from '@/supabase/supabase.service';
 
 describe('AgentOrchestrationsRepository', () => {
-  const fromMock = jest.fn();
-  const supabase = {
-    getServiceClient: jest.fn(() => ({ from: fromMock })),
-  } as unknown as jest.Mocked<SupabaseService>;
+  let fromMock: jest.Mock;
+  let supabase: jest.Mocked<SupabaseService>;
+  let repository: AgentOrchestrationsRepository;
 
-  afterEach(() => {
-    jest.resetAllMocks();
+  beforeEach(() => {
+    fromMock = jest.fn();
+    supabase = {
+      getServiceClient: jest.fn(() => ({ from: fromMock })),
+    } as unknown as jest.Mocked<SupabaseService>;
+    repository = new AgentOrchestrationsRepository(supabase);
   });
 
-  const repository = new AgentOrchestrationsRepository(supabase);
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('upserts orchestration', async () => {
     const maybeSingle = jest
@@ -35,11 +40,23 @@ describe('AgentOrchestrationsRepository', () => {
 
   it('lists orchestrations', async () => {
     const order = jest.fn().mockResolvedValue({ data: [], error: null });
-    const eq = jest.fn().mockReturnValue({ order });
+    const eqAfterOrg = jest.fn().mockReturnValue({ order });
     const is = jest.fn().mockReturnValue({ order });
-    fromMock.mockReturnValue({ select: jest.fn().mockReturnValue({ eq, is }) });
+    const eq = jest.fn().mockImplementation((column: string) => {
+      if (column === 'agent_slug') {
+        return { eq: eqAfterOrg, is, order } as any;
+      }
+      return { order } as any;
+    });
+    const select = jest.fn().mockReturnValue({ eq });
+    fromMock.mockReturnValue({ select });
 
     const result = await repository.listByAgent(null, 'planner');
+
+    expect(select).toHaveBeenCalledWith('*');
+    expect(eq).toHaveBeenCalledWith('agent_slug', 'planner');
+    expect(is).toHaveBeenCalledWith('organization_slug', null);
+    expect(order).toHaveBeenCalledWith('slug', { ascending: true });
     expect(result).toEqual([]);
   });
 });

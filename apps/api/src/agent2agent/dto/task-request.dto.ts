@@ -11,6 +11,10 @@ export enum AgentTaskMode {
   PLAN = 'plan',
   BUILD = 'build',
   HUMAN_RESPONSE = 'human_response',
+  ORCHESTRATE_CREATE = 'orchestrate_create',
+  ORCHESTRATE_EXECUTE = 'orchestrate_execute',
+  ORCHESTRATE_CONTINUE = 'orchestrate_continue',
+  ORCHESTRATE_SAVE_RECIPE = 'orchestrate_save_recipe',
 }
 
 export class TaskRequestDto {
@@ -27,6 +31,10 @@ export class TaskRequestDto {
   @IsOptional()
   @IsUUID()
   orchestrationId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  orchestrationRunId?: string;
 
   @IsOptional()
   @IsString()

@@ -107,14 +107,15 @@ export class AgentOrchestrationsRepository {
     let query = this.client()
       .from(TABLE)
       .select('*')
-      .eq('agent_slug', agentSlug)
-      .order('slug', { ascending: true });
+      .eq('agent_slug', agentSlug);
 
     query = organizationSlug
       ? query.eq('organization_slug', organizationSlug)
       : query.is('organization_slug', null);
 
-    const { data, error } = (await query) as SupabaseListResponse<AgentOrchestrationRecord>;
+    const { data, error } = (await query.order('slug', {
+      ascending: true,
+    })) as SupabaseListResponse<AgentOrchestrationRecord>;
 
     if (error) {
       this.logger.error(

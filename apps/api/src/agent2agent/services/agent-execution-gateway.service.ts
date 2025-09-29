@@ -50,7 +50,35 @@ export class AgentExecutionGateway {
       case AgentTaskMode.PLAN:
         return this.handlePlan(organizationSlug, agent, request);
       case AgentTaskMode.BUILD:
-        return this.handleBuild(organizationSlug, agent.slug, request);
+        return this.handleBuild(
+          organizationSlug,
+          agent,
+          request,
+          assessment.metadata,
+        );
+      case AgentTaskMode.ORCHESTRATE_CREATE:
+        return this.handleOrchestrateCreate(
+          organizationSlug,
+          agent,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATE_EXECUTE:
+        return this.handleOrchestrateExecute(
+          organizationSlug,
+          agent,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATE_CONTINUE:
+        return this.handleOrchestrateContinue(
+          organizationSlug,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATE_SAVE_RECIPE:
+        return this.handleOrchestrateSaveRecipe(
+          organizationSlug,
+          agent,
+          request,
+        );
       case AgentTaskMode.HUMAN_RESPONSE:
         return TaskResponseDto.human('Manual confirmation required');
       default:
@@ -88,9 +116,160 @@ export class AgentExecutionGateway {
 
   private async handleBuild(
     organizationSlug: string | null,
-    agentSlug: string,
+    agent: any,
+    request: TaskRequestDto,
+    routingMetadata?: Record<string, any>,
+  ): Promise<TaskResponseDto> {
+    const orchestrationResponse = await this.startOrchestrationFromRequest(
+      organizationSlug,
+      agent,
+      request,
+      AgentTaskMode.BUILD,
+      { requireTarget: false },
+    );
+
+    if (orchestrationResponse) {
+      return orchestrationResponse;
+    }
+
+    return this.modeRouter.execute({
+      agent,
+      request,
+      routingMetadata,
+    });
+  }
+
+  private async handleOrchestrateCreate(
+    organizationSlug: string | null,
+    agent: any,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
+    const conversationId = request.conversationId;
+    if (!conversationId) {
+      throw new BadRequestException(
+        'conversationId is required for orchestration creation',
+      );
+    }
+
+    const draftPlan = request.payload?.planDraft ?? {
+      summary: request.userMessage ?? 'Orchestration draft not provided',
+    };
+
+    const planRecord = await this.planEngine.generateDraft({
+      conversationId,
+      organizationSlug,
+      agentSlug: agent.slug,
+      summary: request.payload?.summary ?? null,
+      draftPlan,
+      createdBy: request.payload?.createdBy ?? null,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_CREATE, {
+      content: planRecord,
+      metadata: {
+        mode: 'create',
+      },
+    });
+  }
+
+  private async handleOrchestrateExecute(
+    organizationSlug: string | null,
+    agent: any,
+    request: TaskRequestDto,
+  ): Promise<TaskResponseDto> {
+    const orchestrationResponse = await this.startOrchestrationFromRequest(
+      organizationSlug,
+      agent,
+      request,
+      AgentTaskMode.ORCHESTRATE_EXECUTE,
+      { requireTarget: true },
+    );
+
+    if (!orchestrationResponse) {
+      throw new BadRequestException(
+        'planId or orchestrationSlug required for orchestration execution',
+      );
+    }
+
+    return orchestrationResponse;
+  }
+
+  private async handleOrchestrateContinue(
+    organizationSlug: string | null,
+    request: TaskRequestDto,
+  ): Promise<TaskResponseDto> {
+    const runId =
+      request.orchestrationRunId ?? request.payload?.runId ?? null;
+
+    if (!runId) {
+      throw new BadRequestException(
+        'orchestrationRunId is required to continue an orchestration run',
+      );
+    }
+
+    const patch = request.payload?.update ?? {};
+    const run = await this.orchestrationRunner.updateRun({
+      runId,
+      status: patch.status,
+      currentStepIndex: patch.currentStepIndex,
+      completedSteps: patch.completedSteps,
+      stepState: patch.stepState,
+      humanCheckpointId: patch.humanCheckpointId,
+      metadata: patch.metadata,
+      completedAt: patch.completedAt,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_CONTINUE, {
+      content: run,
+      metadata: {
+        runId,
+        organizationSlug,
+      },
+    });
+  }
+
+  private async handleOrchestrateSaveRecipe(
+    organizationSlug: string | null,
+    agent: any,
+    request: TaskRequestDto,
+  ): Promise<TaskResponseDto> {
+    const orchestrationPayload = request.payload?.orchestration;
+
+    if (!orchestrationPayload) {
+      throw new BadRequestException(
+        'orchestration payload required to save as recipe',
+      );
+    }
+
+    const saved = await this.agentOrchestrations.upsert({
+      organization_slug: organizationSlug,
+      agent_slug: agent.slug,
+      slug: orchestrationPayload.slug,
+      display_name: orchestrationPayload.displayName ?? orchestrationPayload.slug,
+      description: orchestrationPayload.description ?? null,
+      status: orchestrationPayload.status,
+      orchestration_json:
+        orchestrationPayload.orchestrationJson ?? orchestrationPayload.definition ?? {},
+      prompt_templates: orchestrationPayload.promptTemplates ?? [],
+      tags: orchestrationPayload.tags ?? [],
+      version: orchestrationPayload.version ?? null,
+      created_by: orchestrationPayload.createdBy ?? request.payload?.createdBy ?? null,
+      updated_by: orchestrationPayload.updatedBy ?? request.payload?.updatedBy ?? null,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_SAVE_RECIPE, {
+      content: saved,
+    });
+  }
+
+  private async startOrchestrationFromRequest(
+    organizationSlug: string | null,
+    agent: any,
+    request: TaskRequestDto,
+    responseMode: AgentTaskMode,
+    options: { requireTarget: boolean },
+  ): Promise<TaskResponseDto | null> {
+    const agentSlug = agent.slug;
     const orchestrationSlug =
       request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
     const promptInputs =
@@ -107,7 +286,7 @@ export class AgentExecutionGateway {
         metadata,
       });
 
-      return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      return TaskResponseDto.success(responseMode, {
         content: run,
         metadata: {
           originType: 'plan',
@@ -145,7 +324,7 @@ export class AgentExecutionGateway {
         },
       });
 
-      return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      return TaskResponseDto.success(responseMode, {
         content: run,
         metadata: {
           originType: 'saved_orchestration',
@@ -158,20 +337,11 @@ export class AgentExecutionGateway {
       });
     }
 
-    const run = await this.orchestrationRunner.startRun({
-      organizationSlug,
-      originType: 'ad_hoc',
-      promptInputs,
-      metadata,
-    });
+    if (options.requireTarget) {
+      return null;
+    }
 
-    return TaskResponseDto.success(AgentTaskMode.BUILD, {
-      content: run,
-      metadata: {
-        originType: 'ad_hoc',
-        promptInputs,
-      },
-    });
+    return null;
   }
 
   private validatePromptInputs(

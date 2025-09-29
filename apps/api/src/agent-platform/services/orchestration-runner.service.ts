@@ -38,13 +38,17 @@ export class OrchestrationRunnerService {
     input: OrchestrationStartInput,
   ): Promise<OrchestrationRunRecord> {
     this.logger.debug(
-      `Starting orchestration run for plan ${input.planId}`,
+      `Starting orchestration run for plan ${input.planId ?? 'n/a'}`,
     );
+    const originType =
+      input.originType ?? (input.planId ? 'plan' : 'ad_hoc');
+    const originId =
+      input.originId ?? (originType === 'plan' ? input.planId ?? null : null);
     return this.runsRepository.start({
       plan_id: input.planId,
-      origin_type: input.originType,
-      origin_id: input.originId,
-      orchestration_slug: input.orchestrationSlug,
+      origin_type: originType,
+      origin_id: originId,
+      orchestration_slug: input.orchestrationSlug ?? null,
       prompt_inputs: input.promptInputs,
       organization_slug: input.organizationSlug,
       metadata: input.metadata ?? {},
