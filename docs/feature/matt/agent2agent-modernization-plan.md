@@ -78,4 +78,5 @@
 - **2025-01-19:** Agent card builder now generates spec-compliant descriptors (protocol/version/url/capabilities/security) with unit coverage; remaining route-contract work tracks JSON-RPC payload docs. (Codex)
 - **2025-01-19:** Guard emits structured auth telemetry (including rate-limit events) and controller supports `includePrivate` card queries for downstream policy enforcement. (Codex)
 - **2025-01-19:** Routing adapter wires in centralized policy decisions with request/agent metadata, feeding the enhanced mode router. (Codex)
+- **2025-01-19:** Retired the legacy AgentCreator “agent builder” module to avoid conflicting database dependencies ahead of the new runtime. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

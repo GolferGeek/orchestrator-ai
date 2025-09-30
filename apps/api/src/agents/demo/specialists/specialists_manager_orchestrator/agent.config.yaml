@@ -8,7 +8,6 @@ hierarchy:
   level: manager
   team:
     - golf_rules_agent
-    - agent_creator
 
 # Orchestrator-specific configuration
 orchestrator:

@@ -60,7 +60,6 @@ import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { SpeechModule } from './speech/speech.module';
-import { AgentCreatorModule } from './agents/demo/specialists/agent_creator/agent.module';
 import { Agent2AgentModule } from './agent2agent/agent2agent.module';
 import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 
@@ -126,7 +125,6 @@ import { AgentPlatformModule } from './agent-platform/agent-platform.module';
     SovereignPolicyModule, // Sovereign mode policy management
     SystemModule, // System analytics and monitoring
     SpeechModule, // Speech-to-text and text-to-speech functionality
-    AgentCreatorModule, // Agent configuration service for discovery
   ],
   controllers: [
     AppController,

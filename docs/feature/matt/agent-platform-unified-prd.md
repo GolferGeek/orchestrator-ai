@@ -146,6 +146,7 @@ Two major pillars drive the greenfield rebuild.
 3. **Controller Implementation:** Build greenfield controller, card builder, routing adapter, API key auth.
 4. **Agent Runtime:** Implement the new Agent-to-Agent execution services and database agent base classes required for converse/plan/build without relying on legacy `A2AAgentBaseService`.
 5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
+   - *2025-01-19 update:* Removed the unfinished `AgentCreator`/agent-builder prototype from the codebase to eliminate conflicting Supabase dependencies while the new runtime is constructed.
 6. **Orchestration Enablement (Deferred):** Once the above is stable, revisit orchestration modes, UI affordances, and analytics before final cutover.
 7. **Cutover Planning:** After validation, migrate legacy agents and retire old code paths.
 

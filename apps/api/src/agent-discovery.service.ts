@@ -3,10 +3,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import {
-  AgentConfigurationService,
-  AgentConfigurationData,
-} from './agents/demo/specialists/agent_creator/services/agent-configuration.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -32,10 +28,6 @@ export interface DiscoveredAgent {
     category?: string;
     version?: string;
   };
-  // Database agent fields
-  isDatabaseAgent?: boolean;
-  databaseId?: string;
-  agentConfiguration?: AgentConfigurationData;
 }
 
 export interface AgentHierarchy {
@@ -69,13 +61,13 @@ export class AgentDiscoveryService {
   private hierarchyCache: Map<string, AgentHierarchy> = new Map();
   private namespaceConfigs: AgentNamespaceConfig[] = [];
 
-  constructor(private agentConfigService?: AgentConfigurationService) {
+  constructor() {
     this.logger.log('🔍 AgentDiscoveryService initialized');
     this.namespaceConfigs = this.parseNamespaceConfigs();
   }
 
   /**
-   * Discover all agent services from both filesystem and database
+   * Discover all agent services from filesystem sources
    */
   async discoverAgents(): Promise<DiscoveredAgent[]> {
     this.logger.log('🔍 Starting hybrid agent discovery...');
@@ -88,22 +80,11 @@ export class AgentDiscoveryService {
     // First, discover filesystem agents
     await this.discoverFilesystemAgents();
 
-    // Then, discover database agents
-    await this.discoverDatabaseAgents();
-
     // Load agent configurations and build hierarchy
     await this.loadAgentConfigurations();
     this.buildAgentHierarchy();
-
-    const filesystemCount = this.discoveredAgents.filter(
-      (a) => !a.isDatabaseAgent,
-    ).length;
-    const databaseCount = this.discoveredAgents.filter(
-      (a) => a.isDatabaseAgent,
-    ).length;
-
     this.logger.log(
-      `✅ Discovered ${this.discoveredAgents.length} agents (${filesystemCount} filesystem, ${databaseCount} database)`,
+      `✅ Discovered ${this.discoveredAgents.length} agents from filesystem`,
     );
     return this.discoveredAgents;
   }
@@ -195,56 +176,6 @@ export class AgentDiscoveryService {
 
     // Discover agent functions after service discovery
     this.discoverAgentFunctions();
-  }
-
-  /**
-   * Discover database-based agents
-   */
-  private async discoverDatabaseAgents(): Promise<void> {
-    if (!this.agentConfigService) {
-      this.logger.debug(
-        '⏭️ AgentConfigurationService not available, skipping database agents',
-      );
-      return;
-    }
-
-    try {
-      this.logger.log('🗄️ Discovering database agents...');
-
-      const databaseAgents =
-        await this.agentConfigService.listAgentConfigurations();
-
-      for (const agentConfig of databaseAgents) {
-        const namespaceKey =
-          (agentConfig.metadata?.namespace as string) || 'database';
-        const relativePath = `${agentConfig.department}/${agentConfig.agentId}`;
-        const agent: DiscoveredAgent = {
-          name: agentConfig.agentId,
-          type: agentConfig.department,
-          namespace: namespaceKey,
-          relativePath,
-          namespacedPath: `${namespaceKey}/${relativePath}`,
-          path: relativePath,
-          servicePath: `virtual://database/${agentConfig.agentId}`, // Virtual path for database agents
-          isDatabaseAgent: true,
-          databaseId: agentConfig.agentId,
-          agentConfiguration: agentConfig,
-          metadata: {
-            displayName: agentConfig.displayName,
-            description: agentConfig.primaryPurpose,
-            category: agentConfig.department,
-            version: '1.0.0',
-          },
-        };
-
-        this.discoveredAgents.push(agent);
-        this.logger.debug(`🗄️ Found database agent: ${agent.path}`);
-      }
-
-      this.logger.log(`🗄️ Discovered ${databaseAgents.length} database agents`);
-    } catch (error) {
-      this.logger.warn('⚠️ Failed to discover database agents:', error);
-    }
   }
 
   /**
@@ -407,25 +338,6 @@ export class AgentDiscoveryService {
 
       return pathMatches;
     });
-  }
-
-  /**
-   * Check if an agent is stored in the database
-   */
-  isDatabaseAgent(agentPath: string, namespace?: string): boolean {
-    const agent = this.getAgentByPath(agentPath, namespace);
-    return agent?.isDatabaseAgent || false;
-  }
-
-  /**
-   * Get database configuration for an agent
-   */
-  getDatabaseConfiguration(
-    agentPath: string,
-    namespace?: string,
-  ): AgentConfigurationData | undefined {
-    const agent = this.getAgentByPath(agentPath, namespace);
-    return agent?.agentConfiguration;
   }
 
   /**
