@@ -144,7 +144,7 @@ export class GoogleLLMService extends BaseLLMService {
 
       // Make Google API call
       const result = await model.generateContent(prompt);
-      const response = await result.response;
+      const response = result.response;
 
       if (!response.text()) {
         throw new Error('No content in Google response');

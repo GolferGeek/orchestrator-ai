@@ -394,7 +394,7 @@ export class TasksService {
     // Also cancel in lifecycle service if active
     const lifecycleTask = this.taskLifecycleService.getTaskById(taskId);
     if (lifecycleTask && lifecycleTask.status === TaskStatus.RUNNING) {
-      this.taskLifecycleService.cancelTask(taskId);
+      void this.taskLifecycleService.cancelTask(taskId);
     }
   }
 

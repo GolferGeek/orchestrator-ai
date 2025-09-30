@@ -461,15 +461,19 @@ export class TaskLifecycleService {
    */
   private startCleanupInterval(): void {
     if (this.config.cleanupInterval && this.config.cleanupInterval > 0) {
-      this.cleanupInterval = setInterval(async () => {
-        try {
-          // Cleanup tasks older than 1 hour
-          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-          await this.cleanupTasks(oneHourAgo);
+      this.cleanupInterval = setInterval(() => {
+        void (async () => {
+          try {
+            // Cleanup tasks older than 1 hour
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            await this.cleanupTasks(oneHourAgo);
 
-          // Cleanup stuck tasks
-          await this.cleanupStuckTasks();
-        } catch (_error) {}
+            // Cleanup stuck tasks
+            await this.cleanupStuckTasks();
+          } catch {
+            // Ignore cleanup errors
+          }
+        })();
       }, this.config.cleanupInterval);
     }
   }

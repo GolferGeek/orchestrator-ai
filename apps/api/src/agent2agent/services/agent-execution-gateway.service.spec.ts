@@ -198,6 +198,12 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     expect(planEngine.generateDraft).toHaveBeenCalled();
+    const draftArg = planEngine.generateDraft.mock.calls[0]?.[0]?.draftPlan;
+    expect(draftArg?._meta?.agent).toMatchObject({
+      id: 'agent-id',
+      slug: 'agent-1',
+      organizationSlug: 'demo',
+    });
     expect(result.mode).toBe(AgentTaskMode.PLAN);
     expect(result.payload?.metadata).toMatchObject({
       agentId: 'agent-id',
@@ -262,6 +268,10 @@ describe('AgentExecutionGateway', () => {
       metadata: {
         conversationId: 'conv-1',
         planVersion: 1,
+        agentId: 'agent-id',
+        agentSlug: 'agent-1',
+        agentType: 'specialist',
+        organizationSlug: 'demo',
       },
     });
     expect(result.mode).toBe(AgentTaskMode.BUILD);
@@ -270,6 +280,10 @@ describe('AgentExecutionGateway', () => {
       planId: 'plan-1',
       planVersion: 1,
       conversationId: 'conv-1',
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      organizationSlug: 'demo',
     });
   });
 
@@ -510,11 +524,19 @@ describe('AgentExecutionGateway', () => {
       },
       metadata: {
         orchestrationId: 'orch-1',
+        agentId: 'agent-id',
+        agentSlug: 'agent-1',
+        agentType: 'specialist',
+        organizationSlug: 'demo',
       },
     });
     expect(result.payload?.metadata).toMatchObject({
       originType: 'saved_orchestration',
       orchestration: { slug: 'recipe-alpha' },
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      organizationSlug: 'demo',
     });
   });
 
@@ -552,6 +574,13 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     expect(planEngine.generateDraft).toHaveBeenCalled();
+    const createDraftArg =
+      planEngine.generateDraft.mock.calls[0]?.[0]?.draftPlan;
+    expect(createDraftArg?._meta?.agent).toMatchObject({
+      id: 'agent-id',
+      slug: 'agent-1',
+      organizationSlug: 'demo',
+    });
     expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_CREATE);
     expect(result.payload?.content).toMatchObject({ id: 'plan-1' });
   });
@@ -614,6 +643,10 @@ describe('AgentExecutionGateway', () => {
       metadata: {
         conversationId: 'conv-1',
         planVersion: 2,
+        agentId: 'agent-id',
+        agentSlug: 'agent-1',
+        agentType: 'specialist',
+        organizationSlug: 'demo',
       },
     });
     expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_EXECUTE);
@@ -621,6 +654,10 @@ describe('AgentExecutionGateway', () => {
       planId: 'plan-2',
       planVersion: 2,
       conversationId: 'conv-1',
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      organizationSlug: 'demo',
     });
   });
 
@@ -776,6 +813,11 @@ describe('AgentExecutionGateway', () => {
 
     expect(planEngine.generateDraft).toHaveBeenCalled();
     expect(draft.mode).toBe(AgentTaskMode.ORCHESTRATE_CREATE);
+    expect(draft.payload?.metadata).toMatchObject({
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      organizationSlug: 'demo',
+    });
 
     const run = await gateway.execute('demo', 'agent-1', {
       mode: AgentTaskMode.ORCHESTRATE_EXECUTE,
@@ -792,9 +834,22 @@ describe('AgentExecutionGateway', () => {
       metadata: {
         conversationId: 'conv-123',
         planVersion: 3,
+        agentId: 'agent-id',
+        agentSlug: 'agent-1',
+        agentType: 'specialist',
+        organizationSlug: 'demo',
       },
     });
     expect(run.mode).toBe(AgentTaskMode.ORCHESTRATE_EXECUTE);
+    expect(run.payload?.metadata).toMatchObject({
+      planId: 'plan-123',
+      planVersion: 3,
+      conversationId: 'conv-123',
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      organizationSlug: 'demo',
+    });
 
     const continued = await gateway.execute('demo', 'agent-1', {
       mode: AgentTaskMode.ORCHESTRATE_CONTINUE,

@@ -82,7 +82,12 @@ export class AgentExecutionGateway {
           request,
         );
       case AgentTaskMode.ORCHESTRATE_EXECUTE:
-        return this.handleOrchestrateExecute(organizationSlug, agent, request);
+        return this.handleOrchestrateExecute(
+          organizationSlug,
+          agent,
+          definition,
+          request,
+        );
       case AgentTaskMode.ORCHESTRATE_CONTINUE:
         return this.handleOrchestrateContinue(organizationSlug, request);
       case AgentTaskMode.ORCHESTRATE_SAVE_RECIPE:
@@ -111,9 +116,12 @@ export class AgentExecutionGateway {
       );
     }
 
-    const draftPlan = request.payload?.planDraft ?? {
-      summary: request.userMessage ?? 'Plan draft not provided',
-    };
+    const draftPlan = this.attachAgentMetadata(
+      request.payload?.planDraft ?? {
+        summary: request.userMessage ?? 'Plan draft not provided',
+      },
+      definition,
+    );
 
     const metadata = this.collectMetadata(request);
 
@@ -146,6 +154,7 @@ export class AgentExecutionGateway {
     const orchestrationResponse = await this.startOrchestrationFromRequest(
       organizationSlug,
       agent,
+      definition,
       request,
       AgentTaskMode.BUILD,
       { requireTarget: false },
@@ -178,9 +187,12 @@ export class AgentExecutionGateway {
       );
     }
 
-    const draftPlan = request.payload?.planDraft ?? {
-      summary: request.userMessage ?? 'Orchestration draft not provided',
-    };
+    const draftPlan = this.attachAgentMetadata(
+      request.payload?.planDraft ?? {
+        summary: request.userMessage ?? 'Orchestration draft not provided',
+      },
+      definition,
+    );
 
     const metadata = this.collectMetadata(request);
 
@@ -207,11 +219,13 @@ export class AgentExecutionGateway {
   private async handleOrchestrateExecute(
     organizationSlug: string | null,
     agent: AgentRecord,
+    definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const orchestrationResponse = await this.startOrchestrationFromRequest(
       organizationSlug,
       agent,
+      definition,
       request,
       AgentTaskMode.ORCHESTRATE_EXECUTE,
       { requireTarget: true },
@@ -304,6 +318,7 @@ export class AgentExecutionGateway {
   private async startOrchestrationFromRequest(
     organizationSlug: string | null,
     agent: AgentRecord,
+    definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     responseMode: AgentTaskMode,
     options: { requireTarget: boolean },
@@ -323,6 +338,10 @@ export class AgentExecutionGateway {
       );
       const runMetadata = {
         ...metadata,
+        agentId: definition.id,
+        agentSlug: definition.slug,
+        agentType: definition.agentType,
+        organizationSlug: definition.organizationSlug,
         conversationId: plan.conversation_id,
         planVersion: plan.version,
       };
@@ -343,6 +362,10 @@ export class AgentExecutionGateway {
           planVersion: plan.version,
           conversationId: plan.conversation_id,
           promptInputs,
+          agentId: definition.id,
+          agentSlug: definition.slug,
+          agentType: definition.agentType,
+          organizationSlug: definition.organizationSlug,
         },
       });
     }
@@ -372,6 +395,10 @@ export class AgentExecutionGateway {
         metadata: {
           ...metadata,
           orchestrationId: orchestration.id,
+          agentId: definition.id,
+          agentSlug: definition.slug,
+          agentType: definition.agentType,
+          organizationSlug: definition.organizationSlug,
         },
       });
 
@@ -384,6 +411,10 @@ export class AgentExecutionGateway {
             slug: orchestration.slug,
           },
           promptInputs: resolvedInputs,
+          agentId: definition.id,
+          agentSlug: definition.slug,
+          agentType: definition.agentType,
+          organizationSlug: definition.organizationSlug,
         },
       });
     }
@@ -459,6 +490,31 @@ export class AgentExecutionGateway {
     }
 
     return plan;
+  }
+
+  private attachAgentMetadata(
+    draft: Record<string, any>,
+    definition: AgentRuntimeDefinition,
+  ): Record<string, any> {
+    if (!draft || typeof draft !== 'object') {
+      return draft;
+    }
+
+    const enriched = { ...draft };
+    const existingMeta = (enriched as any)._meta ?? {};
+    (enriched as any)._meta = {
+      ...existingMeta,
+      agent: {
+        id: definition.id,
+        slug: definition.slug,
+        displayName: definition.displayName,
+        agentType: definition.agentType,
+        modeProfile: definition.modeProfile,
+        organizationSlug: definition.organizationSlug,
+      },
+    };
+
+    return enriched;
   }
 
   private collectMetadata(request: TaskRequestDto): Record<string, any> {
