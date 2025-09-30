@@ -477,4 +477,57 @@ describe('AgentExecutionGateway (runtime integration)', () => {
     expect(routingPolicy.evaluate).toHaveBeenCalled();
     expect(modeRouter.execute).not.toHaveBeenCalled();
   });
+
+  it('creates plan drafts with agent metadata enrichment', async () => {
+    const createdPlan = {
+      id: 'plan-xyz',
+      conversation_id: conversationId,
+      organization_slug: organizationSlug,
+      agent_slug: agentSlug,
+      summary: 'Draft summary',
+      status: 'draft',
+      plan_json: { phases: [], _meta: { agent: { slug: agentSlug } } },
+      created_by: 'user-789',
+      approved_by: null,
+      version: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as const;
+
+    const { gateway, planEngine } = buildGateway({
+      planEngine: {
+        generateDraft: jest.fn().mockResolvedValue(createdPlan),
+      },
+    });
+
+    const request: TaskRequestDto = {
+      mode: AgentTaskMode.PLAN,
+      conversationId,
+      userMessage: 'Draft a plan for kickoff',
+      payload: {
+        summary: 'Draft summary',
+        planDraft: { phases: [] },
+        metadata: { createdBy: 'user-789', priority: 'high' },
+      },
+    };
+
+    const response = await gateway.execute(organizationSlug, agentSlug, request);
+
+    expect(planEngine.generateDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId,
+        organizationSlug,
+        agentSlug,
+        summary: 'Draft summary',
+        draftPlan: expect.objectContaining({ phases: [] }),
+        agentMetadata: expect.objectContaining({
+          slug: agentSlug,
+          organizationSlug,
+        }),
+      }),
+    );
+    expect(response.success).toBe(true);
+    expect(response.mode).toBe(AgentTaskMode.PLAN);
+    expect(response.payload?.content).toBe(createdPlan);
+  });
 });
