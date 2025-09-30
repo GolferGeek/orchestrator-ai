@@ -69,6 +69,7 @@
 ---
 
 - **2025-01-19:** Controller now assigns request IDs to every call (stored in metadata/logs) for end-to-end correlation. (Codex)
+- **2025-01-19:** `AgentExecutionGateway` now resolves agents via `AgentRegistryService` (cached Supabase lookup). (Codex)
 - **2025-01-19:** Added structured logging for controller requests (org/agent/mode + JSON-RPC metadata). (Codex)
 - **2025-01-19:** Controller now returns JSON-RPC error envelopes (code mapping for 4xx/5xx) to keep HTTP 200 responses spec-compliant. (Codex)
 - **2025-01-19:** PRD updated with JSON-RPC request/response contract (method mapping, envelope semantics) and auth/logging details. (Codex)

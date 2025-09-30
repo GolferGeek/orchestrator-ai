@@ -3,7 +3,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AgentsRepository } from '../../agent-platform/repositories/agents.repository';
 import { AgentOrchestrationsRepository } from '../../agent-platform/repositories/agent-orchestrations.repository';
 import { AgentOrchestrationRecord } from '../../agent-platform/interfaces/agent-orchestration-record.interface';
 import { AgentRecord } from '../../agent-platform/interfaces/agent-record.interface';
@@ -14,11 +13,12 @@ import { AgentModeRouterService } from './agent-mode-router.service';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { PlanEngineService } from '../../agent-platform/services/plan-engine.service';
 import { OrchestrationRunnerService } from '../../agent-platform/services/orchestration-runner.service';
+import { AgentRegistryService } from '../../agent-platform/services/agent-registry.service';
 
 @Injectable()
 export class AgentExecutionGateway {
   constructor(
-    private readonly agentsRepository: AgentsRepository,
+    private readonly agentRegistry: AgentRegistryService,
     private readonly routingPolicy: RoutingPolicyAdapterService,
     private readonly modeRouter: AgentModeRouterService,
     private readonly planEngine: PlanEngineService,
@@ -31,7 +31,7 @@ export class AgentExecutionGateway {
     agentSlug: string,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
-    const agent = await this.agentsRepository.findBySlug(
+    const agent = await this.agentRegistry.getAgent(
       organizationSlug,
       agentSlug,
     );

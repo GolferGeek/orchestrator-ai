@@ -1,17 +1,17 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AgentExecutionGateway } from './agent-execution-gateway.service';
-import { AgentsRepository } from '@agent-platform/repositories/agents.repository';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { AgentTaskMode } from '../dto/task-request.dto';
 import { PlanEngineService } from '@agent-platform/services/plan-engine.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
+import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 
 const createMocks = () => {
-  const agentsRepo = {
-    findBySlug: jest.fn(),
-  } as unknown as jest.Mocked<AgentsRepository>;
+  const registry = {
+    getAgent: jest.fn(),
+  } as unknown as jest.Mocked<AgentRegistryService>;
   const routing = {
     evaluate: jest.fn(),
   } as unknown as jest.Mocked<RoutingPolicyAdapterService>;
@@ -33,7 +33,7 @@ const createMocks = () => {
   } as unknown as jest.Mocked<AgentOrchestrationsRepository>;
 
   return {
-    agentsRepo,
+    registry,
     routing,
     modeRouter,
     planEngine,
@@ -50,21 +50,21 @@ describe('AgentExecutionGateway', () => {
 
   it('returns human response when policy blocks execution', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({
       showstopper: true,
       humanMessage: 'blocked',
     });
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -80,14 +80,14 @@ describe('AgentExecutionGateway', () => {
 
   it('delegates to mode router for converse', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({
       showstopper: false,
       metadata: { route: 'ok' },
@@ -98,7 +98,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -113,19 +113,19 @@ describe('AgentExecutionGateway', () => {
 
   it('handles plan mode via plan engine', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     planEngine.generateDraft.mockResolvedValue({ id: 'plan-1' } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -145,14 +145,14 @@ describe('AgentExecutionGateway', () => {
 
   it('handles build mode via orchestration runner', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     const planRecord = {
       id: 'plan-1',
@@ -172,7 +172,7 @@ describe('AgentExecutionGateway', () => {
     orchestrationRunner.startRun.mockResolvedValue({ id: 'run-1' } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -209,19 +209,19 @@ describe('AgentExecutionGateway', () => {
 
   it('throws when plan cannot be found for execution', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     planEngine.getPlan.mockResolvedValue(null as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -240,14 +240,14 @@ describe('AgentExecutionGateway', () => {
 
   it('throws when plan belongs to a different agent', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     planEngine.getPlan.mockResolvedValue({
       id: 'plan-1',
@@ -265,7 +265,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -284,14 +284,14 @@ describe('AgentExecutionGateway', () => {
 
   it('throws when plan conversation does not match request', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     planEngine.getPlan.mockResolvedValue({
       id: 'plan-1',
@@ -309,7 +309,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -328,14 +328,14 @@ describe('AgentExecutionGateway', () => {
 
   it('throws when plan organization differs from request context', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     planEngine.getPlan.mockResolvedValue({
       id: 'plan-1',
@@ -353,7 +353,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -372,14 +372,14 @@ describe('AgentExecutionGateway', () => {
 
   it('handles saved orchestration execution with prompt validation', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     agentOrchestrations.findBySlug.mockResolvedValue({
       id: 'orch-1',
@@ -397,7 +397,7 @@ describe('AgentExecutionGateway', () => {
     orchestrationRunner.startRun.mockResolvedValue({ id: 'run-2' } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -444,14 +444,14 @@ describe('AgentExecutionGateway', () => {
 
   it('creates orchestration drafts through new mode', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     planEngine.generateDraft.mockResolvedValue({
       id: 'plan-1',
@@ -459,7 +459,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -480,14 +480,14 @@ describe('AgentExecutionGateway', () => {
 
   it('executes orchestration via new mode', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     const planRecord = {
       id: 'plan-2',
@@ -510,7 +510,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -546,14 +546,14 @@ describe('AgentExecutionGateway', () => {
 
   it('continues orchestration run', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     orchestrationRunner.updateRun.mockResolvedValue({
       id: 'run-1',
@@ -561,7 +561,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -591,14 +591,14 @@ describe('AgentExecutionGateway', () => {
 
   it('saves orchestration recipe', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     agentOrchestrations.upsert.mockResolvedValue({
       id: 'orch-1',
@@ -606,7 +606,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -634,7 +634,7 @@ describe('AgentExecutionGateway', () => {
 
   it('handles orchestration create → execute → continue flow', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -642,7 +642,7 @@ describe('AgentExecutionGateway', () => {
       agentOrchestrations,
     } = createMocks();
 
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     planEngine.generateDraft.mockResolvedValue({
       id: 'plan-123',
@@ -674,7 +674,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -732,14 +732,14 @@ describe('AgentExecutionGateway', () => {
 
   it('throws when required prompt parameter missing', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     agentOrchestrations.findBySlug.mockResolvedValue({
       id: 'orch-1',
@@ -753,7 +753,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
@@ -775,14 +775,14 @@ describe('AgentExecutionGateway', () => {
 
   it('falls back to single-call execution when no plan or recipe provided', async () => {
     const {
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
     } = createMocks();
-    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
     modeRouter.execute.mockResolvedValue({
       success: true,
@@ -791,7 +791,7 @@ describe('AgentExecutionGateway', () => {
     } as any);
 
     const gateway = new AgentExecutionGateway(
-      agentsRepo,
+      registry,
       routing,
       modeRouter,
       planEngine,

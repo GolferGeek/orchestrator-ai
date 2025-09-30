@@ -58,8 +58,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       } catch (authError) {
         // Don't throw - allow the agent to initialize but mark as unauthenticated
       }
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -77,8 +75,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
 
       // Forward the task request to the external Hiverarchy agent
       return await this.executeTaskWithAuth('processTask', hiverarchyParams);
-    } catch (error) {
-      throw error;
     }
   }
 
