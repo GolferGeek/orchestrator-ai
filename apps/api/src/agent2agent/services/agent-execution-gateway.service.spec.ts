@@ -7,11 +7,63 @@ import { PlanEngineService } from '@agent-platform/services/plan-engine.service'
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
+import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 
 const createMocks = () => {
   const registry = {
     getAgent: jest.fn(),
   } as unknown as jest.Mocked<AgentRegistryService>;
+  const runtimeDefinitions = {
+    buildDefinition: jest.fn().mockReturnValue({
+      id: 'agent-id',
+      slug: 'agent-1',
+      organizationSlug: 'demo',
+      displayName: 'Agent 1',
+      description: null,
+      agentType: 'specialist',
+      modeProfile: 'full_cycle',
+      status: 'active',
+      metadata: {
+        name: 'Agent 1',
+        displayName: 'Agent 1',
+        description: null,
+        category: null,
+        version: '1.0.0',
+        type: 'specialist',
+        provider: null,
+        tags: [],
+        raw: null,
+      },
+      hierarchy: undefined,
+      capabilities: [],
+      skills: [],
+      communication: { inputModes: [], outputModes: [] },
+      execution: {
+        modeProfile: 'full_cycle',
+        canConverse: true,
+        canPlan: true,
+        canBuild: true,
+        requiresHumanGate: false,
+        executionProfile: null,
+        timeoutSeconds: null,
+      },
+      transport: undefined,
+      llm: undefined,
+      prompts: {
+        system: undefined,
+        plan: undefined,
+        build: undefined,
+        human: undefined,
+        additional: undefined,
+      },
+      context: null,
+      config: null,
+      agentCard: null,
+      rawDescriptor: null,
+      record: {} as any,
+    } as AgentRuntimeDefinition),
+  } as unknown as jest.Mocked<AgentRuntimeDefinitionService>;
   const routing = {
     evaluate: jest.fn(),
   } as unknown as jest.Mocked<RoutingPolicyAdapterService>;
@@ -34,6 +86,7 @@ const createMocks = () => {
 
   return {
     registry,
+    runtimeDefinitions,
     routing,
     modeRouter,
     planEngine,
@@ -41,6 +94,19 @@ const createMocks = () => {
     agentOrchestrations,
   };
 };
+
+const instantiateGateway = (
+  mocks: ReturnType<typeof createMocks>,
+) =>
+  new AgentExecutionGateway(
+    mocks.registry,
+    mocks.runtimeDefinitions,
+    mocks.routing,
+    mocks.modeRouter,
+    mocks.planEngine,
+    mocks.orchestrationRunner,
+    mocks.agentOrchestrations,
+  );
 
 describe('AgentExecutionGateway', () => {
   const request = {

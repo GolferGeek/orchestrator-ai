@@ -14,11 +14,14 @@ import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { PlanEngineService } from '@agent-platform/services/plan-engine.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
+import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 
 @Injectable()
 export class AgentExecutionGateway {
   constructor(
     private readonly agentRegistry: AgentRegistryService,
+    private readonly runtimeDefinitions: AgentRuntimeDefinitionService,
     private readonly routingPolicy: RoutingPolicyAdapterService,
     private readonly modeRouter: AgentModeRouterService,
     private readonly planEngine: PlanEngineService,
@@ -40,6 +43,8 @@ export class AgentExecutionGateway {
       throw new NotFoundException('Agent not found');
     }
 
+    const definition = this.runtimeDefinitions.buildDefinition(agent);
+
     const assessment = await this.routingPolicy.evaluate(request, agent);
 
     if (assessment.showstopper) {
@@ -55,20 +60,27 @@ export class AgentExecutionGateway {
           organizationSlug,
           agentSlug: agent.slug,
           agent,
+          definition,
           request,
           routingMetadata: assessment.metadata,
         });
       case AgentTaskMode.PLAN:
-        return this.handlePlan(organizationSlug, agent, request);
+        return this.handlePlan(organizationSlug, agent, definition, request);
       case AgentTaskMode.BUILD:
         return this.handleBuild(
           organizationSlug,
           agent,
+          definition,
           request,
           assessment.metadata,
         );
       case AgentTaskMode.ORCHESTRATE_CREATE:
-        return this.handleOrchestrateCreate(organizationSlug, agent, request);
+        return this.handleOrchestrateCreate(
+          organizationSlug,
+          agent,
+          definition,
+          request,
+        );
       case AgentTaskMode.ORCHESTRATE_EXECUTE:
         return this.handleOrchestrateExecute(organizationSlug, agent, request);
       case AgentTaskMode.ORCHESTRATE_CONTINUE:
@@ -89,6 +101,7 @@ export class AgentExecutionGateway {
   private async handlePlan(
     organizationSlug: string | null,
     agent: AgentRecord,
+    definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const conversationId = request.conversationId;
@@ -115,12 +128,18 @@ export class AgentExecutionGateway {
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: planRecord,
+      metadata: {
+        agentId: definition.id,
+        agentSlug: definition.slug,
+        organizationSlug,
+      },
     });
   }
 
   private async handleBuild(
     organizationSlug: string | null,
     agent: AgentRecord,
+    definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     routingMetadata?: Record<string, any>,
   ): Promise<TaskResponseDto> {
@@ -140,6 +159,7 @@ export class AgentExecutionGateway {
       organizationSlug,
       agentSlug: agent.slug,
       agent,
+      definition,
       request,
       routingMetadata,
     });
@@ -148,6 +168,7 @@ export class AgentExecutionGateway {
   private async handleOrchestrateCreate(
     organizationSlug: string | null,
     agent: AgentRecord,
+    definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const conversationId = request.conversationId;
@@ -176,6 +197,9 @@ export class AgentExecutionGateway {
       content: planRecord,
       metadata: {
         mode: 'create',
+        agentId: definition.id,
+        agentSlug: definition.slug,
+        organizationSlug,
       },
     });
   }

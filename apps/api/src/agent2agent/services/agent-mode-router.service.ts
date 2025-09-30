@@ -16,6 +16,7 @@ export interface AgentExecutionContext {
   organizationSlug?: string | null;
   agentSlug?: string;
   agent?: AgentRecord;
+  definition?: AgentRuntimeDefinition;
   request: TaskRequestDto;
   routingMetadata?: Record<string, any>;
 }
@@ -362,7 +363,9 @@ export class AgentModeRouterService {
       return null;
     }
 
-    const definition = this.runtimeDefinitions.buildDefinition(agentRecord);
+    const definition =
+      context.definition ??
+      this.runtimeDefinitions.buildDefinition(agentRecord);
 
     return {
       ...context,

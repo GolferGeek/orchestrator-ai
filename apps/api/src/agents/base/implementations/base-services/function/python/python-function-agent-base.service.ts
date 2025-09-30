@@ -298,7 +298,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       });
 
       // Handle process completion
-      pythonProcess.on('close', async (code) => {
+      pythonProcess.on('close', (code) => {
         if (code !== 0) {
           this.pythonLogger.error(
             `❌ Python script failed with code ${code}. Error: ${stderr}`,

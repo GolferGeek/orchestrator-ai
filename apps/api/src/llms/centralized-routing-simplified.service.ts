@@ -79,7 +79,7 @@ export class SimplifiedCentralizedRoutingService {
       let model = options.model || this.getDefaultModel(provider);
 
       // Check sovereign mode
-      const sovereignMode = await this.featureFlagService.isEnabled(
+      const sovereignMode = this.featureFlagService.isEnabled(
         'sovereign-mode',
         { userId: options.userId },
       );

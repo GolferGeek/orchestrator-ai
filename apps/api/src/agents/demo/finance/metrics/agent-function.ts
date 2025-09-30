@@ -42,7 +42,7 @@ export async function execute(
     }
 
     // Test MCP service health
-    const isAvailable = await mcpService.isAvailable();
+    const isAvailable = mcpService.isAvailable();
     console.log('[METRICS-AGENT] MCP service available:', isAvailable);
     if (!isAvailable) {
       throw new Error('MCP server is not available or not responding');

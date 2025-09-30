@@ -54,6 +54,7 @@ describe('AgentModeRouterService', () => {
   let llmFactory: jest.Mocked<LLMServiceFactory>;
   let agentRegistry: jest.Mocked<AgentRegistryService>;
   let runtimeDefinitions: jest.Mocked<AgentRuntimeDefinitionService>;
+  let definition: AgentRuntimeDefinition;
   let service: AgentModeRouterService;
 
   beforeEach(() => {
@@ -63,7 +64,7 @@ describe('AgentModeRouterService', () => {
       invalidate: jest.fn(),
       clearAll: jest.fn(),
     } as unknown as jest.Mocked<AgentRegistryService>;
-    const definition: AgentRuntimeDefinition = {
+    definition = {
       id: baseAgent.id,
       slug: baseAgent.slug,
       organizationSlug: baseAgent.organization_slug,
@@ -168,6 +169,7 @@ describe('AgentModeRouterService', () => {
     );
 
     expect(agentRegistry.getAgent).not.toHaveBeenCalled();
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
     expect(llmFactory.generateResponse).toHaveBeenCalled();
     expect(result.success).toBe(true);
     expect(result.payload?.content?.message).toBe('Hello there!');
@@ -195,6 +197,7 @@ describe('AgentModeRouterService', () => {
 
     expect(result.success).toBe(false);
     expect(result.payload?.metadata?.reason).toMatch(/Routing decision/);
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
   });
 
   it('returns failure when LLM generation throws', async () => {
@@ -212,6 +215,8 @@ describe('AgentModeRouterService', () => {
       'Failed to generate response',
     );
     expect(agentRegistry.getAgent).not.toHaveBeenCalled();
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
   });
 
   it('generates build output when orchestration fallback occurs', async () => {
@@ -231,6 +236,7 @@ describe('AgentModeRouterService', () => {
     );
 
     expect(agentRegistry.getAgent).not.toHaveBeenCalled();
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
     expect(llmFactory.generateResponse).toHaveBeenCalled();
     expect(result.success).toBe(true);
     expect(result.payload?.content?.status).toBe('build_completed');
@@ -272,6 +278,7 @@ describe('AgentModeRouterService', () => {
       requestId: 'top-req',
       providerName: 'provider-x',
     });
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
   });
 
   it('passes session id through to LLM params when provided', async () => {
@@ -288,6 +295,7 @@ describe('AgentModeRouterService', () => {
     expect(agentRegistry.getAgent).not.toHaveBeenCalled();
     const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
     expect(params?.sessionId).toBe('session-123');
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
   });
 
   it('returns failure if build lacks routing metadata', async () => {
@@ -355,9 +363,27 @@ describe('AgentModeRouterService', () => {
       'acme',
       'missing-agent',
     );
+    expect(runtimeDefinitions.buildDefinition).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
     expect(result.payload?.metadata?.reason).toBe(
       'Agent record unavailable for execution',
     );
+  });
+
+  it('reuses provided runtime definition without rebuilding', async () => {
+    llmFactory.generateResponse.mockResolvedValue(createResponse('ok'));
+    runtimeDefinitions.buildDefinition.mockClear();
+
+    await service.execute({
+      agent: baseAgent,
+      definition: { ...definition },
+      request: {
+        mode: AgentTaskMode.CONVERSE,
+        userMessage: 'Hello',
+      } as TaskRequestDto,
+      routingMetadata: routingDecision,
+    });
+
+    expect(runtimeDefinitions.buildDefinition).not.toHaveBeenCalled();
   });
 });

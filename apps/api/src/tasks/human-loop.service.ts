@@ -166,19 +166,21 @@ export class HumanLoopService {
       }
 
       // Poll for completion
-      checkInterval = setInterval(async () => {
-        try {
-          const humanInput = await this.getHumanInputById(inputId);
-          if (humanInput && humanInput.status !== 'pending') {
+      checkInterval = setInterval(() => {
+        void (async () => {
+          try {
+            const humanInput = await this.getHumanInputById(inputId);
+            if (humanInput && humanInput.status !== 'pending') {
+              clearTimeout(timeoutHandle);
+              clearInterval(checkInterval);
+              resolve(humanInput);
+            }
+          } catch (error) {
             clearTimeout(timeoutHandle);
             clearInterval(checkInterval);
-            resolve(humanInput);
+            reject(error);
           }
-        } catch (error) {
-          clearTimeout(timeoutHandle);
-          clearInterval(checkInterval);
-          reject(error);
-        }
+        })();
       }, 1000); // Check every second
     });
   }

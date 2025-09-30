@@ -286,9 +286,9 @@ export class AgentRegistrationService implements OnModuleDestroy {
       this.stopHeartbeat();
     }
 
-    this.heartbeatInterval = setInterval(async () => {
+    this.heartbeatInterval = setInterval(() => {
       const metrics = getMetrics ? getMetrics() : undefined;
-      await this.sendHeartbeat(agentInfo.id, metrics);
+      void this.sendHeartbeat(agentInfo.id, metrics);
     }, this.config.heartbeatInterval);
   }
 
