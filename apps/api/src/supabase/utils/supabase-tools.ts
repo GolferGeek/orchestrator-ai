@@ -111,9 +111,9 @@ async function createOrchestratorSqlDatabase(): Promise<any> {
           }
 
           return data;
-        } catch (rpcError) {
+        } catch (_rpcError) {
           throw new Error(
-            `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
+            `SQL execution failed: ${_rpcError instanceof Error ? _rpcError.message : 'Unknown error'}`,
           );
         }
       },
@@ -153,9 +153,9 @@ async function createCompanySqlDatabase(): Promise<any> {
           }
 
           return data;
-        } catch (rpcError) {
+        } catch (_rpcError) {
           throw new Error(
-            `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
+            `SQL execution failed: ${_rpcError instanceof Error ? _rpcError.message : 'Unknown error'}`,
           );
         }
       },
@@ -248,10 +248,10 @@ async function executeQueryOnCompanyDB(
     throw new Error(
       'Complex query execution not implemented for company database',
     );
-  } catch (err) {
+  } catch (_err) {
     return {
       data: null,
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: _err instanceof Error ? _err.message : 'Unknown error',
     };
   }
 }
@@ -317,9 +317,9 @@ export async function executeOrchestratorSQL(query: string): Promise<any> {
     }
 
     return data;
-  } catch (rpcError) {
+  } catch (_rpcError) {
     throw new Error(
-      `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
+      `SQL execution failed: ${_rpcError instanceof Error ? _rpcError.message : 'Unknown error'}`,
     );
   }
 }
@@ -332,15 +332,15 @@ export async function executeCompanySQL(query: string): Promise<any> {
   const client = getCompanyClient();
 
   try {
-    const result = await executeQueryOnCompanyDB(client, query);
+    const _result = await executeQueryOnCompanyDB(client, query);
     if (result.error) {
       throw new Error(`SQL execution failed: ${result.error}`);
     }
 
     return result.data;
-  } catch (sqlError) {
+  } catch (_sqlError) {
     throw new Error(
-      `SQL execution failed: ${sqlError instanceof Error ? sqlError.message : 'Unknown error'}`,
+      `SQL execution failed: ${_sqlError instanceof Error ? _sqlError.message : 'Unknown error'}`,
     );
   }
 }
@@ -414,10 +414,10 @@ export async function generateAndExecuteCompanySQL(
         if (options.maxRows && result.length > options.maxRows) {
           result = result.slice(0, options.maxRows);
         }
-      } catch (executionError) {
+      } catch (_executionError) {
         error =
-          executionError instanceof Error
-            ? executionError.message
+          _executionError instanceof Error
+            ? _executionError.message
             : 'Execution failed';
       }
     }
@@ -435,7 +435,7 @@ export async function generateAndExecuteCompanySQL(
         model: options.model || 'claude-3-5-sonnet',
       },
     };
-  } catch (generationError) {
+  } catch (_generationError) {
     const executionTime = Date.now() - startTime;
     return {
       sql: '',
@@ -497,10 +497,10 @@ export async function generateAndExecuteOrchestratorSQL(
         if (options.maxRows && result.length > options.maxRows) {
           result = result.slice(0, options.maxRows);
         }
-      } catch (executionError) {
+      } catch (_executionError) {
         error =
-          executionError instanceof Error
-            ? executionError.message
+          _executionError instanceof Error
+            ? _executionError.message
             : 'Execution failed';
       }
     }
@@ -518,7 +518,7 @@ export async function generateAndExecuteOrchestratorSQL(
         model: options.model || 'claude-3-5-sonnet',
       },
     };
-  } catch (generationError) {
+  } catch (_generationError) {
     const executionTime = Date.now() - startTime;
     return {
       sql: '',

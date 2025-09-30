@@ -48,16 +48,14 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
    * Custom initialization logic specific to Hiverarchy AI orchestrator
    */
   async onModuleInit(): Promise<void> {
-    try {
-      // Call parent initialization first
-      await super.onModuleInit();
+    // Call parent initialization first
+    await super.onModuleInit();
 
-      // Test authentication on startup (non-blocking)
-      try {
-        await this.ensureAuthenticated();
-      } catch (authError) {
-        // Don't throw - allow the agent to initialize but mark as unauthenticated
-      }
+    // Test authentication on startup (non-blocking)
+    try {
+      await this.ensureAuthenticated();
+    } catch (_authError) {
+      // Don't throw - allow the agent to initialize but mark as unauthenticated
     }
   }
 
@@ -66,16 +64,14 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
    * This is the standard interface expected by the dynamic controller
    */
   async processTask(taskRequest: any): Promise<any> {
-    try {
-      // Ensure we have a valid authentication token
-      await this.ensureAuthenticated();
+    // Ensure we have a valid authentication token
+    await this.ensureAuthenticated();
 
-      // Transform the request to match Hiverarchy's expected format
-      const hiverarchyParams = this.transformRequestParams(taskRequest);
+    // Transform the request to match Hiverarchy's expected format
+    const hiverarchyParams = this.transformRequestParams(taskRequest);
 
-      // Forward the task request to the external Hiverarchy agent
-      return await this.executeTaskWithAuth('processTask', hiverarchyParams);
-    }
+    // Forward the task request to the external Hiverarchy agent
+    return await this.executeTaskWithAuth('processTask', hiverarchyParams);
   }
 
   /**
@@ -91,8 +87,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       return;
     }
 
-    try {
-      // Read authentication configuration from YAML
+    // Read authentication configuration from YAML
       const config = this.getExternalConfig();
       const authConfig = config?.authentication;
       if (!authConfig || authConfig.type !== 'login') {
@@ -109,7 +104,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         );
       }
 
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.customHttpService.post(loginUrl, {
           email: username,
           password: password,
@@ -124,11 +119,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       } else {
         throw new Error('No access token received from Hiverarchy');
       }
-    } catch (error) {
-      throw new Error(
-        `Hiverarchy authentication failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
   }
 
   /**
@@ -186,7 +176,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         id: `external-hiverarchy-${Date.now()}`,
       };
 
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.customHttpService.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -209,7 +199,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
 
         if (response.data?.result) {
           // JSON-RPC 2.0 format response
-          const result = response.data.result;
+          const _result = response.data.result;
           actualResponse = result.response || result;
           metadata.responseFormat = 'jsonrpc';
 

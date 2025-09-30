@@ -411,7 +411,7 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const status = error.response?.status || error.status;
+    const _status = error.response?.status || error.status;
     const errorType = error.response?.data?.error?.type || error.type;
     const errorCode = error.response?.data?.error?.code || error.code;
 
@@ -527,7 +527,7 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const status = error.status;
+    const _status = error.status;
     const errorType = error.error?.type;
 
     // Authentication errors
@@ -708,7 +708,7 @@ export class LLMErrorMapper {
     requestId?: string,
   ): LLMError {
     // Grok uses OpenAI-compatible API, so similar error handling
-    const status = error.response?.status || error.status;
+    const _status = error.response?.status || error.status;
 
     // Authentication errors
     if (status === 401) {
@@ -946,7 +946,7 @@ export class LLMRetryHandler {
 
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
       try {
-        const result = await operation();
+        const _result = await operation();
 
         // Log successful retry
         if (attempt > 0) {
@@ -954,7 +954,7 @@ export class LLMRetryHandler {
         }
 
         return result;
-      } catch (error) {
+      } catch (_error) {
         // Convert to LLMError if not already
         const llmError =
           error instanceof LLMError

@@ -138,9 +138,9 @@ export class ApiKeyGuard implements CanActivate {
           });
           return record;
         }
-      } catch (error) {
+      } catch (_error) {
         this.logger.error(
-          `Credential lookup failed for ${organizationSlug}/${alias}: ${String(error)}`,
+          `Credential lookup failed for ${organizationSlug}/${alias}: ${String(_error)}`,
         );
         throw new UnauthorizedException('Unable to validate API key.');
       }
@@ -153,7 +153,7 @@ export class ApiKeyGuard implements CanActivate {
     providedKey: string,
     credential: OrganizationCredentialRecord,
   ): boolean {
-    const metadata = credential.encryption_metadata ?? {};
+    const _metadata = credential.encryption_metadata ?? {};
     const algorithm = this.normalizeAlgorithm(
       metadata.hash_algorithm ?? metadata.hashAlgorithm ?? metadata.hash,
     );
@@ -252,9 +252,9 @@ export class ApiKeyGuard implements CanActivate {
         return false;
       }
       return timingSafeEqual(expectedBuffer, storedBuffer);
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to compare API keys (encoding=${encoding}): ${String(error)}`,
+        `Failed to compare API keys (encoding=${encoding}): ${String(_error)}`,
       );
       return false;
     }

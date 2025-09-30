@@ -22,7 +22,7 @@ describe('Usage Metrics Tracking (e2e)', () => {
   });
 
   it('should track token usage and cost', async () => {
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Count to five.',
       {

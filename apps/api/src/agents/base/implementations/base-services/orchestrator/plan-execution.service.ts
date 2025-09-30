@@ -80,14 +80,14 @@ export class PlanExecutionService implements IPlanExecutionService {
         steps,
         orchestratorInput,
       );
-    } catch (error) {
-      // Update project status to error
+    } catch (_error) {
+      // Update project status to _error
       await this.updateProjectStatus(project.id, 'paused_on_error', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
         errorOccurredAt: new Date().toISOString(),
       });
 
-      throw error;
+      throw _error;
     }
   }
 
@@ -124,8 +124,8 @@ export class PlanExecutionService implements IPlanExecutionService {
         steps,
         orchestratorInput,
       );
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -163,24 +163,20 @@ export class PlanExecutionService implements IPlanExecutionService {
         stepId,
         orchestratorInput,
       );
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
   async abortProject(projectId: string): Promise<void> {
-    try {
-      // Update project status to aborted
-      await this.updateProjectStatus(projectId, 'aborted', {
-        abortedAt: new Date().toISOString(),
-        abortReason: 'User requested project termination',
-      });
+    // Update project status to aborted
+    await this.updateProjectStatus(projectId, 'aborted', {
+      abortedAt: new Date().toISOString(),
+      abortReason: 'User requested project termination',
+    });
 
-      // Mark any running/pending steps as skipped
-      await this.abortAllProjectSteps(projectId);
-    } catch (error) {
-      throw error;
-    }
+    // Mark any running/pending steps as skipped
+    await this.abortAllProjectSteps(projectId);
   }
 
   // ============================================================================
@@ -231,10 +227,10 @@ export class PlanExecutionService implements IPlanExecutionService {
     for (const step of readySteps) {
       try {
         await this.executeStep(projectId, step);
-      } catch (error) {
-        // Continue with other steps, handle error appropriately
+      } catch (_error) {
+        // Continue with other steps, handle _error appropriately
         await this.updateStepStatus(projectId, step.stepId, 'failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: _error instanceof Error ? _error.message : 'Unknown _error',
           failedAt: new Date().toISOString(),
         });
       }
@@ -278,14 +274,14 @@ export class PlanExecutionService implements IPlanExecutionService {
             },
           },
         );
-      } catch (error) {
-        // Handle workflow interrupts for error recovery
+      } catch (_error) {
+        // Handle workflow interrupts for _error recovery
         await this.stateManagementService.handleWorkflowInterrupt(
           projectId,
           step.stepId,
           'error_recovery',
           {
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: _error instanceof Error ? _error.message : 'Unknown _error',
             failedAt: new Date().toISOString(),
             stepName: step.stepName,
           },
@@ -293,7 +289,7 @@ export class PlanExecutionService implements IPlanExecutionService {
 
         // Update step status in database
         await this.updateStepStatus(projectId, step.stepId, 'failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: _error instanceof Error ? _error.message : 'Unknown _error',
           failedAt: new Date().toISOString(),
         });
       }
@@ -372,12 +368,12 @@ export class PlanExecutionService implements IPlanExecutionService {
         completedAt: new Date().toISOString(),
         result: result,
       });
-    } catch (error) {
+    } catch (_error) {
       await this.updateStepStatus(projectId, step.stepId, 'failed', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
         failedAt: new Date().toISOString(),
       });
-      throw error;
+      throw _error;
     }
   }
 

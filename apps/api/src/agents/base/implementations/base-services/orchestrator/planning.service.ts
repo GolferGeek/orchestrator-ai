@@ -40,48 +40,42 @@ export class PlanningService implements IPlanningService {
    * 7. Return structured PlanDefinition with full enterprise context
    */
   async createPlan(input: OrchestratorInput): Promise<PlanDefinition> {
-    try {
-      // Step 1: Analyze the goal and detect enterprise requirements
-      const goalAnalysis = await this.analyzeEnterpriseGoalRequirements(input);
+    // Step 1: Analyze the goal and detect enterprise requirements
+    const goalAnalysis = await this.analyzeEnterpriseGoalRequirements(input);
 
-      // Step 2: Assess current agent capabilities and identify gaps
-      const capabilityAssessment = await this.assessAgentCapabilities(
-        goalAnalysis,
-        input,
-      );
+    // Step 2: Assess current agent capabilities and identify gaps
+    const capabilityAssessment = await this.assessAgentCapabilities(
+      goalAnalysis,
+      input,
+    );
 
-      // Step 3: Check if request requires subproject decomposition
-      const subprojectAnalysis = await this.analyzeSubprojectNeeds(
-        goalAnalysis,
-        input,
-      );
+    // Step 3: Check if request requires subproject decomposition
+    const subprojectAnalysis = await this.analyzeSubprojectNeeds(
+      goalAnalysis,
+      input,
+    );
 
-      // Step 4: Generate structured plan with enterprise features
-      const planStructure = await this.generateEnterprisePlanStructure(
-        input,
-        goalAnalysis,
-        capabilityAssessment,
-        subprojectAnalysis,
-      );
+    // Step 4: Generate structured plan with enterprise features
+    const planStructure = await this.generateEnterprisePlanStructure(
+      input,
+      goalAnalysis,
+      capabilityAssessment,
+      subprojectAnalysis,
+    );
 
-      // Step 5: Add human assignments and enterprise timeline planning
-      const planWithHumans = await this.addHumanAssignments(
-        planStructure,
-        goalAnalysis,
-      );
+    // Step 5: Add human assignments and enterprise timeline planning
+    const planWithHumans = await this.addHumanAssignments(
+      planStructure,
+      goalAnalysis,
+    );
 
-      // Step 6: Validate, optimize, and finalize enterprise plan
-      const finalPlan = await this.validateAndOptimizeEnterprisePlan(
-        planWithHumans,
-        input,
-      );
+    // Step 6: Validate, optimize, and finalize enterprise plan
+    const finalPlan = await this.validateAndOptimizeEnterprisePlan(
+      planWithHumans,
+      input,
+    );
 
-      return finalPlan;
-    } catch (error) {
-      throw new Error(
-        `Failed to create plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return finalPlan;
   }
 
   /**
@@ -95,37 +89,31 @@ export class PlanningService implements IPlanningService {
     input: OrchestratorInput,
     originalPlan?: PlanDefinition,
   ): Promise<PlanDefinition> {
-    try {
-      // For testing, use the original plan if provided
-      // In production, this would load from database using planId
-      if (!originalPlan) {
-        // Create a basic plan as fallback (for when no original plan is available)
-        const goalAnalysis = await this.analyzeGoalRequirements(input);
-        const availableAgents = await this.getAvailableAgents();
-        originalPlan = await this.generatePlanStructure(
-          input,
-          goalAnalysis,
-          availableAgents,
-        );
-      }
-
-      // Get available agents
+    // For testing, use the original plan if provided
+    // In production, this would load from database using planId
+    if (!originalPlan) {
+      // Create a basic plan as fallback (for when no original plan is available)
+      const goalAnalysis = await this.analyzeGoalRequirements(input);
       const availableAgents = await this.getAvailableAgents();
-
-      // Incorporate feedback into existing plan
-      const refinedPlan = await this.incorporateFeedback(
-        feedback,
+      originalPlan = await this.generatePlanStructure(
         input,
+        goalAnalysis,
         availableAgents,
-        originalPlan,
-      );
-
-      return refinedPlan;
-    } catch (error) {
-      throw new Error(
-        `Failed to refine plan: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+
+    // Get available agents
+    const availableAgents = await this.getAvailableAgents();
+
+    // Incorporate feedback into existing plan
+    const refinedPlan = await this.incorporateFeedback(
+      feedback,
+      input,
+      availableAgents,
+      originalPlan,
+    );
+
+    return refinedPlan;
   }
 
   /**
@@ -138,7 +126,7 @@ export class PlanningService implements IPlanningService {
       // Use LLM to generate natural language plan description
       const formatted = await this.generateHumanReadablePlan(plan);
       return formatted;
-    } catch (error) {
+    } catch (_error) {
       // Fallback to basic formatting if LLM fails
       return this.generateBasicPlanFormat(plan);
     }
@@ -231,27 +219,21 @@ ${input.delegationContext ? `- Available delegation context provided` : ''}
 
 Detect enterprise characteristics and provide complete analysis in the required JSON format.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.3,
-          maxTokens: 800,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.3,
+        maxTokens: 800,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseEnterpriseGoalAnalysis(response);
-    } catch (error) {
-      throw new Error(
-        `Enterprise goal analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parseEnterpriseGoalAnalysis(response);
   }
 
   /**
@@ -328,7 +310,7 @@ REQUIRED SKILLS: ${goalAnalysis.requiredSkills.join(', ')}
 
 Identify capability gaps and workforce development needs.`;
 
-      const response = await this.llmService.generateResponse(
+      const _response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -343,9 +325,9 @@ Identify capability gaps and workforce development needs.`;
       );
 
       return this.parseCapabilityAssessment(response, availableAgents);
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Agent capability assessment failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Agent capability assessment failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -427,27 +409,21 @@ USER REQUEST: "${input.prompt}"
 
 Determine if this complex request should be decomposed into subprojects managed by different orchestrators.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.3,
-          maxTokens: 800,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.3,
+        maxTokens: 800,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseSubprojectAnalysis(response);
-    } catch (error) {
-      throw new Error(
-        `Subproject analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parseSubprojectAnalysis(response);
   }
 
   /**
@@ -521,27 +497,21 @@ Create a comprehensive plan with:
 
 Return the complete plan structure in JSON format.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.4,
-          maxTokens: 1500,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.4,
+        maxTokens: 1500,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseEnterprisePlanStructure(response, input);
-    } catch (error) {
-      throw new Error(
-        `Enterprise plan generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parseEnterprisePlanStructure(response, input);
   }
 
   /**
@@ -582,7 +552,7 @@ ${JSON.stringify(goalAnalysis.humanExpertise, null, 2)}
 Add appropriate human expert assignments to steps that need oversight or approval.`;
 
     try {
-      const response = await this.llmService.generateResponse(
+      const _response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -597,7 +567,7 @@ Add appropriate human expert assignments to steps that need oversight or approva
       );
 
       return this.parseHumanAssignedPlan(response);
-    } catch (error) {
+    } catch (_error) {
       // Return original plan if human assignment fails (non-critical)
 
       return plan;
@@ -647,27 +617,21 @@ Check for:
 
 Return the improved plan in the same JSON format.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.2,
-          maxTokens: 1500,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.2,
+        maxTokens: 1500,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseValidatedEnterprisePlan(response);
-    } catch (error) {
-      throw new Error(
-        `Enterprise plan validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parseValidatedEnterprisePlan(response);
   }
 
   // ============================================================================
@@ -754,22 +718,16 @@ ${input.delegationContext ? `- Available delegation context provided` : ''}
 
 Provide your analysis in the required JSON format.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.3, // Moderate creativity for planning
-          maxTokens: 600,
-        },
-      );
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.3, // Moderate creativity for planning
+        maxTokens: 600,
+      },
+    );
 
-      return this.parseGoalAnalysis(response);
-    } catch (error) {
-      throw new Error(
-        `Goal analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parseGoalAnalysis(response);
   }
 
   /**
@@ -783,21 +741,15 @@ Provide your analysis in the required JSON format.`;
       description?: string;
     }>
   > {
-    try {
-      await this.agentDiscoveryService.discoverAgents();
-      const agents = this.agentDiscoveryService.getDiscoveredAgents();
+    await this.agentDiscoveryService.discoverAgents();
+    const agents = this.agentDiscoveryService.getDiscoveredAgents();
 
-      return agents.map((agent) => ({
-        name: agent.name,
-        type: agent.type,
-        displayName: agent.metadata?.displayName || agent.name,
-        description: agent.metadata?.description,
-      }));
-    } catch (error) {
-      throw new Error(
-        `Failed to discover agents for planning: ${error instanceof Error ? error.message : 'Unknown error'}. Agent discovery must work for planning to function.`,
-      );
-    }
+    return agents.map((agent) => ({
+      name: agent.name,
+      type: agent.type,
+      displayName: agent.metadata?.displayName || agent.name,
+      description: agent.metadata?.description,
+    }));
   }
 
   /**
@@ -836,27 +788,21 @@ JSON STRUCTURE REQUIRED:
 
 Create 3-5 steps using the available agents. Return only the JSON structure.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.4,
-          maxTokens: 1200,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.4,
+        maxTokens: 1200,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parsePlanStructure(response, input);
-    } catch (error) {
-      throw new Error(
-        `Plan generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parsePlanStructure(response, input);
   }
 
   /**
@@ -889,27 +835,21 @@ Check for:
 
 Return the improved plan in the same JSON format.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.2, // Low temperature for validation
-          maxTokens: 1200,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.2, // Low temperature for validation
+        maxTokens: 1200,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseValidatedPlan(response);
-    } catch (error) {
-      throw new Error(
-        `Plan validation failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must be able to validate and optimize plans.`,
-      );
-    }
+    return this.parseValidatedPlan(response);
   }
 
   // ============================================================================
@@ -949,27 +889,21 @@ ORIGINAL REQUEST CONTEXT:
 
 What changes is the user requesting?`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.2,
-          maxTokens: 400,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.2,
+        maxTokens: 400,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseFeedbackAnalysis(response);
-    } catch (error) {
-      throw new Error(
-        `Feedback analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parseFeedbackAnalysis(response);
   }
 
   /**
@@ -1011,27 +945,21 @@ USER FEEDBACK TO INCORPORATE:
 
 Return the expanded plan with all original steps PLUS new steps for the requested additions. The refined plan should have at least ${originalPlan.steps.length + 2} steps.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.3,
-          maxTokens: 1500,
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.3,
+        maxTokens: 1500,
 
-          complexity: 'medium', // Planning tasks require moderate reasoning
-          callerType: 'service',
-          callerName: 'planning-service',
-          dataClassification: 'internal',
-        },
-      );
+        complexity: 'medium', // Planning tasks require moderate reasoning
+        callerType: 'service',
+        callerName: 'planning-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parsePlanStructure(response, input);
-    } catch (error) {
-      throw new Error(
-        `Failed to incorporate feedback: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parsePlanStructure(response, input);
   }
 
   // ============================================================================
@@ -1062,7 +990,7 @@ ${JSON.stringify(plan, null, 2)}
 Create an engaging, clear presentation that helps the user understand and approve the plan.`;
 
     try {
-      const response = await this.llmService.generateResponse(
+      const _response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -1077,7 +1005,7 @@ Create an engaging, clear presentation that helps the user understand and approv
       );
 
       return response;
-    } catch (error) {
+    } catch (_error) {
       return this.generateBasicPlanFormat(plan);
     }
   }
@@ -1116,28 +1044,22 @@ Create an engaging, clear presentation that helps the user understand and approv
    * Parse enterprise goal analysis response
    */
   private parseEnterpriseGoalAnalysis(response: string): any {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
 
-      const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]);
 
-      // Validate required enterprise fields
-      if (
-        !parsed.projectName ||
-        !parsed.description ||
-        !parsed.complexity ||
-        !parsed.enterpriseFeatures
-      ) {
-        throw new Error('Missing required fields in enterprise goal analysis');
-      }
-
-      return parsed;
-    } catch (error) {
-      throw new Error(
-        `Enterprise goal analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    // Validate required enterprise fields
+    if (
+      !parsed.projectName ||
+      !parsed.description ||
+      !parsed.complexity ||
+      !parsed.enterpriseFeatures
+    ) {
+      throw new Error('Missing required fields in enterprise goal analysis');
     }
+
+    return parsed;
   }
 
   /**
@@ -1147,64 +1069,49 @@ Create an engaging, clear presentation that helps the user understand and approv
     response: string,
     availableAgents: any[],
   ): any {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
 
-      const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]);
 
-      // Validate required fields
-      if (
-        !parsed.hasOwnProperty('agentCreationNeeded') ||
-        !parsed.capabilityGaps
-      ) {
-        throw new Error('Missing required fields in capability assessment');
-      }
-
-      // Enhance with available agents data
-      const enhancedAgents = availableAgents.map((agent) => ({
-        ...agent,
-        department: this.inferAgentDepartment(agent.name),
-        capabilities: this.inferAgentCapabilities(
-          agent.name,
-          agent.description,
-        ),
-      }));
-
-      return {
-        ...parsed,
-        availableAgents: enhancedAgents,
-      };
-    } catch (error) {
-      throw new Error(
-        `Capability assessment parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    // Validate required fields
+    if (
+      !parsed.hasOwnProperty('agentCreationNeeded') ||
+      !parsed.capabilityGaps
+    ) {
+      throw new Error('Missing required fields in capability assessment');
     }
+
+    // Enhance with available agents data
+    const enhancedAgents = availableAgents.map((agent) => ({
+      ...agent,
+      department: this.inferAgentDepartment(agent.name),
+      capabilities: this.inferAgentCapabilities(agent.name, agent.description),
+    }));
+
+    return {
+      ...parsed,
+      availableAgents: enhancedAgents,
+    };
   }
 
   /**
    * Parse subproject analysis response
    */
   private parseSubprojectAnalysis(response: string): any {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
 
-      const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]);
 
-      // Validate required fields
-      if (!parsed.hasOwnProperty('requiresSubprojects')) {
-        throw new Error(
-          'Missing requiresSubprojects field in subproject analysis',
-        );
-      }
-
-      return parsed;
-    } catch (error) {
+    // Validate required fields
+    if (!parsed.hasOwnProperty('requiresSubprojects')) {
       throw new Error(
-        `Subproject analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'Missing requiresSubprojects field in subproject analysis',
       );
     }
+
+    return parsed;
   }
 
   /**
@@ -1241,9 +1148,9 @@ Create an engaging, clear presentation that helps the user understand and approv
       };
 
       return plan;
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Enterprise plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Enterprise plan parsing failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -1252,47 +1159,35 @@ Create an engaging, clear presentation that helps the user understand and approv
    * Parse human-assigned plan response
    */
   private parseHumanAssignedPlan(response: string): PlanDefinition {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      if (!parsed.projectName || !parsed.steps) {
-        throw new Error('Invalid plan structure in human assignment response');
-      }
-
-      return parsed;
-    } catch (error) {
-      throw new Error(
-        `Human assignment parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in response');
     }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    if (!parsed.projectName || !parsed.steps) {
+      throw new Error('Invalid plan structure in human assignment response');
+    }
+
+    return parsed;
   }
 
   /**
    * Parse validated enterprise plan response
    */
   private parseValidatedEnterprisePlan(response: string): PlanDefinition {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Plan validation response contained no JSON');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (!parsed.projectName || !parsed.steps) {
-        throw new Error('Plan validation response missing required fields');
-      }
-
-      return parsed;
-    } catch (error) {
-      throw new Error(
-        `Enterprise plan validation parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Plan validation response contained no JSON');
     }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed.projectName || !parsed.steps) {
+      throw new Error('Plan validation response missing required fields');
+    }
+
+    return parsed;
   }
 
   // ============================================================================
@@ -1395,23 +1290,17 @@ Create an engaging, clear presentation that helps the user understand and approv
   // ============================================================================
 
   private parseGoalAnalysis(response: string): any {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
 
-      const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]);
 
-      // Validate required fields
-      if (!parsed.projectName || !parsed.description || !parsed.complexity) {
-        throw new Error('Missing required fields in goal analysis');
-      }
-
-      return parsed;
-    } catch (error) {
-      throw new Error(
-        `Goal analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    // Validate required fields
+    if (!parsed.projectName || !parsed.description || !parsed.complexity) {
+      throw new Error('Missing required fields in goal analysis');
     }
+
+    return parsed;
   }
 
   private parsePlanStructure(
@@ -1447,44 +1336,32 @@ Create an engaging, clear presentation that helps the user understand and approv
       };
 
       return plan;
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM generated malformed JSON that cannot be parsed.`,
+        `Plan parsing failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}. LLM generated malformed JSON that cannot be parsed.`,
       );
     }
   }
 
   private parseValidatedPlan(response: string): PlanDefinition {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Plan validation response contained no JSON');
-      }
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Plan validation response contained no JSON');
+    }
 
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (!parsed.projectName) {
-        throw new Error(
-          'Plan validation response missing required projectName field',
-        );
-      }
-      return parsed;
-    } catch (error) {
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed.projectName) {
       throw new Error(
-        `Plan validation parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must generate valid JSON.`,
+        'Plan validation response missing required projectName field',
       );
     }
+    return parsed;
   }
 
   private parseFeedbackAnalysis(response: string): any {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
 
-      return JSON.parse(jsonMatch[0]);
-    } catch (error) {
-      throw new Error(
-        `Feedback parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return JSON.parse(jsonMatch[0]);
   }
 }

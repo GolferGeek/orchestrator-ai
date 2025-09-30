@@ -22,7 +22,7 @@ describe('OpenAI No-Train Header (e2e)', () => {
   });
 
   it('should send OpenAI-No-Train header and get real response', async () => {
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say "hello world" exactly.',
       {

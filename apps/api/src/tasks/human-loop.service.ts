@@ -174,10 +174,10 @@ export class HumanLoopService {
             clearInterval(checkInterval);
             resolve(humanInput);
           }
-        } catch (error) {
+        } catch (_error) {
           clearTimeout(timeoutHandle);
           clearInterval(checkInterval);
-          reject(error);
+          reject(_error);
         }
       }, 1000); // Check every second
     });
@@ -187,20 +187,18 @@ export class HumanLoopService {
    * Get human input by ID
    */
   async getHumanInputById(inputId: string): Promise<HumanInput | null> {
-    try {
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('human_inputs')
-        .select()
-        .eq('id', inputId)
-        .single();
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('human_inputs')
+      .select()
+      .eq('id', inputId)
+      .single();
 
-      if (error && error.code !== 'PGRST116') {
-        throw new Error(`Failed to fetch human input: ${error.message}`);
-      }
-
-      return data ? this.mapToHumanInput(data) : null;
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to fetch human input: ${error.message}`);
     }
+
+    return data ? this.mapToHumanInput(data) : null;
   }
 
   /**
@@ -225,6 +223,9 @@ export class HumanLoopService {
       }
 
       return data.map((item) => this.mapToHumanInput(item));
+    } catch (error) {
+      this.logger.error('Failed to get pending inputs for task', error);
+      throw error;
     }
   }
 
@@ -247,6 +248,9 @@ export class HumanLoopService {
       if (error) {
         throw new Error(`Failed to cancel human input: ${error.message}`);
       }
+    } catch (error) {
+      this.logger.error('Failed to cancel human input', error);
+      throw error;
     }
   }
 
@@ -287,6 +291,9 @@ export class HumanLoopService {
       });
 
       return humanInput;
+    } catch (error) {
+      this.logger.error('Failed to handle human input timeout', error);
+      throw error;
     }
   }
 
@@ -329,6 +336,9 @@ export class HumanLoopService {
       }
 
       return count;
+    } catch (error) {
+      this.logger.error('Failed to cleanup expired inputs', error);
+      throw error;
     }
   }
 

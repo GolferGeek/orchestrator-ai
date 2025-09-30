@@ -31,30 +31,26 @@ export class LangChainClientService {
       temperature?: number;
     },
   ): Promise<string> {
-    try {
-      // Use centralized LLMService instead of direct LangChain client
-      const result = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: options?.temperature || 0.7,
-          provider: options?.provider as
-            | 'openai'
-            | 'anthropic'
-            | 'google'
-            | 'ollama', // Only specify if explicitly requested
-          modelName: options?.model, // Only specify if explicitly requested
-          complexity: 'simple', // LangChain tool operations are typically simple
-          callerType: 'service',
-          callerName: 'langchain-client-service',
-          dataClassification: 'internal',
-        },
-      );
+    // Use centralized LLMService instead of direct LangChain client
+    const _result = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: options?.temperature || 0.7,
+        provider: options?.provider as
+          | 'openai'
+          | 'anthropic'
+          | 'google'
+          | 'ollama', // Only specify if explicitly requested
+        modelName: options?.model, // Only specify if explicitly requested
+        complexity: 'simple', // LangChain tool operations are typically simple
+        callerType: 'service',
+        callerName: 'langchain-client-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return result.response;
-    } catch (error) {
-      throw error;
-    }
+    return result.response;
   }
 
   /**

@@ -85,7 +85,7 @@ describe('Enhanced LLM Metrics E2E', () => {
 
         try {
           // Make the LLM call using centralized response (which includes enhanced metrics)
-          const result = await llmService.generateCentralizedResponse(
+          const _result = await llmService.generateCentralizedResponse(
             testCase.systemPrompt,
             testCase.userMessage,
             {
@@ -244,19 +244,19 @@ describe('Enhanced LLM Metrics E2E', () => {
 
           console.log(`\n✅ All assertions passed for ${testCase.name}\n`);
 
-        } catch (error) {
-          console.error(`❌ Test failed for ${testCase.name}:`, error);
+        } catch (_error) {
+          console.error(`❌ Test failed for ${testCase.name}:`, _error);
           
           testResults.push({
             testCase: testCase.name,
             provider: testCase.provider,
             runId: runId || 'unknown',
-            error: error instanceof Error ? error.message : String(error),
+            error: _error instanceof Error ? _error.message : String(_error),
             success: false,
           });
 
           // Re-throw to fail the test
-          throw error;
+          throw _error;
         }
       }, 30000); // 30 second timeout per test
     }

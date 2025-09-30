@@ -61,7 +61,7 @@ describe('Source Blinding E2E', () => {
       // Set up environment for OpenAI
       process.env.OPENAI_API_KEY = 'sk-test-key-12345';
       
-      const response = await llmService.generateResponse(
+      const _response = await llmService.generateResponse(
         'You are a helpful assistant.',
         'Hello, how are you?',
         {
@@ -112,7 +112,7 @@ describe('Source Blinding E2E', () => {
         config: {},
       } as any));
 
-      const response = await llmService.generateResponse(
+      const _response = await llmService.generateResponse(
         'You are Claude.',
         'What is your name?',
         {
@@ -152,7 +152,7 @@ describe('Source Blinding E2E', () => {
         config: {},
       } as any));
 
-      const response = await llmService.generateResponse(
+      const _response = await llmService.generateResponse(
         'You are a helpful assistant.',
         'Hello from local model',
         {
@@ -181,7 +181,7 @@ describe('Source Blinding E2E', () => {
       process.env.SOURCE_BLINDING_PROXY_PROTOCOL = 'http';
       process.env.OPENAI_API_KEY = 'sk-test-proxy';
 
-      const response = await llmService.generateResponse(
+      const _response = await llmService.generateResponse(
         'System message',
         'User message',
         {

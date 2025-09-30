@@ -486,7 +486,7 @@ export class LLMService {
           );
         }
 
-        const response = await llm.invoke(messages);
+        const _response = await llm.invoke(messages);
         let content =
           (response.content as string) ||
           'I apologize, but I was unable to generate a response.';
@@ -559,10 +559,10 @@ export class LLMService {
         }
         throw new Error(`LLM service error: ${errorMessage}`);
       }
-    } catch (outerError) {
+    } catch (_outerError) {
       // Handle any errors in the try block setup
       const errorMessage =
-        outerError instanceof Error ? outerError.message : String(outerError);
+        _outerError instanceof Error ? _outerError.message : String(_outerError);
       throw new Error(`LLM service error: ${errorMessage}`);
     }
   }
@@ -761,7 +761,7 @@ export class LLMService {
       };
 
       // Use the LLMServiceFactory to generate the response
-      const response = await this.llmServiceFactory.generateResponse(
+      const _response = await this.llmServiceFactory.generateResponse(
         config,
         factoryParams,
       );
@@ -794,7 +794,7 @@ export class LLMService {
       } else {
         return response.content;
       }
-    } catch (error) {
+    } catch (_error) {
       // Standardized error handling
       try {
         const mapped = LLMErrorMapper.fromGenericError(
@@ -895,7 +895,7 @@ export class LLMService {
     if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
       this.logger.debug('Using local Ollama - skipping sanitization');
 
-      const response = await this.localLLMService.generateResponse({
+      const _response = await this.localLLMService.generateResponse({
         model: routingDecision.model,
         prompt: userMessage,
         system: systemPrompt,
@@ -991,7 +991,7 @@ export class LLMService {
       );
     }
 
-    const response = await llm.invoke(messages);
+    const _response = await llm.invoke(messages);
     let responseContent =
       (response.content as string) ||
       'I apologize, but I was unable to generate a response.';
@@ -1174,16 +1174,16 @@ export class LLMService {
         });
       }
 
-      const response = await llm.invoke(messages);
+      const _response = await llm.invoke(messages);
       const content =
         (response.content as string) ||
         'I apologize, but I was unable to generate a response.';
 
       return content;
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(`LLM service error: ${errorMessage}`);
+        _error instanceof Error ? _error.message : String(_error);
+      throw new Error(`LLM service _error: ${errorMessage}`);
     }
   }
 
@@ -1227,16 +1227,16 @@ export class LLMService {
         );
       }
 
-      const response = await llm.invoke(messages);
+      const _response = await llm.invoke(messages);
       const content =
         (response.content as string) ||
         'I apologize, but I was unable to generate a system response.';
 
       return content;
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(`System LLM operation error: ${errorMessage}`);
+        _error instanceof Error ? _error.message : String(_error);
+      throw new Error(`System LLM operation _error: ${errorMessage}`);
     }
   }
 
@@ -1291,7 +1291,7 @@ export class LLMService {
       }
 
       // Use the unified response method
-      const result = await this.generateUnifiedResponse({
+      const _result = await this.generateUnifiedResponse({
         provider: userPreferences.providerName,
         model: userPreferences.modelName,
         systemPrompt,
@@ -1346,10 +1346,10 @@ export class LLMService {
           responseTimeMs: result.metadata.timing.duration,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(`User content LLM error: ${errorMessage}`);
+        _error instanceof Error ? _error.message : String(_error);
+      throw new Error(`User content LLM _error: ${errorMessage}`);
     }
   }
 
@@ -1493,9 +1493,9 @@ export class LLMService {
 
       // LangSmith will automatically trace this LangChain LLM if environment variables are set
       return llm;
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Failed to create LangGraph LLM: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to create LangGraph LLM: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -1617,9 +1617,9 @@ export class LLMService {
 
       // LangSmith will automatically trace this LangChain LLM if environment variables are set
       return llm;
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Failed to create custom LangGraph LLM: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to create custom LangGraph LLM: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -1894,9 +1894,9 @@ export class LLMService {
         ...new Set(patterns?.map((p) => p.severity) || []),
       ];
       return severityLevels.filter(Boolean);
-    } catch (error) {
+    } catch (_error) {
       this.logger.warn(
-        `Error fetching PII severity levels: ${error instanceof Error ? error.message : String(error)}`,
+        `Error fetching PII severity levels: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
       // Fallback to default mapping
       return this.getDefaultSeverityMapping(piiTypes);

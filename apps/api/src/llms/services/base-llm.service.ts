@@ -122,7 +122,7 @@ export abstract class BaseLLMService {
           showstopperDetected: false,
           detectionResults: {
             totalMatches: result.mappings.length,
-            flaggedMatches: result.mappings.map((mapping) => ({
+            flaggedMatches: result.mappings.map((mapping: any) => ({
               value: mapping.originalValue,
               dataType: mapping.dataType as any,
               severity: 'info' as any,
@@ -189,8 +189,8 @@ export abstract class BaseLLMService {
         // Note: Standard pseudonymizer doesn't directly provide PIIProcessingMetadata
         // This would need to be adapted based on actual requirements
       };
-    } catch (error) {
-      this.logger.error('PII processing failed:', error);
+    } catch (_error) {
+      this.logger.error('PII processing failed:', _error);
       // Return original text if PII processing fails
       return { processedText: text };
     }
@@ -227,8 +227,8 @@ export abstract class BaseLLMService {
       }
 
       return text;
-    } catch (error) {
-      this.logger.error('PII output processing failed:', error);
+    } catch (_error) {
+      this.logger.error('PII output processing failed:', _error);
       return text;
     }
   }
@@ -406,8 +406,8 @@ export abstract class BaseLLMService {
           `⚠️ Insufficient metadata for database tracking - missing startTime or userId`,
         );
       }
-    } catch (error) {
-      this.logger.error('Usage tracking failed:', error);
+    } catch (_error) {
+      this.logger.error('Usage tracking failed:', _error);
     }
   }
 
@@ -487,8 +487,8 @@ export abstract class BaseLLMService {
       const r = rate || defaultRates;
       const cost = inputTokens * r.input + outputTokens * r.output;
       return cost;
-    } catch (error) {
-      this.logger.error('Cost calculation failed:', error);
+    } catch (_error) {
+      this.logger.error('Cost calculation failed:', _error);
       return undefined;
     }
   }
@@ -507,7 +507,7 @@ export abstract class BaseLLMService {
       );
       LLMErrorMonitor.recordError(mappedError);
       throw mappedError;
-    } catch (mappingFailure) {
+    } catch (_mappingFailure) {
       const fallback = new LLMError(
         `${context}: ${error?.message || 'Unknown error occurred'}`,
         LLMErrorType.UNKNOWN,

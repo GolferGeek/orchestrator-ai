@@ -304,8 +304,8 @@ export class RunMetadataService {
           `🔍 [LLM-USAGE-DEBUG] Inserted completed usage for runId: ${runId}`,
         );
       }
-    } catch (err) {
-      this.logger.error('Failed to insert completed usage:', err);
+    } catch (_err) {
+      this.logger.error('Failed to insert completed usage:', _err);
     }
   }
 
@@ -421,12 +421,12 @@ export class RunMetadataService {
       }
 
       return data;
-    } catch (err) {
+    } catch (_err) {
       this.logger.error(
         `Failed to fetch usage details for runId ${runId}:`,
-        err,
+        _err,
       );
-      throw err;
+      throw _err;
     }
   }
 
@@ -505,8 +505,8 @@ export class RunMetadataService {
         avgDuration,
         avgCost,
       };
-    } catch (error) {
-      this.logger.error('Error calculating stats:', error);
+    } catch (_error) {
+      this.logger.error('Error calculating stats:', _error);
       return {
         activeRuns: this.activeRuns.size,
         totalRunsToday: 0,

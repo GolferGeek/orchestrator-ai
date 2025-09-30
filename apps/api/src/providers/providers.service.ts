@@ -58,7 +58,7 @@ export class ProvidersService {
       );
     }
 
-    const result = (data || []).map((row) => ({ name: row.name }));
+    const _result = (data || []).map((row) => ({ name: row.name }));
 
     // Cache the result
     this.providerNamesCache.set(cacheKey, {

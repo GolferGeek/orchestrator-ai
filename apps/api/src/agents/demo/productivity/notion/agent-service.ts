@@ -54,7 +54,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
       }
 
       return await this.handleNotionRequest(userMessage, params);
-    } catch (error) {
+    } catch (_error) {
       await this.updateProgress(4, 'Processing failed', 'error');
 
       return {
@@ -165,8 +165,8 @@ export class NotionAgentService extends FunctionAgentBaseService {
           note: 'Currently using mock Notion API - integrate with real API for production',
         },
       };
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -178,7 +178,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
     intentAnalysis: any,
     actionResult: any,
   ): Promise<string> {
-    let response = `## Notion Operation Complete\n\n`;
+    let _response = `## Notion Operation Complete\n\n`;
     response += `**Your Request**: ${originalRequest}\n\n`;
     response += `**Action Taken**: ${intentAnalysis.action}\n\n`;
 

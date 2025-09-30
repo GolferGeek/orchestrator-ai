@@ -34,7 +34,7 @@ export class HealthService {
         } else if (taskCheck.status === 'fail') {
           overallStatus = 'unhealthy';
         }
-      } catch (error) {
+      } catch (_error) {
         checks.push({
           name: 'task_lifecycle',
           status: 'fail',
@@ -60,7 +60,7 @@ export class HealthService {
         } else if (evalCheck.status === 'fail') {
           overallStatus = 'unhealthy';
         }
-      } catch (error) {
+      } catch (_error) {
         checks.push({
           name: 'evaluation_service',
           status: 'fail',
@@ -91,9 +91,9 @@ export class HealthService {
    */
   async isHealthy(): Promise<boolean> {
     try {
-      const status = await this.getHealthStatus();
+      const _status = await this.getHealthStatus();
       return status.status === 'healthy';
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

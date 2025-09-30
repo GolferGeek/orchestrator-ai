@@ -50,10 +50,10 @@ export class LangChainNotionService {
           };
 
           return JSON.stringify(mockResponse);
-        } catch (error) {
+        } catch (_error) {
           return JSON.stringify({
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: _error instanceof Error ? _error.message : 'Unknown _error',
           });
         }
       },
@@ -97,10 +97,10 @@ export class LangChainNotionService {
           };
 
           return JSON.stringify(mockResponse);
-        } catch (error) {
+        } catch (_error) {
           return JSON.stringify({
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: _error instanceof Error ? _error.message : 'Unknown _error',
           });
         }
       },
@@ -132,10 +132,10 @@ export class LangChainNotionService {
           };
 
           return JSON.stringify(mockResponse);
-        } catch (error) {
+        } catch (_error) {
           return JSON.stringify({
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: _error instanceof Error ? _error.message : 'Unknown _error',
           });
         }
       },
@@ -198,7 +198,7 @@ Respond with JSON containing:
         parameters: parsed.parameters || {},
         response: `I understand you want to ${parsed.intent}. I'll ${parsed.action} for you.`,
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         intent: 'Unknown',
         action: 'error',
@@ -239,7 +239,7 @@ Respond with JSON containing:
           note: 'Using mock Notion API - integrate with real API for production',
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         status: 'unhealthy',
         details: {

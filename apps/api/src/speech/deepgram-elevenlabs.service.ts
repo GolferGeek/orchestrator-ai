@@ -96,10 +96,10 @@ export class SpeechService {
         },
       );
       this.logger.log('Deepgram API key validation successful');
-    } catch (keyError) {
+    } catch (_keyError) {
       this.logger.error('Deepgram API key validation failed:', keyError);
       if (axios.isAxiosError(keyError)) {
-        const status = keyError.response?.status;
+        const _status = keyError.response?.status;
         if (status === 401) {
           throw new Error('Deepgram API key is invalid or expired');
         } else if (status === 403) {
@@ -175,7 +175,7 @@ export class SpeechService {
 
       this.logger.log(`Request headers:`, headers);
 
-      const response = await axios.post(url, audioBuffer, {
+      const _response = await axios.post(url, audioBuffer, {
         headers,
         timeout: 30000, // 30 second timeout
       });
@@ -194,11 +194,11 @@ export class SpeechService {
       );
 
       return { text, confidence };
-    } catch (error) {
+    } catch (_error) {
       this.logger.error('Deepgram transcription failed:', error);
 
       if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
+        const _status = error.response?.status;
         const responseData = error.response?.data;
         const message =
           responseData?.message ||
@@ -277,7 +277,7 @@ export class SpeechService {
         voice_settings: elevenLabsConfig.voice_settings,
       };
 
-      const response = await axios.post(
+      const _response = await axios.post(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         requestBody,
         {
@@ -307,11 +307,11 @@ export class SpeechService {
         audioData,
         format: 'audio/mpeg',
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger.error('Eleven Labs synthesis failed:', error);
 
       if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
+        const _status = error.response?.status;
         const message = error.response?.data?.detail?.message || error.message;
         throw new Error(`Eleven Labs API error (${status}): ${message}`);
       }
@@ -364,8 +364,8 @@ export class SpeechService {
 
       // Consider healthy if at least one service is configured
       return hasDeepgram || hasElevenLabs;
-    } catch (error) {
-      this.logger.error('Health check failed:', error);
+    } catch (_error) {
+      this.logger.error('Health check failed:', _error);
       return false;
     }
   }

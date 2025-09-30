@@ -39,7 +39,7 @@ describe('JsonRpcProtocolService', () => {
         id: '123',
       };
 
-      const result = service.validateRequest(request);
+      const _result = service.validateRequest(request);
       expect(result.isValid).toBe(true);
       expect(result.error).toBeUndefined();
     });
@@ -51,12 +51,12 @@ describe('JsonRpcProtocolService', () => {
         params: { test: 'value' },
       };
 
-      const result = service.validateRequest(notification);
+      const _result = service.validateRequest(notification);
       expect(result.isValid).toBe(true);
     });
 
     it('should reject null/undefined request', () => {
-      const result = service.validateRequest(null);
+      const _result = service.validateRequest(null);
       expect(result.isValid).toBe(false);
       expect(result.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
       expect(result.error?.message).toBe('Invalid Request');
@@ -69,7 +69,7 @@ describe('JsonRpcProtocolService', () => {
         id: '123',
       };
 
-      const result = service.validateRequest(request);
+      const _result = service.validateRequest(request);
       expect(result.isValid).toBe(false);
       expect(result.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
       expect(result.error?.message).toContain('jsonrpc must be "2.0"');
@@ -81,7 +81,7 @@ describe('JsonRpcProtocolService', () => {
         id: '123',
       };
 
-      const result = service.validateRequest(request);
+      const _result = service.validateRequest(request);
       expect(result.isValid).toBe(false);
       expect(result.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
       expect(result.error?.message).toContain('method must be a string');
@@ -94,7 +94,7 @@ describe('JsonRpcProtocolService', () => {
         id: true, // boolean is invalid
       };
 
-      const result = service.validateRequest(request);
+      const _result = service.validateRequest(request);
       expect(result.isValid).toBe(false);
       expect(result.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
       expect(result.error?.message).toContain(
@@ -112,7 +112,7 @@ describe('JsonRpcProtocolService', () => {
           id,
         };
 
-        const result = service.validateRequest(request);
+        const _result = service.validateRequest(request);
         expect(result.isValid).toBe(true);
       });
     });
@@ -130,7 +130,7 @@ describe('JsonRpcProtocolService', () => {
       const expectedResult = { output: 'success' };
       mockMethodHandler.mockResolvedValue(expectedResult);
 
-      const response = await service.processSingleRequest(
+      const _response = await service.processSingleRequest(
         request,
         mockMethodHandler,
       );
@@ -152,7 +152,7 @@ describe('JsonRpcProtocolService', () => {
         params: { data: 'test' },
       };
 
-      const response = await service.processSingleRequest(
+      const _response = await service.processSingleRequest(
         notification,
         mockMethodHandler,
         mockNotificationHandler,
@@ -202,7 +202,7 @@ describe('JsonRpcProtocolService', () => {
 
       mockMethodHandler.mockRejectedValue(new Error('Method not found'));
 
-      const response = await service.processSingleRequest(
+      const _response = await service.processSingleRequest(
         request,
         mockMethodHandler,
       );
@@ -224,7 +224,7 @@ describe('JsonRpcProtocolService', () => {
         id: '123',
       };
 
-      const response = await service.processSingleRequest(
+      const _response = await service.processSingleRequest(
         invalidRequest,
         mockMethodHandler,
       );
@@ -329,7 +329,7 @@ describe('JsonRpcProtocolService', () => {
 
       mockMethodHandler.mockResolvedValue({ success: true });
 
-      const response = await service.processRequest(request, mockMethodHandler);
+      const _response = await service.processRequest(request, mockMethodHandler);
 
       expect(response).toEqual({
         jsonrpc: '2.0',
@@ -347,7 +347,7 @@ describe('JsonRpcProtocolService', () => {
 
       mockMethodHandler.mockResolvedValue({ success: true });
 
-      const response = await service.processRequest(
+      const _response = await service.processRequest(
         batchRequest,
         mockMethodHandler,
         undefined,
@@ -360,7 +360,7 @@ describe('JsonRpcProtocolService', () => {
     it('should reject batch requests when disabled', async () => {
       const batchRequest = [{ jsonrpc: '2.0', method: 'method1', id: '1' }];
 
-      const response = await service.processRequest(
+      const _response = await service.processRequest(
         batchRequest,
         mockMethodHandler,
       );
@@ -378,7 +378,7 @@ describe('JsonRpcProtocolService', () => {
 
   describe('createSuccessResponse', () => {
     it('should create valid success response', () => {
-      const response = service.createSuccessResponse('123', { data: 'test' });
+      const _response = service.createSuccessResponse('123', { data: 'test' });
 
       expect(response).toEqual({
         jsonrpc: '2.0',
@@ -390,7 +390,7 @@ describe('JsonRpcProtocolService', () => {
 
   describe('createErrorResponse', () => {
     it('should create error response without data', () => {
-      const response = service.createErrorResponse(
+      const _response = service.createErrorResponse(
         JSON_RPC_ERRORS.METHOD_NOT_FOUND,
         'Method not found',
         '123',
@@ -408,7 +408,7 @@ describe('JsonRpcProtocolService', () => {
 
     it('should create error response with data', () => {
       const errorData = { details: 'Additional info' };
-      const response = service.createErrorResponse(
+      const _response = service.createErrorResponse(
         JSON_RPC_ERRORS.INVALID_PARAMS,
         'Invalid parameters',
         '123',
@@ -429,32 +429,32 @@ describe('JsonRpcProtocolService', () => {
 
   describe('createErrorResponseFromException', () => {
     it('should map method not found errors', () => {
-      const error = new Error('Method not found: test.method');
-      const response = service.createErrorResponseFromException(error, '123');
+      const _error = new Error('Method not found: test.method');
+      const _response = service.createErrorResponseFromException(error, '123');
 
       expect(response.error?.code).toBe(JSON_RPC_ERRORS.METHOD_NOT_FOUND);
       expect(response.error?.message).toBe('Method not found');
     });
 
     it('should map invalid params errors', () => {
-      const error = new Error('Invalid params provided');
-      const response = service.createErrorResponseFromException(error, '123');
+      const _error = new Error('Invalid params provided');
+      const _response = service.createErrorResponseFromException(error, '123');
 
       expect(response.error?.code).toBe(JSON_RPC_ERRORS.INVALID_PARAMS);
       expect(response.error?.message).toBe('Invalid params');
     });
 
     it('should map parse errors', () => {
-      const error = new Error('JSON parse error');
-      const response = service.createErrorResponseFromException(error, '123');
+      const _error = new Error('JSON parse error');
+      const _response = service.createErrorResponseFromException(error, '123');
 
       expect(response.error?.code).toBe(JSON_RPC_ERRORS.PARSE_ERROR);
       expect(response.error?.message).toBe('Parse error');
     });
 
     it('should default to internal error', () => {
-      const error = new Error('Unknown error');
-      const response = service.createErrorResponseFromException(error, '123');
+      const _error = new Error('Unknown error');
+      const _response = service.createErrorResponseFromException(error, '123');
 
       expect(response.error?.code).toBe(JSON_RPC_ERRORS.INTERNAL_ERROR);
       expect(response.error?.message).toBe('Internal error');
@@ -464,8 +464,8 @@ describe('JsonRpcProtocolService', () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
 
-      const error = new Error('Test error');
-      const response = service.createErrorResponseFromException(error, '123');
+      const _error = new Error('Test error');
+      const _response = service.createErrorResponseFromException(error, '123');
 
       expect(response.error?.data?.originalError).toBe('Test error');
 
@@ -530,7 +530,7 @@ describe('JsonRpcProtocolService', () => {
       mockNotificationHandler.mockRejectedValue(new Error('Handler error'));
 
       // Should not throw, just log the error
-      const response = await service.processSingleRequest(
+      const _response = await service.processSingleRequest(
         notification,
         mockMethodHandler,
         mockNotificationHandler,
@@ -546,7 +546,7 @@ describe('JsonRpcProtocolService', () => {
         method: 'test.notification',
       };
 
-      const response = await service.processSingleRequest(
+      const _response = await service.processSingleRequest(
         notification,
         mockMethodHandler,
         // No notification handler provided

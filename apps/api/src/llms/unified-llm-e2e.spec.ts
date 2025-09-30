@@ -36,7 +36,7 @@ describe('Unified LLM Architecture (E2E)', () => {
 
   describe('Unified Response Method E2E', () => {
     it('should handle Ollama requests end-to-end', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant. Be concise.',
@@ -54,7 +54,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('object');
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.content).toBeDefined();
       expect(typeof response.content).toBe('string');
       expect(response.content.length).toBeGreaterThan(0);
@@ -93,7 +93,7 @@ describe('Unified LLM Architecture (E2E)', () => {
         return;
       }
 
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'openai',
         model: 'gpt-4o-mini',
         systemPrompt: 'You are a helpful assistant. Be very concise.',
@@ -111,7 +111,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('object');
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.content).toBeDefined();
       expect(typeof response.content).toBe('string');
       expect(response.content.length).toBeGreaterThan(0);
@@ -149,7 +149,7 @@ describe('Unified LLM Architecture (E2E)', () => {
         return;
       }
 
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'anthropic',
         model: 'claude-3-5-sonnet-20241022',
         systemPrompt: 'You are a helpful assistant. Be very concise.',
@@ -164,7 +164,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       });
 
       // Validate response structure
-      const response = result as any;
+      const _response = result as any;
       expect(response.content).toBeDefined();
       expect(response.metadata.provider).toBe('anthropic');
       expect(response.metadata.model).toBe('claude-3-5-sonnet-20241022');
@@ -192,9 +192,9 @@ describe('Unified LLM Architecture (E2E)', () => {
 
         // Should not reach here
         expect(true).toBe(false);
-      } catch (error) {
-        // Should be a standardized LLM error
-        const llmError = error as any;
+      } catch (_error) {
+        // Should be a standardized LLM _error
+        const llmError = _error as any;
         expect(llmError.name).toBe('LLMError');
         expect(llmError.type).toBeDefined();
         expect(llmError.code).toBeDefined();
@@ -224,9 +224,9 @@ describe('Unified LLM Architecture (E2E)', () => {
         });
 
         expect(true).toBe(false);
-      } catch (error) {
-        expect((error as any).message).toContain('provider is required');
-        console.log('✅ Missing Parameter Error:', (error as any).message);
+      } catch (_error) {
+        expect((_error as any).message).toContain('provider is required');
+        console.log('✅ Missing Parameter Error:', (_error as any).message);
       }
     });
 
@@ -241,10 +241,10 @@ describe('Unified LLM Architecture (E2E)', () => {
         });
 
         expect(true).toBe(false);
-      } catch (error) {
-        // Should get a model-related error
-        expect((error as any).message).toBeDefined();
-        console.log('✅ Model Not Found Error:', (error as any).message);
+      } catch (_error) {
+        // Should get a model-related _error
+        expect((_error as any).message).toBeDefined();
+        console.log('✅ Model Not Found Error:', (_error as any).message);
       }
     }, 15000);
   });
@@ -306,7 +306,7 @@ describe('Unified LLM Architecture (E2E)', () => {
     it('should handle complete request flow with metadata', async () => {
       const startTime = Date.now();
 
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant.',
@@ -325,7 +325,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       });
 
       const endTime = Date.now();
-      const response = result as any;
+      const _response = result as any;
 
       // Validate complete response
       expect(response.content).toBeDefined();
@@ -383,7 +383,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       expect(results).toHaveLength(5);
 
       results.forEach((result, i) => {
-        const response = result as any;
+        const _response = result as any;
         expect(response.content).toBeDefined();
         expect(response.metadata.provider).toBe('ollama');
         expect(response.metadata.model).toBe('llama3.2:1b');
@@ -436,8 +436,8 @@ describe('Unified LLM Architecture (E2E)', () => {
       try {
         await llmService.generateUnifiedResponse(invalidRequest);
         expect(true).toBe(false);
-      } catch (error) {
-        expect((error as any).name).toBe('LLMError');
+      } catch (_error) {
+        expect((_error as any).name).toBe('LLMError');
       }
 
       // Valid request should still work after error
@@ -455,7 +455,7 @@ describe('Unified LLM Architecture (E2E)', () => {
     it('should handle requests within reasonable time limits', async () => {
       const startTime = Date.now();
 
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Be concise.',
@@ -469,7 +469,7 @@ describe('Unified LLM Architecture (E2E)', () => {
 
       const endTime = Date.now();
       const totalTime = endTime - startTime;
-      const response = result as any;
+      const _response = result as any;
 
       // Validate performance
       expect(totalTime).toBeLessThan(30000); // Less than 30 seconds
@@ -494,7 +494,7 @@ describe('Unified LLM Architecture (E2E)', () => {
   describe('Model Configuration E2E', () => {
     it('should use model configuration service for system operations', async () => {
       // Test that system operations use the new model configuration
-      const result = await llmService.generateSystemResponse(
+      const _result = await llmService.generateSystemResponse(
         'default',
         'You are a system assistant.',
         'Respond with "System test successful"',
@@ -523,7 +523,7 @@ describe('Unified LLM Architecture (E2E)', () => {
       const model =
         provider === 'openai' ? 'gpt-4o-mini' : 'claude-3-5-sonnet-20241022';
 
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider,
         model,
         systemPrompt: 'You are helpful. Echo back the user message exactly.',
@@ -537,7 +537,7 @@ describe('Unified LLM Architecture (E2E)', () => {
         },
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.content).toBeDefined();
 
       // Should contain original names (pseudonyms reversed)
@@ -554,7 +554,7 @@ describe('Unified LLM Architecture (E2E)', () => {
     }, 30000);
 
     it('should skip PII processing for local providers', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Echo back the user message.',
@@ -568,7 +568,7 @@ describe('Unified LLM Architecture (E2E)', () => {
         },
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.content).toBeDefined();
 
       console.log('✅ Local PII Skip E2E:', {
@@ -617,7 +617,7 @@ describe('Unified LLM Architecture (E2E)', () => {
 
       for (const scenario of testScenarios) {
         try {
-          const result = await llmService.generateUnifiedResponse({
+          const _result = await llmService.generateUnifiedResponse({
             provider: scenario.provider,
             model: scenario.model,
             systemPrompt: 'You are helpful.',
@@ -630,7 +630,7 @@ describe('Unified LLM Architecture (E2E)', () => {
             },
           });
 
-          const response = result as any;
+          const _response = result as any;
 
           results.push({
             scenario: scenario.name,
@@ -641,11 +641,11 @@ describe('Unified LLM Architecture (E2E)', () => {
             duration: response.metadata.timing.duration,
             tokens: response.metadata.usage.totalTokens,
           });
-        } catch (error) {
+        } catch (_error) {
           results.push({
             scenario: scenario.name,
             success: false,
-            error: (error as any).message,
+            _error: (_error as any).message,
           });
         }
       }

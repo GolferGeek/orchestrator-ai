@@ -403,13 +403,13 @@ export class LLMServiceFactory {
 
       this.logger.log(`Successfully instantiated ${provider} service`);
       return serviceInstance;
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = `Failed to instantiate ${provider} service: ${
-        error instanceof Error ? error.message : 'Unknown error'
+        _error instanceof Error ? _error.message : 'Unknown _error'
       }`;
       this.logger.error(
         errorMessage,
-        error instanceof Error ? error.stack : undefined,
+        _error instanceof Error ? _error.stack : undefined,
       );
       throw new Error(errorMessage);
     }

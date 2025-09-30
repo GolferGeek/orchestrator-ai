@@ -25,7 +25,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('PII Detection and Pseudonymization', () => {
     it('should detect and pseudonymize names in user message', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful. Respond with the exact names mentioned.',
@@ -37,7 +37,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
       });
 
       expect(typeof result).toBe('object');
-      const response = result as any;
+      const _response = result as any;
       
       // Should have PII metadata
       expect(response.piiMetadata).toBeDefined();
@@ -55,7 +55,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
     }, 30000);
 
     it('should pseudonymize email addresses', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Repeat back the email address exactly.',
@@ -66,7 +66,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.piiMetadata).toBeDefined();
       
       // Should detect email
@@ -79,7 +79,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
     }, 30000);
 
     it('should handle phone numbers', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Repeat the phone number.',
@@ -90,7 +90,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.piiMetadata).toBeDefined();
       
       console.log('📞 Phone PII Detection:', response.piiMetadata.detectedPii);
@@ -99,7 +99,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('Dictionary-Based Pseudonymization', () => {
     it('should use dictionary pseudonyms for known entities', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Mention the person by name.',
@@ -110,7 +110,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.piiMetadata).toBeDefined();
       
       // Should use dictionary pseudonym if GolferGeek is in dictionary
@@ -127,7 +127,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('Pseudonym Reversal in Response', () => {
     it('should reverse pseudonyms back to original names in final response', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful. Use the exact names provided.',
@@ -138,7 +138,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       
       // Final content should contain original names, not pseudonyms
       expect(response.content).toContain('Alice');
@@ -160,7 +160,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('PII Metadata Completeness', () => {
     it('should include complete PII processing metadata', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Respond professionally.',
@@ -171,7 +171,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.piiMetadata).toBeDefined();
       
       // Should have all required PII metadata fields

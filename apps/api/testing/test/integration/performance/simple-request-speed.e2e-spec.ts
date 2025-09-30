@@ -24,7 +24,7 @@ describe('Simple Request Speed (e2e)', () => {
   it('should complete simple request within reasonable time', async () => {
     const startTime = Date.now();
     
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say hello.',
       {

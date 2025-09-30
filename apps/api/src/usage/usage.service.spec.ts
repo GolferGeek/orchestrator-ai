@@ -117,7 +117,7 @@ describe('UsageService', () => {
         return Promise.resolve({ data: mockMessages, error: null });
       });
 
-      const result = await service.getUserStats('user-123', {
+      const _result = await service.getUserStats('user-123', {
         startDate: '2024-01-01',
         endDate: '2024-01-31',
       });
@@ -135,7 +135,7 @@ describe('UsageService', () => {
         return Promise.resolve({ data: [], error: null });
       });
 
-      const result = await service.getUserStats('user-123', {});
+      const _result = await service.getUserStats('user-123', {});
 
       expect(result.totalRequests).toBe(0);
       expect(result.totalTokens).toBe(0);
@@ -150,7 +150,7 @@ describe('UsageService', () => {
         error: null,
       });
 
-      const result = await service.getUserStats('user-123', {
+      const _result = await service.getUserStats('user-123', {
         includeDetails: true,
       });
 
@@ -177,7 +177,7 @@ describe('UsageService', () => {
         return Promise.resolve({ data: filteredMessages, error: null });
       });
 
-      const result = await service.getUserStats('user-123', {
+      const _result = await service.getUserStats('user-123', {
         providerId: 'provider-1',
       });
 
@@ -194,7 +194,7 @@ describe('UsageService', () => {
         return Promise.resolve({ data: filteredMessages, error: null });
       });
 
-      const result = await service.getUserStats('user-123', {
+      const _result = await service.getUserStats('user-123', {
         modelId: 'model-1',
       });
 
@@ -332,7 +332,7 @@ describe('UsageService', () => {
     });
 
     it('should return cost summary with breakdown and trends', async () => {
-      const result = await service.getCostSummary('user-123', {
+      const _result = await service.getCostSummary('user-123', {
         groupBy: 'provider',
       });
 
@@ -349,7 +349,7 @@ describe('UsageService', () => {
     });
 
     it('should use default date range when not provided', async () => {
-      const result = await service.getCostSummary('user-123', {
+      const _result = await service.getCostSummary('user-123', {
         groupBy: 'model',
       });
 
@@ -422,7 +422,7 @@ describe('UsageService', () => {
     });
 
     it('should return model performance metrics sorted by rating', async () => {
-      const result = await service.getModelPerformance('user-123', {
+      const _result = await service.getModelPerformance('user-123', {
         minUsage: 1,
         sortBy: 'rating',
       });
@@ -442,7 +442,7 @@ describe('UsageService', () => {
     });
 
     it('should filter models by minimum usage threshold', async () => {
-      const result = await service.getModelPerformance('user-123', {
+      const _result = await service.getModelPerformance('user-123', {
         minUsage: 2,
         sortBy: 'usage',
       });
@@ -454,7 +454,7 @@ describe('UsageService', () => {
     });
 
     it('should sort by cost per request correctly', async () => {
-      const result = await service.getModelPerformance('user-123', {
+      const _result = await service.getModelPerformance('user-123', {
         minUsage: 1,
         sortBy: 'cost',
       });
@@ -470,7 +470,7 @@ describe('UsageService', () => {
     });
 
     it('should calculate cost efficiency and performance scores', async () => {
-      const result = await service.getModelPerformance('user-123', {
+      const _result = await service.getModelPerformance('user-123', {
         minUsage: 1,
         sortBy: 'rating',
       });
@@ -535,7 +535,7 @@ describe('UsageService', () => {
     });
 
     it('should return comprehensive spending insights', async () => {
-      const result = await service.getSpendingInsights('user-123', 30);
+      const _result = await service.getSpendingInsights('user-123', 30);
 
       expect(result.analysisPeriod).toEqual({
         startDate: expect.any(String),
@@ -564,7 +564,7 @@ describe('UsageService', () => {
     });
 
     it('should use default lookback period when not specified', async () => {
-      const result = await service.getSpendingInsights('user-123', 30);
+      const _result = await service.getSpendingInsights('user-123', 30);
 
       expect(result.analysisPeriod.days).toBe(30);
     });
@@ -584,7 +584,7 @@ describe('UsageService', () => {
     });
 
     it('should return budget status with alerts for high spending', async () => {
-      const result = await service.getBudgetStatus('user-123', 100);
+      const _result = await service.getBudgetStatus('user-123', 100);
 
       expect(result.currentMonth.budget).toBe(100);
       expect(result.currentMonth.spent).toBe(85.5);
@@ -602,7 +602,7 @@ describe('UsageService', () => {
     });
 
     it('should use default budget when not provided', async () => {
-      const result = await service.getBudgetStatus('user-123');
+      const _result = await service.getBudgetStatus('user-123');
 
       expect(result.currentMonth.budget).toBe(100); // Default budget
     });
@@ -618,7 +618,7 @@ describe('UsageService', () => {
         averageUserRating: 4.2,
       });
 
-      const result = await service.getBudgetStatus('user-123', 100);
+      const _result = await service.getBudgetStatus('user-123', 100);
 
       expect(result.alerts.some((alert) => alert.level === 'danger')).toBe(
         true,
@@ -643,7 +643,7 @@ describe('UsageService', () => {
     });
 
     it('should export data in JSON format by default', async () => {
-      const result = await service.exportUsageData('user-123', {
+      const _result = await service.exportUsageData('user-123', {
         format: 'json',
       });
 
@@ -654,7 +654,7 @@ describe('UsageService', () => {
     });
 
     it('should export data in CSV format when requested', async () => {
-      const result = await service.exportUsageData('user-123', {
+      const _result = await service.exportUsageData('user-123', {
         format: 'csv',
       });
 

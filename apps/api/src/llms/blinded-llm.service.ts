@@ -162,7 +162,7 @@ export class BlindedLLMService {
         const axiosConfig = this.convertFetchToAxios(url, init);
 
         // Make the blinded request
-        const response = await blindedClient.post(
+        const _response = await blindedClient.post(
           axiosConfig.url,
           axiosConfig.data,
           {
@@ -173,9 +173,9 @@ export class BlindedLLMService {
 
         // Convert axios response back to fetch-style Response
         return this.convertAxiosToFetchResponse(response);
-      } catch (error) {
-        this.logger.error(`Blinded fetch failed for ${provider}:`, error);
-        throw error;
+      } catch (_error) {
+        this.logger.error(`Blinded fetch failed for ${provider}:`, _error);
+        throw _error;
       }
     };
   }
@@ -224,7 +224,7 @@ export class BlindedLLMService {
    * Convert axios response to fetch Response
    */
   private convertAxiosToFetchResponse(axiosResponse: any): Response {
-    const response = new Response(JSON.stringify(axiosResponse.data), {
+    const _response = new Response(JSON.stringify(axiosResponse.data), {
       status: axiosResponse.status,
       statusText: axiosResponse.statusText,
       headers: new Headers(axiosResponse.headers),
@@ -258,7 +258,7 @@ export class BlindedLLMService {
 
             try {
               // Call the original LLM method (which will use our blinded fetch)
-              const result = await (target as any)[prop](
+              const _result = await (target as any)[prop](
                 messages,
                 options,
                 callbacks,
@@ -270,12 +270,12 @@ export class BlindedLLMService {
               );
 
               return result;
-            } catch (error) {
+            } catch (_error) {
               this.logger.error(
                 `Source-blinded LLM call failed for ${provider}:`,
-                error,
+                _error,
               );
-              throw error;
+              throw _error;
             }
           };
         }
@@ -348,7 +348,7 @@ export class BlindedLLMService {
       ];
 
       // This should trigger our blinded HTTP client
-      const response = await blindedLLM.call(testMessages as any);
+      const _response = await blindedLLM.call(testMessages as any);
 
       return {
         success: true,
@@ -356,14 +356,14 @@ export class BlindedLLMService {
         headerCount: 0, // TODO: Extract from actual request
         strippedHeaders: [], // TODO: Extract from actual request
       };
-    } catch (error) {
-      this.logger.error(`Source blinding test failed for ${provider}:`, error);
+    } catch (_error) {
+      this.logger.error(`Source blinding test failed for ${provider}:`, _error);
       return {
         success: false,
         blindingApplied: false,
         headerCount: 0,
         strippedHeaders: [],
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
       };
     }
   }

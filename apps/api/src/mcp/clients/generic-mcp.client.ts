@@ -22,8 +22,8 @@ export class GenericMCPClient {
     try {
       const pingResult = await this.mcpService.ping();
       return pingResult.status === 'healthy';
-    } catch (error) {
-      this.logger.warn('MCP health check failed:', error);
+    } catch (_error) {
+      this.logger.warn('MCP health check failed:', _error);
       return false;
     }
   }
@@ -43,7 +43,7 @@ export class GenericMCPClient {
     error?: string;
   }> {
     try {
-      const response = await this.mcpService.callTool({
+      const _response = await this.mcpService.callTool({
         name: 'supabase/generate-sql',
         arguments: {
           query: options.query,
@@ -59,17 +59,17 @@ export class GenericMCPClient {
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const _result = JSON.parse(response.content[0]?.text || '{}');
       return {
         success: true,
         sql: result.sql,
         explanation: result.explanation,
         tablesUsed: result.tables_used,
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
       };
     }
   }
@@ -86,7 +86,7 @@ export class GenericMCPClient {
     error?: string;
   }> {
     try {
-      const response = await this.mcpService.callTool({
+      const _response = await this.mcpService.callTool({
         name: 'supabase/execute-sql',
         arguments: {
           sql: options.sql,
@@ -101,7 +101,7 @@ export class GenericMCPClient {
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const _result = JSON.parse(response.content[0]?.text || '{}');
       return {
         success: true,
         data: result.data || [],
@@ -109,10 +109,10 @@ export class GenericMCPClient {
         executionTimeMs: result.execution_time_ms || 0,
         columns: result.columns || [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
       };
     }
   }
@@ -133,7 +133,7 @@ export class GenericMCPClient {
     error?: string;
   }> {
     try {
-      const response = await this.mcpService.callTool({
+      const _response = await this.mcpService.callTool({
         name: 'supabase/analyze-results',
         arguments: {
           data: options.data,
@@ -150,17 +150,17 @@ export class GenericMCPClient {
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const _result = JSON.parse(response.content[0]?.text || '{}');
       return {
         success: true,
         analysis: result.analysis,
         insights: result.insights || [],
         recommendations: result.recommendations || [],
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
       };
     }
   }
@@ -174,7 +174,7 @@ export class GenericMCPClient {
     error?: string;
   }> {
     try {
-      const response = await this.mcpService.callTool({
+      const _response = await this.mcpService.callTool({
         name: 'supabase/get-schema',
         arguments: {
           domain: options.domain || 'core',
@@ -188,15 +188,15 @@ export class GenericMCPClient {
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const _result = JSON.parse(response.content[0]?.text || '{}');
       return {
         success: true,
         schema: result,
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
       };
     }
   }

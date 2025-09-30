@@ -21,7 +21,7 @@ describe('Simple Integration Validation (e2e)', () => {
 
   describe('Basic API Health', () => {
     it('should return healthy status', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/health')
         .expect(200);
 
@@ -29,7 +29,7 @@ describe('Simple Integration Validation (e2e)', () => {
     });
 
     it('should show local models are connected', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/llm/local-models/status')
         .expect(200);
 
@@ -40,7 +40,7 @@ describe('Simple Integration Validation (e2e)', () => {
     });
 
     it('should provide route recommendations', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/llm/route-recommendation')
         .send({
           complexity: 'simple',
@@ -58,7 +58,7 @@ describe('Simple Integration Validation (e2e)', () => {
 
   describe('Usage Tracking', () => {
     it('should provide usage statistics', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/usage/stats')
         .expect(200);
 

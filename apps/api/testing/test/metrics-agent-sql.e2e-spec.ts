@@ -50,7 +50,7 @@ describe('Metrics Agent SQL Generation E2E Tests', () => {
 
   describe('SQL Generation Tests', () => {
     it('should generate valid SQL for revenue by department query', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/finance/metrics/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -131,7 +131,7 @@ describe('Metrics Agent SQL Generation E2E Tests', () => {
     }, 60000); // 60 second timeout for test
 
     it('should include SQL even when encountering errors', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/finance/metrics/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send({

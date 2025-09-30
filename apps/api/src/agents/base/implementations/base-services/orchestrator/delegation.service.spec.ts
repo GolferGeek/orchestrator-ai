@@ -147,7 +147,7 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await service.delegateToAgent(
+      const _result = await service.delegateToAgent(
         'blog_post',
         input.prompt,
         input,
@@ -173,7 +173,7 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await service.delegateToAgent(
+      const _result = await service.delegateToAgent(
         'content',
         input.prompt,
         input,
@@ -198,7 +198,7 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await service.delegateToAgent(
+      const _result = await service.delegateToAgent(
         'market_research',
         input.prompt,
         input,
@@ -223,7 +223,7 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await service.delegateToAgent(
+      const _result = await service.delegateToAgent(
         'competitors',
         input.prompt,
         input,
@@ -248,7 +248,7 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await service.delegateToAgent(
+      const _result = await service.delegateToAgent(
         'marketing_swarm',
         input.prompt,
         input,
@@ -336,7 +336,7 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await service.delegateToAgent(
+      const _result = await service.delegateToAgent(
         'content',
         input.prompt,
         input,
@@ -432,7 +432,7 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
 
       // This should either fail gracefully or select the most general agent
       try {
-        const result = await service.delegateToAgent(
+        const _result = await service.delegateToAgent(
           'content',
           input.prompt,
           input,
@@ -443,9 +443,9 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
         expect(agentFactoryService.createAgent).toHaveBeenCalledWith(
           expect.objectContaining({ name: 'content' }),
         );
-      } catch (error) {
-        // Or it should provide a clear error about no suitable agent
-        expect((error as Error).message).toContain('suitable agent');
+      } catch (_error) {
+        // Or it should provide a clear _error about no suitable agent
+        expect((_error as Error).message).toContain('suitable agent');
       }
     });
   });
@@ -512,12 +512,12 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
             actualAgent: selectedAgent?.name || 'unknown',
             correct: selectedAgent?.name === testCase.expectedAgent,
           });
-        } catch (error) {
+        } catch (_error) {
           results.push({
             ...testCase,
-            actualAgent: 'error',
+            actualAgent: '_error',
             correct: false,
-            error: (error as Error).message,
+            _error: (_error as Error).message,
           });
         }
       }

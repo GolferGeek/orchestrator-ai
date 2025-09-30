@@ -69,13 +69,13 @@ export class AuthService {
       throw new BadRequestException(
         'Could not create user or establish session.',
       );
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof HttpException) {
+        throw _error;
       }
 
       throw new HttpException(
-        'An unexpected error occurred during signup.',
+        'An unexpected _error occurred during signup.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -109,13 +109,13 @@ export class AuthService {
         tokenType: 'bearer',
         expiresIn: authResponse.session.expires_in || undefined,
       };
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof HttpException) {
+        throw _error;
       }
 
       throw new HttpException(
-        'An unexpected error occurred during login.',
+        'An unexpected _error occurred during login.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -132,13 +132,13 @@ export class AuthService {
       if (error) {
         throw new BadRequestException(error.message || 'Error during logout.');
       }
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof HttpException) {
+        throw _error;
       }
 
       throw new HttpException(
-        'An unexpected error occurred during logout.',
+        'An unexpected _error occurred during logout.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -170,13 +170,13 @@ export class AuthService {
         tokenType: 'bearer',
         expiresIn: authResponse.session.expires_in || undefined,
       };
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof HttpException) {
+        throw _error;
       }
 
       throw new HttpException(
-        'An unexpected error occurred during token refresh.',
+        'An unexpected _error occurred during token refresh.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -221,9 +221,9 @@ export class AuthService {
         'User profile not found in namespace directory.',
         HttpStatus.FORBIDDEN,
       );
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof HttpException) {
+        throw _error;
       }
 
       throw new HttpException(
@@ -265,7 +265,7 @@ export class AuthService {
         updatedAt: user.updated_at ? new Date(user.updated_at) : undefined,
         identities: user.identities,
       };
-    } catch (error) {
+    } catch (_error) {
       throw new UnauthorizedException('Invalid token');
     }
   }
@@ -302,7 +302,7 @@ export class AuthService {
           ? (data.namespace_access as string[])
           : [],
       };
-    } catch (error) {
+    } catch (_error) {
       throw new HttpException(
         'Could not fetch user profile.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -528,7 +528,7 @@ export class AuthService {
 
       if (error) {
       }
-    } catch (error) {}
+    } catch (_error) {}
   }
 
   /**
@@ -598,9 +598,9 @@ export class AuthService {
           ? createUserDto.namespaceAccess
           : ['my-org'],
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to create user: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -624,9 +624,9 @@ export class AuthService {
       }
 
       return users || [];
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Failed to get all users: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to get all users: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -655,9 +655,9 @@ export class AuthService {
       }
 
       return user;
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Failed to get user by ID: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to get user by ID: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }

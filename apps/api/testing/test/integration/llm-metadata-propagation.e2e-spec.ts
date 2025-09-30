@@ -32,7 +32,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
       const sessionId = 'test-session-456';
       const userId = 'test-user-789';
 
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -49,7 +49,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.metadata).toBeDefined();
       
       // Should propagate all caller metadata
@@ -71,7 +71,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
     }, 30000);
 
     it('should include request timing metadata', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -82,7 +82,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.metadata.timing).toBeDefined();
       expect(response.metadata.timing.startTime).toBeDefined();
       expect(response.metadata.timing.endTime).toBeDefined();
@@ -96,7 +96,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
     }, 30000);
 
     it('should include token usage metadata', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant.',
@@ -107,7 +107,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.metadata.usage).toBeDefined();
       expect(response.metadata.usage.inputTokens).toBeGreaterThan(0);
       expect(response.metadata.usage.outputTokens).toBeGreaterThan(0);
@@ -121,7 +121,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
 
   describe('Provider-Specific Metadata', () => {
     it('should include provider-specific metadata from Ollama', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -133,7 +133,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.metadata.provider).toBe('ollama');
       expect(response.metadata.model).toBe('llama3.2:1b');
       
@@ -150,7 +150,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
       const temperature = 0.3;
       const maxTokens = 25;
 
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -162,7 +162,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.metadata.config).toBeDefined();
       expect(response.metadata.config.temperature).toBe(temperature);
       expect(response.metadata.config.maxTokens).toBe(maxTokens);
@@ -187,12 +187,12 @@ describe('LLM Metadata Propagation (e2e)', () => {
         
         // Should not reach here
         expect(true).toBe(false);
-      } catch (error) {
+      } catch (_error) {
         // Error should contain useful metadata
-        expect(error.message).toContain('nonexistent-model-xyz');
-        expect(error.message).toContain('not found');
+        expect(_error.message).toContain('nonexistent-model-xyz');
+        expect(_error.message).toContain('not found');
         
-        console.log('❌ Error with Metadata:', error.message);
+        console.log('❌ Error with Metadata:', _error.message);
       }
     }, 30000);
   });
@@ -217,7 +217,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
       
       // All results should have same metadata structure
       results.forEach((result, i) => {
-        const response = result as any;
+        const _response = result as any;
         expect(response.metadata).toBeDefined();
         expect(response.metadata.provider).toBe('ollama');
         expect(response.metadata.model).toBe('llama3.2:1b');

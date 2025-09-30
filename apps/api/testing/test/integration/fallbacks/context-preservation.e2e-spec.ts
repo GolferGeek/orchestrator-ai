@@ -25,7 +25,7 @@ describe('Conversation Context Tracking (e2e)', () => {
     const testConversationId = `context-tracking-${Date.now()}`;
     const testCallerName = `context-preservation-${Date.now()}`;
 
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say "context tracking test" and remember this conversation ID.',
       {

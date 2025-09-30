@@ -102,9 +102,9 @@ export class MCPService {
         this.logger.debug(
           `Loaded ${prefixedTools.length} tools from ${namespace} namespace`,
         );
-      } catch (error) {
+      } catch (_error) {
         const errorMessage =
-          error instanceof Error ? error.message : String(error);
+          _error instanceof Error ? _error.message : String(_error);
         this.logger.warn(
           `Failed to load tools from ${namespace}: ${errorMessage}`,
         );
@@ -147,13 +147,13 @@ export class MCPService {
         name: toolName,
       };
 
-      const result = await handler.executeTool(toolRequest);
+      const _result = await handler.executeTool(toolRequest);
 
       this.logger.debug(`Successfully executed ${request.name}`);
       return result;
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
       this.logger.error(
         `Tool execution failed for ${request.name}: ${errorMessage}`,
       );
@@ -180,7 +180,7 @@ export class MCPService {
         const isHealthy =
           typeof handler.ping === 'function' ? await handler.ping() : true;
         namespaceHealth[namespace] = isHealthy;
-      } catch (error) {
+      } catch (_error) {
         namespaceHealth[namespace] = false;
       }
     }

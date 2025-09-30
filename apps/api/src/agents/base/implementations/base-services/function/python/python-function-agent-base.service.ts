@@ -126,7 +126,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       };
 
       // Execute the Python script
-      const result = await this.executePythonScript(functionParams);
+      const _result = await this.executePythonScript(functionParams);
 
       // Return structured response format to match FunctionAgentBaseService
       const successResponse = {
@@ -143,7 +143,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
       // NEW ARCHITECTURE: Enrich response with PII metadata
       return this.enrichResponseWithPIIMetadata(successResponse, params);
-    } catch (error) {
+    } catch (_error) {
       this.pythonLogger.error(
         `Python script execution error for ${agentName}:`,
         error,
@@ -259,10 +259,10 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   'TaskProgressGateway is not available for broadcasting progress events',
                 );
               }
-            } catch (error) {
+            } catch (_error) {
               this.pythonLogger.warn(
                 `Failed to parse progress event: ${line}`,
-                error,
+                _error,
               );
             }
           } else if (line.startsWith('COMPLETION_EVENT:')) {
@@ -287,10 +287,10 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
               // Note: Task completion with result is now handled in process completion
               // This event is just for broadcasting completion to WebSocket clients
-            } catch (error) {
+            } catch (_error) {
               this.pythonLogger.warn(
                 `Failed to parse completion event: ${line}`,
-                error,
+                _error,
               );
             }
           }
@@ -313,14 +313,14 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
         try {
           // Try to parse JSON response from Python script
-          const result = JSON.parse(stdout.trim());
+          const _result = JSON.parse(stdout.trim());
 
           // Save the result to the task in database for async tasks
 
           const taskId = params.metadata?.taskId;
           if (this.services.tasksService && this.currentUserId && taskId) {
             try {
-              const updateData = {
+              const _updateData = {
                 status: 'completed' as const,
                 progress: 100,
                 response: JSON.stringify(result), // Save the full result
@@ -340,14 +340,14 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   result.metadata || {},
                 );
               }
-            } catch (error) {
-              this.pythonLogger.error(
+            } catch (_error) {
+              this.pythonLogger._error(
                 `❌ Failed to save task ${taskId} result:`,
-                error,
+                _error,
               );
-              this.pythonLogger.error(`❌ Error details:`, {
-                message: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
+              this.pythonLogger._error(`❌ Error details:`, {
+                message: _error instanceof Error ? _error.message : String(_error),
+                stack: _error instanceof Error ? _error.stack : undefined,
               });
             }
           } else {
@@ -386,10 +386,10 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   {},
                 );
               }
-            } catch (error) {
-              this.pythonLogger.error(
+            } catch (_error) {
+              this.pythonLogger._error(
                 `❌ Failed to save task ${taskId} raw result:`,
-                error,
+                _error,
               );
             }
           }

@@ -330,10 +330,10 @@ export class ProviderTestSuite {
         duration,
         cost: response.metadata.usage.cost,
       };
-    } catch (error) {
+    } catch (_error) {
       const duration = Date.now() - startTime;
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        _error instanceof Error ? _error.message : 'Unknown _error';
 
       console.log(`  ❌ Failed (${duration}ms): ${errorMessage}`);
 
@@ -341,7 +341,7 @@ export class ProviderTestSuite {
         provider: testConfig.config.provider,
         model: testConfig.config.model,
         success: false,
-        error: errorMessage,
+        _error: errorMessage,
         duration,
       };
     }
@@ -413,15 +413,15 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
         });
         console.log(`✅ OpenAI: Healthy (${latency}ms)`);
-      } catch (error) {
+      } catch (_error) {
         healthChecks.push({
           provider: 'openai',
           status: 'unhealthy',
           lastChecked: new Date().toISOString(),
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: _error instanceof Error ? _error.message : 'Unknown _error',
         });
         console.log(
-          `❌ OpenAI: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `❌ OpenAI: Unhealthy - ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
         );
       }
     } else {
@@ -442,15 +442,15 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
         });
         console.log(`✅ Anthropic: Healthy (${latency}ms)`);
-      } catch (error) {
+      } catch (_error) {
         healthChecks.push({
           provider: 'anthropic',
           status: 'unhealthy',
           lastChecked: new Date().toISOString(),
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: _error instanceof Error ? _error.message : 'Unknown _error',
         });
         console.log(
-          `❌ Anthropic: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `❌ Anthropic: Unhealthy - ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
         );
       }
     } else {
@@ -470,15 +470,15 @@ export class ProviderTestSuite {
         lastChecked: new Date().toISOString(),
       });
       console.log(`✅ Ollama: Healthy (${latency}ms)`);
-    } catch (error) {
+    } catch (_error) {
       healthChecks.push({
         provider: 'ollama',
         status: 'unhealthy',
         lastChecked: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown _error',
       });
       console.log(
-        `❌ Ollama: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `❌ Ollama: Unhealthy - ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
 
@@ -496,15 +496,15 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
         });
         console.log(`✅ Grok: Healthy (${latency}ms)`);
-      } catch (error) {
+      } catch (_error) {
         healthChecks.push({
           provider: 'grok',
           status: 'unhealthy',
           lastChecked: new Date().toISOString(),
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: _error instanceof Error ? _error.message : 'Unknown _error',
         });
         console.log(
-          `❌ Grok: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `❌ Grok: Unhealthy - ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
         );
       }
     } else {
@@ -525,15 +525,15 @@ export class ProviderTestSuite {
           lastChecked: new Date().toISOString(),
         });
         console.log(`✅ Google: Healthy (${latency}ms)`);
-      } catch (error) {
+      } catch (_error) {
         healthChecks.push({
           provider: 'google',
           status: 'unhealthy',
           lastChecked: new Date().toISOString(),
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: _error instanceof Error ? _error.message : 'Unknown _error',
         });
         console.log(
-          `❌ Google: Unhealthy - ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `❌ Google: Unhealthy - ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
         );
       }
     } else {
@@ -610,9 +610,9 @@ export class ProviderTestSuite {
         console.log(
           `${testConfig.name}: ${duration}ms, ${tokensPerSecond.toFixed(2)} tokens/sec, $${(response.metadata.usage.cost || 0).toFixed(4)}`,
         );
-      } catch (error) {
+      } catch (_error) {
         console.log(
-          `${testConfig.name}: Failed - ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `${testConfig.name}: Failed - ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
         );
       }
     }

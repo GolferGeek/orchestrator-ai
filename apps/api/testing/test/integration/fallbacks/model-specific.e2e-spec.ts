@@ -22,7 +22,7 @@ describe('Model-Specific Fallback (e2e)', () => {
   });
 
   it('should fallback when specific model is unavailable', async () => {
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Test model fallback.',
       {

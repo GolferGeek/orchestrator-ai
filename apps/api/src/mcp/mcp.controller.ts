@@ -83,15 +83,15 @@ export class MCPController {
       }
 
       return this.createSuccessResponse(id, result);
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
       this.logger.error(`MCP method ${method} failed: ${errorMessage}`);
 
       return this.createErrorResponse(
         id,
         MCPErrorCode.INTERNAL_ERROR,
-        `Internal error: ${errorMessage}`,
+        `Internal _error: ${errorMessage}`,
       );
     }
   }
@@ -149,7 +149,7 @@ export class MCPController {
       arguments: params.arguments || {},
     };
 
-    const result = await this.mcpService.callTool(toolRequest);
+    const _result = await this.mcpService.callTool(toolRequest);
 
     // If the tool returned an error, throw it to be handled by JSON-RPC error response
     if (result.isError) {
@@ -242,9 +242,9 @@ export class MCPController {
   async getServerConfig(): Promise<any> {
     try {
       return this.mcpService.getServerConfig();
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
       this.logger.error(`Get server config failed: ${errorMessage}`);
       throw new HttpException(
         `Failed to get server config: ${errorMessage}`,
@@ -267,14 +267,14 @@ export class MCPController {
         namespaces: pingResult.namespaces,
         healthy: pingResult.status === 'healthy',
       };
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
       this.logger.error(`Health check failed: ${errorMessage}`);
 
       return {
         status: 'unhealthy',
-        error: errorMessage,
+        _error: errorMessage,
         timestamp: new Date().toISOString(),
         healthy: false,
       };
@@ -297,9 +297,9 @@ export class MCPController {
         ],
         retrieved_at: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
       this.logger.error(`Debug list tools failed: ${errorMessage}`);
       throw new HttpException(
         `Failed to list tools: ${errorMessage}`,

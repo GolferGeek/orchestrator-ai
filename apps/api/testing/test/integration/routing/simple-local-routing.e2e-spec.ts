@@ -22,7 +22,7 @@ describe('Simple Local Routing (e2e)', () => {
   });
 
   it('should route simple math question to local model', async () => {
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'What is 2 + 2?',
       {

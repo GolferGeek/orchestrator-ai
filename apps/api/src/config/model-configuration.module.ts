@@ -62,9 +62,9 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
             } else {
               globalConfig = parsed as ModelConfiguration;
             }
-          } catch (parseError) {
+          } catch (_parseError) {
             throw new Error(
-              `Invalid MODEL_CONFIG_GLOBAL_JSON: ${(parseError as Error).message}. Value: ${globalJson}`,
+              `Invalid MODEL_CONFIG_GLOBAL_JSON: ${(_parseError as Error).message}. Value: ${globalJson}`,
             );
           }
         }

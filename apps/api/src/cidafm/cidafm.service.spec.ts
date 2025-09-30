@@ -83,7 +83,7 @@ describe('CIDAFMService', () => {
         .spyOn(service, 'findAllCommands')
         .mockResolvedValue([mockBuiltinCommand, mockUserCommand]);
 
-      const result = await service.findAllCommands('user-123');
+      const _result = await service.findAllCommands('user-123');
 
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(mockBuiltinCommand);
@@ -95,7 +95,7 @@ describe('CIDAFMService', () => {
         .spyOn(service, 'findAllCommands')
         .mockResolvedValue([mockBuiltinCommand]);
 
-      const result = await service.findAllCommands('user-123', { type: '^' });
+      const _result = await service.findAllCommands('user-123', { type: '^' });
 
       expect(result).toEqual([mockBuiltinCommand]);
     });
@@ -105,7 +105,7 @@ describe('CIDAFMService', () => {
         .spyOn(service, 'findAllCommands')
         .mockResolvedValue([mockBuiltinCommand]);
 
-      const result = await service.findAllCommands('user-123', {
+      const _result = await service.findAllCommands('user-123', {
         builtinOnly: true,
       });
 
@@ -119,7 +119,7 @@ describe('CIDAFMService', () => {
         .spyOn(service, 'findCommandById')
         .mockResolvedValue(mockBuiltinCommand);
 
-      const result = await service.findCommandById(
+      const _result = await service.findCommandById(
         '123e4567-e89b-12d3-a456-426614174000',
       );
 
@@ -129,7 +129,7 @@ describe('CIDAFMService', () => {
     it('should return user command if found', async () => {
       jest.spyOn(service, 'findCommandById').mockResolvedValue(mockUserCommand);
 
-      const result = await service.findCommandById(
+      const _result = await service.findCommandById(
         '456e7890-e89b-12d3-a456-426614174000',
       );
 
@@ -139,7 +139,7 @@ describe('CIDAFMService', () => {
     it('should return null if command not found', async () => {
       jest.spyOn(service, 'findCommandById').mockResolvedValue(null);
 
-      const result = await service.findCommandById('non-existent-id');
+      const _result = await service.findCommandById('non-existent-id');
 
       expect(result).toBeNull();
     });
@@ -157,7 +157,7 @@ describe('CIDAFMService', () => {
         .spyOn(service, 'createUserCommand')
         .mockResolvedValue(mockUserCommand);
 
-      const result = await service.createUserCommand('user-123', createDto);
+      const _result = await service.createUserCommand('user-123', createDto);
 
       expect(result).toEqual(mockUserCommand);
     });
@@ -205,7 +205,7 @@ describe('CIDAFMService', () => {
         .spyOn(service, 'updateUserCommand')
         .mockResolvedValue(updatedCommand);
 
-      const result = await service.updateUserCommand(
+      const _result = await service.updateUserCommand(
         'user-123',
         'command-id',
         updateDto,
@@ -217,7 +217,7 @@ describe('CIDAFMService', () => {
     it('should return null if command not found', async () => {
       jest.spyOn(service, 'updateUserCommand').mockResolvedValue(null);
 
-      const result = await service.updateUserCommand(
+      const _result = await service.updateUserCommand(
         'user-123',
         'non-existent',
         {},
@@ -253,7 +253,7 @@ describe('CIDAFMService', () => {
     it('should delete user command successfully', async () => {
       jest.spyOn(service, 'deleteUserCommand').mockResolvedValue(true);
 
-      const result = await service.deleteUserCommand('user-123', 'command-id');
+      const _result = await service.deleteUserCommand('user-123', 'command-id');
 
       expect(result).toBe(true);
     });
@@ -261,7 +261,7 @@ describe('CIDAFMService', () => {
     it('should return false if command not found', async () => {
       jest.spyOn(service, 'deleteUserCommand').mockResolvedValue(false);
 
-      const result = await service.deleteUserCommand(
+      const _result = await service.deleteUserCommand(
         'user-123',
         'non-existent',
       );
@@ -308,7 +308,7 @@ describe('CIDAFMService', () => {
     });
 
     it('should process response modifier commands', async () => {
-      const result = await service.processMessage(
+      const _result = await service.processMessage(
         'user-123',
         '^concise Explain quantum computing',
       );
@@ -320,7 +320,7 @@ describe('CIDAFMService', () => {
     });
 
     it('should process state modifier commands', async () => {
-      const result = await service.processMessage(
+      const _result = await service.processMessage(
         'user-123',
         '&disciplined Enable strict mode',
       );
@@ -335,7 +335,7 @@ describe('CIDAFMService', () => {
     });
 
     it('should toggle off existing state modifiers', async () => {
-      const result = await service.processMessage(
+      const _result = await service.processMessage(
         'user-123',
         '&disciplined Toggle off',
         { active_state_modifiers: ['disciplined'] },
@@ -348,7 +348,7 @@ describe('CIDAFMService', () => {
     });
 
     it('should process execution commands', async () => {
-      const result = await service.processMessage(
+      const _result = await service.processMessage(
         'user-123',
         '!state-check Show current state',
       );
@@ -358,7 +358,7 @@ describe('CIDAFMService', () => {
     });
 
     it('should handle unknown commands', async () => {
-      const result = await service.processMessage(
+      const _result = await service.processMessage(
         'user-123',
         '^unknown Test unknown command',
       );
@@ -367,7 +367,7 @@ describe('CIDAFMService', () => {
     });
 
     it('should process multiple commands in one message', async () => {
-      const result = await service.processMessage(
+      const _result = await service.processMessage(
         'user-123',
         '^concise &disciplined !state-check Process multiple commands',
       );
@@ -392,7 +392,7 @@ describe('CIDAFMService', () => {
 
       jest.spyOn(service, 'findAllCommands').mockResolvedValue([]);
 
-      const result = await service.getSessionState('user-123', 'session-123');
+      const _result = await service.getSessionState('user-123', 'session-123');
 
       expect(result.activeStateModifiers).toEqual(['disciplined']);
       expect(result.session_state).toEqual(mockMessage.cidafm_options);
@@ -406,7 +406,7 @@ describe('CIDAFMService', () => {
 
       jest.spyOn(service, 'findAllCommands').mockResolvedValue([]);
 
-      const result = await service.getSessionState('user-123', 'session-123');
+      const _result = await service.getSessionState('user-123', 'session-123');
 
       expect(result.activeStateModifiers).toEqual([]);
     });
@@ -414,7 +414,7 @@ describe('CIDAFMService', () => {
 
   describe('resetSessionState', () => {
     it('should reset session state to default', async () => {
-      const result = await service.resetSessionState('user-123', 'session-123');
+      const _result = await service.resetSessionState('user-123', 'session-123');
 
       expect(result.message).toBe('Session state reset successfully');
       expect(result.reset_state.activeStateModifiers).toEqual([
@@ -438,7 +438,7 @@ describe('CIDAFMService', () => {
         },
       ]);
 
-      const result = await service.getHelp();
+      const _result = await service.getHelp();
 
       expect(result.overview).toContain('CIDAFM');
       expect(result.command_types['^']).toContain('Response Modifiers');

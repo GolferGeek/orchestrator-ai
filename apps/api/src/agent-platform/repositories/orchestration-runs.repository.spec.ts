@@ -41,7 +41,7 @@ describe('OrchestrationRunsRepository', () => {
     fromMock.mockReturnValue({ insert });
 
     const repo = new OrchestrationRunsRepository(service);
-    const result = await repo.start({
+    const _result = await repo.start({
       plan_id: runRecord.plan_id,
       organization_slug: runRecord.organization_slug,
     });
@@ -66,7 +66,7 @@ describe('OrchestrationRunsRepository', () => {
     fromMock.mockReturnValue({ update });
 
     const repo = new OrchestrationRunsRepository(service);
-    const result = await repo.update('run-1', {
+    const _result = await repo.update('run-1', {
       status: 'in_execution',
       current_step_index: 1,
     });
@@ -85,7 +85,7 @@ describe('OrchestrationRunsRepository', () => {
     fromMock.mockReturnValue({ select });
 
     const repo = new OrchestrationRunsRepository(service);
-    const result = await repo.getById('missing');
+    const _result = await repo.getById('missing');
 
     expect(result).toBeNull();
   });

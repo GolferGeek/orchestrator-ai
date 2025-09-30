@@ -52,13 +52,13 @@ describe('Orchestrator Core (e2e)', () => {
 
   describe('Basic API Functionality', () => {
     it('should respond to health check', async () => {
-      const response = await request(app.getHttpServer()).get('/').expect(200);
+      const _response = await request(app.getHttpServer()).get('/').expect(200);
 
       expect(response.text).toBe('NestJS A2A Agent Framework - Ready!');
     });
 
     it('should have agents discovered', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
@@ -74,7 +74,7 @@ describe('Orchestrator Core (e2e)', () => {
     });
 
     it('should have specialist agents available', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
@@ -88,7 +88,7 @@ describe('Orchestrator Core (e2e)', () => {
 
   describe('Orchestrator Agent Cards', () => {
     it('should provide orchestrator agent card', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents/orchestrator/orchestrator/.well-known/agent.json')
         .expect(200);
 
@@ -98,7 +98,7 @@ describe('Orchestrator Core (e2e)', () => {
     });
 
     it('should provide specialist agent cards', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents/specialists/blog_post/.well-known/agent.json')
         .expect(200);
 
@@ -132,7 +132,7 @@ describe('Orchestrator Core (e2e)', () => {
         },
       };
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/orchestrator/orchestrator/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskRequest)
@@ -163,7 +163,7 @@ describe('Orchestrator Core (e2e)', () => {
         },
       };
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/orchestrator/orchestrator/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskRequest)
@@ -187,7 +187,7 @@ describe('Orchestrator Core (e2e)', () => {
   describe('Orchestrator Services Integration', () => {
     it('should have proper module structure without external dependencies', async () => {
       // Test that the orchestrator loads without requiring external services
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 

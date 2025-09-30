@@ -8,38 +8,59 @@ import {
 } from '@llm/services/llm-interfaces';
 import { RoutingDecision } from '@llm/centralized-routing.service';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 
 export interface AgentExecutionContext {
-  agent: AgentRecord;
+  organizationSlug?: string | null;
+  agentSlug?: string;
+  agent?: AgentRecord;
   request: TaskRequestDto;
   routingMetadata?: Record<string, any>;
 }
+
+type HydratedExecutionContext = AgentExecutionContext & {
+  organizationSlug: string | null;
+  agentSlug: string;
+  agent: AgentRecord;
+};
 
 @Injectable()
 export class AgentModeRouterService {
   private readonly logger = new Logger(AgentModeRouterService.name);
 
-  constructor(private readonly llmFactory: LLMServiceFactory) {}
+  constructor(
+    private readonly agentRegistry: AgentRegistryService,
+    private readonly llmFactory: LLMServiceFactory,
+  ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
-    switch (context.request.mode) {
+    const hydrated = await this.hydrateContext(context);
+
+    if (!hydrated) {
+      return TaskResponseDto.failure(
+        context.request.mode,
+        'Agent record unavailable for execution',
+      );
+    }
+
+    switch (hydrated.request.mode) {
       case AgentTaskMode.CONVERSE:
-        return this.handleConverse(context);
+        return this.handleConverse(hydrated);
       case AgentTaskMode.PLAN:
-        return this.handlePlan(context);
+        return this.handlePlan(hydrated);
       case AgentTaskMode.BUILD:
-        return this.handleBuild(context);
+        return this.handleBuild(hydrated);
       case AgentTaskMode.HUMAN_RESPONSE:
         return TaskResponseDto.human('Manual confirmation required');
       default:
         return TaskResponseDto.failure(
-          context.request.mode,
+          hydrated.request.mode,
           'Unsupported mode',
         );
     }
   }
 
-  private async handleConverse(context: AgentExecutionContext) {
+  private async handleConverse(context: HydratedExecutionContext) {
     const decision = this.extractDecision(context.routingMetadata);
     if (!decision) {
       return TaskResponseDto.failure(
@@ -75,7 +96,7 @@ export class AgentModeRouterService {
     }
   }
 
-  private async handlePlan(context: AgentExecutionContext) {
+  private async handlePlan(context: HydratedExecutionContext) {
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
         planDraft: {
@@ -86,7 +107,7 @@ export class AgentModeRouterService {
     });
   }
 
-  private async handleBuild(context: AgentExecutionContext) {
+  private async handleBuild(context: HydratedExecutionContext) {
     const decision = this.extractDecision(context.routingMetadata);
     if (!decision) {
       return TaskResponseDto.failure(
@@ -139,7 +160,7 @@ export class AgentModeRouterService {
   }
 
   private async generateLlmResponse(
-    context: AgentExecutionContext,
+    context: HydratedExecutionContext,
     decision: RoutingDecision,
     options: { mode?: 'build' | 'converse' } = { mode: 'converse' },
   ) {
@@ -157,7 +178,7 @@ export class AgentModeRouterService {
   }
 
   private buildGenerateParams(
-    context: AgentExecutionContext,
+    context: HydratedExecutionContext,
     decision: RoutingDecision,
     config: LLMServiceConfig,
     opts: { mode?: 'build' | 'converse' },
@@ -215,7 +236,7 @@ export class AgentModeRouterService {
   }
 
   private composeUserMessage(
-    context: AgentExecutionContext,
+    context: HydratedExecutionContext,
     mode: 'build' | 'converse' = 'converse',
   ): string {
     const { request } = context;
@@ -280,6 +301,42 @@ export class AgentModeRouterService {
     return {
       ...(request.payload?.metadata ?? {}),
       ...(request.metadata ?? {}),
+    };
+  }
+
+  private async hydrateContext(
+    context: AgentExecutionContext,
+  ): Promise<HydratedExecutionContext | null> {
+    const existingAgent = context.agent;
+    const agentSlug = context.agentSlug ?? existingAgent?.slug;
+    const organizationSlug =
+      context.organizationSlug ?? existingAgent?.organization_slug ?? null;
+
+    if (!agentSlug) {
+      this.logger.warn('Agent slug missing from execution context');
+      return null;
+    }
+
+    let agentRecord: AgentRecord | null = existingAgent ?? null;
+    if (!agentRecord) {
+      agentRecord = await this.agentRegistry.getAgent(
+        organizationSlug,
+        agentSlug,
+      );
+    }
+
+    if (!agentRecord) {
+      this.logger.warn(
+        `Agent ${agentSlug} not found for organization ${organizationSlug ?? 'global'}`,
+      );
+      return null;
+    }
+
+    return {
+      ...context,
+      organizationSlug,
+      agentSlug,
+      agent: agentRecord,
     };
   }
 }

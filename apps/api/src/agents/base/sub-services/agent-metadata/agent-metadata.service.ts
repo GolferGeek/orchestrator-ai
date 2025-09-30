@@ -327,7 +327,7 @@ export class AgentMetadataService {
       this.structureCache.set(cacheKey, structure);
 
       return structure;
-    } catch (error) {
+    } catch (_error) {
       return {
         hasContextFile: false,
         hasFunctionFile: false,
@@ -353,7 +353,7 @@ export class AgentMetadataService {
     if (structure.hasContextFile && structure.contextPath) {
       try {
         metadata = await this.extractMetadataFromContext(structure.contextPath);
-      } catch (error) {}
+      } catch (_error) {}
     }
 
     return {

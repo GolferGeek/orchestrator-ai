@@ -35,7 +35,7 @@ describe('Agent2AgentController', () => {
 
   it('returns agent card', async () => {
     cardBuilder.build.mockResolvedValue({ name: 'Card' });
-    const result = await controller.getAgentCard('my-org', 'agent');
+    const _result = await controller.getAgentCard('my-org', 'agent');
     expect(cardBuilder.build).toHaveBeenCalledWith('my-org', 'agent');
     expect(result).toEqual({ name: 'Card' });
   });
@@ -50,7 +50,7 @@ describe('Agent2AgentController', () => {
       conversationId: 'ddeb27fb-d9a0-4624-be4d-4615062daed4',
     } as any;
 
-    const result = await controller.executeTask('my-org', 'agent', dto);
+    const _result = await controller.executeTask('my-org', 'agent', dto);
 
     expect(gateway.execute).toHaveBeenCalledWith('my-org', 'agent', dto);
     expect('jsonrpc' in (result as any)).toBe(false);
@@ -73,7 +73,7 @@ describe('Agent2AgentController', () => {
       mode: AgentTaskMode.CONVERSE,
     } as any);
 
-    const response = await controller.executeTask(
+    const _response = await controller.executeTask(
       'global',
       'agent',
       jsonRpcPayload as any,
@@ -120,7 +120,7 @@ describe('Agent2AgentController', () => {
       },
     };
 
-    const response = await controller.executeTask(
+    const _response = await controller.executeTask(
       'global',
       'agent',
       jsonRpcPayload as any,

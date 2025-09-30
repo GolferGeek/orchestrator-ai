@@ -428,7 +428,7 @@ Version: 1.5.0
 
       mockFs.readFile.mockResolvedValue(mockContextContent);
 
-      const result = await service.analyzeAgentDirectory(
+      const _result = await service.analyzeAgentDirectory(
         '/test/agents/test-agent',
       );
 
@@ -446,7 +446,7 @@ Version: 1.5.0
         return Promise.resolve(filePath.includes('agent-function.ts'));
       });
 
-      const result = await service.analyzeAgentDirectory(
+      const _result = await service.analyzeAgentDirectory(
         '/test/agents/function-agent',
       );
 
@@ -462,7 +462,7 @@ Version: 1.5.0
 
       mockFs.readFile.mockRejectedValue(new Error('Read error'));
 
-      const result = await service.analyzeAgentDirectory(
+      const _result = await service.analyzeAgentDirectory(
         '/test/agents/error-agent',
       );
 
@@ -552,7 +552,7 @@ Version: 1.5.0
     };
 
     it('should validate a correct agent card', () => {
-      const result = service.validateAgentCard(validCard);
+      const _result = service.validateAgentCard(validCard);
 
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -560,7 +560,7 @@ Version: 1.5.0
 
     it('should detect missing name', () => {
       const invalidCard = { ...validCard, name: '' };
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Agent card must have a non-empty name');
@@ -568,7 +568,7 @@ Version: 1.5.0
 
     it('should detect missing description', () => {
       const invalidCard = { ...validCard, description: '' };
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
@@ -578,7 +578,7 @@ Version: 1.5.0
 
     it('should detect missing URL', () => {
       const invalidCard = { ...validCard, url: '' };
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Agent card must have a valid URL');
@@ -586,7 +586,7 @@ Version: 1.5.0
 
     it('should detect missing version', () => {
       const invalidCard = { ...validCard, version: '' };
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Agent card must have a version');
@@ -594,7 +594,7 @@ Version: 1.5.0
 
     it('should detect missing skills', () => {
       const invalidCard = { ...validCard, skills: [] };
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
@@ -604,7 +604,7 @@ Version: 1.5.0
 
     it('should detect missing input modes', () => {
       const invalidCard = { ...validCard, defaultInputModes: [] };
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
@@ -614,7 +614,7 @@ Version: 1.5.0
 
     it('should detect missing output modes', () => {
       const invalidCard = { ...validCard, defaultOutputModes: [] };
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
@@ -635,7 +635,7 @@ Version: 1.5.0
         ],
       };
 
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
@@ -662,7 +662,7 @@ Version: 1.5.0
         defaultOutputModes: [],
       };
 
-      const result = service.validateAgentCard(invalidCard);
+      const _result = service.validateAgentCard(invalidCard);
 
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(5);
@@ -693,7 +693,7 @@ Version: 2.1.0
         mockFs.readFile.mockResolvedValue(mockContent);
 
         // Access private method through any casting
-        const metadata = await (service as any).extractMetadataFromContext(
+        const _metadata = await (service as any).extractMetadataFromContext(
           '/test/context.md',
         );
 
@@ -715,7 +715,7 @@ Some basic content without structured metadata.
 
         mockFs.readFile.mockResolvedValue(mockContent);
 
-        const metadata = await (service as any).extractMetadataFromContext(
+        const _metadata = await (service as any).extractMetadataFromContext(
           '/test/context.md',
         );
 

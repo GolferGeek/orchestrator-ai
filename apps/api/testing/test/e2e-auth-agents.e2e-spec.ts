@@ -301,7 +301,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
           },
         };
 
-        const response = await request(app.getHttpServer())
+        const _response = await request(app.getHttpServer())
           .post('/agents/orchestrator/orchestrator/tasks')
           .set('Authorization', `Bearer ${authToken}`)
           .send(taskRequest)
@@ -360,7 +360,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
         },
       };
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/orchestrator/orchestrator/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskRequest)
@@ -401,7 +401,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
         },
       };
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/orchestrator/orchestrator/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskRequest)
@@ -443,7 +443,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
           },
         };
 
-        const response = await request(app.getHttpServer())
+        const _response = await request(app.getHttpServer())
           .post('/agents/orchestrator/orchestrator/tasks')
           .set('Authorization', `Bearer ${authToken}`)
           .send(taskRequest)
@@ -465,7 +465,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
 
   describe('Agent Discovery Validation', () => {
     it('should have all expected agents discovered and running', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
@@ -489,7 +489,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
     });
 
     it('should have agents accessible via agent pool', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agent-pool/agents')
         .expect(200);
 

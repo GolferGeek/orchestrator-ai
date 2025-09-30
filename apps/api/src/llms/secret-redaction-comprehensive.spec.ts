@@ -75,7 +75,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('api_key=[REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -138,7 +138,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('bearer [REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -194,7 +194,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('sk-[REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -206,7 +206,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
     it('should match openai_key pattern when in key=value format with correct length', () => {
       const text =
         'OPENAI_API_KEY=sk-abcdef1234567890abcdef1234567890abcdef1234567890';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe('OPENAI_API_KEY=sk-[REDACTED]');
       expect(result.result.redactionCount).toBe(1);
@@ -258,7 +258,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('sk-ant-[REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -268,7 +268,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     it('should match anthropic_key pattern when in key=value format with correct length', () => {
       const text = `ANTHROPIC_API_KEY=sk-ant-api03-${'b1c2d3e4f5'.repeat(9)}12345`;
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe('ANTHROPIC_API_KEY=sk-ant-[REDACTED]');
       expect(result.result.redactionCount).toBe(1);
@@ -316,7 +316,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact Google API key ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('AIza[REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -326,7 +326,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     it('should match google_key pattern when in key=value format with correct length', () => {
       const text = 'GOOGLE_API_KEY=AIzaSy1234567890abcdefghijklmnopqrst123';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe('GOOGLE_API_KEY=AIza[REDACTED]');
       expect(result.result.redactionCount).toBe(1);
@@ -376,7 +376,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toContain('eyJ[REDACTED]');
         expect(result.result.redactionCount).toBeGreaterThanOrEqual(1);
@@ -421,7 +421,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('password=[REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -472,7 +472,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('database://[REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -495,7 +495,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe('AKIA[REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -505,7 +505,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     it('should redact AWS key with label prefix', () => {
       const text = 'Access Key: AKIA9876543210FEDCBA';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe('Access Key: AKIA[REDACTED]');
       expect(result.result.redactionCount).toBe(1);
@@ -514,7 +514,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     it('should match aws_key pattern when in key=value format with correct length', () => {
       const text = 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe('AWS_ACCESS_KEY_ID=AKIA[REDACTED]');
       expect(result.result.redactionCount).toBe(1);
@@ -546,7 +546,7 @@ describe('SecretRedactionService - Comprehensive Pattern Testing', () => {
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toContain('[CREDIT_CARD_REDACTED]');
         expect(result.result.redactionCount).toBe(1);
@@ -603,7 +603,7 @@ MAwGCCqGSIb3DQIJAAAAAQAQq4Q9q9y5L3Q8C2j8yS7G8q3F2K9w2N7P8J5J6mVA
 
     testCases.forEach(({ text, name }) => {
       it(`should redact ${name}`, () => {
-        const result = service.redactSecrets(text);
+        const _result = service.redactSecrets(text);
 
         expect(result.redactedText).toBe(
           '-----BEGIN [REDACTED] PRIVATE KEY-----',
@@ -623,7 +623,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/db
 JWT=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 Card=4111-1111-1111-1111`;
 
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.result.redactionCount).toBeGreaterThanOrEqual(5);
       expect(result.redactedText).toContain('[REDACTED]');
@@ -634,7 +634,7 @@ Card=4111-1111-1111-1111`;
 
   describe('Edge Cases and Validation', () => {
     it('should handle empty input', () => {
-      const result = service.redactSecrets('');
+      const _result = service.redactSecrets('');
 
       expect(result.redactedText).toBe('');
       expect(result.result.redactionCount).toBe(0);
@@ -642,7 +642,7 @@ Card=4111-1111-1111-1111`;
     });
 
     it('should handle null input', () => {
-      const result = service.redactSecrets(null as any);
+      const _result = service.redactSecrets(null as any);
 
       expect(result.redactedText).toBe(null);
       expect(result.result.redactionCount).toBe(0);
@@ -650,7 +650,7 @@ Card=4111-1111-1111-1111`;
 
     it("should not redact short strings that don't meet minimum requirements", () => {
       const text = 'api_key=short pwd=tiny';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe(text);
       expect(result.result.redactionCount).toBe(0);
@@ -658,7 +658,7 @@ Card=4111-1111-1111-1111`;
 
     it('should handle text with no secrets', () => {
       const text = 'This is just regular text with no sensitive data';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe(text);
       expect(result.result.redactionCount).toBe(0);
@@ -671,7 +671,7 @@ Card=4111-1111-1111-1111`;
       // This should match the specific OpenAI pattern since it has the exact format
       const text =
         'api_key=sk-1234567890abcdef1234567890abcdef1234567890abcdef';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe('api_key=sk-[REDACTED]');
       expect(result.result.patternsMatched).toContain('openai_key');
@@ -682,7 +682,7 @@ Card=4111-1111-1111-1111`;
     it("should match specific pattern when generic doesn't apply", () => {
       // This should match the openai_key pattern specifically
       const text = 'sk-1234567890abcdef1234567890abcdef1234567890abcdef';
-      const result = service.redactSecrets(text);
+      const _result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe('sk-[REDACTED]');
       expect(result.result.patternsMatched).toContain('openai_key');
@@ -745,7 +745,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmn
       `;
 
       // Perform redaction
-      const result = service.redactSecrets(testDocument);
+      const _result = service.redactSecrets(testDocument);
 
       // Validate that redaction occurred
       expect(result.result.redactionCount).toBeGreaterThanOrEqual(8); // Expect at least 8 redactions
@@ -795,7 +795,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmn
       ];
 
       testCases.forEach((testCase) => {
-        const result = service.redactSecrets(testCase);
+        const _result = service.redactSecrets(testCase);
         // These should either not be redacted or handled gracefully
         expect(result.result.redactionCount).toBeGreaterThanOrEqual(0);
         expect(result.redactedText).toBeDefined();
@@ -813,7 +813,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmn
         .join('\\n');
 
       const startTime = Date.now();
-      const result = service.redactSecrets(largeDocument);
+      const _result = service.redactSecrets(largeDocument);
       const endTime = Date.now();
 
       expect(result.result.redactionCount).toBe(100);

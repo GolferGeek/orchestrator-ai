@@ -808,6 +808,8 @@ describe('AgentExecutionGateway', () => {
     expect(orchestrationRunner.startRun).not.toHaveBeenCalled();
     expect(modeRouter.execute).toHaveBeenCalledWith(
       expect.objectContaining({
+        organizationSlug: 'demo',
+        agentSlug: 'agent-1',
         agent: { slug: 'agent-1' },
         request: expect.objectContaining({
           mode: AgentTaskMode.BUILD,

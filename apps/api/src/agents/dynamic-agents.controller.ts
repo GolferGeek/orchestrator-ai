@@ -109,7 +109,7 @@ export class DynamicAgentsController {
           timestamp: new Date().toISOString(),
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -246,7 +246,7 @@ export class DynamicAgentsController {
           originalFormat: 'wav',
         };
       }
-    } catch (audioError) {
+    } catch (_audioError) {
       this.logger.error(
         `🎤 [DynamicAgentsController] Audio transcription failed for ${agentType}/${agentName}:`,
         audioError,
@@ -467,7 +467,7 @@ export class DynamicAgentsController {
             currentUser.id,
             { type: wp.type, id: wp.id },
           );
-        } catch (e) {}
+        } catch (_e) {}
       }
 
       // Prepare request for agent with task context
@@ -530,7 +530,7 @@ export class DynamicAgentsController {
       // All modes await the result for proper A2A behavior
       const rpcResponse =
         await agentInstance.processJsonRpcRequest(jsonRpcRequest);
-      const result = rpcResponse?.result ?? rpcResponse; // Unwrap JSON-RPC result
+      const _result = rpcResponse?.result ?? rpcResponse; // Unwrap JSON-RPC result
 
       // 🔍 DEBUG: Log the result from JSON-RPC processing
       // Request completed
@@ -579,10 +579,10 @@ export class DynamicAgentsController {
           this.logger.log(
             `🔊 [DynamicAgentsController] Audio response synthesized successfully for ${agentType}/${agentName}`,
           );
-        } catch (synthesisError) {
+        } catch (_synthesisError) {
           this.logger.error(
             `🔊 [DynamicAgentsController] Audio synthesis failed for ${agentType}/${agentName}:`,
-            synthesisError,
+            _synthesisError,
           );
           // Continue without audio - don't fail the entire request
         }
@@ -649,15 +649,15 @@ export class DynamicAgentsController {
           },
         }),
       };
-    } catch (error) {
+    } catch (_error) {
       // Mark task as failed via TaskStatusService (single source of truth)
       await this.taskStatusService.failTask(
         task.id,
         currentUser.id,
-        error instanceof Error ? error.message : 'Unknown error',
+        _error instanceof Error ? _error.message : 'Unknown _error',
       );
 
-      throw error;
+      throw _error;
     }
   }
 

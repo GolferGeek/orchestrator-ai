@@ -44,7 +44,7 @@ describe('Orchestrator Agent (e2e)', () => {
       // Wait a bit for agents to be discovered
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
@@ -57,7 +57,7 @@ describe('Orchestrator Agent (e2e)', () => {
       // Wait for agent discovery
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
@@ -72,7 +72,7 @@ describe('Orchestrator Agent (e2e)', () => {
       // Wait for agent discovery
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
@@ -86,7 +86,7 @@ describe('Orchestrator Agent (e2e)', () => {
 
   describe('Agent Discovery', () => {
     it('should discover agents through the discovery service', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
@@ -131,7 +131,7 @@ describe('Orchestrator Agent (e2e)', () => {
         params: { prompt: 'Write a test blog post about NestJS' },
       };
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/specialists/blog_post/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskRequest)

@@ -204,7 +204,7 @@ Respond with JSON:
         content_types_needed: taskAnalysis.requirements.content_types.length,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     // Fallback analysis
     return {
       ...state,
@@ -386,7 +386,7 @@ Create high-quality, actionable marketing content according to your expertise. M
         specialties: agent.specialties,
         timestamp: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (_error) {
       agentOutputs.set(agent.name, {
         content: `Error generating content: ${error instanceof Error ? error.message : String(error)}`,
         agent_role: agent.role,
@@ -487,11 +487,11 @@ Format as JSON:
         evaluator_specialties: evaluator.specialties,
         timestamp: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (_error) {
       evaluationResults.set(evaluator.name, {
         score: 5,
-        error: error instanceof Error ? error.message : String(error),
-        recommendations: [`Review needed due to evaluation error`],
+        error: _error instanceof Error ? _error.message : String(_error),
+        recommendations: [`Review needed due to evaluation _error`],
       });
     }
   }
@@ -637,7 +637,7 @@ Format the response as a well-structured marketing content package with clear se
         workflow_status: 'completed',
       },
     };
-  } catch (error) {
+  } catch (_error) {
     // Fallback to organized raw outputs - ensure content is properly extracted
     const contentPieces: Record<string, any> = {};
     state.agentOutputs.forEach((value, key) => {
@@ -781,7 +781,7 @@ ${content}
         end_time: new Date().toISOString(),
       },
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       response: JSON.stringify(
         {
@@ -842,7 +842,7 @@ export async function execute(
         swarm_workflow: workflowMetadata,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 

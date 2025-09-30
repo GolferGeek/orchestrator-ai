@@ -260,8 +260,8 @@ export class OpenAILLMService extends BaseLLMService {
       this.logRequestResponse(params, response, metadata.timing.duration);
 
       return response;
-    } catch (error) {
-      this.handleError(error, 'OpenAILLMService.generateResponse');
+    } catch (_error) {
+      this.handleError(_error, 'OpenAILLMService.generateResponse');
     }
   }
 
@@ -418,8 +418,8 @@ export class OpenAILLMService extends BaseLLMService {
         const runId = `openai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.logger.debug(`LangSmith integration for OpenAI: ${runId}`);
         return runId;
-      } catch (error) {
-        this.logger.warn('LangSmith integration failed:', error);
+      } catch (_error) {
+        this.logger.warn('LangSmith integration failed:', _error);
       }
     }
     return undefined;
@@ -512,8 +512,8 @@ export async function testOpenAIService() {
     console.log('OpenAI Response:', response.content);
     console.log('Metadata:', response.metadata);
     return response;
-  } catch (error) {
-    console.error('OpenAI Service Error:', error);
-    throw error;
+  } catch (_error) {
+    console.error('OpenAI Service Error:', _error);
+    throw _error;
   }
 }

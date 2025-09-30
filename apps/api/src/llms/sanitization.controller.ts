@@ -55,7 +55,7 @@ export class SanitizationController {
           size: 0,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger.error('Failed to get sanitization stats', error as any);
       // Provide minimal safe structure
       return {

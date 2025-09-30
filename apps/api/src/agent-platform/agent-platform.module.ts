@@ -7,6 +7,7 @@ import { OrganizationCredentialsRepository } from './repositories/organization-c
 import { AgentOrchestrationsRepository } from './repositories/agent-orchestrations.repository';
 import { PlanEngineService } from './services/plan-engine.service';
 import { OrchestrationRunnerService } from './services/orchestration-runner.service';
+import { AgentRegistryService } from './services/agent-registry.service';
 
 @Module({
   imports: [SupabaseModule],
@@ -18,6 +19,7 @@ import { OrchestrationRunnerService } from './services/orchestration-runner.serv
     AgentOrchestrationsRepository,
     PlanEngineService,
     OrchestrationRunnerService,
+    AgentRegistryService,
   ],
   exports: [
     AgentsRepository,
@@ -27,6 +29,7 @@ import { OrchestrationRunnerService } from './services/orchestration-runner.serv
     AgentOrchestrationsRepository,
     PlanEngineService,
     OrchestrationRunnerService,
+    AgentRegistryService,
   ],
 })
 export class AgentPlatformModule {}

@@ -103,9 +103,9 @@ export class RolesGuard implements CanActivate {
       request.userProfile = userProfile;
 
       return true;
-    } catch (error) {
-      if (error instanceof ForbiddenException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof ForbiddenException) {
+        throw _error;
       }
 
       throw new ForbiddenException('Error verifying user permissions');
@@ -134,8 +134,8 @@ export class RolesGuard implements CanActivate {
       }
 
       return data;
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 

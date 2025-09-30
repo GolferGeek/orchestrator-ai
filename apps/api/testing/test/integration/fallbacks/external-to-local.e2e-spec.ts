@@ -22,7 +22,7 @@ describe('Provider Routing Logic (e2e)', () => {
   });
 
   it('should route to local provider when preferLocal is true', async () => {
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say "local routing test" exactly.',
       {

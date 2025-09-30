@@ -70,7 +70,7 @@ url: \${API_HOST}:\${API_PORT:4000}
     });
 
     it('should parse a valid YAML file successfully', async () => {
-      const result = await service.parseYamlFile('/test/config.yaml');
+      const _result = await service.parseYamlFile('/test/config.yaml');
 
       expect(result.data).toEqual({
         name: 'test-agent',
@@ -89,14 +89,14 @@ url: \${API_HOST}:\${API_PORT:4000}
       process.env.API_HOST = 'localhost';
       process.env.API_PORT = '8080';
 
-      const result = await service.parseYamlFile('/test/config.yaml');
+      const _result = await service.parseYamlFile('/test/config.yaml');
 
       expect(result.data.url).toBe('localhost:8080');
       expect(result.substitutedVars).toEqual(['API_HOST', 'API_PORT']);
     });
 
     it('should use default values when environment variables are not set', async () => {
-      const result = await service.parseYamlFile('/test/config.yaml');
+      const _result = await service.parseYamlFile('/test/config.yaml');
 
       expect(result.data.url).toBe('${API_HOST}:4000');
       expect(result.substitutedVars).toEqual([]);
@@ -105,7 +105,7 @@ url: \${API_HOST}:\${API_PORT:4000}
     it('should skip environment variable substitution when disabled', async () => {
       process.env.API_HOST = 'localhost';
 
-      const result = await service.parseYamlFile('/test/config.yaml', {
+      const _result = await service.parseYamlFile('/test/config.yaml', {
         substituteEnvVars: false,
       });
 
@@ -157,7 +157,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
 `;
 
     it('should parse YAML string successfully', () => {
-      const result = service.parseYamlString(testYamlContent);
+      const _result = service.parseYamlString(testYamlContent);
 
       expect(result.data).toEqual({
         name: 'test-agent',
@@ -170,7 +170,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       process.env.API_HOST = 'production.example.com';
       process.env.API_PORT = '443';
 
-      const result = service.parseYamlString(testYamlContent);
+      const _result = service.parseYamlString(testYamlContent);
 
       expect(result.data.url).toBe('production.example.com:443');
       expect(result.substitutedVars).toEqual(['API_HOST', 'API_PORT']);
@@ -194,7 +194,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         },
       };
 
-      const result = service.substituteEnvVars(config);
+      const _result = service.substituteEnvVars(config);
 
       expect(result.data).toEqual({
         setting: 'test-value',
@@ -211,7 +211,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         port: '${MISSING_PORT:4000}',
       };
 
-      const result = service.substituteEnvVars(config);
+      const _result = service.substituteEnvVars(config);
 
       expect(result.data).toEqual({
         host: 'localhost',
@@ -227,7 +227,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         setting: '${VAR}',
       };
 
-      const result = service.substituteEnvVars(config, 'TEST_PREFIX_');
+      const _result = service.substituteEnvVars(config, 'TEST_PREFIX_');
 
       expect(result.data.setting).toBe('prefixed-value');
       expect(result.substitutedVars).toEqual(['TEST_PREFIX_VAR']);
@@ -245,7 +245,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         },
       };
 
-      const result = service.substituteEnvVars(config);
+      const _result = service.substituteEnvVars(config);
 
       expect(result.data).toEqual({
         array: ['test-value', 'static-value'],
@@ -268,7 +268,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     it('should keep placeholder in non-strict mode when variable is missing', () => {
       const config = { setting: '${MISSING_VAR}' };
 
-      const result = service.substituteEnvVars(config, undefined, false);
+      const _result = service.substituteEnvVars(config, undefined, false);
 
       expect(result.data.setting).toBe('${MISSING_VAR}');
       expect(result.substitutedVars).toEqual([]);
@@ -282,7 +282,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         undefined_value: undefined,
       };
 
-      const result = service.substituteEnvVars(config);
+      const _result = service.substituteEnvVars(config);
 
       expect(result.data).toEqual(config);
       expect(result.substitutedVars).toEqual([]);
@@ -340,14 +340,14 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
   describe('resolveFilePath', () => {
     it('should return absolute paths unchanged', () => {
       const absolutePath = '/absolute/path/to/file.yaml';
-      const result = service.resolveFilePath(absolutePath);
+      const _result = service.resolveFilePath(absolutePath);
 
       expect(result).toBe(absolutePath);
     });
 
     it('should resolve relative paths from current working directory', () => {
       const relativePath = 'config/file.yaml';
-      const result = service.resolveFilePath(relativePath);
+      const _result = service.resolveFilePath(relativePath);
 
       expect(result).toBe(path.resolve(process.cwd(), relativePath));
     });
@@ -355,7 +355,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     it('should resolve relative paths from specified base directory', () => {
       const relativePath = 'config/file.yaml';
       const baseDir = '/custom/base';
-      const result = service.resolveFilePath(relativePath, baseDir);
+      const _result = service.resolveFilePath(relativePath, baseDir);
 
       expect(result).toBe(path.resolve(baseDir, relativePath));
     });
@@ -365,7 +365,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     it('should return true when file exists', () => {
       mockFs.existsSync.mockReturnValue(true);
 
-      const result = service.fileExists('/test/config.yaml');
+      const _result = service.fileExists('/test/config.yaml');
 
       expect(result).toBe(true);
       expect(mockFs.existsSync).toHaveBeenCalledWith('/test/config.yaml');
@@ -374,7 +374,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     it('should return false when file does not exist', () => {
       mockFs.existsSync.mockReturnValue(false);
 
-      const result = service.fileExists('/test/config.yaml');
+      const _result = service.fileExists('/test/config.yaml');
 
       expect(result).toBe(false);
     });
@@ -399,7 +399,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     it('should return file stats when file exists', () => {
       mockFs.statSync.mockReturnValue(mockStats);
 
-      const result = service.getFileStats('/test/config.yaml');
+      const _result = service.getFileStats('/test/config.yaml');
 
       expect(result).toBe(mockStats);
       expect(mockFs.statSync).toHaveBeenCalledWith('/test/config.yaml');
@@ -410,7 +410,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         throw new Error('File not found');
       });
 
-      const result = service.getFileStats('/test/config.yaml');
+      const _result = service.getFileStats('/test/config.yaml');
 
       expect(result).toBeNull();
     });
@@ -491,7 +491,7 @@ features:
       mockFs.readFileSync.mockReturnValue(yamlContent);
 
       // Parse the configuration
-      const result = await service.parseYamlFile('/test/config.yaml');
+      const _result = await service.parseYamlFile('/test/config.yaml');
 
       // Verify parsing and substitution
       expect(result.data).toEqual({

@@ -163,9 +163,9 @@ export class TasksService {
           });
 
           return this.mapToTask(createdTask);
-        } catch (error) {
+        } catch (_error) {
           if (attempts >= maxAttempts - 1) {
-            throw error;
+            throw _error;
           }
           attempts++;
         }
@@ -465,9 +465,9 @@ export class TasksService {
         uptime: process.uptime() * 1000, // Convert to milliseconds
         memoryUsage: process.memoryUsage(),
       };
-    } catch (error) {
-      this.logger.error('Error calculating task metrics:', error);
-      throw error;
+    } catch (_error) {
+      this.logger.error('Error calculating task metrics:', _error);
+      throw _error;
     }
   }
 
@@ -593,7 +593,7 @@ export class TasksService {
       };
 
       return JSON.stringify(enhancedResult);
-    } catch (error) {
+    } catch (_error) {
       return response;
     }
   }

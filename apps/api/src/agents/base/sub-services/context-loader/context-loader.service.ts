@@ -29,7 +29,7 @@ export class ContextLoaderService {
       const rawContent = fs.readFileSync(contextPath, 'utf8');
 
       return this.parseContextContent(rawContent);
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }

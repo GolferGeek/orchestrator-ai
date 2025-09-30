@@ -33,7 +33,7 @@ export default registerAs('supabase', () => {
   const getEnvValue = (key: string, defaultValue: string) => {
     try {
       return process.env[key] || defaultValue;
-    } catch (error) {
+    } catch (_error) {
       return defaultValue;
     }
   };

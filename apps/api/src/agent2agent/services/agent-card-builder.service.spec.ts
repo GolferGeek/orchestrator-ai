@@ -55,7 +55,7 @@ describe('AgentCardBuilderService', () => {
     } as any);
 
     const service = new AgentCardBuilderService(repo, createConfigMock());
-    const result = await service.build(null, 'agent');
+    const _result = await service.build(null, 'agent');
 
     expect(result.name).toBe('Agent');
     expect(result.customField).toBe('custom');
@@ -93,7 +93,7 @@ describe('AgentCardBuilderService', () => {
     } as any);
 
     const service = new AgentCardBuilderService(repo, createConfigMock());
-    const result = await service.build(null, 'agent');
+    const _result = await service.build(null, 'agent');
 
     expect(result.name).toBe('Agent');
     expect(result.capabilities.declared).toContain('converse');

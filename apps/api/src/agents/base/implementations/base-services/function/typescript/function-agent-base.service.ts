@@ -148,7 +148,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             dataClassification: 'internal', // Default for function agents
           };
 
-          const result = await this.services.llmService.generateResponse(
+          const _result = await this.services.llmService.generateResponse(
             systemPrompt,
             userMessage,
             mergedOptions,
@@ -212,7 +212,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
 
       // Execute the pre-loaded agent function with progress tracking
       this.emitProgress('Starting task execution', 0, 'in_progress');
-      const result = await this.agentFunction(functionParams);
+      const _result = await this.agentFunction(functionParams);
       this.emitProgress(
         'Task execution completed',
         this.totalSteps - 1,
@@ -284,7 +284,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
 
       // NEW ARCHITECTURE: Enrich response with PII metadata
       return this.enrichResponseWithPIIMetadata(successResponse, params);
-    } catch (error) {
+    } catch (_error) {
       this.functionLogger.error(
         `Function execution error for ${agentName}:`,
         error,
@@ -406,17 +406,17 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       this.emitProgress(step.name, i, 'in_progress');
 
       try {
-        const result = await step.execute();
+        const _result = await step.execute();
         results.push(result);
         this.emitProgress(step.name, i, 'completed');
-      } catch (error) {
+      } catch (_error) {
         this.emitProgress(
           step.name,
           i,
           'failed',
-          error instanceof Error ? error.message : String(error),
+          _error instanceof Error ? _error.message : String(_error),
         );
-        throw error;
+        throw _error;
       }
     }
 

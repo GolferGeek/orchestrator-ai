@@ -44,7 +44,7 @@ describe('AgentsRepository', () => {
     fromMock.mockReturnValue({ upsert });
 
     const repo = new AgentsRepository(service);
-    const result = await repo.upsert({
+    const _result = await repo.upsert({
       organization_slug: 'my-org',
       slug: 'marketing_swarm',
       display_name: 'Marketing Swarm',
@@ -76,7 +76,7 @@ describe('AgentsRepository', () => {
     fromMock.mockReturnValue(queryChain);
 
     const repo = new AgentsRepository(service);
-    const result = await repo.findBySlug('demo', 'missing');
+    const _result = await repo.findBySlug('demo', 'missing');
 
     expect(queryChain.eq).toHaveBeenCalledWith('slug', 'missing');
     expect(result).toBeNull();
@@ -100,7 +100,7 @@ describe('AgentsRepository', () => {
     fromMock.mockReturnValue(listChain);
 
     const repo = new AgentsRepository(service);
-    const result = await repo.listByOrganization(null);
+    const _result = await repo.listByOrganization(null);
 
     expect(listChain.is).toHaveBeenCalledWith('organization_slug', null);
     expect(result).toEqual([sampleAgent]);

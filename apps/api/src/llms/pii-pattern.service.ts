@@ -182,11 +182,11 @@ export class PIIPatternService {
       await this.loadPatternsFromDatabase();
 
       this.logger.log(`Added custom PII pattern: ${pattern.name}`);
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to add custom pattern: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to add custom pattern: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
-      throw error;
+      throw _error;
     }
   }
 
@@ -294,9 +294,9 @@ export class PIIPatternService {
 
         this.logger.debug(`Pattern breakdown: ${JSON.stringify(bySeverity)}`);
       }
-    } catch (error) {
+    } catch (_error) {
       this.logger.warn(
-        `Failed to load patterns from database: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to load patterns from database: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }

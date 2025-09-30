@@ -51,7 +51,7 @@ export class ContextOptimizationService {
         processingTimeMs: duration,
         workProductType: request.workProductType,
       });
-    } catch (e) {}
+    } catch (_e) {}
     return optimized;
   }
 
@@ -92,7 +92,7 @@ export class ContextOptimizationService {
           '00000000-0000-0000-0000-000000000000',
         );
       }
-    } catch (e) {}
+    } catch (_e) {}
     return null;
   }
 

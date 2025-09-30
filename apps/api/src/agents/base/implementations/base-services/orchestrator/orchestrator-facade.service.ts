@@ -85,7 +85,7 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           // For unknown methods, use intent recognition (conversation + tasks pattern)
           return await this.handleIntelligentRouting(input, delegationContext);
       }
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         message: `Request processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -139,9 +139,9 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
         userId: input.userId,
         sessionId: input.sessionId,
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Project creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Project creation failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -198,9 +198,9 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
         userId: input.userId,
         sessionId: input.sessionId,
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Plan update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Plan update failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -254,9 +254,9 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
         userId: input.userId,
         sessionId: input.sessionId,
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Plan approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Plan approval failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -285,9 +285,9 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           action: 'resume_project',
         },
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Project resumption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Project resumption failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -317,9 +317,9 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           stepId: input.stepId,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Step retry failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Step retry failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -348,9 +348,9 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           action: 'abort_project',
         },
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Project abortion failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Project abortion failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -361,23 +361,17 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private async handleDelegateTask(
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-    try {
-      // TODO: Extract agent name from input or metadata
-      const agentName = input.metadata?.agentName;
-      if (!agentName) {
-        throw new Error('Agent name required for delegation');
-      }
-
-      return await this.delegationService.delegateToAgent(
-        agentName,
-        input.prompt,
-        input,
-      );
-    } catch (error) {
-      throw new Error(
-        `Task delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    // TODO: Extract agent name from input or metadata
+    const agentName = input.metadata?.agentName;
+    if (!agentName) {
+      throw new Error('Agent name required for delegation');
     }
+
+    return await this.delegationService.delegateToAgent(
+      agentName,
+      input.prompt,
+      input,
+    );
   }
 
   // NOTE: handleClarifyRequest method removed - orchestrator now delegates directly instead of asking for permission
@@ -430,7 +424,7 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
         },
       );
 
-      const response = {
+      const _response = {
         success: true,
         message: llmResponse.trim(),
         metadata: {
@@ -445,7 +439,7 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       };
 
       return response;
-    } catch (error) {
+    } catch (_error) {
       // Fallback to a helpful static message if LLM fails
       return {
         success: true,
@@ -519,18 +513,14 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
 
         case 'DELEGATE':
           if (intent.agentName) {
-            try {
-              const delegationResult =
-                await this.delegationService.delegateToAgent(
-                  intent.agentName,
-                  input.prompt,
-                  input,
-                );
+            const delegationResult =
+              await this.delegationService.delegateToAgent(
+                intent.agentName,
+                input.prompt,
+                input,
+              );
 
-              return delegationResult;
-            } catch (delegationError) {
-              throw delegationError;
-            }
+            return delegationResult;
           } else {
             return await this.handleConverse(input);
           }
@@ -559,7 +549,7 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
         default:
           return await this.handleConverse(input);
       }
-    } catch (error) {
+    } catch (_error) {
       // If it's a delegation error, provide a more specific response instead of generic conversation fallback
       if (
         error instanceof Error &&
@@ -631,8 +621,8 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       }
 
       return projectId;
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -666,8 +656,8 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       if (error) {
         throw new Error(`Database insert failed: ${error.message}`);
       }
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -691,7 +681,7 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       }
 
       return data;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -723,8 +713,8 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       if (error) {
         throw new Error(`Database update failed: ${error.message}`);
       }
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -751,8 +741,8 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
 
       // Create new steps
       await this.createProjectSteps(projectId, plan);
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -788,8 +778,8 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       if (error) {
         throw new Error(`Database update failed: ${error.message}`);
       }
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 }

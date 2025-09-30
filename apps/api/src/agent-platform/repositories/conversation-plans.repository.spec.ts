@@ -37,7 +37,7 @@ describe('ConversationPlansRepository', () => {
     fromMock.mockReturnValue({ insert });
 
     const repo = new ConversationPlansRepository(service);
-    const result = await repo.createDraft({
+    const _result = await repo.createDraft({
       conversation_id: planRecord.conversation_id,
       organization_slug: planRecord.organization_slug,
       agent_slug: planRecord.agent_slug,
@@ -61,7 +61,7 @@ describe('ConversationPlansRepository', () => {
     fromMock.mockReturnValue({ update });
 
     const repo = new ConversationPlansRepository(service);
-    const result = await repo.updateStatus('plan-1', {
+    const _result = await repo.updateStatus('plan-1', {
       status: 'approved',
       approved_by: 'manager-1',
     });
@@ -82,7 +82,7 @@ describe('ConversationPlansRepository', () => {
     fromMock.mockReturnValue({ select });
 
     const repo = new ConversationPlansRepository(service);
-    const result = await repo.listByConversation('conv-1');
+    const _result = await repo.listByConversation('conv-1');
 
     expect(eq).toHaveBeenCalledWith('conversation_id', 'conv-1');
     expect(result).toEqual([planRecord]);

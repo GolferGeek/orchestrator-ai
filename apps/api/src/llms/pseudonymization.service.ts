@@ -91,11 +91,11 @@ export class PseudonymizationService {
         isNew: true,
         context,
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to generate pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to generate pseudonym: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
-      throw error;
+      throw _error;
     }
   }
 
@@ -138,10 +138,10 @@ export class PseudonymizationService {
             match.value,
             pseudonymResult.pseudonym,
           );
-        } catch (error) {
+        } catch (_error) {
           this.logger.warn(
             `Failed to pseudonymize ${match.dataType}: ${match.value}`,
-            error,
+            _error,
           );
         }
       }
@@ -159,11 +159,11 @@ export class PseudonymizationService {
         pseudonyms,
         processingTime,
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to pseudonymize text: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to pseudonymize text: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
-      throw error;
+      throw _error;
     }
   }
 
@@ -183,9 +183,9 @@ export class PseudonymizationService {
       }
 
       return null;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to lookup pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to lookup pseudonym: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
       return null;
     }
@@ -258,9 +258,9 @@ export class PseudonymizationService {
       }
 
       return data;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Database lookup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Database lookup failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
       return null;
     }
@@ -336,7 +336,7 @@ export class PseudonymizationService {
       const suffix = hash.substring(0, 3);
 
       return `${firstName.toLowerCase()}.${lastName.toLowerCase()}${suffix}@${domain}`;
-    } catch (error) {
+    } catch (_error) {
       // Fallback if database lookup fails
       const hash = this.hashValue(originalEmail);
       return `user${hash.substring(0, 6)}@example.com`;
@@ -384,7 +384,7 @@ export class PseudonymizationService {
       const lastName = this.getRandomFromResult(lastNameResult.data) || 'Doe';
 
       return `${firstName} ${lastName}`;
-    } catch (error) {
+    } catch (_error) {
       return 'John Doe';
     }
   }
@@ -427,7 +427,7 @@ export class PseudonymizationService {
       const suffix = hash.substring(0, 4);
 
       return `@${name.toLowerCase()}${suffix}`;
-    } catch (error) {
+    } catch (_error) {
       const hash = this.hashValue(originalUsername);
       return `@user${hash.substring(0, 6)}`;
     }
@@ -453,7 +453,7 @@ export class PseudonymizationService {
         streetTypes[Math.floor(Math.random() * streetTypes.length)];
 
       return `${streetNumber} ${streetName} ${streetType}`;
-    } catch (error) {
+    } catch (_error) {
       return '123 Main St';
     }
   }
@@ -493,11 +493,11 @@ export class PseudonymizationService {
 
       if (error) throw error;
       return data.id;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to store pseudonym mapping: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to store pseudonym mapping: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
-      throw error;
+      throw _error;
     }
   }
 
@@ -523,9 +523,9 @@ export class PseudonymizationService {
           last_used_at: new Date().toISOString(),
         })
         .eq('id', mappingId);
-    } catch (error) {
+    } catch (_error) {
       this.logger.warn(
-        `Failed to increment pseudonym usage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to increment pseudonym usage: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -556,9 +556,9 @@ export class PseudonymizationService {
           timestamp: new Date().toISOString(),
         },
       });
-    } catch (error) {
+    } catch (_error) {
       this.logger.warn(
-        `Failed to log pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to log pseudonym operation: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -602,9 +602,9 @@ export class PseudonymizationService {
       );
 
       await client.from('redaction_audit_log').insert(logEntries);
-    } catch (error) {
+    } catch (_error) {
       this.logger.warn(
-        `Failed to log bulk pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to log bulk pseudonym operation: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -708,9 +708,9 @@ export class PseudonymizationService {
           }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to reverse pseudonymization from database: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to reverse pseudonymization from database: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
 
@@ -735,7 +735,7 @@ export class PseudonymizationService {
     reversalContext: PseudonymResult[];
     processingTime: number;
   }> {
-    const result = await this.pseudonymizeText(text, {
+    const _result = await this.pseudonymizeText(text, {
       context: `${requestId}${options?.context ? `-${options.context}` : ''}`,
       dataTypes: options?.dataTypes,
     });

@@ -148,7 +148,7 @@ export class AgentRegistrationService implements OnModuleDestroy {
 
         const url = `${this.config.agentPoolBaseUrl}${this.config.endpoints.register}`;
 
-        const response = await this.httpService.axiosRef.post(
+        const _response = await this.httpService.axiosRef.post(
           url,
           registration,
         );

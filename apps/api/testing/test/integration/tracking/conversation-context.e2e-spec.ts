@@ -24,7 +24,7 @@ describe('Conversation Context Tracking (e2e)', () => {
   it('should link requests to conversation context', async () => {
     const conversationId = `test-conversation-${Date.now()}`;
     
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'First message in conversation.',
       {

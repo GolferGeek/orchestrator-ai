@@ -71,42 +71,36 @@ export class ConfigurationService {
       throw new Error(`Configuration file not found: ${resolvedPath}`);
     }
 
-    try {
-      // Read the file content
-      const yamlContent = fs.readFileSync(resolvedPath, 'utf8');
+    // Read the file content
+    const yamlContent = fs.readFileSync(resolvedPath, 'utf8');
 
-      // Parse the YAML
-      const parsed = yaml.load(yamlContent) as T;
+    // Parse the YAML
+    const parsed = yaml.load(yamlContent) as T;
 
-      if (!parsed) {
-        throw new Error(
-          'Failed to parse YAML content - file appears to be empty or invalid',
-        );
-      }
-
-      const result: ParsedConfiguration<T> = {
-        data: parsed,
-        sourcePath: resolvedPath,
-      };
-
-      // Substitute environment variables if requested
-      if (options.substituteEnvVars !== false) {
-        // Default to true
-        const substitutionResult = this.substituteEnvVars(
-          result.data,
-          options.envVarPrefix,
-          options.strictEnvVars,
-        );
-        result.data = substitutionResult.data;
-        result.substitutedVars = substitutionResult.substitutedVars;
-      }
-
-      return result;
-    } catch (error) {
+    if (!parsed) {
       throw new Error(
-        `Failed to parse YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
+        'Failed to parse YAML content - file appears to be empty or invalid',
       );
     }
+
+    const result: ParsedConfiguration<T> = {
+      data: parsed,
+      sourcePath: resolvedPath,
+    };
+
+    // Substitute environment variables if requested
+    if (options.substituteEnvVars !== false) {
+      // Default to true
+      const substitutionResult = this.substituteEnvVars(
+        result.data,
+        options.envVarPrefix,
+        options.strictEnvVars,
+      );
+      result.data = substitutionResult.data;
+      result.substitutedVars = substitutionResult.substitutedVars;
+    }
+
+    return result;
   }
 
   /**
@@ -140,7 +134,7 @@ export class ConfigurationService {
       return obj;
     };
 
-    const data = substitute(config);
+    const _data = substitute(config);
 
     if (substitutedVars.length > 0) {
     }
@@ -203,9 +197,9 @@ export class ConfigurationService {
       }
 
       return errors;
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Schema validation failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Schema validation failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -244,7 +238,7 @@ export class ConfigurationService {
 
     try {
       return fs.statSync(resolvedPath);
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -256,37 +250,31 @@ export class ConfigurationService {
     yamlContent: string,
     options: ConfigurationOptions = {},
   ): ParsedConfiguration<T> {
-    try {
-      const parsed = yaml.load(yamlContent) as T;
+    const parsed = yaml.load(yamlContent) as T;
 
-      if (!parsed) {
-        throw new Error(
-          'Failed to parse YAML content - content appears to be empty or invalid',
-        );
-      }
-
-      const result: ParsedConfiguration<T> = {
-        data: parsed,
-      };
-
-      // Substitute environment variables if requested
-      if (options.substituteEnvVars !== false) {
-        // Default to true
-        const substitutionResult = this.substituteEnvVars(
-          result.data,
-          options.envVarPrefix,
-          options.strictEnvVars,
-        );
-        result.data = substitutionResult.data;
-        result.substitutedVars = substitutionResult.substitutedVars;
-      }
-
-      return result;
-    } catch (error) {
+    if (!parsed) {
       throw new Error(
-        `Failed to parse YAML content: ${error instanceof Error ? error.message : String(error)}`,
+        'Failed to parse YAML content - content appears to be empty or invalid',
       );
     }
+
+    const result: ParsedConfiguration<T> = {
+      data: parsed,
+    };
+
+    // Substitute environment variables if requested
+    if (options.substituteEnvVars !== false) {
+      // Default to true
+      const substitutionResult = this.substituteEnvVars(
+        result.data,
+        options.envVarPrefix,
+        options.strictEnvVars,
+      );
+      result.data = substitutionResult.data;
+      result.substitutedVars = substitutionResult.substitutedVars;
+    }
+
+    return result;
   }
 
   /**
@@ -316,9 +304,9 @@ export class ConfigurationService {
 
       // Write the file
       fs.writeFileSync(resolvedPath, yamlContent, 'utf8');
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Failed to write YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to write YAML configuration: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }

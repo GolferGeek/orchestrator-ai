@@ -62,7 +62,7 @@ export class EvaluationController {
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
-    const result = await this.evaluationService.evaluateMessage(
+    const _result = await this.evaluationService.evaluateMessage(
       user.id,
       messageId,
       evaluationDto,
@@ -397,7 +397,7 @@ export class EvaluationController {
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
-    const result = await this.evaluationService.updateMessageEvaluation(
+    const _result = await this.evaluationService.updateMessageEvaluation(
       user.id,
       messageId,
       evaluationDto,
@@ -518,7 +518,7 @@ export class EvaluationController {
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<any> {
-    const result = await this.evaluationService.evaluateTask(
+    const _result = await this.evaluationService.evaluateTask(
       user.id,
       taskId,
       evaluationDto,
@@ -600,7 +600,7 @@ export class EvaluationController {
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<any> {
-    const result = await this.evaluationService.updateTaskEvaluation(
+    const _result = await this.evaluationService.updateTaskEvaluation(
       user.id,
       taskId,
       evaluationDto,
@@ -1020,7 +1020,7 @@ export class EvaluationController {
     const sanitizedPage = Math.max(page, 1);
 
     // TODO: Implement getUserEvaluationsForAdmin method
-    const result = await this.evaluationService.getAllEvaluationsForAdmin({
+    const _result = await this.evaluationService.getAllEvaluationsForAdmin({
       page: sanitizedPage,
       limit: sanitizedLimit,
       userEmail: userId, // Temporary workaround - should filter by userId

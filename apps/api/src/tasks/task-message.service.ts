@@ -126,6 +126,9 @@ export class TaskMessageService {
         messages: data.map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
+    } catch (error) {
+      this.logger.error('Failed to get task messages', error);
+      throw error;
     }
   }
 
@@ -165,6 +168,9 @@ export class TaskMessageService {
         messages: data.map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
+    } catch (error) {
+      this.logger.error('Failed to get recent messages', error);
+      throw error;
     }
   }
 
@@ -183,6 +189,9 @@ export class TaskMessageService {
       if (error) {
         throw new Error(`Failed to delete task messages: ${error.message}`);
       }
+    } catch (error) {
+      this.logger.error('Failed to delete task messages', error);
+      throw error;
     }
   }
 
@@ -230,6 +239,9 @@ export class TaskMessageService {
         errorMessages,
         lastMessage: messages[0], // Most recent message
       };
+    } catch (error) {
+      this.logger.error('Failed to get task message stats', error);
+      throw error;
     }
   }
 

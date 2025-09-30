@@ -24,7 +24,7 @@ describe('LLM PII Debug (e2e)', () => {
   });
 
   it('should debug what the actual response structure looks like', async () => {
-    const result = await llmService.generateUnifiedResponse({
+    const _result = await llmService.generateUnifiedResponse({
       provider: 'ollama',
       model: 'llama3.2:1b',
       systemPrompt: 'You are helpful. Mention the names exactly.',
@@ -44,7 +44,7 @@ describe('LLM PII Debug (e2e)', () => {
     console.log('Has PII Metadata:', !!(result as any).piiMetadata);
     
     // Log the entire response structure (truncated)
-    const response = result as any;
+    const _response = result as any;
     const debugResponse = {
       hasContent: !!response.content,
       hasMetadata: !!response.metadata,

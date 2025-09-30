@@ -145,7 +145,7 @@ export class MetadataTrackerService {
       ) => {
         const startTime = Date.now();
 
-        const result = await llmService.generateResponse(
+        const _result = await llmService.generateResponse(
           systemPrompt,
           userMessage,
           options,

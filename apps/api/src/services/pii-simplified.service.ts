@@ -104,7 +104,7 @@ export class SimplifiedPIIService {
       return { originalText: text, reversalCount: 0 };
     }
 
-    const result = await this.dictionaryService.reversePseudonyms(
+    const _result = await this.dictionaryService.reversePseudonyms(
       text,
       mappings,
     );

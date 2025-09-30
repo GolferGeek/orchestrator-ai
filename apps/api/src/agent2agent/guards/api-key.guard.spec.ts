@@ -63,7 +63,7 @@ describe('ApiKeyGuard', () => {
   });
 
   it('authorizes matching sha256 key with salt', async () => {
-    const metadata = { hash_algorithm: 'sha256', salt: 'xyz', encoding: 'hex' };
+    const _metadata = { hash_algorithm: 'sha256', salt: 'xyz', encoding: 'hex' };
     const provided = 'super-secret';
     const digest = createHash('sha256')
       .update(`${metadata.salt}${provided}`)
@@ -75,7 +75,7 @@ describe('ApiKeyGuard', () => {
       encryption_metadata: metadata,
     });
 
-    const result = await guard.canActivate(
+    const _result = await guard.canActivate(
       createContext({ 'x-agent-api-key': provided }),
     );
 
@@ -84,7 +84,7 @@ describe('ApiKeyGuard', () => {
   });
 
   it('authorizes using alias header', async () => {
-    const metadata = { hash_algorithm: 'sha256', salt: '', encoding: 'base64' };
+    const _metadata = { hash_algorithm: 'sha256', salt: '', encoding: 'base64' };
     const provided = 'alias-secret';
     const digest = createHash('sha256').update(provided).digest('base64');
     repo.get.mockImplementation(async (_org, alias) => {
@@ -99,7 +99,7 @@ describe('ApiKeyGuard', () => {
       return null;
     });
 
-    const result = await guard.canActivate(
+    const _result = await guard.canActivate(
       createContext({
         'x-agent-api-key': provided,
         'x-agent-key-alias': 'custom_alias',
@@ -117,7 +117,7 @@ describe('ApiKeyGuard', () => {
       encryption_metadata: { encoding: 'utf8' },
     });
 
-    const result = await guard.canActivate(
+    const _result = await guard.canActivate(
       createContext({ 'x-agent-api-key': 'plain-secret' }),
     );
 
@@ -126,7 +126,7 @@ describe('ApiKeyGuard', () => {
 
   it('supports pepper environment variables when hashing', async () => {
     process.env.A2A_PEPPER = 'pepper';
-    const metadata = {
+    const _metadata = {
       hash_algorithm: 'sha256',
       salt: 'salt-1',
       encoding: 'hex',
@@ -143,7 +143,7 @@ describe('ApiKeyGuard', () => {
       encryption_metadata: metadata,
     });
 
-    const result = await guard.canActivate(
+    const _result = await guard.canActivate(
       createContext({ 'x-agent-api-key': provided }),
     );
 
@@ -167,7 +167,7 @@ describe('ApiKeyGuard', () => {
   });
 
   it('rejects when computed hash does not match stored value', async () => {
-    const metadata = { hash_algorithm: 'sha256', salt: 's', encoding: 'hex' };
+    const _metadata = { hash_algorithm: 'sha256', salt: 's', encoding: 'hex' };
     const digest = createHash('sha256').update('swrong').digest('hex');
     repo.get.mockResolvedValue({
       ...baseRecord,

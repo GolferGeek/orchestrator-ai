@@ -18,7 +18,7 @@ async function bootstrap() {
 
     try {
       dotenv.config({ path: envFilePath });
-    } catch (error) {
+    } catch (_error) {
       process.exit(1);
     }
   }

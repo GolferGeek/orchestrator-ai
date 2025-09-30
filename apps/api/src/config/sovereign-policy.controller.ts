@@ -182,8 +182,8 @@ export class SovereignPolicyController {
         errors,
         precedenceExplanation,
       };
-    } catch (error) {
-      this.logger.error('Error validating policy configuration', error);
+    } catch (_error) {
+      this.logger.error('Error validating policy configuration', _error);
       throw new HttpException(
         'Failed to validate policy configuration',
         HttpStatus.INTERNAL_SERVER_ERROR,

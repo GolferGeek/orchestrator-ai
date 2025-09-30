@@ -100,7 +100,7 @@ export class ExternalA2AAgentBaseService
     // Discover remote agent capabilities (optional)
     try {
       await this.discoverRemoteAgent();
-    } catch (error) {
+    } catch (_error) {
       // Create a minimal agent card for registration
       this.remoteAgentCard = {
         id: this.getAgentId(),
@@ -215,7 +215,7 @@ export class ExternalA2AAgentBaseService
       const startTime = Date.now();
 
       // Forward request to external A2A agent
-      const response = await this.forwardToExternalAgent(requestParams);
+      const _response = await this.forwardToExternalAgent(requestParams);
 
       const responseTime = Date.now() - startTime;
 
@@ -337,7 +337,7 @@ export class ExternalA2AAgentBaseService
       const baseUrl = `${endpointUrl.protocol}//${endpointUrl.host}`;
       const wellKnownUrl = `${baseUrl}/.well-known/agent.json`;
 
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.services.httpService.get(wellKnownUrl, {
           timeout: this.externalConfig!.timeout || 10000,
           headers: this.buildAuthHeaders(),
@@ -349,9 +349,9 @@ export class ExternalA2AAgentBaseService
       }
 
       this.remoteAgentCard = response.data as ExternalAgentCard;
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Remote agent discovery failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Remote agent discovery failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -401,7 +401,7 @@ export class ExternalA2AAgentBaseService
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const response = await firstValueFrom(
+        const _response = await firstValueFrom(
           this.services.httpService.post(
             this.externalConfig!.endpoint,
             {
@@ -433,7 +433,7 @@ export class ExternalA2AAgentBaseService
         } else {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      } catch (error) {
+      } catch (_error) {
         if (attempt === maxAttempts) {
           return {
             success: false,

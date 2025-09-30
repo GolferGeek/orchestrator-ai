@@ -52,6 +52,8 @@ export class AgentExecutionGateway {
     switch (request.mode) {
       case AgentTaskMode.CONVERSE:
         return this.modeRouter.execute({
+          organizationSlug,
+          agentSlug: agent.slug,
           agent,
           request,
           routingMetadata: assessment.metadata,
@@ -135,6 +137,8 @@ export class AgentExecutionGateway {
     }
 
     return this.modeRouter.execute({
+      organizationSlug,
+      agentSlug: agent.slug,
       agent,
       request,
       routingMetadata,

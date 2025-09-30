@@ -910,11 +910,11 @@ export class LangGraphStateManagementService {
         await this.saveCheckpoint(projectId, step.stepId, completedState);
 
         return completedState;
-      } catch (error) {
-        // Handle error with recovery options
+      } catch (_error) {
+        // Handle _error with recovery options
         const errorState = await this.handleStepError(
           step,
-          error,
+          _error,
           state,
           projectId,
         );
@@ -1053,7 +1053,7 @@ export class LangGraphStateManagementService {
     };
 
     // Execute through delegation service (this would be injected)
-    const result = {
+    const _result = {
       agentName: step.agentName,
       response: `Executed ${step.stepName}`, // This would come from actual agent
       executedAt: new Date().toISOString(),
@@ -1082,19 +1082,15 @@ export class LangGraphStateManagementService {
     stepId: string,
     state: any,
   ): Promise<void> {
-    try {
-      const client = this.supabaseService.getServiceClient();
+    const client = this.supabaseService.getServiceClient();
 
-      await client.from('workflow_checkpoints').insert({
-        project_id: projectId,
-        step_id: stepId,
-        checkpoint_version: state.checkpointVersion,
-        state_data: state,
-        created_at: new Date().toISOString(),
-      });
-    } catch (error) {
-      throw error;
-    }
+    await client.from('workflow_checkpoints').insert({
+      project_id: projectId,
+      step_id: stepId,
+      checkpoint_version: state.checkpointVersion,
+      state_data: state,
+      created_at: new Date().toISOString(),
+    });
   }
 
   /**
@@ -1202,7 +1198,7 @@ Respond in JSON format:
 }`;
 
     try {
-      const response = await this.llmService.generateResponse(
+      const _response = await this.llmService.generateResponse(
         enhancementPrompt,
         input.userId,
         {

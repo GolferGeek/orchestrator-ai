@@ -63,8 +63,8 @@ export class TasksController {
   async getTaskMetrics(@CurrentUser() currentUser: SupabaseAuthUserDto) {
     try {
       return this.tasksService.getTaskMetrics(currentUser.id);
-    } catch (error) {
-      this.logger.error('Failed to get task metrics:', error);
+    } catch (_error) {
+      this.logger.error('Failed to get task metrics:', _error);
       throw new Error('Failed to retrieve task metrics');
     }
   }
@@ -133,7 +133,7 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    const status = this.taskStatusService.getTaskStatus(taskId, currentUser.id);
+    const _status = this.taskStatusService.getTaskStatus(taskId, currentUser.id);
 
     if (!status) {
       throw new Error('Task not found or not accessible');
@@ -179,7 +179,7 @@ export class TasksController {
           break;
         }
       }
-    } catch (error) {
+    } catch (_error) {
       response.write(
         `data: ${JSON.stringify({
           error: 'Failed to stream progress',

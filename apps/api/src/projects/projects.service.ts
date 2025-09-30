@@ -214,8 +214,8 @@ export class ProjectsService {
       }
 
       return this.mapDatabaseToProject(data);
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -269,8 +269,8 @@ export class ProjectsService {
       }
 
       return project;
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -289,8 +289,8 @@ export class ProjectsService {
       if (error) {
         throw new Error(`Failed to delete project: ${error.message}`);
       }
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -336,8 +336,8 @@ export class ProjectsService {
       }
 
       return (data || []).map(this.mapDatabaseToProjectStep);
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -360,8 +360,8 @@ export class ProjectsService {
       }
 
       return (data || []).map((row) => this.mapDatabaseToProject(row));
-    } catch (error) {
-      this.logger.error('Failed to get subprojects', error);
+    } catch (_error) {
+      this.logger.error('Failed to get subprojects', _error);
       return [];
     }
   }
@@ -454,8 +454,8 @@ export class ProjectsService {
       );
 
       return { project, steps, timeline };
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -476,8 +476,8 @@ export class ProjectsService {
           ...params.metadata,
         },
       });
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -507,8 +507,8 @@ export class ProjectsService {
           ...params.metadata,
         },
       });
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -535,8 +535,8 @@ export class ProjectsService {
       });
 
       return forkedProject;
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -556,8 +556,8 @@ export class ProjectsService {
           ...params.metadata,
         },
       });
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -672,9 +672,9 @@ export class ProjectsService {
         projectsByStatus,
         recentActivity,
       };
-    } catch (error) {
-      this.logger.error('Error calculating project metrics:', error);
-      throw error;
+    } catch (_error) {
+      this.logger.error('Error calculating project metrics:', _error);
+      throw _error;
     }
   }
 
@@ -812,8 +812,8 @@ export class ProjectsService {
         bottlenecks,
         recommendations,
       };
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 

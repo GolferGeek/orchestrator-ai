@@ -91,15 +91,15 @@ export class MCPModule {
       // Log namespace health
       Object.entries(pingResult.namespaces || {}).forEach(
         ([namespace, healthy]) => {
-          const status = healthy ? '✅' : '❌';
+          const _status = healthy ? '✅' : '❌';
           console.log(
             `   ${status} ${namespace}: ${healthy ? 'healthy' : 'unhealthy'}`,
           );
         },
       );
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
       console.error(`❌ MCP Module initialization failed: ${errorMessage}`);
     }
   }

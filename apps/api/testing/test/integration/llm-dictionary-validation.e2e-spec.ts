@@ -36,19 +36,19 @@ describe('LLM Dictionary Pseudonymization Validation (e2e)', () => {
     
     // Test 3: Try to call the dictionary service directly to see the expected behavior
     try {
-      const result = await dictionaryService.pseudonymizeText('Matt Weber works at Orchestrator AI');
+      const _result = await dictionaryService.pseudonymizeText('Matt Weber works at Orchestrator AI');
       console.log('✅ Dictionary service call succeeded:', result);
-    } catch (error) {
-      console.log('❌ Dictionary service call failed (expected if DB schema missing):', error.message);
+    } catch (_error) {
+      console.log('❌ Dictionary service call failed (expected if DB schema missing):', _error.message);
       
-      // Validate that the error is about the database schema, not the approach
-      expect(error.message).toContain('column pseudonym_dictionaries.original_value does not exist');
+      // Validate that the _error is about the database schema, not the approach
+      expect(_error.message).toContain('column pseudonym_dictionaries.original_value does not exist');
       console.log('✅ Error confirms we ARE using dictionary approach - just missing DB schema');
     }
     
     // Test 4: Try LLM call to see if it attempts dictionary pseudonymization
     try {
-      const response = await llmService.generateResponse({
+      const _response = await llmService.generateResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant.',
@@ -64,11 +64,11 @@ describe('LLM Dictionary Pseudonymization Validation (e2e)', () => {
       console.log('Response type:', typeof response);
       console.log('Has piiMetadata:', 'piiMetadata' in response);
       
-    } catch (error) {
-      console.log('❌ LLM call failed:', error.message);
+    } catch (_error) {
+      console.log('❌ LLM call failed:', _error.message);
       
-      // Check if the error is related to dictionary pseudonymization
-      if (error.message.includes('pseudonym_dictionaries') || error.message.includes('original_value')) {
+      // Check if the _error is related to dictionary pseudonymization
+      if (_error.message.includes('pseudonym_dictionaries') || _error.message.includes('original_value')) {
         console.log('✅ Error confirms LLM service IS trying to use dictionary pseudonymization');
       }
     }

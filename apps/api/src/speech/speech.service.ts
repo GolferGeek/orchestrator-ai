@@ -118,7 +118,7 @@ export class SpeechService {
       );
 
       return result;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error('Conversation processing failed:', error);
 
       // If we fail at any step, we should still try to provide a helpful audio response
@@ -145,8 +145,8 @@ export class SpeechService {
         };
 
         return errorResponse;
-      } catch (ttsError) {
-        this.logger.error('Failed to generate error audio response:', ttsError);
+      } catch (_ttsError) {
+        this.logger.error('Failed to generate error audio response:', _ttsError);
         throw error; // Re-throw original error if we can't even generate error audio
       }
     }
@@ -160,7 +160,7 @@ export class SpeechService {
     this.logger.debug('Transcribing audio...');
 
     try {
-      const result = await this.deepgramElevenLabsService.transcribeAudio(
+      const _result = await this.deepgramElevenLabsService.transcribeAudio(
         audioData,
         encoding,
         sampleRate,
@@ -170,10 +170,10 @@ export class SpeechService {
         text: result.text,
         confidence: result.confidence,
       };
-    } catch (error) {
-      this.logger.error('Audio transcription failed:', error);
+    } catch (_error) {
+      this.logger.error('Audio transcription failed:', _error);
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        _error instanceof Error ? _error.message : 'Unknown _error';
       throw new Error(`Audio transcription failed: ${errorMessage}`);
     }
   }
@@ -186,7 +186,7 @@ export class SpeechService {
     this.logger.debug(`Synthesizing ${text.length} characters of text...`);
 
     try {
-      const result = await this.deepgramElevenLabsService.synthesizeText(
+      const _result = await this.deepgramElevenLabsService.synthesizeText(
         text,
         voiceName,
         speakingRate,
@@ -196,10 +196,10 @@ export class SpeechService {
         audioData: result.audioData,
         format: result.format,
       };
-    } catch (error) {
-      this.logger.error('Text synthesis failed:', error);
+    } catch (_error) {
+      this.logger.error('Text synthesis failed:', _error);
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        _error instanceof Error ? _error.message : 'Unknown _error';
       throw new Error(`Text synthesis failed: ${errorMessage}`);
     }
   }
@@ -207,8 +207,8 @@ export class SpeechService {
   async isHealthy(): Promise<boolean> {
     try {
       return await this.deepgramElevenLabsService.isHealthy();
-    } catch (error) {
-      this.logger.error('Speech service health check failed:', error);
+    } catch (_error) {
+      this.logger.error('Speech service health check failed:', _error);
       return false;
     }
   }

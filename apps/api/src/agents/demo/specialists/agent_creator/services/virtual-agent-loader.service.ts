@@ -59,7 +59,7 @@ class VirtualDatabaseAgent extends ContextAgentBaseService {
       };
 
       return await super.processTask(enhancedRequest);
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
         `Virtual agent ${this.agentConfig.agentId} task failed:`,
         error,
@@ -124,8 +124,8 @@ export class VirtualAgentLoaderService {
         `Created virtual agent: ${agentId} (${agentConfig.displayName})`,
       );
       return virtualAgent;
-    } catch (error) {
-      this.logger.error(`Failed to create virtual agent: ${agentId}`, error);
+    } catch (_error) {
+      this.logger.error(`Failed to create virtual agent: ${agentId}`, _error);
       return null;
     }
   }
@@ -187,8 +187,8 @@ export class VirtualAgentLoaderService {
     try {
       const configs = await this.agentConfigService.listAgentConfigurations();
       return configs.map((config) => config.agentId);
-    } catch (error) {
-      this.logger.error('Failed to list virtual agents:', error);
+    } catch (_error) {
+      this.logger.error('Failed to list virtual agents:', _error);
       return [];
     }
   }
@@ -212,8 +212,8 @@ export class VirtualAgentLoaderService {
         strict: false,
       });
       return services;
-    } catch (error) {
-      this.logger.error('Could not resolve AgentServicesContext:', error);
+    } catch (_error) {
+      this.logger.error('Could not resolve AgentServicesContext:', _error);
       return null;
     }
   }

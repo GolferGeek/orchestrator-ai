@@ -185,8 +185,8 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       };
 
       this.logger.debug('Alert thresholds loaded', this.alertThresholds);
-    } catch (error) {
-      this.logger.error('Failed to load alert thresholds', error);
+    } catch (_error) {
+      this.logger.error('Failed to load alert thresholds', _error);
     }
   }
 
@@ -217,8 +217,8 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(
         `Initialized metrics for ${this.modelMetrics.size} models`,
       );
-    } catch (error) {
-      this.logger.error('Failed to initialize model metrics', error);
+    } catch (_error) {
+      this.logger.error('Failed to initialize model metrics', _error);
     }
   }
 
@@ -234,8 +234,8 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       }
 
       this.logger.debug(`Health checks completed for ${models.length} models`);
-    } catch (error) {
-      this.logger.error('Health checks failed', error);
+    } catch (_error) {
+      this.logger.error('Health checks failed', _error);
     }
   }
 
@@ -332,15 +332,15 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       }
 
       this.modelMetrics.set(modelName, metrics);
-    } catch (error) {
-      this.logger.error(`Failed to check health for ${modelName}`, error);
+    } catch (_error) {
+      this.logger.error(`Failed to check health for ${modelName}`, _error);
 
       if (metrics) {
         metrics.consecutiveFailures++;
         metrics.totalErrors++;
         metrics.checksPerformed++;
         metrics.lastErrorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
+          _error instanceof Error ? _error.message : 'Unknown _error';
         this.modelMetrics.set(modelName, metrics);
       }
     }
@@ -372,8 +372,8 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
         // Resolve memory pressure alert if usage is back to normal
         this.resolveAlert('memory-pressure');
       }
-    } catch (error) {
-      this.logger.error('Memory health check failed', error);
+    } catch (_error) {
+      this.logger.error('Memory health check failed', _error);
     }
   }
 
@@ -382,7 +382,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
    */
   private async checkSystemHealth(): Promise<void> {
     try {
-      const status = await this.localModelStatusService.getOllamaStatus();
+      const _status = await this.localModelStatusService.getOllamaStatus();
 
       if (!status.connected) {
         this.createAlert({
@@ -394,7 +394,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       } else {
         this.resolveAlert('system-error-ollama');
       }
-    } catch (error) {
+    } catch (_error) {
       this.logger.error('System health check failed', error);
 
       this.createAlert({
@@ -510,9 +510,9 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
           error,
         );
       }
-    } catch (error) {
+    } catch (_error) {
       // Fail silently if table doesn't exist
-      this.logger.debug('Alert storage failed (table may not exist)', error);
+      this.logger.debug('Alert storage failed (table may not exist)', _error);
     }
   }
 
@@ -534,8 +534,8 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       if (error) {
         this.logger.error('Failed to update alert', error);
       }
-    } catch (error) {
-      this.logger.debug('Alert update failed (table may not exist)', error);
+    } catch (_error) {
+      this.logger.debug('Alert update failed (table may not exist)', _error);
     }
   }
 
@@ -552,13 +552,13 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
           setTimeout(() => reject(new Error('Ollama status timeout')), 5000),
         ),
       ]);
-    } catch (error) {
+    } catch (_error) {
       // Fallback status if Ollama is unavailable
       status = {
         connected: false,
         version: 'unknown',
         models: [],
-        error: error instanceof Error ? error.message : String(error),
+        error: _error instanceof Error ? _error.message : String(_error),
       };
     }
 

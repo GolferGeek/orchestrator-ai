@@ -117,7 +117,7 @@ Respond with a JSON object:
         query_type: classification.type,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     // Fallback classification
     return {
       ...state,
@@ -271,7 +271,7 @@ Be comprehensive and anticipate follow-up questions they might have.`;
   }
 
   try {
-    const response = await llmService.generateResponse(
+    const _response = await llmService.generateResponse(
       systemPrompt,
       responsePrompt,
       {
@@ -311,7 +311,7 @@ Be comprehensive and anticipate follow-up questions they might have.`;
         sensitive_topic: sensitive,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       ...state,
       response: `I apologize, but I encountered an issue processing your HR question. Please contact the HR department directly for assistance with: "${topic}".`,
@@ -367,7 +367,7 @@ async function executeHRWorkflow(
         total_steps: 2,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       response: `I apologize, but I encountered an issue with your HR question. Please contact the HR department directly for assistance.`,
       metadata: {
@@ -412,7 +412,7 @@ export async function execute(
         workflow: workflowMetadata,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 

@@ -81,9 +81,9 @@ export class ProjectsController {
         ...createProjectDto,
         userId: user.id,
       });
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof BadRequestException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to create project');
     }
@@ -121,10 +121,10 @@ export class ProjectsController {
         sortBy,
         sortOrder,
       });
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
+        _error instanceof Error ? _error.message : String(_error);
+      const errorStack = _error instanceof Error ? _error.stack : undefined;
       this.logger.error(
         `Failed to get projects for user ${user?.id}: ${errorMessage}`,
         errorStack,
@@ -154,9 +154,9 @@ export class ProjectsController {
       }
 
       return project;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to get project');
     }
@@ -181,9 +181,9 @@ export class ProjectsController {
         projectId,
         updateProjectDto,
       );
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to update project');
     }
@@ -209,9 +209,9 @@ export class ProjectsController {
         success: true,
         message: `Project ${projectId} deleted successfully`,
       };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to delete project');
     }
@@ -232,9 +232,9 @@ export class ProjectsController {
       }
 
       return await this.projectsService.getSubprojects(projectId);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to get subprojects');
     }
@@ -255,9 +255,9 @@ export class ProjectsController {
       }
 
       return await this.projectsService.getProjectSteps(projectId);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to get project steps');
     }
@@ -287,9 +287,9 @@ export class ProjectsController {
       }
 
       return await this.projectsService.getProjectHistory(projectId);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to get project history');
     }
@@ -316,9 +316,9 @@ export class ProjectsController {
         success: true,
         message: `Project ${projectId} resumed successfully`,
       };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to resume project');
     }
@@ -345,9 +345,9 @@ export class ProjectsController {
         success: true,
         message: `Project ${projectId} retry initiated successfully`,
       };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to retry project');
     }
@@ -369,9 +369,9 @@ export class ProjectsController {
       }
 
       return await this.projectsService.forkProject(projectId, forkDto);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to fork project');
     }
@@ -398,9 +398,9 @@ export class ProjectsController {
         success: true,
         message: `Project ${projectId} aborted successfully`,
       };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to abort project');
     }
@@ -438,8 +438,8 @@ export class ProjectsController {
       const end = endDate ? new Date(endDate) : now;
 
       return await this.projectsService.getProjectMetrics(user.id, start, end);
-    } catch (error) {
-      this.logger.error('Failed to get project analytics metrics', error);
+    } catch (_error) {
+      this.logger.error('Failed to get project analytics metrics', _error);
       throw new InternalServerErrorException(
         'Failed to get project analytics metrics',
       );
@@ -467,9 +467,9 @@ export class ProjectsController {
       }
 
       return await this.projectsService.getProjectHierarchyPath(projectId);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException(
         'Failed to get project hierarchy path',
@@ -515,9 +515,9 @@ export class ProjectsController {
       }
 
       return await this.projectsService.getProjectAnalytics(projectId);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof NotFoundException) {
+        throw _error;
       }
       throw new InternalServerErrorException('Failed to get project analytics');
     }

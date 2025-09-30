@@ -118,7 +118,7 @@ export class SimplifiedCentralizedRoutingService {
         piiMetadata: metadata,
         dictionaryMappings: [], // LLM service will handle this
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
         `❌ [ROUTING] Error: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -156,7 +156,7 @@ export class SimplifiedCentralizedRoutingService {
       };
     }
 
-    const result = await this.piiService.reversePseudonyms(
+    const _result = await this.piiService.reversePseudonyms(
       response,
       dictionaryMappings,
     );

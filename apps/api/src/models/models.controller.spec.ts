@@ -78,7 +78,7 @@ describe('ModelsController', () => {
     it('should return array of models in camelCase format', async () => {
       mockModelsService.findAll.mockResolvedValue([mockModelResponse]);
 
-      const result = await controller.getModels();
+      const _result = await controller.getModels();
 
       expect(result).toEqual([mockModelResponse]);
       expect(result[0]).toHaveProperty('providerId'); // camelCase
@@ -120,7 +120,7 @@ describe('ModelsController', () => {
     it('should return a single model in camelCase format', async () => {
       mockModelsService.findOne.mockResolvedValue(mockModelResponse);
 
-      const result = await controller.getModel(
+      const _result = await controller.getModel(
         '456e7890-e89b-12d3-a456-426614174000',
       );
 
@@ -163,7 +163,7 @@ describe('ModelsController', () => {
 
       mockModelsService.create.mockResolvedValue(mockModelResponse);
 
-      const result = await controller.createModel(createDto);
+      const _result = await controller.createModel(createDto);
 
       expect(result).toEqual(mockModelResponse);
       expect(result).toHaveProperty('providerId'); // camelCase response
@@ -188,7 +188,7 @@ describe('ModelsController', () => {
 
       mockModelsService.update.mockResolvedValue(mockModelResponse);
 
-      const result = await controller.updateModel(
+      const _result = await controller.updateModel(
         '456e7890-e89b-12d3-a456-426614174000',
         updateDto,
       );
@@ -219,7 +219,7 @@ describe('ModelsController', () => {
     it('should delete model successfully', async () => {
       mockModelsService.delete.mockResolvedValue(true);
 
-      const result = await controller.deleteModel(
+      const _result = await controller.deleteModel(
         '456e7890-e89b-12d3-a456-426614174000',
       );
 

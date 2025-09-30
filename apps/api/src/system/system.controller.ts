@@ -69,13 +69,13 @@ export class SystemController {
           api: 'healthy',
         },
       };
-    } catch (error) {
-      this.logger.error('Failed to get system health:', error);
+    } catch (_error) {
+      this.logger.error('Failed to get system health:', _error);
       return {
         success: false,
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: 'System health check failed',
+        _error: 'System health check failed',
       };
     }
   }
@@ -195,9 +195,9 @@ export class SystemController {
         success: true,
         data: analytics,
       };
-    } catch (error) {
-      this.logger.error('Failed to get system analytics', error);
-      throw error;
+    } catch (_error) {
+      this.logger.error('Failed to get system analytics', _error);
+      throw _error;
     }
   }
 
@@ -228,8 +228,8 @@ export class SystemController {
         dbConfig,
         envOverrideActive: Boolean(envOverride),
       };
-    } catch (error) {
-      this.logger.error('Failed to get global model config', error);
+    } catch (_error) {
+      this.logger.error('Failed to get global model config', _error);
       throw new HttpException(
         'Failed to fetch model config',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -255,14 +255,7 @@ export class SystemController {
       // Determine payload
       let payload: any = dto.config;
       if (!payload && dto.config_json) {
-        try {
-          payload = JSON.parse(dto.config_json);
-        } catch (e) {
-          throw new HttpException(
-            'config_json is not valid JSON',
-            HttpStatus.BAD_REQUEST,
-          );
-        }
+        payload = JSON.parse(dto.config_json);
       }
       if (!payload || typeof payload !== 'object') {
         throw new HttpException(
@@ -299,9 +292,9 @@ export class SystemController {
         message: 'Global model configuration updated',
         envOverrideActive: Boolean(envOverride),
       };
-    } catch (error) {
-      this.logger.error('Failed to update global model config', error);
-      if (error instanceof HttpException) throw error;
+    } catch (_error) {
+      this.logger.error('Failed to update global model config', _error);
+      if (_error instanceof HttpException) throw _error;
       throw new HttpException(
         'Failed to update model config',
         HttpStatus.INTERNAL_SERVER_ERROR,

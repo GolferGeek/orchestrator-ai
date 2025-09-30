@@ -235,7 +235,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const llmPiiMetadata =
         typeof llmResult === 'object' ? llmResult.piiMetadata : undefined;
 
-      const result = {
+      const _result = {
         success: true,
         response: responseContent,
         metadata: {
@@ -275,10 +275,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             result,
             params,
           );
-        } catch (error) {
-          this.contextLogger.error(
+        } catch (_error) {
+          this.contextLogger._error(
             `Error reporting task completion for ${params.taskId}:`,
-            error,
+            _error,
           );
           // Don't fail the task if reporting fails
         }
@@ -286,7 +286,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       // NEW ARCHITECTURE: Enrich response with PII metadata
       return this.enrichResponseWithPIIMetadata(result, params);
-    } catch (error) {
+    } catch (_error) {
       this.contextLogger.error(`Error in executeTask for ${agentName}:`, error);
 
       const errorResult = {
@@ -310,10 +310,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             params.currentUser.id,
             error instanceof Error ? error.message : String(error),
           );
-        } catch (reportError) {
+        } catch (_reportError) {
           this.contextLogger.error(
             `Error reporting task failure for ${params.taskId}:`,
-            reportError,
+            _reportError,
           );
           // Don't fail the task if reporting fails
         }
@@ -497,8 +497,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   async initializeContext(agentDirectory: string): Promise<void> {
     try {
       await this.agentContextService.initialize(agentDirectory);
-    } catch (error) {
-      this.contextLogger.error('Failed to initialize agent context:', error);
+    } catch (_error) {
+      this.contextLogger._error('Failed to initialize agent context:', _error);
     }
   }
 
@@ -515,7 +515,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     }
 
     try {
-      const updateData = {
+      const _updateData = {
         status: 'completed' as const,
         progress: 100,
         response: typeof result === 'string' ? result : JSON.stringify(result),
@@ -523,12 +523,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       };
 
       await this.services.tasksService.updateTask(taskId, userId, updateData);
-    } catch (error) {
-      this.contextLogger.error(
+    } catch (_error) {
+      this.contextLogger._error(
         `Error saving task result for ${taskId}:`,
-        error,
+        _error,
       );
-      throw error;
+      throw _error;
     }
   }
 
@@ -577,7 +577,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             agentType,
           );
       }
-    } catch (error) {
+    } catch (_error) {
       this.contextLogger.error('Metadata routing failed:', error);
       return {
         success: false,
@@ -725,7 +725,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           },
         };
       }
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         response: `I encountered an error while deleting versions: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -771,7 +771,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           versionNumber: newVersion.versionNumber,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         response: `I couldn't create the new version: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -812,7 +812,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         userId,
       );
 
-      let response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
+      let _response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
 
       if (mergeResult.conflictSummary) {
         response += ` ${mergeResult.conflictSummary}`;
@@ -830,7 +830,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           conflictSummary: mergeResult.conflictSummary,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         response: `I couldn't merge the versions: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -897,7 +897,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           deliverableTitle: title,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         response: `I couldn't create the deliverable: ${error instanceof Error ? error.message : 'Unknown error'}`,

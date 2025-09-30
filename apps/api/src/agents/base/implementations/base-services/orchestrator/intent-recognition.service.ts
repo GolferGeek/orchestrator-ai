@@ -63,7 +63,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
       );
 
       return classification;
-    } catch (error) {
+    } catch (_error) {
       // Fallback to safe conversation mode
       return {
         action: 'CONVERSE',
@@ -220,26 +220,20 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     );
     const userMessage = this.buildUserAnalysisMessage(input, context);
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.1, // Low temperature for consistent classification
-          maxTokens: 500,
-          complexity: 'simple', // Intent classification is a simple task - can use fast local models
-          callerType: 'service',
-          callerName: 'intent-recognition-service',
-          dataClassification: 'internal',
-        },
-      );
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.1, // Low temperature for consistent classification
+        maxTokens: 500,
+        complexity: 'simple', // Intent classification is a simple task - can use fast local models
+        callerType: 'service',
+        callerName: 'intent-recognition-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseIntentResponse(response);
-    } catch (error) {
-      throw new Error(
-        `LLM classification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return this.parseIntentResponse(response);
   }
 
   /**
@@ -415,7 +409,7 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
         capabilityGap: parsed.capabilityGap,
         subprojectScope: parsed.subprojectScope,
       };
-    } catch (error) {
+    } catch (_error) {
       // Return safe fallback
       return {
         action: 'CONVERSE',

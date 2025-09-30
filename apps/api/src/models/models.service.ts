@@ -72,7 +72,7 @@ export class ModelsService {
       );
     }
 
-    const result = (data || []).map((row) => ({
+    const _result = (data || []).map((row) => ({
       providerName: row.provider_name,
       modelName: row.model_name,
       displayName: row.display_name,
@@ -165,10 +165,10 @@ export class ModelsService {
       });
       this.logger.log(`Successfully mapped ${mappedModels.length} models`);
       return mappedModels;
-    } catch (mappingError) {
+    } catch (_mappingError) {
       const errorMessage =
-        mappingError instanceof Error
-          ? mappingError.message
+        _mappingError instanceof Error
+          ? _mappingError.message
           : 'Unknown mapping error';
       throw new HttpException(
         `Failed to process models: ${errorMessage}`,

@@ -92,7 +92,7 @@ export class ProgressEmitterService {
         return JSON.parse(eventJson) as CompletionEvent;
       }
       return null;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }

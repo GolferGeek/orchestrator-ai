@@ -72,13 +72,13 @@ export class DelegationService implements IDelegationService {
       );
 
       return orchestratorResponse;
-    } catch (error) {
-      if (error instanceof DelegationError) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof DelegationError) {
+        throw _error;
       }
 
       throw new DelegationError(
-        `Delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Delegation failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
         agentName,
         { prompt: prompt.substring(0, 100) },
       );
@@ -146,7 +146,7 @@ export class DelegationService implements IDelegationService {
         conversationHistory,
         quickAnalysis,
       );
-    } catch (error) {
+    } catch (_error) {
       return {
         shouldContinue: false,
         confidence: 0.1,
@@ -163,38 +163,34 @@ export class DelegationService implements IDelegationService {
    * Discover target agent from agent pool
    */
   private async discoverTargetAgent(agentName: string): Promise<any> {
-    try {
-      await this.agentDiscoveryService.discoverAgents();
-      const agents = this.agentDiscoveryService.getDiscoveredAgents();
+    await this.agentDiscoveryService.discoverAgents();
+    const agents = this.agentDiscoveryService.getDiscoveredAgents();
 
-      // Try exact name match first
-      let targetAgent = agents.find((agent) => agent.name === agentName);
+    // Try exact name match first
+    let targetAgent = agents.find((agent) => agent.name === agentName);
 
-      // Try case-insensitive match
-      if (!targetAgent) {
-        targetAgent = agents.find(
-          (agent) => agent.name.toLowerCase() === agentName.toLowerCase(),
-        );
-      }
-
-      // Try partial name match
-      if (!targetAgent) {
-        targetAgent = agents.find(
-          (agent) =>
-            agent.name.toLowerCase().includes(agentName.toLowerCase()) ||
-            agent.metadata?.displayName
-              ?.toLowerCase()
-              .includes(agentName.toLowerCase()),
-        );
-      }
-
-      if (targetAgent) {
-      }
-
-      return targetAgent;
-    } catch (error) {
-      throw error;
+    // Try case-insensitive match
+    if (!targetAgent) {
+      targetAgent = agents.find(
+        (agent) => agent.name.toLowerCase() === agentName.toLowerCase(),
+      );
     }
+
+    // Try partial name match
+    if (!targetAgent) {
+      targetAgent = agents.find(
+        (agent) =>
+          agent.name.toLowerCase().includes(agentName.toLowerCase()) ||
+          agent.metadata?.displayName
+            ?.toLowerCase()
+            .includes(agentName.toLowerCase()),
+      );
+    }
+
+    if (targetAgent) {
+    }
+
+    return targetAgent;
   }
 
   /**
@@ -206,7 +202,7 @@ export class DelegationService implements IDelegationService {
       const agents = this.agentDiscoveryService.getDiscoveredAgents();
 
       return agents.map((agent) => agent.name);
-    } catch (error) {
+    } catch (_error) {
       return [];
     }
   }
@@ -218,17 +214,10 @@ export class DelegationService implements IDelegationService {
     targetAgent: any,
     input: OrchestratorInput,
   ): Promise<any> {
-    try {
-      const agentInstance =
-        await this.agentFactoryService.createAgent(targetAgent);
+    const agentInstance =
+      await this.agentFactoryService.createAgent(targetAgent);
 
-      return agentInstance;
-    } catch (error) {
-      throw new DelegationError(
-        `Failed to create agent instance: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        targetAgent.name,
-      );
-    }
+    return agentInstance;
   }
 
   /**
@@ -265,17 +254,13 @@ export class DelegationService implements IDelegationService {
     agentInstance: any,
     taskPayload: any,
   ): Promise<any> {
-    try {
-      // Call the agent's executeTask method (A2A protocol)
-      const result = await agentInstance.executeTask(
-        taskPayload.method,
-        taskPayload.params,
-      );
+    // Call the agent's executeTask method (A2A protocol)
+    const _result = await agentInstance.executeTask(
+      taskPayload.method,
+      taskPayload.params,
+    );
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }
 
   /**
@@ -327,7 +312,7 @@ export class DelegationService implements IDelegationService {
       }
 
       return response;
-    } catch (error) {
+    } catch (_error) {
       // Return error response
       return {
         success: false,
@@ -455,62 +440,50 @@ ${JSON.stringify(quickAnalysis, null, 2)}
 
 Provide your analysis in the required JSON format.`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.2,
-          maxTokens: 400,
-          complexity: 'simple', // Agent capability analysis is a simple classification task
-          callerType: 'service',
-          callerName: 'delegation-service',
-          dataClassification: 'internal',
-        },
-      );
+    const _response = await this.llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      {
+        temperature: 0.2,
+        maxTokens: 400,
+        complexity: 'simple', // Agent capability analysis is a simple classification task
+        callerType: 'service',
+        callerName: 'delegation-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      return this.parseContextAnalysis(response);
-    } catch (error) {
-      throw new Error(
-        `LLM context analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}. Context analysis must work for agent delegation.`,
-      );
-    }
+    return this.parseContextAnalysis(response);
   }
 
   /**
    * Parse LLM context analysis response
    */
   private parseContextAnalysis(response: string): any {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('LLM context analysis returned no JSON');
-      }
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('LLM context analysis returned no JSON');
+    }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]);
 
-      // Validate required fields
-      if (
-        typeof parsed.shouldContinue !== 'boolean' ||
-        typeof parsed.confidence !== 'number' ||
-        !parsed.reasoning
-      ) {
-        throw new Error(
-          'LLM context analysis missing required fields: shouldContinue (boolean), confidence (number), reasoning (string)',
-        );
-      }
-
-      return {
-        currentAgent: parsed.currentAgent || undefined,
-        shouldContinue: parsed.shouldContinue,
-        confidence: Math.max(0, Math.min(1, parsed.confidence)),
-        reasoning: parsed.reasoning,
-      };
-    } catch (error) {
+    // Validate required fields
+    if (
+      typeof parsed.shouldContinue !== 'boolean' ||
+      typeof parsed.confidence !== 'number' ||
+      !parsed.reasoning
+    ) {
       throw new Error(
-        `LLM context analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must generate valid JSON.`,
+        'LLM context analysis missing required fields: shouldContinue (boolean), confidence (number), reasoning (string)',
       );
     }
+
+    return {
+      currentAgent: parsed.currentAgent || undefined,
+      shouldContinue: parsed.shouldContinue,
+      confidence: Math.max(0, Math.min(1, parsed.confidence)),
+      reasoning: parsed.reasoning,
+    };
   }
 
   // ============================================================================
@@ -594,7 +567,7 @@ Guidelines:
 
 Can the ${agentName} agent handle this request?`;
 
-      const response = await this.llmService.generateResponse(
+      const _response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -608,7 +581,7 @@ Can the ${agentName} agent handle this request?`;
       );
 
       return this.parseCapabilityResponse(response);
-    } catch (error) {
+    } catch (_error) {
       // Conservative fallback - let delegation service handle it
       return {
         canHandle: false,
@@ -648,7 +621,7 @@ Can the ${agentName} agent handle this request?`;
         confidence: Math.max(0, Math.min(1, parsed.confidence)),
         reasoning: parsed.reasoning,
       };
-    } catch (error) {
+    } catch (_error) {
       // Conservative fallback
       return {
         canHandle: false,

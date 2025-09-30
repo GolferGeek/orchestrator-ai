@@ -135,7 +135,7 @@ export async function testOllamaGolfBlogPost(): Promise<{
 
     // Generate response
     console.log('🤖 Generating blog post...');
-    const response = await ollamaService.generateResponse(params);
+    const _response = await ollamaService.generateResponse(params);
 
     const duration = Date.now() - startTime;
 
@@ -201,7 +201,7 @@ export async function testOllamaGolfBlogPost(): Promise<{
         wordCount,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     const duration = Date.now() - startTime;
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';

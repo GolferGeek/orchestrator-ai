@@ -89,7 +89,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await marketingManager.executeTask(
+      const _result = await marketingManager.executeTask(
         'executeTask',
         blogRequest,
       );
@@ -122,7 +122,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await marketingManager.executeTask(
+      const _result = await marketingManager.executeTask(
         'executeTask',
         competitorRequest,
       );
@@ -152,7 +152,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await marketingManager.executeTask(
+      const _result = await marketingManager.executeTask(
         'executeTask',
         researchRequest,
       );
@@ -203,7 +203,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result = await marketingManager.executeTask(
+      const _result = await marketingManager.executeTask(
         'executeTask',
         contentRequest,
       );
@@ -256,7 +256,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
           `\n📋 Request ${i + 1}: ${request.prompt.substring(0, 50)}...`,
         );
 
-        const result = await marketingManager.executeTask('executeTask', {
+        const _result = await marketingManager.executeTask('executeTask', {
           prompt: request.prompt,
           userId: `test-simple-${i}`,
           conversationId: `test-conv-simple-${i}`,

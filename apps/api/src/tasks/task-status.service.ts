@@ -109,7 +109,7 @@ export class TaskStatusService {
         if (error) {
         } else {
         }
-      } catch (error) {}
+      } catch (_error) {}
     }
 
     this.emitStatusChange(taskId, taskStatus);
@@ -197,7 +197,7 @@ export class TaskStatusService {
 
         if (error) {
         }
-      } catch (error) {}
+      } catch (_error) {}
     }
 
     // Emit status change event
@@ -218,7 +218,7 @@ export class TaskStatusService {
    * Only returns status if user owns the task
    */
   getTaskStatus(taskId: string, userId: string): TaskStatus | null {
-    const status = this.activeTaskStatuses.get(taskId);
+    const _status = this.activeTaskStatuses.get(taskId);
     if (!status || status.userId !== userId) {
       return null;
     }

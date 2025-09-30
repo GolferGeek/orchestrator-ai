@@ -83,7 +83,7 @@ describe('ProvidersController', () => {
     it('should return array of providers in camelCase format', async () => {
       mockProvidersService.findAll.mockResolvedValue([mockProviderResponse]);
 
-      const result = await controller.getProviders();
+      const _result = await controller.getProviders();
 
       expect(result).toEqual([mockProviderResponse]);
       expect(result[0]).toHaveProperty('apiBaseUrl'); // camelCase
@@ -106,7 +106,7 @@ describe('ProvidersController', () => {
     it('should return a single provider in camelCase format', async () => {
       mockProvidersService.findOne.mockResolvedValue(mockProviderResponse);
 
-      const result = await controller.getProvider(
+      const _result = await controller.getProvider(
         '123e4567-e89b-12d3-a456-426614174000',
       );
 
@@ -134,7 +134,7 @@ describe('ProvidersController', () => {
         mockModelResponse,
       ]);
 
-      const result = await controller.getProviderModels(
+      const _result = await controller.getProviderModels(
         '123e4567-e89b-12d3-a456-426614174000',
       );
 
@@ -173,7 +173,7 @@ describe('ProvidersController', () => {
 
       mockProvidersService.create.mockResolvedValue(mockProviderResponse);
 
-      const result = await controller.createProvider(createDto);
+      const _result = await controller.createProvider(createDto);
 
       expect(result).toEqual(mockProviderResponse);
       expect(result).toHaveProperty('apiBaseUrl'); // camelCase response
@@ -192,7 +192,7 @@ describe('ProvidersController', () => {
 
       mockProvidersService.update.mockResolvedValue(mockProviderResponse);
 
-      const result = await controller.updateProvider(
+      const _result = await controller.updateProvider(
         '123e4567-e89b-12d3-a456-426614174000',
         updateDto,
       );
@@ -221,7 +221,7 @@ describe('ProvidersController', () => {
     it('should delete provider successfully', async () => {
       mockProvidersService.delete.mockResolvedValue(true);
 
-      const result = await controller.deleteProvider(
+      const _result = await controller.deleteProvider(
         '123e4567-e89b-12d3-a456-426614174000',
       );
 

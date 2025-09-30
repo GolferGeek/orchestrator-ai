@@ -143,8 +143,8 @@ export class GoogleLLMService extends BaseLLMService {
       const prompt = `${params.systemPrompt}\n\nUser: ${processedText}\n\nAssistant:`;
 
       // Make Google API call
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
+      const _result = await model.generateContent(prompt);
+      const _response = await result.response;
 
       if (!response.text()) {
         throw new Error('No content in Google response');
@@ -156,7 +156,7 @@ export class GoogleLLMService extends BaseLLMService {
       const endTime = Date.now();
 
       // Create Google-specific metadata
-      const metadata = this.createGoogleMetadata(
+      const _metadata = this.createGoogleMetadata(
         result,
         response,
         params,
@@ -201,8 +201,8 @@ export class GoogleLLMService extends BaseLLMService {
       this.logRequestResponse(params, llmResponse, metadata.timing.duration);
 
       return llmResponse;
-    } catch (error) {
-      this.handleError(error, 'GoogleLLMService.generateResponse');
+    } catch (_error) {
+      this.handleError(_error, 'GoogleLLMService.generateResponse');
     }
   }
 
@@ -290,8 +290,8 @@ export class GoogleLLMService extends BaseLLMService {
         const runId = `google-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.logger.debug(`LangSmith integration for Google: ${runId}`);
         return runId;
-      } catch (error) {
-        this.logger.warn('LangSmith integration failed:', error);
+      } catch (_error) {
+        this.logger.warn('LangSmith integration failed:', _error);
       }
     }
     return undefined;
@@ -462,7 +462,7 @@ export async function testGoogleService() {
   };
 
   try {
-    const response = await service.generateResponse(params);
+    const _response = await service.generateResponse(params);
     console.log('Google Response:', response.content);
     console.log(
       'Safety Ratings:',
@@ -470,8 +470,8 @@ export async function testGoogleService() {
     );
     console.log('Metadata:', response.metadata);
     return response;
-  } catch (error) {
-    console.error('Google Service Error:', error);
-    throw error;
+  } catch (_error) {
+    console.error('Google Service Error:', _error);
+    throw _error;
   }
 }

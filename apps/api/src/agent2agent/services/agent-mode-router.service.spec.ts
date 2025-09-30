@@ -4,6 +4,7 @@ import { LLMServiceFactory } from '@llm/services/llm-service-factory';
 import { LLMResponse } from '@llm/services/llm-interfaces';
 import { AgentExecutionContext } from './agent-mode-router.service';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 
 const baseAgent: AgentRecord = {
   id: 'agent-1',
@@ -49,13 +50,20 @@ const createResponse = (content: string): LLMResponse => ({
 
 describe('AgentModeRouterService', () => {
   let llmFactory: jest.Mocked<LLMServiceFactory>;
+  let agentRegistry: jest.Mocked<AgentRegistryService>;
   let service: AgentModeRouterService;
 
   beforeEach(() => {
+    agentRegistry = {
+      getAgent: jest.fn(),
+      listAgents: jest.fn(),
+      invalidate: jest.fn(),
+      clearAll: jest.fn(),
+    } as unknown as jest.Mocked<AgentRegistryService>;
     llmFactory = {
       generateResponse: jest.fn(),
     } as unknown as jest.Mocked<LLMServiceFactory>;
-    service = new AgentModeRouterService(llmFactory);
+    service = new AgentModeRouterService(agentRegistry, llmFactory);
   });
 
   afterEach(() => {
@@ -93,6 +101,7 @@ describe('AgentModeRouterService', () => {
       }),
     );
 
+    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
     expect(llmFactory.generateResponse).toHaveBeenCalled();
     expect(result.success).toBe(true);
     expect(result.payload?.content?.message).toBe('Hello there!');
@@ -130,6 +139,7 @@ describe('AgentModeRouterService', () => {
     expect(result.payload?.metadata?.reason).toBe(
       'Failed to generate response',
     );
+    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
   });
 
   it('generates build output when orchestration fallback occurs', async () => {
@@ -148,6 +158,7 @@ describe('AgentModeRouterService', () => {
       ),
     );
 
+    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
     expect(llmFactory.generateResponse).toHaveBeenCalled();
     expect(result.success).toBe(true);
     expect(result.payload?.content?.status).toBe('build_completed');
@@ -170,6 +181,7 @@ describe('AgentModeRouterService', () => {
       }),
     );
 
+    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
     const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
     expect(params?.options?.metadata).toMatchObject({
       userId: 'top-user',
@@ -189,6 +201,7 @@ describe('AgentModeRouterService', () => {
       }),
     );
 
+    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
     const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
     expect(params?.sessionId).toBe('session-123');
   });
@@ -208,6 +221,7 @@ describe('AgentModeRouterService', () => {
     );
     expect(result.mode).toBe(AgentTaskMode.PLAN);
     expect(llmFactory.generateResponse).not.toHaveBeenCalled();
+    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
   });
 
   it('handles human response mode without LLM call', async () => {
@@ -216,5 +230,49 @@ describe('AgentModeRouterService', () => {
     );
     expect(result.mode).toBe(AgentTaskMode.HUMAN_RESPONSE);
     expect(llmFactory.generateResponse).not.toHaveBeenCalled();
+    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
+  });
+
+  it('resolves agent via registry when not provided', async () => {
+    agentRegistry.getAgent.mockResolvedValue(baseAgent);
+    llmFactory.generateResponse.mockResolvedValue(createResponse('hello'));
+
+    const result = await service.execute({
+      organizationSlug: 'acme',
+      agentSlug: 'agent-1',
+      request: {
+        mode: AgentTaskMode.CONVERSE,
+        userMessage: 'Ping',
+        payload: {},
+      } as TaskRequestDto,
+      routingMetadata: routingDecision,
+    });
+
+    expect(agentRegistry.getAgent).toHaveBeenCalledWith('acme', 'agent-1');
+    expect(result.success).toBe(true);
+  });
+
+  it('fails when agent cannot be resolved', async () => {
+    agentRegistry.getAgent.mockResolvedValue(null as any);
+
+    const result = await service.execute({
+      organizationSlug: 'acme',
+      agentSlug: 'missing-agent',
+      request: {
+        mode: AgentTaskMode.CONVERSE,
+        userMessage: 'Ping',
+        payload: {},
+      } as TaskRequestDto,
+      routingMetadata: routingDecision,
+    });
+
+    expect(agentRegistry.getAgent).toHaveBeenCalledWith(
+      'acme',
+      'missing-agent',
+    );
+    expect(result.success).toBe(false);
+    expect(result.payload?.metadata?.reason).toBe(
+      'Agent record unavailable for execution',
+    );
   });
 });

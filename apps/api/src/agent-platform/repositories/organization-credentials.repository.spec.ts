@@ -34,7 +34,7 @@ describe('OrganizationCredentialsRepository', () => {
     fromMock.mockReturnValue({ upsert });
 
     const repo = new OrganizationCredentialsRepository(service);
-    const result = await repo.upsert({
+    const _result = await repo.upsert({
       organization_slug: credential.organization_slug,
       alias: credential.alias,
       credential_type: credential.credential_type,
@@ -57,7 +57,7 @@ describe('OrganizationCredentialsRepository', () => {
     fromMock.mockReturnValue({ select });
 
     const repo = new OrganizationCredentialsRepository(service);
-    const result = await repo.get('my-org', 'supabase_service_key');
+    const _result = await repo.get('my-org', 'supabase_service_key');
 
     expect(select).toHaveBeenCalledWith('*');
     expect(match).toHaveBeenCalledWith({
@@ -77,7 +77,7 @@ describe('OrganizationCredentialsRepository', () => {
     fromMock.mockReturnValue({ select });
 
     const repo = new OrganizationCredentialsRepository(service);
-    const result = await repo.listByOrganization('my-org');
+    const _result = await repo.listByOrganization('my-org');
 
     expect(eq).toHaveBeenCalledWith('organization_slug', 'my-org');
     expect(result).toEqual([credential]);

@@ -133,7 +133,7 @@ export class JsonRpcProtocolService {
       if (notificationHandler) {
         try {
           await notificationHandler(jsonRpcRequest as JsonRpcNotification);
-        } catch (error) {}
+        } catch (_error) {}
       }
       return null;
     }
@@ -150,10 +150,10 @@ export class JsonRpcProtocolService {
         };
       }
 
-      const result = await methodHandler(jsonRpcRequest.method, params);
+      const _result = await methodHandler(jsonRpcRequest.method, params);
       return this.createSuccessResponse(jsonRpcRequest.id, result);
-    } catch (error) {
-      return this.createErrorResponseFromException(error, jsonRpcRequest.id);
+    } catch (_error) {
+      return this.createErrorResponseFromException(_error, jsonRpcRequest.id);
     }
   }
 

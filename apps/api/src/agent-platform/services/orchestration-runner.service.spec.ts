@@ -15,7 +15,7 @@ describe('OrchestrationRunnerService', () => {
   it('starts orchestration run', async () => {
     repo.start.mockResolvedValue({ id: 'run-1' } as any);
 
-    const result = await service.startRun({
+    const _result = await service.startRun({
       planId: 'plan-1',
       organizationSlug: 'my-org',
       promptInputs: { foo: 'bar' },
@@ -39,7 +39,7 @@ describe('OrchestrationRunnerService', () => {
       status: 'in_execution',
     } as any);
 
-    const result = await service.updateRun({
+    const _result = await service.updateRun({
       runId: 'run-1',
       status: 'in_execution',
     });

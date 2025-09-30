@@ -79,7 +79,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       );
 
       // Route through facade service (maintains single entry point principle)
-      const response = await this.orchestratorFacadeService.processRequest(
+      const _response = await this.orchestratorFacadeService.processRequest(
         effectiveMethod,
         input,
         this.delegationContext,
@@ -106,7 +106,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       }
 
       return response;
-    } catch (error) {
+    } catch (_error) {
       this.orchestratorLogger.error(
         `Orchestrator task failed: ${method}`,
         error,
@@ -138,9 +138,9 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       this.orchestratorLogger.log(
         `🔍 Orchestrator ${this.getAgentName()} initialized with delegation context: ${this.delegationContext ? 'LOADED' : 'NOT LOADED'}`,
       );
-    } catch (error) {
+    } catch (_error) {
       this.orchestratorLogger.warn(
-        `Failed to load delegation context: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to load delegation context: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }
@@ -317,7 +317,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
         );
       }
 
-      const response = await this.orchestratorFacadeService.processRequest(
+      const _response = await this.orchestratorFacadeService.processRequest(
         'intelligent_routing' as OrchestratorA2AMethod, // This will trigger handleIntelligentRouting via default case
         orchestratorInput,
         this.delegationContext, // Pass the delegation context so LLM knows available agents
@@ -349,7 +349,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
         `🔍 DEBUG - Enhanced response: ${JSON.stringify(enhancedResponse, null, 2)}`,
       );
       return enhancedResponse;
-    } catch (error) {
+    } catch (_error) {
       this.orchestratorLogger.error(
         'Orchestrator task execution failed:',
         error,

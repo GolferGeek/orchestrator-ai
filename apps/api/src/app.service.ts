@@ -67,7 +67,7 @@ export class AppService implements OnModuleInit {
       // Summary log
       if (this.discoveredAgents.length > 0) {
         this.agentRecords.forEach(({ agent, instance }) => {
-          const status = instance ? '✅' : '❌';
+          const _status = instance ? '✅' : '❌';
         });
       }
     } catch (error: any) {
@@ -92,7 +92,7 @@ export class AppService implements OnModuleInit {
         ) {
           agentCard = await serviceInstance.getAgentCard();
         }
-      } catch (error) {}
+      } catch (_error) {}
 
       // Build agent registration object
       const agentRegistration = {
@@ -178,7 +178,7 @@ export class AppService implements OnModuleInit {
               };
             }
           }
-        } catch (error) {}
+        } catch (_error) {}
 
         return {
           id: this.agentDiscovery.generateAgentId(

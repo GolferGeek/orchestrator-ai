@@ -119,9 +119,9 @@ export class LLMController {
         );
         return response;
       }
-    } catch (error) {
-      this.logger.error('Failed to generate response', error);
-      throw error;
+    } catch (_error) {
+      this.logger.error('Failed to generate response', _error);
+      throw _error;
     }
   }
 

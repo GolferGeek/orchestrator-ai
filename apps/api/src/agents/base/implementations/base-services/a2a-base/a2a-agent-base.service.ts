@@ -144,15 +144,15 @@ export abstract class A2AAgentBaseService
       this.loggingService.logAgentEvent(agentName, 'initialized', {
         agentPath: this.agentPath,
       });
-    } catch (error) {
+    } catch (_error) {
       this.loggingService.logError(
-        error instanceof Error ? error : new Error(String(error)),
+        _error instanceof Error ? _error : new Error(String(_error)),
         {
           agentName,
           event: 'initialization_failed',
         },
       );
-      throw error;
+      throw _error;
     }
   }
 
@@ -182,10 +182,10 @@ export abstract class A2AAgentBaseService
         profile: profile ?? DEFAULT_EXECUTION_PROFILE,
         capabilities,
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger.debug(
         `Using default execution metadata for ${this.getAgentName()}: ${
-          error instanceof Error ? error.message : String(error)
+          _error instanceof Error ? _error.message : String(_error)
         }`,
       );
       this.executionMetadata = defaultMetadata;
@@ -249,9 +249,9 @@ export abstract class A2AAgentBaseService
     try {
       await this.agentRegistrationService.unregisterAgent(this.getAgentId());
       this.loggingService.logAgentEvent(agentName, 'destroyed');
-    } catch (error) {
+    } catch (_error) {
       this.loggingService.logError(
-        error instanceof Error ? error : new Error(String(error)),
+        _error instanceof Error ? _error : new Error(String(_error)),
         {
           agentName,
           event: 'destruction_failed',
@@ -307,7 +307,7 @@ export abstract class A2AAgentBaseService
       };
 
       // Delegate to JSON-RPC protocol service
-      const response = await this.jsonRpcProtocolService.processRequest(
+      const _response = await this.jsonRpcProtocolService.processRequest(
         request,
         methodHandler,
         notificationHandler,
@@ -366,10 +366,10 @@ export abstract class A2AAgentBaseService
           request.id || null,
         );
       }
-    } catch (error) {
+    } catch (_error) {
       const responseTime = Date.now() - startTime;
       this.loggingService.logError(
-        error instanceof Error ? error : new Error(String(error)),
+        _error instanceof Error ? _error : new Error(String(_error)),
         logContext,
       );
       this.loggingService.logResponse(
@@ -381,9 +381,9 @@ export abstract class A2AAgentBaseService
 
       return this.jsonRpcProtocolService.createErrorResponse(
         JSON_RPC_ERRORS.INTERNAL_ERROR,
-        'Internal error',
+        'Internal _error',
         request.id || null,
-        error instanceof Error ? error.message : String(error),
+        _error instanceof Error ? _error.message : String(_error),
       );
     }
   }
@@ -559,7 +559,7 @@ export abstract class A2AAgentBaseService
       shortCircuitEnabled && executionMetadata.profile !== 'conversation_only';
 
     if (allowShortCircuit) {
-      const result = await this.shortCircuitConversePlan(
+      const _result = await this.shortCircuitConversePlan(
         requestedMode as any,
         normalized,
       );
@@ -713,10 +713,10 @@ export abstract class A2AAgentBaseService
           renderMode: 'llm_short_circuit',
         },
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger.warn(
         'Short-circuit converse/plan failed. Falling through to agent execution.',
-        error,
+        _error,
       );
       return null;
     }
@@ -859,10 +859,10 @@ export abstract class A2AAgentBaseService
 
     try {
       card.execution = await this.getExecutionMetadata();
-    } catch (error) {
+    } catch (_error) {
       this.logger.debug(
         `Failed to resolve execution metadata for ${this.getAgentName()}: ${
-          error instanceof Error ? error.message : String(error)
+          _error instanceof Error ? _error.message : String(_error)
         }`,
       );
     }
@@ -982,12 +982,12 @@ export abstract class A2AAgentBaseService
 
       await this.agentRegistrationService.registerAgent(agentInfo);
       this.logger.log(`Agent ${this.getAgentName()} registered successfully`);
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
         `Failed to register agent ${this.getAgentName()}:`,
-        error,
+        _error,
       );
-      throw error;
+      throw _error;
     }
   }
 
@@ -1120,9 +1120,9 @@ export abstract class A2AAgentBaseService
         if (result.metadata && typeof result.metadata === 'object') {
           result.metadata.taskCompletionHandled = true;
         }
-      } catch (markError) {
+      } catch (_markError) {
         this.logger.debug(
-          `Failed to mark task completion flag for task ${taskId}: ${markError instanceof Error ? markError.message : markError}`,
+          `Failed to mark task completion flag for task ${taskId}: ${_markError instanceof Error ? _markError.message : _markError}`,
         );
       }
     }
@@ -1224,8 +1224,8 @@ export abstract class A2AAgentBaseService
         projectStepId,
         mode: (task.params && (task.params as any).mode) || undefined,
       };
-    } catch (error) {
-      this.logger.warn(`Failed to get task context for ${taskId}:`, error);
+    } catch (_error) {
+      this.logger.warn(`Failed to get task context for ${taskId}:`, _error);
       return {};
     }
   }
@@ -1252,7 +1252,7 @@ export abstract class A2AAgentBaseService
         // Agent is configured to not create deliverables - return normal responses only
         return null;
       }
-    } catch (error) {
+    } catch (_error) {
       // If config loading fails, continue with default behavior (create deliverables)
     }
 
@@ -1356,7 +1356,7 @@ export abstract class A2AAgentBaseService
             if (existingDeliverables && existingDeliverables.length > 0) {
               existingDeliverable = existingDeliverables[0];
             }
-          } catch (error) {
+          } catch (_error) {
             // Continue with creating new deliverable
           }
         }
@@ -1433,8 +1433,8 @@ export abstract class A2AAgentBaseService
       }
 
       return deliverable.id;
-    } catch (error) {
-      this.logger.error('Failed to auto-persist deliverable:', error);
+    } catch (_error) {
+      this.logger.error('Failed to auto-persist deliverable:', _error);
       // Don't throw - deliverable persistence shouldn't break task completion
       return null;
     }
@@ -1542,8 +1542,8 @@ export abstract class A2AAgentBaseService
           extractedAt: new Date().toISOString(),
         },
       };
-    } catch (error) {
-      this.logger.error('Failed to extract deliverable from content:', error);
+    } catch (_error) {
+      this.logger.error('Failed to extract deliverable from content:', _error);
       return null;
     }
   }
@@ -1757,8 +1757,8 @@ export abstract class A2AAgentBaseService
       const parsed = yaml.load(yamlContent) as any;
 
       return parsed;
-    } catch (error) {
-      this.logger.warn(`Failed to parse agent.yaml at ${yamlPath}:`, error);
+    } catch (_error) {
+      this.logger.warn(`Failed to parse agent.yaml at ${yamlPath}:`, _error);
       return null;
     }
   }
@@ -1774,7 +1774,7 @@ export abstract class A2AAgentBaseService
   protected extractPIIMetadata(params: any): PIIProcessingMetadata | undefined {
     // Check multiple possible locations for PII metadata
     // Check for truthy values, not just existence
-    let result = null;
+    let _result = null;
     if (
       params.piiMetadata &&
       typeof params.piiMetadata === 'object' &&
@@ -1805,7 +1805,7 @@ export abstract class A2AAgentBaseService
     params: any,
   ): RoutingDecisionWithPII | undefined {
     // Check for truthy values with proper structure
-    let result = null;
+    let _result = null;
     if (
       params.routingDecision &&
       typeof params.routingDecision === 'object' &&

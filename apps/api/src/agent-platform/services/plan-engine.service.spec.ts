@@ -16,7 +16,7 @@ describe('PlanEngineService', () => {
   it('creates plan draft', async () => {
     repo.createDraft.mockResolvedValue({ id: 'plan-1' } as any);
 
-    const result = await service.generateDraft({
+    const _result = await service.generateDraft({
       conversationId: 'conv-1',
       organizationSlug: 'my-org',
       agentSlug: 'agent-1',
@@ -33,7 +33,7 @@ describe('PlanEngineService', () => {
       status: 'approved',
     } as any);
 
-    const result = await service.updateStatus({
+    const _result = await service.updateStatus({
       planId: 'plan-1',
       status: 'approved',
     });

@@ -266,7 +266,7 @@ export class SourceBlindingService {
     );
 
     try {
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.httpService.request<T>(blindedConfig),
       );
 
@@ -275,12 +275,12 @@ export class SourceBlindingService {
       );
 
       return response;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
         `Source-blinded request failed for ${blindingOptions.provider}:`,
-        error,
+        _error,
       );
-      throw error;
+      throw _error;
     }
   }
 

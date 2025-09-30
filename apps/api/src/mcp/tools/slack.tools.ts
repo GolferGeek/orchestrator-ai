@@ -226,9 +226,9 @@ export class SlackMCPTools implements IMCPToolHandler {
         default:
           return this.createErrorResponse(`Unknown Slack tool: ${name}`);
       }
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
       this.logger.error(`Slack tool ${name} failed: ${errorMessage}`);
       return this.createErrorResponse(`Tool execution failed: ${errorMessage}`);
     }
@@ -250,12 +250,12 @@ export class SlackMCPTools implements IMCPToolHandler {
       }
 
       // Try a lightweight connection test
-      const response = await this.makeSlackRequest('api.test', 'GET');
-      const data = await response.json();
+      const _response = await this.makeSlackRequest('api.test', 'GET');
+      const _data = await response.json();
       return data.ok === true;
-    } catch (error) {
+    } catch (_error) {
       this.logger.debug(
-        `Slack ping failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Slack ping failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
       return false;
     }
@@ -278,12 +278,12 @@ export class SlackMCPTools implements IMCPToolHandler {
         payload.blocks = blocks;
       }
 
-      const response = await this.makeSlackRequest(
+      const _response = await this.makeSlackRequest(
         'chat.postMessage',
         'POST',
         payload,
       );
-      const data = await response.json();
+      const _data = await response.json();
 
       if (!data.ok) {
         throw new Error(`Slack API error: ${data.error}`);
@@ -307,9 +307,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (error) {
+    } catch (_error) {
       return this.createErrorResponse(
-        `Send message failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Send message failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -331,11 +331,11 @@ export class SlackMCPTools implements IMCPToolHandler {
         limit: limit.toString(),
       });
 
-      const response = await this.makeSlackRequest(
+      const _response = await this.makeSlackRequest(
         `conversations.list?${params}`,
         'GET',
       );
-      const data = await response.json();
+      const _data = await response.json();
 
       if (!data.ok) {
         throw new Error(`Slack API error: ${data.error}`);
@@ -357,9 +357,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (error) {
+    } catch (_error) {
       return this.createErrorResponse(
-        `Get channels failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Get channels failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -373,11 +373,11 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       if (user_id) {
         // Get specific user info
-        const response = await this.makeSlackRequest(
+        const _response = await this.makeSlackRequest(
           `users.info?user=${user_id}`,
           'GET',
         );
-        const data = await response.json();
+        const _data = await response.json();
 
         if (!data.ok) {
           throw new Error(`Slack API error: ${data.error}`);
@@ -405,11 +405,11 @@ export class SlackMCPTools implements IMCPToolHandler {
           limit: limit.toString(),
         });
 
-        const response = await this.makeSlackRequest(
+        const _response = await this.makeSlackRequest(
           `users.list?${params}`,
           'GET',
         );
-        const data = await response.json();
+        const _data = await response.json();
 
         if (!data.ok) {
           throw new Error(`Slack API error: ${data.error}`);
@@ -438,9 +438,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           ],
         };
       }
-    } catch (error) {
+    } catch (_error) {
       return this.createErrorResponse(
-        `Get users failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Get users failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -468,11 +468,11 @@ export class SlackMCPTools implements IMCPToolHandler {
         sort,
       });
 
-      const response = await this.makeSlackRequest(
+      const _response = await this.makeSlackRequest(
         `search.messages?${params}`,
         'GET',
       );
-      const data = await response.json();
+      const _data = await response.json();
 
       if (!data.ok) {
         throw new Error(`Slack API error: ${data.error}`);
@@ -495,9 +495,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (error) {
+    } catch (_error) {
       return this.createErrorResponse(
-        `Search messages failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Search messages failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -523,11 +523,11 @@ export class SlackMCPTools implements IMCPToolHandler {
         params.append('latest', latest);
       }
 
-      const response = await this.makeSlackRequest(
+      const _response = await this.makeSlackRequest(
         `conversations.history?${params}`,
         'GET',
       );
-      const data = await response.json();
+      const _data = await response.json();
 
       if (!data.ok) {
         throw new Error(`Slack API error: ${data.error}`);
@@ -550,9 +550,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (error) {
+    } catch (_error) {
       return this.createErrorResponse(
-        `Get channel history failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Get channel history failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }
@@ -566,12 +566,12 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       const payload: any = { name, is_private };
 
-      const response = await this.makeSlackRequest(
+      const _response = await this.makeSlackRequest(
         'conversations.create',
         'POST',
         payload,
       );
-      const data = await response.json();
+      const _data = await response.json();
 
       if (!data.ok) {
         throw new Error(`Slack API error: ${data.error}`);
@@ -610,9 +610,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (error) {
+    } catch (_error) {
       return this.createErrorResponse(
-        `Create channel failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Create channel failed: ${_error instanceof Error ? _error.message : String(_error)}`,
       );
     }
   }

@@ -140,7 +140,7 @@ Respond with JSON only:
         'completed',
         `${analysis.intent}`,
       );
-    } catch (e) {
+    } catch (_e) {
       progressCallback?.(
         'Request analysis',
         1,
@@ -265,9 +265,9 @@ Respond with JSON only:
             } else {
               throw new Error('No SQL field in parsed response');
             }
-          } catch (e) {
-            console.error('[METRICS-AGENT] Failed to parse MCP response:', e);
-            sqlError = `Failed to parse SQL from MCP response: ${e}`;
+          } catch (_e) {
+            console.error('[METRICS-AGENT] Failed to parse MCP response:', _e);
+            sqlError = `Failed to parse SQL from MCP response: ${_e}`;
             throw new Error(sqlError);
           }
         }
@@ -336,12 +336,12 @@ Respond with JSON only:
             } else {
               throw new Error('No data field in execution response');
             }
-          } catch (e) {
+          } catch (_e) {
             console.error(
               '[METRICS-AGENT] Failed to parse SQL exec response:',
-              e,
+              _e,
             );
-            executionError = `Failed to parse SQL execution result: ${e}`;
+            executionError = `Failed to parse SQL execution result: ${_e}`;
             throw new Error(executionError);
           }
         }
@@ -356,7 +356,7 @@ Respond with JSON only:
         'completed',
         `MCP query executed successfully - ${queryResult.length || 0} rows returned`,
       );
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       if (!sqlError && !executionError) {
@@ -525,7 +525,7 @@ ${
         mcpEnabled: true,
       },
     };
-  } catch (error) {
+  } catch (_error) {
     console.error('[METRICS-AGENT] Fatal error:', error);
     console.error(
       '[METRICS-AGENT] Error stack:',

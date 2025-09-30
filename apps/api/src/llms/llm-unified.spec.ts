@@ -14,7 +14,7 @@ import { PseudonymizerService } from '../services/pseudonymizer.service';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
-import { Logger } from '@nestjs/common';
+import { _Logger } from '@nestjs/common';
 
 // Comprehensive mock implementations for all dependencies
 const mockSupabaseService = {
@@ -240,7 +240,7 @@ describe('LLMService - Unified Architecture', () => {
 
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const result = await service.generateUnifiedResponse({
+      const _result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: 'Test system prompt',
@@ -296,7 +296,7 @@ describe('LLMService - Unified Architecture', () => {
 
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const result = await service.generateUnifiedResponse({
+      const _result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: 'Test system prompt',
@@ -310,7 +310,7 @@ describe('LLMService - Unified Architecture', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const error = new Error('LLM service error');
+      const _error = new Error('LLM service error');
       llmServiceFactory.generateResponse.mockRejectedValue(error);
 
       await expect(
@@ -373,7 +373,7 @@ describe('LLMService - Unified Architecture', () => {
 
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const result = await service.generateUserContentResponse(
+      const _result = await service.generateUserContentResponse(
         'Test system prompt',
         'Test user message',
         {

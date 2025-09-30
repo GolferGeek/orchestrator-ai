@@ -22,7 +22,7 @@ describe('Caller Type Tracking (e2e)', () => {
   });
 
   it('should track agent caller type', async () => {
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Test agent call.',
       {

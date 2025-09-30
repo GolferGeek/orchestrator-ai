@@ -183,13 +183,13 @@ export class TaskLifecycleService {
       this.completeTask(taskId, result);
 
       return this.activeTasks.get(taskId)!;
-    } catch (error) {
-      // Check if this is a timeout error
-      if (error instanceof Error && error.message.includes('timeout')) {
+    } catch (_error) {
+      // Check if this is a timeout _error
+      if (_error instanceof Error && _error.message.includes('timeout')) {
         this.handleTaskTimeout(taskId);
       } else {
         // Task failed for other reasons
-        this.failTask(taskId, error);
+        this.failTask(taskId, _error);
       }
       return this.activeTasks.get(taskId)!;
     }
@@ -469,7 +469,7 @@ export class TaskLifecycleService {
 
           // Cleanup stuck tasks
           await this.cleanupStuckTasks();
-        } catch (error) {}
+        } catch (_error) {}
       }, this.config.cleanupInterval);
     }
   }

@@ -51,7 +51,7 @@ describe('Context Optimization (e2e via external API on :4000)', () => {
           authToken =
             loginRes.body?.access_token || loginRes.body?.accessToken || null;
         }
-      } catch (e) {
+      } catch (_e) {
         const supabaseUrl = process.env.SUPABASE_URL as string;
         const supabaseAnonKey = process.env.SUPABASE_ANON_KEY as string;
         if (supabaseUrl && supabaseAnonKey) {

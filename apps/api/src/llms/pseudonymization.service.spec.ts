@@ -71,7 +71,7 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.generatePseudonym(
+      const _result = await service.generatePseudonym(
         'john@example.com',
         'email',
         'test',
@@ -102,7 +102,7 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      const result = await service.generatePseudonym(
+      const _result = await service.generatePseudonym(
         'john@example.com',
         'email',
       );
@@ -125,7 +125,7 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.generatePseudonym('(555) 123-4567', 'phone');
+      const _result = await service.generatePseudonym('(555) 123-4567', 'phone');
 
       expect(result.pseudonym).toMatch(/\(\d{3}\) \d{3}-\d{4}/);
       expect(result.dataType).toBe('phone');
@@ -159,7 +159,7 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      const result = await service.generatePseudonym('John Smith', 'name');
+      const _result = await service.generatePseudonym('John Smith', 'name');
 
       expect(result.pseudonym).toBeDefined();
       expect(result.dataType).toBe('name');
@@ -176,7 +176,7 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.generatePseudonym(
+      const _result = await service.generatePseudonym(
         '192.168.1.100',
         'ip_address',
       );
@@ -222,7 +222,7 @@ describe('PseudonymizationService', () => {
           insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
         });
 
-        const result = await service.generatePseudonym('test-value', dataType);
+        const _result = await service.generatePseudonym('test-value', dataType);
         expect(result.dataType).toBe(dataType);
         expect(result.pseudonym).toBeDefined();
       }
@@ -266,7 +266,7 @@ describe('PseudonymizationService', () => {
       });
 
       const text = 'Contact john@example.com or (555) 123-4567';
-      const result = await service.pseudonymizeText(text);
+      const _result = await service.pseudonymizeText(text);
 
       expect(result.originalText).toBe(text);
       expect(result.pseudonymizedText).not.toBe(text);
@@ -282,7 +282,7 @@ describe('PseudonymizationService', () => {
       });
 
       const text = 'This text has no personal information';
-      const result = await service.pseudonymizeText(text);
+      const _result = await service.pseudonymizeText(text);
 
       expect(result.originalText).toBe(text);
       expect(result.pseudonymizedText).toBe(text);
@@ -306,7 +306,7 @@ describe('PseudonymizationService', () => {
       });
 
       const text = 'john@example.com and (555) 123-4567';
-      const result = await service.pseudonymizeText(text, {
+      const _result = await service.pseudonymizeText(text, {
         dataTypes: ['email'],
       });
 
@@ -342,7 +342,7 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.pseudonymizeText('john@example.com', {
+      const _result = await service.pseudonymizeText('john@example.com', {
         context: 'test-context',
       });
 
@@ -375,7 +375,7 @@ describe('PseudonymizationService', () => {
       });
 
       const text = 'Contact john@example.com';
-      const result = await service.pseudonymizeText(text);
+      const _result = await service.pseudonymizeText(text);
 
       // Should handle errors gracefully and continue processing
       expect(result.originalText).toBe(text);
@@ -398,7 +398,7 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      const result = await service.lookupPseudonym('john@example.com', 'email');
+      const _result = await service.lookupPseudonym('john@example.com', 'email');
 
       expect(result).toBe(existingPseudonym);
     });
@@ -412,7 +412,7 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      const result = await service.lookupPseudonym(
+      const _result = await service.lookupPseudonym(
         'nonexistent@example.com',
         'email',
       );
@@ -432,7 +432,7 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      const result = await service.lookupPseudonym('john@example.com', 'email');
+      const _result = await service.lookupPseudonym('john@example.com', 'email');
 
       expect(result).toBeNull();
     });
@@ -449,7 +449,7 @@ describe('PseudonymizationService', () => {
         })),
       });
 
-      const result = await service.lookupPseudonym('test@example.com', 'email');
+      const _result = await service.lookupPseudonym('test@example.com', 'email');
 
       expect(result).toBeNull();
     });
@@ -474,7 +474,7 @@ describe('PseudonymizationService', () => {
 
       const pseudonymizedText =
         'Contact user123@example.com or call (555) 999-0000';
-      const result = await service.reversePseudonymization(
+      const _result = await service.reversePseudonymization(
         pseudonymizedText,
         pseudonymMappings,
       );
@@ -497,7 +497,7 @@ describe('PseudonymizationService', () => {
       ];
 
       const pseudonymizedText = 'Contact user123@example.com and someone else';
-      const result = await service.reversePseudonymization(
+      const _result = await service.reversePseudonymization(
         pseudonymizedText,
         pseudonymMappings,
       );
@@ -510,7 +510,7 @@ describe('PseudonymizationService', () => {
 
     it('should handle empty mappings', async () => {
       const pseudonymizedText = 'No pseudonyms to reverse';
-      const result = await service.reversePseudonymization(
+      const _result = await service.reversePseudonymization(
         pseudonymizedText,
         [],
       );
@@ -536,7 +536,7 @@ describe('PseudonymizationService', () => {
       ];
 
       const pseudonymizedText = 'Emails: test@fake.com and testing@fake.com';
-      const result = await service.reversePseudonymization(
+      const _result = await service.reversePseudonymization(
         pseudonymizedText,
         pseudonymMappings,
       );
@@ -573,7 +573,7 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.createReversiblePseudonymization(
+      const _result = await service.createReversiblePseudonymization(
         'john@example.com',
         'request-123',
       );
@@ -591,7 +591,7 @@ describe('PseudonymizationService', () => {
         patternsChecked: 5,
       });
 
-      const result = await service.createReversiblePseudonymization(
+      const _result = await service.createReversiblePseudonymization(
         'No PII here',
         'request-456',
         { context: 'test' },
@@ -634,7 +634,7 @@ describe('PseudonymizationService', () => {
 
       mockPIIPatternService.getAllPatterns.mockReturnValue(mockPatterns);
 
-      const result = service.getPIIPatterns();
+      const _result = service.getPIIPatterns();
 
       expect(result).toBe(mockPatterns);
       expect(mockPIIPatternService.getAllPatterns).toHaveBeenCalled();
@@ -653,7 +653,7 @@ describe('PseudonymizationService', () => {
 
       mockPIIPatternService.getStats.mockReturnValue(mockPatternStats);
 
-      const result = await service.getStats();
+      const _result = await service.getStats();
 
       expect(result).toMatchObject({
         totalPIIPatterns: 12,
@@ -848,7 +848,7 @@ describe('PseudonymizationService', () => {
         insert: jest.fn().mockResolvedValue({ data: {}, error: null }),
       });
 
-      const result = await service.generatePseudonym('test-value', 'custom');
+      const _result = await service.generatePseudonym('test-value', 'custom');
 
       expect(result.dataType).toBe('custom');
       expect(result.pseudonym).toBeDefined();
@@ -897,7 +897,7 @@ describe('PseudonymizationService', () => {
       });
 
       const startTime = Date.now();
-      const result = await service.pseudonymizeText(longText.slice(0, 1000)); // Limit for test
+      const _result = await service.pseudonymizeText(longText.slice(0, 1000)); // Limit for test
       const endTime = Date.now();
 
       expect(endTime - startTime).toBeLessThan(5000); // Should complete in reasonable time

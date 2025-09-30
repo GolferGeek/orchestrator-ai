@@ -103,10 +103,10 @@ export class FunctionOrchestratorService {
       if (execution.status === 'running') {
         execution.status = 'completed';
       }
-    } catch (error) {
+    } catch (_error) {
       execution.status = 'failed';
       execution.metadata.globalError =
-        error instanceof Error ? error.message : String(error);
+        _error instanceof Error ? _error.message : String(_error);
     }
 
     execution.endTime = new Date().toISOString();
@@ -133,7 +133,7 @@ export class FunctionOrchestratorService {
 
     while (retryCount <= maxRetries) {
       try {
-        const result = await this.executeWithTimeout(
+        const _result = await this.executeWithTimeout(
           () => step.function(context),
           step.timeout || 60000, // 60 second default timeout
         );
@@ -146,8 +146,8 @@ export class FunctionOrchestratorService {
           retryCount,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
-        lastError = error;
+      } catch (_error) {
+        lastError = _error;
         retryCount++;
 
         if (retryCount <= maxRetries) {
@@ -382,7 +382,7 @@ export class FunctionOrchestratorService {
     // Check for circular dependencies
     try {
       this.resolveExecutionOrder(plan.steps);
-    } catch (error) {
+    } catch (_error) {
       errors.push('Circular dependency detected in plan');
     }
 

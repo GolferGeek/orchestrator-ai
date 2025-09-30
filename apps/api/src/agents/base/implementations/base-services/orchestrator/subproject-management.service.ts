@@ -152,27 +152,21 @@ Respond in JSON format:
   "complexity": "low|medium|high"
 }`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        analysisPrompt,
-        input.userId,
-        {
-          temperature: 0.3,
-          maxTokens: 2000,
-          callerType: 'service',
-          callerName: 'subproject-management-service',
-          dataClassification: 'internal',
-        },
-      );
+    const _response = await this.llmService.generateResponse(
+      analysisPrompt,
+      input.userId,
+      {
+        temperature: 0.3,
+        maxTokens: 2000,
+        callerType: 'service',
+        callerName: 'subproject-management-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      const analysis = JSON.parse(response);
+    const analysis = JSON.parse(response);
 
-      return analysis;
-    } catch (error) {
-      throw new Error(
-        `Subproject analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return analysis;
   }
 
   /**
@@ -187,17 +181,13 @@ Respond in JSON format:
     const subprojects: SubprojectPlan[] = [];
 
     for (const scope of subprojectScopes) {
-      try {
-        const subproject = await this.createIndividualSubproject(
-          parentProjectId,
-          parentPlan,
-          scope,
-          input,
-        );
-        subprojects.push(subproject);
-      } catch (error) {
-        throw error;
-      }
+      const subproject = await this.createIndividualSubproject(
+        parentProjectId,
+        parentPlan,
+        scope,
+        input,
+      );
+      subprojects.push(subproject);
     }
 
     // Validate dependencies and timeline coordination
@@ -270,40 +260,34 @@ Respond in JSON format:
   }
 }`;
 
-    try {
-      const response = await this.llmService.generateResponse(
-        planningPrompt,
-        input.userId,
-        {
-          temperature: 0.2,
-          maxTokens: 1500,
-          callerType: 'service',
-          callerName: 'subproject-management-service',
-          dataClassification: 'internal',
-        },
-      );
+    const _response = await this.llmService.generateResponse(
+      planningPrompt,
+      input.userId,
+      {
+        temperature: 0.2,
+        maxTokens: 1500,
+        callerType: 'service',
+        callerName: 'subproject-management-service',
+        dataClassification: 'internal',
+      },
+    );
 
-      const planDetails = JSON.parse(response);
+    const planDetails = JSON.parse(response);
 
-      const subproject: SubprojectPlan = {
-        id: subprojectId,
-        parentProjectId,
-        name: planDetails.name,
-        description: planDetails.description,
-        scope,
-        assignedOrchestrator: scope.orchestrator,
-        status: 'planning',
-        timeline: planDetails.timeline,
-        deliverables: planDetails.deliverables,
-        communicationPlan: planDetails.communicationPlan,
-      };
+    const subproject: SubprojectPlan = {
+      id: subprojectId,
+      parentProjectId,
+      name: planDetails.name,
+      description: planDetails.description,
+      scope,
+      assignedOrchestrator: scope.orchestrator,
+      status: 'planning',
+      timeline: planDetails.timeline,
+      deliverables: planDetails.deliverables,
+      communicationPlan: planDetails.communicationPlan,
+    };
 
-      return subproject;
-    } catch (error) {
-      throw new Error(
-        `Subproject planning failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
+    return subproject;
   }
 
   /**
@@ -392,9 +376,9 @@ Original user request context: ${input.prompt}
           department: subproject.scope.department,
         },
       };
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
-        `Subproject delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Subproject delegation failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
     }
   }

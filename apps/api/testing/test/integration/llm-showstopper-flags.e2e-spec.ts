@@ -41,10 +41,10 @@ describe('LLM Showstopper Flags (e2e)', () => {
         
         // If it doesn't throw, that's also valid (maybe key is configured)
         console.log('✅ OpenAI call succeeded (API key configured)');
-      } catch (error) {
-        // Should be a clear API key error, not a generic failure
-        expect(error.message).toMatch(/api.key|authentication|unauthorized/i);
-        console.log('🔑 API Key Error (Expected):', error.message);
+      } catch (_error) {
+        // Should be a clear API key _error, not a generic failure
+        expect(_error.message).toMatch(/api.key|authentication|unauthorized/i);
+        console.log('🔑 API Key Error (Expected):', _error.message);
       }
     }, 30000);
 
@@ -58,7 +58,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
     it('should stop on safety filter violations', async () => {
       // Test with content that might trigger safety filters
       try {
-        const result = await llmService.generateUnifiedResponse({
+        const _result = await llmService.generateUnifiedResponse({
           provider: 'ollama',
           model: 'llama3.2:1b',
           systemPrompt: 'You are helpful.',
@@ -70,17 +70,17 @@ describe('LLM Showstopper Flags (e2e)', () => {
         });
         
         // If it succeeds, check if there are safety warnings in metadata
-        const response = result as any;
+        const _response = result as any;
         if (response.metadata?.warnings) {
           console.log('⚠️ Safety Warnings:', response.metadata.warnings);
         }
         
         console.log('✅ Request processed (no safety filter triggered)');
-      } catch (error) {
-        if (error.message.includes('safety') || error.message.includes('blocked')) {
-          console.log('🛡️ Safety Filter Triggered (Expected):', error.message);
+      } catch (_error) {
+        if (_error.message.includes('safety') || _error.message.includes('blocked')) {
+          console.log('🛡️ Safety Filter Triggered (Expected):', _error.message);
         } else {
-          throw error; // Re-throw if it's not a safety error
+          throw _error; // Re-throw if it's not a safety _error
         }
       }
     }, 30000);
@@ -103,12 +103,12 @@ describe('LLM Showstopper Flags (e2e)', () => {
         });
         
         console.log('✅ Request completed within timeout');
-      } catch (error) {
-        if (error.message.includes('timeout') || error.message.includes('connection')) {
-          console.log('⏰ Timeout Error (Expected in some cases):', error.message);
+      } catch (_error) {
+        if (_error.message.includes('timeout') || _error.message.includes('connection')) {
+          console.log('⏰ Timeout Error (Expected in some cases):', _error.message);
         } else {
           // Other errors are also valid
-          console.log('🔌 Network Error:', error.message);
+          console.log('🔌 Network Error:', _error.message);
         }
       }
     }, 60000); // Longer timeout for this test
@@ -129,16 +129,16 @@ describe('LLM Showstopper Flags (e2e)', () => {
         
         // Should not reach here
         expect(true).toBe(false);
-      } catch (error) {
-        expect(error.message).toContain('not found');
-        console.log('🚫 Service Unavailable (Expected):', error.message);
+      } catch (_error) {
+        expect(_error.message).toContain('not found');
+        console.log('🚫 Service Unavailable (Expected):', _error.message);
       }
     }, 30000);
   });
 
   describe('Data Classification Flags', () => {
     it('should respect confidential data classification', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -150,7 +150,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.metadata.dataClassification).toBe('confidential');
       
       // Should have appropriate handling flags for confidential data
@@ -161,7 +161,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
     }, 30000);
 
     it('should handle restricted data classification', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -173,7 +173,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       expect(response.metadata.dataClassification).toBe('restricted');
       console.log('🚨 Restricted Data Processing:', response.metadata.dataClassification);
     }, 30000);
@@ -181,7 +181,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
 
   describe('Processing Flag Propagation', () => {
     it('should propagate processing flags through the entire pipeline', async () => {
-      const result = await llmService.generateUnifiedResponse({
+      const _result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -195,7 +195,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
         }
       });
 
-      const response = result as any;
+      const _response = result as any;
       
       // Should have processing flags at each stage
       expect(response.metadata.processingFlags).toBeDefined();
@@ -230,7 +230,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
       
       // All should have consistent flag handling
       results.forEach((result, i) => {
-        const response = result as any;
+        const _response = result as any;
         expect(response.metadata.dataClassification).toBe('internal');
         expect(response.metadata.callerName).toBe(`flag-consistency-${i + 1}`);
         
@@ -276,11 +276,11 @@ describe('LLM Showstopper Flags (e2e)', () => {
         });
         
         console.log('✅ Large request handled successfully');
-      } catch (error) {
-        if (error.message.includes('memory') || error.message.includes('resource')) {
-          console.log('💾 Memory Pressure Handled:', error.message);
+      } catch (_error) {
+        if (_error.message.includes('memory') || _error.message.includes('resource')) {
+          console.log('💾 Memory Pressure Handled:', _error.message);
         } else {
-          console.log('🔧 Other Error (Expected):', error.message);
+          console.log('🔧 Other Error (Expected):', _error.message);
         }
       }
     }, 60000);

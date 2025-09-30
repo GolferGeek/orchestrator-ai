@@ -83,7 +83,7 @@ export class LocalModelStatusService {
    */
   async checkOllamaConnection(): Promise<boolean> {
     try {
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/version`, {
           timeout: 5000,
         }),
@@ -95,14 +95,14 @@ export class LocalModelStatusService {
       this.ollamaStatus.errorMessage = undefined;
 
       return true;
-    } catch (error) {
+    } catch (_error) {
       this.ollamaStatus.connected = false;
       this.ollamaStatus.lastCheck = new Date().toISOString();
       this.ollamaStatus.errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        _error instanceof Error ? _error.message : 'Unknown _error';
 
       this.logger.warn(
-        `Ollama connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Ollama connection failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
       return false;
     }
@@ -117,7 +117,7 @@ export class LocalModelStatusService {
     }
 
     try {
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/ps`, {
           timeout: 5000,
         }),
@@ -135,9 +135,9 @@ export class LocalModelStatusService {
       }));
 
       return modelStatuses;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to get loaded models: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to get loaded models: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
       return [];
     }
@@ -152,7 +152,7 @@ export class LocalModelStatusService {
     }
 
     try {
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/tags`, {
           timeout: 10000,
         }),
@@ -185,9 +185,9 @@ export class LocalModelStatusService {
 
       this.ollamaStatus.models = modelStatuses;
       return modelStatuses;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to get available models: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to get available models: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
       return [];
     }
@@ -212,7 +212,7 @@ export class LocalModelStatusService {
 
     try {
       // Simple health check by making a minimal generate request
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.httpService.post(
           `${this.ollamaBaseUrl}/api/generate`,
           {
@@ -238,13 +238,13 @@ export class LocalModelStatusService {
 
       this.healthCache.set(cacheKey, health);
       return health;
-    } catch (error) {
+    } catch (_error) {
       const responseTime = Date.now() - startTime;
       const health: ModelHealth = {
         available: false,
         responseTime,
         lastCheck: new Date().toISOString(),
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorMessage: _error instanceof Error ? _error.message : 'Unknown _error',
       };
 
       this.healthCache.set(cacheKey, health);
@@ -263,7 +263,7 @@ export class LocalModelStatusService {
     try {
       this.logger.log(`Pulling model: ${modelName}`);
 
-      const response = await firstValueFrom(
+      const _response = await firstValueFrom(
         this.httpService.post(
           `${this.ollamaBaseUrl}/api/pull`,
           {
@@ -281,9 +281,9 @@ export class LocalModelStatusService {
       this.healthCache.delete(modelName);
 
       return true;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to pull model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to pull model ${modelName}: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
       return false;
     }
@@ -355,8 +355,8 @@ export class LocalModelStatusService {
       }
 
       return modelStatuses;
-    } catch (error) {
-      this.logger.error(`Failed to get models by tier ${tier}:`, error);
+    } catch (_error) {
+      this.logger.error(`Failed to get models by tier ${tier}:`, _error);
       return [];
     }
   }
@@ -390,10 +390,10 @@ export class LocalModelStatusService {
 
       this.logger.debug(`Updated loading status for ${modelName}: ${isLoaded}`);
       return true;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
         `Error updating loading status for ${modelName}:`,
-        error,
+        _error,
       );
       return false;
     }
@@ -441,8 +441,8 @@ export class LocalModelStatusService {
         priority: model.loading_priority || 0,
         isCurrentlyLoaded: model.is_currently_loaded || false,
       }));
-    } catch (error) {
-      this.logger.error('Error getting local models from database:', error);
+    } catch (_error) {
+      this.logger.error('Error getting local models from database:', _error);
       return [];
     }
   }
@@ -475,8 +475,8 @@ export class LocalModelStatusService {
       }
 
       this.logger.debug('Successfully synced Ollama models with database');
-    } catch (error) {
-      this.logger.error('Failed to sync with database:', error);
+    } catch (_error) {
+      this.logger.error('Failed to sync with database:', _error);
     }
   }
 
@@ -523,9 +523,9 @@ export class LocalModelStatusService {
       this.healthCache.delete(modelName);
 
       return true;
-    } catch (error) {
+    } catch (_error) {
       this.logger.error(
-        `Failed to delete model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to delete model ${modelName}: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
       );
       return false;
     }

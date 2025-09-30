@@ -78,9 +78,9 @@ export class DeliverablesService {
       );
 
       return await this.findOne(deliverableData.id, userId);
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof BadRequestException) {
+        throw _error;
       }
 
       throw new BadRequestException('Failed to create deliverable');
@@ -191,9 +191,9 @@ export class DeliverablesService {
         offset,
         hasMore: items.length === limit, // Simple heuristic - if we got exactly limit items, there might be more
       };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof BadRequestException) {
+        throw _error;
       }
 
       throw new BadRequestException('Failed to find deliverables');
@@ -224,8 +224,8 @@ export class DeliverablesService {
       const deliverables =
         data?.map((item) => this.mapToDeliverable(item)) || [];
       return deliverables;
-    } catch (error) {
-      throw error;
+    } catch (_error) {
+      throw _error;
     }
   }
 
@@ -266,17 +266,17 @@ export class DeliverablesService {
           deliverable.currentVersion = currentVersion;
         } else {
         }
-      } catch (error) {
+      } catch (_error) {
         // Don't throw here, just return deliverable without current version
       }
 
       return deliverable;
-    } catch (error) {
+    } catch (_error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        _error instanceof NotFoundException ||
+        _error instanceof BadRequestException
       ) {
-        throw error;
+        throw _error;
       }
 
       throw new BadRequestException('Failed to find deliverable');
@@ -320,7 +320,7 @@ export class DeliverablesService {
             if (currentVersion) {
               deliverable.currentVersion = currentVersion;
             }
-          } catch (error) {
+          } catch (_error) {
             // Continue without current version
           }
 
@@ -329,9 +329,9 @@ export class DeliverablesService {
       );
 
       return deliverableResults;
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof BadRequestException) {
+        throw _error;
       }
 
       throw new BadRequestException(
@@ -344,7 +344,7 @@ export class DeliverablesService {
    * Extract content from task response
    */
   private extractContentFromResponse(response: any): string | null {
-    let result = response;
+    let _result = response;
     if (typeof response === 'string') {
       try {
         result = JSON.parse(response);
@@ -430,12 +430,12 @@ export class DeliverablesService {
       }
 
       return await this.findOne(id, userId); // Return with current version data
-    } catch (error) {
+    } catch (_error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        _error instanceof NotFoundException ||
+        _error instanceof BadRequestException
       ) {
-        throw error;
+        throw _error;
       }
 
       throw new BadRequestException('Failed to update deliverable');
@@ -505,12 +505,12 @@ export class DeliverablesService {
         conversationId: conversation.id,
         message: initialMessage,
       };
-    } catch (error) {
+    } catch (_error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        _error instanceof NotFoundException ||
+        _error instanceof BadRequestException
       ) {
-        throw error;
+        throw _error;
       }
 
       throw new BadRequestException('Failed to create editing conversation');
@@ -538,9 +538,9 @@ export class DeliverablesService {
           `Failed to link deliverable to conversation: ${error.message}`,
         );
       }
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
+    } catch (_error) {
+      if (_error instanceof BadRequestException) {
+        throw _error;
       }
 
       throw new BadRequestException(
@@ -628,12 +628,12 @@ export class DeliverablesService {
           `Failed to delete deliverable: ${error.message}`,
         );
       }
-    } catch (error) {
+    } catch (_error) {
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
+        _error instanceof NotFoundException ||
+        _error instanceof BadRequestException
       ) {
-        throw error;
+        throw _error;
       }
 
       throw new BadRequestException('Failed to delete deliverable');

@@ -30,13 +30,9 @@ export function initializeLangChain(): void {
   }
 
   // Validate required environment variables
-  try {
-    getOpenAIApiKey();
+  getOpenAIApiKey();
 
-    langchainInitialized = true;
-  } catch (error) {
-    throw error;
-  }
+  langchainInitialized = true;
 }
 
 /**
@@ -96,19 +92,15 @@ export async function executeSimpleCall(
     timeout?: number;
   },
 ): Promise<string> {
-  try {
-    const llm = getLLM(options);
+  const llm = getLLM(options);
 
-    const messages = [
-      new SystemMessage(systemPrompt),
-      new HumanMessage(userMessage),
-    ];
+  const messages = [
+    new SystemMessage(systemPrompt),
+    new HumanMessage(userMessage),
+  ];
 
-    const response = await llm.invoke(messages);
-    return response.content as string;
-  } catch (error) {
-    throw error;
-  }
+  const _response = await llm.invoke(messages);
+  return response.content as string;
 }
 
 /**

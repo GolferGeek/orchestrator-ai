@@ -45,7 +45,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
 
   describe('Provider/Model Name Endpoints', () => {
     it('should return provider names without UUIDs', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/providers/names')
         .expect(200);
 
@@ -67,7 +67,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
     });
 
     it('should return model names with provider info', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/models/names')
         .expect(200);
 
@@ -94,7 +94,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
     });
 
     it('should return providers with models structure', async () => {
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/providers/with-models')
         .expect(200);
 
@@ -134,7 +134,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
     testCases.forEach(({ providerName, modelName }) => {
       it(`should track usage with names for ${providerName}/${modelName}`, async () => {
         try {
-          const result = await llmService.generateResponse(
+          const _result = await llmService.generateResponse(
             'You are a helpful assistant.',
             'Say hello and count to 3.',
             {
@@ -158,7 +158,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
 
     it('should handle invalid provider/model gracefully', async () => {
       try {
-        const result = await llmService.generateResponse(
+        const _result = await llmService.generateResponse(
           'You are a helpful assistant.',
           'Say hello.',
           {
@@ -320,7 +320,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
       ];
 
       for (const endpoint of endpoints) {
-        const response = await request(app.getHttpServer())
+        const _response = await request(app.getHttpServer())
           .get(endpoint)
           .expect(200);
 
@@ -338,7 +338,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
     it('should handle null/undefined provider/model names gracefully', async () => {
       try {
         // Test with undefined values
-        const result = await llmService.generateResponse(
+        const _result = await llmService.generateResponse(
           'You are a helpful assistant.',
           'Say hello.',
           {

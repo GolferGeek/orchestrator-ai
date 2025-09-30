@@ -45,7 +45,7 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
     it('should return execution_modes for all agents', async () => {
       console.log('🧪 Testing /agents endpoint for execution modes...');
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .get('/agents')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
@@ -111,7 +111,7 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       };
 
       const startTime = Date.now();
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/blog_post/blog_post/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskPayload)
@@ -162,7 +162,7 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       };
 
       const startTime = Date.now();
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/requirements_writer/requirements_writer/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskPayload)
@@ -269,7 +269,7 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
         },
       };
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/requirements_writer/requirements_writer/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskPayload)
@@ -348,7 +348,7 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
         },
       };
 
-      const response = await request(app.getHttpServer())
+      const _response = await request(app.getHttpServer())
         .post('/agents/requirements_writer/requirements_writer/tasks')
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskPayload)

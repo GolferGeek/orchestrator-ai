@@ -31,7 +31,7 @@ describe('FeatureFlagService', () => {
     it('should return false when feature flag is disabled', () => {
       jest.spyOn(configService, 'get').mockReturnValue('false');
 
-      const result = service.isEnabled('TEST_FLAG');
+      const _result = service.isEnabled('TEST_FLAG');
 
       expect(result).toBe(false);
       expect(configService.get).toHaveBeenCalledWith(
@@ -48,7 +48,7 @@ describe('FeatureFlagService', () => {
           return defaultValue || '';
         });
 
-      const result = service.isEnabled('TEST_FLAG');
+      const _result = service.isEnabled('TEST_FLAG');
 
       expect(result).toBe(true);
     });
@@ -105,7 +105,7 @@ describe('FeatureFlagService', () => {
         });
 
       // Test with deterministic user ID that should be in 50% rollout
-      const result = service.isEnabled('TEST_FLAG', { userId: 'test-user-1' });
+      const _result = service.isEnabled('TEST_FLAG', { userId: 'test-user-1' });
 
       // The result depends on the hash function, but it should be consistent
       expect(typeof result).toBe('boolean');
@@ -116,7 +116,7 @@ describe('FeatureFlagService', () => {
     it('should check SOVEREIGN_ROUTING flag', () => {
       jest.spyOn(configService, 'get').mockReturnValue('true');
 
-      const result = service.isSovereignRoutingEnabled({ userId: 'test' });
+      const _result = service.isSovereignRoutingEnabled({ userId: 'test' });
 
       expect(configService.get).toHaveBeenCalledWith(
         'FEATURE_FLAG_SOVEREIGN_ROUTING_ENABLED',

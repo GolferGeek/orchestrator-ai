@@ -22,7 +22,7 @@ describe('Local Model Status (e2e)', () => {
   });
 
   it('should detect Ollama connection status', async () => {
-    const status = await localModelStatusService.getOllamaStatus();
+    const _status = await localModelStatusService.getOllamaStatus();
     
     expect(status).toBeDefined();
     expect(typeof status.connected).toBe('boolean');

@@ -132,7 +132,7 @@ export class AgentContextService {
       // Context parsed successfully
 
       return context;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }

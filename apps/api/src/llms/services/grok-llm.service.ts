@@ -105,7 +105,7 @@ export class GrokLLMService extends BaseLLMService {
       };
 
       // Make Grok API call
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const _response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -131,7 +131,7 @@ export class GrokLLMService extends BaseLLMService {
       const endTime = Date.now();
 
       // Create Grok-specific metadata
-      const metadata = this.createGrokMetadata(
+      const _metadata = this.createGrokMetadata(
         completion,
         params,
         startTime,
@@ -175,8 +175,8 @@ export class GrokLLMService extends BaseLLMService {
       this.logRequestResponse(params, llmResponse, metadata.timing.duration);
 
       return llmResponse;
-    } catch (error) {
-      this.handleError(error, 'GrokLLMService.generateResponse');
+    } catch (_error) {
+      this.handleError(_error, 'GrokLLMService.generateResponse');
     }
   }
 
@@ -249,8 +249,8 @@ export class GrokLLMService extends BaseLLMService {
         const runId = `grok-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.logger.debug(`LangSmith integration for Grok: ${runId}`);
         return runId;
-      } catch (error) {
-        this.logger.warn('LangSmith integration failed:', error);
+      } catch (_error) {
+        this.logger.warn('LangSmith integration failed:', _error);
       }
     }
     return undefined;
@@ -376,12 +376,12 @@ export async function testGrokService() {
   };
 
   try {
-    const response = await service.generateResponse(params);
+    const _response = await service.generateResponse(params);
     console.log('Grok Response:', response.content);
     console.log('Metadata:', response.metadata);
     return response;
-  } catch (error) {
-    console.error('Grok Service Error:', error);
-    throw error;
+  } catch (_error) {
+    console.error('Grok Service Error:', _error);
+    throw _error;
   }
 }

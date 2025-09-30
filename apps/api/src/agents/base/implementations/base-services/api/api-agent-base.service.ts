@@ -212,10 +212,10 @@ export class ApiAgentBaseService
       } else {
         // No action needed
       }
-    } catch (error) {
-      this.apiLogger.error(
+    } catch (_error) {
+      this.apiLogger._error(
         `Error loading API configuration for ${this.getAgentName()}:`,
-        error,
+        _error,
       );
     }
   }
@@ -253,10 +253,10 @@ export class ApiAgentBaseService
       };
 
       return config;
-    } catch (error) {
-      this.apiLogger.error(
+    } catch (_error) {
+      this.apiLogger._error(
         'Error extracting API configuration from context:',
-        error,
+        _error,
       );
       return null;
     }
@@ -321,9 +321,9 @@ export class ApiAgentBaseService
       };
 
       // Execute the API call
-      const result = await this.callExternalApi(apiParams);
+      const _result = await this.callExternalApi(apiParams);
 
-      const response = {
+      const _response = {
         success: true,
         response: result.response,
         metadata: {
@@ -340,7 +340,7 @@ export class ApiAgentBaseService
 
       // NEW ARCHITECTURE: Enrich response with PII metadata
       return this.enrichResponseWithPIIMetadata(response, params);
-    } catch (error) {
+    } catch (_error) {
       this.apiLogger.error(`API execution error for ${agentName}:`, error);
 
       const errorResponse = {
@@ -387,7 +387,7 @@ export class ApiAgentBaseService
         const headers = this.prepareHeaders(config, params);
 
         // Make the HTTP request
-        const response = await firstValueFrom(
+        const _response = await firstValueFrom(
           this.services.httpService.request({
             method: config.method,
             url: config.endpoint,
@@ -417,8 +417,8 @@ export class ApiAgentBaseService
             responseTime: Date.now(),
           },
         };
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
+      } catch (_error) {
+        lastError = _error instanceof Error ? _error : new Error(String(_error));
         this.apiLogger.warn(
           `API call attempt ${attempt}/${maxAttempts} failed:`,
           lastError.message,
@@ -502,8 +502,8 @@ export class ApiAgentBaseService
 
         const customData = JSON.parse(templateString);
         return customData;
-      } catch (error) {
-        this.apiLogger.error(`Error parsing custom template:`, error);
+      } catch (_error) {
+        this.apiLogger._error(`Error parsing custom template:`, _error);
         // Fall back to default
         const defaultData = {
           message: params.userMessage,
@@ -541,10 +541,10 @@ export class ApiAgentBaseService
 
         const template = JSON.parse(templateString);
         return template;
-      } catch (error) {
-        this.apiLogger.error(
+      } catch (_error) {
+        this.apiLogger._error(
           `Error parsing request transform template:`,
-          error,
+          _error,
         );
       }
     }
@@ -641,10 +641,10 @@ export class ApiAgentBaseService
       // Direct field name
       const directValue = apiResponse[config.responseTransform];
       return directValue || JSON.stringify(apiResponse);
-    } catch (error) {
+    } catch (_error) {
       this.apiLogger.warn(
         'Response transformation failed, using default format:',
-        error,
+        _error,
       );
       return JSON.stringify(apiResponse);
     }
@@ -778,7 +778,7 @@ export class ApiAgentBaseService
     }
 
     try {
-      const updateData = {
+      const _updateData = {
         status: 'completed' as const,
         progress: 100,
         response: typeof result === 'string' ? result : JSON.stringify(result),
@@ -798,12 +798,12 @@ export class ApiAgentBaseService
         this.currentUserId,
         updateData,
       );
-    } catch (error) {
-      this.apiLogger.error(
+    } catch (_error) {
+      this.apiLogger._error(
         `❌ Failed to save API task ${this.currentTaskId} result:`,
-        error,
+        _error,
       );
-      throw error;
+      throw _error;
     }
   }
 

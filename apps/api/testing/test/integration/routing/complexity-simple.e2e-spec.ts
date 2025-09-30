@@ -22,7 +22,7 @@ describe('Simple Complexity Routing (e2e)', () => {
   });
 
   it('should handle simple math question', async () => {
-    const result = await llmService.generateCentralizedResponse(
+    const _result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'What is 2 + 2?',
       {
