@@ -33,6 +33,9 @@ import { CentralizedRoutingService } from '../llms/centralized-routing.service';
 import { PIIService } from '../services/pii.service';
 import { SpeechService } from '../speech/speech.service';
 import { Request as ExpressRequest } from 'express';
+import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
+import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
+import { AgentHierarchy } from '../agent-discovery.service';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -49,6 +52,7 @@ export class DynamicAgentsController {
     private readonly piiService: PIIService,
     private readonly speechService: SpeechService,
     private readonly authService: AuthService,
+    private readonly agentRegistry: AgentRegistryService,
   ) {}
 
   /**
@@ -93,11 +97,23 @@ export class DynamicAgentsController {
     try {
       await this.agentDiscovery.discoverAgents();
 
-      const hierarchy = this.agentDiscovery.getAgentHierarchy(namespaces);
-      const totalAgents = namespaces?.length
+      const databaseAgents = await this.fetchDatabaseAgents(namespaces);
+      const databaseHierarchy = this.buildDatabaseHierarchy(databaseAgents);
+
+      const filesystemHierarchy = this.agentDiscovery.getAgentHierarchy(
+        namespaces,
+      );
+      const hierarchy = this.mergeHierarchies(
+        filesystemHierarchy,
+        databaseHierarchy,
+      );
+
+      const filesystemCount = namespaces?.length
         ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces)
             .length
         : this.agentDiscovery.getDiscoveredAgents().length;
+
+      const totalAgents = filesystemCount + databaseAgents.length;
 
       return {
         success: true,
@@ -835,6 +851,141 @@ export class DynamicAgentsController {
     return {
       activeNamespace,
       allowedNamespaces: namespaces,
+    };
+  }
+
+  private async fetchDatabaseAgents(
+    namespaces?: string[],
+  ): Promise<AgentRecord[]> {
+    if (namespaces && namespaces.length > 0) {
+      const normalized = namespaces
+        .map((ns) => (ns && ns.trim().length ? ns.trim() : null))
+        .map((ns) => (ns === 'global' ? null : ns));
+      return this.agentRegistry.listAgentsForNamespaces(normalized);
+    }
+
+    return this.agentRegistry.listAllAgents();
+  }
+
+  private buildDatabaseHierarchy(records: AgentRecord[]): AgentHierarchy[] {
+    if (!records.length) {
+      return [];
+    }
+
+    const grouped = new Map<string | null, AgentRecord[]>();
+    for (const record of records) {
+      const key = record.organization_slug ?? null;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(record);
+    }
+
+    const createNode = (
+      record: AgentRecord,
+      children: AgentHierarchy[] = [],
+    ): AgentHierarchy => ({
+      id: record.id,
+      name: record.slug,
+      displayName: record.display_name,
+      type: record.agent_type,
+      path: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
+      relativePath: record.slug,
+      namespace: record.organization_slug ?? undefined,
+      namespacedPath: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
+      metadata: {
+        description: record.description ?? undefined,
+        version: record.version ?? undefined,
+      },
+      children,
+    });
+
+    const roots: AgentHierarchy[] = [];
+
+    grouped.forEach((agents) => {
+      const orchestrators = agents.filter(
+        (agent) =>
+          agent.agent_type === 'orchestrator' || agent.config?.orchestrator,
+      );
+
+      const specialists = agents.filter(
+        (agent) =>
+          agent.agent_type !== 'orchestrator' && !agent.config?.orchestrator,
+      );
+
+      const specialistNodes = specialists.map((record) =>
+        createNode(record, []),
+      );
+      const specialistBySlug = new Map(
+        specialistNodes.map((node) => [node.name, node]),
+      );
+
+      if (!orchestrators.length) {
+        const sorted = specialistNodes
+          .map((node) => this.cloneHierarchyNode(node))
+          .sort((a, b) => a.displayName.localeCompare(b.displayName));
+        roots.push(...sorted);
+        return;
+      }
+
+      orchestrators.forEach((record) => {
+        const children = specialists.map((child) => {
+          const specialistNode = specialistBySlug.get(child.slug);
+          return specialistNode
+            ? this.cloneHierarchyNode(specialistNode)
+            : createNode(child, []);
+        });
+
+        children.sort((a, b) =>
+          a.displayName.localeCompare(b.displayName),
+        );
+
+        roots.push(createNode(record, children));
+      });
+    });
+
+    roots.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    return roots;
+  }
+
+  private mergeHierarchies(
+    filesystem: AgentHierarchy[],
+    database: AgentHierarchy[],
+  ): AgentHierarchy[] {
+    if (!database.length) {
+      return filesystem.map((node) => this.cloneHierarchyNode(node));
+    }
+
+    const merged = filesystem.map((node) => this.cloneHierarchyNode(node));
+    const keyFor = (node: AgentHierarchy) =>
+      `${node.namespace ?? 'global'}::${node.name}`;
+    const indexByKey = new Map<string, number>();
+    merged.forEach((node, index) => {
+      indexByKey.set(keyFor(node), index);
+    });
+
+    for (const node of database) {
+      const key = keyFor(node);
+      const cloned = this.cloneHierarchyNode(node);
+      if (indexByKey.has(key)) {
+        const targetIndex = indexByKey.get(key)!;
+        merged[targetIndex] = cloned;
+      } else {
+        indexByKey.set(key, merged.length);
+        merged.push(cloned);
+      }
+    }
+
+    return merged;
+  }
+
+  private cloneHierarchyNode(node: AgentHierarchy): AgentHierarchy {
+    return {
+      ...node,
+      children: Array.isArray(node.children)
+        ? node.children.map((child) => this.cloneHierarchyNode(child))
+        : [],
     };
   }
 

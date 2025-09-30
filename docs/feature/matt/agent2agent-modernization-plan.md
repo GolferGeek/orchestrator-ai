@@ -91,7 +91,7 @@ We will add a hierarchical publishing suite for the `my-org` namespace that prod
 - **supabase content agents** – CRUD helpers for the Hiverarchy dataset: update the parent post, create child-post stubs (idea-only), list idea-only posts, and fetch the next post to start. These may be implemented as single-purpose agents (update, create, list, fetch) for clear separation of duties.
 
 ### Planned deliverables
-1. Database schema additions (if needed) + seeds for the new agents and orchestration recipes.
+1. Database schema additions (if needed) + seeds for the new agents and orchestration recipes (`apps/api/src/agent-platform/fixtures/my-org-hierarchy-agents.fixture.ts`).
 2. Orchestration plan templates mapping orchestrator → specialist execution order.
 3. Frontend hooks (later phase) to visualize Hiverarchy state and human-in-the-loop checkpoints.
 
@@ -141,4 +141,5 @@ We will add a hierarchical publishing suite for the `my-org` namespace that prod
 - **2025-01-20:** Added validation coverage for plan execution rejecting mismatched conversation IDs. (Codex)
 - **2025-01-20:** Plan execution success path now checks response metadata and agent provenance without streaming. (Codex)
 - **2025-01-20:** Saved orchestration execution without templates covered (prompt inputs default to empty). (Codex)
+- **2025-01-20:** Added my-org hierarchy agent fixtures + smoke tests for descriptor integrity. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

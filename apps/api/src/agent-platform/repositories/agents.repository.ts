@@ -118,6 +118,22 @@ export class AgentsRepository {
     return data ?? [];
   }
 
+  async listAll(): Promise<AgentRecord[]> {
+    const client = this.getClient();
+    const { data, error } = (await client
+      .from(AGENTS_TABLE)
+      .select('*')
+      .order('organization_slug', { ascending: true, nullsFirst: true })
+      .order('slug', { ascending: true })) as SupabaseSelectListResponse<AgentRecord>;
+
+    if (error) {
+      this.logger.error(`Failed to list all agents: ${error.message}`);
+      throw new Error(`Failed to list agents: ${error.message}`);
+    }
+
+    return data ?? [];
+  }
+
   async deleteById(id: string): Promise<void> {
     const client = this.getClient();
     const { error } = await client.from(AGENTS_TABLE).delete().eq('id', id);

@@ -28,7 +28,7 @@ Comprehensive crawl summary of `apps/api/src`. Each row lists the current respon
 | LLM & routing | `llms/*` (centralized routing, local models, pseudonymization, memory manager) | Sovereign policy checks, provider selection, PII processing, pseudonymization, logging, metric controllers. | Complex constructor dependencies; Supabase coupling; multiple unused controllers; logging noise. | Retain a centralized routing service (PII + sovereign enforcement) invoked by `AgentToAgentBaseService`; service can short-circuit showstoppers and emit `human_response` guidance when policy blocks execution. |
 | PII/CIDAFM | `cidafm/*`, `services/pii.service.ts`, `services/dictionary-pseudonymizer.service.ts` | Specialized privacy tooling (CIDAFM commands, pseudonym dictionary). | Scattered across modules, limited documentation, tests but some outdated. | Consolidate under privacy submodule; new platform injects sanitized interfaces. |
 | MCP & tools | `mcp/*`, `agents/base/services/...` tool contexts | Hosts internal MCP server (Supabase, Slack, Notion tools) and generic client. | Hard-coded config, no org-specific credential isolation, controllers tied to legacy auth. | New credential store supplies secrets; tool agents declare aliases; controller exposes spec-compliant MCP endpoints. Agents can mark individual endpoints as public (no auth) for anonymous chat or integrations. |
-| Orchestration & recipes | `orchestration/orchestration.types.ts`, `projects/*`, `agents/demo/.../orchestrator` | Defines orchestrator DTOs, legacy project APIs, sample orchestrator agents. | Orchestration logic scattered among demo agents; project service minimal. | Multi-step orchestration engine formalized; every agent can delegate via `supporting_agents`; execution tracked in `orchestration_runs` with optional saved recipes. |
+| Orchestration & recipes | `orchestration/orchestration.types.ts`, `projects/*` (legacy), `agent-platform/repositories/agent-orchestrations.repository.ts`, `agent-platform/repositories/orchestration-runs.repository.ts` | Legacy project APIs plus new repositories persisting saved orchestration recipes and run state. | Split implementation between legacy projects module and new database repositories; recipe persistence lacks first-class UX/tests. | Consolidated orchestration engine with saved recipes per agent in `agent_orchestrations`; runs capture `origin_type`, `origin_id`, and `prompt_inputs` in `orchestration_runs` while delegating via `supporting_agents`. |
 | Supabase integration | `supabase.module.ts`, `supabase.service.ts`, `supabase.config.ts`, `supabase/utils/*` | Creates Supabase clients, helper functions for tables. | Secrets from `.env`, minimal error handling, direct use across services. | Add organization credential lookup (service-level). Supabase service becomes thin wrapper used by adapter during migration; new stack interacts via repository layer. |
 | Auth & guards | `auth/*` | Supabase JWT guard, DTOs, roles. | Hardcoded to Supabase; no API-key support. | New agent-to-agent controller uses API key/mTLS; legacy guard remains for UI. |
 | Config & feature flags | `config/*` | Feature flag API, sovereign policy endpoints, model configuration. | Some unused endpoints, manual JSON management. | Integrate with organization metadata & secrets, provide admin UI as needed. |
@@ -64,17 +64,19 @@ Two major pillars drive the greenfield rebuild.
   - Compatibility: Feature flag toggles to compare legacy vs new controller.
   - Performance: High concurrency per org.
 
--### 3.2 Database-Based Agent Platform
-- **Schema:** `agents` (core metadata, YAML, context/config), `agent_skills`, `conversation_plans`, `agent_orchestrations`, `orchestration_runs`, `organization_credentials`, plus `users.organization_id` (nullable until cutover).
+### 3.2 Database-Based Agent Platform
+- **Schema:** `agents` (core metadata, YAML, context/config), `conversation_plans`, `agent_orchestrations`, `orchestration_runs`, `organization_credentials`, plus `users.organization_slug` (nullable until cutover).
 - **Agents table columns (draft):**
   - `id` (uuid PK)
-  - `organization_id` (uuid FK → organizations.id, nullable for shared agents)
+  - `organization_slug` (text, nullable for shared agents)
   - `slug`, `display_name`, `description`, `agent_type`, `mode_profile`, `version`, `status`
   - `yaml` (text) – original descriptor stored for audit
   - `agent_card` (jsonb) – cached spec-compliant card served to clients
   - `context` (jsonb) – system prompt, good plan rubric, references, sample interactions
-  - `config` (jsonb) – execution capabilities, supporting agents, human checkpoints, tool dependencies, plan template metadata
+  - `config` (jsonb) – execution capabilities, supporting agents, human checkpoints, tool dependencies, plan template metadata, orchestration defaults
   - `created_at`, `updated_at`
+- **Saved Orchestration Recipes:** `agent_orchestrations` stores agent-scoped recipes (`slug`, `display_name`, `description`, `status`, `orchestration_json`, `prompt_templates`, `tags`, `version`, `created_by`, `updated_by`, timestamps) so orchestration flows can be reused and iterated safely.
+- **Orchestration Run Metadata:** `orchestration_runs` links to a `conversation_plan` or saved recipe and records `origin_type`, `origin_id`, `orchestration_slug`, `prompt_inputs`, `current_step_index`, `completed_steps`, `step_state`, `human_checkpoint_id`, `metadata`, and lifecycle timestamps; `plan_id` is nullable to support ad-hoc or saved-orchestration launches.
 - **YAML/JSON Templates:** Source-of-truth descriptors validated against JSON Schema before ingestion; ingested verbatim into the `yaml` column and decomposed into `agent_card`, `context`, and `config` fields for runtime.
 - **Discovery Pipelines:**
   1. Legacy filesystem discovery (unchanged) continues to load file-based agents for existing controllers.
@@ -86,7 +88,7 @@ Two major pillars drive the greenfield rebuild.
   - Agents declare `mode_profile` (`converse_only`, `full_cycle`, `tool_call`).
   - Conversation mode maintains transcript and metadata.
   - Plan mode produces structured `plan_json` aligned with the agent’s plan rubric and `success_criteria`.
-  - Build mode executes plan steps: when execution begins we instantiate an `orchestration_run` that references the plan or saved recipe and acts as the live orchestration record (orchestration → phases → steps) while honoring HITL checkpoints.
+  - Build mode executes plan steps: when execution begins we instantiate an `orchestration_run` that references the plan or saved recipe (capturing `origin_type`, `origin_id`, `orchestration_slug`, and `prompt_inputs`) and acts as the live orchestration record (orchestration → phases → steps) while honoring HITL checkpoints.
   - Plans displayed alongside deliverables (UI plan tab) using shared conversation store.
 - **Plan Rubrics:** Each agent defines what a good plan looks like (phases, checkpoints, deliverables, fallback strategies). Stored in context and referenced during plan generation and validation.
 - **Multi-Step Orchestrations:** Plans can spawn multi-step execution (orchestration → phases → steps) with dependencies, parallelism, fallback strategies, and deliverable mapping. Execution engine logs step events, handles human approvals, and can re-plan when steps fail. Each phase/step maintains its own conversation context.
@@ -160,6 +162,7 @@ Two major pillars drive the greenfield rebuild.
    - *2025-01-20 update:* Plan execution validation now rejects conversations mismatched with stored plan records.
    - *2025-01-20 update:* Plan execution success path without streaming validates metadata returned to clients.
    - *2025-01-20 update:* Saved orchestration execution without templates now covered (empty promptInputs verified).
+   - *2025-01-20 update:* Database repositories for saved orchestration recipes (`agent_orchestrations`) and run state (`orchestration_runs`) are live; migrations add `origin_type`, `origin_id`, `orchestration_slug`, and `prompt_inputs` so agents can load, launch, and audit reusable orchestration flows.
 5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
    - *2025-01-19 update:* Removed the unfinished `AgentCreator`/agent-builder prototype from the codebase to eliminate conflicting Supabase dependencies while the new runtime is constructed.
    - *2025-01-20 update:* `apps/api/supabase/seed.sql` now inserts reference agents (`demo/orchestrator`, `my-org/requirements-specialist`) so the runtime can be exercised end-to-end during Phase 2.
@@ -167,7 +170,7 @@ Two major pillars drive the greenfield rebuild.
 7. **Cutover Planning:** After validation, migrate legacy agents and retire old code paths.
 
 ## 8. Open Questions
-- Do we provide a user-facing orchestration UI or continue using current UI? (Review existing project UI; likely keep user interactions centered on suggesting plan changes rather than editing raw templates.)
+- Do we provide a user-facing orchestration UI or continue using the legacy Projects UI (reframed as saved orchestrations) while we iterate? (Likely keep user interactions centered on suggesting plan changes rather than editing raw templates.)
 - Preferred strategy for encrypted secrets storage? (Standardize on Supabase infrastructure.)
 - Scope of supporting agents: per organization (`my-org`, `demo`, or org-specific) or global?
 - Observability: integrate new plan/orchestration events into existing `llm_usage` & `evaluations` telemetry rather than external stacks.

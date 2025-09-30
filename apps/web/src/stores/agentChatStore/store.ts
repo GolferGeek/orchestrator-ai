@@ -1202,6 +1202,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         this.markStreamError(activeConversation, streamId, 'Unknown error');
       }
       throw error;
+    }
     },
 
     async saveOrchestrationRecipe(input: {
