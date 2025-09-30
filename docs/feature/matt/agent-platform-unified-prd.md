@@ -151,6 +151,9 @@ Two major pillars drive the greenfield rebuild.
    - *2025-01-20 update:* Added integration coverage for plan-based orchestration run starts, exercising AgentExecutionGateway + streaming with the seeded demo orchestrator agent.
    - *2025-01-20 update:* Expanded coverage to orchestration run continuation streaming updates to validate `run_updated` event emissions.
    - *2025-01-20 update:* Validated saved orchestration execution path (prompt parameter resolution + streaming `run_started`) via integration spec.
+   - *2025-01-20 update:* Added negative-path coverage for saved orchestration parameter validation, ensuring stream error events surface to clients.
+   - *2025-01-20 update:* Mode router streaming tests now assert session error signalling when dispatcher streaming fails.
+   - *2025-01-20 update:* Gateway tests confirm routing showstoppers produce human responses without dispatch attempts.
 5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
    - *2025-01-19 update:* Removed the unfinished `AgentCreator`/agent-builder prototype from the codebase to eliminate conflicting Supabase dependencies while the new runtime is constructed.
    - *2025-01-20 update:* `apps/api/supabase/seed.sql` now inserts reference agents (`demo/orchestrator`, `my-org/requirements-specialist`) so the runtime can be exercised end-to-end during Phase 2.

@@ -108,4 +108,7 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-20:** Added AgentExecutionGateway integration spec covering plan-based run start streaming flow using seeded agents. (Codex)
 - **2025-01-20:** Extended integration coverage to orchestration run continuation streaming updates. (Codex)
 - **2025-01-20:** Added integration coverage for saved orchestration execution, validating prompt parameter resolution and streaming. (Codex)
+- **2025-01-20:** Saved orchestration integration spec now asserts missing parameter validation and stream error emission. (Codex)
+- **2025-01-20:** AgentModeRouter tests now cover streaming error propagation (session.error) for dispatcher failures. (Codex)
+- **2025-01-20:** Gateway integration suite exercises routing showstopper path (human response) to guard against unintended dispatch calls. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

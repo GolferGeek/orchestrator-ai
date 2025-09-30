@@ -184,12 +184,12 @@ describe('AgentModeRouterService', () => {
     } as unknown as jest.Mocked<AgentRuntimeDispatchService>;
 
     streamService = {
-      start: jest.fn().mockReturnValue({
+      start: jest.fn().mockImplementation(() => ({
         streamId: 'stream-1',
         publishChunk: jest.fn(),
         complete: jest.fn(),
         error: jest.fn(),
-      }),
+      })),
     } as unknown as jest.Mocked<AgentRuntimeStreamService>;
 
     runtimeDefinitions = {
@@ -440,5 +440,28 @@ describe('AgentModeRouterService', () => {
     );
     expect(session.complete).toHaveBeenCalled();
     expect(result.payload?.metadata?.metadata?.streamId).toBe('stream-1');
+  });
+
+  it('propagates streaming errors and invokes session.error', async () => {
+    const streamingError = new Error('stream failure');
+    dispatcher.dispatchStream.mockImplementationOnce(() => ({
+      response: Promise.reject(streamingError),
+      stream: (async function* () {})(),
+      cancel: jest.fn(),
+    }));
+
+    const result = await service.execute(
+      buildContext({
+        mode: AgentTaskMode.CONVERSE,
+        payload: { options: { stream: true } },
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.payload?.metadata?.reason).toBe('Failed to generate response');
+    expect(dispatcher.dispatchStream).toHaveBeenCalled();
+    const session = streamService.start.mock.results.at(-1)?.value as any;
+    expect(session?.error).toHaveBeenCalledWith(streamingError);
+    expect(session?.complete).not.toHaveBeenCalled();
   });
 });

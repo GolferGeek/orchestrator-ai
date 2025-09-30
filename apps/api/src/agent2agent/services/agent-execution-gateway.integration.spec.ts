@@ -125,6 +125,7 @@ describe('AgentExecutionGateway (runtime integration)', () => {
       agentOrchestrations,
       routingPolicy,
       streamService,
+      modeRouter,
     };
   };
 
@@ -397,5 +398,83 @@ describe('AgentExecutionGateway (runtime integration)', () => {
     expect(savedChunk.status).toBe('run_started');
     expect(savedChunk.run?.id).toBe(savedRunId);
     expect(completeEvents).toHaveLength(1);
+  });
+
+  it('throws when required prompt parameters are missing for saved orchestration and emits error event', async () => {
+    const { gateway, eventEmitter, agentOrchestrations, orchestrationRunner } =
+      buildGateway({
+        agentOrchestrations: {
+          findBySlug: jest.fn().mockResolvedValue({
+            id: 'eeeeeeee-ffff-0000-1111-222222222222',
+            organization_slug: organizationSlug,
+            agent_slug: agentSlug,
+            slug: 'demo-kickoff',
+            display_name: 'Demo Kickoff',
+            description: 'demo saved orchestration',
+            status: 'active',
+            orchestration_json: { phases: [] },
+            prompt_templates: [
+              {
+                name: 'kickoff',
+                template: 'Run kickoff with {{customer}}',
+                parameters: [{ key: 'customer', required: true }],
+              },
+            ],
+            tags: ['demo'],
+            version: '1.0.0',
+            created_by: null,
+            updated_by: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }),
+        },
+      });
+
+    const errorEvents: any[] = [];
+    eventEmitter.on('agent.stream.error', (payload) => errorEvents.push(payload));
+
+    const request: TaskRequestDto = {
+      mode: AgentTaskMode.ORCHESTRATOR_RUN_START,
+      orchestrationSlug: 'demo-kickoff',
+      payload: {
+        options: { stream: true },
+        promptParameters: {
+          kickoff: {
+            timezone: 'UTC',
+          },
+        },
+      },
+    };
+
+    await expect(
+      gateway.execute(organizationSlug, agentSlug, request),
+    ).rejects.toThrow('Missing prompt parameter customer for template kickoff');
+
+    expect(agentOrchestrations.findBySlug).toHaveBeenCalled();
+    expect(orchestrationRunner.startRun).not.toHaveBeenCalled();
+    expect(errorEvents).toHaveLength(1);
+    expect(errorEvents[0]).toMatchObject({ agentSlug });
+  });
+
+  it('returns routing showstopper as human response without invoking dispatch', async () => {
+    const { gateway, routingPolicy, modeRouter } = buildGateway({
+      routingPolicy: {
+        evaluate: jest.fn().mockResolvedValue({
+          showstopper: true,
+          humanMessage: 'Requires manual approval',
+        }),
+      },
+    });
+
+    const response = await gateway.execute(organizationSlug, agentSlug, {
+      mode: AgentTaskMode.CONVERSE,
+      userMessage: 'Hi there',
+      payload: {},
+    });
+
+    expect(response.success).toBe(false);
+    expect(response.humanResponse?.message).toBe('Requires manual approval');
+    expect(routingPolicy.evaluate).toHaveBeenCalled();
+    expect(modeRouter.execute).not.toHaveBeenCalled();
   });
 });
