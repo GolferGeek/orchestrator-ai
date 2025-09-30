@@ -178,31 +178,27 @@ export class TasksService {
    * Get task by ID
    */
   async getTaskById(taskId: string, userId: string): Promise<Task | null> {
-    try {
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('tasks')
-        .select()
-        .eq('id', taskId)
-        .eq('user_id', userId)
-        .single();
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('tasks')
+      .select()
+      .eq('id', taskId)
+      .eq('user_id', userId)
+      .single();
 
-      if (error && error.code !== 'PGRST116') {
-        throw new Error(`Failed to fetch task: ${error.message}`);
-      }
-
-      const result = data ? this.mapToTask(data) : null;
-
-      if (result) {
-        if (result.response) {
-          // Response processing if needed
-        }
-      }
-
-      return result;
-    } catch (error) {
-      throw error;
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to fetch task: ${error.message}`);
     }
+
+    const result = data ? this.mapToTask(data) : null;
+
+    if (result) {
+      if (result.response) {
+        // Response processing if needed
+      }
+    }
+
+    return result;
   }
 
   /**

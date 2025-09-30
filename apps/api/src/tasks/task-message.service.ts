@@ -44,8 +44,7 @@ export class TaskMessageService {
    * Create a new task message
    */
   async createTaskMessage(dto: CreateTaskMessageDto): Promise<TaskMessage> {
-    try {
-      const taskMessageData = {
+    const taskMessageData = {
         task_id: dto.taskId,
         user_id: dto.userId,
         content: dto.content,
@@ -87,9 +86,6 @@ export class TaskMessageService {
       }
 
       return taskMessage;
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
@@ -130,8 +126,6 @@ export class TaskMessageService {
         messages: data.map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -171,8 +165,6 @@ export class TaskMessageService {
         messages: data.map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -191,8 +183,6 @@ export class TaskMessageService {
       if (error) {
         throw new Error(`Failed to delete task messages: ${error.message}`);
       }
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -240,8 +230,6 @@ export class TaskMessageService {
         errorMessages,
         lastMessage: messages[0], // Most recent message
       };
-    } catch (error) {
-      throw error;
     }
   }
 

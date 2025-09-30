@@ -53,47 +53,43 @@ export class HumanLoopService {
     options?: any[],
     timeoutSeconds: number = 300, // 5 minutes default
   ): Promise<HumanInput> {
-    try {
-      const timeoutAt = new Date(Date.now() + timeoutSeconds * 1000);
+    const timeoutAt = new Date(Date.now() + timeoutSeconds * 1000);
 
-      const humanInputData = {
-        task_id: taskId,
-        user_id: userId,
-        request_type: requestType,
-        prompt,
-        options: options ? JSON.stringify(options) : null,
-        timeout_at: timeoutAt.toISOString(),
-        status: 'pending',
-      };
+    const humanInputData = {
+      task_id: taskId,
+      user_id: userId,
+      request_type: requestType,
+      prompt,
+      options: options ? JSON.stringify(options) : null,
+      timeout_at: timeoutAt.toISOString(),
+      status: 'pending',
+    };
 
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('human_inputs')
-        .insert(humanInputData)
-        .select()
-        .single();
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('human_inputs')
+      .insert(humanInputData)
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Failed to create human input: ${error.message}`);
-      }
-
-      const humanInput = this.mapToHumanInput(data);
-
-      // Emit event for real-time notification
-      this.eventEmitter.emit('human_input.required', {
-        taskId,
-        userId,
-        inputId: humanInput.id,
-        prompt,
-        requestType,
-        options,
-        timeoutAt,
-      });
-
-      return humanInput;
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to create human input: ${error.message}`);
     }
+
+    const humanInput = this.mapToHumanInput(data);
+
+    // Emit event for real-time notification
+    this.eventEmitter.emit('human_input.required', {
+      taskId,
+      userId,
+      inputId: humanInput.id,
+      prompt,
+      requestType,
+      options,
+      timeoutAt,
+    });
+
+    return humanInput;
   }
 
   /**
@@ -104,8 +100,7 @@ export class HumanLoopService {
     userId: string,
     response: HumanInputResponse,
   ): Promise<HumanInput> {
-    try {
-      const updateData = {
+    const updateData = {
         user_response: response.response,
         response_metadata: response.metadata || {},
         status: 'completed',
@@ -148,9 +143,6 @@ export class HumanLoopService {
       });
 
       return humanInput;
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
@@ -208,8 +200,6 @@ export class HumanLoopService {
       }
 
       return data ? this.mapToHumanInput(data) : null;
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -235,8 +225,6 @@ export class HumanLoopService {
       }
 
       return data.map((item) => this.mapToHumanInput(item));
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -259,8 +247,6 @@ export class HumanLoopService {
       if (error) {
         throw new Error(`Failed to cancel human input: ${error.message}`);
       }
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -301,8 +287,6 @@ export class HumanLoopService {
       });
 
       return humanInput;
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -345,8 +329,6 @@ export class HumanLoopService {
       }
 
       return count;
-    } catch (error) {
-      throw error;
     }
   }
 

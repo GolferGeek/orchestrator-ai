@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
   Param,
   Post,
   UseGuards,
@@ -28,6 +29,16 @@ interface JsonRpcSuccessEnvelope {
   jsonrpc: '2.0';
   id: any;
   result: TaskResponseDto;
+}
+
+interface JsonRpcErrorEnvelope {
+  jsonrpc: '2.0';
+  id: any;
+  error: {
+    code: number;
+    message: string;
+    data?: any;
+  };
 }
 
 @Controller()
@@ -58,20 +69,28 @@ export class Agent2AgentController {
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,
     @Body() body: any,
-  ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope> {
+  ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope | JsonRpcErrorEnvelope> {
     const org = orgSlug === 'global' ? null : orgSlug;
     const { dto, jsonrpc } = await this.normalizeTaskRequest(body);
-    const result = await this.gateway.execute(org, agentSlug, dto);
+    try {
+      const result = await this.gateway.execute(org, agentSlug, dto);
 
-    if (jsonrpc) {
-      return {
-        jsonrpc: '2.0',
-        id: jsonrpc.id ?? null,
-        result,
-      };
+      if (jsonrpc) {
+        return {
+          jsonrpc: '2.0',
+          id: jsonrpc.id ?? null,
+          result,
+        };
+      }
+
+      return result;
+    } catch (error) {
+      if (!jsonrpc) {
+        throw error;
+      }
+
+      return this.buildJsonRpcError(jsonrpc.id ?? null, error);
     }
-
-    return result;
   }
 
   private async normalizeTaskRequest(
@@ -176,5 +195,88 @@ export class Agent2AgentController {
     return messages.length
       ? messages.join('; ')
       : 'Invalid task request payload.';
+  }
+
+  private buildJsonRpcError(id: any, error: unknown): JsonRpcErrorEnvelope {
+    const { code, message, data } = this.mapExceptionToError(error);
+    return {
+      jsonrpc: '2.0',
+      id,
+      error: {
+        code,
+        message,
+        ...(data !== undefined ? { data } : {}),
+      },
+    };
+  }
+
+  private mapExceptionToError(error: unknown): {
+    code: number;
+    message: string;
+    data?: any;
+  } {
+    if (error instanceof HttpException) {
+      const status = error.getStatus();
+      const response = error.getResponse();
+      const payload =
+        typeof response === 'string'
+          ? { message: response, statusCode: status }
+          : response;
+
+      return {
+        code: this.statusToJsonRpcCode(status),
+        message: this.extractMessage(payload) ?? error.message,
+        data: payload,
+      };
+    }
+
+    const fallbackMessage =
+      error instanceof Error ? error.message : 'Internal server error';
+
+    return {
+      code: -32603,
+      message: fallbackMessage || 'Internal server error',
+    };
+  }
+
+  private statusToJsonRpcCode(status: number): number {
+    switch (status) {
+      case 400:
+      case 422:
+        return -32602; // Invalid params
+      case 401:
+        return -32001; // Unauthorized
+      case 403:
+        return -32003; // Forbidden
+      case 404:
+        return -32004; // Not found
+      case 409:
+        return -32009; // Conflict
+      case 429:
+        return -32042; // Rate limited
+      case 500:
+        return -32603; // Internal error
+      default:
+        if (status >= 500) {
+          return -32603;
+        }
+        return -32000; // Server error (generic)
+    }
+  }
+
+  private extractMessage(payload: any): string | null {
+    if (!payload) {
+      return null;
+    }
+    if (typeof payload === 'string') {
+      return payload;
+    }
+    if (typeof payload.message === 'string') {
+      return payload.message;
+    }
+    if (Array.isArray(payload.message) && payload.message.length) {
+      return payload.message.join(', ');
+    }
+    return null;
   }
 }

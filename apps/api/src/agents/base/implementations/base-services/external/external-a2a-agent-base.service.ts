@@ -128,7 +128,9 @@ export class ExternalA2AAgentBaseService
         await this.services.agentRegistrationService.unregisterAgent(
           this.getAgentId(),
         );
-      } catch (error) {}
+      } catch (_error) {
+        // No action needed
+      }
     }
   }
 
@@ -383,9 +385,7 @@ export class ExternalA2AAgentBaseService
       await this.services.agentRegistrationService.registerAgent(agentInfo);
 
     if (!this.registrationResult.success) {
-      throw new Error(
-        `Registration failed: ${this.registrationResult.error}`,
-      );
+      throw new Error(`Registration failed: ${this.registrationResult.error}`);
     }
   }
 
@@ -518,7 +518,7 @@ export class ExternalA2AAgentBaseService
         capabilities: config.capabilities || [],
         required_env_vars: config.required_env_vars || [],
       };
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }

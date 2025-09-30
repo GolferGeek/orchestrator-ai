@@ -3,7 +3,7 @@ import { Agent2AgentController } from './agent2agent.controller';
 import { AgentCardBuilderService } from './services/agent-card-builder.service';
 import { AgentExecutionGateway } from './services/agent-execution-gateway.service';
 import { AgentTaskMode } from './dto/task-request.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { TaskResponseDto } from './dto/task-response.dto';
 import { ApiKeyGuard } from './guards/api-key.guard';
 
@@ -104,5 +104,50 @@ describe('Agent2AgentController', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(gateway.execute).not.toHaveBeenCalled();
+  });
+
+  it('returns JSON-RPC error envelope when gateway throws', async () => {
+    gateway.execute.mockRejectedValue(
+      new UnauthorizedException('Missing API key'),
+    );
+
+    const jsonRpcPayload = {
+      jsonrpc: '2.0',
+      method: 'converse',
+      id: 'abc-123',
+      params: {
+        conversationId: 'a8098c1a-f86e-11da-bd1a-00112444be1e',
+      },
+    };
+
+    const response = await controller.executeTask(
+      'global',
+      'agent',
+      jsonRpcPayload as any,
+    );
+
+    expect(response).toEqual(
+      expect.objectContaining({
+        jsonrpc: '2.0',
+        id: 'abc-123',
+        error: expect.objectContaining({
+          code: -32001,
+          message: 'Missing API key',
+          data: expect.objectContaining({ statusCode: 401 }),
+        }),
+      }),
+    );
+  });
+
+  it('rethrows errors for non JSON-RPC requests', async () => {
+    gateway.execute.mockRejectedValue(new BadRequestException('bad request'));
+    const dto = {
+      mode: AgentTaskMode.CONVERSE,
+      conversationId: 'ddeb27fb-d9a0-4624-be4d-4615062daed4',
+    } as any;
+
+    await expect(
+      controller.executeTask('my-org', 'agent', dto),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
