@@ -13,6 +13,7 @@ import {
   AgentRuntimeDispatchService,
   AgentRuntimeDispatchResult,
 } from '@agent-platform/services/agent-runtime-dispatch.service';
+import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 
 const baseAgent: AgentRecord = {
   id: 'agent-1',
@@ -72,6 +73,7 @@ describe('AgentModeRouterService', () => {
   let runtimeDefinitions: jest.Mocked<AgentRuntimeDefinitionService>;
   let promptBuilder: jest.Mocked<AgentRuntimePromptService>;
   let dispatcher: jest.Mocked<AgentRuntimeDispatchService>;
+  let streamService: jest.Mocked<AgentRuntimeStreamService>;
   let definition: AgentRuntimeDefinition;
   let service: AgentModeRouterService;
 
@@ -168,8 +170,27 @@ describe('AgentModeRouterService', () => {
     } as unknown as jest.Mocked<AgentRuntimePromptService>;
 
     dispatcher = {
-      dispatch: jest.fn().mockResolvedValue(createDispatchResult('Hello there!')),
+      dispatch: jest
+        .fn()
+        .mockResolvedValue(createDispatchResult('Hello there!')),
+      dispatchStream: jest.fn().mockImplementation((options: any) => {
+        options?.onStreamChunk?.({ type: 'partial', content: 'chunk' });
+        return {
+          response: Promise.resolve(createDispatchResult('Stream output')),
+          stream: (async function* () {})(),
+          cancel: jest.fn(),
+        };
+      }),
     } as unknown as jest.Mocked<AgentRuntimeDispatchService>;
+
+    streamService = {
+      start: jest.fn().mockReturnValue({
+        streamId: 'stream-1',
+        publishChunk: jest.fn(),
+        complete: jest.fn(),
+        error: jest.fn(),
+      }),
+    } as unknown as jest.Mocked<AgentRuntimeStreamService>;
 
     runtimeDefinitions = {
       buildDefinition: jest.fn().mockReturnValue(definition),
@@ -180,6 +201,7 @@ describe('AgentModeRouterService', () => {
       runtimeDefinitions,
       promptBuilder,
       dispatcher,
+      streamService,
     );
   });
 
@@ -305,6 +327,7 @@ describe('AgentModeRouterService', () => {
 
     const [dispatchCall] = dispatcher.dispatch.mock.calls;
     expect(dispatchCall?.[0]?.prompt.sessionId).toBe('session-123');
+    expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
   });
 
   it('returns failure if build lacks routing metadata', async () => {
@@ -314,12 +337,14 @@ describe('AgentModeRouterService', () => {
 
     expect(result.success).toBe(false);
     expect(dispatcher.dispatch).not.toHaveBeenCalled();
+    expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
   });
 
   it('handles plan mode without dispatcher call', async () => {
     const result = await service.execute(buildContext({ mode: AgentTaskMode.PLAN }));
     expect(result.mode).toBe(AgentTaskMode.PLAN);
     expect(dispatcher.dispatch).not.toHaveBeenCalled();
+    expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
   });
 
   it('handles human response mode without dispatcher call', async () => {
@@ -346,6 +371,7 @@ describe('AgentModeRouterService', () => {
 
     expect(agentRegistry.getAgent).toHaveBeenCalledWith('acme', 'agent-1');
     expect(dispatcher.dispatch).toHaveBeenCalled();
+    expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
     expect(result.success).toBe(true);
   });
 
@@ -365,6 +391,7 @@ describe('AgentModeRouterService', () => {
 
     expect(agentRegistry.getAgent).toHaveBeenCalledWith('acme', 'missing-agent');
     expect(dispatcher.dispatch).not.toHaveBeenCalled();
+    expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
   });
 
@@ -383,5 +410,35 @@ describe('AgentModeRouterService', () => {
 
     expect(runtimeDefinitions.buildDefinition).not.toHaveBeenCalled();
     expect(dispatcher.dispatch).toHaveBeenCalled();
+    expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
+  });
+
+  it('streams when request payload requests streaming', async () => {
+    const result = await service.execute(
+      buildContext({
+        mode: AgentTaskMode.CONVERSE,
+        payload: { options: { stream: true } },
+      }),
+    );
+
+    expect(streamService.start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conv-1',
+        agentSlug: baseAgent.slug,
+        mode: AgentTaskMode.CONVERSE,
+      }),
+    );
+    expect(dispatcher.dispatchStream).toHaveBeenCalled();
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
+    const sessionCall = streamService.start.mock.results[0];
+    if (!sessionCall) {
+      throw new Error('streamService.start was not invoked');
+    }
+    const session = sessionCall.value as any;
+    expect(session.publishChunk).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'partial', content: 'chunk' }),
+    );
+    expect(session.complete).toHaveBeenCalled();
+    expect(result.payload?.metadata?.metadata?.streamId).toBe('stream-1');
   });
 });

@@ -12,6 +12,7 @@ import { AgentRuntimeDefinitionService } from './services/agent-runtime-definiti
 import { AgentRuntimeExecutionService } from './services/agent-runtime-execution.service';
 import { AgentRuntimePromptService } from './services/agent-runtime-prompt.service';
 import { AgentRuntimeDispatchService } from './services/agent-runtime-dispatch.service';
+import { AgentRuntimeStreamService } from './services/agent-runtime-stream.service';
 
 @Module({
   imports: [SupabaseModule],
@@ -28,6 +29,7 @@ import { AgentRuntimeDispatchService } from './services/agent-runtime-dispatch.s
     AgentRuntimeExecutionService,
     AgentRuntimePromptService,
     AgentRuntimeDispatchService,
+    AgentRuntimeStreamService,
   ],
   exports: [
     AgentsRepository,
@@ -42,6 +44,7 @@ import { AgentRuntimeDispatchService } from './services/agent-runtime-dispatch.s
     AgentRuntimeExecutionService,
     AgentRuntimePromptService,
     AgentRuntimeDispatchService,
+    AgentRuntimeStreamService,
   ],
 })
 export class AgentPlatformModule {}

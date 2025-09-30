@@ -36,6 +36,19 @@ export interface AgentRuntimeDispatchResult {
   routingDecision: RoutingDecision;
 }
 
+export interface AgentRuntimeStreamingResult {
+  response: Promise<AgentRuntimeDispatchResult>;
+  stream: AsyncIterable<AgentRuntimeStreamChunk>;
+  cancel: () => void;
+}
+
+interface StreamController {
+  push: (chunk: AgentRuntimeStreamChunk) => void;
+  close: () => void;
+  error: (error: any) => void;
+  iterator: AsyncIterable<AgentRuntimeStreamChunk>;
+}
+
 @Injectable()
 export class AgentRuntimeDispatchService {
   constructor(private readonly llmFactory: LLMServiceFactory) {}
@@ -66,6 +79,41 @@ export class AgentRuntimeDispatchService {
       config,
       params,
       routingDecision: options.routingDecision,
+    };
+  }
+
+  dispatchStream(options: AgentRuntimeDispatchOptions): AgentRuntimeStreamingResult {
+    const controller = this.createStreamController();
+    const mergedOptions: AgentRuntimeDispatchOptions = {
+      ...options,
+      stream: true,
+      overrides: {
+        ...(options.overrides ?? {}),
+        options: {
+          ...(options.overrides?.options ?? {}),
+          stream: true,
+        },
+      },
+      onStreamChunk: (chunk) => {
+        options.onStreamChunk?.(chunk);
+        controller.push(chunk);
+      },
+    };
+
+    const responsePromise = this.dispatch(mergedOptions)
+      .then((result) => {
+        controller.close();
+        return result;
+      })
+      .catch((error) => {
+        controller.error(error);
+        throw error;
+      });
+
+    return {
+      response: responsePromise,
+      stream: controller.iterator,
+      cancel: () => controller.close(),
     };
   }
 
@@ -133,6 +181,87 @@ export class AgentRuntimeDispatchService {
       sessionId: prompt.sessionId,
       userId: prompt.userId ?? undefined,
       options: finalOptions,
+    };
+  }
+
+  private createStreamController(): StreamController {
+    const queue: AgentRuntimeStreamChunk[] = [];
+    const pending: Array<{
+      resolve: (value: IteratorResult<AgentRuntimeStreamChunk>) => void;
+      reject: (error: any) => void;
+    }> = [];
+    let closed = false;
+    let error: any = null;
+
+    const flush = () => {
+      while (queue.length && pending.length) {
+        const chunk = queue.shift()!;
+        const { resolve } = pending.shift()!;
+        resolve({ value: chunk, done: false });
+      }
+
+      if (error) {
+        while (pending.length) {
+          const { reject } = pending.shift()!;
+          reject(error);
+        }
+        return;
+      }
+
+      if (closed) {
+        while (pending.length) {
+          const { resolve } = pending.shift()!;
+          resolve({ value: undefined as any, done: true });
+        }
+      }
+    };
+
+    const iterator = {
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+      next(): Promise<IteratorResult<AgentRuntimeStreamChunk>> {
+        if (error) {
+          return Promise.reject(error);
+        }
+        if (queue.length) {
+          const chunk = queue.shift()!;
+          return Promise.resolve({ value: chunk, done: false });
+        }
+        if (closed) {
+          return Promise.resolve({ value: undefined as any, done: true });
+        }
+        return new Promise((resolve, reject) => {
+          pending.push({ resolve, reject });
+        });
+      },
+    } as AsyncIterable<AgentRuntimeStreamChunk> & {
+      next: () => Promise<IteratorResult<AgentRuntimeStreamChunk>>;
+    };
+
+    return {
+      iterator,
+      push: (chunk) => {
+        if (closed || error) {
+          return;
+        }
+        queue.push(chunk);
+        flush();
+      },
+      close: () => {
+        if (closed || error) {
+          return;
+        }
+        closed = true;
+        flush();
+      },
+      error: (err) => {
+        if (closed || error) {
+          return;
+        }
+        error = err;
+        flush();
+      },
     };
   }
 }

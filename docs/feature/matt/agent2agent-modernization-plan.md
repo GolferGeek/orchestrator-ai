@@ -42,7 +42,7 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 
 ### Active Tasks
 1. ✅ **Runtime Blueprint** – Database agent capability model, runtime definitions, and metadata envelopes established (AgentRegistry + RuntimeDefinition/Execution services).
-2. 🚧 **Execution Primitives** – Implement base classes/services that drive converse/plan/build using the new capability model. *Status:* AgentRuntimePromptService plus AgentRuntimeDispatchService now centralize prompt + LLM invocation; mode router consumes both.
+2. 🚧 **Execution Primitives** – Implement base classes/services that drive converse/plan/build using the new capability model. *Status:* AgentRuntimePromptService plus AgentRuntimeDispatchService (now with streaming iterator support) centralize prompt + LLM invocation; mode router consumes both.
 3. ⏳ **Reference Agent Seed** – Author seed scripts + fixtures for `demo/orchestrator` and one specialist agent in Supabase.
 4. ⏳ **Integration Coverage** – Add focused tests around runtime hydration and gateway execution using seeded agents.
 
@@ -99,4 +99,6 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-19:** OrchestrationRunnerService persists agent/org metadata on run start, giving us immutable provenance for auditing. (Codex)
 - **2025-01-19:** AgentModeRouter consumes the new AgentRuntimePromptService for prompt + metadata assembly, completing the first execution primitive refactor. (Codex)
 - **2025-01-19:** Introduced AgentRuntimeDispatchService to wrap LLMServiceFactory calls (future streaming hook) and refactored mode router/specs to route through it. (Codex)
+- **2025-01-19:** Dispatcher streaming API added; callers can await the final response or iterate chunks via async iterator ahead of websocket integration. (Codex)
+- **2025-01-19:** TaskProgressGateway now relays `agent.stream.*` events (`subscribe_stream`, conversation/run rooms) so live LLM tokens reach clients without one-off per-agent plumbing. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

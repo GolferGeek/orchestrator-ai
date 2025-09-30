@@ -16,6 +16,11 @@ import {
   TaskProgressEvent,
   WorkflowStepProgressEvent,
 } from '../common/types/agent-conversations.types';
+import {
+  AgentStreamChunkEvent,
+  AgentStreamCompleteEvent,
+  AgentStreamErrorEvent,
+} from '@/agent-platform/services/agent-runtime-stream.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -169,6 +174,34 @@ export class TaskProgressGateway
     }
   }
 
+  @SubscribeMessage('subscribe_stream')
+  handleStreamSubscription(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { streamId: string },
+  ) {
+    if (!data?.streamId) {
+      client.emit('subscription_error', {
+        streamId: data?.streamId,
+        message: 'streamId is required',
+      });
+      return;
+    }
+
+    void client.join(`stream:${data.streamId}`);
+    client.emit('subscription_confirmed', { streamId: data.streamId });
+  }
+
+  @SubscribeMessage('unsubscribe_stream')
+  handleStreamUnsubscription(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { streamId: string },
+  ) {
+    if (data?.streamId) {
+      void client.leave(`stream:${data.streamId}`);
+    }
+    client.emit('unsubscription_confirmed', { streamId: data?.streamId });
+  }
+
   /**
    * Unsubscribe from task progress updates
    */
@@ -190,6 +223,59 @@ export class TaskProgressGateway
   handleTaskProgress(event: TaskProgressEvent) {
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${event.taskId}`).emit('task_progress', event);
+  }
+
+  @OnEvent('agent.stream.chunk')
+  handleAgentStreamChunk(event: AgentStreamChunkEvent) {
+    this.server.to(`stream:${event.streamId}`).emit('agent_stream_chunk', event);
+
+    if (event.conversationId) {
+      this.server
+        .to(`conversation:${event.conversationId}`)
+        .emit('agent_stream_chunk', event);
+    }
+
+    if (event.orchestrationRunId) {
+      this.server
+        .to(`run:${event.orchestrationRunId}`)
+        .emit('agent_stream_chunk', event);
+    }
+  }
+
+  @OnEvent('agent.stream.complete')
+  handleAgentStreamComplete(event: AgentStreamCompleteEvent) {
+    const payload = { ...event, type: 'complete' as const };
+    this.server.to(`stream:${event.streamId}`).emit('agent_stream_complete', payload);
+
+    if (event.conversationId) {
+      this.server
+        .to(`conversation:${event.conversationId}`)
+        .emit('agent_stream_complete', payload);
+    }
+
+    if (event.orchestrationRunId) {
+      this.server
+        .to(`run:${event.orchestrationRunId}`)
+        .emit('agent_stream_complete', payload);
+    }
+  }
+
+  @OnEvent('agent.stream.error')
+  handleAgentStreamError(event: AgentStreamErrorEvent) {
+    const payload = { ...event, type: 'error' as const };
+    this.server.to(`stream:${event.streamId}`).emit('agent_stream_error', payload);
+
+    if (event.conversationId) {
+      this.server
+        .to(`conversation:${event.conversationId}`)
+        .emit('agent_stream_error', payload);
+    }
+
+    if (event.orchestrationRunId) {
+      this.server
+        .to(`run:${event.orchestrationRunId}`)
+        .emit('agent_stream_error', payload);
+    }
   }
 
   /**

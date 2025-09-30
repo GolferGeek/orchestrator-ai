@@ -1,4 +1,7 @@
-import { AgentRuntimeDispatchService } from './agent-runtime-dispatch.service';
+import {
+  AgentRuntimeDispatchService,
+  AgentRuntimeStreamChunk,
+} from './agent-runtime-dispatch.service';
 import { LLMServiceFactory } from '@llm/services/llm-service-factory';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
 import { RoutingDecision } from '@llm/centralized-routing.service';
@@ -194,5 +197,47 @@ describe('AgentRuntimeDispatchService', () => {
     expect(handler).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'final', content: 'Hi!' }),
     );
+  });
+
+  it('supports streaming dispatch and yields chunks', async () => {
+    const streamHandler = jest.fn();
+
+    const streaming = dispatcher.dispatchStream({
+      definition,
+      routingDecision,
+      prompt,
+      request,
+      onStreamChunk: streamHandler,
+    });
+
+    const chunks: AgentRuntimeStreamChunk[] = [];
+    for await (const chunk of streaming.stream) {
+      chunks.push(chunk);
+    }
+
+    const result = await streaming.response;
+
+    expect(streamHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'final', content: 'Hi!' }),
+    );
+    expect(chunks).toHaveLength(1);
+    const chunk = chunks[0]!;
+    expect(chunk.type).toBe('final');
+    expect(result.response).toBe(response as any);
+  });
+
+  it('allows cancelling the streaming iterator', async () => {
+    const streaming = dispatcher.dispatchStream({
+      definition,
+      routingDecision,
+      prompt,
+      request,
+    });
+
+    const iterator = streaming.stream[Symbol.asyncIterator]();
+    streaming.cancel();
+
+    const next = await iterator.next();
+    expect(next.done).toBe(true);
   });
 });

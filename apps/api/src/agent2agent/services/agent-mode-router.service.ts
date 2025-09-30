@@ -8,6 +8,8 @@ import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-ru
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { AgentRuntimePromptService, PromptPayload } from '@agent-platform/services/agent-runtime-prompt.service';
 import { AgentRuntimeDispatchService } from '@agent-platform/services/agent-runtime-dispatch.service';
+import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
+import { AgentRuntimeDispatchResult } from '@agent-platform/services/agent-runtime-dispatch.service';
 
 export interface AgentExecutionContext {
   organizationSlug?: string | null;
@@ -34,6 +36,7 @@ export class AgentModeRouterService {
     private readonly runtimeDefinitions: AgentRuntimeDefinitionService,
     private readonly promptBuilder: AgentRuntimePromptService,
     private readonly dispatcher: AgentRuntimeDispatchService,
+    private readonly streamService: AgentRuntimeStreamService,
   ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
@@ -78,10 +81,11 @@ export class AgentModeRouterService {
     });
 
     try {
-      const response = await this.generateLlmResponse(
+      const { response, streamId } = await this.generateLlmResponse(
         context,
         decision,
         prompt,
+        AgentTaskMode.CONVERSE,
       );
       return TaskResponseDto.success(AgentTaskMode.CONVERSE, {
         content: {
@@ -92,7 +96,7 @@ export class AgentModeRouterService {
           model: response.metadata.model,
           usage: response.metadata.usage,
           routingDecision: decision,
-          metadata: prompt.metadata,
+          metadata: this.mergeMetadata(prompt.metadata, streamId),
         },
       });
     } catch (error) {
@@ -132,10 +136,11 @@ export class AgentModeRouterService {
     });
 
     try {
-      const response = await this.generateLlmResponse(
+      const { response, streamId } = await this.generateLlmResponse(
         context,
         decision,
         prompt,
+        AgentTaskMode.BUILD,
       );
       return TaskResponseDto.success(AgentTaskMode.BUILD, {
         content: {
@@ -147,7 +152,7 @@ export class AgentModeRouterService {
           model: response.metadata.model,
           usage: response.metadata.usage,
           routingDecision: decision,
-          metadata: prompt.metadata,
+          metadata: this.mergeMetadata(prompt.metadata, streamId),
         },
       });
     } catch (error) {
@@ -178,7 +183,12 @@ export class AgentModeRouterService {
     context: HydratedExecutionContext,
     decision: RoutingDecision,
     prompt: PromptPayload,
-  ) {
+    mode: AgentTaskMode,
+  ): Promise<{ response: AgentRuntimeDispatchResult['response']; streamId?: string }> {
+    if (this.shouldStream(context.request)) {
+      return this.generateStreamingResponse(context, decision, prompt, mode);
+    }
+
     const maxComplexity = this.promptBuilder.mapComplexity(
       decision.complexityScore,
     );
@@ -196,7 +206,71 @@ export class AgentModeRouterService {
       },
     });
 
-    return response;
+    return { response };
+  }
+
+  private async generateStreamingResponse(
+    context: HydratedExecutionContext,
+    decision: RoutingDecision,
+    prompt: PromptPayload,
+    mode: AgentTaskMode,
+  ): Promise<{ response: AgentRuntimeDispatchResult['response']; streamId: string }> {
+    const streamSession = this.streamService.start({
+      conversationId: context.request.conversationId,
+      sessionId: context.request.sessionId,
+      orchestrationRunId: context.request.orchestrationRunId,
+      organizationSlug: context.organizationSlug,
+      agentSlug: context.agent.slug,
+      mode,
+    });
+
+    const maxComplexity = this.promptBuilder.mapComplexity(
+      decision.complexityScore,
+    );
+
+    const streaming = this.dispatcher.dispatchStream({
+      definition: context.definition,
+      routingDecision: decision,
+      prompt,
+      request: context.request,
+      overrides: {
+        options: {
+          callerName: context.definition.displayName ?? context.agent.slug,
+          maxComplexity,
+        },
+      },
+      onStreamChunk: (chunk) => {
+        streamSession.publishChunk(chunk);
+      },
+    });
+
+    try {
+      const result = await streaming.response;
+      streamSession.complete();
+      return { response: result.response, streamId: streamSession.streamId };
+    } catch (error) {
+      streamSession.error(error);
+      throw error;
+    }
+  }
+
+  private shouldStream(request: TaskRequestDto): boolean {
+    const payloadStream = Boolean(request.payload?.options?.stream);
+    const metadataStream = Boolean(request.metadata?.stream);
+    return payloadStream || metadataStream;
+  }
+
+  private mergeMetadata(
+    promptMetadata: Record<string, any> | undefined,
+    streamId?: string,
+  ): Record<string, any> | undefined {
+    if (!streamId) {
+      return promptMetadata;
+    }
+    return {
+      ...(promptMetadata ?? {}),
+      streamId,
+    };
   }
 
   private async hydrateContext(
