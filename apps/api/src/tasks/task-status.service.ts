@@ -218,7 +218,7 @@ export class TaskStatusService {
    * Only returns status if user owns the task
    */
   getTaskStatus(taskId: string, userId: string): TaskStatus | null {
-    const _status = this.activeTaskStatuses.get(taskId);
+    const status = this.activeTaskStatuses.get(taskId);
     if (!status || status.userId !== userId) {
       return null;
     }

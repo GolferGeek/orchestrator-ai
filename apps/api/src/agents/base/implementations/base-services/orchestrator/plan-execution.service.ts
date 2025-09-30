@@ -82,7 +82,7 @@ export class PlanExecutionService implements IPlanExecutionService {
       );
     } catch (error) {
       // Update project status to error
-      await this.updateProjectStatus(project.id, 'paused_onerror', {
+      await this.updateProjectStatus(project.id, 'paused_on_error', {
         error: error instanceof Error ? error.message : 'Unknown error',
         errorOccurredAt: new Date().toISOString(),
       });

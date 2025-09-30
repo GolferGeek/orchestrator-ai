@@ -70,20 +70,40 @@ export class ApiKeyGuard implements CanActivate {
     const aliasHeader = this.extractAlias(request?.headers);
     const aliasesToTry = this.buildAliasList(aliasHeader);
 
-    this.enforceRateLimit(orgSlug, apiKeyHeader);
+    const fingerprint = this.computeFingerprint(orgSlug, apiKeyHeader);
+    this.enforceRateLimit(orgSlug, fingerprint, aliasesToTry);
 
     const credential = await this.lookupCredential(orgSlug, aliasesToTry);
     if (!credential) {
       this.logger.warn(
         `No API key credential found for organization ${orgSlug} (aliases: ${aliasesToTry.join(', ')}).`,
       );
+      this.logAttempt({
+        orgSlug,
+        fingerprint,
+        alias: aliasesToTry[0] ?? null,
+        status: 'credential_missing',
+      });
       throw new UnauthorizedException('Invalid API key.');
     }
 
-    if (!this.verifyKey(apiKeyHeader, credential)) {
+    if (!this.verifyKey(apiKeyHeader, credential.record)) {
       this.logger.warn(`API key mismatch for organization ${orgSlug}.`);
+      this.logAttempt({
+        orgSlug,
+        fingerprint,
+        alias: credential.alias,
+        status: 'mismatch',
+      });
       throw new UnauthorizedException('Invalid API key.');
     }
+
+    this.logAttempt({
+      orgSlug,
+      fingerprint,
+      alias: credential.alias,
+      status: 'success',
+    });
 
     return true;
   }
@@ -121,12 +141,12 @@ export class ApiKeyGuard implements CanActivate {
   private async lookupCredential(
     organizationSlug: string,
     aliases: string[],
-  ): Promise<OrganizationCredentialRecord | null> {
+  ): Promise<{ alias: string; record: OrganizationCredentialRecord } | null> {
     for (const alias of aliases) {
       const cacheKey = this.buildCacheKey(organizationSlug, alias);
       const cached = this.credentialCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
-        return cached.record;
+        return { alias, record: cached.record };
       }
 
       try {
@@ -136,7 +156,7 @@ export class ApiKeyGuard implements CanActivate {
             record,
             expiresAt: Date.now() + this.cacheTtlMs,
           });
-          return record;
+          return { alias, record };
         }
       } catch (error) {
         this.logger.error(
@@ -274,17 +294,20 @@ export class ApiKeyGuard implements CanActivate {
     return `${org ?? 'global'}::${alias ?? ApiKeyGuard.DEFAULT_ALIAS}`;
   }
 
-  private enforceRateLimit(orgSlug: string, apiKey: string) {
+  private enforceRateLimit(
+    orgSlug: string,
+    fingerprint: string,
+    aliases: string[],
+  ) {
     if (!this.rateLimit || this.rateLimit <= 0) {
       return;
     }
 
     const now = Date.now();
-    const bucketKey = this.computeFingerprint(orgSlug, apiKey);
-    const bucket = this.rateBuckets.get(bucketKey);
+    const bucket = this.rateBuckets.get(fingerprint);
 
     if (!bucket || bucket.resetAt <= now) {
-      this.rateBuckets.set(bucketKey, {
+      this.rateBuckets.set(fingerprint, {
         count: 1,
         resetAt: now + this.rateWindowMs,
       });
@@ -293,6 +316,13 @@ export class ApiKeyGuard implements CanActivate {
 
     if (bucket.count >= this.rateLimit) {
       const retryAfter = Math.max(0, Math.ceil((bucket.resetAt - now) / 1000));
+      this.logAttempt({
+        orgSlug,
+        fingerprint,
+        alias: aliases[0] ?? null,
+        status: 'rate_limited',
+        extra: { retryAfterSeconds: retryAfter },
+      });
       throw new HttpException(
         {
           message: 'Agent API key rate limit exceeded.',
@@ -303,6 +333,32 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     bucket.count += 1;
+  }
+
+  private logAttempt(params: {
+    orgSlug: string;
+    fingerprint: string;
+    alias: string | null;
+    status: 'success' | 'credential_missing' | 'mismatch' | 'rate_limited';
+    extra?: Record<string, any>;
+  }) {
+    const payload = {
+      event: 'agent_api_key_check',
+      organization: params.orgSlug ?? 'global',
+      alias: params.alias ?? ApiKeyGuard.DEFAULT_ALIAS,
+      fingerprint: params.fingerprint,
+      status: params.status,
+      timestamp: new Date().toISOString(),
+      ...(params.extra ?? {}),
+    };
+
+    if (params.status === 'success') {
+      this.logger.log(payload);
+    } else if (params.status === 'rate_limited') {
+      this.logger.error(payload);
+    } else {
+      this.logger.warn(payload);
+    }
   }
 
   private computeFingerprint(orgSlug: string, apiKey: string): string {

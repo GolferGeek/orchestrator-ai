@@ -141,7 +141,7 @@ export class PseudonymizationService {
         } catch (_error) {
           this.logger.warn(
             `Failed to pseudonymize ${match.dataType}: ${match.value}`,
-            error,
+            _error,
           );
         }
       }

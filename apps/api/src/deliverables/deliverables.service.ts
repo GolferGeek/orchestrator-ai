@@ -344,7 +344,7 @@ export class DeliverablesService {
    * Extract content from task response
    */
   private extractContentFromResponse(response: any): string | null {
-    const result = response;
+    let result = response;
     if (typeof response === 'string') {
       try {
         result = JSON.parse(response);

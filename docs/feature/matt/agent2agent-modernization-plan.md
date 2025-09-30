@@ -31,10 +31,10 @@
 
 ### Active Tasks
 1. ✅ **Route Contract Audit** – `/agents/:org/:slug/.well-known/agent.json` and `/tasks` now align with the spec; JSON-RPC request/response handling documented in the PRD. *(Owner: Codex – 2025-01-19)*
-2. **API Key Guard Hardening** – Replace placeholder logic with Supabase-key lookup + rate limiting. *(Owner: Codex — credential caching + 429 caps delivered; next: RLS-aware logging/metrics.)*
-3. **Routing Adapter Integration** – Wire `CentralizedRoutingService` with real prompts + metadata; respect sovereign policy blocks. *(Owner: Codex)*
-4. **Task Mode Router Enhancements** – Flesh out `AgentModeRouterService` to call new runtime services for converse/build while plan delegates to `PlanEngine`. *(Owner: Codex)*
-5. **Unit Test Expansion** – Cover negative paths / auth failures / routing showstoppers. *(Owner: Codex)*
+2. ✅ **API Key Guard Hardening** – Supabase-backed lookup, credential caching, per-key rate limiting, and structured telemetry logs. *(Owner: Codex – 2025-01-19)*
+3. ✅ **Routing Adapter Integration** – Real prompt assembly, metadata merge, and centralized routing enforcement with unit coverage. *(Owner: Codex – 2025-01-19)*
+4. ✅ **Task Mode Router Enhancements** – Registry-driven agent hydration and refined LLM request construction for converse/build flows. *(Owner: Codex – 2025-01-19)*
+5. ✅ **Unit Test Expansion** – Controller, guard, routing adapter, and gateway negative-path scenarios covered. *(Owner: Codex – 2025-01-19)*
 
 ### Exit Criteria
 - Endpoints deployed locally via new module only (legacy controller untouched).
@@ -76,4 +76,6 @@
 - **2025-01-19:** `/agent-to-agent/:org/:agent/tasks` accepts JSON-RPC 2.0 envelopes, maps `method` to task modes, and preserves request metadata for downstream telemetry. (Codex)
 - **2025-01-19:** API key guard now caches Supabase credentials and enforces configurable per-key rate limits (429). (Codex)
 - **2025-01-19:** Agent card builder now generates spec-compliant descriptors (protocol/version/url/capabilities/security) with unit coverage; remaining route-contract work tracks JSON-RPC payload docs. (Codex)
+- **2025-01-19:** Guard emits structured auth telemetry (including rate-limit events) and controller supports `includePrivate` card queries for downstream policy enforcement. (Codex)
+- **2025-01-19:** Routing adapter wires in centralized policy decisions with request/agent metadata, feeding the enhanced mode router. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

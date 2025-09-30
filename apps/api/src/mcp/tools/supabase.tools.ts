@@ -277,7 +277,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                schema: data,
+                schema: _data,
                 timestamp: new Date().toISOString(),
                 table_filter: table_name || 'all tables',
               },
@@ -322,7 +322,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                results: data,
+                results: _data,
                 query: query,
                 timestamp: new Date().toISOString(),
               },
@@ -394,7 +394,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         content: [
           {
             type: 'text',
-            text: this.formatData(data, format),
+            text: this.formatData(_data, format),
           },
         ],
       };
@@ -430,7 +430,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         content: [
           {
             type: 'text',
-            text: this.formatData(data, format, analysis_type),
+            text: this.formatData(_data, format, analysis_type),
           },
         ],
       };

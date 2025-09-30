@@ -308,13 +308,13 @@ export class SupabaseMCPServer implements IMCPServer {
         content: [
           {
             type: 'text',
-            text: `Tool execution failed: ${getErrorMessage(_error)}`,
+            text: `Tool execution failed: ${getErrorMessage(error)}`,
           },
         ],
         isError: true,
         _meta: {
           error_type: 'execution_error',
-          error_message: getErrorMessage(_error),
+          error_message: getErrorMessage(error),
           execution_time_ms: executionTime,
           tool_name: request.name,
         },
@@ -377,7 +377,7 @@ export class SupabaseMCPServer implements IMCPServer {
         },
       };
     } catch (error) {
-      throw new Error(`Schema retrieval failed: ${getErrorMessage(_error)}`);
+      throw new Error(`Schema retrieval failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -466,7 +466,7 @@ export class SupabaseMCPServer implements IMCPServer {
         '[MCP-SQL-DEBUG] Error stack:',
         error instanceof Error ? error.stack : 'No stack',
       );
-      throw new Error(`SQL generation failed: ${getErrorMessage(_error)}`);
+      throw new Error(`SQL generation failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -500,7 +500,7 @@ export class SupabaseMCPServer implements IMCPServer {
       const executionTime = Date.now() - startTime;
 
       if (error) {
-        throw new Error(`SQL execution error: ${getErrorMessage(_error)}`);
+        throw new Error(`SQL execution error: ${getErrorMessage(error)}`);
       }
 
       // Check if the data itself is an error object (returned by exec_sql function)
@@ -589,7 +589,7 @@ export class SupabaseMCPServer implements IMCPServer {
         },
       };
     } catch (error) {
-      throw new Error(`Data analysis failed: ${getErrorMessage(_error)}`);
+      throw new Error(`Data analysis failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -984,7 +984,7 @@ Return ONLY the SQL query, no explanation or formatting.`;
       return sql;
     } catch (error) {
       // Do NOT fallback to a generic SELECT *; surface the failure for proper handling
-      const msg = getErrorMessage(_error);
+      const msg = getErrorMessage(error);
       console.error('[MCP-SQL-DEBUG] ERROR in generateSQLFromQuery:', msg);
       console.error('[MCP-SQL-DEBUG] Full error:', error);
       console.error(

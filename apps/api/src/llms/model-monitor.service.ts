@@ -382,7 +382,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
    */
   private async checkSystemHealth(): Promise<void> {
     try {
-      const _status = await this.localModelStatusService.getOllamaStatus();
+      const status = await this.localModelStatusService.getOllamaStatus();
 
       if (!status.connected) {
         this.createAlert({

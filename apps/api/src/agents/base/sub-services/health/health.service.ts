@@ -91,7 +91,7 @@ export class HealthService {
    */
   async isHealthy(): Promise<boolean> {
     try {
-      const _status = await this.getHealthStatus();
+      const status = await this.getHealthStatus();
       return status.status === 'healthy';
     } catch (_error) {
       return false;

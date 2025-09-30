@@ -612,7 +612,7 @@ export class ProviderTestSuite {
         );
       } catch (_error) {
         console.log(
-          `${testConfig.name}: Failed - ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `${testConfig.name}: Failed - ${_error instanceof Error ? _error.message : 'Unknown error'}`,
         );
       }
     }

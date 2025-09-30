@@ -435,7 +435,7 @@ export async function generateAndExecuteCompanySQL(
         model: options.model || 'claude-3-5-sonnet',
       },
     };
-  } catch (__generationError) {
+  } catch (_generationError) {
     const executionTime = Date.now() - startTime;
     return {
       sql: '',
@@ -518,7 +518,7 @@ export async function generateAndExecuteOrchestratorSQL(
         model: options.model || 'claude-3-5-sonnet',
       },
     };
-  } catch (__generationError) {
+  } catch (_generationError) {
     const executionTime = Date.now() - startTime;
     return {
       sql: '',
