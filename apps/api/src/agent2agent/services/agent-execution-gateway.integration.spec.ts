@@ -11,9 +11,7 @@ import { OrchestrationRunnerService } from '@agent-platform/services/orchestrati
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { AgentModeRouterService } from './agent-mode-router.service';
-import {
-  demoOrchestratorAgentRecord,
-} from '@agent-platform/fixtures/reference-agents.fixture';
+import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 import { ConversationPlanRecord } from '@agent-platform/interfaces/conversation-plan-record.interface';
 
 describe('AgentExecutionGateway (runtime integration)', () => {
@@ -34,7 +32,27 @@ describe('AgentExecutionGateway (runtime integration)', () => {
     streamService?: AgentRuntimeStreamService;
   } = {}) => {
     const registry = {
-      getAgent: jest.fn().mockResolvedValue(demoOrchestratorAgentRecord),
+      getAgent: jest.fn().mockResolvedValue({
+        id: 'test-id',
+        organization_slug: 'demo',
+        slug: 'orchestrator',
+        display_name: 'Demo Orchestrator',
+        description: 'Test orchestrator',
+        agent_type: 'orchestrator',
+        mode_profile: 'orchestrator_full',
+        version: '0.1.0',
+        status: 'active',
+        yaml: JSON.stringify({
+          metadata: { name: 'demo-orchestrator', displayName: 'Demo Orchestrator' },
+          capabilities: ['converse', 'plan', 'build', 'delegate'],
+          configuration: { execution_capabilities: { supports_orchestration: true } },
+        }),
+        agent_card: null,
+        context: null,
+        config: null,
+        created_at: '1970-01-01T00:00:00.000Z',
+        updated_at: '1970-01-01T00:00:00.000Z',
+      } as AgentRecord),
       ...overrides.registry,
     } as unknown as jest.Mocked<AgentRegistryService>;
 

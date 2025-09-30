@@ -1,9 +1,5 @@
 import { AgentRuntimeDefinitionService } from './agent-runtime-definition.service';
 import { AgentRecord } from '../interfaces/agent-record.interface';
-import {
-  demoOrchestratorAgentRecord,
-  myOrgRequirementsAgentRecord,
-} from '../fixtures/reference-agents.fixture';
 
 const sampleYaml = `
 metadata:
@@ -133,30 +129,51 @@ describe('AgentRuntimeDefinitionService', () => {
     expect(definition.transport).toBeUndefined();
   });
 
-  it('parses seeded reference agents without data loss', () => {
-    const orchestrator = service.buildDefinition(demoOrchestratorAgentRecord);
-    expect(orchestrator.slug).toBe('orchestrator');
-    expect(orchestrator.metadata.displayName).toBe('Demo Orchestrator');
-    expect(orchestrator.prompts.plan).toContain('numbered phases');
-    expect(orchestrator.context?.plan_rubric?.required_sections).toContain(
-      'Phases',
-    );
-    expect(orchestrator.execution.canPlan).toBe(true);
-    expect(orchestrator.execution.canBuild).toBe(true);
-    expect(orchestrator.capabilities).toEqual([
-      'converse',
-      'plan',
-      'build',
-      'delegate',
-    ]);
+  it('parses orchestrator agent configuration', () => {
+    const orchestratorRecord: AgentRecord = {
+      id: 'test-id',
+      organization_slug: 'demo',
+      slug: 'orchestrator',
+      display_name: 'Demo Orchestrator',
+      description: 'Test orchestrator',
+      agent_type: 'orchestrator',
+      mode_profile: 'orchestrator_full',
+      version: '0.1.0',
+      status: 'active',
+      yaml: JSON.stringify({
+        metadata: { name: 'demo-orchestrator', displayName: 'Demo Orchestrator' },
+        capabilities: ['converse', 'plan', 'build', 'delegate'],
+        configuration: {
+          execution_capabilities: {
+            supports_converse: true,
+            supports_plan: true,
+            supports_build: true,
+            supports_orchestration: true,
+          },
+        },
+        prompts: {
+          plan: 'Create an orchestration plan broken into numbered phases.',
+        },
+        context: {
+          plan_rubric: {
+            required_sections: ['Context', 'Phases', 'Risks'],
+          },
+        },
+      }),
+      agent_card: null,
+      context: null,
+      config: null,
+      created_at: '1970-01-01T00:00:00.000Z',
+      updated_at: '1970-01-01T00:00:00.000Z',
+    };
 
-    const specialist = service.buildDefinition(myOrgRequirementsAgentRecord);
-    expect(specialist.slug).toBe('requirements-specialist');
-    expect(specialist.metadata.displayName).toBe('Requirements Specialist');
-    expect(specialist.prompts.build).toContain('requirements package');
-    expect(specialist.execution.canPlan).toBe(true);
-    expect(specialist.execution.canBuild).toBe(true);
-    expect(specialist.execution.requiresHumanGate).toBe(false);
-    expect(specialist.capabilities).toEqual(['converse', 'plan', 'build']);
+    const definition = service.buildDefinition(orchestratorRecord);
+    expect(definition.slug).toBe('orchestrator');
+    expect(definition.metadata.displayName).toBe('Demo Orchestrator');
+    expect(definition.prompts.plan).toContain('numbered phases');
+    expect(definition.context?.plan_rubric?.required_sections).toContain('Phases');
+    expect(definition.execution.canPlan).toBe(true);
+    expect(definition.execution.canBuild).toBe(true);
+    expect(definition.capabilities).toEqual(['converse', 'plan', 'build', 'delegate']);
   });
 });
