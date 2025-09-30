@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
-import { LLMServiceFactory } from '@llm/services/llm-service-factory';
+import { LLMServiceFactory } from '../../llm/services/llm-service-factory';
 import {
   LLMServiceConfig,
   GenerateResponseParams,
-} from '@llm/services/llm-interfaces';
-import { RoutingDecision } from '@llm/centralized-routing.service';
-import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
-import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
+} from '../../llm/services/llm-interfaces';
+import { RoutingDecision } from '../../llm/centralized-routing.service';
+import { AgentRecord } from '../../agent-platform/interfaces/agent-record.interface';
+import { AgentRegistryService } from '../../agent-platform/services/agent-registry.service';
 
 export interface AgentExecutionContext {
   organizationSlug?: string | null;
