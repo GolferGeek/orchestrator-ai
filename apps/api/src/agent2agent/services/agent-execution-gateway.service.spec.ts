@@ -10,6 +10,7 @@ import { AgentRegistryService } from '@agent-platform/services/agent-registry.se
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 
 const createMocks = () => {
   const registry = {
@@ -73,7 +74,27 @@ const createMocks = () => {
       type: 'specialist',
       organizationSlug: 'demo',
     }),
+    collectRequestMetadata: jest.fn().mockReturnValue({}),
+    buildRunMetadata: jest
+      .fn()
+      .mockImplementation(
+        (
+          base: Record<string, any>,
+          agentMeta: { id: string; slug: string; type: string; organizationSlug: string | null },
+          extra?: Record<string, any>,
+        ) => ({
+          agentId: agentMeta.id,
+          agentSlug: agentMeta.slug,
+          agentType: agentMeta.type,
+          organizationSlug: agentMeta.organizationSlug,
+          ...base,
+          ...(extra ?? {}),
+        }),
+      ),
   } as unknown as jest.Mocked<AgentRuntimeExecutionService>;
+  const streamService = {
+    start: jest.fn().mockReturnValue(null),
+  } as unknown as jest.Mocked<AgentRuntimeStreamService>;
   const routing = {
     evaluate: jest.fn(),
   } as unknown as jest.Mocked<RoutingPolicyAdapterService>;
@@ -103,6 +124,7 @@ const createMocks = () => {
     planEngine,
     orchestrationRunner,
     agentOrchestrations,
+    streamService,
   };
 };
 
@@ -116,6 +138,7 @@ const instantiateGateway = (mocks: ReturnType<typeof createMocks>) =>
     mocks.planEngine,
     mocks.orchestrationRunner,
     mocks.agentOrchestrations,
+    mocks.streamService,
   );
 
 describe('AgentExecutionGateway', () => {
@@ -189,6 +212,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -203,6 +227,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -213,11 +238,7 @@ describe('AgentExecutionGateway', () => {
 
     expect(planEngine.generateDraft).toHaveBeenCalled();
     const draftArg = planEngine.generateDraft.mock.calls[0]?.[0]?.draftPlan;
-    expect(draftArg?._meta?.agent).toMatchObject({
-      id: 'agent-id',
-      slug: 'agent-1',
-      organizationSlug: 'demo',
-    });
+    expect(draftArg).toEqual({ phases: [] });
     expect(result.mode).toBe(AgentTaskMode.PLAN);
     expect(result.payload?.metadata).toMatchObject({
       agentId: 'agent-id',
@@ -225,6 +246,112 @@ describe('AgentExecutionGateway', () => {
       organizationSlug: 'demo',
     });
     expect(runtimeDefinitions.buildDefinition).toHaveBeenCalled();
+  });
+
+  it('streams orchestration execute when requested', async () => {
+    const mocks = createMocks();
+    const {
+      registry,
+      runtimeDefinitions,
+      runtimeExecution,
+      routing,
+      agentOrchestrations,
+      orchestrationRunner,
+      streamService,
+    } = mocks;
+
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false, metadata: {} });
+    runtimeDefinitions.buildDefinition.mockReturnValue({
+      id: 'agent-id',
+      slug: 'agent-1',
+    } as AgentRuntimeDefinition);
+    agentOrchestrations.findBySlug.mockResolvedValue({
+      id: 'orch-1',
+      slug: 'launch-plan',
+      prompt_templates: [],
+    } as any);
+    orchestrationRunner.startRun.mockResolvedValue({ id: 'run-1' } as any);
+
+    const publishChunk = jest.fn();
+    const complete = jest.fn();
+    const error = jest.fn();
+    streamService.start.mockReturnValue({
+      streamId: 'stream-123',
+      publishChunk,
+      complete,
+      error,
+    } as any);
+
+    const gateway = instantiateGateway(mocks);
+
+    const response = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_EXECUTE,
+      orchestrationSlug: 'launch-plan',
+      payload: { options: { stream: true } },
+    } as any);
+
+    expect(streamService.start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationSlug: 'demo',
+        agentSlug: 'agent-1',
+        mode: AgentTaskMode.ORCHESTRATE_EXECUTE,
+      }),
+    );
+    expect(publishChunk).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'partial' }),
+    );
+    expect(complete).toHaveBeenCalled();
+    expect(response.success).toBe(true);
+    expect(response.payload?.metadata?.streamId).toBe('stream-123');
+  });
+
+  it('streams orchestration continue when requested', async () => {
+    const mocks = createMocks();
+    const {
+      registry,
+      runtimeDefinitions,
+      runtimeExecution,
+      routing,
+      orchestrationRunner,
+      streamService,
+    } = mocks;
+
+    registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false, metadata: {} });
+    orchestrationRunner.updateRun.mockResolvedValue({ id: 'run-1', status: 'running' } as any);
+
+    const publishChunk = jest.fn();
+    const complete = jest.fn();
+    streamService.start.mockReturnValue({
+      streamId: 'stream-continue',
+      publishChunk,
+      complete,
+      error: jest.fn(),
+    } as any);
+
+    const gateway = instantiateGateway(mocks);
+
+    const response = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_CONTINUE,
+      orchestrationRunId: 'run-1',
+      payload: {
+        options: { stream: true },
+        update: { status: 'running' },
+      },
+    } as any);
+
+    expect(streamService.start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationSlug: 'demo',
+        mode: AgentTaskMode.ORCHESTRATE_CONTINUE,
+      }),
+    );
+    expect(publishChunk).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'partial' }),
+    );
+    expect(complete).toHaveBeenCalled();
+    expect(response.payload?.metadata?.streamId).toBe('stream-continue');
   });
 
   it('handles build mode via orchestration runner', async () => {
@@ -237,6 +364,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -266,6 +394,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -317,6 +446,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -331,6 +461,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     await expect(
@@ -352,6 +483,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -379,6 +511,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     await expect(
@@ -400,6 +533,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -427,6 +561,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     await expect(
@@ -448,6 +583,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -475,6 +611,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     await expect(
@@ -496,6 +633,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -523,6 +661,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -584,6 +723,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -601,6 +741,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -612,11 +753,7 @@ describe('AgentExecutionGateway', () => {
     expect(planEngine.generateDraft).toHaveBeenCalled();
     const createDraftArg =
       planEngine.generateDraft.mock.calls[0]?.[0]?.draftPlan;
-    expect(createDraftArg?._meta?.agent).toMatchObject({
-      id: 'agent-id',
-      slug: 'agent-1',
-      organizationSlug: 'demo',
-    });
+    expect(createDraftArg).toEqual({ phases: [] });
     expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_CREATE);
     expect(result.payload?.content).toMatchObject({ id: 'plan-1' });
   });
@@ -631,6 +768,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -663,6 +801,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -713,6 +852,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -730,6 +870,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -762,6 +903,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -779,6 +921,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -809,6 +952,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
 
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
@@ -851,6 +995,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const draft = await gateway.execute('demo', 'agent-1', {
@@ -933,6 +1078,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -956,6 +1102,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     await expect(
@@ -980,6 +1127,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     } = createMocks();
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({ showstopper: false });
@@ -998,6 +1146,7 @@ describe('AgentExecutionGateway', () => {
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
+      streamService,
     );
 
     const result = await gateway.execute('demo', 'agent-1', {

@@ -18,6 +18,7 @@ import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-run
 import { AgentRuntimeAgentMetadata } from '@agent-platform/interfaces/agent-runtime-agent-metadata.interface';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -30,6 +31,7 @@ export class AgentExecutionGateway {
     private readonly planEngine: PlanEngineService,
     private readonly orchestrationRunner: OrchestrationRunnerService,
     private readonly agentOrchestrations: AgentOrchestrationsRepository,
+    private readonly streamService: AgentRuntimeStreamService,
   ) {}
 
   async execute(
@@ -225,7 +227,7 @@ export class AgentExecutionGateway {
     const orchestrationResponse = await this.startOrchestrationFromRequest(
       organizationSlug,
       agent,
-      definition,
+      agentMetadata,
       request,
       AgentTaskMode.BUILD,
       { requireTarget: false },
@@ -297,7 +299,7 @@ export class AgentExecutionGateway {
     const orchestrationResponse = await this.startOrchestrationFromRequest(
       organizationSlug,
       agent,
-      definition,
+      agentMetadata,
       request,
       AgentTaskMode.ORCHESTRATE_EXECUTE,
       { requireTarget: true },
@@ -325,24 +327,46 @@ export class AgentExecutionGateway {
     }
 
     const patch = request.payload?.update ?? {};
-    const run = await this.orchestrationRunner.updateRun({
-      runId,
-      status: patch.status,
-      currentStepIndex: patch.currentStepIndex,
-      completedSteps: patch.completedSteps,
-      stepState: patch.stepState,
-      humanCheckpointId: patch.humanCheckpointId,
-      metadata: patch.metadata,
-      completedAt: patch.completedAt,
-    });
+    const streamSession = this.maybeStartStream(
+      request,
+      organizationSlug,
+      { slug: patch.agentSlug ?? patch.agent_slug ?? 'unknown' } as AgentRecord,
+      AgentTaskMode.ORCHESTRATE_CONTINUE,
+    );
 
-    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_CONTINUE, {
-      content: run,
-      metadata: {
+    try {
+      const run = await this.orchestrationRunner.updateRun({
         runId,
-        organizationSlug,
-      },
-    });
+        status: patch.status,
+        currentStepIndex: patch.currentStepIndex,
+        completedSteps: patch.completedSteps,
+        stepState: patch.stepState,
+        humanCheckpointId: patch.humanCheckpointId,
+        metadata: patch.metadata,
+        completedAt: patch.completedAt,
+      });
+
+      this.publishStreamChunk(streamSession, {
+        type: 'partial',
+        content: JSON.stringify({ status: 'run_updated', run }),
+      });
+
+      this.completeStream(streamSession);
+
+      return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_CONTINUE, {
+        content: run,
+        metadata: this.attachStreamId(
+          {
+            runId,
+            organizationSlug,
+          },
+          streamSession,
+        ),
+      });
+    } catch (error) {
+      this.errorStream(streamSession, error);
+      throw error;
+    }
   }
 
   private async handleOrchestrateSaveRecipe(
@@ -400,14 +424,22 @@ export class AgentExecutionGateway {
       request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
     const promptInputs =
       request.promptParameters ?? request.payload?.promptParameters ?? {};
+    const streamSession = this.maybeStartStream(
+      request,
+      organizationSlug,
+      agent,
+      responseMode,
+    );
+
     const metadata = this.runtimeExecution.collectRequestMetadata(request);
 
-    if (request.planId) {
-      const plan = await this.resolvePlanForExecution(
-        organizationSlug,
-        agent,
-        request,
-      );
+    try {
+      if (request.planId) {
+        const plan = await this.resolvePlanForExecution(
+          organizationSlug,
+          agent,
+          request,
+        );
       const runMetadata = this.runtimeExecution.buildRunMetadata(
         metadata,
         agentMetadata,
@@ -429,77 +461,107 @@ export class AgentExecutionGateway {
         metadata: runMetadata,
       });
 
-      return TaskResponseDto.success(responseMode, {
-        content: run,
-        metadata: this.runtimeExecution.buildRunMetadata(
-          {
-            originType: 'plan',
-            planId: plan.id,
-            planVersion: plan.version,
-            conversationId: plan.conversation_id,
-            promptInputs,
-          },
-          agentMetadata,
-        ),
-      });
-    }
+        this.publishStreamChunk(streamSession, {
+          type: 'partial',
+          content: JSON.stringify({ status: 'run_started', run }),
+        });
 
-    if (orchestrationSlug) {
-      const orchestration = await this.agentOrchestrations.findBySlug(
-        organizationSlug,
-        agentSlug,
-        orchestrationSlug,
-      );
+        const responseMetadata = this.attachStreamId(
+          this.runtimeExecution.buildRunMetadata(
+            {
+              originType: 'plan',
+              planId: plan.id,
+              planVersion: plan.version,
+              conversationId: plan.conversation_id,
+              promptInputs,
+            },
+            agentMetadata,
+          ),
+          streamSession,
+        );
 
-      if (!orchestration) {
-        throw new NotFoundException('Saved orchestration not found');
+        this.completeStream(streamSession);
+
+        return TaskResponseDto.success(responseMode, {
+          content: run,
+          metadata: responseMetadata,
+        });
       }
 
-      const resolvedInputs = this.validatePromptInputs(
-        orchestration,
-        promptInputs,
-      );
+      if (orchestrationSlug) {
+        const orchestration = await this.agentOrchestrations.findBySlug(
+          organizationSlug,
+          agentSlug,
+          orchestrationSlug,
+        );
 
-      const run = await this.orchestrationRunner.startRun({
-        organizationSlug,
-        originType: 'saved_orchestration',
-        originId: orchestration.id,
-        orchestrationSlug: orchestration.slug,
-        promptInputs: resolvedInputs,
-        agentId: agentMetadata.id,
-        agentSlug: agentMetadata.slug,
-        agentType: agentMetadata.type,
-        agentDisplayName: agentMetadata.displayName,
-        metadata: this.runtimeExecution.buildRunMetadata(
-          metadata,
-          agentMetadata,
-          {
-            orchestrationId: orchestration.id,
-          },
-        ),
-      });
+        if (!orchestration) {
+          throw new NotFoundException('Saved orchestration not found');
+        }
 
-      return TaskResponseDto.success(responseMode, {
-        content: run,
-        metadata: this.runtimeExecution.buildRunMetadata(
-          {
-            originType: 'saved_orchestration',
-            orchestration: {
-              id: orchestration.id,
-              slug: orchestration.slug,
+        const resolvedInputs = this.validatePromptInputs(
+          orchestration,
+          promptInputs,
+        );
+
+        const run = await this.orchestrationRunner.startRun({
+          organizationSlug,
+          originType: 'saved_orchestration',
+          originId: orchestration.id,
+          orchestrationSlug: orchestration.slug,
+          promptInputs: resolvedInputs,
+          agentId: agentMetadata.id,
+          agentSlug: agentMetadata.slug,
+          agentType: agentMetadata.type,
+          agentDisplayName: agentMetadata.displayName,
+          metadata: this.runtimeExecution.buildRunMetadata(
+            metadata,
+            agentMetadata,
+            {
+              orchestrationId: orchestration.id,
             },
-            promptInputs: resolvedInputs,
-          },
-          agentMetadata,
-        ),
-      });
-    }
+          ),
+        });
 
-    if (options.requireTarget) {
+        this.publishStreamChunk(streamSession, {
+          type: 'partial',
+          content: JSON.stringify({ status: 'run_started', run }),
+        });
+
+        const responseMetadata = this.attachStreamId(
+          this.runtimeExecution.buildRunMetadata(
+            {
+              originType: 'saved_orchestration',
+              orchestration: {
+                id: orchestration.id,
+                slug: orchestration.slug,
+              },
+              promptInputs: resolvedInputs,
+            },
+            agentMetadata,
+          ),
+          streamSession,
+        );
+
+        this.completeStream(streamSession);
+
+        return TaskResponseDto.success(responseMode, {
+          content: run,
+          metadata: responseMetadata,
+        });
+      }
+
+      if (options.requireTarget) {
+        this.completeStream(streamSession);
+        return null;
+      }
+
+      this.completeStream(streamSession);
       return null;
+    } catch (error) {
+      this.errorStream(streamSession, error);
+      throw error;
     }
-
-    return null;
   }
 
   private validatePromptInputs(
@@ -597,6 +659,76 @@ export class AgentExecutionGateway {
     return {
       ...(request.payload?.metadata ?? {}),
       ...(request.metadata ?? {}),
+    };
+  }
+
+  private maybeStartStream(
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+    agent: AgentRecord,
+    mode: AgentTaskMode,
+  ) {
+    const wantsStream = Boolean(
+      request.payload?.options?.stream || request.metadata?.stream,
+    );
+
+    if (!wantsStream) {
+      return null;
+    }
+
+    return this.streamService.start({
+      conversationId: request.conversationId,
+      sessionId: request.sessionId,
+      orchestrationRunId: request.orchestrationRunId,
+      organizationSlug,
+      agentSlug: agent.slug,
+      mode,
+    });
+  }
+
+  private publishStreamChunk(
+    session: ReturnType<AgentRuntimeStreamService['start']> | null,
+    chunk: { type: 'partial' | 'final'; content: string },
+  ) {
+    if (!session) {
+      return;
+    }
+
+    session.publishChunk(chunk);
+  }
+
+  private completeStream(
+    session: ReturnType<AgentRuntimeStreamService['start']> | null,
+  ) {
+    if (!session) {
+      return;
+    }
+
+    session.complete();
+  }
+
+  private errorStream(
+    session: ReturnType<AgentRuntimeStreamService['start']> | null,
+    error: unknown,
+  ) {
+    if (!session) {
+      return;
+    }
+
+    session.error(error);
+  }
+
+  private attachStreamId(
+    metadata: Record<string, any>,
+    session: ReturnType<AgentRuntimeStreamService['start']> | null,
+  ): Record<string, any> {
+    if (!session) {
+      return metadata;
+    }
+
+    return {
+      ...metadata,
+      streamId: session.streamId,
     };
   }
 

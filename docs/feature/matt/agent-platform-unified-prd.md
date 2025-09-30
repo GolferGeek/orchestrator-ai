@@ -242,6 +242,24 @@ export class AgentToAgentController {
 }
 ```
 
+## 10. Streaming Contract & Front-End Integration
+
+- **Opt-in Flag** – Clients request streaming by setting `payload.options.stream = true` (or `metadata.stream = true`) when calling `/agent-to-agent/:org/:agent/tasks`. The gateway still returns a final JSON-RPC response for backwards compatibility.
+- **Stream Identifier** – When streaming is enabled, the response metadata includes `payload.metadata.metadata.streamId`. This ID uniquely identifies an execution stream.
+- **WebSocket Subscription**
+  - Connect to `ws(s)://<api>/task-progress` (existing namespace).
+  - Emit `{ event: 'subscribe_stream', data: { streamId } }` to begin receiving live tokens.
+  - Optional context rooms: conversation and orchestration run listeners can join `conversation:{conversationId}` or `run:{orchestrationRunId}` to piggyback on the same events.
+- **Event Payloads** – Gateway emits:
+  - `agent_stream_chunk` `{ streamId, chunk: { type: 'partial' | 'final', content, metadata }, ...context }`
+  - `agent_stream_complete` `{ streamId, type: 'complete', ...context }`
+  - `agent_stream_error` `{ streamId, type: 'error', error, ...context }`
+- **Polling Fallback** – Callers that skip streaming continue to receive buffered responses; no contract change required.
+- **Front-End TODO** – Update chat/orchestration UIs to:
+  1. Detect `streamId` in responses.
+  2. Subscribe/unsubscribe via the socket.
+  3. Render partial chunks while awaiting the final JSON payload.
+
 **AgentExecutionGateway**
 ```ts
 @Injectable()
