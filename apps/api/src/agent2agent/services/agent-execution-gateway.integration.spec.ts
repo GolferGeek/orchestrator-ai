@@ -532,6 +532,91 @@ describe('AgentExecutionGateway (runtime integration)', () => {
     expect(response.payload?.content).toBe(createdPlan);
   });
 
+  it('throws when plan belongs to different conversation', async () => {
+    const mismatchedPlan = {
+      id: planId,
+      conversation_id: 'other-conv',
+      organization_slug: organizationSlug,
+      agent_slug: agentSlug,
+      summary: 'Mismatch',
+      status: 'approved',
+      plan_json: {},
+      created_by: null,
+      approved_by: null,
+      version: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any;
+
+    const { gateway, planEngine } = buildGateway({
+      planEngine: {
+        getPlan: jest.fn().mockResolvedValue(mismatchedPlan),
+      },
+    });
+
+    const request: TaskRequestDto = {
+      mode: AgentTaskMode.BUILD,
+      conversationId,
+      planId,
+      payload: {
+        options: { stream: false },
+      },
+    };
+
+    await expect(
+      gateway.execute(organizationSlug, agentSlug, request),
+    ).rejects.toThrow('Plan is tied to a different conversation');
+
+    expect(planEngine.getPlan).toHaveBeenCalledWith(planId);
+  });
+
+  it('executes plan-based run and returns metadata without streaming', async () => {
+    const { gateway, planEngine, orchestrationRunner } = buildGateway({
+      orchestrationRunner: {
+        startRun: jest.fn().mockResolvedValue({
+          id: runId,
+          plan_id: planId,
+          status: 'pending',
+          organization_slug: organizationSlug,
+          agent_slug: agentSlug,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          metadata: { existing: true },
+        }),
+      },
+    });
+
+    const request: TaskRequestDto = {
+      mode: AgentTaskMode.ORCHESTRATOR_RUN_START,
+      conversationId,
+      planId,
+      payload: {
+        options: { stream: false },
+      },
+    };
+
+    const response = await gateway.execute(organizationSlug, agentSlug, request);
+
+    expect(planEngine.getPlan).toHaveBeenCalledWith(planId);
+    expect(orchestrationRunner.startRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        planId,
+        metadata: expect.objectContaining({
+          conversationId,
+          planVersion: 1,
+          agentSlug,
+        }),
+      }),
+    );
+
+    expect(response.success).toBe(true);
+    expect(response.payload?.metadata).toMatchObject({
+      planVersion: 1,
+      agentSlug,
+    });
+    expect(response.payload?.metadata?.streamId).toBeUndefined();
+  });
+
   it('routes converse streaming requests through mode router and preserves metadata', async () => {
     const streamResponse = TaskResponseDto.success(AgentTaskMode.CONVERSE, {
       content: { message: 'hello world' },

@@ -114,4 +114,6 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-20:** Plan mode integration confirms PlanEngine receives enriched agent metadata for draft creation. (Codex)
 - **2025-01-20:** Converse streaming integration validates gateway → mode router hand-off preserves routing metadata and stream info. (Codex)
 - **2025-01-20:** Added converse non-stream path coverage to ensure synchronous responses flow through mode router cleanly. (Codex)
+- **2025-01-20:** Added validation coverage for plan execution rejecting mismatched conversation IDs. (Codex)
+- **2025-01-20:** Plan execution success path now checks response metadata and agent provenance without streaming. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).
