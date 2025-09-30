@@ -156,6 +156,7 @@ Two major pillars drive the greenfield rebuild.
    - *2025-01-20 update:* Gateway tests confirm routing showstoppers produce human responses without dispatch attempts.
    - *2025-01-20 update:* Plan mode gateway test asserts PlanEngine receives enriched agent metadata for draft creation.
    - *2025-01-20 update:* Converse streaming integration verifies gateway passes routing metadata to mode router and preserves stream identifiers.
+   - *2025-01-20 update:* Converse non-stream integration ensures synchronous responses flow via mode router without stream sessions.
 5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
    - *2025-01-19 update:* Removed the unfinished `AgentCreator`/agent-builder prototype from the codebase to eliminate conflicting Supabase dependencies while the new runtime is constructed.
    - *2025-01-20 update:* `apps/api/supabase/seed.sql` now inserts reference agents (`demo/orchestrator`, `my-org/requirements-specialist`) so the runtime can be exercised end-to-end during Phase 2.

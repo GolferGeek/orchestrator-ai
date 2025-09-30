@@ -582,4 +582,45 @@ describe('AgentExecutionGateway (runtime integration)', () => {
     expect(response.success).toBe(true);
     expect(response.payload?.metadata?.streamId).toBe('stream-abc');
   });
+
+  it('handles converse request without streaming via mode router fallback payload', async () => {
+    const nonStreamResponse = TaskResponseDto.success(AgentTaskMode.CONVERSE, {
+      content: { message: 'inline response' },
+      metadata: { provider: 'openai', model: 'gpt-4o-mini' },
+    });
+
+    const { gateway, routingPolicy, modeRouter } = buildGateway({
+      routingPolicy: {
+        evaluate: jest.fn().mockResolvedValue({
+          showstopper: false,
+          metadata: {
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+          },
+        }),
+      },
+    });
+
+    modeRouter.execute.mockResolvedValue(nonStreamResponse);
+
+    const request: TaskRequestDto = {
+      mode: AgentTaskMode.CONVERSE,
+      userMessage: 'Quick question',
+      payload: {
+        options: { stream: false },
+      },
+    };
+
+    const response = await gateway.execute(organizationSlug, agentSlug, request);
+
+    expect(routingPolicy.evaluate).toHaveBeenCalled();
+    expect(modeRouter.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({ mode: AgentTaskMode.CONVERSE }),
+      }),
+    );
+    expect(response.success).toBe(true);
+    expect(response.payload?.content?.message).toBe('inline response');
+    expect(response.payload?.metadata?.provider).toBe('openai');
+  });
 });
