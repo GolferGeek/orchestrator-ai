@@ -522,7 +522,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         responseMetadata: result.metadata || {},
       };
 
-      await this.services.tasksService.updateTask(taskId, userId, updateData);
+      await this.services.tasksService.updateTask(taskId, userId, _updateData);
     } catch (error) {
       this.contextLogger.error(
         `Error saving task result for ${taskId}:`,
@@ -986,9 +986,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const historyPrompt = formattedHistory
         .map((msg: any) => `${msg.role}: ${msg.content}`)
         .join('\n');
-      const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
+      const _fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
 
-      return await this.services.llmService.generateResponse(fullPrompt, '', {
+      return await this.services.llmService.generateResponse(_fullPrompt, '', {
         // Ensure we preserve LLM metadata (PII, tokens, timing)
         includeMetadata: true,
         // Honor explicit provider/model if provided by UI selection

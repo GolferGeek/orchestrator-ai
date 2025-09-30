@@ -796,7 +796,7 @@ export class ApiAgentBaseService
       await this.services.tasksService.updateTask(
         this.currentTaskId,
         this.currentUserId,
-        updateData,
+        _updateData,
       );
     } catch (error) {
       this.apiLogger.error(

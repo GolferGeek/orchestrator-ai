@@ -7,6 +7,7 @@ import {
   Logger,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AgentCardBuilderService } from './services/agent-card-builder.service';
@@ -58,9 +59,21 @@ export class Agent2AgentController {
   async getAgentCard(
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,
+    @Query('includePrivate') includePrivate?: string,
+    @Query('include_private') includePrivateSnake?: string,
   ) {
     const org = orgSlug === 'global' ? null : orgSlug;
-    return this.cardBuilder.build(org, agentSlug);
+    const includePrivateFields = this.resolveBooleanQuery(
+      includePrivate,
+      includePrivateSnake,
+    );
+
+    const options =
+      includePrivateFields === undefined
+        ? undefined
+        : { includePrivateFields };
+
+    return this.cardBuilder.build(org, agentSlug, options);
   }
 
   @Post([
@@ -351,5 +364,26 @@ export class Agent2AgentController {
         message: mapped.message,
       },
     });
+  }
+
+  private resolveBooleanQuery(
+    ...candidates: Array<string | undefined>
+  ): boolean | undefined {
+    for (const value of candidates) {
+      if (value === undefined) {
+        continue;
+      }
+      const normalized = value.trim().toLowerCase();
+      if (!normalized) {
+        continue;
+      }
+      if (['true', '1', 'yes', 'y'].includes(normalized)) {
+        return true;
+      }
+      if (['false', '0', 'no', 'n'].includes(normalized)) {
+        return false;
+      }
+    }
+    return undefined;
   }
 }

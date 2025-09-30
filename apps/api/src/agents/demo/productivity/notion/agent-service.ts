@@ -178,7 +178,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
     intentAnalysis: any,
     actionResult: any,
   ): Promise<string> {
-    const response = `## Notion Operation Complete\n\n`;
+    let response = `## Notion Operation Complete\n\n`;
     response += `**Your Request**: ${originalRequest}\n\n`;
     response += `**Action Taken**: ${intentAnalysis.action}\n\n`;
 

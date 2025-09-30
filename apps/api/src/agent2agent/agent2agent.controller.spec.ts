@@ -36,8 +36,30 @@ describe('Agent2AgentController', () => {
   it('returns agent card', async () => {
     cardBuilder.build.mockResolvedValue({ name: 'Card' });
     const result = await controller.getAgentCard('my-org', 'agent');
-    expect(cardBuilder.build).toHaveBeenCalledWith('my-org', 'agent');
+    expect(cardBuilder.build).toHaveBeenCalledWith(
+      'my-org',
+      'agent',
+      undefined,
+    );
     expect(result).toEqual({ name: 'Card' });
+  });
+
+  it('respects includePrivate query flags', async () => {
+    cardBuilder.build.mockResolvedValue({ name: 'Public Card' });
+
+    const result = await controller.getAgentCard(
+      'global',
+      'agent',
+      'false',
+      undefined,
+    );
+
+    expect(cardBuilder.build).toHaveBeenCalledWith(
+      null,
+      'agent',
+      { includePrivateFields: false },
+    );
+    expect(result).toEqual({ name: 'Public Card' });
   });
 
   it('executes task via gateway', async () => {

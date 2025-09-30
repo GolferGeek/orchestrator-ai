@@ -249,12 +249,12 @@ export class DynamicAgentsController {
     } catch (_audioError) {
       this.logger.error(
         `🎤 [DynamicAgentsController] Audio transcription failed for ${agentType}/${agentName}:`,
-        audioError,
+        error,
       );
       // If audio transcription fails, continue with original prompt but log the error
       if (audioDetected) {
         throw new BadRequestException(
-          `Audio transcription failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`,
+          `Audio transcription failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
     }
