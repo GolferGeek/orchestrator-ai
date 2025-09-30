@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, Logger } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
@@ -81,7 +80,7 @@ export class AgentDiscoveryService {
     await this.discoverFilesystemAgents();
 
     // Load agent configurations and build hierarchy
-    await this.loadAgentConfigurations();
+    this.loadAgentConfigurations();
     this.buildAgentHierarchy();
     this.logger.log(
       `✅ Discovered ${this.discoveredAgents.length} agents from filesystem`,
@@ -343,7 +342,7 @@ export class AgentDiscoveryService {
   /**
    * Load agent configurations and parse metadata
    */
-  private async loadAgentConfigurations(): Promise<void> {
+  private loadAgentConfigurations(): void {
     for (const agent of this.discoveredAgents) {
       try {
         const agentDirectory = agent.servicePath.replace(

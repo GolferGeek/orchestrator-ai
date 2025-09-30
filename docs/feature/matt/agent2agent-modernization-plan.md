@@ -1,8 +1,8 @@
 # Agent-to-Agent Modernization Implementation Plan
 
 **Owner:** Codex (with Matt)  
-**Last Updated:** 2025-01-18  
-**Status:** In progress (Phase 1)  
+**Last Updated:** 2025-01-19  
+**Status:** In progress (Phase 2)  
 
 > This plan tracks the greenfield Agent-to-Agent (A2A) controller/runtime and database-backed agent work. Orchestration enhancements are explicitly deferred until after Phase 3 (see `orchestrator-project-planning-prd.md`).
 
@@ -21,30 +21,40 @@
 
 ---
 
-## Current Focus (Phase 1)
+## Phase 1 Recap (Transport & Auth)
 
-### Objectives
-- Finalize request/response DTOs and schema alignment with Google A2A spec.
-- Harden `AgentExecutionGateway` to cover converse/plan/build without legacy fallbacks.
-- Flesh out repository coverage for agents, plans, runs, orchestration recipes, org credentials (done).
-- Integrate centralized routing policy adapter (stubbed today) with real enforcement.
+### Summary
+- Google-spec controller, DTOs, and task routing live alongside structured auth + telemetry.
+- Routing adapter + mode router collaborate with the new registry for metadata-rich LLM dispatch.
+- Legacy AgentCreator/agent-builder module removed to avoid conflicting Supabase dependencies.
 
-### Active Tasks
-1. ✅ **Route Contract Audit** – `/agents/:org/:slug/.well-known/agent.json` and `/tasks` now align with the spec; JSON-RPC request/response handling documented in the PRD. *(Owner: Codex – 2025-01-19)*
-2. ✅ **API Key Guard Hardening** – Supabase-backed lookup, credential caching, per-key rate limiting, and structured telemetry logs. *(Owner: Codex – 2025-01-19)*
-3. ✅ **Routing Adapter Integration** – Real prompt assembly, metadata merge, and centralized routing enforcement with unit coverage. *(Owner: Codex – 2025-01-19)*
-4. ✅ **Task Mode Router Enhancements** – Registry-driven agent hydration and refined LLM request construction for converse/build flows. *(Owner: Codex – 2025-01-19)*
-5. ✅ **Unit Test Expansion** – Controller, guard, routing adapter, and gateway negative-path scenarios covered. *(Owner: Codex – 2025-01-19)*
-
-### Exit Criteria
-- Endpoints deployed locally via new module only (legacy controller untouched).
-- Unit tests green for controller, gateway, guard, routing adapter, repositories.
-- API key guard validated against Supabase credentials table.
-- Documentation updated (`agent-platform-unified-prd.md`, this plan).
+Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 
 ---
 
-## Backlog (Phase 2+) Snapshot
+## Current Focus (Phase 2)
+
+### Objectives
+- Stand up database-driven agent runtime primitives (definitions, capability profiles, execution context builders).
+- Replace `A2AAgentBaseService` dependencies with the new runtime inside the agent2agent gateway.
+- Seed exemplar agents in Supabase for demo/my-org namespaces and wire registry hydration tests.
+- Ensure plan/orchestration services operate on the new agent artifacts end-to-end.
+
+### Active Tasks
+1. 🚧 **Runtime Blueprint** – Define database agent capability model (context, prompts, tool links) and runtime DTOs/transformers. *(Owner: Codex – in progress)*
+2. ⏳ **Execution Primitives** – Implement base classes/services that drive converse/plan/build using the new capability model.
+3. ⏳ **Reference Agent Seed** – Author seed scripts + fixtures for `demo/orchestrator` and one specialist agent in Supabase.
+4. ⏳ **Integration Coverage** – Add focused tests around runtime hydration and gateway execution using seeded agents.
+
+### Exit Criteria
+- Database runtime service produces consistent agent execution payloads consumed by the mode router.
+- Supabase seeds provide at least two working agents for Phase 2 testing.
+- End-to-end task execution (converse/plan/build) functions without touching legacy base services.
+- Documentation reflects the database runtime architecture (`agent-platform-unified-prd.md`, seeds README).
+
+---
+
+## Backlog (Phase 3+) Snapshot
 
 | ID | Task | Notes |
 | --- | --- | --- |
@@ -79,4 +89,5 @@
 - **2025-01-19:** Guard emits structured auth telemetry (including rate-limit events) and controller supports `includePrivate` card queries for downstream policy enforcement. (Codex)
 - **2025-01-19:** Routing adapter wires in centralized policy decisions with request/agent metadata, feeding the enhanced mode router. (Codex)
 - **2025-01-19:** Retired the legacy AgentCreator “agent builder” module to avoid conflicting database dependencies ahead of the new runtime. (Codex)
+- **2025-01-19:** Added `AgentRuntimeDefinitionService` and wired mode router hydration through the database-defined capability profile with new unit coverage. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

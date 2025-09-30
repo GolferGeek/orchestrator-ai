@@ -5,6 +5,8 @@ import { LLMResponse } from '@llm/services/llm-interfaces';
 import { AgentExecutionContext } from './agent-mode-router.service';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
+import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 
 const baseAgent: AgentRecord = {
   id: 'agent-1',
@@ -51,6 +53,7 @@ const createResponse = (content: string): LLMResponse => ({
 describe('AgentModeRouterService', () => {
   let llmFactory: jest.Mocked<LLMServiceFactory>;
   let agentRegistry: jest.Mocked<AgentRegistryService>;
+  let runtimeDefinitions: jest.Mocked<AgentRuntimeDefinitionService>;
   let service: AgentModeRouterService;
 
   beforeEach(() => {
@@ -60,10 +63,73 @@ describe('AgentModeRouterService', () => {
       invalidate: jest.fn(),
       clearAll: jest.fn(),
     } as unknown as jest.Mocked<AgentRegistryService>;
+    const definition: AgentRuntimeDefinition = {
+      id: baseAgent.id,
+      slug: baseAgent.slug,
+      organizationSlug: baseAgent.organization_slug,
+      displayName: baseAgent.display_name,
+      description: baseAgent.description,
+      agentType: baseAgent.agent_type,
+      modeProfile: baseAgent.mode_profile,
+      status: baseAgent.status,
+      metadata: {
+        name: baseAgent.display_name,
+        displayName: baseAgent.display_name,
+        description: baseAgent.description,
+        category: null,
+        version: baseAgent.version,
+        type: baseAgent.agent_type,
+        provider: null,
+        tags: [],
+        raw: null,
+      },
+      hierarchy: undefined,
+      capabilities: [],
+      skills: [],
+      communication: { inputModes: [], outputModes: [] },
+      execution: {
+        modeProfile: baseAgent.mode_profile,
+        canConverse: true,
+        canPlan: false,
+        canBuild: false,
+        requiresHumanGate: false,
+        executionProfile: undefined,
+        timeoutSeconds: undefined,
+      },
+      transport: undefined,
+      llm: {
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        temperature: undefined,
+        maxTokens: undefined,
+        systemPrompt: 'You are Agent One.',
+        raw: undefined,
+      },
+      prompts: {
+        system: 'You are Agent One.',
+        plan: undefined,
+        build: undefined,
+        human: undefined,
+        additional: undefined,
+      },
+      context: baseAgent.context,
+      config: baseAgent.config,
+      agentCard: null,
+      rawDescriptor: null,
+      record: baseAgent,
+    };
+
+    runtimeDefinitions = {
+      buildDefinition: jest.fn().mockReturnValue(definition),
+    } as unknown as jest.Mocked<AgentRuntimeDefinitionService>;
     llmFactory = {
       generateResponse: jest.fn(),
     } as unknown as jest.Mocked<LLMServiceFactory>;
-    service = new AgentModeRouterService(agentRegistry, llmFactory);
+    service = new AgentModeRouterService(
+      agentRegistry,
+      runtimeDefinitions,
+      llmFactory,
+    );
   });
 
   afterEach(() => {
@@ -112,7 +178,13 @@ describe('AgentModeRouterService', () => {
     }
     expect(params.conversationId).toBe('conv-1');
     expect(params.sessionId).toBeUndefined();
-    expect(params.options?.metadata).toEqual({});
+    expect(params.options?.metadata).toEqual({
+      agentId: baseAgent.id,
+      agentSlug: baseAgent.slug,
+      agentType: baseAgent.agent_type,
+      modeProfile: baseAgent.mode_profile,
+      organizationSlug: baseAgent.organization_slug,
+    });
     expect(params.userMessage).toContain('Recent conversation history');
   });
 
@@ -164,7 +236,14 @@ describe('AgentModeRouterService', () => {
     expect(result.payload?.content?.status).toBe('build_completed');
     expect(result.payload?.content?.output).toBe('Build output');
     const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
-    expect(params?.options?.metadata).toMatchObject({ userId: 'user-1' });
+    expect(params?.options?.metadata).toMatchObject({
+      agentId: baseAgent.id,
+      agentSlug: baseAgent.slug,
+      agentType: baseAgent.agent_type,
+      modeProfile: baseAgent.mode_profile,
+      organizationSlug: baseAgent.organization_slug,
+      userId: 'user-1',
+    });
   });
 
   it('merges top-level metadata into LLM call', async () => {
@@ -184,6 +263,11 @@ describe('AgentModeRouterService', () => {
     expect(agentRegistry.getAgent).not.toHaveBeenCalled();
     const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
     expect(params?.options?.metadata).toMatchObject({
+      agentId: baseAgent.id,
+      agentSlug: baseAgent.slug,
+      agentType: baseAgent.agent_type,
+      modeProfile: baseAgent.mode_profile,
+      organizationSlug: baseAgent.organization_slug,
       userId: 'top-user',
       requestId: 'top-req',
       providerName: 'provider-x',
@@ -249,6 +333,7 @@ describe('AgentModeRouterService', () => {
     });
 
     expect(agentRegistry.getAgent).toHaveBeenCalledWith('acme', 'agent-1');
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
     expect(result.success).toBe(true);
   });
 

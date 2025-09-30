@@ -58,7 +58,7 @@ import { NotionMCPTools } from './tools/notion.tools';
 })
 export class MCPModule {
   constructor(private readonly mcpService: MCPService) {
-    this.initializeModule();
+    void this.initializeModule();
   }
 
   /**

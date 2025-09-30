@@ -110,7 +110,7 @@ export class TaskProgressGateway
       this.connectedClients.set(client.id, client);
 
       // Join user-specific room
-      client.join(`user:${client.userId}`);
+      void client.join(`user:${client.userId}`);
     } catch {
       // Allow anonymous connection as fallback
       client.userId = 'anonymous';
@@ -142,7 +142,7 @@ export class TaskProgressGateway
       // For now, we'll allow any client to subscribe to any task
 
       client.subscribedTasks?.add(data.taskId);
-      client.join(`task:${data.taskId}`);
+      void client.join(`task:${data.taskId}`);
 
       // Check room immediately after joining
       setTimeout(() => {
@@ -178,7 +178,7 @@ export class TaskProgressGateway
     @MessageBody() data: { taskId: string },
   ) {
     client.subscribedTasks?.delete(data.taskId);
-    client.leave(`task:${data.taskId}`);
+    void client.leave(`task:${data.taskId}`);
 
     client.emit('unsubscription_confirmed', { taskId: data.taskId });
   }
@@ -392,8 +392,12 @@ export class TaskProgressGateway
     response: any;
   }) {
     // Broadcast to task room and user room
-    this.server.to(`task:${event.taskId}`).emit('human_input_response', event);
-    this.server.to(`user:${event.userId}`).emit('human_input_response', event);
+    void this.server
+      .to(`task:${event.taskId}`)
+      .emit('human_input_response', event);
+    void this.server
+      .to(`user:${event.userId}`)
+      .emit('human_input_response', event);
   }
 
   /**

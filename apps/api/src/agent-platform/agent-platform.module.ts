@@ -8,6 +8,7 @@ import { AgentOrchestrationsRepository } from './repositories/agent-orchestratio
 import { PlanEngineService } from './services/plan-engine.service';
 import { OrchestrationRunnerService } from './services/orchestration-runner.service';
 import { AgentRegistryService } from './services/agent-registry.service';
+import { AgentRuntimeDefinitionService } from './services/agent-runtime-definition.service';
 
 @Module({
   imports: [SupabaseModule],
@@ -20,6 +21,7 @@ import { AgentRegistryService } from './services/agent-registry.service';
     PlanEngineService,
     OrchestrationRunnerService,
     AgentRegistryService,
+    AgentRuntimeDefinitionService,
   ],
   exports: [
     AgentsRepository,
@@ -30,6 +32,7 @@ import { AgentRegistryService } from './services/agent-registry.service';
     PlanEngineService,
     OrchestrationRunnerService,
     AgentRegistryService,
+    AgentRuntimeDefinitionService,
   ],
 })
 export class AgentPlatformModule {}

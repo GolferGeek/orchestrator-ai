@@ -9,6 +9,8 @@ import {
 import { RoutingDecision } from '@llm/centralized-routing.service';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
+import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 
 export interface AgentExecutionContext {
   organizationSlug?: string | null;
@@ -22,6 +24,7 @@ type HydratedExecutionContext = AgentExecutionContext & {
   organizationSlug: string | null;
   agentSlug: string;
   agent: AgentRecord;
+  definition: AgentRuntimeDefinition;
 };
 
 @Injectable()
@@ -30,6 +33,7 @@ export class AgentModeRouterService {
 
   constructor(
     private readonly agentRegistry: AgentRegistryService,
+    private readonly runtimeDefinitions: AgentRuntimeDefinitionService,
     private readonly llmFactory: LLMServiceFactory,
   ) {}
 
@@ -69,7 +73,7 @@ export class AgentModeRouterService {
       );
     }
 
-    const metadata = this.collectMetadata(context.request);
+    const metadata = this.collectMetadata(context);
 
     try {
       const response = await this.generateLlmResponse(context, decision);
@@ -116,7 +120,7 @@ export class AgentModeRouterService {
       );
     }
 
-    const metadata = this.collectMetadata(context.request);
+    const metadata = this.collectMetadata(context);
 
     try {
       const response = await this.generateLlmResponse(context, decision, {
@@ -164,16 +168,22 @@ export class AgentModeRouterService {
     decision: RoutingDecision,
     options: { mode?: 'build' | 'converse' } = { mode: 'converse' },
   ) {
-    const config = this.buildLlmConfig(decision);
+    const config = this.buildLlmConfig(decision, context.definition);
     const params = this.buildGenerateParams(context, decision, config, options);
     return this.llmFactory.generateResponse(config, params);
   }
 
-  private buildLlmConfig(decision: RoutingDecision): LLMServiceConfig {
+  private buildLlmConfig(
+    decision: RoutingDecision,
+    definition: AgentRuntimeDefinition,
+  ): LLMServiceConfig {
     return {
-      provider: decision.provider ?? 'openai',
-      model: decision.model ?? 'gpt-4o-mini',
-      temperature: (decision as any).temperature,
+      provider: decision.provider ?? definition.llm?.provider ?? 'openai',
+      model: decision.model ?? definition.llm?.model ?? 'gpt-4o-mini',
+      temperature:
+        (decision as any).temperature ??
+        definition.llm?.temperature ??
+        undefined,
     };
   }
 
@@ -183,10 +193,13 @@ export class AgentModeRouterService {
     config: LLMServiceConfig,
     opts: { mode?: 'build' | 'converse' },
   ): GenerateResponseParams {
-    const systemPrompt = this.resolveSystemPrompt(context.agent, opts.mode);
+    const systemPrompt = this.resolveSystemPrompt(
+      context.definition,
+      opts.mode,
+    );
     const userMessage = this.composeUserMessage(context, opts.mode);
     const payload = context.request.payload ?? {};
-    const metadata = this.collectMetadata(context.request);
+    const metadata = this.collectMetadata(context);
     const optionMetadata = {
       ...(payload.options?.metadata ?? {}),
       ...metadata,
@@ -201,7 +214,7 @@ export class AgentModeRouterService {
       userId: metadata.userId ?? payload.userId ?? null,
       options: {
         callerType: 'agent',
-        callerName: context.agent.slug,
+        callerName: context.definition.displayName ?? context.agent.slug,
         temperature: config.temperature,
         piiMetadata: decision.piiMetadata,
         routingDecision: decision,
@@ -214,35 +227,41 @@ export class AgentModeRouterService {
   }
 
   private resolveSystemPrompt(
-    agent: AgentRecord,
+    definition: AgentRuntimeDefinition,
     mode: 'build' | 'converse' = 'converse',
   ): string {
-    const context = agent.context ?? {};
-    const config = agent.config ?? {};
     const promptCandidate =
-      context.system_prompt ??
-      context.systemPrompt ??
-      config.system_prompt ??
-      config.systemPrompt ??
-      agent.description;
+      definition.prompts.system ??
+      definition.context?.system_prompt ??
+      definition.context?.systemPrompt ??
+      definition.config?.system_prompt ??
+      definition.config?.systemPrompt ??
+      definition.description;
 
     if (typeof promptCandidate === 'string' && promptCandidate.trim()) {
       return promptCandidate;
     }
 
     return mode === 'build'
-      ? `You are ${agent.display_name}. Fulfill build requests by producing actionable output and deliverables.`
-      : `You are ${agent.display_name}. Respond helpfully to the user while respecting organizational policies.`;
+      ? `You are ${definition.displayName}. Fulfill build requests by producing actionable output and deliverables.`
+      : `You are ${definition.displayName}. Respond helpfully to the user while respecting organizational policies.`;
   }
 
   private composeUserMessage(
     context: HydratedExecutionContext,
     mode: 'build' | 'converse' = 'converse',
   ): string {
-    const { request } = context;
+    const { request, definition } = context;
     const payload = request.payload ?? {};
 
     const pieces: string[] = [];
+
+    if (
+      definition.config?.prompt_prefix &&
+      typeof definition.config.prompt_prefix === 'string'
+    ) {
+      pieces.push(definition.config.prompt_prefix);
+    }
 
     if (Array.isArray(request.messages) && request.messages.length) {
       const recent = request.messages.slice(-6);
@@ -297,10 +316,21 @@ export class AgentModeRouterService {
     }
   }
 
-  private collectMetadata(request: TaskRequestDto): Record<string, any> {
+  private collectMetadata(
+    context: HydratedExecutionContext,
+  ): Record<string, any> {
+    const baseMetadata = {
+      agentId: context.definition.id,
+      agentSlug: context.definition.slug,
+      agentType: context.definition.agentType,
+      modeProfile: context.definition.modeProfile,
+      organizationSlug: context.definition.organizationSlug,
+    };
+
     return {
-      ...(request.payload?.metadata ?? {}),
-      ...(request.metadata ?? {}),
+      ...baseMetadata,
+      ...(context.request.payload?.metadata ?? {}),
+      ...(context.request.metadata ?? {}),
     };
   }
 
@@ -332,11 +362,14 @@ export class AgentModeRouterService {
       return null;
     }
 
+    const definition = this.runtimeDefinitions.buildDefinition(agentRecord);
+
     return {
       ...context,
       organizationSlug,
       agentSlug,
       agent: agentRecord,
+      definition,
     };
   }
 }
