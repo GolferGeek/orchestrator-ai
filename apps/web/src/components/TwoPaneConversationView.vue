@@ -1,7 +1,5 @@
 <template>
   <div class="two-pane-conversation" :class="{ 'mobile-single-pane': isMobile && showWorkProductPane }">
-    <!-- Speech Dev Mode Panel -->
-    <SpeechDevModePanel />
     <!-- Header Controls -->
     <div class="conversation-header">
       <div class="conversation-info">
@@ -163,7 +161,7 @@
                 :disabled="!currentAgent"
                 @keydown.enter.prevent="sendMessage"
               />
-              <!-- Conversational Speech Button -->
+              <!-- Conversational Speech Button (moved to middle position) -->
               <ConversationalSpeechButton
                 v-if="props.conversation?.id"
                 slot="end"
@@ -175,15 +173,6 @@
                 @conversation-end="handleConversationEnd"
                 @error="handleSpeechError"
               />
-              <!-- Speech Dev Toggle -->
-              <ion-button
-                slot="end"
-                fill="clear"
-                @click="uiStore.toggleSpeechDevMode()"
-                title="Toggle Speech Dev Mode"
-              >
-                <ion-icon :icon="settingsOutline" />
-              </ion-button>
               <!-- Mode-aware Send Button -->
               <ChatModeSendButton
                 slot="end"
@@ -307,7 +296,6 @@ import {
   arrowForwardOutline,
   closeOutline,
   playOutline,
-  settingsOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
@@ -333,7 +321,6 @@ import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
 import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
 import SovereignModeBanner from './SovereignMode/SovereignModeBanner.vue';
 import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
-import SpeechDevModePanel from './SpeechDevModePanel.vue';
 interface Props {
   conversation?: any;
 }
