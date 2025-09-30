@@ -14,6 +14,8 @@ import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { PlanEngineService } from '@agent-platform/services/plan-engine.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
+import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
+import { AgentRuntimeAgentMetadata } from '@agent-platform/interfaces/agent-runtime-agent-metadata.interface';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 
@@ -22,6 +24,7 @@ export class AgentExecutionGateway {
   constructor(
     private readonly agentRegistry: AgentRegistryService,
     private readonly runtimeDefinitions: AgentRuntimeDefinitionService,
+    private readonly runtimeExecution: AgentRuntimeExecutionService,
     private readonly routingPolicy: RoutingPolicyAdapterService,
     private readonly modeRouter: AgentModeRouterService,
     private readonly planEngine: PlanEngineService,
@@ -44,6 +47,10 @@ export class AgentExecutionGateway {
     }
 
     const definition = this.runtimeDefinitions.buildDefinition(agent);
+    const agentMetadata = this.runtimeExecution.getAgentMetadataFromDefinition(
+      definition,
+      organizationSlug,
+    );
 
     const assessment = await this.routingPolicy.evaluate(request, agent);
 
@@ -65,12 +72,19 @@ export class AgentExecutionGateway {
           routingMetadata: assessment.metadata,
         });
       case AgentTaskMode.PLAN:
-        return this.handlePlan(organizationSlug, agent, definition, request);
+        return this.handlePlan(
+          organizationSlug,
+          agent,
+          definition,
+          agentMetadata,
+          request,
+        );
       case AgentTaskMode.BUILD:
         return this.handleBuild(
           organizationSlug,
           agent,
           definition,
+          agentMetadata,
           request,
           assessment.metadata,
         );
@@ -79,6 +93,7 @@ export class AgentExecutionGateway {
           organizationSlug,
           agent,
           definition,
+          agentMetadata,
           request,
         );
       case AgentTaskMode.ORCHESTRATE_EXECUTE:
@@ -86,6 +101,7 @@ export class AgentExecutionGateway {
           organizationSlug,
           agent,
           definition,
+          agentMetadata,
           request,
         );
       case AgentTaskMode.ORCHESTRATE_CONTINUE:
@@ -96,6 +112,60 @@ export class AgentExecutionGateway {
           agent,
           request,
         );
+      case AgentTaskMode.ORCHESTRATOR_PLAN_CREATE:
+        return this.handleOrchestrateCreate(
+          organizationSlug,
+          agent,
+          definition,
+          agentMetadata,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATOR_PLAN_UPDATE:
+        return this.handleOrchestrateCreate(
+          organizationSlug,
+          agent,
+          definition,
+          agentMetadata,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATOR_RUN_START:
+        return this.handleOrchestrateExecute(
+          organizationSlug,
+          agent,
+          definition,
+          agentMetadata,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATOR_RUN_CONTINUE:
+        return this.handleOrchestrateContinue(organizationSlug, request);
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_SAVE:
+        return this.handleOrchestrateSaveRecipe(
+          organizationSlug,
+          agent,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_UPDATE:
+        return this.handleOrchestrateSaveRecipe(
+          organizationSlug,
+          agent,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE:
+        return TaskResponseDto.human('Manual confirmation required');
+      case AgentTaskMode.ORCHESTRATOR_PLAN_REVIEW:
+      case AgentTaskMode.ORCHESTRATOR_PLAN_APPROVE:
+      case AgentTaskMode.ORCHESTRATOR_PLAN_REJECT:
+      case AgentTaskMode.ORCHESTRATOR_PLAN_ARCHIVE:
+      case AgentTaskMode.ORCHESTRATOR_RUN_PAUSE:
+      case AgentTaskMode.ORCHESTRATOR_RUN_RESUME:
+      case AgentTaskMode.ORCHESTRATOR_RUN_ROLLBACK_STEP:
+      case AgentTaskMode.ORCHESTRATOR_RUN_CANCEL:
+      case AgentTaskMode.ORCHESTRATOR_RUN_EVALUATE:
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE:
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_DELETE:
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_LOAD:
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_LIST:
+        return this.notImplemented(request.mode);
       case AgentTaskMode.HUMAN_RESPONSE:
         return TaskResponseDto.human('Manual confirmation required');
       default:
@@ -107,6 +177,7 @@ export class AgentExecutionGateway {
     organizationSlug: string | null,
     agent: AgentRecord,
     definition: AgentRuntimeDefinition,
+    agentMetadata: AgentRuntimeAgentMetadata,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const conversationId = request.conversationId;
@@ -116,14 +187,12 @@ export class AgentExecutionGateway {
       );
     }
 
-    const draftPlan = this.attachAgentMetadata(
+    const draftPlan =
       request.payload?.planDraft ?? {
         summary: request.userMessage ?? 'Plan draft not provided',
-      },
-      definition,
-    );
+      };
 
-    const metadata = this.collectMetadata(request);
+    const metadata = this.runtimeExecution.collectRequestMetadata(request);
 
     const planRecord = await this.planEngine.generateDraft({
       conversationId,
@@ -132,6 +201,7 @@ export class AgentExecutionGateway {
       summary: request.payload?.summary ?? null,
       draftPlan,
       createdBy: metadata.createdBy ?? null,
+      agentMetadata,
     });
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
@@ -148,6 +218,7 @@ export class AgentExecutionGateway {
     organizationSlug: string | null,
     agent: AgentRecord,
     definition: AgentRuntimeDefinition,
+    agentMetadata: AgentRuntimeAgentMetadata,
     request: TaskRequestDto,
     routingMetadata?: Record<string, any>,
   ): Promise<TaskResponseDto> {
@@ -178,6 +249,7 @@ export class AgentExecutionGateway {
     organizationSlug: string | null,
     agent: AgentRecord,
     definition: AgentRuntimeDefinition,
+    agentMetadata: AgentRuntimeAgentMetadata,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const conversationId = request.conversationId;
@@ -187,14 +259,12 @@ export class AgentExecutionGateway {
       );
     }
 
-    const draftPlan = this.attachAgentMetadata(
+    const draftPlan =
       request.payload?.planDraft ?? {
         summary: request.userMessage ?? 'Orchestration draft not provided',
-      },
-      definition,
-    );
+      };
 
-    const metadata = this.collectMetadata(request);
+    const metadata = this.runtimeExecution.collectRequestMetadata(request);
 
     const planRecord = await this.planEngine.generateDraft({
       conversationId,
@@ -203,15 +273,16 @@ export class AgentExecutionGateway {
       summary: request.payload?.summary ?? null,
       draftPlan,
       createdBy: metadata.createdBy ?? null,
+      agentMetadata,
     });
 
     return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_CREATE, {
       content: planRecord,
       metadata: {
         mode: 'create',
-        agentId: definition.id,
-        agentSlug: definition.slug,
-        organizationSlug,
+        agentId: agentMetadata.id,
+        agentSlug: agentMetadata.slug,
+        organizationSlug: agentMetadata.organizationSlug ?? organizationSlug,
       },
     });
   }
@@ -220,6 +291,7 @@ export class AgentExecutionGateway {
     organizationSlug: string | null,
     agent: AgentRecord,
     definition: AgentRuntimeDefinition,
+    agentMetadata: AgentRuntimeAgentMetadata,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const orchestrationResponse = await this.startOrchestrationFromRequest(
@@ -318,7 +390,7 @@ export class AgentExecutionGateway {
   private async startOrchestrationFromRequest(
     organizationSlug: string | null,
     agent: AgentRecord,
-    definition: AgentRuntimeDefinition,
+    agentMetadata: AgentRuntimeAgentMetadata,
     request: TaskRequestDto,
     responseMode: AgentTaskMode,
     options: { requireTarget: boolean },
@@ -328,7 +400,7 @@ export class AgentExecutionGateway {
       request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
     const promptInputs =
       request.promptParameters ?? request.payload?.promptParameters ?? {};
-    const metadata = this.collectMetadata(request);
+    const metadata = this.runtimeExecution.collectRequestMetadata(request);
 
     if (request.planId) {
       const plan = await this.resolvePlanForExecution(
@@ -336,37 +408,39 @@ export class AgentExecutionGateway {
         agent,
         request,
       );
-      const runMetadata = {
-        ...metadata,
-        agentId: definition.id,
-        agentSlug: definition.slug,
-        agentType: definition.agentType,
-        organizationSlug: definition.organizationSlug,
-        conversationId: plan.conversation_id,
-        planVersion: plan.version,
-      };
+      const runMetadata = this.runtimeExecution.buildRunMetadata(
+        metadata,
+        agentMetadata,
+        {
+          conversationId: plan.conversation_id,
+          planVersion: plan.version,
+        },
+      );
       const run = await this.orchestrationRunner.startRun({
         planId: plan.id,
         originType: 'plan',
         originId: plan.id,
         organizationSlug: plan.organization_slug ?? null,
+        agentId: agentMetadata.id,
+        agentSlug: agentMetadata.slug,
+        agentType: agentMetadata.type,
+        agentDisplayName: agentMetadata.displayName,
         promptInputs,
         metadata: runMetadata,
       });
 
       return TaskResponseDto.success(responseMode, {
         content: run,
-        metadata: {
-          originType: 'plan',
-          planId: plan.id,
-          planVersion: plan.version,
-          conversationId: plan.conversation_id,
-          promptInputs,
-          agentId: definition.id,
-          agentSlug: definition.slug,
-          agentType: definition.agentType,
-          organizationSlug: definition.organizationSlug,
-        },
+        metadata: this.runtimeExecution.buildRunMetadata(
+          {
+            originType: 'plan',
+            planId: plan.id,
+            planVersion: plan.version,
+            conversationId: plan.conversation_id,
+            promptInputs,
+          },
+          agentMetadata,
+        ),
       });
     }
 
@@ -392,30 +466,32 @@ export class AgentExecutionGateway {
         originId: orchestration.id,
         orchestrationSlug: orchestration.slug,
         promptInputs: resolvedInputs,
-        metadata: {
-          ...metadata,
-          orchestrationId: orchestration.id,
-          agentId: definition.id,
-          agentSlug: definition.slug,
-          agentType: definition.agentType,
-          organizationSlug: definition.organizationSlug,
-        },
+        agentId: agentMetadata.id,
+        agentSlug: agentMetadata.slug,
+        agentType: agentMetadata.type,
+        agentDisplayName: agentMetadata.displayName,
+        metadata: this.runtimeExecution.buildRunMetadata(
+          metadata,
+          agentMetadata,
+          {
+            orchestrationId: orchestration.id,
+          },
+        ),
       });
 
       return TaskResponseDto.success(responseMode, {
         content: run,
-        metadata: {
-          originType: 'saved_orchestration',
-          orchestration: {
-            id: orchestration.id,
-            slug: orchestration.slug,
+        metadata: this.runtimeExecution.buildRunMetadata(
+          {
+            originType: 'saved_orchestration',
+            orchestration: {
+              id: orchestration.id,
+              slug: orchestration.slug,
+            },
+            promptInputs: resolvedInputs,
           },
-          promptInputs: resolvedInputs,
-          agentId: definition.id,
-          agentSlug: definition.slug,
-          agentType: definition.agentType,
-          organizationSlug: definition.organizationSlug,
-        },
+          agentMetadata,
+        ),
       });
     }
 
@@ -522,5 +598,12 @@ export class AgentExecutionGateway {
       ...(request.payload?.metadata ?? {}),
       ...(request.metadata ?? {}),
     };
+  }
+
+  private notImplemented(mode: AgentTaskMode): TaskResponseDto {
+    return TaskResponseDto.failure(
+      mode,
+      'Orchestration mode not implemented yet',
+    );
   }
 }

@@ -145,6 +145,9 @@ Two major pillars drive the greenfield rebuild.
 2. **Schema & Template Finalization:** Lock JSON Schemas, define ingestion pipeline; no migration of existing agents yet.
 3. **Controller Implementation:** Build greenfield controller, card builder, routing adapter, API key auth.
 4. **Agent Runtime:** Implement the new Agent-to-Agent execution services and database agent base classes required for converse/plan/build without relying on legacy `A2AAgentBaseService`.
+   - *2025-01-19 update:* Define orchestration-specific task modes to distinguish planning (`orchestrator_plan_create`, `..._update`, `..._approve`, `..._reject`, `..._archive`), run lifecycle (`orchestrator_run_start`, `..._continue`, `..._pause`, `..._resume`, `..._human_response`, `..._rollback_step`, `..._cancel`, `..._evaluate`), and saved-orchestration maintenance (`orchestrator_recipe_save`, `..._update`, `..._validate`, `..._delete`, `..._load`, `..._list`).
+   - *2025-01-19 update:* AgentRuntimeExecution + Prompt services encapsulate metadata and prompt assembly; AgentModeRouter now consumes the prompt builder for conversation/build flows.
+   - *2025-01-19 update:* AgentRuntimeDispatchService standardizes LLM calls (sync today, streaming hook tomorrow) so all runtime paths share telemetry + retry surface.
 5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
    - *2025-01-19 update:* Removed the unfinished `AgentCreator`/agent-builder prototype from the codebase to eliminate conflicting Supabase dependencies while the new runtime is constructed.
 6. **Orchestration Enablement (Deferred):** Once the above is stable, revisit orchestration modes, UI affordances, and analytics before final cutover.

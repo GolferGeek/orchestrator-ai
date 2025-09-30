@@ -8,6 +8,7 @@ import { OrchestrationRunnerService } from '@agent-platform/services/orchestrati
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
+import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 
 const createMocks = () => {
@@ -64,6 +65,15 @@ const createMocks = () => {
       record: {} as any,
     } as AgentRuntimeDefinition),
   } as unknown as jest.Mocked<AgentRuntimeDefinitionService>;
+  const runtimeExecution = {
+    getAgentMetadataFromDefinition: jest.fn().mockReturnValue({
+      id: 'agent-id',
+      slug: 'agent-1',
+      displayName: 'Agent 1',
+      type: 'specialist',
+      organizationSlug: 'demo',
+    }),
+  } as unknown as jest.Mocked<AgentRuntimeExecutionService>;
   const routing = {
     evaluate: jest.fn(),
   } as unknown as jest.Mocked<RoutingPolicyAdapterService>;
@@ -87,6 +97,7 @@ const createMocks = () => {
   return {
     registry,
     runtimeDefinitions,
+    runtimeExecution,
     routing,
     modeRouter,
     planEngine,
@@ -99,6 +110,7 @@ const instantiateGateway = (mocks: ReturnType<typeof createMocks>) =>
   new AgentExecutionGateway(
     mocks.registry,
     mocks.runtimeDefinitions,
+    mocks.runtimeExecution,
     mocks.routing,
     mocks.modeRouter,
     mocks.planEngine,
@@ -171,6 +183,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -184,6 +197,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -217,6 +231,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -245,6 +260,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -264,6 +280,10 @@ describe('AgentExecutionGateway', () => {
       originType: 'plan',
       originId: 'plan-1',
       organizationSlug: 'demo',
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      agentDisplayName: 'Agent 1',
       promptInputs: {},
       metadata: {
         conversationId: 'conv-1',
@@ -291,6 +311,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -304,6 +325,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -324,6 +346,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -350,6 +373,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -370,6 +394,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -396,6 +421,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -416,6 +442,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -442,6 +469,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -462,6 +490,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -488,6 +517,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -529,6 +559,10 @@ describe('AgentExecutionGateway', () => {
         agentType: 'specialist',
         organizationSlug: 'demo',
       },
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      agentDisplayName: 'Agent 1',
     });
     expect(result.payload?.metadata).toMatchObject({
       originType: 'saved_orchestration',
@@ -544,6 +578,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -560,6 +595,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -589,6 +625,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -620,6 +657,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -639,6 +677,10 @@ describe('AgentExecutionGateway', () => {
       originType: 'plan',
       originId: 'plan-2',
       organizationSlug: 'demo',
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      agentDisplayName: 'Agent 1',
       promptInputs: {},
       metadata: {
         conversationId: 'conv-1',
@@ -665,6 +707,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -681,6 +724,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -712,6 +756,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -728,6 +773,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -757,6 +803,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -798,6 +845,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -830,6 +878,10 @@ describe('AgentExecutionGateway', () => {
       originType: 'plan',
       originId: 'plan-123',
       organizationSlug: 'demo',
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      agentType: 'specialist',
+      agentDisplayName: 'Agent 1',
       promptInputs: {},
       metadata: {
         conversationId: 'conv-123',
@@ -875,6 +927,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -897,6 +950,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -920,6 +974,7 @@ describe('AgentExecutionGateway', () => {
     const {
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,
@@ -937,6 +992,7 @@ describe('AgentExecutionGateway', () => {
     const gateway = new AgentExecutionGateway(
       registry,
       runtimeDefinitions,
+      runtimeExecution,
       routing,
       modeRouter,
       planEngine,

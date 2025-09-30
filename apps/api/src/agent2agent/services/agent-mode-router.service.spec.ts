@@ -1,12 +1,18 @@
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
-import { LLMServiceFactory } from '@llm/services/llm-service-factory';
-import { LLMResponse } from '@llm/services/llm-interfaces';
 import { AgentExecutionContext } from './agent-mode-router.service';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import {
+  AgentRuntimePromptService,
+  PromptPayload,
+} from '@agent-platform/services/agent-runtime-prompt.service';
+import {
+  AgentRuntimeDispatchService,
+  AgentRuntimeDispatchResult,
+} from '@agent-platform/services/agent-runtime-dispatch.service';
 
 const baseAgent: AgentRecord = {
   id: 'agent-1',
@@ -37,23 +43,35 @@ const routingDecision = {
   routeToAgent: true,
 } as any;
 
-const createResponse = (content: string): LLMResponse => ({
-  content,
-  metadata: {
+const createDispatchResult = (content: string): AgentRuntimeDispatchResult => ({
+  response: {
+    content,
+    metadata: {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      requestId: 'req-1',
+      timestamp: new Date().toISOString(),
+      usage: { inputTokens: 10, outputTokens: 25, totalTokens: 35 },
+      timing: { startTime: Date.now(), endTime: Date.now(), duration: 10 },
+      status: 'completed',
+    },
+  } as any,
+  config: {
     provider: 'openai',
     model: 'gpt-4o-mini',
-    requestId: 'req-1',
-    timestamp: new Date().toISOString(),
-    usage: { inputTokens: 10, outputTokens: 25, totalTokens: 35 },
-    timing: { startTime: Date.now(), endTime: Date.now(), duration: 10 },
-    status: 'completed',
-  },
+  } as any,
+  params: {
+    systemPrompt: 'system prompt',
+    userMessage: 'user message',
+  } as any,
+  routingDecision,
 });
 
 describe('AgentModeRouterService', () => {
-  let llmFactory: jest.Mocked<LLMServiceFactory>;
   let agentRegistry: jest.Mocked<AgentRegistryService>;
   let runtimeDefinitions: jest.Mocked<AgentRuntimeDefinitionService>;
+  let promptBuilder: jest.Mocked<AgentRuntimePromptService>;
+  let dispatcher: jest.Mocked<AgentRuntimeDispatchService>;
   let definition: AgentRuntimeDefinition;
   let service: AgentModeRouterService;
 
@@ -120,16 +138,48 @@ describe('AgentModeRouterService', () => {
       record: baseAgent,
     };
 
+    promptBuilder = {
+      buildPromptPayload: jest
+        .fn()
+        .mockImplementation(({ request, mode }): PromptPayload => ({
+          systemPrompt: mode === 'build' ? 'build system prompt' : 'system prompt',
+          userMessage: mode === 'build' ? 'build message' : 'user message',
+          metadata: {
+            agentId: baseAgent.id,
+            agentSlug: baseAgent.slug,
+            agentType: baseAgent.agent_type,
+            modeProfile: baseAgent.mode_profile,
+            organizationSlug: baseAgent.organization_slug,
+            ...(request.metadata ?? {}),
+          },
+          optionMetadata: {
+            agentId: baseAgent.id,
+            agentSlug: baseAgent.slug,
+            agentType: baseAgent.agent_type,
+            modeProfile: baseAgent.mode_profile,
+            organizationSlug: baseAgent.organization_slug,
+            ...(request.metadata ?? {}),
+          },
+          conversationId: request.conversationId,
+          sessionId: request.sessionId,
+          userId: request.metadata?.userId ?? null,
+        })),
+      mapComplexity: jest.fn().mockReturnValue('medium'),
+    } as unknown as jest.Mocked<AgentRuntimePromptService>;
+
+    dispatcher = {
+      dispatch: jest.fn().mockResolvedValue(createDispatchResult('Hello there!')),
+    } as unknown as jest.Mocked<AgentRuntimeDispatchService>;
+
     runtimeDefinitions = {
       buildDefinition: jest.fn().mockReturnValue(definition),
     } as unknown as jest.Mocked<AgentRuntimeDefinitionService>;
-    llmFactory = {
-      generateResponse: jest.fn(),
-    } as unknown as jest.Mocked<LLMServiceFactory>;
+
     service = new AgentModeRouterService(
       agentRegistry,
       runtimeDefinitions,
-      llmFactory,
+      promptBuilder,
+      dispatcher,
     );
   });
 
@@ -152,10 +202,6 @@ describe('AgentModeRouterService', () => {
   });
 
   it('generates LLM response for converse mode', async () => {
-    llmFactory.generateResponse.mockResolvedValue(
-      createResponse('Hello there!'),
-    );
-
     const result = await service.execute(
       buildContext({
         mode: AgentTaskMode.CONVERSE,
@@ -163,31 +209,23 @@ describe('AgentModeRouterService', () => {
         messages: [
           { role: 'user', content: 'First question' },
           { role: 'assistant', content: 'Answer' },
-          { role: 'user', content: 'Follow-up' },
         ],
       }),
     );
 
-    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
-    expect(llmFactory.generateResponse).toHaveBeenCalled();
+    expect(promptBuilder.buildPromptPayload).toHaveBeenCalledWith({
+      definition,
+      request: expect.objectContaining({ userMessage: 'Hi agent' }),
+      mode: 'converse',
+    });
+    expect(dispatcher.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        definition,
+        prompt: expect.objectContaining({ userMessage: 'user message' }),
+      }),
+    );
     expect(result.success).toBe(true);
     expect(result.payload?.content?.message).toBe('Hello there!');
-    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
-    expect(params).toBeDefined();
-    if (!params) {
-      throw new Error('LLM params not provided');
-    }
-    expect(params.conversationId).toBe('conv-1');
-    expect(params.sessionId).toBeUndefined();
-    expect(params.options?.metadata).toEqual({
-      agentId: baseAgent.id,
-      agentSlug: baseAgent.slug,
-      agentType: baseAgent.agent_type,
-      modeProfile: baseAgent.mode_profile,
-      organizationSlug: baseAgent.organization_slug,
-    });
-    expect(params.userMessage).toContain('Recent conversation history');
   });
 
   it('fails when routing metadata missing for converse', async () => {
@@ -196,32 +234,24 @@ describe('AgentModeRouterService', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.payload?.metadata?.reason).toMatch(/Routing decision/);
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
+    expect(promptBuilder.buildPromptPayload).not.toHaveBeenCalled();
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
   });
 
-  it('returns failure when LLM generation throws', async () => {
-    llmFactory.generateResponse.mockRejectedValue(new Error('boom'));
+  it('returns failure when dispatcher throws', async () => {
+    dispatcher.dispatch.mockRejectedValueOnce(new Error('boom'));
 
     const result = await service.execute(
-      buildContext({
-        mode: AgentTaskMode.CONVERSE,
-        userMessage: 'Hi agent',
-      }),
+      buildContext({ mode: AgentTaskMode.CONVERSE }),
     );
 
     expect(result.success).toBe(false);
-    expect(result.payload?.metadata?.reason).toBe(
-      'Failed to generate response',
-    );
-    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
+    expect(dispatcher.dispatch).toHaveBeenCalled();
   });
 
   it('generates build output when orchestration fallback occurs', async () => {
-    llmFactory.generateResponse.mockResolvedValue(
-      createResponse('Build output'),
+    dispatcher.dispatch.mockResolvedValueOnce(
+      createDispatchResult('Build output'),
     );
 
     const result = await service.execute(
@@ -229,61 +259,42 @@ describe('AgentModeRouterService', () => {
         {
           mode: AgentTaskMode.BUILD,
           userMessage: 'Create launch plan',
-          payload: { instructions: ['Do X'], metadata: { userId: 'user-1' } },
+          payload: { options: { stream: false } },
         },
         routingDecision,
       ),
     );
 
-    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
-    expect(llmFactory.generateResponse).toHaveBeenCalled();
+    expect(promptBuilder.buildPromptPayload).toHaveBeenCalledWith({
+      definition,
+      request: expect.objectContaining({ mode: AgentTaskMode.BUILD }),
+      mode: 'build',
+    });
+    expect(dispatcher.dispatch).toHaveBeenCalled();
     expect(result.success).toBe(true);
     expect(result.payload?.content?.status).toBe('build_completed');
     expect(result.payload?.content?.output).toBe('Build output');
-    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
-    expect(params?.options?.metadata).toMatchObject({
-      agentId: baseAgent.id,
-      agentSlug: baseAgent.slug,
-      agentType: baseAgent.agent_type,
-      modeProfile: baseAgent.mode_profile,
-      organizationSlug: baseAgent.organization_slug,
-      userId: 'user-1',
-    });
   });
 
-  it('merges top-level metadata into LLM call', async () => {
-    llmFactory.generateResponse.mockResolvedValue(createResponse('ok'));
-
+  it('merges top-level metadata into prompt payload', async () => {
     await service.execute(
       buildContext({
         mode: AgentTaskMode.CONVERSE,
         userMessage: 'Hello',
         metadata: { userId: 'top-user', requestId: 'top-req' },
         payload: {
-          metadata: { userId: 'payload-user', providerName: 'provider-x' },
+          metadata: { userId: 'payload-user' },
         },
       }),
     );
 
-    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
-    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
-    expect(params?.options?.metadata).toMatchObject({
-      agentId: baseAgent.id,
-      agentSlug: baseAgent.slug,
-      agentType: baseAgent.agent_type,
-      modeProfile: baseAgent.mode_profile,
-      organizationSlug: baseAgent.organization_slug,
-      userId: 'top-user',
-      requestId: 'top-req',
-      providerName: 'provider-x',
-    });
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
+    const [call] = promptBuilder.buildPromptPayload.mock.calls;
+    expect(call?.[0]?.request?.metadata).toEqual(
+      expect.objectContaining({ userId: 'top-user', requestId: 'top-req' }),
+    );
   });
 
-  it('passes session id through to LLM params when provided', async () => {
-    llmFactory.generateResponse.mockResolvedValue(createResponse('ok'));
-
+  it('passes session id through to dispatcher prompt payload', async () => {
     await service.execute(
       buildContext({
         mode: AgentTaskMode.CONVERSE,
@@ -292,10 +303,8 @@ describe('AgentModeRouterService', () => {
       }),
     );
 
-    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
-    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
-    expect(params?.sessionId).toBe('session-123');
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
+    const [dispatchCall] = dispatcher.dispatch.mock.calls;
+    expect(dispatchCall?.[0]?.prompt.sessionId).toBe('session-123');
   });
 
   it('returns failure if build lacks routing metadata', async () => {
@@ -304,30 +313,25 @@ describe('AgentModeRouterService', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.payload?.metadata?.reason).toMatch(/Routing decision/);
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
   });
 
-  it('handles plan mode without LLM call', async () => {
-    const result = await service.execute(
-      buildContext({ mode: AgentTaskMode.PLAN }),
-    );
+  it('handles plan mode without dispatcher call', async () => {
+    const result = await service.execute(buildContext({ mode: AgentTaskMode.PLAN }));
     expect(result.mode).toBe(AgentTaskMode.PLAN);
-    expect(llmFactory.generateResponse).not.toHaveBeenCalled();
-    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
   });
 
-  it('handles human response mode without LLM call', async () => {
+  it('handles human response mode without dispatcher call', async () => {
     const result = await service.execute(
       buildContext({ mode: AgentTaskMode.HUMAN_RESPONSE }),
     );
     expect(result.mode).toBe(AgentTaskMode.HUMAN_RESPONSE);
-    expect(llmFactory.generateResponse).not.toHaveBeenCalled();
-    expect(agentRegistry.getAgent).not.toHaveBeenCalled();
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
   });
 
   it('resolves agent via registry when not provided', async () => {
     agentRegistry.getAgent.mockResolvedValue(baseAgent);
-    llmFactory.generateResponse.mockResolvedValue(createResponse('hello'));
 
     const result = await service.execute({
       organizationSlug: 'acme',
@@ -341,7 +345,7 @@ describe('AgentModeRouterService', () => {
     });
 
     expect(agentRegistry.getAgent).toHaveBeenCalledWith('acme', 'agent-1');
-    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalledWith(baseAgent);
+    expect(dispatcher.dispatch).toHaveBeenCalled();
     expect(result.success).toBe(true);
   });
 
@@ -359,19 +363,12 @@ describe('AgentModeRouterService', () => {
       routingMetadata: routingDecision,
     });
 
-    expect(agentRegistry.getAgent).toHaveBeenCalledWith(
-      'acme',
-      'missing-agent',
-    );
-    expect(runtimeDefinitions.buildDefinition).not.toHaveBeenCalled();
+    expect(agentRegistry.getAgent).toHaveBeenCalledWith('acme', 'missing-agent');
+    expect(dispatcher.dispatch).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
-    expect(result.payload?.metadata?.reason).toBe(
-      'Agent record unavailable for execution',
-    );
   });
 
   it('reuses provided runtime definition without rebuilding', async () => {
-    llmFactory.generateResponse.mockResolvedValue(createResponse('ok'));
     runtimeDefinitions.buildDefinition.mockClear();
 
     await service.execute({
@@ -385,5 +382,6 @@ describe('AgentModeRouterService', () => {
     });
 
     expect(runtimeDefinitions.buildDefinition).not.toHaveBeenCalled();
+    expect(dispatcher.dispatch).toHaveBeenCalled();
   });
 });

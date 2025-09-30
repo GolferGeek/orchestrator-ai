@@ -9,6 +9,9 @@ import { PlanEngineService } from './services/plan-engine.service';
 import { OrchestrationRunnerService } from './services/orchestration-runner.service';
 import { AgentRegistryService } from './services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from './services/agent-runtime-definition.service';
+import { AgentRuntimeExecutionService } from './services/agent-runtime-execution.service';
+import { AgentRuntimePromptService } from './services/agent-runtime-prompt.service';
+import { AgentRuntimeDispatchService } from './services/agent-runtime-dispatch.service';
 
 @Module({
   imports: [SupabaseModule],
@@ -22,6 +25,9 @@ import { AgentRuntimeDefinitionService } from './services/agent-runtime-definiti
     OrchestrationRunnerService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
+    AgentRuntimeExecutionService,
+    AgentRuntimePromptService,
+    AgentRuntimeDispatchService,
   ],
   exports: [
     AgentsRepository,
@@ -33,6 +39,9 @@ import { AgentRuntimeDefinitionService } from './services/agent-runtime-definiti
     OrchestrationRunnerService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
+    AgentRuntimeExecutionService,
+    AgentRuntimePromptService,
+    AgentRuntimeDispatchService,
   ],
 })
 export class AgentPlatformModule {}

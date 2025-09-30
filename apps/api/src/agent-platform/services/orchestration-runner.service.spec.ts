@@ -19,6 +19,11 @@ describe('OrchestrationRunnerService', () => {
       planId: 'plan-1',
       organizationSlug: 'my-org',
       promptInputs: { foo: 'bar' },
+      agentId: 'agent-123',
+      agentSlug: 'assistant',
+      agentType: 'specialist',
+      agentDisplayName: 'Assistant',
+      metadata: { traceId: 'abc' },
     });
 
     expect(repo.start).toHaveBeenCalledWith({
@@ -28,7 +33,16 @@ describe('OrchestrationRunnerService', () => {
       orchestration_slug: null,
       prompt_inputs: { foo: 'bar' },
       organization_slug: 'my-org',
-      metadata: {},
+      metadata: {
+        traceId: 'abc',
+        agent: {
+          id: 'agent-123',
+          slug: 'assistant',
+          type: 'specialist',
+          displayName: 'Assistant',
+          organizationSlug: 'my-org',
+        },
+      },
     });
     expect(result.id).toBe('run-1');
   });

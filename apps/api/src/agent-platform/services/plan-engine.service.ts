@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConversationPlansRepository } from '../repositories/conversation-plans.repository';
 import { ConversationPlanRecord } from '../interfaces/conversation-plan-record.interface';
+import { AgentRuntimeExecutionService } from './agent-runtime-execution.service';
+import { AgentRuntimeAgentMetadata } from '../interfaces/agent-runtime-agent-metadata.interface';
 
 export interface GeneratePlanInput {
   conversationId: string;
@@ -9,6 +11,7 @@ export interface GeneratePlanInput {
   summary?: string | null;
   draftPlan: Record<string, any>;
   createdBy?: string | null;
+  agentMetadata?: AgentRuntimeAgentMetadata;
 }
 
 export interface UpdatePlanStatusInput {
@@ -23,19 +26,28 @@ export interface UpdatePlanStatusInput {
 export class PlanEngineService {
   private readonly logger = new Logger(PlanEngineService.name);
 
-  constructor(private readonly plansRepository: ConversationPlansRepository) {}
+  constructor(
+    private readonly plansRepository: ConversationPlansRepository,
+    private readonly runtimeExecution: AgentRuntimeExecutionService,
+  ) {}
 
   async generateDraft(
     input: GeneratePlanInput,
   ): Promise<ConversationPlanRecord> {
     this.logger.debug(`Generating plan draft for ${input.agentSlug}`);
 
+    const agentMetadata =
+      input.agentMetadata ?? this.buildDefaultAgentMetadata(input);
+
     return this.plansRepository.createDraft({
       conversation_id: input.conversationId,
       organization_slug: input.organizationSlug,
       agent_slug: input.agentSlug,
       summary: input.summary ?? null,
-      plan_json: input.draftPlan,
+      plan_json: this.runtimeExecution.enrichPlanDraft(
+        input.draftPlan,
+        agentMetadata,
+      ),
       created_by: input.createdBy ?? null,
     });
   }
@@ -61,5 +73,17 @@ export class PlanEngineService {
 
   async listPlans(conversationId: string): Promise<ConversationPlanRecord[]> {
     return this.plansRepository.listByConversation(conversationId);
+  }
+
+  private buildDefaultAgentMetadata(
+    input: GeneratePlanInput,
+  ): AgentRuntimeAgentMetadata {
+    return {
+      id: null,
+      slug: input.agentSlug,
+      displayName: null,
+      type: null,
+      organizationSlug: input.organizationSlug ?? null,
+    };
   }
 }

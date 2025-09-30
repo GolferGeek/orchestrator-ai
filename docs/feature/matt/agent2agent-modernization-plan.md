@@ -41,8 +41,8 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - Ensure plan/orchestration services operate on the new agent artifacts end-to-end.
 
 ### Active Tasks
-1. 🚧 **Runtime Blueprint** – Define database agent capability model (context, prompts, tool links) and runtime DTOs/transformers. *(Owner: Codex – in progress)*
-2. ⏳ **Execution Primitives** – Implement base classes/services that drive converse/plan/build using the new capability model.
+1. ✅ **Runtime Blueprint** – Database agent capability model, runtime definitions, and metadata envelopes established (AgentRegistry + RuntimeDefinition/Execution services).
+2. 🚧 **Execution Primitives** – Implement base classes/services that drive converse/plan/build using the new capability model. *Status:* AgentRuntimePromptService plus AgentRuntimeDispatchService now centralize prompt + LLM invocation; mode router consumes both.
 3. ⏳ **Reference Agent Seed** – Author seed scripts + fixtures for `demo/orchestrator` and one specialist agent in Supabase.
 4. ⏳ **Integration Coverage** – Add focused tests around runtime hydration and gateway execution using seeded agents.
 
@@ -51,6 +51,11 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - Supabase seeds provide at least two working agents for Phase 2 testing.
 - End-to-end task execution (converse/plan/build) functions without touching legacy base services.
 - Documentation reflects the database runtime architecture (`agent-platform-unified-prd.md`, seeds README).
+
+### Orchestration Task Modes (draft)
+- **Planning**: `orchestrator_plan_create`, `orchestrator_plan_update`, `orchestrator_plan_review`, `orchestrator_plan_approve`, `orchestrator_plan_reject`, `orchestrator_plan_archive`.
+- **Runs**: `orchestrator_run_start`, `orchestrator_run_continue`, `orchestrator_run_pause`, `orchestrator_run_resume`, `orchestrator_run_human_response`, `orchestrator_run_rollback_step`, `orchestrator_run_cancel`, `orchestrator_run_evaluate`.
+- **Saved Orchestrations**: `orchestrator_recipe_save`, `orchestrator_recipe_update`, `orchestrator_recipe_validate`, `orchestrator_recipe_delete`, `orchestrator_recipe_load`, `orchestrator_recipe_list`.
 
 ---
 
@@ -91,4 +96,7 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-19:** Retired the legacy AgentCreator “agent builder” module to avoid conflicting database dependencies ahead of the new runtime. (Codex)
 - **2025-01-19:** Added `AgentRuntimeDefinitionService` and wired mode router hydration through the database-defined capability profile with new unit coverage. (Codex)
 - **2025-01-19:** AgentExecutionGateway now hydrates runtime definitions once per request, propagating agent metadata to plan/orchestration responses and mode routing. (Codex)
+- **2025-01-19:** OrchestrationRunnerService persists agent/org metadata on run start, giving us immutable provenance for auditing. (Codex)
+- **2025-01-19:** AgentModeRouter consumes the new AgentRuntimePromptService for prompt + metadata assembly, completing the first execution primitive refactor. (Codex)
+- **2025-01-19:** Introduced AgentRuntimeDispatchService to wrap LLMServiceFactory calls (future streaming hook) and refactored mode router/specs to route through it. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

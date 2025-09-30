@@ -13,6 +13,10 @@ export interface OrchestrationStartInput {
   originId?: string | null;
   orchestrationSlug?: string | null;
   promptInputs?: Record<string, any>;
+  agentId?: string | null;
+  agentSlug?: string | null;
+  agentType?: string | null;
+  agentDisplayName?: string | null;
 }
 
 export type OrchestrationProgressUpdate = {
@@ -41,6 +45,18 @@ export class OrchestrationRunnerService {
     const originType = input.originType ?? (input.planId ? 'plan' : 'ad_hoc');
     const originId =
       input.originId ?? (originType === 'plan' ? (input.planId ?? null) : null);
+    const metadata: Record<string, any> = {
+      ...(input.metadata ?? {}),
+    };
+    if (input.agentId || input.agentSlug || input.agentType || input.agentDisplayName) {
+      metadata.agent = {
+        id: input.agentId ?? null,
+        slug: input.agentSlug ?? null,
+        type: input.agentType ?? null,
+        displayName: input.agentDisplayName ?? null,
+        organizationSlug: input.organizationSlug ?? null,
+      };
+    }
     return this.runsRepository.start({
       plan_id: input.planId,
       origin_type: originType,
@@ -48,7 +64,7 @@ export class OrchestrationRunnerService {
       orchestration_slug: input.orchestrationSlug ?? null,
       prompt_inputs: input.promptInputs,
       organization_slug: input.organizationSlug,
-      metadata: input.metadata ?? {},
+      metadata,
     } satisfies OrchestrationRunStartInput);
   }
 
