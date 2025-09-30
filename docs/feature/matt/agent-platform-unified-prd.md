@@ -150,6 +150,7 @@ Two major pillars drive the greenfield rebuild.
    - *2025-01-19 update:* AgentRuntimeDispatchService standardizes LLM calls and exposes async streaming iterators so UI/websocket layers can opt into token streams while keeping synchronous consumers unchanged; TaskProgressGateway relays `agent.stream.*` events to `stream:/conversation:/run:` rooms for front-end consumption.
 5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
    - *2025-01-19 update:* Removed the unfinished `AgentCreator`/agent-builder prototype from the codebase to eliminate conflicting Supabase dependencies while the new runtime is constructed.
+   - *2025-01-20 update:* `apps/api/supabase/seed.sql` now inserts reference agents (`demo/orchestrator`, `my-org/requirements-specialist`) so the runtime can be exercised end-to-end during Phase 2.
 6. **Orchestration Enablement (Deferred):** Once the above is stable, revisit orchestration modes, UI affordances, and analytics before final cutover.
 7. **Cutover Planning:** After validation, migrate legacy agents and retire old code paths.
 

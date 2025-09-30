@@ -1,4 +1,9 @@
-import websocketService from '@/services/websocketService';
+import websocketService, {
+  type AgentStreamChunkEvent,
+  type AgentStreamCompleteEvent,
+  type AgentStreamErrorEvent,
+  type StreamHandlers,
+} from '@/services/websocketService';
 import type { WorkflowStepEvent, ProgressUpdate } from './types';
 /**
  * Service for handling WebSocket events and subscriptions for agent chat
@@ -66,6 +71,13 @@ export class WebSocketHandlerService {
     websocketService.onWorkflowStep(taskId, (stepEvent) => {
       handlers.onWorkflowStep(stepEvent);
     });
+  }
+
+  async subscribeToStream(
+    streamId: string,
+    handlers: StreamHandlers,
+  ): Promise<() => void> {
+    return websocketService.subscribeToStream(streamId, handlers);
   }
   /**
    * Process workflow step updates with accumulation

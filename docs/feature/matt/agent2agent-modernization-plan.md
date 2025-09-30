@@ -1,7 +1,7 @@
 # Agent-to-Agent Modernization Implementation Plan
 
 **Owner:** Codex (with Matt)  
-**Last Updated:** 2025-01-19  
+**Last Updated:** 2025-01-20  
 **Status:** In progress (Phase 2)  
 
 > This plan tracks the greenfield Agent-to-Agent (A2A) controller/runtime and database-backed agent work. Orchestration enhancements are explicitly deferred until after Phase 3 (see `orchestrator-project-planning-prd.md`).
@@ -43,7 +43,7 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 ### Active Tasks
 1. ✅ **Runtime Blueprint** – Database agent capability model, runtime definitions, and metadata envelopes established (AgentRegistry + RuntimeDefinition/Execution services).
 2. 🚧 **Execution Primitives** – Implement base classes/services that drive converse/plan/build using the new capability model. *Status:* Prompt + Dispatch + Stream services centralize LLM invocation, emit stream IDs/events, and TaskProgressGateway/websocket consumers can now subscribe via `subscribe_stream` for live tokens.
-3. ⏳ **Reference Agent Seed** – Author seed scripts + fixtures for `demo/orchestrator` and one specialist agent in Supabase.
+3. ✅ **Reference Agent Seed** – Author seed scripts + fixtures for `demo/orchestrator` and one specialist agent in Supabase (seeded via `apps/api/supabase/seed.sql`).
 4. ⏳ **Integration Coverage** – Add focused tests around runtime hydration and gateway execution using seeded agents.
 
 ### Exit Criteria
@@ -80,6 +80,7 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **Lint/Test Debt:** Separate agent handles legacy lint cleanup; sync before Phase 2 to avoid churn.
 - **Docs:** Update this plan whenever tasks move phases; mirror key decisions back into `agent-platform-unified-prd.md` for historical record.
 - **Tooling:** Avoid `tasks.json`; use this markdown for cross-session continuity.
+- **Local DB:** Run `supabase db reset --config apps/api/supabase/config.dev.toml` to load the reference agents into your development stack after pulling seeds.
 
 ---
 
@@ -103,4 +104,5 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-19:** TaskProgressGateway now relays `agent.stream.*` events (`subscribe_stream`, conversation/run rooms) so live LLM tokens reach clients without one-off per-agent plumbing. (Codex)
 - **2025-01-19:** Orchestration execute paths now start streaming sessions, emit run-start chunks, and include `streamId` in responses so front-end orchestration tooling can subscribe immediately. (Codex)
 - **2025-01-19:** Orchestration continue updates also stream `run_updated` chunks and return the same `streamId`, keeping long-running runs in sync across websocket subscribers. (Codex)
+- **2025-01-20:** Seeded database-backed demo orchestrator + my-org requirements agents (SQL + fixtures) to exercise the new runtime services. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

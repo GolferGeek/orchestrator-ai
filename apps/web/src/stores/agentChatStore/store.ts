@@ -24,6 +24,11 @@ import { taskExecution } from './taskExecution';
 import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
 import analyticsService from '@/services/analyticsService';
+import type {
+  AgentStreamChunkEvent,
+  AgentStreamCompleteEvent,
+  AgentStreamErrorEvent,
+} from '@/services/websocketService';
 
 
 // Import types
@@ -37,6 +42,7 @@ import type {
   ConversationPlanRecord,
   OrchestrationRunRecord,
   AgentOrchestrationRecord,
+  AgentTaskResponse,
 } from './types';
 import { DEFAULT_CHAT_MODES } from './types';
 
@@ -108,6 +114,199 @@ export const useAgentChatStore = defineStore('agentChat', {
     initializeWebSocketHandler() {
       websocketHandler.setStore(this);
     },
+
+    async startStreamSubscription(
+      conversation: AgentConversation,
+      streamId: string,
+      label: string,
+    ): Promise<void> {
+      this.initializeWebSocketHandler();
+      if (!conversation.streamSubscriptions) {
+        conversation.streamSubscriptions = {};
+      }
+      const streamMessage = messageFormatting.createStreamMessage(streamId, label);
+      conversation.messages.push(streamMessage);
+      const unsubscribe = await websocketHandler.subscribeToStream(streamId, {
+        onChunk: (event: AgentStreamChunkEvent) => this.handleStreamChunk(event),
+        onComplete: (event: AgentStreamCompleteEvent) => this.handleStreamComplete(event),
+        onError: (event: AgentStreamErrorEvent) => this.handleStreamError(event),
+      });
+      conversation.streamSubscriptions[streamId] = {
+        messageId: streamMessage.id,
+        unsubscribe,
+      };
+    },
+
+    handleStreamChunk(event: AgentStreamChunkEvent) {
+      const conversation = this.getConversationForStream(
+        event.streamId,
+        event.conversationId ?? null,
+      );
+      if (!conversation) {
+        return;
+      }
+      const message = conversation.messages.find(
+        (msg) => msg.metadata?.streamId === event.streamId,
+      );
+      if (!message) {
+        return;
+      }
+      const rawContent = event.chunk?.content ?? '';
+      let parsed: any = null;
+      if (typeof rawContent === 'string') {
+        try {
+          parsed = JSON.parse(rawContent);
+        } catch {
+          parsed = { message: rawContent };
+        }
+      } else if (rawContent) {
+        parsed = rawContent;
+      }
+
+      if (parsed?.run) {
+        messageFormatting.updateStreamMessageFromRun(
+          message,
+          parsed.run,
+          parsed.status,
+        );
+        this.updateOrchestrationRunRecord(conversation, parsed.run);
+      } else {
+        const contentText =
+          parsed?.message ??
+          parsed?.text ??
+          (typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent));
+        messageFormatting.updateStreamMessageWithText(
+          message,
+          String(contentText ?? 'Processing...'),
+        );
+      }
+    },
+
+    handleStreamComplete(event: AgentStreamCompleteEvent) {
+      const conversation = this.getConversationForStream(
+        event.streamId,
+        event.conversationId ?? null,
+      );
+      if (!conversation) {
+        return;
+      }
+      const message = conversation.messages.find(
+        (msg) => msg.metadata?.streamId === event.streamId,
+      );
+      if (message) {
+        messageFormatting.markStreamComplete(message);
+      }
+      this.cleanupStreamSubscription(conversation, event.streamId);
+    },
+
+    handleStreamError(event: AgentStreamErrorEvent) {
+      const conversation = this.getConversationForStream(
+        event.streamId,
+        event.conversationId ?? null,
+      );
+      if (!conversation) {
+        return;
+      }
+      const message = conversation.messages.find(
+        (msg) => msg.metadata?.streamId === event.streamId,
+      );
+      if (message) {
+        messageFormatting.markStreamError(message, event.error ?? 'Unknown error');
+      }
+      this.cleanupStreamSubscription(conversation, event.streamId);
+    },
+
+    getConversationForStream(streamId: string, conversationId: string | null): AgentConversation | null {
+      if (conversationId) {
+        const conversation = this.getConversationById(conversationId);
+        if (conversation) {
+          return conversation;
+        }
+      }
+      return (
+        this.conversations.find((conv) => {
+          if (conv.streamSubscriptions?.[streamId]) {
+            return true;
+          }
+          return conv.messages.some((m) => m.metadata?.streamId === streamId);
+        }) || null
+      );
+    },
+
+    cleanupStreamSubscription(conversation: AgentConversation, streamId: string) {
+      const subs = conversation.streamSubscriptions;
+      if (!subs || !subs[streamId]) {
+        return;
+      }
+      try {
+        subs[streamId].unsubscribe?.();
+      } catch {
+        // Ignore unsubscribe errors
+      }
+      delete subs[streamId];
+    },
+
+    finalizeStreamMessage(
+      conversation: AgentConversation,
+      streamId: string,
+      run: OrchestrationRunRecord,
+    ) {
+      const message = conversation.messages.find(
+        (msg) => msg.metadata?.streamId === streamId,
+      );
+      if (!message) {
+        const finalMessage = messageFormatting.createOrchestrationRunMessage(run);
+        finalMessage.metadata = {
+          ...(finalMessage.metadata ?? {}),
+          streamId,
+          isStreaming: false,
+        };
+        conversation.messages.push(finalMessage);
+        return;
+      }
+
+      const finalMessage = messageFormatting.createOrchestrationRunMessage(run);
+      message.content = finalMessage.content;
+      message.timestamp = finalMessage.timestamp;
+      message.metadata = {
+        ...(finalMessage.metadata ?? {}),
+        streamId,
+        isStreaming: false,
+      };
+    },
+
+    markStreamError(
+      conversation: AgentConversation,
+      streamId: string,
+      error: string,
+    ) {
+      const message = conversation.messages.find(
+        (msg) => msg.metadata?.streamId === streamId,
+      );
+      if (message) {
+        messageFormatting.markStreamError(message, error);
+      }
+      this.cleanupStreamSubscription(conversation, streamId);
+    },
+
+    updateOrchestrationRunRecord(
+      conversation: AgentConversation,
+      run: OrchestrationRunRecord,
+    ) {
+      conversation.orchestrationRuns = conversation.orchestrationRuns ?? [];
+      const existingIndex = conversation.orchestrationRuns.findIndex(
+        (existing) => existing.id === run.id,
+      );
+      if (existingIndex >= 0) {
+        conversation.orchestrationRuns.splice(existingIndex, 1, run);
+      } else {
+        conversation.orchestrationRuns.unshift(run);
+      }
+      if (run.plan_id) {
+        conversation.latestPlanId = run.plan_id;
+      }
+    },
+
 
     async ensureBackendConversation(activeConversation: AgentConversation): Promise<string> {
       let conversationId = activeConversation.id;
@@ -860,7 +1059,21 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
 
       const conversationId = await this.ensureBackendConversation(activeConversation);
-      const response = await agentExecutionService.executeAgentTask(
+      const streamId = generateUUID();
+
+      try {
+        await this.startStreamSubscription(
+          activeConversation,
+          streamId,
+          'Launching orchestration run…',
+        );
+      } catch (error) {
+        console.warn('⚠️ Unable to subscribe to orchestration stream', error);
+      }
+
+      let response: AgentTaskResponse;
+      try {
+        response = await agentExecutionService.executeAgentTask(
         activeConversation.agent.namespace ?? null,
         activeConversation.agent.name,
         {
@@ -870,28 +1083,49 @@ export const useAgentChatStore = defineStore('agentChat', {
           orchestrationSlug: input.orchestrationSlug ?? undefined,
           promptParameters: input.promptParameters,
           payload: {
-            metadata: input.metadata ?? {},
+            metadata: { ...(input.metadata ?? {}), streamId },
+            options: { stream: true },
+          },
+          metadata: {
+            stream: true,
+            streamId,
           },
         },
       );
 
       if (!response.success) {
-        throw new Error(response.humanResponse?.message ?? 'Failed to execute orchestration');
+        this.markStreamError(
+          activeConversation,
+          streamId,
+          response.humanResponse?.message ?? 'Failed to execute orchestration',
+        );
+        throw new Error(
+          response.humanResponse?.message ?? 'Failed to execute orchestration',
+        );
       }
 
       const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
       if (runRecord) {
-        activeConversation.orchestrationRuns = activeConversation.orchestrationRuns ?? [];
-        activeConversation.orchestrationRuns.unshift(runRecord);
-        if (runRecord.plan_id) {
-          activeConversation.latestPlanId = runRecord.plan_id;
-        }
-        const runMessage = messageFormatting.createOrchestrationRunMessage(runRecord);
-        activeConversation.messages.push(runMessage);
+        this.updateOrchestrationRunRecord(activeConversation, runRecord);
+        this.finalizeStreamMessage(activeConversation, streamId, runRecord);
+        this.cleanupStreamSubscription(activeConversation, streamId);
         return runRecord;
       }
 
+      this.markStreamError(
+        activeConversation,
+        streamId,
+        'No orchestration run returned from server',
+      );
       return null;
+    } catch (error) {
+      if (error instanceof Error) {
+        this.markStreamError(activeConversation, streamId, error.message);
+      } else {
+        this.markStreamError(activeConversation, streamId, 'Unknown error');
+      }
+      throw error;
+    }
     },
 
     async continueOrchestrationRun(input: {
@@ -904,7 +1138,21 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
 
       const conversationId = await this.ensureBackendConversation(activeConversation);
-      const response = await agentExecutionService.executeAgentTask(
+      const streamId = generateUUID();
+
+      try {
+        await this.startStreamSubscription(
+          activeConversation,
+          streamId,
+          'Updating orchestration run…',
+        );
+      } catch (error) {
+        console.warn('⚠️ Unable to subscribe to orchestration stream', error);
+      }
+
+      let response: AgentTaskResponse;
+      try {
+        response = await agentExecutionService.executeAgentTask(
         activeConversation.agent.namespace ?? null,
         activeConversation.agent.name,
         {
@@ -913,32 +1161,47 @@ export const useAgentChatStore = defineStore('agentChat', {
           orchestrationRunId: input.runId,
           payload: {
             update: input.update ?? {},
+            options: { stream: true },
+          },
+          metadata: {
+            stream: true,
+            streamId,
           },
         },
       );
 
       if (!response.success) {
-        throw new Error(response.humanResponse?.message ?? 'Failed to continue orchestration run');
+        this.markStreamError(
+          activeConversation,
+          streamId,
+          response.humanResponse?.message ?? 'Failed to continue orchestration run',
+        );
+        throw new Error(
+          response.humanResponse?.message ?? 'Failed to continue orchestration run',
+        );
       }
 
       const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
       if (runRecord) {
-        activeConversation.orchestrationRuns = activeConversation.orchestrationRuns ?? [];
-        const existingIndex = activeConversation.orchestrationRuns.findIndex(run => run.id === runRecord.id);
-        if (existingIndex >= 0) {
-          activeConversation.orchestrationRuns.splice(existingIndex, 1, runRecord);
-        } else {
-          activeConversation.orchestrationRuns.unshift(runRecord);
-        }
-        if (runRecord.plan_id) {
-          activeConversation.latestPlanId = runRecord.plan_id;
-        }
-        const runMessage = messageFormatting.createOrchestrationRunMessage(runRecord);
-        activeConversation.messages.push(runMessage);
+        this.updateOrchestrationRunRecord(activeConversation, runRecord);
+        this.finalizeStreamMessage(activeConversation, streamId, runRecord);
+        this.cleanupStreamSubscription(activeConversation, streamId);
         return runRecord;
       }
 
+      this.markStreamError(
+        activeConversation,
+        streamId,
+        'No orchestration run returned from server',
+      );
       return null;
+    } catch (error) {
+      if (error instanceof Error) {
+        this.markStreamError(activeConversation, streamId, error.message);
+      } else {
+        this.markStreamError(activeConversation, streamId, 'Unknown error');
+      }
+      throw error;
     },
 
     async saveOrchestrationRecipe(input: {

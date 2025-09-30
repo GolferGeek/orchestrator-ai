@@ -329,8 +329,84 @@ export class MessageFormattingService {
         runId: run.id,
         planId: run.plan_id,
         run,
+        status,
       },
     };
+  }
+
+  createStreamMessage(streamId: string, label: string): AgentChatMessage {
+    const now = new Date();
+    return {
+      id: `stream-${streamId}`,
+      role: 'assistant',
+      content: label,
+      timestamp: now,
+      metadata: {
+        streamId,
+        isStreaming: true,
+        lastUpdated: now.toISOString(),
+      },
+    };
+  }
+
+  updateStreamMessageFromRun(
+    message: AgentChatMessage,
+    run: OrchestrationRunRecord,
+    statusLabel?: string,
+  ): AgentChatMessage {
+    const status = statusLabel ?? run.status ?? 'running';
+    const planRef = run.plan_id ? `Plan: ${run.plan_id}` : 'Ad hoc execution';
+    message.content = `▶️ Orchestration Run ${run.id}\nStatus: ${status}\n${planRef}`;
+    const now = new Date();
+    message.timestamp = now;
+    message.metadata = {
+      ...(message.metadata ?? {}),
+      isStreaming: true,
+      lastUpdated: now.toISOString(),
+      runId: run.id,
+      planId: run.plan_id,
+      status,
+      run,
+    };
+    return message;
+  }
+
+  updateStreamMessageWithText(
+    message: AgentChatMessage,
+    text: string,
+  ): AgentChatMessage {
+    message.content = text;
+    const now = new Date();
+    message.timestamp = now;
+    message.metadata = {
+      ...(message.metadata ?? {}),
+      isStreaming: true,
+      lastUpdated: now.toISOString(),
+    };
+    return message;
+  }
+
+  markStreamComplete(message: AgentChatMessage): AgentChatMessage {
+    const now = new Date();
+    message.metadata = {
+      ...(message.metadata ?? {}),
+      isStreaming: false,
+      completedAt: now.toISOString(),
+    };
+    return message;
+  }
+
+  markStreamError(message: AgentChatMessage, error: string): AgentChatMessage {
+    const now = new Date();
+    message.content = `⚠️ Stream error: ${error}`;
+    message.metadata = {
+      ...(message.metadata ?? {}),
+      isStreaming: false,
+      lastUpdated: now.toISOString(),
+      error,
+    };
+    message.timestamp = now;
+    return message;
   }
 
   createSavedOrchestrationMessage(orchestration: AgentOrchestrationRecord): AgentChatMessage {

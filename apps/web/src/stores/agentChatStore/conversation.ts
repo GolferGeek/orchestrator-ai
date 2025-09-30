@@ -409,6 +409,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       plans: [],
       orchestrationRuns: [],
       savedOrchestrations: [],
+      streamSubscriptions: {},
     };
   }
 

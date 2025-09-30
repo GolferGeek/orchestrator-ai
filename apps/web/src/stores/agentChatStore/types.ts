@@ -147,6 +147,7 @@ export interface AgentConversation {
   plans?: ConversationPlanRecord[];
   orchestrationRuns?: OrchestrationRunRecord[];
   savedOrchestrations?: AgentOrchestrationRecord[];
+  streamSubscriptions?: Record<string, { messageId: string; unsubscribe: () => void }>;
   // Additional properties from original interface
   title: string;
   isLoading: boolean;

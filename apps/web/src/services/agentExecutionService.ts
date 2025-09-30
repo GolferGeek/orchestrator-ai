@@ -10,6 +10,7 @@ export interface AgentExecutionRequest {
   promptParameters?: Record<string, any>;
   userMessage?: string;
   payload?: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
 const normalizeOrgSegment = (orgSlug?: string | null) => {
@@ -38,6 +39,7 @@ export async function executeAgentTask(
     promptParameters: request.promptParameters ?? undefined,
     userMessage: request.userMessage ?? undefined,
     payload: request.payload ?? undefined,
+    metadata: request.metadata ?? undefined,
   };
 
   try {

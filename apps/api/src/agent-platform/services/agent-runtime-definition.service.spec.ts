@@ -1,5 +1,9 @@
 import { AgentRuntimeDefinitionService } from './agent-runtime-definition.service';
 import { AgentRecord } from '../interfaces/agent-record.interface';
+import {
+  demoOrchestratorAgentRecord,
+  myOrgRequirementsAgentRecord,
+} from '../fixtures/reference-agents.fixture';
 
 const sampleYaml = `
 metadata:
@@ -127,5 +131,32 @@ describe('AgentRuntimeDefinitionService', () => {
     expect(definition.metadata.displayName).toBe('Golf Rules Agent');
     expect(definition.capabilities).toEqual([]);
     expect(definition.transport).toBeUndefined();
+  });
+
+  it('parses seeded reference agents without data loss', () => {
+    const orchestrator = service.buildDefinition(demoOrchestratorAgentRecord);
+    expect(orchestrator.slug).toBe('orchestrator');
+    expect(orchestrator.metadata.displayName).toBe('Demo Orchestrator');
+    expect(orchestrator.prompts.plan).toContain('numbered phases');
+    expect(orchestrator.context?.plan_rubric?.required_sections).toContain(
+      'Phases',
+    );
+    expect(orchestrator.execution.canPlan).toBe(true);
+    expect(orchestrator.execution.canBuild).toBe(true);
+    expect(orchestrator.capabilities).toEqual([
+      'converse',
+      'plan',
+      'build',
+      'delegate',
+    ]);
+
+    const specialist = service.buildDefinition(myOrgRequirementsAgentRecord);
+    expect(specialist.slug).toBe('requirements-specialist');
+    expect(specialist.metadata.displayName).toBe('Requirements Specialist');
+    expect(specialist.prompts.build).toContain('requirements package');
+    expect(specialist.execution.canPlan).toBe(true);
+    expect(specialist.execution.canBuild).toBe(true);
+    expect(specialist.execution.requiresHumanGate).toBe(false);
+    expect(specialist.capabilities).toEqual(['converse', 'plan', 'build']);
   });
 });

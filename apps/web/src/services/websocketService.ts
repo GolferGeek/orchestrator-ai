@@ -25,6 +25,37 @@ interface DeliverableEvent {
   format: 'markdown' | 'text' | 'json' | 'html';
   metadata?: Record<string, any>;
 }
+export interface AgentStreamChunkEvent {
+  streamId: string;
+  conversationId?: string;
+  sessionId?: string;
+  orchestrationRunId?: string;
+  agentSlug: string;
+  organizationSlug?: string | null;
+  chunk: { type: 'partial' | 'final'; content: string; metadata?: Record<string, any> };
+}
+export interface AgentStreamCompleteEvent {
+  streamId: string;
+  conversationId?: string;
+  sessionId?: string;
+  orchestrationRunId?: string;
+  agentSlug: string;
+  organizationSlug?: string | null;
+}
+export interface AgentStreamErrorEvent {
+  streamId: string;
+  conversationId?: string;
+  sessionId?: string;
+  orchestrationRunId?: string;
+  agentSlug: string;
+  organizationSlug?: string | null;
+  error: string;
+}
+export type StreamHandlers = {
+  onChunk?: (event: AgentStreamChunkEvent) => void;
+  onComplete?: (event: AgentStreamCompleteEvent) => void;
+  onError?: (event: AgentStreamErrorEvent) => void;
+};
 interface TaskEvent {
   taskId: string;
   conversationId?: string;
@@ -52,6 +83,7 @@ class WebSocketService {
   // Global event callbacks (for all tasks)
   private globalWorkflowStepCallbacks: Array<(event: WorkflowStepEvent) => void> = [];
   private globalTaskEventCallbacks: Array<(event: TaskEvent) => void> = [];
+  private streamCallbacks = new Map<string, StreamHandlers[]>();
   constructor() {
     // Don't initialize connection immediately - wait for user to need it
   }
@@ -176,6 +208,26 @@ class WebSocketService {
     this.socket.on('subscription_error', (data: { taskId: string; message: string }) => {
       this.subscribedTasks.delete(data.taskId);
     });
+    this.socket.on('agent_stream_chunk', (event: AgentStreamChunkEvent) => {
+      const callbacks = this.streamCallbacks.get(event.streamId) || [];
+      callbacks.forEach((handler) => handler.onChunk?.(event));
+    });
+    this.socket.on('agent_stream_complete', (event: AgentStreamCompleteEvent) => {
+      const callbacks = this.streamCallbacks.get(event.streamId) || [];
+      callbacks.forEach((handler) => handler.onComplete?.(event));
+      if (callbacks.length) {
+        this.socket?.emit('unsubscribe_stream', { streamId: event.streamId });
+        this.streamCallbacks.delete(event.streamId);
+      }
+    });
+    this.socket.on('agent_stream_error', (event: AgentStreamErrorEvent) => {
+      const callbacks = this.streamCallbacks.get(event.streamId) || [];
+      callbacks.forEach((handler) => handler.onError?.(event));
+      if (callbacks.length) {
+        this.socket?.emit('unsubscribe_stream', { streamId: event.streamId });
+        this.streamCallbacks.delete(event.streamId);
+      }
+    });
     this.socket.on('error', (error: { message: string }) => {
       this.error.value = error.message;
     });
@@ -210,6 +262,33 @@ class WebSocketService {
       }
       this.progressCallbacks.get(taskId)!.push(callback);
     }
+  }
+
+  public async subscribeToStream(
+    streamId: string,
+    handlers: StreamHandlers,
+  ): Promise<() => void> {
+    await this.ensureConnection();
+    if (!this.socket) {
+      return () => undefined;
+    }
+
+    const handlerList = this.streamCallbacks.get(streamId) ?? [];
+    handlerList.push(handlers);
+    this.streamCallbacks.set(streamId, handlerList);
+
+    this.socket.emit('subscribe_stream', { streamId });
+
+    return () => {
+      const existing = this.streamCallbacks.get(streamId) ?? [];
+      const updated = existing.filter((entry) => entry !== handlers);
+      if (updated.length === 0) {
+        this.streamCallbacks.delete(streamId);
+        this.socket?.emit('unsubscribe_stream', { streamId });
+      } else {
+        this.streamCallbacks.set(streamId, updated);
+      }
+    };
   }
   /**
    * Unsubscribe from task progress updates
