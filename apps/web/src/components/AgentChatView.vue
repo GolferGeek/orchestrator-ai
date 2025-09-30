@@ -13,6 +13,14 @@
     </div>
     <!-- Messages -->
     <div class="messages-container" ref="messagesContainer">
+      <!-- DEBUG INFO -->
+      <div style="background: yellow; padding: 10px; margin: 10px;">
+        DEBUG: Agent Slug: {{ agentSlug }} | Should Show: {{ shouldShowAgentResources }} | Agent Name: {{ currentAgent?.name }}
+        <br>Agent Object: {{ JSON.stringify(currentAgent, null, 2) }}
+        <br>Agent Video IDs: {{ agentVideoIds }}
+        <br>Fallback Video IDs: {{ fallbackVideoIds }}
+      </div>
+      
       <!-- Agent Resources Panel -->
       <AgentResourcesPanel
         v-if="shouldShowAgentResources"
@@ -167,8 +175,9 @@ const agentSlug = computed(() => {
 });
 
 const agentVideoIds = computed(() => {
-  if (!agentSlug.value) return [];
-  return videoService.getAgentVideoIds(agentSlug.value);
+  const agentIdentifier = agentSlug.value || currentAgent.value?.name || '';
+  if (!agentIdentifier) return [];
+  return videoService.getAgentVideoIdsByNameOrSlug(agentIdentifier);
 });
 
 const fallbackVideoIds = computed(() => {

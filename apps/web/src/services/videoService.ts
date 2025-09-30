@@ -176,10 +176,67 @@ class VideoService {
   }
 
   /**
+   * Map agent names to their corresponding slugs (mirrors backend mapping)
+   */
+  private getAgentSlugFromName(agentName: string): string {
+    const agentNameToSlugMap: Record<string, string> = {
+      'Finance Metrics Agent': 'finance/metrics',
+      'Marketing Swarm Agent': 'marketing/marketing_swarm',
+      'Requirements Writer Agent': 'engineering/requirements_writer',
+      'Rules Of Golf Agent': 'specialists/golf_rules_agent',
+      'Rules Of Golf Expert': 'specialists/golf_rules_agent',
+      'Golf Rules Agent': 'specialists/golf_rules_agent',
+      'Jokes Agent': 'productivity/jokes_agent',
+      'Jokes Productivity Agent': 'productivity/jokes_agent',
+      // Add more mappings as needed
+    };
+
+    // First try exact match
+    if (agentNameToSlugMap[agentName]) {
+      return agentNameToSlugMap[agentName];
+    }
+
+    // Try partial matches for cases where we get partial identifiers like "metrics"
+    const partialMatches: Record<string, string> = {
+      'metrics': 'finance/metrics',
+      'marketing_swarm': 'marketing/marketing_swarm',
+      'requirements_writer': 'engineering/requirements_writer',
+      'golf_rules_agent': 'specialists/golf_rules_agent',
+      'jokes_agent': 'productivity/jokes_agent',
+    };
+
+    return partialMatches[agentName.toLowerCase()] || '';
+  }
+
+  /**
    * Get video IDs for a specific agent based on agentDefaults mapping
    */
   getAgentVideoIds(agentSlug: string): string[] {
     return this.data.agentDefaults[agentSlug] || [];
+  }
+
+  /**
+   * Get video IDs for an agent by name or slug
+   */
+  getAgentVideoIdsByNameOrSlug(agentNameOrSlug: string): string[] {
+    console.log('🎬 getAgentVideoIdsByNameOrSlug called with:', agentNameOrSlug);
+    
+    // First try direct slug lookup
+    let videoIds = this.getAgentVideoIds(agentNameOrSlug);
+    console.log('🎬 Direct slug lookup result:', videoIds);
+    
+    // If no videos found, try mapping from name to slug
+    if (videoIds.length === 0) {
+      const mappedSlug = this.getAgentSlugFromName(agentNameOrSlug);
+      console.log('🎬 Mapped slug from name:', mappedSlug);
+      if (mappedSlug) {
+        videoIds = this.getAgentVideoIds(mappedSlug);
+        console.log('🎬 Video IDs after mapping:', videoIds);
+      }
+    }
+    
+    console.log('🎬 Final video IDs:', videoIds);
+    return videoIds;
   }
 
   /**

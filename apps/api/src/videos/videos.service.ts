@@ -23,7 +23,7 @@ export class VideosService {
       const data = await fs.readFile(this.videosJsonPath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
-      this.logger.error(`Failed to read videos.json: ${error.message}`);
+      this.logger.error(`Failed to read videos.json: ${(error as Error).message}`);
       throw new NotFoundException('Videos data not found');
     }
   }
@@ -33,7 +33,7 @@ export class VideosService {
    */
   async getCategories() {
     const videosData = await this.getVideos();
-    return videosData.categoryOrder.map(categoryKey => ({
+    return videosData.categoryOrder.map((categoryKey: string) => ({
       key: categoryKey,
       title: videosData.categories[categoryKey]?.title || categoryKey,
       description: videosData.categories[categoryKey]?.description || ''
@@ -48,7 +48,7 @@ export class VideosService {
       const data = await fs.readFile(this.videoTextsJsonPath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
-      this.logger.error(`Failed to read videoTexts.json: ${error.message}`);
+      this.logger.error(`Failed to read videoTexts.json: ${(error as Error).message}`);
       // Return empty structure if file doesn't exist
       return {
         transcripts: {},
@@ -87,7 +87,7 @@ export class VideosService {
         content
       };
     } catch (error) {
-      this.logger.error(`Failed to read transcript file: ${error.message}`);
+      this.logger.error(`Failed to read transcript file: ${(error as Error).message}`);
       throw new NotFoundException(`Transcript content not available for video: ${videoId}`);
     }
   }
@@ -128,7 +128,7 @@ export class VideosService {
 
     // Sort videos by order within category
     videosData.categories[createVideoDto.categoryKey].videos.sort(
-      (a, b) => a.order - b.order
+      (a: any, b: any) => a.order - b.order
     );
 
     // Update agent defaults if provided
@@ -170,7 +170,7 @@ export class VideosService {
   private findVideoById(videosData: any, videoId: string) {
     for (const categoryKey of Object.keys(videosData.categories)) {
       const category = videosData.categories[categoryKey];
-      const video = category.videos.find(v => v.id === videoId);
+      const video = category.videos.find((v: any) => v.id === videoId);
       if (video) {
         return { video, categoryKey };
       }
@@ -183,9 +183,9 @@ export class VideosService {
    */
   private countTotalVideos(videosData: any): number {
     return Object.values(videosData.categories).reduce(
-      (total, category: any) => total + category.videos.length, 
+      (total: number, category: any) => total + category.videos.length, 
       0
-    );
+    ) as number;
   }
 
   /**
@@ -196,7 +196,7 @@ export class VideosService {
       const jsonString = JSON.stringify(videosData, null, 2);
       await fs.writeFile(this.videosJsonPath, jsonString, 'utf-8');
     } catch (error) {
-      this.logger.error(`Failed to write videos.json: ${error.message}`);
+      this.logger.error(`Failed to write videos.json: ${(error as Error).message}`);
       throw new BadRequestException('Failed to save video data');
     }
   }
@@ -208,7 +208,7 @@ export class VideosService {
     try {
       const videoTexts = await this.getVideoTexts();
       
-      videoTexts.transcripts[videoData.transcriptId] = {
+      videoTexts.transcripts[videoData.transcriptId!] = {
         title: `${videoData.title} - Transcript`,
         description: `Full transcript of the ${videoData.title.toLowerCase()} video.`,
         filePath: `video-texts/${videoData.transcriptId}-transcript.md`,
@@ -224,7 +224,7 @@ export class VideosService {
 
       await fs.writeFile(this.videoTextsJsonPath, JSON.stringify(videoTexts, null, 2), 'utf-8');
     } catch (error) {
-      this.logger.warn(`Failed to create transcript entry: ${error.message}`);
+      this.logger.warn(`Failed to create transcript entry: ${(error as Error).message}`);
       // Don't fail the video creation if transcript entry fails
     }
   }

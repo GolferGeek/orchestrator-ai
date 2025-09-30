@@ -63,6 +63,16 @@
         
         <!-- Messages -->
         <div class="messages-container" ref="messagesContainer">
+          <!-- Agent Resources Panel -->
+          <AgentResourcesPanel
+            v-if="shouldShowAgentResources"
+            :agent-video-ids="agentVideoIds"
+            :fallback-video-ids="fallbackVideoIds"
+            :videos="allVideos"
+            :agent-slug="agentSlug"
+            :agent-name="currentAgent?.name"
+          />
+          
           <!-- Prominent thinking indicator (Converse/Plan modes) -->
           <div v-if="isSendingMessage && (currentChatMode === 'converse' || currentChatMode === 'plan')" class="prominent-thinking-indicator">
             <div class="thinking-content">
@@ -302,6 +312,7 @@ import {
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useAuthStore } from '@/stores/authStore';
+import { videoService } from '@/services/videoService';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -309,6 +320,7 @@ import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import type { AgentChatMessage } from '@/stores/agentChatStore/types';
 import type { AgentLLMRecommendation } from '@/types/evaluation';
 import AgentTaskItem from './AgentTaskItem.vue';
+import AgentResourcesPanel from './AgentResourcesPanel.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
@@ -348,6 +360,31 @@ const isMobile = ref(false);
 const currentAgent = computed(() => props.conversation?.agent);
 const currentAgentIdentifier = computed(() => currentAgent.value?.name || '');
 const messages = computed(() => props.conversation?.messages || []);
+
+// Video-related computed properties  
+const agentSlug = computed(() => {
+  // Extract agent slug from currentAgent data if available
+  return currentAgent.value?.slug || currentAgent.value?.id || '';
+});
+
+const agentVideoIds = computed(() => {
+  const agentIdentifier = agentSlug.value || currentAgent.value?.name || '';
+  if (!agentIdentifier) return [];
+  return videoService.getAgentVideoIdsByNameOrSlug(agentIdentifier);
+});
+
+const fallbackVideoIds = computed(() => {
+  return videoService.getDefaultVideoIds();
+});
+
+const allVideos = computed(() => {
+  return videoService.getAllVideos();
+});
+
+const shouldShowAgentResources = computed(() => {
+  // Show panel if we have a current agent and at least one video to display
+  return currentAgent.value && (agentVideoIds.value.length > 0 || fallbackVideoIds.value.length > 0);
+});
 const isLoading = computed(() => agentChatStore.isLoading);
 const error = computed(() => agentChatStore.error);
 const isSendingMessage = computed(() => agentChatStore.isSendingMessage);

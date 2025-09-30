@@ -18,7 +18,7 @@ export class CreateVideoDto {
   })
   @IsString()
   @IsNotEmpty()
-  id: string;
+  id!: string;
 
   @ApiProperty({ 
     description: 'Video title',
@@ -26,7 +26,7 @@ export class CreateVideoDto {
   })
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @ApiProperty({ 
     description: 'Video description',
@@ -34,7 +34,7 @@ export class CreateVideoDto {
   })
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @ApiProperty({ 
     description: 'Video URL (Loom embed or TBD_RECORDING_NEEDED)',
@@ -42,7 +42,7 @@ export class CreateVideoDto {
   })
   @IsString()
   @IsNotEmpty()
-  url: string;
+  url!: string;
 
   @ApiProperty({ 
     description: 'Video duration in MM:SS format',
@@ -50,14 +50,14 @@ export class CreateVideoDto {
   })
   @IsString()
   @IsNotEmpty()
-  duration: string;
+  duration!: string;
 
   @ApiProperty({ 
     description: 'Video creation date in YYYY-MM-DD format',
     example: '2025-01-24' 
   })
   @IsDateString()
-  createdAt: string;
+  createdAt!: string;
 
   @ApiPropertyOptional({ 
     description: 'Whether this video is featured',
@@ -73,7 +73,7 @@ export class CreateVideoDto {
     example: 1 
   })
   @IsNumber()
-  order: number;
+  order!: number;
 
   @ApiProperty({ 
     description: 'Category key where video should be placed',
@@ -100,7 +100,7 @@ export class CreateVideoDto {
     'demos',
     'agents'
   ])
-  categoryKey: string;
+  categoryKey!: string;
 
   @ApiPropertyOptional({ 
     description: 'Recording status for tracking video production',
