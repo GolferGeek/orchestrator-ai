@@ -159,6 +159,7 @@ Two major pillars drive the greenfield rebuild.
    - *2025-01-20 update:* Converse non-stream integration ensures synchronous responses flow via mode router without stream sessions.
    - *2025-01-20 update:* Plan execution validation now rejects conversations mismatched with stored plan records.
    - *2025-01-20 update:* Plan execution success path without streaming validates metadata returned to clients.
+   - *2025-01-20 update:* Saved orchestration execution without templates now covered (empty promptInputs verified).
 5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
    - *2025-01-19 update:* Removed the unfinished `AgentCreator`/agent-builder prototype from the codebase to eliminate conflicting Supabase dependencies while the new runtime is constructed.
    - *2025-01-20 update:* `apps/api/supabase/seed.sql` now inserts reference agents (`demo/orchestrator`, `my-org/requirements-specialist`) so the runtime can be exercised end-to-end during Phase 2.
@@ -377,7 +378,32 @@ export class AgentsRepository {
 - All async flows return typed DTOs (no `any`).
 - Extensive unit tests per service with Nest testing module.
 
-## 10. References
+## 10. my-org Hierarchy Publishing Agents
+
+The `my-org` namespace will gain a multi-agent publishing pipeline that turns a single idea into a finished blog post while updating the Hiverarchy Supabase dataset.
+
+- **hiverarchy-orchestrator** – Oversees the workflow, launches specialists, records run metadata, and coordinates human checkpoints.
+- **researcher** – Produces structured research (sources, summaries, stats) from the initial prompt.
+- **child-topic-builder** – Generates hierarchical child topics using research + existing taxonomy data.
+- **outliner** – Builds a comprehensive outline leveraging the prompt, research notes, and topic hierarchy.
+- **writer** – Drafts the initial post using outline + research deliverables.
+- **editor** – Enforces voice, flow, and structural requirements; returns a polished draft.
+- **image-generator** – Produces or selects an accompanying image and stores metadata/links in Supabase storage.
+- **human-in-the-loop reviewer** – Presents final deliverables for approval and feeds edits back into the run.
+- **Supabase content agents** – Single-purpose helpers for Hiverarchy CRUD: update parent post, create child-post stubs (idea-only), list idea-only posts, and fetch the next idea to work on. These may share a lightweight `hiverarchy-client` library for connection management.
+
+### Data & orchestration considerations
+1. Confirm Hiverarchy table structures (ideas, posts, hierarchy nodes, assets) and extend migrations where additional metadata is required (e.g., image URLs).
+2. Author agent descriptors (capabilities, prompts, plan rubrics) and seed records for each specialist in Supabase.
+3. Create orchestration plan templates describing the canonical sequence (research → hierarchy → outline → writer → editor → image → human review → Supabase update).
+4. Define telemetry/audit requirements (e.g., capturing source citations, human edits, asset links).
+
+### Outstanding questions
+- Should research snippets be cached in Supabase for future reuse across posts?
+- Where should generated images live (Supabase storage vs external CDN) and how do we reference them in the post body?
+- Do we ingest existing `my-org` ideas or start fresh when the suite launches?
+
+## 11. References
 - Legacy Refactor PRD (`legacy-a2a-refactor-prd.md`)
 - Agent-to-Agent Controller PRD (`agent-to-agent-controller-prd.md`)
 - Database Agents PRD (`database-agents-greenfield-prd.md`)

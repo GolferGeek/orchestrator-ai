@@ -457,6 +457,67 @@ describe('AgentExecutionGateway (runtime integration)', () => {
     expect(errorEvents[0]).toMatchObject({ agentSlug });
   });
 
+  it('runs saved orchestration without prompt templates using empty inputs', async () => {
+    const savedRunId = 'ffffeeee-dddd-cccc-bbbb-aaaa00001111';
+    const { gateway, agentOrchestrations, orchestrationRunner } = buildGateway({
+      agentOrchestrations: {
+        findBySlug: jest.fn().mockResolvedValue({
+          id: 'bbbbbbbb-1111-2222-3333-444444444444',
+          organization_slug: organizationSlug,
+          agent_slug: agentSlug,
+          slug: 'simple-orch',
+          display_name: 'Simple Orchestration',
+          description: 'No templates',
+          status: 'active',
+          orchestration_json: { steps: [] },
+          prompt_templates: [],
+          tags: [],
+          version: '1.0.0',
+          created_by: null,
+          updated_by: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }),
+      },
+      orchestrationRunner: {
+        startRun: jest.fn().mockResolvedValue({
+          id: savedRunId,
+          plan_id: null,
+          status: 'pending',
+          organization_slug: organizationSlug,
+          agent_slug: agentSlug,
+          orchestration_slug: 'simple-orch',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          metadata: {},
+        }),
+      },
+    });
+
+    const response = await gateway.execute(organizationSlug, agentSlug, {
+      mode: AgentTaskMode.ORCHESTRATOR_RUN_START,
+      orchestrationSlug: 'simple-orch',
+      payload: {
+        options: { stream: false },
+      },
+    });
+
+    expect(agentOrchestrations.findBySlug).toHaveBeenCalledWith(
+      organizationSlug,
+      agentSlug,
+      'simple-orch',
+    );
+    expect(orchestrationRunner.startRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        promptInputs: {},
+        originType: 'saved_orchestration',
+      }),
+    );
+    expect(response.success).toBe(true);
+    expect(response.payload?.content?.id).toBe(savedRunId);
+    expect(response.payload?.metadata?.streamId).toBeUndefined();
+  });
+
   it('returns routing showstopper as human response without invoking dispatch', async () => {
     const { gateway, routingPolicy, modeRouter } = buildGateway({
       routingPolicy: {

@@ -76,6 +76,30 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 
 ---
 
+## Upcoming Initiative – my-org Hierarchy Publishing Agents
+
+We will add a hierarchical publishing suite for the `my-org` namespace that produces long-form posts from a single idea. The agents will live in Supabase (Hiverarchy dataset) alongside supporting orchestration recipes.
+
+- **hiverarchy-orchestrator** – owns the end-to-end workflow, delegates to specialists, tracks deliverables, and writes run metadata back to Supabase.
+- **researcher** – expands the seed prompt into structured research notes, sources, and key facts.
+- **child-topic-builder** – turns research + outline brief into a hierarchical set of child topics (Hiverarchy taxonomy nodes).
+- **outliner** – combines original prompt, research, and child topics to produce a fleshed-out outline (sections, talking points, CTA).
+- **writer** – generates the first full draft using outline + research + child topics.
+- **editor** – enforces flow/voice/structure requirements and returns a polished draft with inline change notes.
+- **image-generator** – selects/creates an accompanying image and stores metadata for downstream rendering.
+- **human-review agent** – surfaces deliverables for manual approval, collects edits, and re-injects feedback into the run.
+- **supabase content agents** – CRUD helpers for the Hiverarchy dataset: update the parent post, create child-post stubs (idea-only), list idea-only posts, and fetch the next post to start. These may be implemented as single-purpose agents (update, create, list, fetch) for clear separation of duties.
+
+### Planned deliverables
+1. Database schema additions (if needed) + seeds for the new agents and orchestration recipes.
+2. Orchestration plan templates mapping orchestrator → specialist execution order.
+3. Frontend hooks (later phase) to visualize Hiverarchy state and human-in-the-loop checkpoints.
+
+### Open questions
+- Do we ingest existing Hiverarchy content for bootstrapping, or begin with net-new posts?
+- Should the Supabase CRUD agents share a base module or remain fully independent?
+- Where should image assets be stored (Supabase storage vs. external CDN) and how do we reference them in the post body?
+
 ## Coordination & Notes
 - **Lint/Test Debt:** Separate agent handles legacy lint cleanup; sync before Phase 2 to avoid churn.
 - **Docs:** Update this plan whenever tasks move phases; mirror key decisions back into `agent-platform-unified-prd.md` for historical record.
@@ -116,4 +140,5 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-20:** Added converse non-stream path coverage to ensure synchronous responses flow through mode router cleanly. (Codex)
 - **2025-01-20:** Added validation coverage for plan execution rejecting mismatched conversation IDs. (Codex)
 - **2025-01-20:** Plan execution success path now checks response metadata and agent provenance without streaming. (Codex)
+- **2025-01-20:** Saved orchestration execution without templates covered (prompt inputs default to empty). (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).
