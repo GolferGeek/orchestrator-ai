@@ -212,18 +212,23 @@ export class AppService implements OnModuleInit {
 
     const existingKeys = new Set(
       agentsWithDetails.map((agent) =>
-        `${agent.namespace ?? 'global'}::${agent.name}`,
+        this.normalizeAgentIdentifier(agent.namespace ?? null, agent.name),
       ),
     );
 
     const mergedAgents = [...agentsWithDetails];
     for (const agent of databaseAgentStatuses) {
-      const key = `${agent.namespace ?? 'global'}::${agent.name}`;
+      const key = this.normalizeAgentIdentifier(
+        agent.namespace ?? null,
+        agent.name,
+      );
       if (existingKeys.has(key)) {
         const index = mergedAgents.findIndex(
           (existing) =>
-            (existing.namespace ?? 'global') ===
-              (agent.namespace ?? 'global') && existing.name === agent.name,
+            this.normalizeAgentIdentifier(
+              existing.namespace ?? null,
+              existing.name,
+            ) === key,
         );
         if (index >= 0) {
           mergedAgents[index] = agent;
@@ -303,6 +308,11 @@ export class AppService implements OnModuleInit {
   }
 
   private mapDatabaseAgent(record: AgentRecord) {
+    const agentCategory = record.config?.agent_category as
+      | string
+      | undefined;
+    const isTool = agentCategory === 'tool';
+
     const supportedModesRaw = Array.isArray(record.config?.supported_modes)
       ? (record.config!.supported_modes as string[])
       : [];
@@ -331,13 +341,14 @@ export class AppService implements OnModuleInit {
       status: record.status,
       config: record.config,
       context: record.context,
+      agent_category: agentCategory,
     };
 
     return {
       id: record.id,
       name: record.slug,
       displayName: record.display_name,
-      type: record.agent_type,
+      type: isTool ? 'tool' : record.agent_type,
       namespace: record.organization_slug ?? null,
       description: record.description ?? record.display_name,
       serviceClass: null,
@@ -350,6 +361,19 @@ export class AppService implements OnModuleInit {
       registeredAt: new Date(record.created_at),
       lastHeartbeat: new Date(record.updated_at),
     };
+  }
+
+  private normalizeAgentIdentifier(
+    namespace: string | null,
+    name: string,
+  ): string {
+    const normalizedNamespace = namespace?.trim().length
+      ? namespace.trim().toLowerCase()
+      : 'global';
+    const normalizedName = (name ?? '')
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '_');
+    return `${normalizedNamespace}::${normalizedName}`;
   }
 
   private deriveExecutionProfile(

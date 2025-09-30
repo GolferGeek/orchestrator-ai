@@ -892,6 +892,106 @@ export class DynamicAgentsController {
     return this.agentRegistry.listAllAgents();
   }
 
+  private async findDatabaseAgentRecord(
+    namespace: string | null,
+    agentName: string,
+  ): Promise<AgentRecord | null> {
+    const addVariant = (slug: string | null | undefined, variants: Set<string>) => {
+      if (!slug) {
+        return;
+      }
+      const trimmed = slug.trim();
+      if (trimmed.length) {
+        variants.add(trimmed);
+      }
+    };
+
+    const normalizedTarget = this.normalizeAgentName(agentName);
+
+    const legacySlugAliases: Record<string, string | undefined> = {
+      hierarchy_orchestrator: 'hiverarchy-orchestrator',
+      hierarchy_researcher: 'hiverarchy-researcher',
+      hierarchy_child_builder: 'hiverarchy-child-builder',
+      child_topic_finder: 'hiverarchy-child-builder',
+      child_topic_builder: 'hiverarchy-child-builder',
+      child_topic_generator: 'hiverarchy-child-builder',
+      hierarchy_outliner: 'hiverarchy-outliner',
+      hierarchy_outline_builder: 'hiverarchy-outliner',
+      hierarchy_writer: 'hiverarchy-writer',
+      hierarchy_editor: 'hiverarchy-editor',
+      hierarchy_image_generator: 'hiverarchy-image-generator',
+      hierarchy_human_review: undefined,
+      hiverarchy_orchestrator: 'hiverarchy-orchestrator',
+      hiverarchy_researcher: 'hiverarchy-researcher',
+      hiverarchy_child_finder: 'hiverarchy-child-builder',
+      supabase_post_update: 'supabase-post-update',
+      supabase_child_create: 'supabase-child-create',
+      supabase_child_creator: 'supabase-child-create',
+      supabase_idea_list: 'supabase-idea-list',
+    };
+    const slugVariants = new Set<string>();
+
+    addVariant(agentName, slugVariants);
+    addVariant(agentName.replace(/_/g, '-'), slugVariants);
+    addVariant(agentName.replace(/-/g, '_'), slugVariants);
+
+    if (normalizedTarget.includes('hierarchy')) {
+      const corrected = normalizedTarget.replace('hierarchy', 'hiverarchy');
+      addVariant(corrected.replace(/_/g, '-'), slugVariants);
+      addVariant(corrected.replace(/_/g, '_'), slugVariants);
+    }
+
+    const alias = legacySlugAliases[normalizedTarget];
+    if (alias && alias.trim().length) {
+      addVariant(alias, slugVariants);
+      addVariant(alias.replace(/-/g, '_'), slugVariants);
+    }
+
+    const lookupNamespace = namespace ?? null;
+    for (const slug of slugVariants) {
+      const record = await this.agentRegistry.getAgent(lookupNamespace, slug);
+      if (record) {
+        return record;
+      }
+    }
+
+    const candidateRecords = lookupNamespace
+      ? await this.agentRegistry.listAgents(lookupNamespace)
+      : await this.agentRegistry.listAllAgents();
+
+    const matched = candidateRecords.find((record) => {
+      const recordNormalized = this.normalizeAgentName(record.slug);
+      if (recordNormalized === normalizedTarget) {
+        return true;
+      }
+      if (slugVariants.has(record.slug)) {
+        return true;
+      }
+      if (slugVariants.has(record.slug.replace(/_/g, '-'))) {
+        return true;
+      }
+      if (slugVariants.has(record.slug.replace(/-/g, '_'))) {
+        return true;
+      }
+      return false;
+    });
+
+    if (matched) {
+      return matched;
+    }
+
+    if (lookupNamespace) {
+      const globalMatch = (await this.agentRegistry.listAllAgents()).find(
+        (record) => this.normalizeAgentName(record.slug) === normalizedTarget,
+      );
+      if (globalMatch) {
+        return globalMatch;
+      }
+    }
+
+    return null;
+  }
+
   private buildDatabaseHierarchy(records: AgentRecord[]): AgentHierarchy[] {
     if (!records.length) {
       return [];
@@ -909,21 +1009,38 @@ export class DynamicAgentsController {
     const createNode = (
       record: AgentRecord,
       children: AgentHierarchy[] = [],
-    ): AgentHierarchy => ({
-      id: record.id,
-      name: record.slug,
-      displayName: record.display_name,
-      type: record.agent_type,
-      path: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
-      relativePath: record.slug,
-      namespace: record.organization_slug ?? undefined,
-      namespacedPath: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
-      metadata: {
-        description: record.description ?? undefined,
-        version: record.version ?? undefined,
-      },
-      children,
-    });
+    ): AgentHierarchy => {
+      const isTool = record.config?.agent_category === 'tool';
+      const isOrchestrator =
+        record.agent_type === 'orchestrator' || record.config?.orchestrator;
+      const category = isTool
+        ? 'tool'
+        : isOrchestrator
+        ? 'orchestrator'
+        : record.agent_type ?? 'specialist';
+
+      return {
+        id: record.id,
+        name: record.slug,
+        displayName: record.display_name,
+        type: isTool ? 'tool' : record.agent_type ?? 'specialist',
+        path: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
+        relativePath: record.slug,
+        namespace: record.organization_slug ?? undefined,
+        namespacedPath: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
+        metadata: {
+          description: record.description ?? undefined,
+          version: record.version ?? undefined,
+          category,
+          agentType: record.agent_type,
+          source: 'database',
+          namespace: record.organization_slug ?? null,
+          isTool: isTool || undefined,
+          isOrchestrator: isOrchestrator || undefined,
+        },
+        children,
+      };
+    };
 
     const roots: AgentHierarchy[] = [];
 
@@ -957,7 +1074,16 @@ export class DynamicAgentsController {
         }
 
         const toolNodes = tools
-          .map((tool) => this.cloneHierarchyNode(createNode(tool, [])))
+          .map((tool) => {
+            const node = this.cloneHierarchyNode(createNode(tool, []));
+            return {
+              ...node,
+              metadata: {
+                ...(node.metadata || {}),
+                category: 'tool',
+              },
+            };
+          })
           .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
         roots.push({
@@ -967,6 +1093,11 @@ export class DynamicAgentsController {
           type: 'tool_group',
           path: `db://${namespaceKey ?? 'global'}/tools`,
           namespace: namespaceKey ?? undefined,
+          metadata: {
+            category: 'tool_group',
+            source: 'database',
+            namespace: namespaceKey ?? null,
+          },
           children: toolNodes,
         });
       };
@@ -998,7 +1129,17 @@ export class DynamicAgentsController {
       appendToolsFolder();
     });
 
-    roots.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    roots.sort((a, b) => {
+      const aIsTool = a.type === 'tool_group';
+      const bIsTool = b.type === 'tool_group';
+      if (aIsTool && !bIsTool) {
+        return 1;
+      }
+      if (!aIsTool && bIsTool) {
+        return -1;
+      }
+      return a.displayName.localeCompare(b.displayName);
+    });
 
     return roots;
   }
@@ -1013,7 +1154,7 @@ export class DynamicAgentsController {
 
     const merged = filesystem.map((node) => this.cloneHierarchyNode(node));
     const keyFor = (node: AgentHierarchy) =>
-      `${node.namespace ?? 'global'}::${node.name}`;
+      `${node.namespace ?? 'global'}::${this.normalizeAgentName(node.name)}`;
     const indexByKey = new Map<string, number>();
     merged.forEach((node, index) => {
       indexByKey.set(keyFor(node), index);
@@ -1030,6 +1171,18 @@ export class DynamicAgentsController {
         merged.push(cloned);
       }
     }
+
+    merged.sort((a, b) => {
+      const aIsTool = a.type === 'tool_group';
+      const bIsTool = b.type === 'tool_group';
+      if (aIsTool && !bIsTool) {
+        return 1;
+      }
+      if (!aIsTool && bIsTool) {
+        return -1;
+      }
+      return a.displayName.localeCompare(b.displayName);
+    });
 
     return merged;
   }

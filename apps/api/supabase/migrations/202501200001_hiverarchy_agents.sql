@@ -22,7 +22,7 @@ INSERT INTO public.agents (
     'my-org',
     'hiverarchy-orchestrator',
     'Hiverarchy Orchestrator',
-    'Coordinates my-org hierarchy publishing workflow.',
+    'Coordinates my-org Hiverarchy publishing workflow.',
     'orchestrator',
     'orchestrator_full',
     '0.1.0',
@@ -32,7 +32,7 @@ INSERT INTO public.agents (
   "metadata": {
     "name": "hiverarchy-orchestrator",
     "displayName": "Hiverarchy Orchestrator",
-    "description": "Coordinates hierarchy publishing workflow for my-org ideas, delegating to specialists and recording progress.",
+    "description": "Coordinates Hiverarchy publishing workflow for my-org ideas, delegating to specialists and recording progress.",
     "version": "0.1.0",
     "type": "orchestrator",
     "tags": ["my-org", "orchestrator", "publishing"]
@@ -49,7 +49,7 @@ INSERT INTO public.agents (
       "supports_build": true,
       "supports_orchestration": true
     },
-    "prompt_prefix": "You manage the my-org hierarchy publishing pipeline. Delegate work, coordinate hand-offs, and capture updates for Supabase."
+    "prompt_prefix": "You manage the my-org Hiverarchy publishing pipeline. Delegate work, coordinate hand-offs, and capture updates for Supabase."
   },
   "skills": [
     {
@@ -62,15 +62,15 @@ INSERT INTO public.agents (
     },
     {
       "id": "status-tracking",
-      "name": "Track hierarchy status",
-      "description": "Maintains a summary of publishing progress across agents.",
+      "name": "Track Hiverarchy status",
+      "description": "Maintains a summary of Hiverarchy publishing progress across agents.",
       "tags": ["status"],
       "input_modes": ["text/plain"],
       "output_modes": ["text/markdown"]
     }
   ],
   "prompts": {
-    "system": "You are the hivERarchy orchestrator for my-org. Coordinate specialist agents to transform a content idea into a published blog post. Maintain a checklist, capture deliverables, and surface blockers for human review.",
+    "system": "You are the Hiverarchy orchestrator for my-org. Coordinate specialist agents to transform a content idea into a published blog post. Maintain a checklist, capture deliverables, and surface blockers for human review.",
     "plan": "Draft a phase-by-phase plan covering research, topic hierarchy, outlining, drafting, editing, imagery, human review, and Supabase updates. Each phase must list owner, inputs, and outputs.",
     "build": "Summarize current progress across the publishing pipeline (what is done, in progress, and pending human action).",
     "human": "Describe what approval or input the human reviewer must provide to continue the orchestration."
@@ -175,7 +175,7 @@ INSERT INTO public.agents (
     }
   ],
   "prompts": {
-    "system": "You produce structured research packets for hierarchy publishing. Include source URLs and key takeaways.",
+    "system": "You produce structured research packets for Hiverarchy publishing. Include source URLs and key takeaways.",
     "plan": "List the research steps you will take (queries, sources, validation).",
     "build": "Return a research packet in JSON with sections for facts, quotes, statistics, source links, and suggested supporting media."
   }

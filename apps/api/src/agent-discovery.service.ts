@@ -42,6 +42,7 @@ export interface AgentHierarchy {
     description?: string;
     category?: string;
     version?: string;
+    [key: string]: any;
   };
   children: AgentHierarchy[];
 }
