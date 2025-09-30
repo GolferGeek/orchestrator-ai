@@ -1,6 +1,7 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AgentExecutionGateway } from './agent-execution-gateway.service';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
+import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
@@ -529,5 +530,56 @@ describe('AgentExecutionGateway (runtime integration)', () => {
     expect(response.success).toBe(true);
     expect(response.mode).toBe(AgentTaskMode.PLAN);
     expect(response.payload?.content).toBe(createdPlan);
+  });
+
+  it('routes converse streaming requests through mode router and preserves metadata', async () => {
+    const streamResponse = TaskResponseDto.success(AgentTaskMode.CONVERSE, {
+      content: { message: 'hello world' },
+      metadata: { streamId: 'stream-abc', provider: 'openai' },
+    });
+
+    const { gateway, routingPolicy, modeRouter } = buildGateway({
+      routingPolicy: {
+        evaluate: jest.fn().mockResolvedValue({
+          showstopper: false,
+          metadata: {
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+            custom: 'route-metadata',
+          },
+        }),
+      },
+      streamService: undefined,
+    });
+
+    modeRouter.execute.mockResolvedValue(streamResponse);
+
+    const request: TaskRequestDto = {
+      mode: AgentTaskMode.CONVERSE,
+      conversationId,
+      sessionId,
+      userMessage: 'Need help',
+      payload: {
+        options: { stream: true },
+      },
+    };
+
+    const response = await gateway.execute(organizationSlug, agentSlug, request);
+
+    expect(routingPolicy.evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: AgentTaskMode.CONVERSE }),
+      expect.objectContaining({ slug: agentSlug }),
+    );
+    expect(modeRouter.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationSlug,
+        agentSlug,
+        request: expect.objectContaining({ mode: AgentTaskMode.CONVERSE }),
+        routingMetadata: expect.objectContaining({ custom: 'route-metadata' }),
+      }),
+    );
+
+    expect(response.success).toBe(true);
+    expect(response.payload?.metadata?.streamId).toBe('stream-abc');
   });
 });

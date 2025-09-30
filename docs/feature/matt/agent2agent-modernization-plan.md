@@ -112,4 +112,5 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-20:** AgentModeRouter tests now cover streaming error propagation (session.error) for dispatcher failures. (Codex)
 - **2025-01-20:** Gateway integration suite exercises routing showstopper path (human response) to guard against unintended dispatch calls. (Codex)
 - **2025-01-20:** Plan mode integration confirms PlanEngine receives enriched agent metadata for draft creation. (Codex)
+- **2025-01-20:** Converse streaming integration validates gateway → mode router hand-off preserves routing metadata and stream info. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).
