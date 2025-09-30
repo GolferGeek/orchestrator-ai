@@ -69,6 +69,7 @@
 ---
 
 ## Change Log
+- **2025-01-19:** Added structured logging for controller requests (org/agent/mode + JSON-RPC metadata). (Codex)
 - **2025-01-19:** Controller now returns JSON-RPC error envelopes (code mapping for 4xx/5xx) to keep HTTP 200 responses spec-compliant. (Codex)
 - **2025-01-19:** PRD updated with JSON-RPC request/response contract (method mapping, envelope semantics). (Codex)
 - **2025-01-19:** `/agent-to-agent/:org/:agent/tasks` accepts JSON-RPC 2.0 envelopes, maps `method` to task modes, and preserves request metadata for downstream telemetry. (Codex)

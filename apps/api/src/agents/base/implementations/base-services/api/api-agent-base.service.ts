@@ -154,6 +154,7 @@ export class ApiAgentBaseService
           yamlPath = testPath;
           break;
         } else {
+          // No action needed
         }
       }
 
@@ -188,6 +189,7 @@ export class ApiAgentBaseService
               this.setApiConfiguration(substitutionResult.data);
 
               if (substitutionResult.substitutedVars.length > 0) {
+                // No action needed
               }
             } else {
               // Fallback: use config as-is without environment variable substitution
@@ -208,6 +210,7 @@ export class ApiAgentBaseService
 
         return; // Found the file, but couldn't load config
       } else {
+        // No action needed
       }
     } catch (error) {
       this.apiLogger.error(

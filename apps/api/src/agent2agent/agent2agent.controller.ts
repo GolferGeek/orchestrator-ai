@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Logger,
   Param,
   Post,
   UseGuards,
@@ -48,6 +49,8 @@ export class Agent2AgentController {
     private readonly gateway: AgentExecutionGateway,
   ) {}
 
+  private readonly logger = new Logger(Agent2AgentController.name);
+
   @Get([
     'agent-to-agent/:orgSlug/:agentSlug/.well-known/agent.json',
     'agents/:orgSlug/:agentSlug/.well-known/agent.json',
@@ -75,6 +78,15 @@ export class Agent2AgentController {
     try {
       const result = await this.gateway.execute(org, agentSlug, dto);
 
+      this.logRequest({
+        org,
+        agentSlug,
+        dto,
+        jsonrpc,
+        status: 'success',
+        error: null,
+      });
+
       if (jsonrpc) {
         return {
           jsonrpc: '2.0',
@@ -86,8 +98,25 @@ export class Agent2AgentController {
       return result;
     } catch (error) {
       if (!jsonrpc) {
+        this.logRequest({
+          org,
+          agentSlug,
+          dto,
+          jsonrpc: null,
+          status: 'error',
+          error,
+        });
         throw error;
       }
+
+      this.logRequest({
+        org,
+        agentSlug,
+        dto,
+        jsonrpc,
+        status: 'error',
+        error,
+      });
 
       return this.buildJsonRpcError(jsonrpc.id ?? null, error);
     }
@@ -278,5 +307,49 @@ export class Agent2AgentController {
       return payload.message.join(', ');
     }
     return null;
+  }
+
+  private logRequest(params: {
+    org: string | null;
+    agentSlug: string;
+    dto: TaskRequestDto;
+    jsonrpc: NormalizedTaskRequest['jsonrpc'] | null | undefined;
+    status: 'success' | 'error';
+    error: unknown;
+  }) {
+    const { org, agentSlug, dto, jsonrpc, status, error } = params;
+    const base = {
+      organization: org ?? 'global',
+      agent: agentSlug,
+      mode: dto.mode,
+      conversationId: dto.conversationId ?? null,
+      planId: dto.planId ?? null,
+      orchestrationRunId: dto.orchestrationRunId ?? null,
+      jsonrpc: jsonrpc
+        ? {
+            id: jsonrpc.id ?? null,
+            method: jsonrpc.method ?? null,
+          }
+        : null,
+    };
+
+    if (status === 'success') {
+      this.logger.log({
+        ...base,
+        status,
+      });
+      return;
+    }
+
+    const mapped = this.mapExceptionToError(error);
+
+    this.logger.warn({
+      ...base,
+      status,
+      error: {
+        code: mapped.code,
+        message: mapped.message,
+      },
+    });
   }
 }
