@@ -96,10 +96,10 @@ export class SpeechService {
         },
       );
       this.logger.log('Deepgram API key validation successful');
-    } catch (_keyError) {
-      this.logger.error('Deepgram API key validation failed:', keyError);
-      if (axios.isAxiosError(keyError)) {
-        const _status = keyError.response?.status;
+    } catch (__keyError) {
+      this.logger.error('Deepgram API key validation failed:', _keyError);
+      if (axios.isAxiosError(_keyError)) {
+        const status = _keyError.response?.status;
         if (status === 401) {
           throw new Error('Deepgram API key is invalid or expired');
         } else if (status === 403) {

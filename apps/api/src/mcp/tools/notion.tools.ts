@@ -336,7 +336,7 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         throw new Error(
-          `Notion API error: ${data.message || response.statusText}`,
+          `Notion API error: ${_data.message || response.statusText}`,
         );
       }
 
@@ -347,10 +347,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                page_id: data.id,
-                url: data.url,
+                page_id: _data.id,
+                url: _data.url,
                 title,
-                created_time: data.created_time,
+                created_time: _data.created_time,
                 created_at: new Date().toISOString(),
               },
               null,
@@ -396,7 +396,7 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         throw new Error(
-          `Notion API error: ${data.message || response.statusText}`,
+          `Notion API error: ${_data.message || response.statusText}`,
         );
       }
 
@@ -406,10 +406,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                results: data.results,
-                has_more: data.has_more,
-                next_cursor: data.next_cursor,
-                total_count: data.results?.length || 0,
+                results: _data.results,
+                has_more: _data.has_more,
+                next_cursor: _data.next_cursor,
+                total_count: _data.results?.length || 0,
                 queried_at: new Date().toISOString(),
               },
               null,
@@ -455,7 +455,7 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         throw new Error(
-          `Notion API error: ${data.message || response.statusText}`,
+          `Notion API error: ${_data.message || response.statusText}`,
         );
       }
 
@@ -465,10 +465,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                results: data.results,
-                has_more: data.has_more,
-                next_cursor: data.next_cursor,
-                total_count: data.results?.length || 0,
+                results: _data.results,
+                has_more: _data.has_more,
+                next_cursor: _data.next_cursor,
+                total_count: _data.results?.length || 0,
                 query: query || 'all content',
                 searched_at: new Date().toISOString(),
               },
@@ -497,7 +497,7 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         throw new Error(
-          `Notion API error: ${data.message || response.statusText}`,
+          `Notion API error: ${_data.message || response.statusText}`,
         );
       }
 
@@ -525,7 +525,7 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                page: data,
+                page: _data,
                 content,
                 retrieved_at: new Date().toISOString(),
               },
@@ -568,7 +568,7 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         throw new Error(
-          `Notion API error: ${data.message || response.statusText}`,
+          `Notion API error: ${_data.message || response.statusText}`,
         );
       }
 
@@ -579,8 +579,8 @@ export class NotionMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                page_id: data.id,
-                last_edited_time: data.last_edited_time,
+                page_id: _data.id,
+                last_edited_time: _data.last_edited_time,
                 updated_at: new Date().toISOString(),
               },
               null,
@@ -614,7 +614,7 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         throw new Error(
-          `Notion API error: ${data.message || response.statusText}`,
+          `Notion API error: ${_data.message || response.statusText}`,
         );
       }
 
@@ -625,7 +625,7 @@ export class NotionMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                blocks_added: data.results?.length || 0,
+                blocks_added: _data.results?.length || 0,
                 page_id,
                 appended_at: new Date().toISOString(),
               },
@@ -666,7 +666,7 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         throw new Error(
-          `Notion API error: ${data.message || response.statusText}`,
+          `Notion API error: ${_data.message || response.statusText}`,
         );
       }
 
@@ -676,10 +676,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                databases: data.results,
-                has_more: data.has_more,
-                next_cursor: data.next_cursor,
-                total_count: data.results?.length || 0,
+                databases: _data.results,
+                has_more: _data.has_more,
+                next_cursor: _data.next_cursor,
+                total_count: _data.results?.length || 0,
                 retrieved_at: new Date().toISOString(),
               },
               null,

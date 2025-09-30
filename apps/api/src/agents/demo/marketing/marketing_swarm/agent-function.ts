@@ -220,7 +220,8 @@ Respond with JSON:
       metadata: {
         ...state.metadata,
         analysis_step: 'fallback',
-        analysis_error: error instanceof Error ? error.message : String(error),
+        analysis_error:
+          _error instanceof Error ? _error.message : String(_error),
       },
     };
   }
@@ -650,10 +651,11 @@ Format the response as a well-structured marketing content package with clear se
       ...state,
       finalContent: {
         marketing_content_package:
-          'Marketing content generation encountered an error, but here are the individual pieces created by our specialist agents:',
+          'Marketing content generation encountered an _error, but here are the individual pieces created by our specialist agents:',
         content_pieces: contentPieces,
         evaluations: Object.fromEntries(state.evaluationResults),
-        synthesis_error: error instanceof Error ? error.message : String(error),
+        synthesis_error:
+          _error instanceof Error ? _error.message : String(_error),
         note: 'Each content piece above was created by a specialist agent and can be used individually for your marketing efforts.',
       },
       metadata: {

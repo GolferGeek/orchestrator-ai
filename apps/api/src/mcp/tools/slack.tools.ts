@@ -252,7 +252,7 @@ export class SlackMCPTools implements IMCPToolHandler {
       // Try a lightweight connection test
       const response = await this.makeSlackRequest('api.test', 'GET');
       const _data = await response.json();
-      return data.ok === true;
+      return _data.ok === true;
     } catch (error) {
       this.logger.debug(
         `Slack ping failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -285,8 +285,8 @@ export class SlackMCPTools implements IMCPToolHandler {
       );
       const _data = await response.json();
 
-      if (!data.ok) {
-        throw new Error(`Slack API error: ${data.error}`);
+      if (!_data.ok) {
+        throw new Error(`Slack API error: ${_data.error}`);
       }
 
       return {
@@ -296,9 +296,9 @@ export class SlackMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                channel: data.channel,
-                timestamp: data.ts,
-                message: data.message,
+                channel: _data.channel,
+                timestamp: _data.ts,
+                message: _data.message,
                 sent_at: new Date().toISOString(),
               },
               null,
@@ -337,8 +337,8 @@ export class SlackMCPTools implements IMCPToolHandler {
       );
       const _data = await response.json();
 
-      if (!data.ok) {
-        throw new Error(`Slack API error: ${data.error}`);
+      if (!_data.ok) {
+        throw new Error(`Slack API error: ${_data.error}`);
       }
 
       return {
@@ -347,8 +347,8 @@ export class SlackMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                channels: data.channels,
-                total_count: data.channels?.length || 0,
+                channels: _data.channels,
+                total_count: _data.channels?.length || 0,
                 retrieved_at: new Date().toISOString(),
               },
               null,
@@ -379,8 +379,8 @@ export class SlackMCPTools implements IMCPToolHandler {
         );
         const _data = await response.json();
 
-        if (!data.ok) {
-          throw new Error(`Slack API error: ${data.error}`);
+        if (!_data.ok) {
+          throw new Error(`Slack API error: ${_data.error}`);
         }
 
         return {
@@ -389,7 +389,7 @@ export class SlackMCPTools implements IMCPToolHandler {
               type: 'text',
               text: JSON.stringify(
                 {
-                  user: data.user,
+                  user: _data.user,
                   retrieved_at: new Date().toISOString(),
                 },
                 null,
@@ -411,11 +411,11 @@ export class SlackMCPTools implements IMCPToolHandler {
         );
         const _data = await response.json();
 
-        if (!data.ok) {
-          throw new Error(`Slack API error: ${data.error}`);
+        if (!_data.ok) {
+          throw new Error(`Slack API error: ${_data.error}`);
         }
 
-        let users = data.members || [];
+        let users = _data.members || [];
 
         if (!include_deleted) {
           users = users.filter((user: any) => !user.deleted);
@@ -474,8 +474,8 @@ export class SlackMCPTools implements IMCPToolHandler {
       );
       const _data = await response.json();
 
-      if (!data.ok) {
-        throw new Error(`Slack API error: ${data.error}`);
+      if (!_data.ok) {
+        throw new Error(`Slack API error: ${_data.error}`);
       }
 
       return {
@@ -484,8 +484,8 @@ export class SlackMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                matches: data.messages?.matches || [],
-                total: data.messages?.total || 0,
+                matches: _data.messages?.matches || [],
+                total: _data.messages?.total || 0,
                 query: searchQuery,
                 searched_at: new Date().toISOString(),
               },
@@ -529,8 +529,8 @@ export class SlackMCPTools implements IMCPToolHandler {
       );
       const _data = await response.json();
 
-      if (!data.ok) {
-        throw new Error(`Slack API error: ${data.error}`);
+      if (!_data.ok) {
+        throw new Error(`Slack API error: ${_data.error}`);
       }
 
       return {
@@ -539,8 +539,8 @@ export class SlackMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                messages: data.messages || [],
-                has_more: data.has_more || false,
+                messages: _data.messages || [],
+                has_more: _data.has_more || false,
                 channel,
                 retrieved_at: new Date().toISOString(),
               },
@@ -573,12 +573,12 @@ export class SlackMCPTools implements IMCPToolHandler {
       );
       const _data = await response.json();
 
-      if (!data.ok) {
-        throw new Error(`Slack API error: ${data.error}`);
+      if (!_data.ok) {
+        throw new Error(`Slack API error: ${_data.error}`);
       }
 
       // Set purpose and topic if provided
-      const channelId = data.channel.id;
+      const channelId = _data.channel.id;
 
       if (purpose) {
         await this.makeSlackRequest('conversations.setPurpose', 'POST', {
@@ -601,7 +601,7 @@ export class SlackMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                channel: data.channel,
+                channel: _data.channel,
                 created_at: new Date().toISOString(),
               },
               null,

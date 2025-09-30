@@ -812,7 +812,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         userId,
       );
 
-      const response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
+      let response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
 
       if (mergeResult.conflictSummary) {
         response += ` ${mergeResult.conflictSummary}`;

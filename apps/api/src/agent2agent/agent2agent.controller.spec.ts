@@ -54,11 +54,9 @@ describe('Agent2AgentController', () => {
       undefined,
     );
 
-    expect(cardBuilder.build).toHaveBeenCalledWith(
-      null,
-      'agent',
-      { includePrivateFields: false },
-    );
+    expect(cardBuilder.build).toHaveBeenCalledWith(null, 'agent', {
+      includePrivateFields: false,
+    });
     expect(result).toEqual({ name: 'Public Card' });
   });
 

@@ -139,7 +139,7 @@ export class ConfigurationService {
     if (substitutedVars.length > 0) {
     }
 
-    return { data, substitutedVars };
+    return { data: _data, substitutedVars };
   }
 
   /**

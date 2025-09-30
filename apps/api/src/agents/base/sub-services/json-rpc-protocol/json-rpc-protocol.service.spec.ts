@@ -329,10 +329,7 @@ describe('JsonRpcProtocolService', () => {
 
       mockMethodHandler.mockResolvedValue({ success: true });
 
-      const response = await service.processRequest(
-        request,
-        mockMethodHandler,
-      );
+      const response = await service.processRequest(request, mockMethodHandler);
 
       expect(response).toEqual({
         jsonrpc: '2.0',

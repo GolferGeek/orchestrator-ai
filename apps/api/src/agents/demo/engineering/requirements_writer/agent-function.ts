@@ -253,7 +253,7 @@ export async function execute(
       if (process?.env?.NODE_ENV !== 'production') {
         console.debug(
           `[RequirementsWriter] Failed to emit progress for ${step}:`,
-          error,
+          _error,
         );
       }
     }

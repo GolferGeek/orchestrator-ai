@@ -69,9 +69,7 @@ export class Agent2AgentController {
     );
 
     const options =
-      includePrivateFields === undefined
-        ? undefined
-        : { includePrivateFields };
+      includePrivateFields === undefined ? undefined : { includePrivateFields };
 
     return this.cardBuilder.build(org, agentSlug, options);
   }

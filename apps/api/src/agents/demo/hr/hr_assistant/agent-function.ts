@@ -132,7 +132,7 @@ Respond with a JSON object:
         ...state.metadata,
         classification_step: 'fallback',
         classification_error:
-          error instanceof Error ? error.message : String(error),
+          _error instanceof Error ? _error.message : String(_error),
       },
     };
   }
@@ -317,8 +317,9 @@ Be comprehensive and anticipate follow-up questions they might have.`;
       response: `I apologize, but I encountered an issue processing your HR question. Please contact the HR department directly for assistance with: "${topic}".`,
       metadata: {
         ...state.metadata,
-        response_step: 'error',
-        response_error: error instanceof Error ? error.message : String(error),
+        response_step: '_error',
+        response_error:
+          _error instanceof Error ? _error.message : String(_error),
       },
     };
   }

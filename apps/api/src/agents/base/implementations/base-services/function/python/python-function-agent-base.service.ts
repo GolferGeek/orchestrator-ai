@@ -262,7 +262,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
             } catch (_error) {
               this.pythonLogger.warn(
                 `Failed to parse progress event: ${line}`,
-                error,
+                _error,
               );
             }
           } else if (line.startsWith('COMPLETION_EVENT:')) {
@@ -290,7 +290,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
             } catch (_error) {
               this.pythonLogger.warn(
                 `Failed to parse completion event: ${line}`,
-                error,
+                _error,
               );
             }
           }

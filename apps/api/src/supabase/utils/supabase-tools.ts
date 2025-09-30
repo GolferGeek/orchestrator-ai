@@ -435,13 +435,13 @@ export async function generateAndExecuteCompanySQL(
         model: options.model || 'claude-3-5-sonnet',
       },
     };
-  } catch (_generationError) {
+  } catch (__generationError) {
     const executionTime = Date.now() - startTime;
     return {
       sql: '',
       error:
-        generationError instanceof Error
-          ? generationError.message
+        _generationError instanceof Error
+          ? _generationError.message
           : 'SQL generation failed',
       metadata: {
         executionTime,
@@ -518,13 +518,13 @@ export async function generateAndExecuteOrchestratorSQL(
         model: options.model || 'claude-3-5-sonnet',
       },
     };
-  } catch (_generationError) {
+  } catch (__generationError) {
     const executionTime = Date.now() - startTime;
     return {
       sql: '',
       error:
-        generationError instanceof Error
-          ? generationError.message
+        _generationError instanceof Error
+          ? _generationError.message
           : 'SQL generation failed',
       metadata: {
         executionTime,

@@ -3,17 +3,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AgentOrchestrationsRepository } from '../../agent-platform/repositories/agent-orchestrations.repository';
-import { AgentOrchestrationRecord } from '../../agent-platform/interfaces/agent-orchestration-record.interface';
-import { AgentRecord } from '../../agent-platform/interfaces/agent-record.interface';
-import { ConversationPlanRecord } from '../../agent-platform/interfaces/conversation-plan-record.interface';
+import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
+import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { ConversationPlanRecord } from '@agent-platform/interfaces/conversation-plan-record.interface';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
-import { PlanEngineService } from '../../agent-platform/services/plan-engine.service';
-import { OrchestrationRunnerService } from '../../agent-platform/services/orchestration-runner.service';
-import { AgentRegistryService } from '../../agent-platform/services/agent-registry.service';
+import { PlanEngineService } from '@agent-platform/services/plan-engine.service';
+import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
+import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 
 @Injectable()
 export class AgentExecutionGateway {

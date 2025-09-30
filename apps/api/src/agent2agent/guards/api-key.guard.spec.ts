@@ -142,9 +142,7 @@ describe('ApiKeyGuard', () => {
     };
     const provided = 'peppered';
     const digest = createHash('sha256')
-      .update(
-        `${credentialMetadata.salt}${provided}${process.env.A2A_PEPPER}`,
-      )
+      .update(`${credentialMetadata.salt}${provided}${process.env.A2A_PEPPER}`)
       .digest('hex');
 
     repo.get.mockResolvedValue({

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AgentRecord } from '../../agent-platform/interfaces/agent-record.interface';
-import { AgentRegistryService } from '../../agent-platform/services/agent-registry.service';
+import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 
 export interface AgentCardOptions {
   includePrivateFields?: boolean;
