@@ -1,11 +1,14 @@
 import {
   CanActivate,
   ExecutionContext,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { timingSafeEqual, createHash } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { OrganizationCredentialsRepository } from '../../agent-platform/repositories/organization-credentials.repository';
 import { OrganizationCredentialRecord } from '../../agent-platform/interfaces/organization-credential-record.interface';
 
@@ -16,10 +19,43 @@ export class ApiKeyGuard implements CanActivate {
   private readonly logger = new Logger(ApiKeyGuard.name);
 
   private static readonly DEFAULT_ALIAS = 'agent_api_key';
+  private static readonly DEFAULT_CACHE_TTL_MS = 60_000;
+  private static readonly DEFAULT_RATE_LIMIT = 120;
+  private static readonly DEFAULT_RATE_WINDOW_MS = 60_000;
+
+  private readonly credentialCache = new Map<
+    string,
+    { record: OrganizationCredentialRecord; expiresAt: number }
+  >();
+  private readonly rateBuckets = new Map<
+    string,
+    { count: number; resetAt: number }
+  >();
+
+  private readonly cacheTtlMs: number;
+  private readonly rateLimit: number;
+  private readonly rateWindowMs: number;
 
   constructor(
     private readonly credentials: OrganizationCredentialsRepository,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.cacheTtlMs = this.resolveNumberConfig(
+      'AGENT_API_KEY_CACHE_TTL_MS',
+      ApiKeyGuard.DEFAULT_CACHE_TTL_MS,
+      { min: 1_000, max: 600_000 },
+    );
+    this.rateLimit = this.resolveNumberConfig(
+      'AGENT_API_KEY_RATE_LIMIT',
+      ApiKeyGuard.DEFAULT_RATE_LIMIT,
+      { min: 0, max: 10_000 },
+    );
+    this.rateWindowMs = this.resolveNumberConfig(
+      'AGENT_API_KEY_RATE_WINDOW_MS',
+      ApiKeyGuard.DEFAULT_RATE_WINDOW_MS,
+      { min: 1_000, max: 600_000 },
+    );
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -33,6 +69,8 @@ export class ApiKeyGuard implements CanActivate {
     const orgSlug = this.extractOrgSlug(request?.params);
     const aliasHeader = this.extractAlias(request?.headers);
     const aliasesToTry = this.buildAliasList(aliasHeader);
+
+    this.enforceRateLimit(orgSlug, apiKeyHeader);
 
     const credential = await this.lookupCredential(orgSlug, aliasesToTry);
     if (!credential) {
@@ -85,9 +123,19 @@ export class ApiKeyGuard implements CanActivate {
     aliases: string[],
   ): Promise<OrganizationCredentialRecord | null> {
     for (const alias of aliases) {
+      const cacheKey = this.buildCacheKey(organizationSlug, alias);
+      const cached = this.credentialCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.record;
+      }
+
       try {
         const record = await this.credentials.get(organizationSlug, alias);
         if (record) {
+          this.credentialCache.set(cacheKey, {
+            record,
+            expiresAt: Date.now() + this.cacheTtlMs,
+          });
           return record;
         }
       } catch (error) {
@@ -96,6 +144,7 @@ export class ApiKeyGuard implements CanActivate {
         );
         throw new UnauthorizedException('Unable to validate API key.');
       }
+      this.credentialCache.delete(cacheKey);
     }
     return null;
   }
@@ -219,6 +268,63 @@ export class ApiKeyGuard implements CanActivate {
       return Buffer.from(normalized, 'base64');
     }
     return Buffer.from(value, encoding as BufferEncoding);
+  }
+
+  private buildCacheKey(org: string, alias: string): string {
+    return `${org ?? 'global'}::${alias ?? ApiKeyGuard.DEFAULT_ALIAS}`;
+  }
+
+  private enforceRateLimit(orgSlug: string, apiKey: string) {
+    if (!this.rateLimit || this.rateLimit <= 0) {
+      return;
+    }
+
+    const now = Date.now();
+    const bucketKey = this.computeFingerprint(orgSlug, apiKey);
+    const bucket = this.rateBuckets.get(bucketKey);
+
+    if (!bucket || bucket.resetAt <= now) {
+      this.rateBuckets.set(bucketKey, {
+        count: 1,
+        resetAt: now + this.rateWindowMs,
+      });
+      return;
+    }
+
+    if (bucket.count >= this.rateLimit) {
+      const retryAfter = Math.max(0, Math.ceil((bucket.resetAt - now) / 1000));
+      throw new HttpException(
+        {
+          message: 'Agent API key rate limit exceeded.',
+          retryAfterSeconds: retryAfter,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    bucket.count += 1;
+  }
+
+  private computeFingerprint(orgSlug: string, apiKey: string): string {
+    const normalizedOrg =
+      typeof orgSlug === 'string' && orgSlug.trim() ? orgSlug.trim() : 'global';
+    return createHash('sha256')
+      .update(`${normalizedOrg}:${apiKey}`)
+      .digest('hex');
+  }
+
+  private resolveNumberConfig(
+    key: string,
+    fallback: number,
+    bounds: { min: number; max: number },
+  ): number {
+    const raw = this.configService.get<string | number | undefined>(key);
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+    const clamped = Math.min(Math.max(numeric, bounds.min), bounds.max);
+    return clamped;
   }
 
   private padBase64(value: string): string {

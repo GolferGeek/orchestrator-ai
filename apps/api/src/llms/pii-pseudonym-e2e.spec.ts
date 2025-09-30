@@ -46,7 +46,7 @@ describe('PII and Pseudonym E2E Tests', () => {
   });
 
   describe('PII Detection and Flagging', () => {
-    it('should detect and flag IP address and URL', async () => {
+    it('should detect and flag IP address and URL', () => {
       const redactionResult = secretRedactionService.redactSecrets(TEST_PROMPT);
 
       console.log('🔍 Redaction Result:', {
@@ -116,25 +116,27 @@ describe('PII and Pseudonym E2E Tests', () => {
       );
 
       console.log('🛡️ Complete Sanitization Result:', {
-        originalLength: sanitizationResult.originalLength,
-        sanitizedLength: sanitizationResult.sanitizedLength,
-        redactionCount: sanitizationResult.redactionResult?.redactionCount || 0,
+        originalLength: (sanitizationResult as any).originalLength,
+        sanitizedLength: (sanitizationResult as any).sanitizedLength,
+        redactionCount:
+          (sanitizationResult as any).redactionResult?.redactionCount || 0,
         pseudonymCount:
-          sanitizationResult.pseudonymizationResult?.pseudonyms?.length || 0,
-        processingTimeMs: sanitizationResult.processingTimeMs,
+          (sanitizationResult as any).pseudonymizationResult?.pseudonyms
+            ?.length || 0,
+        processingTimeMs: (sanitizationResult as any).processingTimeMs,
       });
 
-      expect(sanitizationResult.redactionResult).toBeDefined();
+      expect((sanitizationResult as any).redactionResult).toBeDefined();
       expect(
-        sanitizationResult.redactionResult!.redactionCount,
+        (sanitizationResult as any).redactionResult!.redactionCount,
       ).toBeGreaterThanOrEqual(2);
 
-      expect(sanitizationResult.pseudonymizationResult).toBeDefined();
+      expect((sanitizationResult as any).pseudonymizationResult).toBeDefined();
       expect(
-        sanitizationResult.pseudonymizationResult!.pseudonyms.length,
+        (sanitizationResult as any).pseudonymizationResult!.pseudonyms.length,
       ).toBeGreaterThanOrEqual(3);
 
-      const sanitizedText = sanitizationResult.sanitizedText;
+      const sanitizedText = (sanitizationResult as any).sanitizedText;
       expect(sanitizedText).not.toContain('192.168.1.1');
       expect(sanitizedText).not.toContain('http://internal-docs.company.com');
       expect(sanitizedText).not.toContain('Matt Weber');
@@ -147,7 +149,7 @@ describe('PII and Pseudonym E2E Tests', () => {
     it('should process LLM request with PII metadata tracking', async () => {
       const runId = `test-pii-${Date.now()}`;
 
-      const result: any = await llmService.generateUnifiedResponse({
+      const result: unknown = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt:
@@ -165,23 +167,23 @@ describe('PII and Pseudonym E2E Tests', () => {
       });
 
       console.log('📊 LLM Response with PII Metadata:', {
-        provider: result.metadata?.provider,
-        model: result.metadata?.model,
-        requestId: result.metadata?.requestId,
-        piiDetected: result.metadata?.usage?.piiDetected,
-        piiTypes: result.metadata?.usage?.piiTypes,
-        pseudonymsUsed: result.metadata?.usage?.pseudonymsUsed,
-        pseudonymTypes: result.metadata?.usage?.pseudonymTypes,
-        redactionsApplied: result.metadata?.usage?.redactionsApplied,
-        redactionTypes: result.metadata?.usage?.redactionTypes,
-        sanitizationLevel: result.metadata?.usage?.sanitizationLevel,
+        provider: (result as any)?.metadata?.provider,
+        model: (result as any)?.metadata?.model,
+        requestId: (result as any)?.metadata?.requestId,
+        piiDetected: (result as any)?.metadata?.usage?.piiDetected,
+        piiTypes: (result as any)?.metadata?.usage?.piiTypes,
+        pseudonymsUsed: (result as any)?.metadata?.usage?.pseudonymsUsed,
+        pseudonymTypes: (result as any)?.metadata?.usage?.pseudonymTypes,
+        redactionsApplied: (result as any)?.metadata?.usage?.redactionsApplied,
+        redactionTypes: (result as any)?.metadata?.usage?.redactionTypes,
+        sanitizationLevel: (result as any)?.metadata?.usage?.sanitizationLevel,
       });
 
       expect(result).toBeDefined();
-      expect(result.metadata).toBeDefined();
-      expect(result.metadata?.usage).toBeDefined();
+      expect((result as any).metadata).toBeDefined();
+      expect((result as any).metadata?.usage).toBeDefined();
 
-      const usage = result.metadata!.usage;
+      const usage = (result as any).metadata!.usage;
       expect(usage.piiDetected).toBe(true);
       expect(usage.piiTypes).toBeDefined();
       expect(usage.piiTypes.length).toBeGreaterThan(0);
@@ -200,7 +202,7 @@ describe('PII and Pseudonym E2E Tests', () => {
     it('should store PII metadata in llm_usage table', async () => {
       const runId = `test-db-pii-${Date.now()}`;
 
-      const result: any = await llmService.generateUnifiedResponse({
+      const result: unknown = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant.',
@@ -270,26 +272,28 @@ describe('PII and Pseudonym E2E Tests', () => {
         hasReversalContext: !!sanitizeResult.reversalContext,
       });
 
-      expect(sanitizeResult.sanitizedText).not.toContain('Matt Weber');
-      expect(sanitizeResult.sanitizedText).not.toContain('GolferGeek');
-      expect(sanitizeResult.sanitizedText).not.toContain('Orchestrator AI');
+      expect((sanitizeResult as any).sanitizedText).not.toContain('Matt Weber');
+      expect((sanitizeResult as any).sanitizedText).not.toContain('GolferGeek');
+      expect((sanitizeResult as any).sanitizedText).not.toContain(
+        'Orchestrator AI',
+      );
 
       const reverseResult = await dataSanitizationService.reverseSanitization(
-        sanitizeResult.sanitizedText,
-        sanitizeResult.reversalContext,
+        (sanitizeResult as any).sanitizedText,
+        (sanitizeResult as any).reversalContext,
         requestId,
       );
 
       console.log('🔄 Reverse Result:', {
-        reversalCount: reverseResult.reversalCount,
-        source: reverseResult.source,
-        processingTimeMs: reverseResult.processingTimeMs,
+        reversalCount: (reverseResult as any).reversalCount,
+        source: (reverseResult as any).source,
+        processingTimeMs: (reverseResult as any).processingTimeMs,
       });
 
-      expect(reverseResult.originalText).toContain('Matt Weber');
-      expect(reverseResult.originalText).toContain('GolferGeek');
-      expect(reverseResult.originalText).toContain('Orchestrator AI');
-      expect(reverseResult.reversalCount).toBeGreaterThanOrEqual(3);
+      expect((reverseResult as any).originalText).toContain('Matt Weber');
+      expect((reverseResult as any).originalText).toContain('GolferGeek');
+      expect((reverseResult as any).originalText).toContain('Orchestrator AI');
+      expect((reverseResult as any).reversalCount).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -311,14 +315,14 @@ describe('PII and Pseudonym E2E Tests', () => {
 
       console.log('📈 Sanitization Metrics:', metrics);
 
-      expect(metrics.piiDetected).toBe(true);
-      expect(metrics.piiTypes.length).toBeGreaterThan(0);
-      expect(metrics.pseudonymsUsed).toBeGreaterThanOrEqual(3);
-      expect(metrics.pseudonymTypes.length).toBeGreaterThan(0);
-      expect(metrics.redactionsApplied).toBeGreaterThanOrEqual(2);
-      expect(metrics.redactionTypes.length).toBeGreaterThan(0);
-      expect(metrics.sanitizationTimeMs).toBeGreaterThan(0);
-      expect(metrics.sanitizationLevel).not.toBe('none');
+      expect((metrics as any).piiDetected).toBe(true);
+      expect((metrics as any).piiTypes.length).toBeGreaterThan(0);
+      expect((metrics as any).pseudonymsUsed).toBeGreaterThanOrEqual(3);
+      expect((metrics as any).pseudonymTypes.length).toBeGreaterThan(0);
+      expect((metrics as any).redactionsApplied).toBeGreaterThanOrEqual(2);
+      expect((metrics as any).redactionTypes.length).toBeGreaterThan(0);
+      expect((metrics as any).sanitizationTimeMs).toBeGreaterThan(0);
+      expect((metrics as any).sanitizationLevel).not.toBe('none');
     });
   });
 
@@ -339,17 +343,17 @@ describe('PII and Pseudonym E2E Tests', () => {
       const cacheStats = dataSanitizationService.getCacheStats();
       console.log('💾 Cache Stats:', cacheStats);
 
-      expect(cacheStats.size).toBeGreaterThan(0);
+      expect((cacheStats as any).size).toBeGreaterThan(0);
 
       const reverseFromCache =
         await dataSanitizationService.reverseSanitization(
-          sanitizeResult.sanitizedText,
+          (sanitizeResult as any).sanitizedText,
           null,
           requestId,
         );
 
-      expect(reverseFromCache.source).toBe('memory');
-      expect(reverseFromCache.originalText).toContain('Matt Weber');
+      expect((reverseFromCache as any).source).toBe('memory');
+      expect((reverseFromCache as any).originalText).toContain('Matt Weber');
     });
   });
 

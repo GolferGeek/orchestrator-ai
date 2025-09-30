@@ -30,8 +30,8 @@
 - Integrate centralized routing policy adapter (stubbed today) with real enforcement.
 
 ### Active Tasks
-1. **Route Contract Audit** – Confirm `/agents/:org/:slug/.well-known/agent.json` and `/tasks` structures match spec examples. Update docs/tests. *(Owner: Codex — agent card now emits spec-aligned metadata; task payload audit pending)*
-2. **API Key Guard Hardening** – Replace placeholder logic with Supabase-key lookup + rate limiting. *(Owner: Codex)*
+1. **Route Contract Audit** – Confirm `/agents/:org/:slug/.well-known/agent.json` and `/tasks` structures match spec examples. Update docs/tests. *(Owner: Codex — card done; controller now normalizes JSON-RPC 2.0 payloads, remaining work is documenting response envelopes.)*
+2. **API Key Guard Hardening** – Replace placeholder logic with Supabase-key lookup + rate limiting. *(Owner: Codex — credential caching + 429 rate caps delivered; RLS hook still pending)*
 3. **Routing Adapter Integration** – Wire `CentralizedRoutingService` with real prompts + metadata; respect sovereign policy blocks. *(Owner: Codex)*
 4. **Task Mode Router Enhancements** – Flesh out `AgentModeRouterService` to call new runtime services for converse/build while plan delegates to `PlanEngine`. *(Owner: Codex)*
 5. **Unit Test Expansion** – Cover negative paths / auth failures / routing showstoppers. *(Owner: Codex)*
@@ -68,5 +68,7 @@
 ---
 
 ## Change Log
+- **2025-01-19:** `/agent-to-agent/:org/:agent/tasks` accepts JSON-RPC 2.0 envelopes, maps `method` to task modes, and preserves request metadata for downstream telemetry. (Codex)
+- **2025-01-19:** API key guard now caches Supabase credentials and enforces configurable per-key rate limits (429). (Codex)
 - **2025-01-19:** Agent card builder now generates spec-compliant descriptors (protocol/version/url/capabilities/security) with unit coverage; remaining route-contract work tracks JSON-RPC payload docs. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

@@ -1,8 +1,13 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  HttpException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { createHash } from 'crypto';
 import { ApiKeyGuard } from './api-key.guard';
 import { OrganizationCredentialsRepository } from '@agent-platform/repositories/organization-credentials.repository';
 import { OrganizationCredentialRecord } from '@agent-platform/interfaces/organization-credential-record.interface';
+import { ConfigService } from '@nestjs/config';
 
 const createContext = (
   headers: Record<string, any>,
@@ -35,13 +40,21 @@ const baseRecord: OrganizationCredentialRecord = {
 
 describe('ApiKeyGuard', () => {
   let repo: jest.Mocked<OrganizationCredentialsRepository>;
+  let config: jest.Mocked<ConfigService>;
   let guard: ApiKeyGuard;
+
+  const createConfigMock = (overrides: Record<string, any> = {}) => {
+    return {
+      get: jest.fn((key: string) => overrides[key]),
+    } as unknown as jest.Mocked<ConfigService>;
+  };
 
   beforeEach(() => {
     repo = {
       get: jest.fn(),
     } as unknown as jest.Mocked<OrganizationCredentialsRepository>;
-    guard = new ApiKeyGuard(repo);
+    config = createConfigMock();
+    guard = new ApiKeyGuard(repo, config);
     jest.resetModules();
   });
 
@@ -165,5 +178,41 @@ describe('ApiKeyGuard', () => {
     await expect(
       guard.canActivate(createContext({ 'x-agent-api-key': 'different' })),
     ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('caches credentials between requests to avoid repeated lookups', async () => {
+    repo.get.mockResolvedValue({
+      ...baseRecord,
+      encrypted_value: 'plain-secret',
+      encryption_metadata: { encoding: 'utf8' },
+    });
+
+    const ctx = createContext({ 'x-agent-api-key': 'plain-secret' });
+
+    await guard.canActivate(ctx);
+    await guard.canActivate(ctx);
+
+    expect(repo.get).toHaveBeenCalledTimes(1);
+  });
+
+  it('enforces rate limits per API key', async () => {
+    const rateConfig = createConfigMock({
+      AGENT_API_KEY_RATE_LIMIT: 2,
+      AGENT_API_KEY_RATE_WINDOW_MS: 10_000,
+    });
+    guard = new ApiKeyGuard(repo, rateConfig);
+
+    repo.get.mockResolvedValue({
+      ...baseRecord,
+      encrypted_value: 'plain-secret',
+      encryption_metadata: { encoding: 'utf8' },
+    });
+
+    const ctx = createContext({ 'x-agent-api-key': 'plain-secret' });
+
+    await guard.canActivate(ctx); // 1st call
+    await guard.canActivate(ctx); // 2nd call within limit
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(HttpException);
   });
 });

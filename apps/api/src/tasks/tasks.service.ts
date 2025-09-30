@@ -195,10 +195,14 @@ export class TasksService {
 
       if (result) {
         if (result.response) {
+          // Response processing if needed
         }
       }
 
       return result;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**

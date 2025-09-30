@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import OpenAI from 'openai';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOllama } from '@langchain/ollama';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import {
   HumanMessage,
@@ -13,11 +10,10 @@ import {
 import { SupabaseService } from '../supabase/supabase.service';
 import { CIDAFMService } from '../cidafm/cidafm.service';
 import { CentralizedRoutingService } from './centralized-routing.service';
-import { RunMetadataService, RunMetadata } from './run-metadata.service';
+import { RunMetadataService } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { PIIService } from '../services/pii.service';
 import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
-import { PIIProcessingMetadata } from '../common/types/pii-metadata.types';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
@@ -99,7 +95,7 @@ export class LLMService {
     }
 
     // Deprecated: SYSTEM_* .env model defaults replaced by ModelConfigurationService
-    this.systemLLMConfigs = {} as any;
+    this.systemLLMConfigs = {} as any; // No action needed
 
     // Initialize the LLM service factory
     this.llmServiceFactory = this.llmServiceFactoryInstance;
@@ -423,7 +419,7 @@ export class LLMService {
 
       // Apply conditional sanitization using unified PII service
       // Generate request ID for pseudonymization context
-      const requestId =
+      const _requestId =
         options?.conversationId ||
         options?.sessionId ||
         `simple-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -812,7 +808,7 @@ export class LLMService {
           mapped.getTechnicalDetails(),
         );
         throw mapped;
-      } catch (mappingFailure) {
+      } catch (_mappingFailure) {
         const fallback = new LLMError(
           `Unified LLM service error: ${error instanceof Error ? error.message : String(error)}`,
           'unknown' as any,
@@ -853,7 +849,7 @@ export class LLMService {
     enhancedMetrics?: LLMUsageMetrics;
     sanitizationMetadata?: any;
   }> {
-    const startTime = Date.now();
+    const _startTime = Date.now();
 
     // ALWAYS apply dictionary-based pseudonymization first
     const pseudonymResult =

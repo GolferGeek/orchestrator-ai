@@ -6,7 +6,6 @@ import {
   ProjectStep,
   PlanDefinition,
   ProjectStatus,
-  ProjectStepStatus,
   ProjectWebSocketMessage,
 } from '@/orchestration/orchestration.types';
 import { getTableName } from '@/supabase/supabase.config';
@@ -60,70 +59,65 @@ export class ProjectsService {
   async createProject(params: CreateProjectParams): Promise<Project> {
     const client = this.supabaseService.getServiceClient();
 
-    try {
-      // Calculate hierarchy level if parent project exists
-      let hierarchyLevel = 0;
-      if (params.parentProjectId) {
-        const { data: parentProject, error: parentError } = await client
-          .from(getTableName('projects'))
-          .select('hierarchy_level')
-          .eq('id', params.parentProjectId)
-          .single();
-
-        if (parentError) {
-          throw new Error(
-            `Failed to create subproject: Parent project not found`,
-          );
-        }
-
-        hierarchyLevel = (parentProject?.hierarchy_level || 0) + 1;
-      }
-
-      const projectData: any = {
-        name:
-          params.name || `Project ${new Date().toISOString().split('T')[0]}`,
-        description: params.description,
-        conversation_id: params.conversationId,
-        plan_json: params.planJson || null,
-        status: 'planning' as ProjectStatus,
-        metadata: {
-          createdBy: params.userId,
-          createdAt: new Date().toISOString(),
-        },
-      };
-
-      // Add hierarchical fields if parent project is specified
-      if (params.parentProjectId) {
-        projectData.parent_project_id = params.parentProjectId;
-        projectData.hierarchy_level = hierarchyLevel;
-        projectData.subproject_count = 0; // Initialize with 0, trigger will maintain count
-      }
-
-      const { data, error } = await client
+    // Calculate hierarchy level if parent project exists
+    let hierarchyLevel = 0;
+    if (params.parentProjectId) {
+      const { data: parentProject, error: parentError } = await client
         .from(getTableName('projects'))
-        .insert(projectData)
-        .select()
+        .select('hierarchy_level')
+        .eq('id', params.parentProjectId)
         .single();
 
-      if (error) {
-        throw new Error(`Failed to create project: ${error.message}`);
+      if (parentError) {
+        throw new Error(
+          `Failed to create subproject: Parent project not found`,
+        );
       }
 
-      const project = this.mapDatabaseToProject(data);
-
-      // Emit WebSocket event
-      this.emitProjectEvent({
-        type: 'project.status.changed',
-        projectId: project.id,
-        status: project.status,
-        message: 'Project created',
-        timestamp: new Date().toISOString(),
-      });
-
-      return project;
-    } catch (error) {
-      throw error;
+      hierarchyLevel = (parentProject?.hierarchy_level || 0) + 1;
     }
+
+    const projectData: any = {
+      name: params.name || `Project ${new Date().toISOString().split('T')[0]}`,
+      description: params.description,
+      conversation_id: params.conversationId,
+      plan_json: params.planJson || null,
+      status: 'planning' as ProjectStatus,
+      metadata: {
+        createdBy: params.userId,
+        createdAt: new Date().toISOString(),
+      },
+    };
+
+    // Add hierarchical fields if parent project is specified
+    if (params.parentProjectId) {
+      projectData.parent_project_id = params.parentProjectId;
+      projectData.hierarchy_level = hierarchyLevel;
+      projectData.subproject_count = 0; // Initialize with 0, trigger will maintain count
+    }
+
+    const { data, error } = await client
+      .from(getTableName('projects'))
+      .insert(projectData)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create project: ${error.message}`);
+    }
+
+    const project = this.mapDatabaseToProject(data);
+
+    // Emit WebSocket event
+    this.emitProjectEvent({
+      type: 'project.status.changed',
+      projectId: project.id,
+      status: project.status,
+      message: 'Project created',
+      timestamp: new Date().toISOString(),
+    });
+
+    return project;
   }
 
   /**
@@ -140,68 +134,62 @@ export class ProjectsService {
   }> {
     const client = this.supabaseService.getServiceClient();
 
-    try {
-      // First, get conversation IDs for this user
-      const { data: conversations, error: convError } = await client
-        .from(getTableName('conversations'))
-        .select('id')
-        .eq('user_id', userId);
+    // First, get conversation IDs for this user
+    const { data: conversations, error: convError } = await client
+      .from(getTableName('conversations'))
+      .select('id')
+      .eq('user_id', userId);
 
-      if (convError) {
-        this.logger.error(
-          `Failed to get conversations for user: ${convError.message}`,
-        );
-        throw new Error(
-          `Failed to get user conversations: ${convError.message}`,
-        );
-      }
+    if (convError) {
+      this.logger.error(
+        `Failed to get conversations for user: ${convError.message}`,
+      );
+      throw new Error(`Failed to get user conversations: ${convError.message}`);
+    }
 
-      const conversationIds = (conversations || []).map((c) => c.id);
+    const conversationIds = (conversations || []).map((c) => c.id);
 
-      // If user has no conversations, return empty result
-      if (conversationIds.length === 0) {
-        return {
-          projects: [],
-          total: 0,
-          limit: params.limit,
-          offset: params.offset,
-        };
-      }
-
-      // Now get projects for those conversations
-      let query = client
-        .from(getTableName('projects'))
-        .select('*', { count: 'exact' })
-        .in('conversation_id', conversationIds);
-
-      // Filter by status if provided
-      if (params.status) {
-        query = query.eq('status', params.status);
-      }
-
-      // Add sorting
-      query = query.order(params.sortBy, {
-        ascending: params.sortOrder === 'asc',
-      });
-
-      // Add pagination
-      query = query.range(params.offset, params.offset + params.limit - 1);
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        throw new Error(`Failed to get projects: ${error.message}`);
-      }
-
+    // If user has no conversations, return empty result
+    if (conversationIds.length === 0) {
       return {
-        projects: (data || []).map(this.mapDatabaseToProject),
-        total: count || 0,
+        projects: [],
+        total: 0,
         limit: params.limit,
         offset: params.offset,
       };
-    } catch (error) {
-      throw error;
     }
+
+    // Now get projects for those conversations
+    let query = client
+      .from(getTableName('projects'))
+      .select('*', { count: 'exact' })
+      .in('conversation_id', conversationIds);
+
+    // Filter by status if provided
+    if (params.status) {
+      query = query.eq('status', params.status);
+    }
+
+    // Add sorting
+    query = query.order(params.sortBy, {
+      ascending: params.sortOrder === 'asc',
+    });
+
+    // Add pagination
+    query = query.range(params.offset, params.offset + params.limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      throw new Error(`Failed to get projects: ${error.message}`);
+    }
+
+    return {
+      projects: (data || []).map(this.mapDatabaseToProject),
+      total: count || 0,
+      limit: params.limit,
+      offset: params.offset,
+    };
   }
 
   /**
@@ -325,7 +313,7 @@ export class ProjectsService {
       }
 
       return !!data;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -843,7 +831,9 @@ export class ProjectsService {
       this.taskProgressGateway.server
         .to('projects')
         .emit('project_event', message);
-    } catch (error) {}
+    } catch {
+      // Silently ignore errors in websocket emission
+    }
   }
 
   /**

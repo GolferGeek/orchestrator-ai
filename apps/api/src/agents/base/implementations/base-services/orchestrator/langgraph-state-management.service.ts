@@ -11,16 +11,14 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { StateGraph, Annotation, START, END } from '@langchain/langgraph';
+import { StateGraph, Annotation } from '@langchain/langgraph';
 import { LLMService } from '@/llms/llm.service';
 import { SupabaseService } from '@/supabase/supabase.service';
 import {
   OrchestratorInput,
   OrchestratorResponse,
   PlanDefinition,
-  ProjectStatus,
   ProjectStepStatus,
-  ConversationMessage,
 } from '@/orchestration/orchestration.types';
 
 // ============================================================================
@@ -707,7 +705,7 @@ export class LangGraphStateManagementService {
     recommendations: string[];
   }> {
     const state = await this.getState(projectId);
-    const transitions = this.transitionHistory.get(projectId) || [];
+    const _transitions = this.transitionHistory.get(projectId) || [];
 
     const totalSteps = state.stepResults.size;
     const completedSteps = Array.from(state.stepResults.values()).filter(
@@ -1251,7 +1249,7 @@ Respond in JSON format:
       };
 
       return planState;
-    } catch (error) {
+    } catch {
       // Fallback to basic plan state
       return {
         projectId,

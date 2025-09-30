@@ -253,7 +253,7 @@ describe('LLMService', () => {
         );
 
         // Verify cost calculation
-        expect(result.costCalculation).toEqual({
+        expect((result as any).costCalculation).toEqual({
           inputTokens: expect.any(Number),
           outputTokens: expect.any(Number),
           inputCost: expect.any(Number),
@@ -263,7 +263,7 @@ describe('LLMService', () => {
         });
 
         // Verify usage metrics
-        expect(result.usage).toEqual({
+        expect((result as any).usage).toEqual({
           inputTokens: expect.any(Number),
           outputTokens: expect.any(Number),
           totalCost: expect.any(Number),
@@ -282,8 +282,12 @@ describe('LLMService', () => {
           },
         );
 
-        expect(result.content).toBe('Enhanced response with LLM selection');
-        expect(result.processedPrompt).toBe('Simple message without CIDAFM');
+        expect((result as any).content).toBe(
+          'Enhanced response with LLM selection',
+        );
+        expect((result as any).processedPrompt).toBe(
+          'Simple message without CIDAFM',
+        );
         expect(mockCIDAFMService.processMessage).not.toHaveBeenCalled();
       });
 
@@ -350,7 +354,9 @@ describe('LLMService', () => {
           'Test message',
         );
 
-        expect(result.content).toBe('Enhanced response with LLM selection');
+        expect((result as any).content).toBe(
+          'Enhanced response with LLM selection',
+        );
       });
 
       it('should handle errors in enhanced response generation', async () => {
@@ -380,12 +386,13 @@ describe('LLMService', () => {
           },
         );
 
-        expect(result.costCalculation.inputCost).toBeGreaterThan(0);
-        expect(result.costCalculation.outputCost).toBeGreaterThan(0);
-        expect(result.costCalculation.totalCost).toBe(
-          result.costCalculation.inputCost + result.costCalculation.outputCost,
+        expect((result as any).costCalculation.inputCost).toBeGreaterThan(0);
+        expect((result as any).costCalculation.outputCost).toBeGreaterThan(0);
+        expect((result as any).costCalculation.totalCost).toBe(
+          (result as any).costCalculation.inputCost +
+            (result as any).costCalculation.outputCost,
         );
-        expect(result.costCalculation.currency).toBe('USD');
+        expect((result as any).costCalculation.currency).toBe('USD');
       });
 
       it('should track response time metrics', async () => {
@@ -399,8 +406,8 @@ describe('LLMService', () => {
           },
         );
 
-        expect(result.usage.responseTimeMs).toBeGreaterThanOrEqual(0);
-        expect(typeof result.usage.responseTimeMs).toBe('number');
+        expect((result as any).usage.responseTimeMs).toBeGreaterThanOrEqual(0);
+        expect(typeof (result as any).usage.responseTimeMs).toBe('number');
       });
 
       it('should pass custom temperature and maxTokens to LLM', async () => {

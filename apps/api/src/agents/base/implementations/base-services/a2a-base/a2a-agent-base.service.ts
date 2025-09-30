@@ -544,7 +544,9 @@ export abstract class A2AAgentBaseService
         mode: requestedMode,
         executionProfile: executionMetadata.profile,
       };
-    } catch {}
+    } catch {
+      // Ignore execution profile errors
+    }
 
     // Short-circuit Converse/Plan using agent context + small local LLM
     const shortCircuitEnabled =
@@ -835,7 +837,9 @@ export abstract class A2AAgentBaseService
             card.configuration = yamlConfig.configuration;
           }
         }
-      } catch (error) {}
+      } catch {
+        // Ignore YAML parsing errors
+      }
     }
 
     // Add task type and status schema if defined
@@ -1085,6 +1089,7 @@ export abstract class A2AAgentBaseService
         `📄 Deliverable ${deliverableId} created for task ${taskId}`,
       );
     } else {
+      // No deliverable was created
     }
 
     // If deliverable was created, attach ID to the result
