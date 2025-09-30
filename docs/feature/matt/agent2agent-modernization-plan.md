@@ -44,7 +44,7 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 1. ✅ **Runtime Blueprint** – Database agent capability model, runtime definitions, and metadata envelopes established (AgentRegistry + RuntimeDefinition/Execution services).
 2. 🚧 **Execution Primitives** – Implement base classes/services that drive converse/plan/build using the new capability model. *Status:* Prompt + Dispatch + Stream services centralize LLM invocation, emit stream IDs/events, and TaskProgressGateway/websocket consumers can now subscribe via `subscribe_stream` for live tokens.
 3. ✅ **Reference Agent Seed** – Author seed scripts + fixtures for `demo/orchestrator` and one specialist agent in Supabase (seeded via `apps/api/supabase/seed.sql`).
-4. ⏳ **Integration Coverage** – Add focused tests around runtime hydration and gateway execution using seeded agents.
+4. 🚧 **Integration Coverage** – First gateway runtime/stream integration spec in place; continue expanding to mode router + runner flows.
 
 ### Exit Criteria
 - Database runtime service produces consistent agent execution payloads consumed by the mode router.
@@ -105,4 +105,5 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-19:** Orchestration execute paths now start streaming sessions, emit run-start chunks, and include `streamId` in responses so front-end orchestration tooling can subscribe immediately. (Codex)
 - **2025-01-19:** Orchestration continue updates also stream `run_updated` chunks and return the same `streamId`, keeping long-running runs in sync across websocket subscribers. (Codex)
 - **2025-01-20:** Seeded database-backed demo orchestrator + my-org requirements agents (SQL + fixtures) to exercise the new runtime services. (Codex)
+- **2025-01-20:** Added AgentExecutionGateway integration spec covering plan-based run start streaming flow using seeded agents. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).
