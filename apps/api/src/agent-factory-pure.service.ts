@@ -29,9 +29,8 @@ export class AgentFactoryServicePure {
     switch (config.type) {
         case 'orchestrator': {
           // Orchestrators still handled by NestJS DI (no change needed)
-
           // ... orchestrator logic stays the same (return from DI container)
-          break;
+          throw new Error('Orchestrator agents not implemented in pure service version');
         }
 
         case 'function': {

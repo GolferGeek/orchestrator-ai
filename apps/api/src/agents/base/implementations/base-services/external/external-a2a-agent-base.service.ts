@@ -94,33 +94,29 @@ export class ExternalA2AAgentBaseService
       return;
     }
 
+    // Load local configuration from agent.yaml
+    await this.loadLocalConfiguration();
+
+    // Discover remote agent capabilities (optional)
     try {
-      // Load local configuration from agent.yaml
-      await this.loadLocalConfiguration();
-
-      // Discover remote agent capabilities (optional)
-      try {
-        await this.discoverRemoteAgent();
-      } catch (error) {
-        // Create a minimal agent card for registration
-        this.remoteAgentCard = {
-          id: this.getAgentId(),
-          name: this.getAgentName(),
-          description: `External A2A agent: ${this.getAgentName()}`,
-          capabilities: ['content_creation', 'blog_writing', 'article_writing'],
-          inputModes: ['text'],
-          outputModes: ['text'],
-          version: '1.0.0',
-        };
-      }
-
-      // Note: Agent registration is now handled by AppService via AgentFactoryService
-      // No longer self-registering here to avoid conflicts
-
-      this.isInitialized = true;
+      await this.discoverRemoteAgent();
     } catch (error) {
-      throw error;
+      // Create a minimal agent card for registration
+      this.remoteAgentCard = {
+        id: this.getAgentId(),
+        name: this.getAgentName(),
+        description: `External A2A agent: ${this.getAgentName()}`,
+        capabilities: ['content_creation', 'blog_writing', 'article_writing'],
+        inputModes: ['text'],
+        outputModes: ['text'],
+        version: '1.0.0',
+      };
     }
+
+    // Note: Agent registration is now handled by AppService via AgentFactoryService
+    // No longer self-registering here to avoid conflicts
+
+    this.isInitialized = true;
   }
 
   /**
@@ -304,33 +300,29 @@ export class ExternalA2AAgentBaseService
       throw new Error('Agent path not set');
     }
 
-    try {
-      const agentDirectory = path.join(
-        process.cwd(),
-        'src/agents/demo',
-        this.agentPath,
-      );
+    const agentDirectory = path.join(
+      process.cwd(),
+      'src/agents/demo',
+      this.agentPath,
+    );
 
-      const yamlPath = path.join(agentDirectory, 'agent.yaml');
+    const yamlPath = path.join(agentDirectory, 'agent.yaml');
 
-      const configResult =
-        await this.services.configurationService.parseYamlFile<any>(yamlPath, {
-          substituteEnvVars: true,
-          strictEnvVars: false,
-        });
+    const configResult =
+      await this.services.configurationService.parseYamlFile<any>(yamlPath, {
+        substituteEnvVars: true,
+        strictEnvVars: false,
+      });
 
-      // Extract external A2A configuration
-      this.externalConfig = this.extractExternalA2AConfig(configResult.data);
+    // Extract external A2A configuration
+    this.externalConfig = this.extractExternalA2AConfig(configResult.data);
 
-      if (!this.externalConfig) {
-        throw new Error('No external A2A configuration found in agent.yaml');
-      }
-
-      // Validate configuration
-      this.validateConfiguration(this.externalConfig);
-    } catch (error) {
-      throw error;
+    if (!this.externalConfig) {
+      throw new Error('No external A2A configuration found in agent.yaml');
     }
+
+    // Validate configuration
+    this.validateConfiguration(this.externalConfig);
   }
 
   /**
@@ -366,38 +358,34 @@ export class ExternalA2AAgentBaseService
    * Register with local agent pool using remote agent's capabilities
    */
   private async registerWithAgentPool(): Promise<void> {
-    try {
-      const agentInfo: AgentInfo = {
-        id: this.getAgentId(),
-        name: this.getAgentName(),
-        type: 'marketing', // External agents are now part of marketing organization
-        path: this.agentPath!,
-        url: this.buildAgentUrl(),
-        description:
-          this.remoteAgentCard?.description ||
-          `External A2A agent: ${this.getAgentName()}`,
-        capabilities: this.remoteAgentCard?.capabilities || [],
-        skills: [], // External agents don't expose skills in the same format
-        inputModes: this.remoteAgentCard?.inputModes || ['text'],
-        outputModes: this.remoteAgentCard?.outputModes || ['text'],
-        metadata: {
-          type: 'external',
-          endpoint: this.externalConfig!.endpoint,
-          remoteAgentCard: this.remoteAgentCard,
-          localProxy: true,
-        },
-      };
+    const agentInfo: AgentInfo = {
+      id: this.getAgentId(),
+      name: this.getAgentName(),
+      type: 'marketing', // External agents are now part of marketing organization
+      path: this.agentPath!,
+      url: this.buildAgentUrl(),
+      description:
+        this.remoteAgentCard?.description ||
+        `External A2A agent: ${this.getAgentName()}`,
+      capabilities: this.remoteAgentCard?.capabilities || [],
+      skills: [], // External agents don't expose skills in the same format
+      inputModes: this.remoteAgentCard?.inputModes || ['text'],
+      outputModes: this.remoteAgentCard?.outputModes || ['text'],
+      metadata: {
+        type: 'external',
+        endpoint: this.externalConfig!.endpoint,
+        remoteAgentCard: this.remoteAgentCard,
+        localProxy: true,
+      },
+    };
 
-      this.registrationResult =
-        await this.services.agentRegistrationService.registerAgent(agentInfo);
+    this.registrationResult =
+      await this.services.agentRegistrationService.registerAgent(agentInfo);
 
-      if (!this.registrationResult.success) {
-        throw new Error(
-          `Registration failed: ${this.registrationResult.error}`,
-        );
-      }
-    } catch (error) {
-      throw error;
+    if (!this.registrationResult.success) {
+      throw new Error(
+        `Registration failed: ${this.registrationResult.error}`,
+      );
     }
   }
 

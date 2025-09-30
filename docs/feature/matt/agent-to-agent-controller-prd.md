@@ -58,6 +58,24 @@ If Google publishes an updated schema we will refresh this PRD; for now we are g
   - `GET /.well-known/agent.json` → returns fully compliant card.
   - `GET /health` → simple health probe (status + metadata).
   - `POST /tasks` → accepts JSON-RPC request; enforces request size limits, rate limits, optional API-key header.
+    - The controller MUST accept both raw DTO payloads (legacy callers) and JSON-RPC 2.0 envelopes. When `jsonrpc` is present it:
+      - Maps `method` → `TaskRequestDto.mode` using the translation table below; absence of a resolvable mode causes a `-32602 (Invalid params)` error.
+      - Promotes `params` into the DTO, persisting the original `id`/`method` under `metadata.jsonrpc` so downstream services can correlate responses and telemetry.
+      - Returns `{ jsonrpc: '2.0', id, result }` where `result` is the normalized `TaskResponseDto`. Future slices will also wrap structured errors (`error`) with the same `id`.
+    - Error mapping SHOULD align Nest exceptions to JSON-RPC error codes (e.g., `UnauthorizedException` → `-32001`, rate-limit (HTTP 429) → `-32042`, validation issues → `-32602`).
+    - Method → mode translation:
+
+      | JSON-RPC method | Mode dispatched |
+      | --- | --- |
+      | `converse`, `agent.converse`, `tasks.converse` | `converse` |
+      | `plan`, `agent.plan`, `tasks.plan` | `plan` |
+      | `build`, `agent.build`, `tasks.build` | `build` |
+      | `orchestrate_create`, `agent.orchestrate_create`, `orchestrate.create` | `orchestrate_create` |
+      | `orchestrate_execute`, `agent.orchestrate_execute`, `orchestrate.execute` | `orchestrate_execute` |
+      | `orchestrate_continue`, `agent.orchestrate_continue`, `orchestrate.continue` | `orchestrate_continue` |
+      | `orchestrate_save_recipe`, `agent.orchestrate_save_recipe`, `orchestrate.save_recipe` | `orchestrate_save_recipe` |
+
+    - Batch requests and JSON-RPC notifications remain out of scope for the first launch but should be revisited once streaming is in place.
   - Optional: `POST /notifications` or WebSocket upgrade endpoint for streaming callbacks if declared in card.
 - Controller composes these services:
   - `AgentRegistryService` (new) to resolve agent config by namespace/id from database, falling back to filesystem.

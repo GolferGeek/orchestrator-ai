@@ -1,16 +1,16 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import { Injectable, Logger, Inject as _Inject } from '@nestjs/common';
+import { HttpService as _HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
-import { LLMService } from '@/llms/llm.service';
-import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
-import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
-import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
-import { AuthService } from '@agents/base/sub-services/auth/auth.service';
-import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
+import { LLMService as _LLMService } from '@/llms/llm.service';
+import { AgentRegistrationService as _AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
+import { JsonRpcProtocolService as _JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
+import { LoggingService as _LoggingService } from '@agents/base/sub-services/logging/logging.service';
+import { AuthService as _AuthService } from '@agents/base/sub-services/auth/auth.service';
+import { ConfigurationService as _ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { AgentContextService } from '../a2a-base/agent-context.service';
-import { TaskStatusService } from '@/tasks/task-status.service';
-import { TasksService } from '@/tasks/tasks.service';
-import { DeliverablesService } from '@/deliverables/deliverables.service';
+import { TaskStatusService as _TaskStatusService } from '@/tasks/task-status.service';
+import { TasksService as _TasksService } from '@/tasks/tasks.service';
+import { DeliverablesService as _DeliverablesService } from '@/deliverables/deliverables.service';
 import { AgentServicesContext } from '@agents/base/services/agent-services-context';
 
 /**
@@ -139,7 +139,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         const historyPrompt = formattedHistory
           .map((msg: any) => `${msg.role}: ${msg.content}`)
           .join('\n');
-        const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
+        const _fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
 
         const startTime = Date.now();
 
@@ -164,7 +164,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           llmOptions,
         );
         const endTime = Date.now();
-        const duration = endTime - startTime;
+        const _duration = endTime - startTime;
       } else {
         // Use standard LLM processing for first message
         const extractedPiiMetadata = this.extractPIIMetadata(params);
