@@ -13,13 +13,6 @@
     </div>
     <!-- Messages -->
     <div class="messages-container" ref="messagesContainer">
-      <!-- DEBUG INFO -->
-      <div style="background: yellow; padding: 10px; margin: 10px;">
-        DEBUG: Agent Slug: {{ agentSlug }} | Should Show: {{ shouldShowAgentResources }} | Agent Name: {{ currentAgent?.name }}
-        <br>Agent Object: {{ JSON.stringify(currentAgent, null, 2) }}
-        <br>Agent Video IDs: {{ agentVideoIds }}
-        <br>Fallback Video IDs: {{ fallbackVideoIds }}
-      </div>
       
       <!-- Agent Resources Panel -->
       <AgentResourcesPanel
