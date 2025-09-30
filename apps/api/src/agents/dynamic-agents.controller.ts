@@ -36,6 +36,11 @@ import { Request as ExpressRequest } from 'express';
 import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
 import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
 import { AgentHierarchy } from '../agent-discovery.service';
+import { AgentExecutionGateway } from '../agent2agent/services/agent-execution-gateway.service';
+import {
+  AgentTaskMode,
+  TaskRequestDto,
+} from '../agent2agent/dto/task-request.dto';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -53,6 +58,7 @@ export class DynamicAgentsController {
     private readonly speechService: SpeechService,
     private readonly authService: AuthService,
     private readonly agentRegistry: AgentRegistryService,
+    private readonly agentGateway: AgentExecutionGateway,
   ) {}
 
   /**
@@ -219,6 +225,25 @@ export class DynamicAgentsController {
     // Validate required fields
     if (!normalizedTaskRequest.method || !normalizedTaskRequest.prompt) {
       throw new Error('Method and prompt are required');
+    }
+
+    const normalizedNamespace =
+      activeNamespace && activeNamespace !== 'global'
+        ? activeNamespace
+        : null;
+
+    const databaseAgent = await this.findDatabaseAgentRecord(
+      normalizedNamespace,
+      agentName,
+    );
+
+    if (databaseAgent) {
+      return this.executeDatabaseAgentTask(
+        databaseAgent,
+        normalizedNamespace,
+        normalizedTaskRequest,
+        currentUser,
+      );
     }
 
     // 🎤 AUDIO DETECTION AND TRANSCRIPTION - Convert audio to text if detected
@@ -902,15 +927,21 @@ export class DynamicAgentsController {
 
     const roots: AgentHierarchy[] = [];
 
-    grouped.forEach((agents) => {
+    grouped.forEach((agents, namespaceKey) => {
       const orchestrators = agents.filter(
         (agent) =>
           agent.agent_type === 'orchestrator' || agent.config?.orchestrator,
       );
 
+      const tools = agents.filter(
+        (agent) => agent.config?.agent_category === 'tool',
+      );
+
       const specialists = agents.filter(
         (agent) =>
-          agent.agent_type !== 'orchestrator' && !agent.config?.orchestrator,
+          agent.agent_type !== 'orchestrator' &&
+          !agent.config?.orchestrator &&
+          agent.config?.agent_category !== 'tool',
       );
 
       const specialistNodes = specialists.map((record) =>
@@ -920,11 +951,32 @@ export class DynamicAgentsController {
         specialistNodes.map((node) => [node.name, node]),
       );
 
+      const appendToolsFolder = () => {
+        if (!tools.length) {
+          return;
+        }
+
+        const toolNodes = tools
+          .map((tool) => this.cloneHierarchyNode(createNode(tool, [])))
+          .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+        roots.push({
+          id: `${namespaceKey ?? 'global'}::tools`,
+          name: 'tools',
+          displayName: 'Tools',
+          type: 'tool_group',
+          path: `db://${namespaceKey ?? 'global'}/tools`,
+          namespace: namespaceKey ?? undefined,
+          children: toolNodes,
+        });
+      };
+
       if (!orchestrators.length) {
         const sorted = specialistNodes
           .map((node) => this.cloneHierarchyNode(node))
           .sort((a, b) => a.displayName.localeCompare(b.displayName));
         roots.push(...sorted);
+        appendToolsFolder();
         return;
       }
 
@@ -942,6 +994,8 @@ export class DynamicAgentsController {
 
         roots.push(createNode(record, children));
       });
+
+      appendToolsFolder();
     });
 
     roots.sort((a, b) => a.displayName.localeCompare(b.displayName));
@@ -987,6 +1041,130 @@ export class DynamicAgentsController {
         ? node.children.map((child) => this.cloneHierarchyNode(child))
         : [],
     };
+  }
+
+  private async executeDatabaseAgentTask(
+    record: AgentRecord,
+    namespace: string | null,
+    legacyRequest: CreateTaskDto,
+    currentUser: SupabaseAuthUserDto,
+  ) {
+    const taskRequest = this.mapLegacyTaskToAgentRequest(legacyRequest, currentUser);
+    return this.agentGateway.execute(namespace, record.slug, taskRequest);
+  }
+
+  private mapLegacyTaskToAgentRequest(
+    request: CreateTaskDto,
+    currentUser: SupabaseAuthUserDto,
+  ): TaskRequestDto {
+    const dto = new TaskRequestDto();
+    dto.mode = this.mapLegacyMode(request.params?.mode ?? request.method);
+    dto.conversationId = request.conversationId;
+    dto.userMessage = request.prompt;
+    dto.metadata = {
+      ...(request.metadata ?? {}),
+      createdBy: currentUser?.id ?? null,
+      executionMode: request.executionMode ?? 'immediate',
+    };
+
+    if (request.params?.planId) {
+      dto.planId = request.params.planId;
+    }
+
+    if (request.params?.orchestrationId) {
+      dto.orchestrationId = request.params.orchestrationId;
+    }
+
+    if (request.params?.orchestrationRunId) {
+      dto.orchestrationRunId = request.params.orchestrationRunId;
+    }
+
+    if (request.params?.orchestrationSlug) {
+      dto.orchestrationSlug = request.params.orchestrationSlug;
+    }
+
+    dto.payload = {
+      prompt: request.prompt,
+      params: request.params ?? {},
+      llmSelection: request.llmSelection ?? null,
+      llmMetadata: request.llmMetadata ?? null,
+      conversationHistory: request.conversationHistory ?? [],
+      executionMode: request.executionMode ?? 'immediate',
+      taskId: request.taskId,
+      timeoutSeconds: request.timeoutSeconds,
+      metadata: request.metadata ?? {},
+      options: {
+        stream:
+          request.metadata?.stream === true ||
+          request.executionMode === 'websocket',
+      },
+    };
+
+    if (request.conversationHistory?.length) {
+      dto.messages = request.conversationHistory.map((entry) => ({
+        role: entry.role,
+        content: entry.content,
+      }));
+    }
+
+    return dto;
+  }
+
+  private mapLegacyMode(rawMode?: string | null): AgentTaskMode {
+    const mode = (rawMode || 'converse').toLowerCase();
+
+    switch (mode) {
+      case 'plan':
+        return AgentTaskMode.PLAN;
+      case 'build':
+        return AgentTaskMode.BUILD;
+      case 'human_response':
+        return AgentTaskMode.HUMAN_RESPONSE;
+      case 'orchestrate_create':
+        return AgentTaskMode.ORCHESTRATE_CREATE;
+      case 'orchestrate_execute':
+        return AgentTaskMode.ORCHESTRATE_EXECUTE;
+      case 'orchestrate_continue':
+        return AgentTaskMode.ORCHESTRATOR_RUN_CONTINUE;
+      case 'orchestrator_run_start':
+        return AgentTaskMode.ORCHESTRATOR_RUN_START;
+      case 'orchestrator_run_continue':
+        return AgentTaskMode.ORCHESTRATOR_RUN_CONTINUE;
+      case 'orchestrator_run_pause':
+        return AgentTaskMode.ORCHESTRATOR_RUN_PAUSE;
+      case 'orchestrator_run_resume':
+        return AgentTaskMode.ORCHESTRATOR_RUN_RESUME;
+      case 'orchestrator_run_human_response':
+        return AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE;
+      case 'orchestrator_run_cancel':
+        return AgentTaskMode.ORCHESTRATOR_RUN_CANCEL;
+      case 'orchestrator_plan_create':
+        return AgentTaskMode.ORCHESTRATOR_PLAN_CREATE;
+      case 'orchestrator_plan_update':
+        return AgentTaskMode.ORCHESTRATOR_PLAN_UPDATE;
+      case 'orchestrator_plan_review':
+        return AgentTaskMode.ORCHESTRATOR_PLAN_REVIEW;
+      case 'orchestrator_plan_approve':
+        return AgentTaskMode.ORCHESTRATOR_PLAN_APPROVE;
+      case 'orchestrator_plan_reject':
+        return AgentTaskMode.ORCHESTRATOR_PLAN_REJECT;
+      case 'orchestrator_plan_archive':
+        return AgentTaskMode.ORCHESTRATOR_PLAN_ARCHIVE;
+      case 'orchestrator_recipe_save':
+        return AgentTaskMode.ORCHESTRATOR_RECIPE_SAVE;
+      case 'orchestrator_recipe_update':
+        return AgentTaskMode.ORCHESTRATOR_RECIPE_UPDATE;
+      case 'orchestrator_recipe_validate':
+        return AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE;
+      case 'orchestrator_recipe_delete':
+        return AgentTaskMode.ORCHESTRATOR_RECIPE_DELETE;
+      case 'orchestrator_recipe_load':
+        return AgentTaskMode.ORCHESTRATOR_RECIPE_LOAD;
+      case 'orchestrator_recipe_list':
+        return AgentTaskMode.ORCHESTRATOR_RECIPE_LIST;
+      default:
+        return AgentTaskMode.CONVERSE;
+    }
   }
 
   private pickDefaultNamespace(namespaces: string[]): string {

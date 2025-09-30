@@ -447,9 +447,9 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
   {
     descriptor: researcherDescriptor,
     record: mkRecord(
-      'hierarchy-researcher',
-      'Hierarchy Researcher',
-      'Generates source-backed research packets.',
+      'hiverarchy-researcher',
+      'Hiverarchy Researcher',
+      'Generates source-backed research packets for Hiverarchy.',
       'specialist',
       researcherDescriptor,
     ),
@@ -457,9 +457,9 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
   {
     descriptor: childTopicDescriptor,
     record: mkRecord(
-      'child-topic-builder',
-      'Child Topic Builder',
-      'Creates hierarchical child topics for hivERarchy.',
+      'hiverarchy-child-builder',
+      'Hiverarchy Child Topic Builder',
+      'Creates hierarchical child topics for Hiverarchy.',
       'specialist',
       childTopicDescriptor,
     ),
@@ -467,8 +467,8 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
   {
     descriptor: outlinerDescriptor,
     record: mkRecord(
-      'hierarchy-outliner',
-      'Hierarchy Outliner',
+      'hiverarchy-outliner',
+      'Hiverarchy Outliner',
       'Builds outlines using research and child topics.',
       'specialist',
       outlinerDescriptor,
@@ -477,8 +477,8 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
   {
     descriptor: writerDescriptor,
     record: mkRecord(
-      'hierarchy-writer',
-      'Hierarchy Writer',
+      'hiverarchy-writer',
+      'Hiverarchy Writer',
       'Drafts the full blog post.',
       'specialist',
       writerDescriptor,
@@ -487,8 +487,8 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
   {
     descriptor: editorDescriptor,
     record: mkRecord(
-      'hierarchy-editor',
-      'Hierarchy Editor',
+      'hiverarchy-editor',
+      'Hiverarchy Editor',
       'Edits drafts for tone and structure.',
       'specialist',
       editorDescriptor,
@@ -497,8 +497,8 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
   {
     descriptor: imageDescriptor,
     record: mkRecord(
-      'hierarchy-image-generator',
-      'Hierarchy Image Generator',
+      'hiverarchy-image-generator',
+      'Hiverarchy Image Generator',
       'Produces supporting imagery for posts.',
       'specialist',
       imageDescriptor,
@@ -522,7 +522,11 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
             supabaseAnonKeyEnv: 'HIVERARCHY_SUPABASE_ANON_KEY',
           },
         },
-        config: { supported_modes: ['build'], streaming: { enabled: false } },
+        config: {
+          supported_modes: ['build'],
+          streaming: { enabled: false },
+          agent_category: 'tool',
+        },
       },
     ),
   },
@@ -544,7 +548,11 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
             supabaseAnonKeyEnv: 'HIVERARCHY_SUPABASE_ANON_KEY',
           },
         },
-        config: { supported_modes: ['build'], streaming: { enabled: false } },
+        config: {
+          supported_modes: ['build'],
+          streaming: { enabled: false },
+          agent_category: 'tool',
+        },
       },
     ),
   },
@@ -569,6 +577,7 @@ export const myOrgHierarchyAgentFixtures: AgentFixture[] = [
         config: {
           supported_modes: ['converse', 'build'],
           streaming: { enabled: true },
+          agent_category: 'tool',
         },
       },
     ),
