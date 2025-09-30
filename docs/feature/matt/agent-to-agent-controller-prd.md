@@ -57,7 +57,7 @@ If Google publishes an updated schema we will refresh this PRD; for now we are g
 - `AgentToAgentController` (working name) mounted at `/agent-to-agent/:namespace/:agent` (exact routing TBD) with:
   - `GET /.well-known/agent.json` → returns fully compliant card.
   - `GET /health` → simple health probe (status + metadata).
-  - `POST /tasks` → accepts JSON-RPC request; enforces request size limits, rate limits, optional API-key header.
+  - `POST /tasks` → accepts JSON-RPC request; enforces request size limits, rate limits, optional API-key header (`X-Agent-Api-Key`). Keys are fetched from `organization_credentials`, cached in-memory with configurable TTL, and rate-limited per org/key pair (default: 120 requests / 60s). Structured logs capture requestId, org, agent, mode, and JSON-RPC metadata for observability.
     - The controller MUST accept both raw DTO payloads (legacy callers) and JSON-RPC 2.0 envelopes. When `jsonrpc` is present it:
       - Maps `method` → `TaskRequestDto.mode` using the translation table below; absence of a resolvable mode causes a `-32602 (Invalid params)` error.
       - Promotes `params` into the DTO, persisting the original `id`/`method` under `metadata.jsonrpc` so downstream services can correlate responses and telemetry.

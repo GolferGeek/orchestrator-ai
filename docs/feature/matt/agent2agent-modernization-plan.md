@@ -31,7 +31,7 @@
 
 ### Active Tasks
 1. ✅ **Route Contract Audit** – `/agents/:org/:slug/.well-known/agent.json` and `/tasks` now align with the spec; JSON-RPC request/response handling documented in the PRD. *(Owner: Codex – 2025-01-19)*
-2. **API Key Guard Hardening** – Replace placeholder logic with Supabase-key lookup + rate limiting. *(Owner: Codex — credential caching + 429 rate caps delivered; next: RLS-aware logging.)*
+2. **API Key Guard Hardening** – Replace placeholder logic with Supabase-key lookup + rate limiting. *(Owner: Codex — credential caching + 429 caps delivered; next: RLS-aware logging/metrics.)*
 3. **Routing Adapter Integration** – Wire `CentralizedRoutingService` with real prompts + metadata; respect sovereign policy blocks. *(Owner: Codex)*
 4. **Task Mode Router Enhancements** – Flesh out `AgentModeRouterService` to call new runtime services for converse/build while plan delegates to `PlanEngine`. *(Owner: Codex)*
 5. **Unit Test Expansion** – Cover negative paths / auth failures / routing showstoppers. *(Owner: Codex)*
@@ -52,7 +52,7 @@
 | P2-02 | Build database agent base classes (`AgentModeHandler`, `LLMDispatchService`) | Should encapsulate prompt building, streaming, telemetry. |
 | P2-03 | Seed reference agents (`demo/orchestrator`, one specialist) via Supabase seeding script | Enables end-to-end tests. |
 | P2-04 | Implement conversation/task persistence adapters in new stack | Must produce identical task/deliverable records. |
-| P2-05 | Map JSON-RPC error telemetry to observability dashboards | Needed once controller wraps errors; depends on Phase 1 logging. |
+| P2-05 | Map JSON-RPC error telemetry to observability dashboards | Needs structured log → metrics pipeline. |
 | P3-01 | Reinstate HITL checkpoints on new orchestration runner | Blocks final parity. |
 | P3-02 | Integrate pseudonymization/redaction checks | Coordinate with privacy services. |
 | P4-01 | Dual-run instrumentation | Compare legacy vs new responses. |
@@ -68,10 +68,10 @@
 
 ---
 
-## Change Log
+- **2025-01-19:** Controller now assigns request IDs to every call (stored in metadata/logs) for end-to-end correlation. (Codex)
 - **2025-01-19:** Added structured logging for controller requests (org/agent/mode + JSON-RPC metadata). (Codex)
 - **2025-01-19:** Controller now returns JSON-RPC error envelopes (code mapping for 4xx/5xx) to keep HTTP 200 responses spec-compliant. (Codex)
-- **2025-01-19:** PRD updated with JSON-RPC request/response contract (method mapping, envelope semantics). (Codex)
+- **2025-01-19:** PRD updated with JSON-RPC request/response contract (method mapping, envelope semantics) and auth/logging details. (Codex)
 - **2025-01-19:** `/agent-to-agent/:org/:agent/tasks` accepts JSON-RPC 2.0 envelopes, maps `method` to task modes, and preserves request metadata for downstream telemetry. (Codex)
 - **2025-01-19:** API key guard now caches Supabase credentials and enforces configurable per-key rate limits (429). (Codex)
 - **2025-01-19:** Agent card builder now generates spec-compliant descriptors (protocol/version/url/capabilities/security) with unit coverage; remaining route-contract work tracks JSON-RPC payload docs. (Codex)
