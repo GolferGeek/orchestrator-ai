@@ -143,9 +143,9 @@ export class AgentConfigurationService {
         `Created agent configuration: ${data.agentId} (${result.id})`,
       );
       return { id: result.id, agentId: result.agent_id };
-    } catch (_error) {
-      this.logger.error('Error creating agent configuration', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Error creating agent configuration', error);
+      throw error;
     }
   }
 
@@ -175,9 +175,9 @@ export class AgentConfigurationService {
       }
 
       return this.mapDatabaseRowToAgentData(data);
-    } catch (_error) {
-      this.logger.error(`Error getting agent configuration: ${agentId}`, _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error(`Error getting agent configuration: ${agentId}`, error);
+      throw error;
     }
   }
 
@@ -205,12 +205,12 @@ export class AgentConfigurationService {
       }
 
       return this.mapDatabaseRowToAgentData(data);
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Error getting agent configuration by ID: ${id}`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -248,9 +248,9 @@ export class AgentConfigurationService {
       }
 
       return data.map((row) => this.mapDatabaseRowToAgentData(row));
-    } catch (_error) {
-      this.logger.error('Error listing agent configurations', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Error listing agent configurations', error);
+      throw error;
     }
   }
 
@@ -329,12 +329,12 @@ export class AgentConfigurationService {
       );
 
       this.logger.log(`Updated agent configuration: ${agentId}`);
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Error updating agent configuration: ${agentId}`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -364,12 +364,12 @@ export class AgentConfigurationService {
         agent_id: agentId,
       });
       this.logger.log(`Deactivated agent configuration: ${agentId}`);
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Error deactivating agent configuration: ${agentId}`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -410,12 +410,12 @@ export class AgentConfigurationService {
       this.logger.log(
         `Created ${skills.length} skills for agent: ${agentConfigurationId}`,
       );
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Error creating agent skills for: ${agentConfigurationId}`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -454,12 +454,12 @@ export class AgentConfigurationService {
         skillOrder: row.skill_order,
         isPrimary: row.is_primary,
       }));
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Error getting agent skills for: ${agentConfigurationId}`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -497,9 +497,9 @@ export class AgentConfigurationService {
 
       this.logger.log(`Created conversation: ${data.sessionId} (${result.id})`);
       return result.id;
-    } catch (_error) {
-      this.logger.error('Error creating conversation', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Error creating conversation', error);
+      throw error;
     }
   }
 
@@ -542,9 +542,9 @@ export class AgentConfigurationService {
       }
 
       this.logger.log(`Updated conversation: ${sessionId}`);
-    } catch (_error) {
-      this.logger.error(`Error updating conversation: ${sessionId}`, _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error(`Error updating conversation: ${sessionId}`, error);
+      throw error;
     }
   }
 
@@ -578,9 +578,9 @@ export class AgentConfigurationService {
         ipAddress: data.ip_address,
         metadata: data.metadata ? JSON.parse(data.metadata) : null,
       };
-    } catch (_error) {
-      this.logger.error(`Error getting conversation: ${sessionId}`, _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error(`Error getting conversation: ${sessionId}`, error);
+      throw error;
     }
   }
 
@@ -609,8 +609,8 @@ export class AgentConfigurationService {
         this.logger.error('Failed to log conversation event', error);
         // Don't throw error for logging failures to avoid disrupting main flow
       }
-    } catch (_error) {
-      this.logger.error('Error logging conversation event', _error);
+    } catch (error) {
+      this.logger.error('Error logging conversation event', error);
     }
   }
 
@@ -636,8 +636,8 @@ export class AgentConfigurationService {
       if (error) {
         this.logger.warn('Failed to log agent action', error);
       }
-    } catch (_error) {
-      this.logger.warn('Error logging agent action', _error);
+    } catch (error) {
+      this.logger.warn('Error logging agent action', error);
     }
   }
 

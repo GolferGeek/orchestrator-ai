@@ -242,8 +242,8 @@ export class AgentDiscoveryService {
       }
 
       this.logger.log(`🗄️ Discovered ${databaseAgents.length} database agents`);
-    } catch (_error) {
-      this.logger.warn('⚠️ Failed to discover database agents:', _error);
+    } catch (error) {
+      this.logger.warn('⚠️ Failed to discover database agents:', error);
     }
   }
 
@@ -461,7 +461,7 @@ export class AgentDiscoveryService {
             const parsed = yaml.load(configContent) as any;
 
             // Extract metadata
-            const _metadata = parsed.metadata || {};
+            const metadata = parsed.metadata || {};
 
             // Extract hierarchy information
             const hierarchy = parsed.hierarchy || {};

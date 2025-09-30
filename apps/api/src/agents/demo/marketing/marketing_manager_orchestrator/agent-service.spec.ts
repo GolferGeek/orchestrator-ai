@@ -106,7 +106,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       // Should recognize this as a project requiring planning
@@ -126,7 +126,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       expect(response.message || response.response).toBeDefined();
@@ -147,7 +147,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       // Should delegate to blog_post agent for long-form content
@@ -168,7 +168,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       const delegatedAgent =
@@ -188,7 +188,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       const delegatedAgent =
@@ -208,7 +208,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       const delegatedAgent =
@@ -230,7 +230,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       expect(response.projectId || response.planId).toBeDefined();
@@ -334,7 +334,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory,
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       // Should understand this as continuation of strategy discussion
@@ -371,7 +371,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory,
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
       // Should either continue with blog_post agent or delegate to content agent for social media
@@ -433,7 +433,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         };
 
         try {
-          const _response = await service.executeTask('executeTask', input);
+          const response = await service.executeTask('executeTask', input);
 
           // Analyze the decision made
           let actualDecision = 'unknown';
@@ -464,12 +464,12 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
             correct,
             confidence: response.metadata?.confidence || 'N/A',
           });
-        } catch (_error) {
+        } catch (error) {
           results.push({
             ...scenario,
-            actualDecision: '_error',
+            actualDecision: 'error',
             correct: false,
-            error: _error instanceof Error ? _error.message : 'Unknown _error',
+            error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
@@ -502,7 +502,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         conversationHistory: [],
       };
 
-      const _response = await service.executeTask('executeTask', input);
+      const response = await service.executeTask('executeTask', input);
 
       expect(response.success).toBe(true);
 

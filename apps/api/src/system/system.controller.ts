@@ -69,13 +69,13 @@ export class SystemController {
           api: 'healthy',
         },
       };
-    } catch (_error) {
-      this.logger.error('Failed to get system health:', _error);
+    } catch (error) {
+      this.logger.error('Failed to get system health:', error);
       return {
         success: false,
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        _error: 'System health check failed',
+        error: 'System health check failed',
       };
     }
   }
@@ -195,9 +195,9 @@ export class SystemController {
         success: true,
         data: analytics,
       };
-    } catch (_error) {
-      this.logger.error('Failed to get system analytics', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Failed to get system analytics', error);
+      throw error;
     }
   }
 
@@ -228,8 +228,8 @@ export class SystemController {
         dbConfig,
         envOverrideActive: Boolean(envOverride),
       };
-    } catch (_error) {
-      this.logger.error('Failed to get global model config', _error);
+    } catch (error) {
+      this.logger.error('Failed to get global model config', error);
       throw new HttpException(
         'Failed to fetch model config',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -292,9 +292,9 @@ export class SystemController {
         message: 'Global model configuration updated',
         envOverrideActive: Boolean(envOverride),
       };
-    } catch (_error) {
-      this.logger.error('Failed to update global model config', _error);
-      if (_error instanceof HttpException) throw _error;
+    } catch (error) {
+      this.logger.error('Failed to update global model config', error);
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         'Failed to update model config',
         HttpStatus.INTERNAL_SERVER_ERROR,

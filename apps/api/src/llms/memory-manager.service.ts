@@ -118,8 +118,8 @@ export class MemoryManagerService implements OnModuleInit {
       this.logger.debug(
         `Loaded ${this.threeTierModels.size} three-tier models: ${Array.from(this.threeTierModels).join(', ')}`,
       );
-    } catch (_error) {
-      this.logger.error('Error loading three-tier models', _error);
+    } catch (error) {
+      this.logger.error('Error loading three-tier models', error);
     }
   }
 
@@ -157,8 +157,8 @@ export class MemoryManagerService implements OnModuleInit {
       this.logger.debug(
         `Synced with current state: ${this.loadedModels.size} models loaded`,
       );
-    } catch (_error) {
-      this.logger.error('Failed to sync with current state', _error);
+    } catch (error) {
+      this.logger.error('Failed to sync with current state', error);
     }
   }
 
@@ -259,7 +259,7 @@ export class MemoryManagerService implements OnModuleInit {
           message: 'Failed to load model via Ollama',
         };
       }
-    } catch (_error) {
+    } catch (error) {
       const loadTime = Date.now() - startTime;
       this.logger.error(
         `Failed to load model ${modelName} after ${loadTime}ms`,
@@ -331,8 +331,8 @@ export class MemoryManagerService implements OnModuleInit {
               `Unloaded ${model.name} (${(modelInfo.estimatedSize / 1024 / 1024 / 1024).toFixed(1)}GB)`,
             );
           }
-        } catch (_error) {
-          this.logger.error(`Failed to unload ${model.name}`, _error);
+        } catch (error) {
+          this.logger.error(`Failed to unload ${model.name}`, error);
         }
 
         // Check if we've freed enough memory
@@ -539,8 +539,8 @@ export class MemoryManagerService implements OnModuleInit {
           this.logger.log(
             `Optimized: unloaded ${model.name} (unused for ${Math.round((now - model.lastUsed) / 60000)}min)`,
           );
-        } catch (_error) {
-          this.logger.error(`Failed to optimize-unload ${model.name}`, _error);
+        } catch (error) {
+          this.logger.error(`Failed to optimize-unload ${model.name}`, error);
         }
       }
 
@@ -656,8 +656,8 @@ export class MemoryManagerService implements OnModuleInit {
 
       this.logger.log(`Force unloaded ${modelName}`);
       return true;
-    } catch (_error) {
-      this.logger.error(`Failed to force unload ${modelName}`, _error);
+    } catch (error) {
+      this.logger.error(`Failed to force unload ${modelName}`, error);
       return false;
     }
   }
@@ -688,14 +688,14 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       try {
-        const _result = await this.loadModel(modelName, 'medium', 'high');
+        const result = await this.loadModel(modelName, 'medium', 'high');
         if (result.success) {
           this.logger.log(`Preloaded three-tier model: ${modelName}`);
         } else {
           this.logger.warn(`Failed to preload ${modelName}: ${result.message}`);
         }
-      } catch (_error) {
-        this.logger.error(`Error preloading ${modelName}`, _error);
+      } catch (error) {
+        this.logger.error(`Error preloading ${modelName}`, error);
       }
 
       // Check memory pressure after each load

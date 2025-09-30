@@ -27,50 +27,51 @@ export class AgentFactoryServicePure {
     const _serviceName = ServiceClass.name;
 
     switch (config.type) {
-        case 'orchestrator': {
-          // Orchestrators still handled by NestJS DI (no change needed)
-          // ... orchestrator logic stays the same (return from DI container)
-          throw new Error('Orchestrator agents not implemented in pure service version');
-        }
+      case 'orchestrator': {
+        // Orchestrators still handled by NestJS DI (no change needed)
+        // ... orchestrator logic stays the same (return from DI container)
+        throw new Error(
+          'Orchestrator agents not implemented in pure service version',
+        );
+      }
 
-        case 'function': {
-          // For function agents, you could create a FunctionAgentServicesContext too
-          return new ServiceClass(this.agentServices);
-        }
+      case 'function': {
+        // For function agents, you could create a FunctionAgentServicesContext too
+        return new ServiceClass(this.agentServices);
+      }
 
-        case 'context': {
-          // 🎉 THE MAGIC: No matter how many services you add to AgentServicesContext,
-          // this line never changes! All context agents get all services automatically.
-          return new ServiceClass(this.agentServices);
-        }
+      case 'context': {
+        // 🎉 THE MAGIC: No matter how many services you add to AgentServicesContext,
+        // this line never changes! All context agents get all services automatically.
+        return new ServiceClass(this.agentServices);
+      }
 
-        case 'api': {
-          // For API agents, you could create an ApiAgentServicesContext
-          return new ServiceClass(this.agentServices);
-        }
+      case 'api': {
+        // For API agents, you could create an ApiAgentServicesContext
+        return new ServiceClass(this.agentServices);
+      }
 
-        case 'python-function': {
-          // Python agents might need different services
-          return new ServiceClass(
-            this.agentServices.httpService,
-            this.agentServices.llmService,
-            this.agentServices.taskProgressGateway,
-            this.agentServices.tasksService,
-            this.agentServices.taskStatusService,
-          );
-        }
+      case 'python-function': {
+        // Python agents might need different services
+        return new ServiceClass(
+          this.agentServices.httpService,
+          this.agentServices.llmService,
+          this.agentServices.taskProgressGateway,
+          this.agentServices.tasksService,
+          this.agentServices.taskStatusService,
+        );
+      }
 
-        case 'external': {
-          return new ServiceClass(
-            this.agentServices.httpService,
-            this.agentServices.configurationService,
-            this.agentServices.agentRegistrationService,
-          );
-        }
+      case 'external': {
+        return new ServiceClass(
+          this.agentServices.httpService,
+          this.agentServices.configurationService,
+          this.agentServices.agentRegistrationService,
+        );
+      }
 
-        default: {
-          return new ServiceClass(this.agentServices.httpService);
-        }
+      default: {
+        return new ServiceClass(this.agentServices.httpService);
       }
     }
   }

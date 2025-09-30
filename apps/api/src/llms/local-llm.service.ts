@@ -90,7 +90,7 @@ export class LocalLLMService {
 
       // Make the API call to Ollama
       const apiStartTime = Date.now();
-      const _response = await firstValueFrom(
+      const response = await firstValueFrom(
         this.httpService.post(`${this.ollamaBaseUrl}/api/generate`, payload, {
           timeout: 120000, // 2 minute timeout
         }),
@@ -122,14 +122,14 @@ export class LocalLLMService {
       );
 
       return result;
-    } catch (_error) {
+    } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(
         `Local LLM generation failed after ${duration}ms`,
-        _error,
+        error,
       );
       throw new Error(
-        `Local LLM generation failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Local LLM generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -158,12 +158,12 @@ export class LocalLLMService {
 
       // Load the model
       return await this.loadModel(modelName);
-    } catch (_error) {
-      this.logger.error(`Failed to ensure model ${modelName} is loaded`, _error);
+    } catch (error) {
+      this.logger.error(`Failed to ensure model ${modelName} is loaded`, error);
       return {
         success: false,
         model: modelName,
-        message: _error instanceof Error ? _error.message : 'Unknown _error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -201,17 +201,17 @@ export class LocalLLMService {
         model: modelName,
         loadTime,
       };
-    } catch (_error) {
+    } catch (error) {
       const loadTime = Date.now() - startTime;
       this.logger.error(
         `Failed to load model ${modelName} after ${loadTime}ms`,
-        _error,
+        error,
       );
 
       return {
         success: false,
         model: modelName,
-        message: _error instanceof Error ? _error.message : 'Unknown _error',
+        message: error instanceof Error ? error.message : 'Unknown error',
         loadTime,
       };
     } finally {
@@ -317,8 +317,8 @@ export class LocalLLMService {
 
       // Otherwise return the best match
       return data[0]?.model_name || null;
-    } catch (_error) {
-      this.logger.error('Failed to query best model for task', _error);
+    } catch (error) {
+      this.logger.error('Failed to query best model for task', error);
       return null;
     }
   }
@@ -332,8 +332,8 @@ export class LocalLLMService {
     try {
       const loadedModels = await this.localModelStatusService.getLoadedModels();
       return loadedModels.map((m) => ({ name: m.name, size: m.size || '0' }));
-    } catch (_error) {
-      this.logger.warn('Failed to get currently loaded models', _error);
+    } catch (error) {
+      this.logger.warn('Failed to get currently loaded models', error);
       return [];
     }
   }
@@ -394,8 +394,8 @@ export class LocalLLMService {
       }
 
       return data?.map((row) => row.model_name) || [];
-    } catch (_error) {
-      this.logger.error('Failed to query available models', _error);
+    } catch (error) {
+      this.logger.error('Failed to query available models', error);
       return [];
     }
   }

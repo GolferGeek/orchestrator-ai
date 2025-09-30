@@ -178,7 +178,7 @@ async def call_${agentName.toLowerCase()}_agent(
         }
 
 # Call ${agentName} agent
-${agentName.toLowerCase()}_result = await call_${agentName.toLowerCase()}_agent(
+${agentName.toLowerCase()}result = await call_${agentName.toLowerCase()}_agent(
     ${userMessageVariable}${optionsParam}
 )
 `;

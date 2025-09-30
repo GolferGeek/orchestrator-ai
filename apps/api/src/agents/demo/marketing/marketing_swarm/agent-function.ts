@@ -386,7 +386,7 @@ Create high-quality, actionable marketing content according to your expertise. M
         specialties: agent.specialties,
         timestamp: new Date().toISOString(),
       });
-    } catch (_error) {
+    } catch (error) {
       agentOutputs.set(agent.name, {
         content: `Error generating content: ${error instanceof Error ? error.message : String(error)}`,
         agent_role: agent.role,
@@ -487,11 +487,11 @@ Format as JSON:
         evaluator_specialties: evaluator.specialties,
         timestamp: new Date().toISOString(),
       });
-    } catch (_error) {
+    } catch (error) {
       evaluationResults.set(evaluator.name, {
         score: 5,
-        error: _error instanceof Error ? _error.message : String(_error),
-        recommendations: [`Review needed due to evaluation _error`],
+        error: error instanceof Error ? error.message : String(error),
+        recommendations: [`Review needed due to evaluation error`],
       });
     }
   }
@@ -781,7 +781,7 @@ ${content}
         end_time: new Date().toISOString(),
       },
     };
-  } catch (_error) {
+  } catch (error) {
     return {
       response: JSON.stringify(
         {
@@ -842,7 +842,7 @@ export async function execute(
         swarm_workflow: workflowMetadata,
       },
     };
-  } catch (_error) {
+  } catch (error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 

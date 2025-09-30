@@ -218,7 +218,7 @@ describe('LLMService', () => {
 
     describe('generateEnhancedResponse', () => {
       it('should generate enhanced response with LLM selection and CIDAFM processing', async () => {
-        const _result = await service.generateEnhancedResponse(
+        const result = await service.generateEnhancedResponse(
           'user-123',
           'You are a helpful assistant.',
           '^concise &disciplined Tell me about AI',
@@ -272,7 +272,7 @@ describe('LLMService', () => {
       });
 
       it('should work without CIDAFM options', async () => {
-        const _result = await service.generateEnhancedResponse(
+        const result = await service.generateEnhancedResponse(
           'user-123',
           'You are a helpful assistant.',
           'Simple message without CIDAFM',
@@ -348,7 +348,7 @@ describe('LLMService', () => {
             error: null,
           });
 
-        const _result = await service.generateEnhancedResponse(
+        const result = await service.generateEnhancedResponse(
           'user-123',
           'You are a helpful assistant.',
           'Test message',
@@ -376,7 +376,7 @@ describe('LLMService', () => {
       });
 
       it('should calculate costs correctly based on model pricing', async () => {
-        const _result = await service.generateEnhancedResponse(
+        const result = await service.generateEnhancedResponse(
           'user-123',
           'You are a helpful assistant.',
           'Test message for cost calculation',
@@ -396,7 +396,7 @@ describe('LLMService', () => {
       });
 
       it('should track response time metrics', async () => {
-        const _result = await service.generateEnhancedResponse(
+        const result = await service.generateEnhancedResponse(
           'user-123',
           'You are a helpful assistant.',
           'Test message for timing',
@@ -445,7 +445,7 @@ describe('LLMService', () => {
           { role: 'assistant' as const, content: 'Hi there!' },
         ];
 
-        const _result = await service.generateResponseWithHistory(
+        const result = await service.generateResponseWithHistory(
           'You are a helpful assistant.',
           conversationHistory,
           'What did I say before?',
@@ -467,7 +467,7 @@ describe('LLMService', () => {
 
         mockLLM.invoke.mockResolvedValue(mockResponse);
 
-        const _result = await service.generateResponseWithHistory(
+        const result = await service.generateResponseWithHistory(
           'You are a helpful assistant.',
           [],
           'Hello',

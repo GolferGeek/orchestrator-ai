@@ -2364,9 +2364,9 @@ export class EvaluationService {
     try {
       const client = this.supabaseService.getServiceClient();
       return { client, isServiceClient: true };
-    } catch (_error) {
+    } catch (error) {
       this.logger.warn(
-        `[EvaluationService] Service client unavailable, falling back to anon client for recommendations: ${_error instanceof Error ? _error.message : _error}`,
+        `[EvaluationService] Service client unavailable, falling back to anon client for recommendations: ${error instanceof Error ? error.message : error}`,
       );
       return {
         client: this.supabaseService.getAnonClient(),

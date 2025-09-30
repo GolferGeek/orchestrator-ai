@@ -58,7 +58,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
     it('should stop on safety filter violations', async () => {
       // Test with content that might trigger safety filters
       try {
-        const _result = await llmService.generateUnifiedResponse({
+        const result = await llmService.generateUnifiedResponse({
           provider: 'ollama',
           model: 'llama3.2:1b',
           systemPrompt: 'You are helpful.',
@@ -138,7 +138,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
 
   describe('Data Classification Flags', () => {
     it('should respect confidential data classification', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -161,7 +161,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
     }, 30000);
 
     it('should handle restricted data classification', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -181,7 +181,7 @@ describe('LLM Showstopper Flags (e2e)', () => {
 
   describe('Processing Flag Propagation', () => {
     it('should propagate processing flags through the entire pipeline', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',

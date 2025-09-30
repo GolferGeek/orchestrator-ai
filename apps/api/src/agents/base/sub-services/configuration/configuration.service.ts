@@ -197,9 +197,9 @@ export class ConfigurationService {
       }
 
       return errors;
-    } catch (_error) {
+    } catch (error) {
       throw new Error(
-        `Schema validation failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Schema validation failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -304,9 +304,9 @@ export class ConfigurationService {
 
       // Write the file
       fs.writeFileSync(resolvedPath, yamlContent, 'utf8');
-    } catch (_error) {
+    } catch (error) {
       throw new Error(
-        `Failed to write YAML configuration: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Failed to write YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

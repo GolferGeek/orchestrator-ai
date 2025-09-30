@@ -280,9 +280,9 @@ export class NotionMCPTools implements IMCPToolHandler {
         default:
           return this.createErrorResponse(`Unknown Notion tool: ${name}`);
       }
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : String(_error);
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Notion tool ${name} failed: ${errorMessage}`);
       return this.createErrorResponse(`Tool execution failed: ${errorMessage}`);
     }
@@ -293,11 +293,11 @@ export class NotionMCPTools implements IMCPToolHandler {
    */
   async ping(): Promise<boolean> {
     try {
-      const _response = await this.makeNotionRequest('users/me', 'GET');
+      const response = await this.makeNotionRequest('users/me', 'GET');
       return response.ok;
-    } catch (_error) {
+    } catch (error) {
       this.logger.warn(
-        `Notion ping failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Notion ping failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       return false;
     }
@@ -331,7 +331,7 @@ export class NotionMCPTools implements IMCPToolHandler {
         payload.children = content;
       }
 
-      const _response = await this.makeNotionRequest('pages', 'POST', payload);
+      const response = await this.makeNotionRequest('pages', 'POST', payload);
       const _data = await response.json();
 
       if (!response.ok) {
@@ -359,9 +359,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Create page failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Create page failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -387,7 +387,7 @@ export class NotionMCPTools implements IMCPToolHandler {
         payload.start_cursor = start_cursor;
       }
 
-      const _response = await this.makeNotionRequest(
+      const response = await this.makeNotionRequest(
         `databases/${database_id}/query`,
         'POST',
         payload,
@@ -418,9 +418,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Query database failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Query database failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -450,7 +450,7 @@ export class NotionMCPTools implements IMCPToolHandler {
         payload.start_cursor = start_cursor;
       }
 
-      const _response = await this.makeNotionRequest('search', 'POST', payload);
+      const response = await this.makeNotionRequest('search', 'POST', payload);
       const _data = await response.json();
 
       if (!response.ok) {
@@ -478,9 +478,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Search content failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Search content failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -492,7 +492,7 @@ export class NotionMCPTools implements IMCPToolHandler {
     const { page_id, include_content = false } = args;
 
     try {
-      const _response = await this.makeNotionRequest(`pages/${page_id}`, 'GET');
+      const response = await this.makeNotionRequest(`pages/${page_id}`, 'GET');
       const _data = await response.json();
 
       if (!response.ok) {
@@ -512,9 +512,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           if (contentResponse.ok) {
             content = contentData.results;
           }
-        } catch (_error) {
+        } catch (error) {
           this.logger.warn(
-            `Failed to fetch page content: ${_error instanceof Error ? _error.message : String(_error)}`,
+            `Failed to fetch page content: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
       }
@@ -535,9 +535,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Get page failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Get page failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -559,7 +559,7 @@ export class NotionMCPTools implements IMCPToolHandler {
         payload.archived = archived;
       }
 
-      const _response = await this.makeNotionRequest(
+      const response = await this.makeNotionRequest(
         `pages/${page_id}`,
         'PATCH',
         payload,
@@ -589,9 +589,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Update page failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Update page failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -605,7 +605,7 @@ export class NotionMCPTools implements IMCPToolHandler {
     try {
       const payload = { children };
 
-      const _response = await this.makeNotionRequest(
+      const response = await this.makeNotionRequest(
         `blocks/${page_id}/children`,
         'PATCH',
         payload,
@@ -635,9 +635,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Append blocks failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Append blocks failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -661,7 +661,7 @@ export class NotionMCPTools implements IMCPToolHandler {
         payload.start_cursor = start_cursor;
       }
 
-      const _response = await this.makeNotionRequest('search', 'POST', payload);
+      const response = await this.makeNotionRequest('search', 'POST', payload);
       const _data = await response.json();
 
       if (!response.ok) {
@@ -688,9 +688,9 @@ export class NotionMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Get databases failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Get databases failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

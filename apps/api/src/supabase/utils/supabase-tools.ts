@@ -332,7 +332,7 @@ export async function executeCompanySQL(query: string): Promise<any> {
   const client = getCompanyClient();
 
   try {
-    const _result = await executeQueryOnCompanyDB(client, query);
+    const result = await executeQueryOnCompanyDB(client, query);
     if (result.error) {
       throw new Error(`SQL execution failed: ${result.error}`);
     }

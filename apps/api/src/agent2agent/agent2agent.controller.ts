@@ -76,7 +76,7 @@ export class Agent2AgentController {
     const org = orgSlug === 'global' ? null : orgSlug;
     const { dto, jsonrpc } = await this.normalizeTaskRequest(body);
     try {
-      const _result = await this.gateway.execute(org, agentSlug, dto);
+      const result = await this.gateway.execute(org, agentSlug, dto);
 
       this.logRequest({
         org,
@@ -96,7 +96,7 @@ export class Agent2AgentController {
       }
 
       return result;
-    } catch (_error) {
+    } catch (error) {
       if (!jsonrpc) {
         this.logRequest({
           org,
@@ -104,9 +104,9 @@ export class Agent2AgentController {
           dto,
           jsonrpc: null,
           status: 'error',
-          error: _error,
+          error,
         });
-        throw _error;
+        throw error;
       }
 
       this.logRequest({
@@ -115,10 +115,10 @@ export class Agent2AgentController {
         dto,
         jsonrpc,
         status: 'error',
-        error: _error,
+        error,
       });
 
-      return this.buildJsonRpcError(jsonrpc.id ?? null, _error);
+      return this.buildJsonRpcError(jsonrpc.id ?? null, error);
     }
   }
 
@@ -245,8 +245,8 @@ export class Agent2AgentController {
     data?: any;
   } {
     if (error instanceof HttpException) {
-      const _status = error.getStatus();
-      const _response = error.getResponse();
+      const status = error.getStatus();
+      const response = error.getResponse();
       const payload =
         typeof response === 'string'
           ? { message: response, statusCode: status }

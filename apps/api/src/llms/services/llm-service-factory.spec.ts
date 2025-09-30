@@ -441,7 +441,7 @@ describe('LLMServiceFactory', () => {
       const service = await factory.createService(config);
       jest.spyOn(service, 'generateResponse').mockResolvedValue(mockResponse);
 
-      const _response = await factory.generateResponse(config, params);
+      const response = await factory.generateResponse(config, params);
 
       expect(response).toEqual(mockResponse);
       expect(response.metadata.provider).toBe('openai');

@@ -45,7 +45,7 @@ export class RoutingPolicyAdapterService {
     }
 
     const payload = request.payload ?? {};
-    const _metadata = this.collectMetadata(request);
+    const metadata = this.collectMetadata(request);
 
     if (Array.isArray(request.messages) && request.messages.length) {
       const recent = request.messages.slice(-6);
@@ -94,7 +94,7 @@ export class RoutingPolicyAdapterService {
     agent: AgentRecord,
   ): Record<string, any> {
     const payload = request.payload ?? {};
-    const _metadata = this.collectMetadata(request);
+    const metadata = this.collectMetadata(request);
 
     return {
       mode: request.mode,

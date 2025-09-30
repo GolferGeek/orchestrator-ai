@@ -236,10 +236,10 @@ export class PIIService {
         options,
         startTime,
       );
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `🔥 [PII-SERVICE] Policy check failed: ${_error instanceof Error ? _error.message : String(_error)}`,
-        _error,
+        `🔥 [PII-SERVICE] Policy check failed: ${error instanceof Error ? error.message : String(error)}`,
+        error,
       );
 
       // On error, return metadata indicating failure but allow request

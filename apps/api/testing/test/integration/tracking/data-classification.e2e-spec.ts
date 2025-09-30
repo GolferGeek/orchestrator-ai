@@ -22,7 +22,7 @@ describe('Data Classification Tracking (e2e)', () => {
   });
 
   it('should track confidential data classification', async () => {
-    const _result = await llmService.generateCentralizedResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Process confidential data.',
       {

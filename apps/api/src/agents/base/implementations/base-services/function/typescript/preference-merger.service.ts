@@ -321,7 +321,7 @@ export class PreferenceMergerService {
           if (options[field] !== undefined && options[field] !== null) {
             const validator = customValidators[field];
             if (validator) {
-              const _error = validator(options[field]);
+              const error = validator(options[field]);
               if (error) {
                 errors.push(error);
               }

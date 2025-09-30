@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AgentsRepository } from '../../agent-platform/repositories/agents.repository';
 import { AgentRecord } from '../../agent-platform/interfaces/agent-record.interface';
+import { AgentRegistryService } from '../../agent-platform/services/agent-registry.service';
 
 export interface AgentCardOptions {
   includePrivateFields?: boolean;
@@ -13,7 +13,7 @@ export class AgentCardBuilderService {
   private static readonly DEFAULT_PROVIDER = 'Orchestrator AI';
 
   constructor(
-    private readonly agentsRepository: AgentsRepository,
+    private readonly agentRegistry: AgentRegistryService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -22,7 +22,7 @@ export class AgentCardBuilderService {
     agentSlug: string,
     options: AgentCardOptions = {},
   ): Promise<any> {
-    const agent = await this.agentsRepository.findBySlug(
+    const agent = await this.agentRegistry.getAgent(
       organizationSlug,
       agentSlug,
     );

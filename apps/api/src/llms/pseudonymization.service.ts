@@ -91,11 +91,11 @@ export class PseudonymizationService {
         isNew: true,
         context,
       };
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `Failed to generate pseudonym: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to generate pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -141,7 +141,7 @@ export class PseudonymizationService {
         } catch (_error) {
           this.logger.warn(
             `Failed to pseudonymize ${match.dataType}: ${match.value}`,
-            _error,
+            error,
           );
         }
       }
@@ -159,11 +159,11 @@ export class PseudonymizationService {
         pseudonyms,
         processingTime,
       };
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `Failed to pseudonymize text: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to pseudonymize text: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -183,9 +183,9 @@ export class PseudonymizationService {
       }
 
       return null;
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `Failed to lookup pseudonym: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to lookup pseudonym: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       return null;
     }
@@ -258,9 +258,9 @@ export class PseudonymizationService {
       }
 
       return data;
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `Database lookup failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Database lookup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       return null;
     }
@@ -493,11 +493,11 @@ export class PseudonymizationService {
 
       if (error) throw error;
       return data.id;
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `Failed to store pseudonym mapping: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to store pseudonym mapping: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -523,9 +523,9 @@ export class PseudonymizationService {
           last_used_at: new Date().toISOString(),
         })
         .eq('id', mappingId);
-    } catch (_error) {
+    } catch (error) {
       this.logger.warn(
-        `Failed to increment pseudonym usage: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to increment pseudonym usage: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -556,9 +556,9 @@ export class PseudonymizationService {
           timestamp: new Date().toISOString(),
         },
       });
-    } catch (_error) {
+    } catch (error) {
       this.logger.warn(
-        `Failed to log pseudonym operation: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to log pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -602,9 +602,9 @@ export class PseudonymizationService {
       );
 
       await client.from('redaction_audit_log').insert(logEntries);
-    } catch (_error) {
+    } catch (error) {
       this.logger.warn(
-        `Failed to log bulk pseudonym operation: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to log bulk pseudonym operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -708,9 +708,9 @@ export class PseudonymizationService {
           }
         }
       }
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `Failed to reverse pseudonymization from database: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to reverse pseudonymization from database: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
 
@@ -735,7 +735,7 @@ export class PseudonymizationService {
     reversalContext: PseudonymResult[];
     processingTime: number;
   }> {
-    const _result = await this.pseudonymizeText(text, {
+    const result = await this.pseudonymizeText(text, {
       context: `${requestId}${options?.context ? `-${options.context}` : ''}`,
       dataTypes: options?.dataTypes,
     });

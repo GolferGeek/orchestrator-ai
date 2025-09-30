@@ -163,15 +163,18 @@ export class TasksService {
           });
 
           return this.mapToTask(createdTask);
-        } catch (_error) {
+        } catch (error) {
           if (attempts >= maxAttempts - 1) {
-            throw _error;
+            throw error;
           }
           attempts++;
         }
       }
 
       throw new Error(`Failed to create task after ${maxAttempts} attempts`);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -241,6 +244,9 @@ export class TasksService {
         tasks: data.map((item) => this.mapToTask(item)),
         total: count || 0,
       };
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -338,6 +344,9 @@ export class TasksService {
       // to avoid duplicate emissions that cause multiple deliverable versions
 
       return this.mapToTask(data);
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -465,9 +474,9 @@ export class TasksService {
         uptime: process.uptime() * 1000, // Convert to milliseconds
         memoryUsage: process.memoryUsage(),
       };
-    } catch (_error) {
-      this.logger.error('Error calculating task metrics:', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Error calculating task metrics:', error);
+      throw error;
     }
   }
 

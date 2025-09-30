@@ -137,7 +137,7 @@ describe('ApiAgentBaseService', () => {
 
   describe('executeTask', () => {
     it('should return fallback response when no API configuration is set', async () => {
-      const _result = await service.executeTask('test', { message: 'Hello' });
+      const result = await service.executeTask('test', { message: 'Hello' });
 
       expect(result).toEqual({
         success: true,
@@ -166,7 +166,7 @@ describe('ApiAgentBaseService', () => {
       httpService.request.mockReturnValue(of(mockResponse));
       service.setApiConfiguration(config);
 
-      const _result = await service.executeTask('chat', { message: 'Hello' });
+      const result = await service.executeTask('chat', { message: 'Hello' });
 
       expect(result.success).toBe(true);
       expect(result.response).toBe('Hello from API');
@@ -200,7 +200,7 @@ describe('ApiAgentBaseService', () => {
       );
       service.setApiConfiguration(config);
 
-      const _result = await service.executeTask('chat', { message: 'Hello' });
+      const result = await service.executeTask('chat', { message: 'Hello' });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Network error');
@@ -235,7 +235,7 @@ describe('ApiAgentBaseService', () => {
       service.setApiConfiguration(config);
 
       const startTime = Date.now();
-      const _result = await service.executeTask('chat', { message: 'Hello' });
+      const result = await service.executeTask('chat', { message: 'Hello' });
       const duration = Date.now() - startTime;
 
       expect(result.success).toBe(true);
@@ -414,7 +414,7 @@ describe('ApiAgentBaseService', () => {
       httpService.request.mockReturnValue(of(mockResponse));
       service.setApiConfiguration(config);
 
-      const _result = await service.executeTask('chat', { message: 'Hello' });
+      const result = await service.executeTask('chat', { message: 'Hello' });
 
       expect(result.success).toBe(true);
       expect(result.response).toBe('This is the answer');
@@ -443,7 +443,7 @@ describe('ApiAgentBaseService', () => {
       httpService.request.mockReturnValue(of(mockResponse));
       service.setApiConfiguration(config);
 
-      const _result = await service.executeTask('chat', { message: 'Hello' });
+      const result = await service.executeTask('chat', { message: 'Hello' });
 
       expect(result.success).toBe(true);
       expect(result.response).toBe('Nested content');

@@ -356,7 +356,7 @@ Respond with JSON only:
         'completed',
         `MCP query executed successfully - ${queryResult.length || 0} rows returned`,
       );
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       if (!sqlError && !executionError) {
@@ -525,7 +525,7 @@ ${
         mcpEnabled: true,
       },
     };
-  } catch (_error) {
+  } catch (error) {
     console.error('[METRICS-AGENT] Fatal error:', error);
     console.error(
       '[METRICS-AGENT] Error stack:',

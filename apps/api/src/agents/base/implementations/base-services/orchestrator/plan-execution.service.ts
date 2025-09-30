@@ -80,14 +80,14 @@ export class PlanExecutionService implements IPlanExecutionService {
         steps,
         orchestratorInput,
       );
-    } catch (_error) {
-      // Update project status to _error
-      await this.updateProjectStatus(project.id, 'paused_on_error', {
-        error: _error instanceof Error ? _error.message : 'Unknown _error',
+    } catch (error) {
+      // Update project status to error
+      await this.updateProjectStatus(project.id, 'paused_onerror', {
+        error: error instanceof Error ? error.message : 'Unknown error',
         errorOccurredAt: new Date().toISOString(),
       });
 
-      throw _error;
+      throw error;
     }
   }
 
@@ -124,8 +124,8 @@ export class PlanExecutionService implements IPlanExecutionService {
         steps,
         orchestratorInput,
       );
-    } catch (_error) {
-      throw _error;
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -163,8 +163,8 @@ export class PlanExecutionService implements IPlanExecutionService {
         stepId,
         orchestratorInput,
       );
-    } catch (_error) {
-      throw _error;
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -227,10 +227,10 @@ export class PlanExecutionService implements IPlanExecutionService {
     for (const step of readySteps) {
       try {
         await this.executeStep(projectId, step);
-      } catch (_error) {
-        // Continue with other steps, handle _error appropriately
+      } catch (error) {
+        // Continue with other steps, handle error appropriately
         await this.updateStepStatus(projectId, step.stepId, 'failed', {
-          error: _error instanceof Error ? _error.message : 'Unknown _error',
+          error: error instanceof Error ? error.message : 'Unknown error',
           failedAt: new Date().toISOString(),
         });
       }
@@ -274,14 +274,14 @@ export class PlanExecutionService implements IPlanExecutionService {
             },
           },
         );
-      } catch (_error) {
-        // Handle workflow interrupts for _error recovery
+      } catch (error) {
+        // Handle workflow interrupts for error recovery
         await this.stateManagementService.handleWorkflowInterrupt(
           projectId,
           step.stepId,
           'error_recovery',
           {
-            error: _error instanceof Error ? _error.message : 'Unknown _error',
+            error: error instanceof Error ? error.message : 'Unknown error',
             failedAt: new Date().toISOString(),
             stepName: step.stepName,
           },
@@ -289,7 +289,7 @@ export class PlanExecutionService implements IPlanExecutionService {
 
         // Update step status in database
         await this.updateStepStatus(projectId, step.stepId, 'failed', {
-          error: _error instanceof Error ? _error.message : 'Unknown _error',
+          error: error instanceof Error ? error.message : 'Unknown error',
           failedAt: new Date().toISOString(),
         });
       }
@@ -368,12 +368,12 @@ export class PlanExecutionService implements IPlanExecutionService {
         completedAt: new Date().toISOString(),
         result: result,
       });
-    } catch (_error) {
+    } catch (error) {
       await this.updateStepStatus(projectId, step.stepId, 'failed', {
-        error: _error instanceof Error ? _error.message : 'Unknown _error',
+        error: error instanceof Error ? error.message : 'Unknown error',
         failedAt: new Date().toISOString(),
       });
-      throw _error;
+      throw error;
     }
   }
 

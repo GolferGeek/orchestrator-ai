@@ -25,7 +25,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('PII Detection and Pseudonymization', () => {
     it('should detect and pseudonymize names in user message', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful. Respond with the exact names mentioned.',
@@ -55,7 +55,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
     }, 30000);
 
     it('should pseudonymize email addresses', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Repeat back the email address exactly.',
@@ -79,7 +79,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
     }, 30000);
 
     it('should handle phone numbers', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Repeat the phone number.',
@@ -99,7 +99,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('Dictionary-Based Pseudonymization', () => {
     it('should use dictionary pseudonyms for known entities', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Mention the person by name.',
@@ -127,7 +127,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('Pseudonym Reversal in Response', () => {
     it('should reverse pseudonyms back to original names in final response', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful. Use the exact names provided.',
@@ -160,7 +160,7 @@ describe('LLM Pseudonym Flow (e2e)', () => {
 
   describe('PII Metadata Completeness', () => {
     it('should include complete PII processing metadata', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'Respond professionally.',

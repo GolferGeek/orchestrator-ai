@@ -57,7 +57,7 @@ export class HierarchyController {
           timestamp: new Date().toISOString(),
         },
       };
-    } catch (_error) {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

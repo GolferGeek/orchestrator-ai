@@ -22,7 +22,7 @@ describe('Complex Complexity Routing (e2e)', () => {
   });
 
   it('should handle complex analysis task', async () => {
-    const _result = await llmService.generateCentralizedResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are an expert analyst.',
       'Analyze the pros and cons of microservices architecture.',
       {

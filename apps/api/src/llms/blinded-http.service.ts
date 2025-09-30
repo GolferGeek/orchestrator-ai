@@ -160,10 +160,10 @@ export class BlindedHttpService {
       );
 
       return this.httpService.request<T>(blindedConfig);
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Source blinding failed for request to ${config.url}:`,
-        _error,
+        error,
       );
       // Fallback to original request to avoid breaking functionality
       // In production, you might want to block the request instead
@@ -325,11 +325,11 @@ export class BlindedHttpService {
         success: true,
         blindingApplied: true,
       };
-    } catch (_error) {
+    } catch (error) {
       return {
         success: false,
         blindingApplied: false,
-        error: _error instanceof Error ? _error.message : 'Unknown _error',
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

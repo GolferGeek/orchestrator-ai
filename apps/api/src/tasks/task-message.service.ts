@@ -45,47 +45,47 @@ export class TaskMessageService {
    */
   async createTaskMessage(dto: CreateTaskMessageDto): Promise<TaskMessage> {
     const taskMessageData = {
-        task_id: dto.taskId,
-        user_id: dto.userId,
-        content: dto.content,
-        message_type: dto.messageType,
-        progress_percentage: dto.progressPercentage,
-        metadata: dto.metadata || {},
-      };
+      task_id: dto.taskId,
+      user_id: dto.userId,
+      content: dto.content,
+      message_type: dto.messageType,
+      progress_percentage: dto.progressPercentage,
+      metadata: dto.metadata || {},
+    };
 
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('task_messages')
-        .insert(taskMessageData)
-        .select()
-        .single();
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('task_messages')
+      .insert(taskMessageData)
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Failed to create task message: ${error.message}`);
-      }
+    if (error) {
+      throw new Error(`Failed to create task message: ${error.message}`);
+    }
 
-      const taskMessage = this.mapToTaskMessage(data);
+    const taskMessage = this.mapToTaskMessage(data);
 
-      // Emit task message event for real-time updates
-      this.eventEmitter.emit('task.message', {
+    // Emit task message event for real-time updates
+    this.eventEmitter.emit('task.message', {
+      taskId: dto.taskId,
+      userId: dto.userId,
+      message: taskMessage,
+    });
+
+    // Also emit progress event if this is a progress message
+    if (
+      dto.messageType === 'progress' &&
+      dto.progressPercentage !== undefined
+    ) {
+      this.eventEmitter.emit('task.progress', {
         taskId: dto.taskId,
-        userId: dto.userId,
-        message: taskMessage,
+        progress: dto.progressPercentage,
+        message: dto.content,
       });
+    }
 
-      // Also emit progress event if this is a progress message
-      if (
-        dto.messageType === 'progress' &&
-        dto.progressPercentage !== undefined
-      ) {
-        this.eventEmitter.emit('task.progress', {
-          taskId: dto.taskId,
-          progress: dto.progressPercentage,
-          message: dto.content,
-        });
-      }
-
-      return taskMessage;
+    return taskMessage;
   }
 
   /**

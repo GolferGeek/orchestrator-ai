@@ -32,7 +32,7 @@ describe('RoutingPolicyAdapterService', () => {
     } as unknown as CentralizedRoutingService;
 
     const adapter = new RoutingPolicyAdapterService(routingService);
-    const _result = await adapter.evaluate(
+    const result = await adapter.evaluate(
       { mode: AgentTaskMode.CONVERSE, conversationId: 'conv-1' } as any,
       agentRecord,
     );
@@ -59,7 +59,7 @@ describe('RoutingPolicyAdapterService', () => {
     } as unknown as CentralizedRoutingService;
 
     const adapter = new RoutingPolicyAdapterService(routingService);
-    const _result = await adapter.evaluate(
+    const result = await adapter.evaluate(
       {
         mode: AgentTaskMode.PLAN,
         userMessage: 'Plan a launch',

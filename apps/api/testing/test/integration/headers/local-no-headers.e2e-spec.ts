@@ -23,7 +23,7 @@ describe('Local Model Headers (e2e)', () => {
 
   it('should not send no-train headers to local models', async () => {
     try {
-      const _result = await llmService.generateCentralizedResponse(
+      const result = await llmService.generateCentralizedResponse(
         'You are a helpful assistant.',
         'Test local model.',
         {

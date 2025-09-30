@@ -22,7 +22,7 @@ describe('Medium Complexity Routing (e2e)', () => {
   });
 
   it('should handle medium complexity explanation', async () => {
-    const _result = await llmService.generateCentralizedResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Explain machine learning in simple terms.',
       {

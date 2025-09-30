@@ -104,7 +104,7 @@ export class SpeechController {
 
       const startTime = Date.now();
 
-      const _result = await this.speechService.processConversation(
+      const result = await this.speechService.processConversation(
         conversationRequest,
         currentUser,
         authToken,
@@ -125,10 +125,10 @@ export class SpeechController {
       }
 
       return result;
-    } catch (_error) {
-      this.logger.error('Conversation processing failed:', _error);
+    } catch (error) {
+      this.logger.error('Conversation processing failed:', error);
       const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown _error';
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Conversation processing failed: ${errorMessage}`);
     }
   }
@@ -165,7 +165,7 @@ export class SpeechController {
     this.logger.log(`Transcribing audio for user ${currentUser.id}`);
 
     try {
-      const _result = await this.speechService.transcribeAudio(
+      const result = await this.speechService.transcribeAudio(
         transcribeRequest.audioData,
         transcribeRequest.encoding,
         transcribeRequest.sampleRate,
@@ -176,10 +176,10 @@ export class SpeechController {
       );
 
       return result;
-    } catch (_error) {
-      this.logger.error('Audio transcription failed:', _error);
+    } catch (error) {
+      this.logger.error('Audio transcription failed:', error);
       const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown _error';
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Audio transcription failed: ${errorMessage}`);
     }
   }
@@ -217,7 +217,7 @@ export class SpeechController {
     );
 
     try {
-      const _result = await this.speechService.synthesizeText(
+      const result = await this.speechService.synthesizeText(
         synthesizeRequest.text,
         synthesizeRequest.voiceName,
         synthesizeRequest.speakingRate,
@@ -226,10 +226,10 @@ export class SpeechController {
       this.logger.log('Text-to-speech synthesis completed');
 
       return result;
-    } catch (_error) {
-      this.logger.error('Text-to-speech synthesis failed:', _error);
+    } catch (error) {
+      this.logger.error('Text-to-speech synthesis failed:', error);
       const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown _error';
+        error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Text-to-speech synthesis failed: ${errorMessage}`);
     }
   }

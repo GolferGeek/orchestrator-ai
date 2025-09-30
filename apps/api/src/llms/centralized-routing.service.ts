@@ -154,9 +154,9 @@ export class CentralizedRoutingService {
           this.logger.debug(
             `🔄 [CENTRALIZED-ROUTING] Successfully reversed ${reversalCount} pseudonyms`,
           );
-        } catch (_error) {
+        } catch (error) {
           this.logger.warn(
-            `🔄 [CENTRALIZED-ROUTING] Pseudonym reversal failed - returning original response: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+            `🔄 [CENTRALIZED-ROUTING] Pseudonym reversal failed - returning original response: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
         }
       }
@@ -192,16 +192,16 @@ export class CentralizedRoutingService {
         updatedMetadata,
         success: true,
       };
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `🔄 [CENTRALIZED-ROUTING] Agent response processing failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `🔄 [CENTRALIZED-ROUTING] Agent response processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
 
       return {
-        processedResponse: agentResponse, // Return original on _error
+        processedResponse: agentResponse, // Return original on error
         updatedMetadata: piiMetadata,
         success: false,
-        error: _error instanceof Error ? _error.message : 'Unknown _error',
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -538,18 +538,18 @@ export class CentralizedRoutingService {
           `Local models are unavailable and external providers are disabled. ` +
           `Please ensure Ollama is running with appropriate models.`,
       );
-    } catch (_error) {
-      this.logger.error('Error in routing decision', _error);
+    } catch (error) {
+      this.logger.error('Error in routing decision', error);
       reasoningPath.push(
-        `Error occurred: ${_error instanceof Error ? _error.message : 'Unknown _error'}, no fallback available`,
+        `Error occurred: ${error instanceof Error ? error.message : 'Unknown error'}, no fallback available`,
       );
       violations.push(
-        'Routing _error occurred, no emergency fallback configured',
+        'Routing error occurred, no emergency fallback configured',
       );
 
-      // No emergency fallback - let the _error propagate
+      // No emergency fallback - let the error propagate
       throw new Error(
-        `Routing failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}. No fallback provider configured.`,
+        `Routing failed: ${error instanceof Error ? error.message : 'Unknown error'}. No fallback provider configured.`,
       );
     }
   }
@@ -645,10 +645,10 @@ export class CentralizedRoutingService {
       return (
         models.length > 0 && models.some((model) => model.status === 'loaded')
       );
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Failed to check local model availability for tier ${tier}:`,
-        _error,
+        error,
       );
       return false;
     }
@@ -689,7 +689,7 @@ export class CentralizedRoutingService {
 
       // Ultimate emergency fallback
       return 'qwen3:8b';
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Failed to select best local model for tier ${tier}:`,
         error,
@@ -737,8 +737,8 @@ export class CentralizedRoutingService {
       }
 
       return models?.[0]?.model_name || null;
-    } catch (_error) {
-      this.logger.error(`Database query failed for fallback model:`, _error);
+    } catch (error) {
+      this.logger.error(`Database query failed for fallback model:`, error);
       return null;
     }
   }

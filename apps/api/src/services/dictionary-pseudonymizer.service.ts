@@ -88,9 +88,9 @@ export class DictionaryPseudonymizerService {
 
       this.logger.log(`📚 Loaded ${dictionary.length} dictionary entries`);
       return dictionary;
-    } catch (_error) {
-      this.logger.error('Failed to load dictionary:', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Failed to load dictionary:', error);
+      throw error;
     }
   }
 
@@ -135,9 +135,9 @@ export class DictionaryPseudonymizerService {
         mappings,
         processingTimeMs,
       };
-    } catch (_error) {
-      this.logger.error('Pseudonymization failed:', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Pseudonymization failed:', error);
+      throw error;
     }
   }
 
@@ -177,9 +177,9 @@ export class DictionaryPseudonymizerService {
         reversalCount,
         processingTimeMs,
       };
-    } catch (_error) {
-      this.logger.error('Reversal failed:', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Reversal failed:', error);
+      throw error;
     }
   }
 

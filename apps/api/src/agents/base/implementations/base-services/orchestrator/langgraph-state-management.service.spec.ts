@@ -179,9 +179,9 @@ describe('LangGraphStateManagementService', () => {
           state.planState.riskAssessment.level,
         );
         expect(state.stepResults.size).toBe(3);
-      } catch (_error) {
-        // If it fails, that's also valid - we're testing real _error handling
-        expect(_error).toBeInstanceOf(Error);
+      } catch (error) {
+        // If it fails, that's also valid - we're testing real error handling
+        expect(error).toBeInstanceOf(Error);
       }
     });
 
@@ -382,7 +382,7 @@ describe('LangGraphStateManagementService', () => {
 
       // Note: delegateStepExecution uses real implementation (no mocking)
 
-      const _result = await service.executeWorkflowStep(
+      const result = await service.executeWorkflowStep(
         projectId,
         stepId,
         testInput,
@@ -403,7 +403,7 @@ describe('LangGraphStateManagementService', () => {
       const projectId = initialState.planState.projectId;
       const stepId = 'content-creation'; // Depends on market-research
 
-      const _result = await service.executeWorkflowStep(
+      const result = await service.executeWorkflowStep(
         projectId,
         stepId,
         testInput,

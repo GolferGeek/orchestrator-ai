@@ -101,48 +101,48 @@ export class HumanLoopService {
     response: HumanInputResponse,
   ): Promise<HumanInput> {
     const updateData = {
-        user_response: response.response,
-        response_metadata: response.metadata || {},
-        status: 'completed',
-        updated_at: new Date().toISOString(),
-      };
+      user_response: response.response,
+      response_metadata: response.metadata || {},
+      status: 'completed',
+      updated_at: new Date().toISOString(),
+    };
 
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('human_inputs')
-        .update(updateData)
-        .eq('id', inputId)
-        .eq('user_id', userId)
-        .eq('status', 'pending') // Only update if still pending
-        .select()
-        .single();
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('human_inputs')
+      .update(updateData)
+      .eq('id', inputId)
+      .eq('user_id', userId)
+      .eq('status', 'pending') // Only update if still pending
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Failed to update human input: ${error.message}`);
-      }
+    if (error) {
+      throw new Error(`Failed to update human input: ${error.message}`);
+    }
 
-      if (!data) {
-        throw new Error('Human input not found or already completed');
-      }
+    if (!data) {
+      throw new Error('Human input not found or already completed');
+    }
 
-      const humanInput = this.mapToHumanInput(data);
+    const humanInput = this.mapToHumanInput(data);
 
-      // Emit event for real-time notification
-      this.eventEmitter.emit('human_input.response', {
-        taskId: humanInput.taskId,
-        userId,
-        inputId,
-        response: response.response,
-        metadata: response.metadata,
-      });
+    // Emit event for real-time notification
+    this.eventEmitter.emit('human_input.response', {
+      taskId: humanInput.taskId,
+      userId,
+      inputId,
+      response: response.response,
+      metadata: response.metadata,
+    });
 
-      // Emit task resumed event
-      this.eventEmitter.emit('task.resumed', {
-        taskId: humanInput.taskId,
-        userId,
-      });
+    // Emit task resumed event
+    this.eventEmitter.emit('task.resumed', {
+      taskId: humanInput.taskId,
+      userId,
+    });
 
-      return humanInput;
+    return humanInput;
   }
 
   /**
@@ -174,10 +174,10 @@ export class HumanLoopService {
             clearInterval(checkInterval);
             resolve(humanInput);
           }
-        } catch (_error) {
+        } catch (error) {
           clearTimeout(timeoutHandle);
           clearInterval(checkInterval);
-          reject(_error);
+          reject(error);
         }
       }, 1000); // Check every second
     });

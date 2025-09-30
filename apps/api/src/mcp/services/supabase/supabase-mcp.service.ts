@@ -53,11 +53,11 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
       await this.mcpServer.initialize();
       this.isReady = true;
       this.logger.log('✅ Supabase MCP Service ready');
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
-        `❌ Supabase MCP Service initialization failed: ${getErrorMessage(_error)}`,
+        `❌ Supabase MCP Service initialization failed: ${getErrorMessage(error)}`,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -156,7 +156,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
         id: request.id,
         result,
       };
-    } catch (_error) {
+    } catch (error) {
       const executionTime = Date.now() - startTime;
 
       this.logger.error(
@@ -186,7 +186,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
       throw new Error('MCP server is not ready');
     }
 
-    const _response = await this.mcpServer.callTool({
+    const response = await this.mcpServer.callTool({
       name: toolName,
       arguments: args,
     });
@@ -211,7 +211,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
    * Get database schema (convenience method)
    */
   async getSchema(tables?: string[], domain?: 'core' | 'kpi'): Promise<string> {
-    const _result = await this.executeToolInternal('get-schema', {
+    const result = await this.executeToolInternal('get-schema', {
       tables,
       domain,
     });

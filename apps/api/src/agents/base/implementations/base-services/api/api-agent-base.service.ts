@@ -212,10 +212,10 @@ export class ApiAgentBaseService
       } else {
         // No action needed
       }
-    } catch (_error) {
-      this.apiLogger._error(
+    } catch (error) {
+      this.apiLogger.error(
         `Error loading API configuration for ${this.getAgentName()}:`,
-        _error,
+        error,
       );
     }
   }
@@ -253,10 +253,10 @@ export class ApiAgentBaseService
       };
 
       return config;
-    } catch (_error) {
-      this.apiLogger._error(
+    } catch (error) {
+      this.apiLogger.error(
         'Error extracting API configuration from context:',
-        _error,
+        error,
       );
       return null;
     }
@@ -321,9 +321,9 @@ export class ApiAgentBaseService
       };
 
       // Execute the API call
-      const _result = await this.callExternalApi(apiParams);
+      const result = await this.callExternalApi(apiParams);
 
-      const _response = {
+      const response = {
         success: true,
         response: result.response,
         metadata: {
@@ -340,7 +340,7 @@ export class ApiAgentBaseService
 
       // NEW ARCHITECTURE: Enrich response with PII metadata
       return this.enrichResponseWithPIIMetadata(response, params);
-    } catch (_error) {
+    } catch (error) {
       this.apiLogger.error(`API execution error for ${agentName}:`, error);
 
       const errorResponse = {
@@ -387,7 +387,7 @@ export class ApiAgentBaseService
         const headers = this.prepareHeaders(config, params);
 
         // Make the HTTP request
-        const _response = await firstValueFrom(
+        const response = await firstValueFrom(
           this.services.httpService.request({
             method: config.method,
             url: config.endpoint,
@@ -417,8 +417,8 @@ export class ApiAgentBaseService
             responseTime: Date.now(),
           },
         };
-      } catch (_error) {
-        lastError = _error instanceof Error ? _error : new Error(String(_error));
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
         this.apiLogger.warn(
           `API call attempt ${attempt}/${maxAttempts} failed:`,
           lastError.message,
@@ -502,8 +502,8 @@ export class ApiAgentBaseService
 
         const customData = JSON.parse(templateString);
         return customData;
-      } catch (_error) {
-        this.apiLogger._error(`Error parsing custom template:`, _error);
+      } catch (error) {
+        this.apiLogger.error(`Error parsing custom template:`, error);
         // Fall back to default
         const defaultData = {
           message: params.userMessage,
@@ -541,10 +541,10 @@ export class ApiAgentBaseService
 
         const template = JSON.parse(templateString);
         return template;
-      } catch (_error) {
-        this.apiLogger._error(
+      } catch (error) {
+        this.apiLogger.error(
           `Error parsing request transform template:`,
-          _error,
+          error,
         );
       }
     }
@@ -641,10 +641,10 @@ export class ApiAgentBaseService
       // Direct field name
       const directValue = apiResponse[config.responseTransform];
       return directValue || JSON.stringify(apiResponse);
-    } catch (_error) {
+    } catch (error) {
       this.apiLogger.warn(
         'Response transformation failed, using default format:',
-        _error,
+        error,
       );
       return JSON.stringify(apiResponse);
     }
@@ -798,12 +798,12 @@ export class ApiAgentBaseService
         this.currentUserId,
         updateData,
       );
-    } catch (_error) {
-      this.apiLogger._error(
+    } catch (error) {
+      this.apiLogger.error(
         `❌ Failed to save API task ${this.currentTaskId} result:`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 

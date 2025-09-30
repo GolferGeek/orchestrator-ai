@@ -79,12 +79,12 @@ export class DeliverableVersionsService {
       }
 
       return this.mapToVersion(newVersionData);
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to create version');
@@ -119,12 +119,12 @@ export class DeliverableVersionsService {
       const versions = (data || []).map((item: any) => this.mapToVersion(item));
 
       return versions;
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to get version history');
@@ -160,12 +160,12 @@ export class DeliverableVersionsService {
       await this.verifyDeliverableOwnership(data.deliverable_id, userId);
 
       return this.mapToVersion(data);
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to get version');
@@ -212,12 +212,12 @@ export class DeliverableVersionsService {
 
         return null;
       }
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to get current version');
@@ -254,12 +254,12 @@ export class DeliverableVersionsService {
       }
 
       return this.mapToVersion(data);
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to set current version');
@@ -301,12 +301,12 @@ export class DeliverableVersionsService {
       const successMessage = `Version ${version.versionNumber} deleted successfully`;
 
       return { success: true, message: successMessage };
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to delete version');
@@ -372,12 +372,12 @@ export class DeliverableVersionsService {
         newVersion,
         conflictSummary: mergedContent.conflictSummary,
       };
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to merge versions');
@@ -429,12 +429,12 @@ export class DeliverableVersionsService {
       };
 
       return await this.createVersion(deliverableId, createVersionDto, userId);
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       throw new BadRequestException('Failed to create version from task');
@@ -468,8 +468,8 @@ export class DeliverableVersionsService {
 
       // Convert snake_case to camelCase
       return snakeToCamel(data) as Task;
-    } catch (_error) {
-      this.logger.error(`Failed to fetch task ${taskId}:`, _error);
+    } catch (error) {
+      this.logger.error(`Failed to fetch task ${taskId}:`, error);
       return null;
     }
   }
@@ -592,27 +592,27 @@ export class DeliverableVersionsService {
       );
 
       return newVersion;
-    } catch (_error) {
+    } catch (error) {
       if (
-        _error instanceof NotFoundException ||
-        _error instanceof BadRequestException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
-        throw _error;
+        throw error;
       }
 
       this.logger.error(
         'Failed to rerun deliverable with different LLM:',
-        _error,
+        error,
       );
       this.logger.error('Error details:', {
-        message: _error instanceof Error ? _error.message : 'Unknown _error',
-        stack: _error instanceof Error ? _error.stack : undefined,
-        name: _error instanceof Error ? _error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown',
       });
 
-      // Include the actual _error message in the BadRequestException
+      // Include the actual error message in the BadRequestException
       const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown _error occurred';
+        error instanceof Error ? error.message : 'Unknown error occurred';
       throw new BadRequestException(
         `Failed to rerun deliverable with different LLM: ${errorMessage}`,
       );
@@ -649,12 +649,12 @@ export class DeliverableVersionsService {
       if (deliverableCheck.user_id !== userId) {
         throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
       }
-    } catch (_error) {
-      if (_error instanceof NotFoundException) {
-        throw _error;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
       }
       throw new NotFoundException(
-        `Failed to verify deliverable ownership: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Failed to verify deliverable ownership: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

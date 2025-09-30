@@ -99,7 +99,7 @@ export async function executeSimpleCall(
     new HumanMessage(userMessage),
   ];
 
-  const _response = await llm.invoke(messages);
+  const response = await llm.invoke(messages);
   return response.content as string;
 }
 

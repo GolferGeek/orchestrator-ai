@@ -24,7 +24,7 @@ describe('LLM PII Debug (e2e)', () => {
   });
 
   it('should debug what the actual response structure looks like', async () => {
-    const _result = await llmService.generateUnifiedResponse({
+    const result = await llmService.generateUnifiedResponse({
       provider: 'ollama',
       model: 'llama3.2:1b',
       systemPrompt: 'You are helpful. Mention the names exactly.',

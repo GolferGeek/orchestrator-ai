@@ -411,12 +411,18 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const _status = error.response?.status || error.status;
+    const rawStatus = error.response?.status ?? error.status;
+    const status =
+      typeof rawStatus === 'number'
+        ? rawStatus
+        : rawStatus
+          ? Number.parseInt(rawStatus, 10)
+          : NaN;
     const errorType = error.response?.data?.error?.type || error.type;
     const errorCode = error.response?.data?.error?.code || error.code;
 
     // Authentication errors
-    if (status === 401) {
+    if (Number.isFinite(status) && status === 401) {
       return new LLMError(
         'Invalid OpenAI API key',
         LLMErrorType.API_KEY_INVALID,
@@ -426,7 +432,7 @@ export class LLMErrorMapper {
     }
 
     // Rate limiting
-    if (status === 429) {
+    if (Number.isFinite(status) && status === 429) {
       const retryAfter = error.response?.headers?.['retry-after'];
       return new LLMError(
         'OpenAI rate limit exceeded',
@@ -442,7 +448,11 @@ export class LLMErrorMapper {
     }
 
     // Quota exceeded
-    if (status === 429 && errorType === 'insufficient_quota') {
+    if (
+      Number.isFinite(status) &&
+      status === 429 &&
+      errorType === 'insufficient_quota'
+    ) {
       return new LLMError(
         'OpenAI quota exceeded',
         LLMErrorType.QUOTA_EXCEEDED,
@@ -452,7 +462,7 @@ export class LLMErrorMapper {
     }
 
     // Invalid request
-    if (status === 400) {
+    if (Number.isFinite(status) && status === 400) {
       if (errorCode === 'context_length_exceeded') {
         return new LLMError(
           'Context length exceeded for OpenAI model',
@@ -471,7 +481,7 @@ export class LLMErrorMapper {
     }
 
     // Model not found
-    if (status === 404) {
+    if (Number.isFinite(status) && status === 404) {
       return new LLMError(
         `OpenAI model not found: ${model}`,
         LLMErrorType.MODEL_NOT_FOUND,
@@ -481,7 +491,7 @@ export class LLMErrorMapper {
     }
 
     // Server errors
-    if (status >= 500) {
+    if (Number.isFinite(status) && status >= 500) {
       return new LLMError(
         'OpenAI server error',
         LLMErrorType.SERVER_ERROR,
@@ -527,11 +537,17 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const _status = error.status;
+    const rawStatus = error.status;
+    const status =
+      typeof rawStatus === 'number'
+        ? rawStatus
+        : rawStatus
+          ? Number.parseInt(rawStatus, 10)
+          : NaN;
     const errorType = error.error?.type;
 
     // Authentication errors
-    if (status === 401) {
+    if (Number.isFinite(status) && status === 401) {
       return new LLMError(
         'Invalid Anthropic API key',
         LLMErrorType.API_KEY_INVALID,
@@ -541,7 +557,7 @@ export class LLMErrorMapper {
     }
 
     // Rate limiting
-    if (status === 429) {
+    if (Number.isFinite(status) && status === 429) {
       return new LLMError(
         'Anthropic rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
@@ -551,7 +567,7 @@ export class LLMErrorMapper {
     }
 
     // Invalid request
-    if (status === 400) {
+    if (Number.isFinite(status) && status === 400) {
       if (errorType === 'invalid_request_error') {
         return new LLMError(
           `Invalid Anthropic request: ${error.error?.message}`,
@@ -563,7 +579,7 @@ export class LLMErrorMapper {
     }
 
     // Server errors
-    if (status >= 500) {
+    if (Number.isFinite(status) && status >= 500) {
       return new LLMError(
         'Anthropic server error',
         LLMErrorType.SERVER_ERROR,
@@ -708,10 +724,16 @@ export class LLMErrorMapper {
     requestId?: string,
   ): LLMError {
     // Grok uses OpenAI-compatible API, so similar error handling
-    const _status = error.response?.status || error.status;
+    const rawStatus = error.response?.status ?? error.status;
+    const status =
+      typeof rawStatus === 'number'
+        ? rawStatus
+        : rawStatus
+          ? Number.parseInt(rawStatus, 10)
+          : NaN;
 
     // Authentication errors
-    if (status === 401) {
+    if (Number.isFinite(status) && status === 401) {
       return new LLMError(
         'Invalid Grok API key',
         LLMErrorType.API_KEY_INVALID,
@@ -721,7 +743,7 @@ export class LLMErrorMapper {
     }
 
     // Rate limiting
-    if (status === 429) {
+    if (Number.isFinite(status) && status === 429) {
       return new LLMError(
         'Grok rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
@@ -731,7 +753,7 @@ export class LLMErrorMapper {
     }
 
     // Invalid request
-    if (status === 400) {
+    if (Number.isFinite(status) && status === 400) {
       return new LLMError(
         `Invalid Grok request: ${error.message}`,
         LLMErrorType.INVALID_REQUEST,
@@ -741,7 +763,7 @@ export class LLMErrorMapper {
     }
 
     // Server errors
-    if (status >= 500) {
+    if (Number.isFinite(status) && status >= 500) {
       return new LLMError(
         'Grok server error',
         LLMErrorType.SERVER_ERROR,
@@ -946,7 +968,7 @@ export class LLMRetryHandler {
 
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
       try {
-        const _result = await operation();
+        const result = await operation();
 
         // Log successful retry
         if (attempt > 0) {
@@ -954,7 +976,7 @@ export class LLMRetryHandler {
         }
 
         return result;
-      } catch (_error) {
+      } catch (error) {
         // Convert to LLMError if not already
         const llmError =
           error instanceof LLMError

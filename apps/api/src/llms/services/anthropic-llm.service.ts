@@ -222,7 +222,7 @@ export class AnthropicLLMService extends BaseLLMService {
       const endTime = Date.now();
 
       // Create Anthropic-specific metadata
-      const _metadata = this.createAnthropicMetadata(
+      const metadata = this.createAnthropicMetadata(
         completion,
         params,
         startTime,
@@ -267,8 +267,8 @@ export class AnthropicLLMService extends BaseLLMService {
       this.logRequestResponse(params, response, metadata.timing.duration);
 
       return response;
-    } catch (_error) {
-      this.handleError(_error, 'AnthropicLLMService.generateResponse');
+    } catch (error) {
+      this.handleError(error, 'AnthropicLLMService.generateResponse');
     }
   }
 
@@ -342,8 +342,8 @@ export class AnthropicLLMService extends BaseLLMService {
         const runId = `anthropic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.logger.debug(`LangSmith integration for Anthropic: ${runId}`);
         return runId;
-      } catch (_error) {
-        this.logger.warn('LangSmith integration failed:', _error);
+      } catch (error) {
+        this.logger.warn('LangSmith integration failed:', error);
       }
     }
     return undefined;
@@ -466,12 +466,12 @@ export async function testAnthropicService() {
   };
 
   try {
-    const _response = await service.generateResponse(params);
+    const response = await service.generateResponse(params);
     console.log('Anthropic Response:', response.content);
     console.log('Metadata:', response.metadata);
     return response;
-  } catch (_error) {
-    console.error('Anthropic Service Error:', _error);
-    throw _error;
+  } catch (error) {
+    console.error('Anthropic Service Error:', error);
+    throw error;
   }
 }

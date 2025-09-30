@@ -910,11 +910,11 @@ export class LangGraphStateManagementService {
         await this.saveCheckpoint(projectId, step.stepId, completedState);
 
         return completedState;
-      } catch (_error) {
-        // Handle _error with recovery options
+      } catch (error) {
+        // Handle error with recovery options
         const errorState = await this.handleStepError(
           step,
-          _error,
+          error,
           state,
           projectId,
         );
@@ -1053,7 +1053,7 @@ export class LangGraphStateManagementService {
     };
 
     // Execute through delegation service (this would be injected)
-    const _result = {
+    const result = {
       agentName: step.agentName,
       response: `Executed ${step.stepName}`, // This would come from actual agent
       executedAt: new Date().toISOString(),
@@ -1198,7 +1198,7 @@ Respond in JSON format:
 }`;
 
     try {
-      const _response = await this.llmService.generateResponse(
+      const response = await this.llmService.generateResponse(
         enhancementPrompt,
         input.userId,
         {

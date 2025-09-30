@@ -204,7 +204,7 @@ describe('BlindedLLMService', () => {
       // Mock the LLM creation internally
       jest.spyOn(service, 'createBlindedLLM').mockReturnValue(mockLLM as any);
 
-      const _result = await service.testSourceBlinding('openai');
+      const result = await service.testSourceBlinding('openai');
 
       expect(result.success).toBe(true);
       expect(result.blindingApplied).toBe(true);
@@ -223,7 +223,7 @@ describe('BlindedLLMService', () => {
         throw new Error('Test error');
       });
 
-      const _result = await service.testSourceBlinding('openai');
+      const result = await service.testSourceBlinding('openai');
 
       expect(result.success).toBe(false);
       expect(result.blindingApplied).toBe(false);

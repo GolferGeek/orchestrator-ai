@@ -94,7 +94,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
         conversationHistory: [],
       };
 
-      const _result = await ceoOrchestrator.executeTask(
+      const result = await ceoOrchestrator.executeTask(
         'executeTask',
         marketingRequest,
       );
@@ -148,7 +148,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
         conversationHistory: [],
       };
 
-      const _result = await ceoOrchestrator.executeTask(
+      const result = await ceoOrchestrator.executeTask(
         'executeTask',
         engineeringRequest,
       );
@@ -182,7 +182,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
         conversationHistory: [],
       };
 
-      const _result = await ceoOrchestrator.executeTask(
+      const result = await ceoOrchestrator.executeTask(
         'executeTask',
         hrRequest,
       );
@@ -212,7 +212,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
         conversationHistory: [],
       };
 
-      const _result = await ceoOrchestrator.executeTask(
+      const result = await ceoOrchestrator.executeTask(
         'executeTask',
         financeRequest,
       );
@@ -244,7 +244,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
         conversationHistory: [],
       };
 
-      const _result = await ceoOrchestrator.executeTask(
+      const result = await ceoOrchestrator.executeTask(
         'executeTask',
         operationsRequest,
       );
@@ -398,7 +398,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
 
         console.log(`\\n📋 Strategic Request ${i + 1}: ${request.description}`);
 
-        const _result = await ceoOrchestrator.executeTask('executeTask', {
+        const result = await ceoOrchestrator.executeTask('executeTask', {
           prompt: request.prompt,
           userId: `test-ceo-strategic-${i}`,
           conversationId: `test-conv-ceo-strategic-${i}`,
@@ -463,7 +463,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
 
         console.log(`\\n📋 Executive Request ${i + 1}: ${request.description}`);
 
-        const _result = await ceoOrchestrator.executeTask('executeTask', {
+        const result = await ceoOrchestrator.executeTask('executeTask', {
           prompt: request.prompt,
           userId: `test-ceo-executive-${i}`,
           conversationId: `test-conv-ceo-executive-${i}`,
@@ -503,7 +503,7 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
         conversationHistory: [],
       };
 
-      const _result = await ceoOrchestrator.executeTask(
+      const result = await ceoOrchestrator.executeTask(
         'executeTask',
         crisisRequest,
       );

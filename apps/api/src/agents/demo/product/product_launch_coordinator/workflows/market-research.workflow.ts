@@ -94,13 +94,13 @@ export class MarketResearchWorkflow {
         opportunities: marketSizeData.opportunities,
         threats: marketSizeData.threats,
       };
-    } catch (_error) {
+    } catch (error) {
       messageEmitter.emit(
-        `❌ Market research failed: ${_error instanceof Error ? _error.message : String(_error)}`,
-        '_error',
+        `❌ Market research failed: ${error instanceof Error ? error.message : String(error)}`,
+        'error',
         0,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -250,7 +250,7 @@ export class MarketResearchWorkflow {
       status: 'pending',
     };
 
-    const _response = await humanLoopService.requestHumanInput(
+    const response = await humanLoopService.requestHumanInput(
       'market_research_validation',
       humanInput.prompt,
       humanInput.options,
@@ -331,7 +331,7 @@ export class MarketResearchWorkflow {
       status: 'pending',
     };
 
-    const _response = await humanLoopService.requestHumanInput(
+    const response = await humanLoopService.requestHumanInput(
       'brand_positioning_validation',
       humanInput.prompt,
       undefined,

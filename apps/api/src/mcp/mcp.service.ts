@@ -102,9 +102,9 @@ export class MCPService {
         this.logger.debug(
           `Loaded ${prefixedTools.length} tools from ${namespace} namespace`,
         );
-      } catch (_error) {
+      } catch (error) {
         const errorMessage =
-          _error instanceof Error ? _error.message : String(_error);
+          error instanceof Error ? error.message : String(error);
         this.logger.warn(
           `Failed to load tools from ${namespace}: ${errorMessage}`,
         );
@@ -147,13 +147,13 @@ export class MCPService {
         name: toolName,
       };
 
-      const _result = await handler.executeTool(toolRequest);
+      const result = await handler.executeTool(toolRequest);
 
       this.logger.debug(`Successfully executed ${request.name}`);
       return result;
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : String(_error);
+        error instanceof Error ? error.message : String(error);
       this.logger.error(
         `Tool execution failed for ${request.name}: ${errorMessage}`,
       );

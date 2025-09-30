@@ -236,7 +236,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
           return await this.startStructuredConversation(sessionId, userId);
         } else {
           // Handle as normal context-based conversation
-          const _response = await super.processTask(taskRequest);
+          const response = await super.processTask(taskRequest);
           return this.addStructuredFlowPrompt(response);
         }
       }
@@ -247,7 +247,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
         userMessage,
         userId,
       );
-    } catch (_error) {
+    } catch (error) {
       return {
         message:
           'I apologize, but I encountered an error. Let me help you create your agent. Would you like me to guide you through the process step-by-step?',
@@ -486,7 +486,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
       };
 
       // Create agent in database
-      const _result = await this.agentConfigService.createAgentConfiguration(
+      const result = await this.agentConfigService.createAgentConfiguration(
         agentData,
         userId,
       );
@@ -519,7 +519,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
           },
         },
       };
-    } catch (_error) {
+    } catch (error) {
       this.logger.error('Failed to create agent from requirements:', error);
 
       return {

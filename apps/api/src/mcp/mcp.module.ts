@@ -97,9 +97,9 @@ export class MCPModule {
           );
         },
       );
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : String(_error);
+        error instanceof Error ? error.message : String(error);
       console.error(`❌ MCP Module initialization failed: ${errorMessage}`);
     }
   }

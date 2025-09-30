@@ -112,7 +112,7 @@ export class OllamaLLMService extends BaseLLMService {
 
       // Make Ollama API call
       const apiStartTime = Date.now();
-      const _response = await firstValueFrom(
+      const response = await firstValueFrom(
         this.httpService.post(
           `${this.ollamaBaseUrl}/api/generate`,
           {
@@ -145,7 +145,7 @@ export class OllamaLLMService extends BaseLLMService {
       const endTime = Date.now();
 
       // Create Ollama-specific metadata
-      const _metadata = this.createOllamaMetadata(
+      const metadata = this.createOllamaMetadata(
         response.data,
         params,
         startTime,
@@ -185,8 +185,8 @@ export class OllamaLLMService extends BaseLLMService {
       this.logRequestResponse(params, llmResponse, metadata.timing.duration);
 
       return llmResponse;
-    } catch (_error) {
-      this.handleError(_error, 'OllamaLLMService.generateResponse');
+    } catch (error) {
+      this.handleError(error, 'OllamaLLMService.generateResponse');
     }
   }
 
@@ -238,15 +238,15 @@ export class OllamaLLMService extends BaseLLMService {
       this.logger.log(`Model ${model} loaded successfully in ${loadTime}ms`);
 
       return { success: true, loadTime };
-    } catch (_error) {
+    } catch (error) {
       const loadTime = Date.now() - loadStartTime;
       this.logger.error(
         `Failed to load model ${model} after ${loadTime}ms:`,
-        _error,
+        error,
       );
       return {
         success: false,
-        message: _error instanceof Error ? _error.message : 'Unknown _error',
+        message: error instanceof Error ? error.message : 'Unknown error',
         loadTime,
       };
     }
@@ -341,12 +341,12 @@ export class OllamaLLMService extends BaseLLMService {
    */
   async getAvailableModels(): Promise<string[]> {
     try {
-      const _response = await firstValueFrom(
+      const response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/tags`),
       );
       return response.data.models?.map((model: any) => model.name) || [];
-    } catch (_error) {
-      this.logger.error('Failed to get available models:', _error);
+    } catch (error) {
+      this.logger.error('Failed to get available models:', error);
       return [];
     }
   }
@@ -444,12 +444,12 @@ export async function testOllamaService() {
   };
 
   try {
-    const _response = await service.generateResponse(params);
+    const response = await service.generateResponse(params);
     console.log('Ollama Response:', response.content);
     console.log('Performance Metrics:', response.metadata.providerSpecific);
     return response;
-  } catch (_error) {
-    console.error('Ollama Service Error:', _error);
-    throw _error;
+  } catch (error) {
+    console.error('Ollama Service Error:', error);
+    throw error;
   }
 }

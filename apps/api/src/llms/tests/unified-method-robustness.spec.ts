@@ -243,7 +243,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const mockResponse = createMockLLMResponse();
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const _result = await service.generateUnifiedResponse({
+      const result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: longString,
@@ -260,7 +260,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const mockResponse = createMockLLMResponse();
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const _result = await service.generateUnifiedResponse({
+      const result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: specialChars,
@@ -286,7 +286,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       ];
 
       for (const provider of providers) {
-        const _result = await service.generateUnifiedResponse({
+        const result = await service.generateUnifiedResponse({
           provider,
           model: 'test-model',
           systemPrompt: 'Test prompt',
@@ -325,11 +325,11 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
         });
-      } catch (_error) {
-        expect(_error.message).toContain(
+      } catch (error) {
+        expect(error.message).toContain(
           'Unsupported provider: invalid-provider',
         );
-        expect(_error.message).toContain(
+        expect(error.message).toContain(
           'Supported providers: openai, anthropic, google, grok, ollama',
         );
       }
@@ -341,7 +341,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const mockResponse = createMockLLMResponse();
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const _result = await service.generateUnifiedResponse({
+      const result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: 'Test prompt',
@@ -356,7 +356,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const mockResponse = createMockLLMResponse();
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const _result = await service.generateUnifiedResponse({
+      const result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: 'Test prompt',
@@ -375,7 +375,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const extremeValues = [0, 0.0001, 1.9999, 2.0];
 
       for (const temperature of extremeValues) {
-        const _result = await service.generateUnifiedResponse({
+        const result = await service.generateUnifiedResponse({
           provider: 'ollama',
           model: 'test-model',
           systemPrompt: 'Test prompt',
@@ -395,7 +395,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const extremeValues = [1, 100000];
 
       for (const maxTokens of extremeValues) {
-        const _result = await service.generateUnifiedResponse({
+        const result = await service.generateUnifiedResponse({
           provider: 'ollama',
           model: 'test-model',
           systemPrompt: 'Test prompt',
@@ -413,7 +413,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
 
       const longString = 'X'.repeat(10000);
 
-      const _result = await service.generateUnifiedResponse({
+      const result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: 'Test prompt',
@@ -469,9 +469,9 @@ describe('LLMService - Unified Method Robustness Tests', () => {
           systemPrompt: 'Test prompt',
           userMessage: 'Test message',
         });
-      } catch (_error) {
-        expect(_error.message).toContain('Unified LLM service _error');
-        expect(_error.message).toContain('Original _error with context');
+      } catch (error) {
+        expect(error.message).toContain('Unified LLM service error');
+        expect(error.message).toContain('Original error with context');
       }
     });
 
@@ -508,7 +508,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
         llmServiceFactory.generateResponse.mockResolvedValue(response as any);
 
         // Should not throw, but handle gracefully
-        const _result = await service.generateUnifiedResponse({
+        const result = await service.generateUnifiedResponse({
           provider: 'ollama',
           model: 'test-model',
           systemPrompt: 'Test prompt',
@@ -619,7 +619,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
 
       // Simulate many sequential calls
       for (let i = 0; i < 100; i++) {
-        const _result = await service.generateUnifiedResponse({
+        const result = await service.generateUnifiedResponse({
           provider: 'ollama',
           model: 'test-model',
           systemPrompt: `Test prompt ${i}`,
@@ -663,7 +663,7 @@ describe('LLMService - Unified Method Robustness Tests', () => {
       const mockResponse = createMockLLMResponse();
       llmServiceFactory.generateResponse.mockResolvedValue(mockResponse);
 
-      const _result = await service.generateUnifiedResponse({
+      const result = await service.generateUnifiedResponse({
         provider: 'ollama',
         model: 'test-model',
         systemPrompt: 'Test prompt',

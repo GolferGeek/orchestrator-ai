@@ -183,9 +183,9 @@ describe('LangGraphStateManagementService', () => {
           state.planState.riskAssessment.level,
         );
         expect(state.stepResults.size).toBe(3);
-      } catch (_error) {
-        // If it fails, that's also valid - we're testing real _error handling
-        expect(_error).toBeInstanceOf(Error);
+      } catch (error) {
+        // If it fails, that's also valid - we're testing real error handling
+        expect(error).toBeInstanceOf(Error);
       }
     }, 30000);
 

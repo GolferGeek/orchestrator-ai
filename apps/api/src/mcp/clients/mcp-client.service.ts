@@ -38,7 +38,7 @@ export class MCPClientService {
     modelName?: string;
   }): Promise<any> {
     try {
-      const _response = await this.mcpService.callTool({
+      const response = await this.mcpService.callTool({
         name: 'supabase/generate-sql',
         arguments: {
           query: params.natural_language_query,
@@ -60,7 +60,7 @@ export class MCPClientService {
       }
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       return {
         isError: true,
         content: [
@@ -81,7 +81,7 @@ export class MCPClientService {
     format?: 'detailed' | 'compact' | 'csv' | 'json';
   }): Promise<any> {
     try {
-      const _response = await this.mcpService.callTool({
+      const response = await this.mcpService.callTool({
         name: 'supabase/execute-sql',
         arguments: {
           sql: params.sql_query,
@@ -99,7 +99,7 @@ export class MCPClientService {
       }
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       return {
         isError: true,
         content: [
@@ -117,7 +117,7 @@ export class MCPClientService {
     refresh_cache?: boolean;
   }): Promise<any> {
     try {
-      const _response = await this.mcpService.callTool({
+      const response = await this.mcpService.callTool({
         name: 'supabase/get-schema',
         arguments: {
           table_name: options?.table_name,
@@ -135,7 +135,7 @@ export class MCPClientService {
       }
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       return {
         isError: true,
         content: [
@@ -158,7 +158,7 @@ export class MCPClientService {
     format?: 'json' | 'table' | 'csv';
   }): Promise<any> {
     try {
-      const _response = await this.mcpService.callTool({
+      const response = await this.mcpService.callTool({
         name: 'supabase/read-data',
         arguments: {
           table_name: params.table_name,
@@ -179,7 +179,7 @@ export class MCPClientService {
       }
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       return {
         isError: true,
         content: [
@@ -200,7 +200,7 @@ export class MCPClientService {
     schema_context?: string[];
   }): Promise<any> {
     try {
-      const _response = await this.mcpService.callTool({
+      const response = await this.mcpService.callTool({
         name: 'query-and-format',
         arguments: {
           query: params.user_prompt,
@@ -219,7 +219,7 @@ export class MCPClientService {
       }
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       return {
         isError: true,
         content: [
@@ -234,13 +234,13 @@ export class MCPClientService {
    */
   async callTool(server: string, toolName: string, params: any): Promise<any> {
     try {
-      const _response = await this.mcpService.callTool({
+      const response = await this.mcpService.callTool({
         name: toolName,
         arguments: params,
       });
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       return {
         isError: true,
         content: [

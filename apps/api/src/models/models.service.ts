@@ -72,7 +72,7 @@ export class ModelsService {
       );
     }
 
-    const _result = (data || []).map((row) => ({
+    const result = (data || []).map((row) => ({
       providerName: row.provider_name,
       modelName: row.model_name,
       displayName: row.display_name,

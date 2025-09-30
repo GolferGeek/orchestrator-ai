@@ -109,7 +109,7 @@ export class DynamicAgentsController {
           timestamp: new Date().toISOString(),
         },
       };
-    } catch (_error) {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -530,7 +530,7 @@ export class DynamicAgentsController {
       // All modes await the result for proper A2A behavior
       const rpcResponse =
         await agentInstance.processJsonRpcRequest(jsonRpcRequest);
-      const _result = rpcResponse?.result ?? rpcResponse; // Unwrap JSON-RPC result
+      const result = rpcResponse?.result ?? rpcResponse; // Unwrap JSON-RPC result
 
       // 🔍 DEBUG: Log the result from JSON-RPC processing
       // Request completed
@@ -649,15 +649,15 @@ export class DynamicAgentsController {
           },
         }),
       };
-    } catch (_error) {
+    } catch (error) {
       // Mark task as failed via TaskStatusService (single source of truth)
       await this.taskStatusService.failTask(
         task.id,
         currentUser.id,
-        _error instanceof Error ? _error.message : 'Unknown _error',
+        error instanceof Error ? error.message : 'Unknown error',
       );
 
-      throw _error;
+      throw error;
     }
   }
 

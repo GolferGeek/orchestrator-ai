@@ -36,7 +36,7 @@ export class LLMServiceFactoryExample {
       },
     };
 
-    const _response = await service.generateResponse(params);
+    const response = await service.generateResponse(params);
 
     console.log('Response content:', response.content);
     console.log('Metadata:', {
@@ -69,7 +69,7 @@ export class LLMServiceFactoryExample {
     };
 
     // One-liner that creates service and generates response
-    const _response = await this.factory.generateResponse(config, params);
+    const response = await this.factory.generateResponse(config, params);
 
     console.log('Anthropic Response:', response.content);
     console.log('Full metadata preserved:', response.metadata);
@@ -103,7 +103,7 @@ export class LLMServiceFactoryExample {
       };
 
       try {
-        const _response = await this.factory.generateResponse(config, params);
+        const response = await this.factory.generateResponse(config, params);
 
         results.push({
           provider,
@@ -113,8 +113,8 @@ export class LLMServiceFactoryExample {
           timing: response.metadata.timing,
           providerSpecific: response.metadata.providerSpecific,
         });
-      } catch (_error) {
-        console.error(`Error with ${provider}:`, _error);
+      } catch (error) {
+        console.error(`Error with ${provider}:`, error);
       }
     }
 
@@ -190,10 +190,10 @@ export class LLMServiceFactoryExample {
       };
 
       await this.factory.createService(invalidConfig);
-    } catch (_error) {
+    } catch (error) {
       console.log(
-        'Expected validation _error:',
-        _error instanceof Error ? _error.message : String(_error),
+        'Expected validation error:',
+        error instanceof Error ? error.message : String(error),
       );
     }
 
@@ -206,10 +206,10 @@ export class LLMServiceFactoryExample {
       };
 
       await this.factory.createService(badConfig);
-    } catch (_error) {
+    } catch (error) {
       console.log(
-        'Expected temperature validation _error:',
-        _error instanceof Error ? _error.message : String(_error),
+        'Expected temperature validation error:',
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

@@ -72,13 +72,13 @@ export class DelegationService implements IDelegationService {
       );
 
       return orchestratorResponse;
-    } catch (_error) {
-      if (_error instanceof DelegationError) {
-        throw _error;
+    } catch (error) {
+      if (error instanceof DelegationError) {
+        throw error;
       }
 
       throw new DelegationError(
-        `Delegation failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         agentName,
         { prompt: prompt.substring(0, 100) },
       );
@@ -146,7 +146,7 @@ export class DelegationService implements IDelegationService {
         conversationHistory,
         quickAnalysis,
       );
-    } catch (_error) {
+    } catch (error) {
       return {
         shouldContinue: false,
         confidence: 0.1,
@@ -255,7 +255,7 @@ export class DelegationService implements IDelegationService {
     taskPayload: any,
   ): Promise<any> {
     // Call the agent's executeTask method (A2A protocol)
-    const _result = await agentInstance.executeTask(
+    const result = await agentInstance.executeTask(
       taskPayload.method,
       taskPayload.params,
     );
@@ -312,7 +312,7 @@ export class DelegationService implements IDelegationService {
       }
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       // Return error response
       return {
         success: false,
@@ -440,7 +440,7 @@ ${JSON.stringify(quickAnalysis, null, 2)}
 
 Provide your analysis in the required JSON format.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -567,7 +567,7 @@ Guidelines:
 
 Can the ${agentName} agent handle this request?`;
 
-      const _response = await this.llmService.generateResponse(
+      const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -581,7 +581,7 @@ Can the ${agentName} agent handle this request?`;
       );
 
       return this.parseCapabilityResponse(response);
-    } catch (_error) {
+    } catch (error) {
       // Conservative fallback - let delegation service handle it
       return {
         canHandle: false,

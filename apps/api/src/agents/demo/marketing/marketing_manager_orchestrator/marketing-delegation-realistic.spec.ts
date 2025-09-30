@@ -86,7 +86,7 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
       it(`should handle blog prompt ${index + 1}: "${prompt.substring(0, 40)}..."`, async () => {
         console.log(`\n📝 Testing Blog Prompt ${index + 1}: ${prompt}`);
 
-        const _result = await marketingManager.executeTask('executeTask', {
+        const result = await marketingManager.executeTask('executeTask', {
           prompt,
           userId: `test-blog-${index}`,
           conversationId: `test-conv-blog-${index}`,
@@ -133,7 +133,7 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
       it(`should handle content prompt ${index + 1}: "${prompt.substring(0, 40)}..."`, async () => {
         console.log(`\n✍️ Testing Content Prompt ${index + 1}: ${prompt}`);
 
-        const _result = await marketingManager.executeTask('executeTask', {
+        const result = await marketingManager.executeTask('executeTask', {
           prompt,
           userId: `test-content-${index}`,
           conversationId: `test-conv-content-${index}`,
@@ -181,7 +181,7 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
       it(`should handle research prompt ${index + 1}: "${prompt.substring(0, 40)}..."`, async () => {
         console.log(`\n📊 Testing Research Prompt ${index + 1}: ${prompt}`);
 
-        const _result = await marketingManager.executeTask('executeTask', {
+        const result = await marketingManager.executeTask('executeTask', {
           prompt,
           userId: `test-research-${index}`,
           conversationId: `test-conv-research-${index}`,
@@ -254,7 +254,7 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
           `✅ Reasonable agents: ${testCase.reasonableAgents.join(', ')}`,
         );
 
-        const _result = await marketingManager.executeTask('executeTask', {
+        const result = await marketingManager.executeTask('executeTask', {
           prompt: testCase.prompt,
           userId: `test-ambiguous-${index}`,
           conversationId: `test-conv-ambiguous-${index}`,
@@ -331,7 +331,7 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
 
         console.log(`📋 ${testCase.type}: "${testCase.prompt}"`);
 
-        const _result = await marketingManager.executeTask('executeTask', {
+        const result = await marketingManager.executeTask('executeTask', {
           prompt: testCase.prompt,
           userId: `test-pattern-${i}`,
           conversationId: `test-conv-pattern-${i}`,

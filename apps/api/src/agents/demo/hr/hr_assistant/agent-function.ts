@@ -271,7 +271,7 @@ Be comprehensive and anticipate follow-up questions they might have.`;
   }
 
   try {
-    const _response = await llmService.generateResponse(
+    const response = await llmService.generateResponse(
       systemPrompt,
       responsePrompt,
       {
@@ -367,13 +367,13 @@ async function executeHRWorkflow(
         total_steps: 2,
       },
     };
-  } catch (_error) {
+  } catch (error) {
     return {
       response: `I apologize, but I encountered an issue with your HR question. Please contact the HR department directly for assistance.`,
       metadata: {
         ...state.metadata,
         workflow_status: 'error',
-        workflow_error: error instanceof Error ? error.message : String(error),
+        workflowerror: error instanceof Error ? error.message : String(error),
       },
     };
   }
@@ -412,7 +412,7 @@ export async function execute(
         workflow: workflowMetadata,
       },
     };
-  } catch (_error) {
+  } catch (error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 

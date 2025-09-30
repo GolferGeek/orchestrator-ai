@@ -68,12 +68,12 @@ export class SupabaseService implements OnModuleInit {
             },
           },
         });
-      } catch (_error) {
+      } catch (error) {
         const errorMessage =
-          _error instanceof Error ? _error.message : 'Unknown _error';
-        const errorStack = _error instanceof Error ? _error.stack : undefined;
+          error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
 
-        throw _error;
+        throw error;
       }
     } else {
     }
@@ -91,12 +91,12 @@ export class SupabaseService implements OnModuleInit {
             },
           },
         });
-      } catch (_error) {
+      } catch (error) {
         const errorMessage =
-          _error instanceof Error ? _error.message : 'Unknown _error';
-        const errorStack = _error instanceof Error ? _error.stack : undefined;
+          error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
 
-        throw _error;
+        throw error;
       }
     } else {
     }
@@ -159,10 +159,10 @@ export class SupabaseService implements OnModuleInit {
       });
 
       return authenticatedClient;
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown _error';
-      const errorStack = _error instanceof Error ? _error.stack : undefined;
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
 
       throw new HttpException(
         'Could not create authenticated client.',
@@ -185,12 +185,12 @@ export class SupabaseService implements OnModuleInit {
 
     try {
       return await callback(client);
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown _error';
-      const errorStack = _error instanceof Error ? _error.stack : undefined;
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
 
-      throw _error;
+      throw error;
     }
   }
 
@@ -269,12 +269,12 @@ export class SupabaseService implements OnModuleInit {
       }
 
       return { status: 'ok', message: 'Database connection successful' };
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : 'Unknown _error';
-      const errorStack = _error instanceof Error ? _error.stack : undefined;
+        error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
 
-      return { status: '_error', message: errorMessage };
+      return { status: 'error', message: errorMessage };
     }
   }
 }

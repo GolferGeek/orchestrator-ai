@@ -45,7 +45,7 @@ describe('PIIPatternService', () => {
     it('should detect email addresses', async () => {
       const text = 'Contact john.doe@company.com for more info';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       expect(result.matches).toHaveLength(1);
       expect(result.matches[0]).toMatchObject({
@@ -60,7 +60,7 @@ describe('PIIPatternService', () => {
       const text =
         'Call me at (555) 123-4567 or 555-987-6543 or +1-555-111-2222';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       expect(result.matches.length).toBeGreaterThanOrEqual(3);
       const phoneMatches = result.matches.filter((m) => m.dataType === 'phone');
@@ -70,7 +70,7 @@ describe('PIIPatternService', () => {
     it('should detect names with proper capitalization', async () => {
       const text = 'John Smith and Sarah Johnson are attending the meeting';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const nameMatches = result.matches.filter((m) => m.dataType === 'name');
       expect(nameMatches).toHaveLength(2);
@@ -81,7 +81,7 @@ describe('PIIPatternService', () => {
     it('should detect IPv4 addresses', async () => {
       const text = 'Server is at 192.168.1.100 and backup at 10.0.0.1';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const ipMatches = result.matches.filter(
         (m) => m.dataType === 'ip_address',
@@ -94,7 +94,7 @@ describe('PIIPatternService', () => {
     it('should detect Social Security Numbers', async () => {
       const text = 'SSN: 123-45-6789 is confidential';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const ssnMatches = result.matches.filter((m) => m.dataType === 'ssn');
       expect(ssnMatches).toHaveLength(1);
@@ -104,7 +104,7 @@ describe('PIIPatternService', () => {
     it('should detect credit card numbers', async () => {
       const text = 'Visa card 4111111111111111 and Mastercard 5555555555554444';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const ccMatches = result.matches.filter(
         (m) => m.dataType === 'credit_card',
@@ -115,7 +115,7 @@ describe('PIIPatternService', () => {
     it('should detect social media usernames', async () => {
       const text = 'Follow @johndoe and @sarahj on social media';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const usernameMatches = result.matches.filter(
         (m) => m.dataType === 'username',
@@ -129,7 +129,7 @@ describe('PIIPatternService', () => {
       const text =
         'Office is at 123 Main Street and warehouse at 456 Oak Avenue';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const addressMatches = result.matches.filter(
         (m) => m.dataType === 'address',
@@ -140,7 +140,7 @@ describe('PIIPatternService', () => {
     it('should filter by data types when specified', async () => {
       const text = 'Contact john@example.com or call (555) 123-4567';
 
-      const _result = await service.detectPII(text, { dataTypes: ['email'] });
+      const result = await service.detectPII(text, { dataTypes: ['email'] });
 
       expect(result.matches).toHaveLength(1);
       expect(result.matches[0].dataType).toBe('email');
@@ -149,7 +149,7 @@ describe('PIIPatternService', () => {
     it('should respect minimum confidence threshold', async () => {
       const text = 'Email john@example.com and maybe fake@invalid';
 
-      const _result = await service.detectPII(text, { minConfidence: 0.9 });
+      const result = await service.detectPII(text, { minConfidence: 0.9 });
 
       // Should only return high-confidence matches
       expect(result.matches.length).toBeGreaterThanOrEqual(1);
@@ -161,7 +161,7 @@ describe('PIIPatternService', () => {
     it('should respect maximum match limit', async () => {
       const text = 'test@1.com test@2.com test@3.com test@4.com test@5.com';
 
-      const _result = await service.detectPII(text, { maxMatches: 3 });
+      const result = await service.detectPII(text, { maxMatches: 3 });
 
       expect(result.matches).toHaveLength(3);
     });
@@ -169,7 +169,7 @@ describe('PIIPatternService', () => {
     it('should handle obfuscated email addresses', async () => {
       const text = 'Email john dot doe at company dot com for info';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const emailMatches = result.matches.filter((m) => m.dataType === 'email');
       expect(emailMatches.length).toBeGreaterThanOrEqual(1);
@@ -178,7 +178,7 @@ describe('PIIPatternService', () => {
     it('should validate IP addresses correctly', async () => {
       const text = 'Valid IP 192.168.1.1 and invalid IP 999.999.999.999';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const ipMatches = result.matches.filter(
         (m) => m.dataType === 'ip_address',
@@ -188,7 +188,7 @@ describe('PIIPatternService', () => {
     });
 
     it('should handle empty or invalid input', async () => {
-      const _result = await service.detectPII('');
+      const result = await service.detectPII('');
 
       expect(result.matches).toHaveLength(0);
       expect(result.processingTime).toBeGreaterThanOrEqual(0);
@@ -197,7 +197,7 @@ describe('PIIPatternService', () => {
     it('should detect international phone numbers', async () => {
       const text = 'Call +44 20 7946 0958 or +33 1 42 86 83 26';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const phoneMatches = result.matches.filter((m) => m.dataType === 'phone');
       expect(phoneMatches.length).toBeGreaterThanOrEqual(2);
@@ -288,7 +288,7 @@ describe('PIIPatternService', () => {
         .find((p) => p.name === 'email_standard');
       const testText = 'Contact john@example.com and sarah@test.org';
 
-      const _result = service.testPattern(emailPattern!, testText);
+      const result = service.testPattern(emailPattern!, testText);
 
       expect(result.matches).toHaveLength(2);
       expect(result.validMatches).toHaveLength(2);
@@ -301,7 +301,7 @@ describe('PIIPatternService', () => {
         .find((p) => p.name === 'ssn_standard');
       const testText = 'Valid SSN: 123-45-6789 and invalid: 000-00-0000';
 
-      const _result = service.testPattern(ssnPattern!, testText);
+      const result = service.testPattern(ssnPattern!, testText);
 
       expect(result.matches).toHaveLength(2);
       expect(result.validMatches).toHaveLength(1); // Only valid SSN should pass validator
@@ -325,7 +325,7 @@ describe('PIIPatternService', () => {
     it('should handle overlapping matches by priority', async () => {
       const text = 'john@company.com'; // Could match both email patterns
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       // Should not have duplicate matches for the same text span
       const emailMatches = result.matches.filter((m) => m.dataType === 'email');
@@ -350,7 +350,7 @@ describe('PIIPatternService', () => {
     it('should handle very long text inputs', async () => {
       const longText = 'Contact john@example.com '.repeat(1000);
 
-      const _result = await service.detectPII(longText, { maxMatches: 10 });
+      const result = await service.detectPII(longText, { maxMatches: 10 });
 
       expect(result.matches.length).toBeLessThanOrEqual(10);
       expect(result.processingTime).toBeGreaterThan(0);
@@ -359,7 +359,7 @@ describe('PIIPatternService', () => {
     it('should handle text with no PII', async () => {
       const text = 'This is just regular text with no personal information';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       expect(result.matches).toHaveLength(0);
       expect(result.processingTime).toBeGreaterThanOrEqual(0);
@@ -369,7 +369,7 @@ describe('PIIPatternService', () => {
     it('should handle special characters in text', async () => {
       const text = 'Email: john@example.com!!! Phone: (555) 123-4567???';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       expect(result.matches.length).toBeGreaterThanOrEqual(2);
     });
@@ -377,7 +377,7 @@ describe('PIIPatternService', () => {
     it('should handle mixed case input', async () => {
       const text = 'JOHN@EXAMPLE.COM and john@example.com';
 
-      const _result = await service.detectPII(text);
+      const result = await service.detectPII(text);
 
       const emailMatches = result.matches.filter((m) => m.dataType === 'email');
       expect(emailMatches.length).toBeGreaterThanOrEqual(2);

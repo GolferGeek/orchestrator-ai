@@ -183,13 +183,13 @@ export class TaskLifecycleService {
       this.completeTask(taskId, result);
 
       return this.activeTasks.get(taskId)!;
-    } catch (_error) {
-      // Check if this is a timeout _error
-      if (_error instanceof Error && _error.message.includes('timeout')) {
+    } catch (error) {
+      // Check if this is a timeout error
+      if (error instanceof Error && error.message.includes('timeout')) {
         this.handleTaskTimeout(taskId);
       } else {
         // Task failed for other reasons
-        this.failTask(taskId, _error);
+        this.failTask(taskId, error);
       }
       return this.activeTasks.get(taskId)!;
     }

@@ -16,7 +16,7 @@ describe('SecretRedactionService', () => {
     it('should redact API keys', () => {
       const text = 'My API key is sk-1234567890abcdef1234567890abcdef12345678';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('[REDACTED]');
       expect(result.redactedText).not.toContain('sk-1234567890abcdef');
@@ -26,7 +26,7 @@ describe('SecretRedactionService', () => {
     it('should redact OpenAI API keys', () => {
       const text = 'OpenAI key: sk-abcd1234567890abcdef1234567890abcdef123456';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('sk-[REDACTED]');
       expect(result.result.patternsMatched).toContain('openai_key');
@@ -36,7 +36,7 @@ describe('SecretRedactionService', () => {
       const text =
         'Claude API key: sk-ant-api03-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnop_qrstuvwxyz';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('sk-ant-[REDACTED]');
       expect(result.result.patternsMatched).toContain('anthropic_key');
@@ -45,7 +45,7 @@ describe('SecretRedactionService', () => {
     it('should redact Google API keys', () => {
       const text = 'Google key: AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('AIza[REDACTED]');
       expect(result.result.patternsMatched).toContain('google_key');
@@ -55,7 +55,7 @@ describe('SecretRedactionService', () => {
       const text =
         'JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('eyJ[REDACTED]');
       expect(result.result.patternsMatched).toContain('jwt_token');
@@ -64,7 +64,7 @@ describe('SecretRedactionService', () => {
     it('should redact bearer tokens', () => {
       const text = 'Authorization: Bearer abcd1234567890efgh';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('bearer [REDACTED]');
       expect(result.result.patternsMatched).toContain('bearer_token');
@@ -73,7 +73,7 @@ describe('SecretRedactionService', () => {
     it('should redact passwords', () => {
       const text = 'Password: mySecretPassword123';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('password=[REDACTED]');
       expect(result.result.patternsMatched).toContain('password');
@@ -82,7 +82,7 @@ describe('SecretRedactionService', () => {
     it('should redact database URLs', () => {
       const text = 'DB: postgresql://user:password@localhost:5432/mydb';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('database://[REDACTED]');
       expect(result.result.patternsMatched).toContain('database_url');
@@ -91,7 +91,7 @@ describe('SecretRedactionService', () => {
     it('should redact AWS access keys', () => {
       const text = 'AWS Key: AKIAIOSFODNN7EXAMPLE';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('AKIA[REDACTED]');
       expect(result.result.patternsMatched).toContain('aws_key');
@@ -100,7 +100,7 @@ describe('SecretRedactionService', () => {
     it('should redact credit card numbers', () => {
       const text = 'Credit card: 4111 1111 1111 1111';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('[CREDIT_CARD_REDACTED]');
       expect(result.result.patternsMatched).toContain('credit_card');
@@ -112,7 +112,7 @@ describe('SecretRedactionService', () => {
 MIIEpAIBAAKCAQEA1234567890abcdef...
 -----END RSA PRIVATE KEY-----`;
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain(
         '-----BEGIN [REDACTED] PRIVATE KEY-----',
@@ -127,7 +127,7 @@ PASSWORD=myPassword123
 DATABASE_URL=postgresql://user:pass@host:5432/db
 JWT_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c`;
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.result.redactionCount).toBeGreaterThanOrEqual(4);
       expect(result.result.patternsMatched.length).toBeGreaterThanOrEqual(3);
@@ -148,7 +148,7 @@ JWT_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwp
     it('should not redact text without secrets', () => {
       const text = 'This is just regular text with no secrets';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toBe(text);
       expect(result.result.redactionCount).toBe(0);
@@ -158,7 +158,7 @@ JWT_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwp
     it('should preserve text length information', () => {
       const text = 'API key: sk-1234567890abcdef1234567890abcdef12345678';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.result.originalLength).toBe(text.length);
       expect(result.result.redactedLength).toBe(result.redactedText.length);
@@ -167,7 +167,7 @@ JWT_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwp
     it('should handle case insensitive patterns', () => {
       const text = 'Password: MySecretPwd and PASSWORD: AnotherSecret';
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.result.redactionCount).toBeGreaterThanOrEqual(2);
       expect(result.redactedText).not.toContain('MySecretPwd');
@@ -180,7 +180,7 @@ api_key: sk-1234567890abcdef
 apikey=sk-abcdef1234567890
 key: "sk-fedcba0987654321"`;
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.result.redactionCount).toBeGreaterThanOrEqual(3);
     });
@@ -211,7 +211,7 @@ key: "sk-fedcba0987654321"`;
 
       service.addRedactionPattern(customPattern);
       const text = 'Employee EMP1234 has access';
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.redactedText).toContain('[EMPLOYEE_ID_REDACTED]');
       expect(result.result.patternsMatched).toContain('employee_id');
@@ -266,7 +266,7 @@ key: "sk-fedcba0987654321"`;
     it('should provide detailed test results', () => {
       const text = 'API: sk-1234567890abcdef and password: secretpass123';
 
-      const _result = service.testRedaction(text);
+      const result = service.testRedaction(text);
 
       expect(result.redactedText).toBeDefined();
       expect(result.result).toBeDefined();
@@ -285,7 +285,7 @@ key: "sk-fedcba0987654321"`;
       const text =
         'JWT: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
-      const _result = service.testRedaction(text);
+      const result = service.testRedaction(text);
 
       const jwtPattern = result.patternDetails.find(
         (p) => p.name === 'jwt_token',
@@ -344,7 +344,7 @@ key: "sk-fedcba0987654321"`;
       const longText = 'API key sk-1234567890abcdef '.repeat(1000);
       const startTime = Date.now();
 
-      const _result = service.redactSecrets(longText);
+      const result = service.redactSecrets(longText);
       const endTime = Date.now();
 
       expect(result.result.redactionCount).toBeGreaterThan(0);
@@ -364,7 +364,7 @@ key: "sk-fedcba0987654321"`;
         CREDIT_CARD=4111-1111-1111-1111
       `;
 
-      const _result = service.redactSecrets(text);
+      const result = service.redactSecrets(text);
 
       expect(result.result.redactionCount).toBeGreaterThanOrEqual(8);
       expect(result.result.patternsMatched.length).toBeGreaterThanOrEqual(8);

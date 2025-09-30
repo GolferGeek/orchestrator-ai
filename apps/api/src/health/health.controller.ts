@@ -60,13 +60,13 @@ export class HealthController {
   @Get('supabase')
   async checkSupabase() {
     try {
-      const _result = await this.supabaseService.checkConnection();
+      const result = await this.supabaseService.checkConnection();
       return {
         status: 'ok',
         supabase: result,
         timestamp: new Date().toISOString(),
       };
-    } catch (_error) {
+    } catch (error) {
       return {
         status: 'error',
         supabase: {

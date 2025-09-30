@@ -505,8 +505,8 @@ export class RunMetadataService {
         avgDuration,
         avgCost,
       };
-    } catch (_error) {
-      this.logger.error('Error calculating stats:', _error);
+    } catch (error) {
+      this.logger.error('Error calculating stats:', error);
       return {
         activeRuns: this.activeRuns.size,
         totalRunsToday: 0,

@@ -106,7 +106,7 @@ describe('ModelsService', () => {
           responseLengthFactor: 1.0,
         };
 
-        const _result = await service.estimateCost(costEstimate);
+        const result = await service.estimateCost(costEstimate);
 
         expect(result.estimatedInputTokens).toBe(7); // ceil(25/4)
         expect(result.estimatedOutputTokens).toBe(7); // Same as input with factor 1.0
@@ -122,7 +122,7 @@ describe('ModelsService', () => {
           responseLengthFactor: 3.0, // Expect 3x longer response
         };
 
-        const _result = await service.estimateCost(costEstimate);
+        const result = await service.estimateCost(costEstimate);
 
         expect(result.estimatedInputTokens).toBe(13); // ceil(51/4)
         expect(result.estimatedOutputTokens).toBe(39); // ceil(13 * 3.0)
@@ -136,7 +136,7 @@ describe('ModelsService', () => {
           modelId: '456e7890-e89b-12d3-a456-426614174000',
         };
 
-        const _result = await service.estimateCost(costEstimate);
+        const result = await service.estimateCost(costEstimate);
 
         expect(result.estimatedOutputTokens).toBe(result.estimatedInputTokens); // Default factor 1.0
       });
@@ -150,7 +150,7 @@ describe('ModelsService', () => {
           responseLengthFactor: 2.0,
         };
 
-        const _result = await service.estimateCost(costEstimate);
+        const result = await service.estimateCost(costEstimate);
 
         expect(result.estimatedCost).toBeGreaterThan(0.05);
         // Warning threshold might be higher than the calculated cost
@@ -168,7 +168,7 @@ describe('ModelsService', () => {
           modelId: '456e7890-e89b-12d3-a456-426614174000',
         };
 
-        const _result = await service.estimateCost(costEstimate);
+        const result = await service.estimateCost(costEstimate);
 
         expect(result.estimatedCost).toBeLessThan(0.1);
         expect(result.maxCostWarning).toBeUndefined();
@@ -214,7 +214,7 @@ describe('ModelsService', () => {
           modelId: '456e7890-e89b-12d3-a456-426614174000',
         };
 
-        const _result = await service.estimateCost(costEstimate);
+        const result = await service.estimateCost(costEstimate);
 
         expect(result.estimatedInputTokens).toBe(0);
         expect(result.estimatedOutputTokens).toBe(0);
@@ -228,7 +228,7 @@ describe('ModelsService', () => {
           responseLengthFactor: 100.0, // Very large response
         };
 
-        const _result = await service.estimateCost(costEstimate);
+        const result = await service.estimateCost(costEstimate);
 
         expect(result.estimatedOutputTokens).toBe(400); // ceil(4 * 100)
         expect(result.estimatedCost).toBeGreaterThan(0.003); // Should be substantial
@@ -240,7 +240,7 @@ describe('ModelsService', () => {
         // Access private method through type assertion for testing
         const calculateCost = (service as any).calculateCost.bind(service);
 
-        const _result = calculateCost(1000, 1500, 0.0025, 0.01);
+        const result = calculateCost(1000, 1500, 0.0025, 0.01);
 
         expect(result.inputTokens).toBe(1000);
         expect(result.outputTokens).toBe(1500);
@@ -253,7 +253,7 @@ describe('ModelsService', () => {
       it('should handle fractional tokens correctly', () => {
         const calculateCost = (service as any).calculateCost.bind(service);
 
-        const _result = calculateCost(1, 1, 0.001, 0.002);
+        const result = calculateCost(1, 1, 0.001, 0.002);
 
         expect(result.inputCost).toBeCloseTo(0.000001, 6); // 1/1000 * 0.001
         expect(result.outputCost).toBeCloseTo(0.000002, 6); // 1/1000 * 0.002
@@ -263,7 +263,7 @@ describe('ModelsService', () => {
       it('should handle zero tokens gracefully', () => {
         const calculateCost = (service as any).calculateCost.bind(service);
 
-        const _result = calculateCost(0, 0, 0.001, 0.002);
+        const result = calculateCost(0, 0, 0.001, 0.002);
 
         expect(result.inputCost).toBe(0);
         expect(result.outputCost).toBe(0);
@@ -273,7 +273,7 @@ describe('ModelsService', () => {
       it('should handle high token counts', () => {
         const calculateCost = (service as any).calculateCost.bind(service);
 
-        const _result = calculateCost(100000, 150000, 0.0025, 0.01);
+        const result = calculateCost(100000, 150000, 0.0025, 0.01);
 
         expect(result.inputCost).toBeCloseTo(0.25, 4); // 100000/1000 * 0.0025
         expect(result.outputCost).toBeCloseTo(1.5, 4); // 150000/1000 * 0.01
@@ -327,7 +327,7 @@ describe('ModelsService', () => {
         responseLengthFactor: 0.1, // Very small response
       };
 
-      const _result = await service.estimateCost(costEstimate);
+      const result = await service.estimateCost(costEstimate);
 
       expect(result.estimatedOutputTokens).toBe(1); // ceil(4 * 0.1) = ceil(0.4) = 1
     });
@@ -339,7 +339,7 @@ describe('ModelsService', () => {
         responseLengthFactor: 10.0, // Maximum allowed factor
       };
 
-      const _result = await service.estimateCost(costEstimate);
+      const result = await service.estimateCost(costEstimate);
 
       expect(result.estimatedOutputTokens).toBe(20); // ceil(2 * 10.0)
     });
@@ -354,7 +354,7 @@ describe('ModelsService', () => {
         responseLengthFactor: 1.0,
       };
 
-      const _result = await service.estimateCost(costEstimate);
+      const result = await service.estimateCost(costEstimate);
 
       expect(result.estimatedInputTokens).toBe(3);
       expect(result.estimatedOutputTokens).toBe(3);
@@ -429,7 +429,7 @@ describe('ModelsService', () => {
         responseLengthFactor: 2.0, // Expecting a code example response
       };
 
-      const _result = await service.estimateCost(costEstimate);
+      const result = await service.estimateCost(costEstimate);
 
       expect(result.estimatedInputTokens).toBe(20); // ceil(79/4)
       expect(result.estimatedOutputTokens).toBe(40); // 20 * 2.0
@@ -452,7 +452,7 @@ describe('ModelsService', () => {
         responseLengthFactor: 1.5, // Expecting detailed feedback
       };
 
-      const _result = await service.estimateCost(costEstimate);
+      const result = await service.estimateCost(costEstimate);
 
       expect(result.estimatedInputTokens).toBeGreaterThan(30);
       expect(result.estimatedOutputTokens).toBeGreaterThan(45);
@@ -469,7 +469,7 @@ describe('ModelsService', () => {
         responseLengthFactor: 10.0, // Expecting very long response
       };
 
-      const _result = await service.estimateCost(costEstimate);
+      const result = await service.estimateCost(costEstimate);
 
       expect(result.estimatedInputTokens).toBe(34); // actual result
       expect(result.estimatedOutputTokens).toBe(340); // 34 * 10.0
@@ -484,7 +484,7 @@ describe('ModelsService', () => {
         responseLengthFactor: 0.5, // Expecting short response
       };
 
-      const _result = await service.estimateCost(costEstimate);
+      const result = await service.estimateCost(costEstimate);
 
       expect(result.estimatedInputTokens).toBe(3); // actual result
       expect(result.estimatedOutputTokens).toBe(2); // ceil(3 * 0.5) rounded up

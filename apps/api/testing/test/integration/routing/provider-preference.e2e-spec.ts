@@ -22,7 +22,7 @@ describe('Provider Preference Routing (e2e)', () => {
   });
 
   it('should respect explicit provider preference', async () => {
-    const _result = await llmService.generateCentralizedResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say hello.',
       {

@@ -64,7 +64,7 @@ export class ProductionOptimizationController {
     } = {},
   ) {
     try {
-      const _result = await this.memoryManagerService.loadModel(
+      const result = await this.memoryManagerService.loadModel(
         modelName,
         body.taskComplexity,
         body.priority || 'medium',
@@ -79,9 +79,9 @@ export class ProductionOptimizationController {
         modelsUnloaded: result.modelsUnloaded,
         memoryStats: this.memoryManagerService.getMemoryStats(),
       };
-    } catch (_error) {
-      this.logger.error(`Failed to load model ${modelName}`, _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error(`Failed to load model ${modelName}`, error);
+      throw error;
     }
   }
 
@@ -92,7 +92,7 @@ export class ProductionOptimizationController {
   @HttpCode(HttpStatus.OK)
   async unloadModel(@Param('modelName') modelName: string) {
     try {
-      const _result =
+      const result =
         await this.memoryManagerService.forceUnloadModel(modelName);
       return {
         success: result,
@@ -101,9 +101,9 @@ export class ProductionOptimizationController {
           : 'Model was not loaded or unload failed',
         memoryStats: this.memoryManagerService.getMemoryStats(),
       };
-    } catch (_error) {
-      this.logger.error(`Failed to unload model ${modelName}`, _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error(`Failed to unload model ${modelName}`, error);
+      throw error;
     }
   }
 
@@ -120,9 +120,9 @@ export class ProductionOptimizationController {
         message: 'Memory optimization completed',
         memoryStats: this.memoryManagerService.getMemoryStats(),
       };
-    } catch (_error) {
-      this.logger.error('Memory optimization failed', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Memory optimization failed', error);
+      throw error;
     }
   }
 
@@ -140,9 +140,9 @@ export class ProductionOptimizationController {
         memoryStats: this.memoryManagerService.getMemoryStats(),
         loadedModels: this.memoryManagerService.getLoadedModels(),
       };
-    } catch (_error) {
-      this.logger.error('Three-tier preload failed', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Three-tier preload failed', error);
+      throw error;
     }
   }
 
@@ -236,9 +236,9 @@ export class ProductionOptimizationController {
         message: 'Health check completed',
         timestamp: new Date().toISOString(),
       };
-    } catch (_error) {
-      this.logger.error('Forced health check failed', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Forced health check failed', error);
+      throw error;
     }
   }
 
@@ -255,9 +255,9 @@ export class ProductionOptimizationController {
         message: 'Alert thresholds updated',
         thresholds,
       };
-    } catch (_error) {
-      this.logger.error('Failed to update alert thresholds', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Failed to update alert thresholds', error);
+      throw error;
     }
   }
 
@@ -273,9 +273,9 @@ export class ProductionOptimizationController {
         success: true,
         message: 'Alert history cleared',
       };
-    } catch (_error) {
-      this.logger.error('Failed to clear alert history', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Failed to clear alert history', error);
+      throw error;
     }
   }
 
@@ -359,9 +359,9 @@ export class ProductionOptimizationController {
         timestamp: new Date().toISOString(),
         finalStatus,
       };
-    } catch (_error) {
-      this.logger.error('❌ Emergency restart failed', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('❌ Emergency restart failed', error);
+      throw error;
     }
   }
 
@@ -443,9 +443,9 @@ export class ProductionOptimizationController {
       }
 
       return diagnostics;
-    } catch (_error) {
-      this.logger.error('Diagnostics failed', _error);
-      throw _error;
+    } catch (error) {
+      this.logger.error('Diagnostics failed', error);
+      throw error;
     }
   }
 }

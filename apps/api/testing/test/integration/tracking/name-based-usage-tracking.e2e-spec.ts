@@ -134,7 +134,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
     testCases.forEach(({ providerName, modelName }) => {
       it(`should track usage with names for ${providerName}/${modelName}`, async () => {
         try {
-          const _result = await llmService.generateResponse(
+          const result = await llmService.generateResponse(
             'You are a helpful assistant.',
             'Say hello and count to 3.',
             {
@@ -158,7 +158,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
 
     it('should handle invalid provider/model gracefully', async () => {
       try {
-        const _result = await llmService.generateResponse(
+        const result = await llmService.generateResponse(
           'You are a helpful assistant.',
           'Say hello.',
           {
@@ -338,7 +338,7 @@ describe('Name-Based Usage Tracking (e2e)', () => {
     it('should handle null/undefined provider/model names gracefully', async () => {
       try {
         // Test with undefined values
-        const _result = await llmService.generateResponse(
+        const result = await llmService.generateResponse(
           'You are a helpful assistant.',
           'Say hello.',
           {

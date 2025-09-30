@@ -33,7 +33,7 @@ describe('Complexity Performance Comparison (e2e)', () => {
     for (const { level, prompt } of complexities) {
       const startTime = Date.now();
       
-      const _result = await llmService.generateCentralizedResponse(
+      const result = await llmService.generateCentralizedResponse(
         'You are a helpful assistant.',
         prompt,
         {

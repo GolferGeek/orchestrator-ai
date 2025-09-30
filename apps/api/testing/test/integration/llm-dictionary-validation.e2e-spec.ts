@@ -36,7 +36,7 @@ describe('LLM Dictionary Pseudonymization Validation (e2e)', () => {
     
     // Test 3: Try to call the dictionary service directly to see the expected behavior
     try {
-      const _result = await dictionaryService.pseudonymizeText('Matt Weber works at Orchestrator AI');
+      const result = await dictionaryService.pseudonymizeText('Matt Weber works at Orchestrator AI');
       console.log('✅ Dictionary service call succeeded:', result);
     } catch (_error) {
       console.log('❌ Dictionary service call failed (expected if DB schema missing):', _error.message);

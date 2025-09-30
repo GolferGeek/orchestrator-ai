@@ -150,10 +150,10 @@ export class JsonRpcProtocolService {
         };
       }
 
-      const _result = await methodHandler(jsonRpcRequest.method, params);
+      const result = await methodHandler(jsonRpcRequest.method, params);
       return this.createSuccessResponse(jsonRpcRequest.id, result);
-    } catch (_error) {
-      return this.createErrorResponseFromException(_error, jsonRpcRequest.id);
+    } catch (error) {
+      return this.createErrorResponseFromException(error, jsonRpcRequest.id);
     }
   }
 

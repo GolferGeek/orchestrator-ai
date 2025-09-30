@@ -240,7 +240,7 @@ describe('UsageController', () => {
 
   describe('getUserStats', () => {
     it('should return usage statistics for the current user', async () => {
-      const _result = await controller.getUserStats(mockUser);
+      const result = await controller.getUserStats(mockUser);
 
       expect(result).toEqual(mockUsageStats);
       expect(usageService.getUserStats).toHaveBeenCalledWith('user-123', {
@@ -302,7 +302,7 @@ describe('UsageController', () => {
 
   describe('getCostSummary', () => {
     it('should return cost summary for the current user', async () => {
-      const _result = await controller.getCostSummary(mockUser);
+      const result = await controller.getCostSummary(mockUser);
 
       expect(result).toEqual(mockCostSummary);
       expect(usageService.getCostSummary).toHaveBeenCalledWith('user-123', {
@@ -348,7 +348,7 @@ describe('UsageController', () => {
 
   describe('getModelPerformance', () => {
     it('should return model performance metrics for the current user', async () => {
-      const _result = await controller.getModelPerformance(mockUser);
+      const result = await controller.getModelPerformance(mockUser);
 
       expect(result).toEqual(mockModelPerformance);
       expect(usageService.getModelPerformance).toHaveBeenCalledWith(
@@ -412,7 +412,7 @@ describe('UsageController', () => {
 
   describe('getSpendingInsights', () => {
     it('should return spending insights for the current user', async () => {
-      const _result = await controller.getSpendingInsights(mockUser);
+      const result = await controller.getSpendingInsights(mockUser);
 
       expect(result).toEqual(mockSpendingInsights);
       expect(usageService.getSpendingInsights).toHaveBeenCalledWith(
@@ -440,7 +440,7 @@ describe('UsageController', () => {
     });
 
     it('should return comprehensive insights structure', async () => {
-      const _result = await controller.getSpendingInsights(mockUser);
+      const result = await controller.getSpendingInsights(mockUser);
 
       expect(result).toHaveProperty('analysisPeriod');
       expect(result).toHaveProperty('spendingSummary');
@@ -456,7 +456,7 @@ describe('UsageController', () => {
 
   describe('exportUsageData', () => {
     it('should export usage data in JSON format by default', async () => {
-      const _result = await controller.exportUsageData(mockUser);
+      const result = await controller.exportUsageData(mockUser);
 
       expect(result).toEqual([{ summary: mockUsageStats }]);
       expect(usageService.exportUsageData).toHaveBeenCalledWith('user-123', {
@@ -470,7 +470,7 @@ describe('UsageController', () => {
     it('should export usage data in CSV format when requested', async () => {
       mockUsageService.exportUsageData.mockResolvedValueOnce('csv,data,here');
 
-      const _result = await controller.exportUsageData(mockUser, 'csv');
+      const result = await controller.exportUsageData(mockUser, 'csv');
 
       expect(result).toBe('csv,data,here');
       expect(usageService.exportUsageData).toHaveBeenCalledWith('user-123', {
@@ -510,7 +510,7 @@ describe('UsageController', () => {
 
   describe('getBudgetStatus', () => {
     it('should return budget status for the current user', async () => {
-      const _result = await controller.getBudgetStatus(mockUser);
+      const result = await controller.getBudgetStatus(mockUser);
 
       expect(result).toEqual(mockBudgetStatus);
       expect(usageService.getBudgetStatus).toHaveBeenCalledWith(
@@ -529,7 +529,7 @@ describe('UsageController', () => {
     });
 
     it('should return proper budget status structure', async () => {
-      const _result = await controller.getBudgetStatus(mockUser);
+      const result = await controller.getBudgetStatus(mockUser);
 
       expect(result).toHaveProperty('currentMonth');
       expect(result).toHaveProperty('alerts');
@@ -546,7 +546,7 @@ describe('UsageController', () => {
     });
 
     it('should handle alerts structure correctly', async () => {
-      const _result = await controller.getBudgetStatus(mockUser);
+      const result = await controller.getBudgetStatus(mockUser);
 
       if (result.alerts && result.alerts.length > 0) {
         const alert = result.alerts[0];
@@ -561,7 +561,7 @@ describe('UsageController', () => {
     });
 
     it('should handle recommendations structure correctly', async () => {
-      const _result = await controller.getBudgetStatus(mockUser);
+      const result = await controller.getBudgetStatus(mockUser);
 
       if (result.recommendations && result.recommendations.length > 0) {
         const recommendation = result.recommendations[0];
@@ -593,7 +593,7 @@ describe('UsageController', () => {
 
   describe('Error Handling', () => {
     it('should handle service errors gracefully in getUserStats', async () => {
-      const _error = new Error('Service unavailable');
+      const error = new Error('Service unavailable');
       mockUsageService.getUserStats.mockRejectedValueOnce(error);
 
       await expect(controller.getUserStats(mockUser)).rejects.toThrow(
@@ -602,7 +602,7 @@ describe('UsageController', () => {
     });
 
     it('should handle service errors gracefully in getCostSummary', async () => {
-      const _error = new Error('Database connection failed');
+      const error = new Error('Database connection failed');
       mockUsageService.getCostSummary.mockRejectedValueOnce(error);
 
       await expect(controller.getCostSummary(mockUser)).rejects.toThrow(
@@ -611,7 +611,7 @@ describe('UsageController', () => {
     });
 
     it('should handle service errors gracefully in exportUsageData', async () => {
-      const _error = new Error('Export failed');
+      const error = new Error('Export failed');
       mockUsageService.exportUsageData.mockRejectedValueOnce(error);
 
       await expect(controller.exportUsageData(mockUser)).rejects.toThrow(

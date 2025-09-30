@@ -175,7 +175,7 @@ export class SpeechService {
 
       this.logger.log(`Request headers:`, headers);
 
-      const _response = await axios.post(url, audioBuffer, {
+      const response = await axios.post(url, audioBuffer, {
         headers,
         timeout: 30000, // 30 second timeout
       });
@@ -194,7 +194,7 @@ export class SpeechService {
       );
 
       return { text, confidence };
-    } catch (_error) {
+    } catch (error) {
       this.logger.error('Deepgram transcription failed:', error);
 
       if (axios.isAxiosError(error)) {
@@ -277,7 +277,7 @@ export class SpeechService {
         voice_settings: elevenLabsConfig.voice_settings,
       };
 
-      const _response = await axios.post(
+      const response = await axios.post(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         requestBody,
         {
@@ -307,7 +307,7 @@ export class SpeechService {
         audioData,
         format: 'audio/mpeg',
       };
-    } catch (_error) {
+    } catch (error) {
       this.logger.error('Eleven Labs synthesis failed:', error);
 
       if (axios.isAxiosError(error)) {
@@ -364,8 +364,8 @@ export class SpeechService {
 
       // Consider healthy if at least one service is configured
       return hasDeepgram || hasElevenLabs;
-    } catch (_error) {
-      this.logger.error('Health check failed:', _error);
+    } catch (error) {
+      this.logger.error('Health check failed:', error);
       return false;
     }
   }

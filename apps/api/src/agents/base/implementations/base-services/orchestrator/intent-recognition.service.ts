@@ -63,7 +63,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
       );
 
       return classification;
-    } catch (_error) {
+    } catch (error) {
       // Fallback to safe conversation mode
       return {
         action: 'CONVERSE',
@@ -220,7 +220,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     );
     const userMessage = this.buildUserAnalysisMessage(input, context);
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -409,7 +409,7 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
         capabilityGap: parsed.capabilityGap,
         subprojectScope: parsed.subprojectScope,
       };
-    } catch (_error) {
+    } catch (error) {
       // Return safe fallback
       return {
         action: 'CONVERSE',

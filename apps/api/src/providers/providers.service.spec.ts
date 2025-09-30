@@ -121,7 +121,7 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const _result = await service.findAll();
+      const result = await service.findAll();
 
       expect(result).toEqual([expectedProviderResponse]);
       expect(result[0]).toHaveProperty('apiBaseUrl'); // Converted to camelCase
@@ -165,7 +165,7 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const _result = await service.findOne(
+      const result = await service.findOne(
         '123e4567-e89b-12d3-a456-426614174000',
       );
 
@@ -180,7 +180,7 @@ describe('ProvidersService', () => {
         error: { code: 'PGRST116' },
       });
 
-      const _result = await service.findOne('non-existent-id');
+      const result = await service.findOne('non-existent-id');
 
       expect(result).toBeNull();
     });
@@ -193,7 +193,7 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const _result = await service.findModelsByProvider(
+      const result = await service.findModelsByProvider(
         '123e4567-e89b-12d3-a456-426614174000',
       );
 
@@ -249,7 +249,7 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const _result = await service.create(createDto);
+      const result = await service.create(createDto);
 
       expect(result).toEqual(expectedProviderResponse);
       expect(result).toHaveProperty('apiBaseUrl'); // Response in camelCase
@@ -308,7 +308,7 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const _result = await service.update(
+      const result = await service.update(
         '123e4567-e89b-12d3-a456-426614174000',
         updateDto,
       );
@@ -331,7 +331,7 @@ describe('ProvidersService', () => {
     it('should return null when provider not found', async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(null);
 
-      const _result = await service.update('non-existent-id', {});
+      const result = await service.update('non-existent-id', {});
 
       expect(result).toBeNull();
     });
@@ -349,7 +349,7 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const _result = await service.findAllWithModels();
+      const result = await service.findAllWithModels();
 
       expect(result).toHaveLength(1);
       expect(result[0]).toHaveProperty('apiBaseUrl'); // Provider converted to camelCase

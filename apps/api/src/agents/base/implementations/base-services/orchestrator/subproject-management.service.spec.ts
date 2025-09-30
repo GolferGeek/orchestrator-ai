@@ -65,7 +65,7 @@ describe('SubprojectManagementService - Real Integration', () => {
       const simpleProject = 'Create a blog post about our new product feature';
 
       try {
-        const _result = await service.analyzeForSubprojects(
+        const result = await service.analyzeForSubprojects(
           simpleProject,
           testInput,
         );
@@ -79,13 +79,13 @@ describe('SubprojectManagementService - Real Integration', () => {
         if (!result.requiresDecomposition) {
           expect(result.suggestedSubprojects.length).toBe(0);
         }
-      } catch (_error) {
+      } catch (error) {
         // Real errors are acceptable - we're testing integration
         console.log(
           'Real integration test revealed:',
-          (_error as Error).message,
+          (error as Error).message,
         );
-        expect(_error).toBeInstanceOf(Error);
+        expect(error).toBeInstanceOf(Error);
       }
     }, 15000);
 
@@ -102,7 +102,7 @@ describe('SubprojectManagementService - Real Integration', () => {
       `;
 
       try {
-        const _result = await service.analyzeForSubprojects(
+        const result = await service.analyzeForSubprojects(
           complexProject,
           testInput,
         );
@@ -133,13 +133,13 @@ describe('SubprojectManagementService - Real Integration', () => {
             }
           });
         }
-      } catch (_error) {
+      } catch (error) {
         // Real errors reveal actual integration issues - this is valuable
         console.log(
           'Complex project analysis revealed:',
-          (_error as Error).message,
+          (error as Error).message,
         );
-        expect(_error).toBeInstanceOf(Error);
+        expect(error).toBeInstanceOf(Error);
       }
     }, 30000);
   });
@@ -150,17 +150,17 @@ describe('SubprojectManagementService - Real Integration', () => {
 
       try {
         await service.analyzeForSubprojects('test project', invalidInput);
-      } catch (_error) {
-        expect(_error).toBeInstanceOf(Error);
-        expect((_error as Error).message).toBeTruthy();
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBeTruthy();
       }
     });
 
     it('should handle empty project description', async () => {
       try {
         await service.analyzeForSubprojects('', testInput);
-      } catch (_error) {
-        expect(_error).toBeInstanceOf(Error);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
       }
     });
   });

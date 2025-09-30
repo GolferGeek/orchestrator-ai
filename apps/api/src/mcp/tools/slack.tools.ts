@@ -226,9 +226,9 @@ export class SlackMCPTools implements IMCPToolHandler {
         default:
           return this.createErrorResponse(`Unknown Slack tool: ${name}`);
       }
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : String(_error);
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Slack tool ${name} failed: ${errorMessage}`);
       return this.createErrorResponse(`Tool execution failed: ${errorMessage}`);
     }
@@ -250,12 +250,12 @@ export class SlackMCPTools implements IMCPToolHandler {
       }
 
       // Try a lightweight connection test
-      const _response = await this.makeSlackRequest('api.test', 'GET');
+      const response = await this.makeSlackRequest('api.test', 'GET');
       const _data = await response.json();
       return data.ok === true;
-    } catch (_error) {
+    } catch (error) {
       this.logger.debug(
-        `Slack ping failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Slack ping failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       return false;
     }
@@ -278,7 +278,7 @@ export class SlackMCPTools implements IMCPToolHandler {
         payload.blocks = blocks;
       }
 
-      const _response = await this.makeSlackRequest(
+      const response = await this.makeSlackRequest(
         'chat.postMessage',
         'POST',
         payload,
@@ -307,9 +307,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Send message failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Send message failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -331,7 +331,7 @@ export class SlackMCPTools implements IMCPToolHandler {
         limit: limit.toString(),
       });
 
-      const _response = await this.makeSlackRequest(
+      const response = await this.makeSlackRequest(
         `conversations.list?${params}`,
         'GET',
       );
@@ -357,9 +357,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Get channels failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Get channels failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -373,7 +373,7 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       if (user_id) {
         // Get specific user info
-        const _response = await this.makeSlackRequest(
+        const response = await this.makeSlackRequest(
           `users.info?user=${user_id}`,
           'GET',
         );
@@ -405,7 +405,7 @@ export class SlackMCPTools implements IMCPToolHandler {
           limit: limit.toString(),
         });
 
-        const _response = await this.makeSlackRequest(
+        const response = await this.makeSlackRequest(
           `users.list?${params}`,
           'GET',
         );
@@ -438,9 +438,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           ],
         };
       }
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Get users failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Get users failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -468,7 +468,7 @@ export class SlackMCPTools implements IMCPToolHandler {
         sort,
       });
 
-      const _response = await this.makeSlackRequest(
+      const response = await this.makeSlackRequest(
         `search.messages?${params}`,
         'GET',
       );
@@ -495,9 +495,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Search messages failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Search messages failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -523,7 +523,7 @@ export class SlackMCPTools implements IMCPToolHandler {
         params.append('latest', latest);
       }
 
-      const _response = await this.makeSlackRequest(
+      const response = await this.makeSlackRequest(
         `conversations.history?${params}`,
         'GET',
       );
@@ -550,9 +550,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Get channel history failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Get channel history failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -566,7 +566,7 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       const payload: any = { name, is_private };
 
-      const _response = await this.makeSlackRequest(
+      const response = await this.makeSlackRequest(
         'conversations.create',
         'POST',
         payload,
@@ -610,9 +610,9 @@ export class SlackMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Create channel failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Create channel failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

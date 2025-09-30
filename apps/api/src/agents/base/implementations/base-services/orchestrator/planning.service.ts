@@ -219,7 +219,7 @@ ${input.delegationContext ? `- Available delegation context provided` : ''}
 
 Detect enterprise characteristics and provide complete analysis in the required JSON format.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -310,7 +310,7 @@ REQUIRED SKILLS: ${goalAnalysis.requiredSkills.join(', ')}
 
 Identify capability gaps and workforce development needs.`;
 
-      const _response = await this.llmService.generateResponse(
+      const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -325,9 +325,9 @@ Identify capability gaps and workforce development needs.`;
       );
 
       return this.parseCapabilityAssessment(response, availableAgents);
-    } catch (_error) {
+    } catch (error) {
       throw new Error(
-        `Agent capability assessment failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Agent capability assessment failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -409,7 +409,7 @@ USER REQUEST: "${input.prompt}"
 
 Determine if this complex request should be decomposed into subprojects managed by different orchestrators.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -497,7 +497,7 @@ Create a comprehensive plan with:
 
 Return the complete plan structure in JSON format.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -552,7 +552,7 @@ ${JSON.stringify(goalAnalysis.humanExpertise, null, 2)}
 Add appropriate human expert assignments to steps that need oversight or approval.`;
 
     try {
-      const _response = await this.llmService.generateResponse(
+      const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -617,7 +617,7 @@ Check for:
 
 Return the improved plan in the same JSON format.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -718,7 +718,7 @@ ${input.delegationContext ? `- Available delegation context provided` : ''}
 
 Provide your analysis in the required JSON format.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -788,7 +788,7 @@ JSON STRUCTURE REQUIRED:
 
 Create 3-5 steps using the available agents. Return only the JSON structure.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -835,7 +835,7 @@ Check for:
 
 Return the improved plan in the same JSON format.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -889,7 +889,7 @@ ORIGINAL REQUEST CONTEXT:
 
 What changes is the user requesting?`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -945,7 +945,7 @@ USER FEEDBACK TO INCORPORATE:
 
 Return the expanded plan with all original steps PLUS new steps for the requested additions. The refined plan should have at least ${originalPlan.steps.length + 2} steps.`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {
@@ -990,7 +990,7 @@ ${JSON.stringify(plan, null, 2)}
 Create an engaging, clear presentation that helps the user understand and approve the plan.`;
 
     try {
-      const _response = await this.llmService.generateResponse(
+      const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
@@ -1148,9 +1148,9 @@ Create an engaging, clear presentation that helps the user understand and approv
       };
 
       return plan;
-    } catch (_error) {
+    } catch (error) {
       throw new Error(
-        `Enterprise plan parsing failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Enterprise plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -1336,9 +1336,9 @@ Create an engaging, clear presentation that helps the user understand and approv
       };
 
       return plan;
-    } catch (_error) {
+    } catch (error) {
       throw new Error(
-        `Plan parsing failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}. LLM generated malformed JSON that cannot be parsed.`,
+        `Plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM generated malformed JSON that cannot be parsed.`,
       );
     }
   }

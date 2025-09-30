@@ -96,17 +96,17 @@ export class FunctionOrchestratorService {
           // 'continue' strategy just moves to next step
         } else {
           // Add step result to context for subsequent steps
-          execution.context[`${stepName}_result`] = stepResult.result;
+          execution.context[`${stepName}result`] = stepResult.result;
         }
       }
 
       if (execution.status === 'running') {
         execution.status = 'completed';
       }
-    } catch (_error) {
+    } catch (error) {
       execution.status = 'failed';
       execution.metadata.globalError =
-        _error instanceof Error ? _error.message : String(_error);
+        error instanceof Error ? error.message : String(error);
     }
 
     execution.endTime = new Date().toISOString();
@@ -133,7 +133,7 @@ export class FunctionOrchestratorService {
 
     while (retryCount <= maxRetries) {
       try {
-        const _result = await this.executeWithTimeout(
+        const result = await this.executeWithTimeout(
           () => step.function(context),
           step.timeout || 60000, // 60 second default timeout
         );
@@ -146,8 +146,8 @@ export class FunctionOrchestratorService {
           retryCount,
           timestamp: new Date().toISOString(),
         };
-      } catch (_error) {
-        lastError = _error;
+      } catch (error) {
+        lastError = error;
         retryCount++;
 
         if (retryCount <= maxRetries) {

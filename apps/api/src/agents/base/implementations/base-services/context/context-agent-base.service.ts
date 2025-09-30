@@ -235,7 +235,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const llmPiiMetadata =
         typeof llmResult === 'object' ? llmResult.piiMetadata : undefined;
 
-      const _result = {
+      const result = {
         success: true,
         response: responseContent,
         metadata: {
@@ -275,10 +275,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             result,
             params,
           );
-        } catch (_error) {
-          this.contextLogger._error(
+        } catch (error) {
+          this.contextLogger.error(
             `Error reporting task completion for ${params.taskId}:`,
-            _error,
+            error,
           );
           // Don't fail the task if reporting fails
         }
@@ -286,7 +286,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       // NEW ARCHITECTURE: Enrich response with PII metadata
       return this.enrichResponseWithPIIMetadata(result, params);
-    } catch (_error) {
+    } catch (error) {
       this.contextLogger.error(`Error in executeTask for ${agentName}:`, error);
 
       const errorResult = {
@@ -497,8 +497,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   async initializeContext(agentDirectory: string): Promise<void> {
     try {
       await this.agentContextService.initialize(agentDirectory);
-    } catch (_error) {
-      this.contextLogger._error('Failed to initialize agent context:', _error);
+    } catch (error) {
+      this.contextLogger.error('Failed to initialize agent context:', error);
     }
   }
 
@@ -523,12 +523,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       };
 
       await this.services.tasksService.updateTask(taskId, userId, updateData);
-    } catch (_error) {
-      this.contextLogger._error(
+    } catch (error) {
+      this.contextLogger.error(
         `Error saving task result for ${taskId}:`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -577,7 +577,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             agentType,
           );
       }
-    } catch (_error) {
+    } catch (error) {
       this.contextLogger.error('Metadata routing failed:', error);
       return {
         success: false,
@@ -725,7 +725,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           },
         };
       }
-    } catch (_error) {
+    } catch (error) {
       return {
         success: false,
         response: `I encountered an error while deleting versions: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -771,7 +771,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           versionNumber: newVersion.versionNumber,
         },
       };
-    } catch (_error) {
+    } catch (error) {
       return {
         success: false,
         response: `I couldn't create the new version: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -812,7 +812,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         userId,
       );
 
-      let _response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
+      const response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
 
       if (mergeResult.conflictSummary) {
         response += ` ${mergeResult.conflictSummary}`;
@@ -830,7 +830,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           conflictSummary: mergeResult.conflictSummary,
         },
       };
-    } catch (_error) {
+    } catch (error) {
       return {
         success: false,
         response: `I couldn't merge the versions: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -897,7 +897,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           deliverableTitle: title,
         },
       };
-    } catch (_error) {
+    } catch (error) {
       return {
         success: false,
         response: `I couldn't create the deliverable: ${error instanceof Error ? error.message : 'Unknown error'}`,

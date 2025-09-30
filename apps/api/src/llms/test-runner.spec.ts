@@ -39,7 +39,7 @@ describe('Sanitization System Integration', () => {
   describe('Basic Functionality Tests', () => {
     it('should detect emails with PII pattern service', async () => {
       const text = 'Contact john@example.com for info';
-      const _result = await piiPatternService.detectPII(text);
+      const result = await piiPatternService.detectPII(text);
 
       expect(result.matches.length).toBeGreaterThan(0);
       const emailMatch = result.matches.find((m) => m.dataType === 'email');
@@ -50,7 +50,7 @@ describe('Sanitization System Integration', () => {
     it('should redact API keys with secret redaction service', () => {
       const text =
         'My API key is sk-1234567890abcdef1234567890abcdef1234567890abcdef';
-      const _result = secretRedactionService.redactSecrets(text);
+      const result = secretRedactionService.redactSecrets(text);
 
       expect(result.redactedText).toContain('[REDACTED]');
       expect(result.result.redactionCount).toBeGreaterThan(0);

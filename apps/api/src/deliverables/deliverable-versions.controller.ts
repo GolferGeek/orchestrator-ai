@@ -220,21 +220,21 @@ export class DeliverableVersionsController {
 
     try {
       console.log('🔄 Calling versionsService.rerunWithDifferentLLM...');
-      const _result = await this.versionsService.rerunWithDifferentLLM(
+      const result = await this.versionsService.rerunWithDifferentLLM(
         versionId,
         rerunDto,
         userId,
       );
       console.log('✅ Rerun completed successfully');
       return result;
-    } catch (_error) {
-      console.error('🚨 Rerun failed:', _error);
+    } catch (error) {
+      console.error('🚨 Rerun failed:', error);
       console.error('🚨 Error details:', {
-        message: _error instanceof Error ? _error.message : 'Unknown _error',
-        stack: _error instanceof Error ? _error.stack : undefined,
-        name: _error instanceof Error ? _error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown',
       });
-      throw _error;
+      throw error;
     }
   }
 }

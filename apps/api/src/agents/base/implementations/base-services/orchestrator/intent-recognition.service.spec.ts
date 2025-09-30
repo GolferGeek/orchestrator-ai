@@ -307,7 +307,7 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
           conversationHistory: [],
         };
 
-        const _result = await service.classifyIntent(input, delegationContext);
+        const result = await service.classifyIntent(input, delegationContext);
 
         expect(result.confidence).toBeGreaterThanOrEqual(
           testCase.expectedConfidence.min,

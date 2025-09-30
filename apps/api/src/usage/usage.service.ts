@@ -80,7 +80,7 @@ export class UsageService {
       let responseTimeCount = 0;
 
       completedTasks.forEach((task) => {
-        const _metadata = task.llm_metadata;
+        const metadata = task.llm_metadata;
         if (metadata) {
           // Extract token usage if available
           if (metadata.usage) {
@@ -118,7 +118,7 @@ export class UsageService {
         averageResponseTime,
         averageUserRating: 0, // TODO: Extract from evaluation data
       };
-    } catch (_error) {
+    } catch (error) {
       // Return empty stats on error
       return {
         userId,

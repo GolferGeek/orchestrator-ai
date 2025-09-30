@@ -144,15 +144,15 @@ export abstract class A2AAgentBaseService
       this.loggingService.logAgentEvent(agentName, 'initialized', {
         agentPath: this.agentPath,
       });
-    } catch (_error) {
+    } catch (error) {
       this.loggingService.logError(
-        _error instanceof Error ? _error : new Error(String(_error)),
+        error instanceof Error ? error : new Error(String(error)),
         {
           agentName,
           event: 'initialization_failed',
         },
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -249,9 +249,9 @@ export abstract class A2AAgentBaseService
     try {
       await this.agentRegistrationService.unregisterAgent(this.getAgentId());
       this.loggingService.logAgentEvent(agentName, 'destroyed');
-    } catch (_error) {
+    } catch (error) {
       this.loggingService.logError(
-        _error instanceof Error ? _error : new Error(String(_error)),
+        error instanceof Error ? error : new Error(String(error)),
         {
           agentName,
           event: 'destruction_failed',
@@ -307,7 +307,7 @@ export abstract class A2AAgentBaseService
       };
 
       // Delegate to JSON-RPC protocol service
-      const _response = await this.jsonRpcProtocolService.processRequest(
+      const response = await this.jsonRpcProtocolService.processRequest(
         request,
         methodHandler,
         notificationHandler,
@@ -366,10 +366,10 @@ export abstract class A2AAgentBaseService
           request.id || null,
         );
       }
-    } catch (_error) {
+    } catch (error) {
       const responseTime = Date.now() - startTime;
       this.loggingService.logError(
-        _error instanceof Error ? _error : new Error(String(_error)),
+        error instanceof Error ? error : new Error(String(error)),
         logContext,
       );
       this.loggingService.logResponse(
@@ -381,9 +381,9 @@ export abstract class A2AAgentBaseService
 
       return this.jsonRpcProtocolService.createErrorResponse(
         JSON_RPC_ERRORS.INTERNAL_ERROR,
-        'Internal _error',
+        'Internal error',
         request.id || null,
-        _error instanceof Error ? _error.message : String(_error),
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
@@ -559,7 +559,7 @@ export abstract class A2AAgentBaseService
       shortCircuitEnabled && executionMetadata.profile !== 'conversation_only';
 
     if (allowShortCircuit) {
-      const _result = await this.shortCircuitConversePlan(
+      const result = await this.shortCircuitConversePlan(
         requestedMode as any,
         normalized,
       );
@@ -713,10 +713,10 @@ export abstract class A2AAgentBaseService
           renderMode: 'llm_short_circuit',
         },
       };
-    } catch (_error) {
+    } catch (error) {
       this.logger.warn(
         'Short-circuit converse/plan failed. Falling through to agent execution.',
-        _error,
+        error,
       );
       return null;
     }
@@ -982,12 +982,12 @@ export abstract class A2AAgentBaseService
 
       await this.agentRegistrationService.registerAgent(agentInfo);
       this.logger.log(`Agent ${this.getAgentName()} registered successfully`);
-    } catch (_error) {
+    } catch (error) {
       this.logger.error(
         `Failed to register agent ${this.getAgentName()}:`,
-        _error,
+        error,
       );
-      throw _error;
+      throw error;
     }
   }
 
@@ -1433,8 +1433,8 @@ export abstract class A2AAgentBaseService
       }
 
       return deliverable.id;
-    } catch (_error) {
-      this.logger.error('Failed to auto-persist deliverable:', _error);
+    } catch (error) {
+      this.logger.error('Failed to auto-persist deliverable:', error);
       // Don't throw - deliverable persistence shouldn't break task completion
       return null;
     }
@@ -1542,8 +1542,8 @@ export abstract class A2AAgentBaseService
           extractedAt: new Date().toISOString(),
         },
       };
-    } catch (_error) {
-      this.logger.error('Failed to extract deliverable from content:', _error);
+    } catch (error) {
+      this.logger.error('Failed to extract deliverable from content:', error);
       return null;
     }
   }
@@ -1774,7 +1774,7 @@ export abstract class A2AAgentBaseService
   protected extractPIIMetadata(params: any): PIIProcessingMetadata | undefined {
     // Check multiple possible locations for PII metadata
     // Check for truthy values, not just existence
-    let _result = null;
+    let result = null;
     if (
       params.piiMetadata &&
       typeof params.piiMetadata === 'object' &&
@@ -1805,7 +1805,7 @@ export abstract class A2AAgentBaseService
     params: any,
   ): RoutingDecisionWithPII | undefined {
     // Check for truthy values with proper structure
-    let _result = null;
+    let result = null;
     if (
       params.routingDecision &&
       typeof params.routingDecision === 'object' &&

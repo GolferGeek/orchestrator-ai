@@ -190,9 +190,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         default:
           return this.createErrorResponse(`Unknown Supabase tool: ${name}`);
       }
-    } catch (_error) {
+    } catch (error) {
       const errorMessage =
-        _error instanceof Error ? _error.message : String(_error);
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Supabase tool ${name} failed: ${errorMessage}`);
       return this.createErrorResponse(`Tool execution failed: ${errorMessage}`);
     }
@@ -217,11 +217,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       }
 
       // Try a lightweight connection test
-      const _response = await this.makeSupabaseRequest('/rest/v1/', 'GET');
+      const response = await this.makeSupabaseRequest('/rest/v1/', 'GET');
       return response.ok;
-    } catch (_error) {
+    } catch (error) {
       this.logger.debug(
-        `Supabase ping failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Supabase ping failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       // Return false but don't prevent MCP server from being healthy overall
       return false;
@@ -257,7 +257,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
 
       query += ` ORDER BY table_name, ordinal_position`;
 
-      const _response = await this.makeSupabaseRequest(
+      const response = await this.makeSupabaseRequest(
         '/rest/v1/rpc/exec',
         'POST',
         {
@@ -287,9 +287,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Schema retrieval failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Schema retrieval failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -301,7 +301,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     const { query, params = [] } = args;
 
     try {
-      const _response = await this.makeSupabaseRequest(
+      const response = await this.makeSupabaseRequest(
         '/rest/v1/rpc/exec',
         'POST',
         {
@@ -332,9 +332,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `SQL execution failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `SQL execution failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -382,7 +382,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         url += `?${params.toString()}`;
       }
 
-      const _response = await this.makeSupabaseRequest(url, 'GET');
+      const response = await this.makeSupabaseRequest(url, 'GET');
 
       if (!response.ok) {
         throw new Error(`Data read failed: ${response.statusText}`);
@@ -398,9 +398,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Data read failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Data read failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -412,7 +412,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     const { query, format = 'table', analysis_type = 'raw' } = args;
 
     try {
-      const _response = await this.makeSupabaseRequest(
+      const response = await this.makeSupabaseRequest(
         '/rest/v1/rpc/exec',
         'POST',
         {
@@ -434,9 +434,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `Query and format failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `Query and format failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -467,9 +467,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           },
         ],
       };
-    } catch (_error) {
+    } catch (error) {
       return this.createErrorResponse(
-        `SQL generation failed: ${_error instanceof Error ? _error.message : String(_error)}`,
+        `SQL generation failed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

@@ -34,7 +34,7 @@ export class HealthService {
         } else if (taskCheck.status === 'fail') {
           overallStatus = 'unhealthy';
         }
-      } catch (_error) {
+      } catch (error) {
         checks.push({
           name: 'task_lifecycle',
           status: 'fail',
@@ -60,7 +60,7 @@ export class HealthService {
         } else if (evalCheck.status === 'fail') {
           overallStatus = 'unhealthy';
         }
-      } catch (_error) {
+      } catch (error) {
         checks.push({
           name: 'evaluation_service',
           status: 'fail',

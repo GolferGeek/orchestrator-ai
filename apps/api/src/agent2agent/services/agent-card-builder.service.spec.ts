@@ -1,12 +1,12 @@
 import { AgentCardBuilderService } from './agent-card-builder.service';
-import { AgentsRepository } from '@agent-platform/repositories/agents.repository';
+import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { ConfigService } from '@nestjs/config';
 
-const createRepoMock = () => {
-  const repo = {
-    findBySlug: jest.fn(),
-  } as unknown as jest.Mocked<AgentsRepository>;
-  return repo;
+const createRegistryMock = () => {
+  const registry = {
+    getAgent: jest.fn(),
+  } as unknown as jest.Mocked<AgentRegistryService>;
+  return registry;
 };
 
 const createConfigMock = (overrides: Record<string, any> = {}) => {
@@ -30,8 +30,8 @@ const createConfigMock = (overrides: Record<string, any> = {}) => {
 
 describe('AgentCardBuilderService', () => {
   it('returns cached agent card when present', async () => {
-    const repo = createRepoMock();
-    repo.findBySlug.mockResolvedValue({
+    const registry = createRegistryMock();
+    registry.getAgent.mockResolvedValue({
       agent_card: {
         name: 'Existing Card',
         metadata: { cached: true },
@@ -54,9 +54,10 @@ describe('AgentCardBuilderService', () => {
       updated_at: '2024-01-02T00:00:00Z',
     } as any);
 
-    const service = new AgentCardBuilderService(repo, createConfigMock());
-    const _result = await service.build(null, 'agent');
+    const service = new AgentCardBuilderService(registry, createConfigMock());
+    const result = await service.build(null, 'agent');
 
+    expect(registry.getAgent).toHaveBeenCalledWith(null, 'agent');
     expect(result.name).toBe('Agent');
     expect(result.customField).toBe('custom');
     expect(result.protocol).toBe('google/a2a');
@@ -68,8 +69,8 @@ describe('AgentCardBuilderService', () => {
   });
 
   it('builds fallback card when cached card missing', async () => {
-    const repo = createRepoMock();
-    repo.findBySlug.mockResolvedValue({
+    const registry = createRegistryMock();
+    registry.getAgent.mockResolvedValue({
       display_name: 'Agent',
       description: 'desc',
       agent_type: 'context',
@@ -92,9 +93,10 @@ describe('AgentCardBuilderService', () => {
       updated_at: '2024-01-02T00:00:00Z',
     } as any);
 
-    const service = new AgentCardBuilderService(repo, createConfigMock());
-    const _result = await service.build(null, 'agent');
+    const service = new AgentCardBuilderService(registry, createConfigMock());
+    const result = await service.build(null, 'agent');
 
+    expect(registry.getAgent).toHaveBeenCalledWith(null, 'agent');
     expect(result.name).toBe('Agent');
     expect(result.capabilities.declared).toContain('converse');
     expect(result.capabilities.streaming).toBe(true);

@@ -94,7 +94,7 @@ describe('LLM Parameter Validation (e2e)', () => {
   describe('Provider Case Sensitivity', () => {
     it('should handle uppercase provider names', async () => {
       // This should work if Ollama is available
-      const _result = llmService.generateUnifiedResponse({
+      const result = llmService.generateUnifiedResponse({
         provider: 'OLLAMA',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -109,7 +109,7 @@ describe('LLM Parameter Validation (e2e)', () => {
     });
 
     it('should handle mixed case provider names', async () => {
-      const _result = llmService.generateUnifiedResponse({
+      const result = llmService.generateUnifiedResponse({
         provider: 'OlLaMa',
         model: 'llama3.2:1b', 
         systemPrompt: 'You are helpful.',

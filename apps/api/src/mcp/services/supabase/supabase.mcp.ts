@@ -302,7 +302,7 @@ export class SupabaseMCPServer implements IMCPServer {
             },
           };
       }
-    } catch (_error) {
+    } catch (error) {
       const executionTime = Date.now() - startTime;
       return {
         content: [
@@ -376,8 +376,8 @@ export class SupabaseMCPServer implements IMCPServer {
           schema_files_used: this.getSchemaFilesUsed(domain, tables),
         },
       };
-    } catch (_error) {
-      throw new Error(`Schema retrieval failed: ${getErrorMessage(_error)}`);
+    } catch (error) {
+      throw new Error(`Schema retrieval failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -460,13 +460,13 @@ export class SupabaseMCPServer implements IMCPServer {
       console.log('[MCP-SQL-DEBUG] Response prepared successfully');
       console.log('[MCP-SQL-DEBUG] ====== handleGenerateSQL END ======\n');
       return response;
-    } catch (_error) {
-      console.error('[MCP-SQL-DEBUG] ERROR in handleGenerateSQL:', _error);
+    } catch (error) {
+      console.error('[MCP-SQL-DEBUG] ERROR in handleGenerateSQL:', error);
       console.error(
         '[MCP-SQL-DEBUG] Error stack:',
-        _error instanceof Error ? _error.stack : 'No stack',
+        error instanceof Error ? error.stack : 'No stack',
       );
-      throw new Error(`SQL generation failed: ${getErrorMessage(_error)}`);
+      throw new Error(`SQL generation failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -541,7 +541,7 @@ export class SupabaseMCPServer implements IMCPServer {
     } catch (_error) {
       const executionTime = Date.now() - startTime;
       throw new Error(
-        `SQL execution failed after ${executionTime}ms: ${getErrorMessage(_error)}`,
+        `SQL execution failed after ${executionTime}ms: ${getErrorMessage(error)}`,
       );
     }
   }
@@ -588,8 +588,8 @@ export class SupabaseMCPServer implements IMCPServer {
           analysis_model: model,
         },
       };
-    } catch (_error) {
-      throw new Error(`Data analysis failed: ${getErrorMessage(_error)}`);
+    } catch (error) {
+      throw new Error(`Data analysis failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -794,7 +794,7 @@ Return ONLY the SQL query, no explanation or formatting.`;
       } as any;
       console.log('[MCP-SQL-DEBUG] LLM params:', llmParams);
 
-      const _response = await this.llmService.generateResponse(
+      const response = await this.llmService.generateResponse(
         systemPrompt,
         userPrompt,
         llmParams,
@@ -982,14 +982,14 @@ Return ONLY the SQL query, no explanation or formatting.`;
       console.log('='.repeat(50));
 
       return sql;
-    } catch (_error) {
+    } catch (error) {
       // Do NOT fallback to a generic SELECT *; surface the failure for proper handling
-      const msg = getErrorMessage(_error);
+      const msg = getErrorMessage(error);
       console.error('[MCP-SQL-DEBUG] ERROR in generateSQLFromQuery:', msg);
-      console.error('[MCP-SQL-DEBUG] Full _error:', _error);
+      console.error('[MCP-SQL-DEBUG] Full error:', error);
       console.error(
         '[MCP-SQL-DEBUG] Error stack:',
-        _error instanceof Error ? _error.stack : 'No stack',
+        error instanceof Error ? error.stack : 'No stack',
       );
       console.error('[MCP-SQL-DEBUG] userPrompt:', userPrompt);
       console.error('[MCP-SQL-DEBUG] tables:', tables);
@@ -1053,7 +1053,7 @@ Format your response as a structured JSON object with these sections.`;
         }
       }
 
-      const _response = await this.llmService.generateResponse(
+      const response = await this.llmService.generateResponse(
         'You are a data analyst providing insights on business data.',
         analysisPrompt,
         {

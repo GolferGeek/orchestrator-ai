@@ -26,7 +26,7 @@ describe('AgentOrchestrationsRepository', () => {
     const upsert = jest.fn().mockReturnValue({ select });
     fromMock.mockReturnValue({ upsert });
 
-    const _result = await repository.upsert({
+    const result = await repository.upsert({
       organization_slug: 'demo',
       agent_slug: 'planner',
       slug: 'default-plan',
@@ -51,7 +51,7 @@ describe('AgentOrchestrationsRepository', () => {
     const select = jest.fn().mockReturnValue({ eq });
     fromMock.mockReturnValue({ select });
 
-    const _result = await repository.listByAgent(null, 'planner');
+    const result = await repository.listByAgent(null, 'planner');
 
     expect(select).toHaveBeenCalledWith('*');
     expect(eq).toHaveBeenCalledWith('agent_slug', 'planner');

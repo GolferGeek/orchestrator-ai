@@ -464,7 +464,7 @@ export async function execute(
       response: documentContent,
       metadata: finalMetadata,
     };
-  } catch (_error) {
+  } catch (error) {
     const message =
       error instanceof Error ? error.message : String(error ?? 'Unknown error');
 
@@ -475,7 +475,7 @@ export async function execute(
       `Requirements generation failed: ${message}`,
     );
 
-    const _response = `## Requirements generation error\n\nI wasn’t able to produce the requirements document because of an error:\n\n> ${message}\n\nPlease try again with a slightly different request or contact support if the issue persists.`;
+    const response = `## Requirements generation error\n\nI wasn’t able to produce the requirements document because of an error:\n\n> ${message}\n\nPlease try again with a slightly different request or contact support if the issue persists.`;
 
     return {
       success: false,
@@ -534,7 +534,7 @@ async function callLlmForJson<T extends Record<string, any>>(
   userPrompt: string,
   fallback: T,
 ): Promise<T> {
-  const _result = await llmService.generateResponse(
+  const result = await llmService.generateResponse(
     systemPrompt,
     userPrompt,
     baseOptions,
@@ -596,7 +596,7 @@ ${conversationFragment}
 
 Generate a complete, professional document that satisfies the specification above. Start directly with the document title or first header (no conversational prefacing).`;
 
-  const _result = await llmService.generateResponse(
+  const result = await llmService.generateResponse(
     template.systemPrompt,
     userPrompt,
     {

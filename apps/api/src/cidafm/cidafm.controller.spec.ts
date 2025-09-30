@@ -72,7 +72,7 @@ describe('CIDAFMController', () => {
     it('should return array of CIDAFM commands', async () => {
       mockCIDAFMService.findAllCommands.mockResolvedValue([mockCIDAFMCommand]);
 
-      const _result = await controller.getCommands(mockUser);
+      const result = await controller.getCommands(mockUser);
 
       expect(result).toEqual([mockCIDAFMCommand]);
       expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(
@@ -105,7 +105,7 @@ describe('CIDAFMController', () => {
     it('should return commands of specified type', async () => {
       mockCIDAFMService.findAllCommands.mockResolvedValue([mockCIDAFMCommand]);
 
-      const _result = await controller.getCommandsByType(mockUser, '^');
+      const result = await controller.getCommandsByType(mockUser, '^');
 
       expect(result).toEqual([mockCIDAFMCommand]);
       expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(
@@ -121,7 +121,7 @@ describe('CIDAFMController', () => {
     it('should return a single command', async () => {
       mockCIDAFMService.findCommandById.mockResolvedValue(mockCIDAFMCommand);
 
-      const _result = await controller.getCommand(
+      const result = await controller.getCommand(
         '456e7890-e89b-12d3-a456-426614174000',
       );
 
@@ -150,7 +150,7 @@ describe('CIDAFMController', () => {
 
       mockCIDAFMService.createUserCommand.mockResolvedValue(mockCIDAFMCommand);
 
-      const _result = await controller.createUserCommand(mockUser, createDto);
+      const result = await controller.createUserCommand(mockUser, createDto);
 
       expect(result).toEqual(mockCIDAFMCommand);
       expect(mockCIDAFMService.createUserCommand).toHaveBeenCalledWith(
@@ -169,7 +169,7 @@ describe('CIDAFMController', () => {
 
       mockCIDAFMService.updateUserCommand.mockResolvedValue(mockCIDAFMCommand);
 
-      const _result = await controller.updateUserCommand(
+      const result = await controller.updateUserCommand(
         mockUser,
         '456e7890-e89b-12d3-a456-426614174000',
         updateDto,
@@ -198,7 +198,7 @@ describe('CIDAFMController', () => {
     it('should delete a user command', async () => {
       mockCIDAFMService.deleteUserCommand.mockResolvedValue(true);
 
-      const _result = await controller.deleteUserCommand(
+      const result = await controller.deleteUserCommand(
         mockUser,
         '456e7890-e89b-12d3-a456-426614174000',
       );
@@ -238,7 +238,7 @@ describe('CIDAFMController', () => {
         session_id: 'session-123',
       };
 
-      const _result = await controller.processCommands(mockUser, body);
+      const result = await controller.processCommands(mockUser, body);
 
       expect(result).toEqual(processResult);
       expect(mockCIDAFMService.processMessage).toHaveBeenCalledWith(
@@ -260,7 +260,7 @@ describe('CIDAFMController', () => {
 
       mockCIDAFMService.getSessionState.mockResolvedValue(sessionState);
 
-      const _result = await controller.getSessionState(mockUser, 'session-123');
+      const result = await controller.getSessionState(mockUser, 'session-123');
 
       expect(result).toEqual(sessionState);
       expect(mockCIDAFMService.getSessionState).toHaveBeenCalledWith(
@@ -279,7 +279,7 @@ describe('CIDAFMController', () => {
 
       mockCIDAFMService.resetSessionState.mockResolvedValue(resetResult);
 
-      const _result = await controller.resetSessionState(
+      const result = await controller.resetSessionState(
         mockUser,
         'session-123',
       );
@@ -319,7 +319,7 @@ describe('CIDAFMController', () => {
 
       mockCIDAFMService.getHelp.mockResolvedValue(helpContent);
 
-      const _result = await controller.getHelp();
+      const result = await controller.getHelp();
 
       expect(result).toEqual(helpContent);
       expect(mockCIDAFMService.getHelp).toHaveBeenCalled();

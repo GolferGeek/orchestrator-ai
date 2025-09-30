@@ -32,7 +32,7 @@ export class LangChainClientService {
     },
   ): Promise<string> {
     // Use centralized LLMService instead of direct LangChain client
-    const _result = await this.llmService.generateResponse(
+    const result = await this.llmService.generateResponse(
       systemPrompt,
       userMessage,
       {

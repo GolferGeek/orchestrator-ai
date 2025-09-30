@@ -22,7 +22,7 @@ describe('Anthropic No-Train Header (e2e)', () => {
   });
 
   it('should send anthropic-beta: no-train header and get real response', async () => {
-    const _result = await llmService.generateCentralizedResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say "testing anthropic" exactly.',
       {

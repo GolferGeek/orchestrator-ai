@@ -160,7 +160,7 @@ describe('SourceBlindingService', () => {
         data: { model: 'gpt-4', messages: [] },
       };
 
-      const _result = await service.makeBlindedRequest(config, {
+      const result = await service.makeBlindedRequest(config, {
         provider: 'openai',
         noTrain: true,
       });
@@ -264,7 +264,7 @@ describe('SourceBlindingService', () => {
         'X-Company-ID': 'company-123',
       };
 
-      const _result = service.testSourceBlinding(originalHeaders, 'openai');
+      const result = service.testSourceBlinding(originalHeaders, 'openai');
 
       expect(result.originalHeaders).toEqual(originalHeaders);
       expect(result.blindedHeaders['authorization']).toBe('Bearer token');

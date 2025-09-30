@@ -88,37 +88,36 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
     }
 
     // Read authentication configuration from YAML
-      const config = this.getExternalConfig();
-      const authConfig = config?.authentication;
-      if (!authConfig || authConfig.type !== 'login') {
-        throw new Error('Login authentication not configured in YAML');
-      }
+    const config = this.getExternalConfig();
+    const authConfig = config?.authentication;
+    if (!authConfig || authConfig.type !== 'login') {
+      throw new Error('Login authentication not configured in YAML');
+    }
 
-      const loginUrl = authConfig.login_endpoint;
-      const username = authConfig.username;
-      const password = authConfig.password;
+    const loginUrl = authConfig.login_endpoint;
+    const username = authConfig.username;
+    const password = authConfig.password;
 
-      if (!loginUrl || !username || !password) {
-        throw new Error(
-          'Missing authentication configuration: login_endpoint, username, or password',
-        );
-      }
-
-      const _response = await firstValueFrom(
-        this.customHttpService.post(loginUrl, {
-          email: username,
-          password: password,
-        }),
+    if (!loginUrl || !username || !password) {
+      throw new Error(
+        'Missing authentication configuration: login_endpoint, username, or password',
       );
+    }
 
-      if (response.data?.accessToken) {
-        this.accessToken = response.data.accessToken;
-        // Token expires in 1 hour (3600 seconds)
-        this.tokenExpiry =
-          Date.now() + (response.data.expiresIn || 3600) * 1000;
-      } else {
-        throw new Error('No access token received from Hiverarchy');
-      }
+    const response = await firstValueFrom(
+      this.customHttpService.post(loginUrl, {
+        email: username,
+        password: password,
+      }),
+    );
+
+    if (response.data?.accessToken) {
+      this.accessToken = response.data.accessToken;
+      // Token expires in 1 hour (3600 seconds)
+      this.tokenExpiry = Date.now() + (response.data.expiresIn || 3600) * 1000;
+    } else {
+      throw new Error('No access token received from Hiverarchy');
+    }
   }
 
   /**
@@ -176,7 +175,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         id: `external-hiverarchy-${Date.now()}`,
       };
 
-      const _response = await firstValueFrom(
+      const response = await firstValueFrom(
         this.customHttpService.post(endpoint, requestBody, {
           headers: {
             'Content-Type': 'application/json',
@@ -199,7 +198,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
 
         if (response.data?.result) {
           // JSON-RPC 2.0 format response
-          const _result = response.data.result;
+          const result = response.data.result;
           actualResponse = result.response || result;
           metadata.responseFormat = 'jsonrpc';
 

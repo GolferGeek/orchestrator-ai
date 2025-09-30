@@ -85,7 +85,7 @@ describe('Enhanced LLM Metrics E2E', () => {
 
         try {
           // Make the LLM call using centralized response (which includes enhanced metrics)
-          const _result = await llmService.generateCentralizedResponse(
+          const result = await llmService.generateCentralizedResponse(
             testCase.systemPrompt,
             testCase.userMessage,
             {

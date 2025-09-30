@@ -114,10 +114,10 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
       // The error should be a real database error, not a stub error
       try {
         await service.startProject(testProject);
-      } catch (_error) {
-        // Should be a real _error about database access, not "not implemented"
-        expect((_error as Error).message).not.toContain('Not implemented');
-        expect((_error as Error).message).not.toContain('LangGraph');
+      } catch (error) {
+        // Should be a real error about database access, not "not implemented"
+        expect((error as Error).message).not.toContain('Not implemented');
+        expect((error as Error).message).not.toContain('LangGraph');
       }
     });
 
@@ -126,8 +126,8 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
 
       try {
         await service.resumeProject('');
-      } catch (_error) {
-        expect((_error as Error).message).not.toContain('Not implemented');
+      } catch (error) {
+        expect((error as Error).message).not.toContain('Not implemented');
       }
     });
 
@@ -137,8 +137,8 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
 
       try {
         await service.retryStep('', 'step-1');
-      } catch (_error) {
-        expect((_error as Error).message).not.toContain('Not implemented');
+      } catch (error) {
+        expect((error as Error).message).not.toContain('Not implemented');
       }
     });
 
@@ -147,8 +147,8 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
 
       try {
         await service.abortProject('');
-      } catch (_error) {
-        expect((_error as Error).message).not.toContain('Not implemented');
+      } catch (error) {
+        expect((error as Error).message).not.toContain('Not implemented');
       }
     });
   });
@@ -160,9 +160,9 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
       try {
         await service.startProject(testProject);
         // If it succeeds, great! (unlikely in test env without proper setup)
-      } catch (_error) {
-        const message = (_error as Error).message;
-        // Should be a real _error, not a stub
+      } catch (error) {
+        const message = (error as Error).message;
+        // Should be a real error, not a stub
         expect(message).not.toContain('Not implemented');
         expect(message).not.toContain(
           'LangGraph v0.3.6 integration requires complete rework',
@@ -176,8 +176,8 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
     it('should have real resumeProject method', async () => {
       try {
         await service.resumeProject('test-project-id');
-      } catch (_error) {
-        const message = (_error as Error).message;
+      } catch (error) {
+        const message = (error as Error).message;
         expect(message).not.toContain('Not implemented');
         expect(message).not.toContain(
           'Checkpoint system integration incomplete',
@@ -188,8 +188,8 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
     it('should have real abortProject method', async () => {
       try {
         await service.abortProject('test-project-id');
-      } catch (_error) {
-        const message = (_error as Error).message;
+      } catch (error) {
+        const message = (error as Error).message;
         expect(message).not.toContain('Not implemented');
       }
     });
@@ -197,8 +197,8 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
     it('should have real retryStep method', async () => {
       try {
         await service.retryStep('test-project-id', 'test-step-id');
-      } catch (_error) {
-        const message = (_error as Error).message;
+      } catch (error) {
+        const message = (error as Error).message;
         expect(message).not.toContain('Not implemented');
       }
     });
@@ -208,14 +208,14 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
     it('should provide meaningful error messages for real failures', async () => {
       try {
         await service.startProject(testProject);
-      } catch (_error) {
-        const message = (_error as Error).message;
+      } catch (error) {
+        const message = (error as Error).message;
         // Real implementation should give specific, actionable errors
         expect(message.length).toBeGreaterThan(10);
         expect(message).not.toBe('Not implemented');
 
         // Should indicate what specifically went wrong
-        // (database connection, missing table, validation _error, etc.)
+        // (database connection, missing table, validation error, etc.)
       }
     });
 

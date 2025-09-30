@@ -32,7 +32,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
       const sessionId = 'test-session-456';
       const userId = 'test-user-789';
 
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -71,7 +71,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
     }, 30000);
 
     it('should include request timing metadata', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -96,7 +96,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
     }, 30000);
 
     it('should include token usage metadata', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant.',
@@ -121,7 +121,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
 
   describe('Provider-Specific Metadata', () => {
     it('should include provider-specific metadata from Ollama', async () => {
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -150,7 +150,7 @@ describe('LLM Metadata Propagation (e2e)', () => {
       const temperature = 0.3;
       const maxTokens = 25;
 
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',

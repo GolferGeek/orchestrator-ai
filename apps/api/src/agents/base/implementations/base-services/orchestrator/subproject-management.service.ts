@@ -152,7 +152,7 @@ Respond in JSON format:
   "complexity": "low|medium|high"
 }`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       analysisPrompt,
       input.userId,
       {
@@ -260,7 +260,7 @@ Respond in JSON format:
   }
 }`;
 
-    const _response = await this.llmService.generateResponse(
+    const response = await this.llmService.generateResponse(
       planningPrompt,
       input.userId,
       {
@@ -376,9 +376,9 @@ Original user request context: ${input.prompt}
           department: subproject.scope.department,
         },
       };
-    } catch (_error) {
+    } catch (error) {
       throw new Error(
-        `Subproject delegation failed: ${_error instanceof Error ? _error.message : 'Unknown _error'}`,
+        `Subproject delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

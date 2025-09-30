@@ -30,7 +30,7 @@ describe('Unified LLM Architecture (e2e)', () => {
     it('should generate response with Ollama using unified method', async () => {
       console.log('🧪 Testing unified method with Ollama...');
       
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant. Be concise.',
@@ -59,7 +59,7 @@ describe('Unified LLM Architecture (e2e)', () => {
     it('should return metadata when includeMetadata is true', async () => {
       console.log('🧪 Testing unified method with metadata...');
       
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are a helpful assistant.',
@@ -141,7 +141,7 @@ describe('Unified LLM Architecture (e2e)', () => {
     it('should use factory for response generation', async () => {
       console.log('🧪 Testing factory integration...');
       
-      const _result = await llmService.generateUnifiedResponse({
+      const result = await llmService.generateUnifiedResponse({
         provider: 'ollama',
         model: 'llama3.2:1b',
         systemPrompt: 'You are helpful.',
@@ -204,7 +204,7 @@ describe('Unified LLM Architecture (e2e)', () => {
     it('should work with generateUserContentResponse', async () => {
       console.log('🧪 Testing generateUserContentResponse compatibility...');
       
-      const _result = await llmService.generateUserContentResponse(
+      const result = await llmService.generateUserContentResponse(
         'You are a content writer.',
         'Write a one-sentence summary of AI.',
         {
@@ -237,7 +237,7 @@ describe('Unified LLM Architecture (e2e)', () => {
     it('should work with legacy generateResponse method when provider specified', async () => {
       console.log('🧪 Testing legacy generateResponse compatibility...');
       
-      const _result = await llmService.generateResponse(
+      const result = await llmService.generateResponse(
         'You are helpful.',
         'Say "legacy works" in exactly 2 words.',
         {
