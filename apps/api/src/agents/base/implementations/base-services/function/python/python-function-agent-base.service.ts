@@ -299,103 +299,106 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
       // Handle process completion
       pythonProcess.on('close', (code) => {
-        if (code !== 0) {
-          this.pythonLogger.error(
-            `❌ Python script failed with code ${code}. Error: ${stderr}`,
-          );
-          reject(
-            new Error(
-              `Python script exited with code ${code}. Error: ${stderr}`,
-            ),
-          );
-          return;
-        }
-
-        try {
-          // Try to parse JSON response from Python script
-          const result = JSON.parse(stdout.trim());
-
-          // Save the result to the task in database for async tasks
-
-          const taskId = params.metadata?.taskId;
-          if (this.services.tasksService && this.currentUserId && taskId) {
-            try {
-              const _updateData = {
-                status: 'completed' as const,
-                progress: 100,
-                response: JSON.stringify(result), // Save the full result
-                responseMetadata: result.metadata || {},
-              };
-
-              // Use parent class completeTask method which includes deliverable creation
-              await this.completeTask(taskId, this.currentUserId, result);
-
-              // Broadcast final response to WebSocket clients
-              if (this.services.taskProgressGateway) {
-                this.services.taskProgressGateway.broadcastTaskCompletionWithResponse(
-                  taskId,
-                  'completed',
-                  'Task completed successfully with response',
-                  result.response || result, // Include the actual response content
-                  result.metadata || {},
-                );
-              }
-            } catch (error) {
-              this.pythonLogger.error(
-                `❌ Failed to save task ${taskId} result:`,
-                error,
-              );
-              this.pythonLogger.error(`❌ Error details:`, {
-                message: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-              });
-            }
-          } else {
-            this.pythonLogger.warn(
-              `❌ Cannot save result - missing requirements:`,
-              {
-                tasksService: !!this.services.tasksService,
-                currentUserId: this.currentUserId,
-                taskId: taskId,
-                hasTasksService: !!this.services.tasksService,
-                hasCurrentUserId: !!this.currentUserId,
-                hasTaskId: !!taskId,
-              },
+        void (async () => {
+          if (code !== 0) {
+            this.pythonLogger.error(
+              `❌ Python script failed with code ${code}. Error: ${stderr}`,
             );
+            reject(
+              new Error(
+                `Python script exited with code ${code}. Error: ${stderr}`,
+              ),
+            );
+            return;
           }
 
-          resolve(result);
-        } catch {
-          // If not JSON, return raw output
-          const rawResult = { response: stdout.trim() };
+          try {
+            // Try to parse JSON response from Python script
+            const result = JSON.parse(stdout.trim());
 
-          // Use parent class completeTask method for proper deliverable creation
-          const taskId = params.metadata?.taskId;
-          if (this.services.tasksService && this.currentUserId && taskId) {
-            try {
-              // Use parent class completeTask method which includes deliverable creation
-              await this.completeTask(taskId, this.currentUserId, rawResult);
+            // Save the result to the task in database for async tasks
 
-              // Broadcast final response to WebSocket clients for raw result
-              if (this.services.taskProgressGateway) {
-                this.services.taskProgressGateway.broadcastTaskCompletionWithResponse(
-                  taskId,
-                  'completed',
-                  'Task completed successfully with raw response',
-                  rawResult.response,
-                  {},
+            const taskId = params.metadata?.taskId;
+            if (this.services.tasksService && this.currentUserId && taskId) {
+              try {
+                const _updateData = {
+                  status: 'completed' as const,
+                  progress: 100,
+                  response: JSON.stringify(result), // Save the full result
+                  responseMetadata: result.metadata || {},
+                };
+
+                // Use parent class completeTask method which includes deliverable creation
+                await this.completeTask(taskId, this.currentUserId, result);
+
+                // Broadcast final response to WebSocket clients
+                if (this.services.taskProgressGateway) {
+                  this.services.taskProgressGateway.broadcastTaskCompletionWithResponse(
+                    taskId,
+                    'completed',
+                    'Task completed successfully with response',
+                    result.response || result, // Include the actual response content
+                    result.metadata || {},
+                  );
+                }
+              } catch (error) {
+                this.pythonLogger.error(
+                  `❌ Failed to save task ${taskId} result:`,
+                  error,
                 );
+                this.pythonLogger.error(`❌ Error details:`, {
+                  message:
+                    error instanceof Error ? error.message : String(error),
+                  stack: error instanceof Error ? error.stack : undefined,
+                });
               }
-            } catch (error) {
-              this.pythonLogger.error(
-                `❌ Failed to save task ${taskId} raw result:`,
-                error,
+            } else {
+              this.pythonLogger.warn(
+                `❌ Cannot save result - missing requirements:`,
+                {
+                  tasksService: !!this.services.tasksService,
+                  currentUserId: this.currentUserId,
+                  taskId: taskId,
+                  hasTasksService: !!this.services.tasksService,
+                  hasCurrentUserId: !!this.currentUserId,
+                  hasTaskId: !!taskId,
+                },
               );
             }
-          }
 
-          resolve(rawResult);
-        }
+            resolve(result);
+          } catch {
+            // If not JSON, return raw output
+            const rawResult = { response: stdout.trim() };
+
+            // Use parent class completeTask method for proper deliverable creation
+            const taskId = params.metadata?.taskId;
+            if (this.services.tasksService && this.currentUserId && taskId) {
+              try {
+                // Use parent class completeTask method which includes deliverable creation
+                await this.completeTask(taskId, this.currentUserId, rawResult);
+
+                // Broadcast final response to WebSocket clients for raw result
+                if (this.services.taskProgressGateway) {
+                  this.services.taskProgressGateway.broadcastTaskCompletionWithResponse(
+                    taskId,
+                    'completed',
+                    'Task completed successfully with raw response',
+                    rawResult.response,
+                    {},
+                  );
+                }
+              } catch (error) {
+                this.pythonLogger.error(
+                  `❌ Failed to save task ${taskId} raw result:`,
+                  error,
+                );
+              }
+            }
+
+            resolve(rawResult);
+          }
+        })();
       });
 
       pythonProcess.on('error', (error) => {

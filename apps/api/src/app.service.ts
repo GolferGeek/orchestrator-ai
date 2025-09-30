@@ -13,7 +13,7 @@ export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name);
   private discoveredAgents: any[] = [];
   private agentInstances: any[] = [];
-  private agentRecords: Array<{ agent: any; instance: any | null }> = [];
+  private agentRecords: Array<{ agent: any; instance: any }> = [];
 
   constructor(
     private readonly agentDiscovery: AgentDiscoveryService,

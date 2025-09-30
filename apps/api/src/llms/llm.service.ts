@@ -136,7 +136,7 @@ export class LLMService {
       piiMetadata?: any; // PIIProcessingMetadata from centralized routing
       routingDecision?: any; // Full routing decision for context
     },
-  ): Promise<string | any> {
+  ): Promise<any> {
     if (this.debugEnabled) {
       this.logger.debug(
         `🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`,
@@ -1614,7 +1614,7 @@ export class LLMService {
           break;
 
         default:
-          throw new Error(`Unsupported provider: ${config.provider}`);
+          throw new Error(`Unsupported provider: ${String(config.provider)}`);
       }
 
       // LangSmith will automatically trace this LangChain LLM if environment variables are set

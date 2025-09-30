@@ -364,7 +364,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
 
       // Add WHERE conditions
       Object.entries(where).forEach(([key, value]) => {
-        params.append(key, `eq.${value}`);
+        params.append(key, `eq.${String(value)}`);
       });
 
       // Add limit and offset

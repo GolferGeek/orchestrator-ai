@@ -403,7 +403,7 @@ export class RunMetadataService {
   /**
    * Fetch a single usage record by run_id from the database
    */
-  async getUsageDetails(runId: string): Promise<any | null> {
+  async getUsageDetails(runId: string): Promise<any> {
     try {
       const client = this.supabaseService.getServiceClient();
       const { data, error } = await client

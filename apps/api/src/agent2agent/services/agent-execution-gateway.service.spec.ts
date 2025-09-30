@@ -95,9 +95,7 @@ const createMocks = () => {
   };
 };
 
-const instantiateGateway = (
-  mocks: ReturnType<typeof createMocks>,
-) =>
+const instantiateGateway = (mocks: ReturnType<typeof createMocks>) =>
   new AgentExecutionGateway(
     mocks.registry,
     mocks.runtimeDefinitions,
@@ -115,44 +113,42 @@ describe('AgentExecutionGateway', () => {
   } as any;
 
   it('returns human response when policy blocks execution', async () => {
+    const mocks = createMocks();
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
-    } = createMocks();
+    } = mocks;
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({
       showstopper: true,
       humanMessage: 'blocked',
     });
 
-    const gateway = new AgentExecutionGateway(
-      registry,
-      routing,
-      modeRouter,
-      planEngine,
-      orchestrationRunner,
-      agentOrchestrations,
-    );
+    const gateway = instantiateGateway(mocks);
     const result = await gateway.execute('demo', 'agent-1', request);
 
     expect(result.mode).toBe(AgentTaskMode.HUMAN_RESPONSE);
     expect(result.humanResponse?.message).toBe('blocked');
     expect(modeRouter.execute).not.toHaveBeenCalled();
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalled();
   });
 
   it('delegates to mode router for converse', async () => {
+    const mocks = createMocks();
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
       orchestrationRunner,
       agentOrchestrations,
-    } = createMocks();
+    } = mocks;
     registry.getAgent.mockResolvedValue({ slug: 'agent-1' } as any);
     routing.evaluate.mockResolvedValue({
       showstopper: false,
@@ -163,23 +159,18 @@ describe('AgentExecutionGateway', () => {
       mode: AgentTaskMode.CONVERSE,
     } as any);
 
-    const gateway = new AgentExecutionGateway(
-      registry,
-      routing,
-      modeRouter,
-      planEngine,
-      orchestrationRunner,
-      agentOrchestrations,
-    );
+    const gateway = instantiateGateway(mocks);
     const result = await gateway.execute('demo', 'agent-1', request);
 
     expect(modeRouter.execute).toHaveBeenCalled();
     expect(result.success).toBe(true);
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalled();
   });
 
   it('handles plan mode via plan engine', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -192,6 +183,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -207,11 +199,18 @@ describe('AgentExecutionGateway', () => {
 
     expect(planEngine.generateDraft).toHaveBeenCalled();
     expect(result.mode).toBe(AgentTaskMode.PLAN);
+    expect(result.payload?.metadata).toMatchObject({
+      agentId: 'agent-id',
+      agentSlug: 'agent-1',
+      organizationSlug: 'demo',
+    });
+    expect(runtimeDefinitions.buildDefinition).toHaveBeenCalled();
   });
 
   it('handles build mode via orchestration runner', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -239,6 +238,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -276,6 +276,7 @@ describe('AgentExecutionGateway', () => {
   it('throws when plan cannot be found for execution', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -288,6 +289,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -307,6 +309,7 @@ describe('AgentExecutionGateway', () => {
   it('throws when plan belongs to a different agent', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -332,6 +335,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -351,6 +355,7 @@ describe('AgentExecutionGateway', () => {
   it('throws when plan conversation does not match request', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -376,6 +381,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -395,6 +401,7 @@ describe('AgentExecutionGateway', () => {
   it('throws when plan organization differs from request context', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -420,6 +427,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -439,6 +447,7 @@ describe('AgentExecutionGateway', () => {
   it('handles saved orchestration execution with prompt validation', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -464,6 +473,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -511,6 +521,7 @@ describe('AgentExecutionGateway', () => {
   it('creates orchestration drafts through new mode', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -526,6 +537,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -547,6 +559,7 @@ describe('AgentExecutionGateway', () => {
   it('executes orchestration via new mode', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -577,6 +590,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -613,6 +627,7 @@ describe('AgentExecutionGateway', () => {
   it('continues orchestration run', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -628,6 +643,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -658,6 +674,7 @@ describe('AgentExecutionGateway', () => {
   it('saves orchestration recipe', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -673,6 +690,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -701,6 +719,7 @@ describe('AgentExecutionGateway', () => {
   it('handles orchestration create → execute → continue flow', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -741,6 +760,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -799,6 +819,7 @@ describe('AgentExecutionGateway', () => {
   it('throws when required prompt parameter missing', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -820,6 +841,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -842,6 +864,7 @@ describe('AgentExecutionGateway', () => {
   it('falls back to single-call execution when no plan or recipe provided', async () => {
     const {
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,
@@ -858,6 +881,7 @@ describe('AgentExecutionGateway', () => {
 
     const gateway = new AgentExecutionGateway(
       registry,
+      runtimeDefinitions,
       routing,
       modeRouter,
       planEngine,

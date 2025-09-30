@@ -578,7 +578,7 @@ export abstract class A2AAgentBaseService
   private async shortCircuitConversePlan(
     mode: 'converse' | 'plan',
     params: any,
-  ): Promise<any | null> {
+  ): Promise<any> {
     try {
       if (!this.llmService) return null; // If LLM service is not injected, skip
 
@@ -1122,7 +1122,7 @@ export abstract class A2AAgentBaseService
         }
       } catch (_markError) {
         this.logger.debug(
-          `Failed to mark task completion flag for task ${taskId}: ${_markError instanceof Error ? _markError.message : _markError}`,
+          `Failed to mark task completion flag for task ${taskId}: ${_markError instanceof Error ? _markError.message : String(_markError)}`,
         );
       }
     }
@@ -1725,7 +1725,7 @@ export abstract class A2AAgentBaseService
    * Load agent YAML configuration
    */
 
-  private async loadAgentYamlConfig(): Promise<any | null> {
+  private async loadAgentYamlConfig(): Promise<any> {
     if (!this.agentPath || this.agentPath === 'unknown') {
       return null;
     }

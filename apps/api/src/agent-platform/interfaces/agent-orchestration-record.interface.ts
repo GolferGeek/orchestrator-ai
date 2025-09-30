@@ -3,7 +3,7 @@ export interface PromptParameterDefinition {
   label?: string;
   description?: string;
   required?: boolean;
-  type?: 'string' | 'number' | 'boolean' | 'json' | 'enum' | string;
+  type?: string;
   enumValues?: string[];
   defaultValue?: any;
 }

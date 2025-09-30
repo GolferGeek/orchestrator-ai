@@ -134,7 +134,7 @@ export class BlindedLLMService {
         break;
 
       default:
-        throw new Error(`Unsupported provider: ${config.provider}`);
+        throw new Error(`Unsupported provider: ${String(config.provider)}`);
     }
 
     // Wrap the LLM to add logging and validation

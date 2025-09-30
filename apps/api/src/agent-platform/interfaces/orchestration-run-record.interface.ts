@@ -1,7 +1,7 @@
 export interface OrchestrationRunRecord {
   id: string;
   plan_id: string | null;
-  origin_type: 'plan' | 'saved_orchestration' | 'ad_hoc' | string;
+  origin_type: string;
   origin_id: string | null;
   orchestration_slug: string | null;
   prompt_inputs: Record<string, any>;

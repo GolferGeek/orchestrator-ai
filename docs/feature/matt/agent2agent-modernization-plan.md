@@ -90,4 +90,5 @@ Phase 1 exit criteria are met; work now shifts to the database-backed runtime.
 - **2025-01-19:** Routing adapter wires in centralized policy decisions with request/agent metadata, feeding the enhanced mode router. (Codex)
 - **2025-01-19:** Retired the legacy AgentCreator “agent builder” module to avoid conflicting database dependencies ahead of the new runtime. (Codex)
 - **2025-01-19:** Added `AgentRuntimeDefinitionService` and wired mode router hydration through the database-defined capability profile with new unit coverage. (Codex)
+- **2025-01-19:** AgentExecutionGateway now hydrates runtime definitions once per request, propagating agent metadata to plan/orchestration responses and mode routing. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).

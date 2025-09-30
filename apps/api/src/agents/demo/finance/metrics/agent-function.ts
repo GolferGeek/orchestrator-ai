@@ -267,7 +267,7 @@ Respond with JSON only:
             }
           } catch (_e) {
             console.error('[METRICS-AGENT] Failed to parse MCP response:', _e);
-            sqlError = `Failed to parse SQL from MCP response: ${_e}`;
+            sqlError = `Failed to parse SQL from MCP response: ${_e instanceof Error ? _e.message : String(_e)}`;
             throw new Error(sqlError);
           }
         }
@@ -341,7 +341,7 @@ Respond with JSON only:
               '[METRICS-AGENT] Failed to parse SQL exec response:',
               _e,
             );
-            executionError = `Failed to parse SQL execution result: ${_e}`;
+            executionError = `Failed to parse SQL execution result: ${_e instanceof Error ? _e.message : String(_e)}`;
             throw new Error(executionError);
           }
         }

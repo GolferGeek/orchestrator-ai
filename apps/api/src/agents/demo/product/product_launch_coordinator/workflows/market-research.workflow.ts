@@ -243,7 +243,7 @@ export class MarketResearchWorkflow {
     const humanInput: HumanInputPoint = {
       id: 'market_segment_selection',
       type: 'choice',
-      prompt: `Based on the market research, which target segment should we prioritize for the launch of ${segments[0]}? Consider market size, growth potential, and alignment with our capabilities.`,
+      prompt: `Based on the market research, which target segment should we prioritize for the launch of ${segments[0]?.name ?? 'the product'}? Consider market size, growth potential, and alignment with our capabilities.`,
       options: segmentOptions,
       required: true,
       timeout: 24 * 60 * 60 * 1000, // 24 hours

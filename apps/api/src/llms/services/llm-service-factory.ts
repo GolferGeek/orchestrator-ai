@@ -398,7 +398,7 @@ export class LLMServiceFactory {
           break;
 
         default:
-          throw new Error(`Unsupported provider: ${provider}`);
+          throw new Error(`Unsupported provider: ${String(provider)}`);
       }
 
       this.logger.log(`Successfully instantiated ${provider} service`);
