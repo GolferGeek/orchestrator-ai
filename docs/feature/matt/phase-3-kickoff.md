@@ -16,7 +16,7 @@ Owner: Codex with Matt
 - Failure codes and structured error envelopes
 
 2) Deliverables
-- Create/attach deliverables on build success
+- Create/attach deliverables on build success (auto-create when conversationId/userId provided)
 - Versioning API (promote/copy/enhance)
 - Minimal UI hooks preserved via existing endpoints
 

@@ -140,6 +140,12 @@ api_configuration:
 ```
 
 These are already present in the demo `jokes_agent` and `golf_rules_agent` configurations.
+
+## Build → Deliverables (Phase 3)
+
+- On successful build tasks, the runtime attempts to auto-create a deliverable when `conversationId` and `userId` are available.
+- If you pass a `deliverableId` in `payload.deliverableId` (or `payload.metadata.deliverableId`), the runtime creates a new version of that deliverable instead of creating a new one.
+- The response includes `payload.deliverables` when a new deliverable was created.
 ## Error Responses (Legacy Dynamic Agents)
 
 For legacy routes that pass through DynamicAgentsController, failures return HTTP 200 with a standardized payload:

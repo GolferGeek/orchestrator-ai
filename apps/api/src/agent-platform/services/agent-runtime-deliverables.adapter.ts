@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DeliverablesService } from '@/deliverables/deliverables.service';
+import { DeliverableVersionsService } from '@/deliverables/deliverable-versions.service';
 import {
   CreateDeliverableDto,
   DeliverableFormat,
@@ -22,7 +23,10 @@ export interface BuildDeliverableInput {
 export class AgentRuntimeDeliverablesAdapter {
   private readonly logger = new Logger(AgentRuntimeDeliverablesAdapter.name);
 
-  constructor(private readonly deliverables: DeliverablesService) {}
+  constructor(
+    private readonly deliverables: DeliverablesService,
+    private readonly versions: DeliverableVersionsService,
+  ) {}
 
   async maybeCreateFromBuild(
     ctx: BuildDeliverableInput,
@@ -36,9 +40,27 @@ export class AgentRuntimeDeliverablesAdapter {
         return null;
       }
 
-      const title =
-        ctx.title || `Build output from ${ctx.agentSlug}`;
+      const title = ctx.title || `Build output from ${ctx.agentSlug}`;
       const content = ctx.content || (request.payload as any)?.output || '';
+
+      // Enhancement path: if a target deliverableId is provided, create a new version instead
+      const targetDeliverableId =
+        (request.payload as any)?.deliverableId ||
+        (request.payload as any)?.metadata?.deliverableId;
+      if (targetDeliverableId) {
+        await this.versions.createVersion(targetDeliverableId, {
+          content,
+          format: DeliverableFormat.TEXT,
+          createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
+          taskId: (request as any).taskId,
+          metadata: {
+            organizationSlug: ctx.organizationSlug,
+            agentSlug: ctx.agentSlug,
+            mode: ctx.mode,
+          },
+        }, userId);
+        return null; // No new deliverable created; version was added to existing
+      }
       const dto: CreateDeliverableDto = {
         title,
         type: DeliverableType.DOCUMENT,
@@ -72,4 +94,3 @@ export class AgentRuntimeDeliverablesAdapter {
     return (fromTop as string) || (fromPayload as string) || null;
   }
 }
-

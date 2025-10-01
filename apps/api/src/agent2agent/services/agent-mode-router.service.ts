@@ -89,6 +89,16 @@ export class AgentModeRouterService {
     });
 
     try {
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'prompt_prepared',
+        message: 'Prompt prepared for converse',
+        percent: 10,
+      });
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'dispatch_started',
+        message: 'Dispatching LLM/API call',
+        percent: 20,
+      });
       this.lifecycle.start(this.toLifecycleCtx(context));
       const { response, streamId } = await this.generateLlmResponse(
         context,
@@ -96,6 +106,11 @@ export class AgentModeRouterService {
         prompt,
         AgentTaskMode.CONVERSE,
       );
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'response_received',
+        message: 'Response received',
+        percent: 80,
+      });
       this.lifecycle.complete(this.toLifecycleCtx(context), { message: response.content });
       if (this.isErrorResponse(response)) {
         return TaskResponseDto.failure(
@@ -147,6 +162,16 @@ export class AgentModeRouterService {
     });
 
     try {
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'prompt_prepared',
+        message: 'Prompt prepared for build',
+        percent: 10,
+      });
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'dispatch_started',
+        message: 'Dispatching build LLM/API call',
+        percent: 20,
+      });
       this.lifecycle.start(this.toLifecycleCtx(context));
       const { response, streamId } = await this.generateLlmResponse(
         context,
@@ -154,6 +179,11 @@ export class AgentModeRouterService {
         prompt,
         AgentTaskMode.BUILD,
       );
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'response_received',
+        message: 'Build response received',
+        percent: 80,
+      });
       this.lifecycle.complete(this.toLifecycleCtx(context), { output: response.content });
       // Attempt auto-deliverable creation when possible
       const created = await this.deliverables.maybeCreateFromBuild(
@@ -251,6 +281,11 @@ export class AgentModeRouterService {
     prompt: PromptPayload,
     mode: AgentTaskMode,
   ): Promise<{ response: AgentRuntimeDispatchResult['response']; streamId: string }> {
+    this.lifecycle.progress(this.toLifecycleCtx(context), {
+      step: 'stream_started',
+      message: 'Streaming session started',
+      percent: 30,
+    });
     const streamSession = this.streamService.start({
       conversationId: context.request.conversationId,
       sessionId: context.request.sessionId,
@@ -283,6 +318,11 @@ export class AgentModeRouterService {
     try {
       const result = await streaming.response;
       streamSession.complete();
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'stream_complete',
+        message: 'Streaming session complete',
+        percent: 90,
+      });
       return { response: result.response, streamId: streamSession.streamId };
     } catch (error) {
       streamSession.error(error);
