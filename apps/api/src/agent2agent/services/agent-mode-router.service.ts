@@ -11,6 +11,7 @@ import { AgentRuntimeDispatchService } from '@agent-platform/services/agent-runt
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 import { AgentRuntimeLifecycleService } from '@agent-platform/services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDispatchResult } from '@agent-platform/services/agent-runtime-dispatch.service';
+import { AgentRuntimeDeliverablesAdapter } from '@agent-platform/services/agent-runtime-deliverables.adapter';
 
 export interface AgentExecutionContext {
   organizationSlug?: string | null;
@@ -39,6 +40,7 @@ export class AgentModeRouterService {
     private readonly dispatcher: AgentRuntimeDispatchService,
     private readonly streamService: AgentRuntimeStreamService,
     private readonly lifecycle: AgentRuntimeLifecycleService,
+    private readonly deliverables: AgentRuntimeDeliverablesAdapter,
   ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
@@ -153,6 +155,18 @@ export class AgentModeRouterService {
         AgentTaskMode.BUILD,
       );
       this.lifecycle.complete(this.toLifecycleCtx(context), { output: response.content });
+      // Attempt auto-deliverable creation when possible
+      const created = await this.deliverables.maybeCreateFromBuild(
+        {
+          organizationSlug: context.organizationSlug,
+          agentSlug: context.agent.slug,
+          mode: context.request.mode,
+          conversationId: context.request.conversationId,
+          content: response.content,
+          title: context.definition.displayName ?? context.agent.slug,
+        },
+        context.request,
+      );
       if (this.isErrorResponse(response)) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
@@ -164,6 +178,7 @@ export class AgentModeRouterService {
           status: 'build_completed',
           output: response.content,
         },
+        ...(created && { deliverables: [created] }),
         metadata: {
           provider: response.metadata.provider,
           model: response.metadata.model,

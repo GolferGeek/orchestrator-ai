@@ -18,9 +18,11 @@ import { AgentRuntimeStreamService } from './services/agent-runtime-stream.servi
 import { AgentRegistryInvalidationService } from './services/agent-registry-invalidation.service';
 import { AgentRuntimeMetricsService } from './services/agent-runtime-metrics.service';
 import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle.service';
+import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-deliverables.adapter';
+import { DeliverablesModule } from '@/deliverables/deliverables.module';
 
 @Module({
-  imports: [SupabaseModule, LLMModule, HttpModule],
+  imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule],
   providers: [
     AgentsRepository,
     ConversationPlansRepository,
@@ -38,6 +40,7 @@ import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle
     AgentRegistryInvalidationService,
     AgentRuntimeMetricsService,
     AgentRuntimeLifecycleService,
+    AgentRuntimeDeliverablesAdapter,
   ],
   exports: [
     AgentsRepository,
@@ -56,6 +59,7 @@ import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle
     AgentRegistryInvalidationService,
     AgentRuntimeMetricsService,
     AgentRuntimeLifecycleService,
+    AgentRuntimeDeliverablesAdapter,
   ],
 })
 export class AgentPlatformModule {}
