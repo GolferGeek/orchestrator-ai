@@ -3,7 +3,7 @@
     <div class="hero-content">
       <!-- Video Player Section -->
       <div class="video-section">
-        <h2>Let's Build Something Together</h2>
+        <h2>AI for Small Business</h2>
         
         <!-- Video Player -->
         <VideoPlayer :current-video="currentVideo" />

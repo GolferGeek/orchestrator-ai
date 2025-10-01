@@ -3,7 +3,7 @@
     <div class="header-content">
       <div class="logo">
         <h1>Orchestrator AI</h1>
-        <span class="tagline">Building Together</span>
+        <span class="tagline">AI for Small Business</span>
       </div>
       
       
