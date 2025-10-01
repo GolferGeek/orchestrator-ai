@@ -737,6 +737,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       // Natural acceptance: if a pending action exists and the content is affirmative, auto-run and return
       const pending = this.getPendingAction();
       const affirmative = /^(yes|yeah|yep|yup|sure|ok|okay|please|do it|go ahead|sounds good|let's do it|proceed)[.!]?$/i;
+      const negative = /^(no|nah|nope|stop|cancel|reject|do not|don't)$/i;
       if (pending && affirmative.test(content.trim())) {
         // Record the user's short reply as a normal message for continuity
         const userMessage: AgentChatMessage = {
@@ -807,6 +808,41 @@ export const useAgentChatStore = defineStore('agentChat', {
         this.clearPendingAction();
         await this.executeFromLastUserMessage(pending.type);
         return; // Skip normal task creation flow
+      }
+      // Natural rejection: if a pending action exists and the content is negative, reject and annotate
+      if (pending && negative.test(content.trim())) {
+        const userMessage: AgentChatMessage = {
+          id: `user-${Date.now()}`,
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+        activeConversation.messages.push(userMessage);
+        try {
+          const lastAssistant = [...activeConversation.messages].reverse().find(m => m.role === 'assistant' && m.metadata?.approvalId);
+          const approvalId = lastAssistant?.metadata?.approvalId as string | undefined;
+          if (approvalId) {
+            await approvalsService.reject(approvalId);
+            // Update chip on the gated message
+            lastAssistant.metadata = {
+              ...(lastAssistant.metadata || {}),
+              approvalStatus: 'rejected',
+              decisionAt: new Date().toISOString(),
+            };
+          }
+        } catch (e) {
+          console.warn('Approval reject failed', e);
+        }
+        analyticsService.trackEvent({
+          eventType: 'ui',
+          category: 'cta',
+          action: 'auto_reject_no',
+          label: pending.type,
+          properties: { conversationId: activeConversation.id, sourceTaskId: pending.sourceTaskId },
+          context: { url: window.location.pathname, userAgent: navigator.userAgent },
+        });
+        this.clearPendingAction();
+        return; // Skip legacy execution path
       }
 
       // Set loading state

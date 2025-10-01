@@ -1,7 +1,6 @@
-import { Body, Controller, NotFoundException, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, NotFoundException, Param, Post, Req } from '@nestjs/common';
 import { AgentExecutionGateway } from '../services/agent-execution-gateway.service';
 import { HumanApprovalsRepository } from '@/agent-platform/repositories/human-approvals.repository';
-import { ApiKeyGuard } from '../guards/api-key.guard';
 
 @Controller('agent-to-agent')
 export class AgentApprovalsActionsController {
@@ -15,7 +14,6 @@ export class AgentApprovalsActionsController {
    * Optional body may provide overrides merged into the stored request payload (e.g., stream option).
    */
   @Post(':orgSlug/:agentSlug/approvals/:id/continue')
-  @UseGuards(ApiKeyGuard)
   async approveAndContinue(
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,

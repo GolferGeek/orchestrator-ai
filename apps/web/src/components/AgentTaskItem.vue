@@ -22,11 +22,18 @@
 
         <!-- Human approval status badge (assistant messages) -->
         <div v-if="approvalStatus" class="approval-status">
-          <ion-chip :color="approvalColor" size="small" outline>
+          <ion-chip :color="approvalColor" size="small" outline @click="legendOpen = true">
             <ion-icon :icon="approvalIcon" />
             <span class="approval-text">{{ approvalText }}</span>
             <span v-if="approvalTime" class="approval-time">&nbsp;· {{ approvalTime }}</span>
           </ion-chip>
+          <ion-popover :is-open="legendOpen" @didDismiss="legendOpen = false">
+            <div class="legend">
+              <div class="legend-row"><ion-icon :icon="ellipseOutline" class="pending" /> Pending — Awaiting Approval</div>
+              <div class="legend-row"><ion-icon :icon="checkmarkCircleOutline" class="approved" /> Approved — Execution Resumed</div>
+              <div class="legend-row"><ion-icon :icon="closeCircleOutline" class="rejected" /> Rejected — Execution Stopped</div>
+            </div>
+          </ion-popover>
         </div>
         
 
@@ -187,7 +194,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import { marked } from 'marked';
-import { IonIcon, IonButton, IonSpinner, IonChip } from '@ionic/vue';
+import { IonIcon, IonButton, IonSpinner, IonChip, IonPopover } from '@ionic/vue';
 import { 
   informationCircleOutline, 
   documentTextOutline, 
@@ -386,6 +393,9 @@ const approvalTime = computed(() => {
     return '';
   }
 });
+
+// Legend state
+const legendOpen = ref(false);
 
 // Enhancement undo CTA bindings
 const enhancedDeliverableId = computed(() => props.message.metadata?.enhancedDeliverableId || null);
@@ -1202,6 +1212,23 @@ async function playAudio(audioData: string) {
 .metadata-button:hover {
   --color: var(--ion-color-primary);
 }
+
+.approval-status {
+  margin: 6px 0 0 0;
+}
+.legend {
+  padding: 12px;
+  min-width: 220px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.legend-row .pending { color: var(--ion-color-warning); }
+.legend-row .approved { color: var(--ion-color-success); }
+.legend-row .rejected { color: var(--ion-color-danger); }
 
 /* Deliverable Creation Callout */
 .deliverable-creation-callout {
