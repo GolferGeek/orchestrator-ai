@@ -1,0 +1,37 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { SupabaseService } from '@/supabase/supabase.service';
+
+export interface PseudonymDictionaryRecord {
+  id?: string;
+  organization_slug: string | null;
+  agent_slug?: string | null;
+  data_type?: string | null; // e.g., name, email, ssn
+  original?: string | null;
+  pseudonym?: string | null;
+  updated_at?: string;
+}
+
+@Injectable()
+export class PseudonymDictionariesRepository {
+  private readonly logger = new Logger(PseudonymDictionariesRepository.name);
+  private readonly table = 'pseudonym_dictionaries';
+
+  constructor(private readonly supabase: SupabaseService) {}
+
+  private client() {
+    return this.supabase.getServiceClient();
+  }
+
+  async listByOrganization(orgSlug: string | null): Promise<PseudonymDictionaryRecord[]> {
+    const client = this.client();
+    let q = client.from(this.table).select('*');
+    q = orgSlug ? q.eq('organization_slug', orgSlug) : q.is('organization_slug', null);
+    const { data, error } = await q.order('updated_at', { ascending: false, nullsLast: true });
+    if (error) {
+      this.logger.warn(`Failed to load pseudonym dictionary for ${orgSlug ?? 'global'}: ${error.message}`);
+      return [];
+    }
+    return (data as any[]) || [];
+  }
+}
+

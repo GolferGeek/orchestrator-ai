@@ -98,6 +98,26 @@ deliverables:
 - Prefer `application/json` for machine steps; `text/markdown` for human surfaces.
 - Optional strict normalization via `configuration.transforms`.
 
+### Dual‑Mode Output Example (Summary + Fenced JSON)
+Add both `text/markdown` and `application/json` to `output_modes` and instruct the agent to return a brief summary followed by a fenced JSON block. The runtime will pass this through; downstream agents expecting JSON can extract it.
+
+```yaml
+output_modes: [text/markdown, application/json]
+llm:
+  system_prompt: |
+    Provide a concise summary first. Then include a fenced JSON block with `data` that tools can parse, e.g.:
+    ```json
+    { "data": { ... } }
+    ```
+configuration:
+  transforms:
+    expected:
+      output: { content_type: text/markdown }
+    adapters:
+      markdown_to_json:
+        selector: { type: fenced_json, required: false }
+```
+
 ## Execution Model
 - `execution_capabilities`: can_converse/can_plan/can_build/requires_human_gate
 - `execution_profile`: conversation_only | conversation_with_gate | autonomous_build

@@ -194,8 +194,22 @@ export class AgentExecutionGateway {
       case AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE:
       case AgentTaskMode.ORCHESTRATOR_RECIPE_DELETE:
         return this.notImplemented(request.mode);
-      case AgentTaskMode.HUMAN_RESPONSE:
+      case AgentTaskMode.HUMAN_RESPONSE: {
+        const decision = (request.payload as any)?.decision || (request.payload as any)?.approved;
+        if (decision === true || decision === 'approve') {
+          return TaskResponseDto.success(AgentTaskMode.HUMAN_RESPONSE, {
+            content: { status: 'approved' },
+            metadata: { timestamp: new Date().toISOString() },
+          });
+        }
+        if (decision === false || decision === 'reject') {
+          return TaskResponseDto.failure(
+            AgentTaskMode.HUMAN_RESPONSE,
+            'rejected_by_human',
+          );
+        }
         return TaskResponseDto.human('Manual confirmation required');
+      }
       default:
         return TaskResponseDto.failure(request.mode, 'Unsupported mode');
     }

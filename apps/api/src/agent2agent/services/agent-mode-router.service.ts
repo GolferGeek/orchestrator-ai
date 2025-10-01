@@ -12,6 +12,7 @@ import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtim
 import { AgentRuntimeLifecycleService } from '@agent-platform/services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDispatchResult } from '@agent-platform/services/agent-runtime-dispatch.service';
 import { AgentRuntimeNormalizationService } from '@agent-platform/services/agent-runtime-normalization.service';
+import { AgentRuntimeRedactionService } from '@agent-platform/services/agent-runtime-redaction.service';
 import { AgentRuntimeDeliverablesAdapter } from '@agent-platform/services/agent-runtime-deliverables.adapter';
 
 export interface AgentExecutionContext {
@@ -43,6 +44,7 @@ export class AgentModeRouterService {
     private readonly lifecycle: AgentRuntimeLifecycleService,
     private readonly deliverables: AgentRuntimeDeliverablesAdapter,
     private readonly normalization: AgentRuntimeNormalizationService,
+    private readonly redaction: AgentRuntimeRedactionService,
   ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
@@ -90,9 +92,10 @@ export class AgentModeRouterService {
       return TaskResponseDto.failure(AgentTaskMode.CONVERSE, norm.reason || 'invalid_input_format');
     }
     const normRequest = norm.request || context.request;
+    const redactedRequest = this.redaction.redact(context.definition, normRequest);
     const prompt = this.promptBuilder.buildPromptPayload({
       definition: context.definition,
-      request: normRequest,
+      request: redactedRequest,
       mode: 'converse',
     });
 
@@ -169,9 +172,10 @@ export class AgentModeRouterService {
       return TaskResponseDto.failure(AgentTaskMode.BUILD, norm.reason || 'invalid_input_format');
     }
     const normRequest = norm.request || context.request;
+    const redactedRequest = this.redaction.redact(context.definition, normRequest);
     const prompt = this.promptBuilder.buildPromptPayload({
       definition: context.definition,
-      request: normRequest,
+      request: redactedRequest,
       mode: 'build',
     });
 
