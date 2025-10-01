@@ -689,6 +689,7 @@ export class RunMetadataService {
     startDate?: string;
     endDate?: string;
     limit?: number;
+    route?: 'local' | 'remote';
   }): Promise<any[]> {
     const client = this.supabaseService.getServiceClient();
 
@@ -706,6 +707,7 @@ export class RunMetadataService {
       query = query.eq('conversation_id', filters.conversationId);
     if (filters?.startDate) query = query.gte('started_at', filters.startDate);
     if (filters?.endDate) query = query.lte('started_at', filters.endDate);
+    if (filters?.route) query = query.eq('route', filters.route);
     if (filters?.limit) query = query.limit(filters.limit);
 
     const { data, error } = await query;
@@ -721,6 +723,7 @@ export class RunMetadataService {
     startDate?: string;
     endDate?: string;
     callerType?: string;
+    route?: 'local' | 'remote';
   }): Promise<any[]> {
     const client = this.supabaseService.getServiceClient();
 
@@ -735,6 +738,7 @@ export class RunMetadataService {
     if (filters?.endDate) query = query.lte('created_at', filters.endDate);
     if (filters?.callerType)
       query = query.eq('caller_type', filters.callerType);
+    if (filters?.route) query = query.eq('route', filters.route);
 
     const { data, error } = await query;
     if (error)

@@ -47,6 +47,28 @@
         <!-- Overview Tab -->
         <div v-show="selectedTab === 'overview'" class="tab-panel">
           <div class="overview-section">
+            <!-- Route Filter -->
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon :icon="barChartOutline" />
+                  Filters
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-segment v-model="routeFilter" @ion-change="onRouteFilterChange">
+                  <ion-segment-button value="all">
+                    <ion-label>All</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="local">
+                    <ion-label>Local</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="remote">
+                    <ion-label>Remote</ion-label>
+                  </ion-segment-button>
+                </ion-segment>
+              </ion-card-content>
+            </ion-card>
             <!-- Quick Stats -->
             <ion-card>
               <ion-card-header>
@@ -355,6 +377,7 @@ const store = useLlmUsageStore();
 // Reactive data
 const selectedTab = ref('overview');
 const autoRefreshEnabled = ref(false);
+const routeFilter = ref<'all' | 'local' | 'remote'>('all');
 
 // Computed - Use storeToRefs to maintain reactivity
 const { usageRecords, stats, activeRuns, loading } = storeToRefs(store);
@@ -394,6 +417,16 @@ const onTabChange = (event: CustomEvent) => {
       store.fetchActiveRuns();
       break;
   }
+};
+
+const onRouteFilterChange = async () => {
+  const route = routeFilter.value === 'all' ? undefined : routeFilter.value;
+  // Update store filters for records
+  store.updateFilters({ route: route as any });
+  await store.fetchUsageRecords();
+  // Update analytics
+  store.updateAnalyticsFilters({ route: route as any });
+  await store.fetchAnalytics();
 };
 
 const toggleAutoRefresh = () => {

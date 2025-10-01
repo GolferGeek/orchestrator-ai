@@ -22,6 +22,7 @@ export class LlmUsageController {
     @Query('conversationId') conversationId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('route') route?: 'local' | 'remote',
     @Query('limit') limit?: string,
   ) {
     const filters = {
@@ -31,6 +32,7 @@ export class LlmUsageController {
       conversationId,
       startDate,
       endDate,
+      route,
       limit: limit ? parseInt(limit, 10) : undefined,
     };
 
@@ -57,11 +59,13 @@ export class LlmUsageController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('callerType') callerType?: string,
+    @Query('route') route?: 'local' | 'remote',
   ) {
     const filters = {
       startDate,
       endDate,
       callerType,
+      route,
     };
 
     // Remove undefined values

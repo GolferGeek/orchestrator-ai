@@ -20,12 +20,14 @@ export const useLlmUsageStore = defineStore('llmUsage', () => {
   
   // Filters
   const filters = ref<LlmUsageFilters>({
-    limit: 100
+    limit: 100,
+    route: undefined,
   });
   
-  const analyticsFilters = ref({
+  const analyticsFilters = ref<{ startDate?: string; endDate?: string; callerType?: string; route?: 'local' | 'remote' }>({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days ago
-    endDate: new Date().toISOString().split('T')[0] // today
+    endDate: new Date().toISOString().split('T')[0], // today
+    route: undefined,
   });
 
   // Computed
@@ -85,7 +87,7 @@ export const useLlmUsageStore = defineStore('llmUsage', () => {
     }
   }
 
-  async function fetchAnalytics(customFilters?: { startDate?: string; endDate?: string; callerType?: string }) {
+  async function fetchAnalytics(customFilters?: { startDate?: string; endDate?: string; callerType?: string; route?: 'local' | 'remote' }) {
     loading.value = true;
     error.value = null;
     
@@ -122,7 +124,7 @@ export const useLlmUsageStore = defineStore('llmUsage', () => {
     filters.value = { ...filters.value, ...newFilters };
   }
 
-  function updateAnalyticsFilters(newFilters: Partial<{ startDate?: string; endDate?: string; callerType?: string }>) {
+  function updateAnalyticsFilters(newFilters: Partial<{ startDate?: string; endDate?: string; callerType?: string; route?: 'local' | 'remote' }>) {
     analyticsFilters.value = { ...analyticsFilters.value, ...newFilters };
   }
 

@@ -47,6 +47,7 @@ export interface LlmUsageFilters {
   startDate?: string;
   endDate?: string;
   limit?: number;
+  route?: 'local' | 'remote';
 }
 
 export interface LlmAnalytics {
@@ -92,6 +93,7 @@ class LlmUsageService {
     if (filters?.startDate) queryParams.append('startDate', filters.startDate);
     if (filters?.endDate) queryParams.append('endDate', filters.endDate);
     if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+    if (filters?.route) queryParams.append('route', filters.route);
 
     const url = queryParams.toString() 
       ? `/api/llm-usage/records?${queryParams.toString()}`
@@ -108,12 +110,14 @@ class LlmUsageService {
     startDate?: string;
     endDate?: string;
     callerType?: string;
+    route?: 'local' | 'remote';
   }): Promise<LlmAnalytics[]> {
     const queryParams = new URLSearchParams();
     
     if (filters?.startDate) queryParams.append('startDate', filters.startDate);
     if (filters?.endDate) queryParams.append('endDate', filters.endDate);
     if (filters?.callerType) queryParams.append('callerType', filters.callerType);
+    if (filters?.route) queryParams.append('route', filters.route);
 
     const url = queryParams.toString()
       ? `/api/llm-usage/analytics?${queryParams.toString()}`
