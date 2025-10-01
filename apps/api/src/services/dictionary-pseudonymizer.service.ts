@@ -109,15 +109,35 @@ export class DictionaryPseudonymizerService {
 
       if (globalData) resultSets.push(globalData as any[]);
 
-      // Merge and de-duplicate by original_value/pseudonym pair
+      // Merge with priority: agent > org > global, detect overrides/conflicts
       const merged = ([] as any[]).concat(...resultSets);
-      const seen = new Set<string>();
-      const unique = merged.filter((row) => {
-        const key = `${row.original_value}::${row.pseudonym}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+      const byOriginal: Record<string, { pseudonym: string; src: 'agent' | 'org' | 'global'; row: any }> = {};
+      for (const row of merged) {
+        const src: 'agent' | 'org' | 'global' = row.agent_slug
+          ? 'agent'
+          : row.organization_slug
+          ? 'org'
+          : 'global';
+        const key = `${(row.original_value || '').toLowerCase()}::${row.data_type || 'unknown'}`;
+        if (!key.trim()) continue;
+        const existing = byOriginal[key];
+        if (!existing) {
+          byOriginal[key] = { pseudonym: row.pseudonym, src, row };
+          continue;
+        }
+        // Only override when new source has higher priority
+        const rank = (s: 'agent' | 'org' | 'global') => (s === 'agent' ? 3 : s === 'org' ? 2 : 1);
+        if (rank(src) > rank(existing.src)) {
+          if (existing.pseudonym !== row.pseudonym) {
+            this.logger.warn(
+              `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${row.pseudonym}'`,
+            );
+          }
+          byOriginal[key] = { pseudonym: row.pseudonym, src, row };
+        }
+      }
+
+      const unique = Object.values(byOriginal).map((e) => e.row);
 
       const dictionary: DictionaryPseudonymMapping[] = (unique || []).map(
         (row: any) => ({

@@ -143,7 +143,7 @@ export class AgentsRepository {
     const { data, error } = (await client
       .from(AGENTS_TABLE)
       .select('updated_at')
-      .order('updated_at', { ascending: false, nullsLast: true })
+      .order('updated_at', { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle()) as SupabaseSelectResponse<{ updated_at: string }>;
 

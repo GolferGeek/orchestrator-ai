@@ -26,7 +26,7 @@ export class PseudonymDictionariesRepository {
     const client = this.client();
     let q = client.from(this.table).select('*');
     q = orgSlug ? q.eq('organization_slug', orgSlug) : q.is('organization_slug', null);
-    const { data, error } = await q.order('updated_at', { ascending: false, nullsLast: true });
+    const { data, error } = await q.order('updated_at', { ascending: false, nullsFirst: false });
     if (error) {
       this.logger.warn(`Failed to load pseudonym dictionary for ${orgSlug ?? 'global'}: ${error.message}`);
       return [];
@@ -34,4 +34,3 @@ export class PseudonymDictionariesRepository {
     return (data as any[]) || [];
   }
 }
-
