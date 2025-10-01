@@ -135,6 +135,17 @@
                   Export CSV
                 </ion-button>
               </ion-col>
+
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-button 
+                  fill="outline" 
+                  color="tertiary"
+                  @click="applyPresetLocal7d"
+                  :disabled="loading"
+                >
+                  Local last 7 days
+                </ion-button>
+              </ion-col>
             </ion-row>
           </ion-grid>
         </ion-card-content>
@@ -607,6 +618,16 @@ const exportCsv = () => {
   a.download = `llm_usage_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+};
+
+const applyPresetLocal7d = () => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString().split('T')[0];
+  const end = new Date().toISOString().split('T')[0];
+  localFilters.value.startDate = start;
+  localFilters.value.endDate = end;
+  localFilters.value.route = 'local';
+  applyFilters();
 };
 
 // Lifecycle

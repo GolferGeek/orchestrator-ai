@@ -150,28 +150,48 @@
     <!-- Charts Section -->
     <div class="charts-section">
       <!-- Daily Usage Chart -->
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>Daily Usage Trends</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="chart-container">
-            <div class="chart-placeholder">
-              <!-- This would be where you'd integrate a charting library like Chart.js or ApexCharts -->
-              <div class="chart-mock">
-                <div v-for="(item, index) in chartData" :key="index" class="chart-bar">
-                  <div 
-                    class="bar" 
-                    :style="{ height: `${(item.total_requests / maxRequests) * 100}%` }"
-                    :title="`${item.date}: ${item.total_requests} requests`"
-                  ></div>
-                  <div class="bar-label">{{ formatChartDate(item.date) }}</div>
-                </div>
-              </div>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Daily Usage Trends</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="chart-container">
+        <div class="chart-placeholder">
+          <!-- This would be where you'd integrate a charting library like Chart.js or ApexCharts -->
+          <div class="chart-mock">
+            <div v-for="(item, index) in chartData" :key="index" class="chart-bar">
+              <div 
+                class="bar" 
+                :style="{ height: `${(item.total_requests / maxRequests) * 100}%` }"
+                :title="`${item.date}: ${item.total_requests} requests`"
+              ></div>
+              <div class="bar-label">{{ formatChartDate(item.date) }}</div>
             </div>
           </div>
-        </ion-card-content>
-      </ion-card>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Route Trend (Daily) -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Route Trends (Local vs Remote)</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="chart-container">
+        <div class="chart-placeholder">
+          <div class="chart-mock grouped">
+            <div v-for="(day, idx) in routeTrendDays" :key="idx" class="chart-bar route-group">
+              <div class="bar bar-local" :style="{ height: `${routeMax > 0 ? (routeLocalCounts[day] || 0) / routeMax * 100 : 0}%` }" :title="`${day}: ${routeLocalCounts[day] || 0} local`"></div>
+              <div class="bar bar-remote" :style="{ height: `${routeMax > 0 ? (routeRemoteCounts[day] || 0) / routeMax * 100 : 0}%` }" :title="`${day}: ${routeRemoteCounts[day] || 0} remote`"></div>
+              <div class="bar-label">{{ formatChartDate(day) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
 
       <!-- Caller Type Breakdown -->
       <ion-card>
@@ -389,6 +409,44 @@ const maxRequests = computed(() => {
   return Math.max(...(analytics.value?.map(item => item.total_requests) || []), 1);
 });
 
+// Route trend data (client-side fetch of local/remote analytics)
+const localAnalytics = ref<any[]>([]);
+const remoteAnalytics = ref<any[]>([]);
+
+const routeLocalCounts = computed<Record<string, number>>(() => {
+  const map: Record<string, number> = {};
+  for (const item of localAnalytics.value || []) {
+    if (!item?.date) continue;
+    map[item.date] = (map[item.date] || 0) + (item.total_requests || 0);
+  }
+  return map;
+});
+
+const routeRemoteCounts = computed<Record<string, number>>(() => {
+  const map: Record<string, number> = {};
+  for (const item of remoteAnalytics.value || []) {
+    if (!item?.date) continue;
+    map[item.date] = (map[item.date] || 0) + (item.total_requests || 0);
+  }
+  return map;
+});
+
+const routeTrendDays = computed<string[]>(() => {
+  const days = new Set<string>([
+    ...Object.keys(routeLocalCounts.value),
+    ...Object.keys(routeRemoteCounts.value),
+  ]);
+  return Array.from(days).sort();
+});
+
+const routeMax = computed(() => {
+  let max = 1;
+  for (const d of routeTrendDays.value) {
+    max = Math.max(max, (routeLocalCounts.value[d] || 0), (routeRemoteCounts.value[d] || 0));
+  }
+  return max;
+});
+
 const callerTypeBreakdown = computed(() => {
   const breakdown = new Map();
   
@@ -466,6 +524,8 @@ const applyFilters = () => {
   
   store.updateAnalyticsFilters(filters);
   store.fetchAnalytics();
+  // Local fetch for route trend
+  fetchRouteTrend(filters);
 };
 
 const formatCurrency = (amount: number) => {
@@ -509,7 +569,16 @@ const getCallerColor = (callerType: string) => {
 // Lifecycle
 onMounted(() => {
   store.fetchAnalytics(localFilters.value);
+  fetchRouteTrend(localFilters.value);
 });
+
+async function fetchRouteTrend(base: { startDate?: string; endDate?: string; callerType?: string; route?: 'local' | 'remote' | '' }) {
+  const { startDate, endDate, callerType } = base || {};
+  // Local
+  localAnalytics.value = await llmUsageService.getUsageAnalytics({ startDate, endDate, callerType, route: 'local' });
+  // Remote
+  remoteAnalytics.value = await llmUsageService.getUsageAnalytics({ startDate, endDate, callerType, route: 'remote' });
+}
 
 function applyPresetLocal7d() {
   const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];

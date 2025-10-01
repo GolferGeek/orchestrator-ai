@@ -66,6 +66,17 @@
           </ion-card-content>
         </ion-card>
 
+        <!-- Actions -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Actions</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-button size="small" fill="outline" @click="copyJson">Copy JSON</ion-button>
+            <ion-button size="small" fill="outline" color="secondary" @click="downloadJson">Download JSON</ion-button>
+          </ion-card-content>
+        </ion-card>
+
         <ion-card>
           <ion-card-header>
             <ion-card-title>Usage</ion-card-title>
@@ -192,6 +203,23 @@ function formatDuration(ms?: number | null): string {
 function formatCurrency(amount?: number | null): string {
   const n = amount ?? 0;
   return `$${n.toFixed(4)}`;
+}
+
+function copyJson() {
+  if (!details.value) return;
+  const text = JSON.stringify(details.value, null, 2);
+  navigator.clipboard?.writeText(text).catch(() => {});
+}
+
+function downloadJson() {
+  if (!details.value) return;
+  const blob = new Blob([JSON.stringify(details.value, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `llm_usage_${details.value.run_id || 'details'}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 </script>
 

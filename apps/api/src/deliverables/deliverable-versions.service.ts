@@ -314,6 +314,87 @@ export class DeliverableVersionsService {
   }
 
   /**
+   * Copy an existing version to a new version (same content/format/metadata)
+   */
+  async copyVersion(versionId: string, userId: string): Promise<DeliverableVersion> {
+    const source = await this.getVersion(versionId, userId);
+    const createVersionDto: CreateVersionDto = {
+      content: source.content,
+      format: source.format,
+      createdByType: DeliverableVersionCreationType.MANUAL_EDIT,
+      metadata: {
+        ...(source.metadata || {}),
+        copiedFromVersionId: versionId,
+        copiedAt: new Date().toISOString(),
+      },
+    };
+    return this.createVersion(source.deliverableId, createVersionDto, userId);
+  }
+
+  /**
+   * Enhance an existing version using LLM and create a new version
+   */
+  async enhanceVersion(
+    versionId: string,
+    dto: { instruction: string; providerName?: string; modelName?: string; temperature?: number; maxTokens?: number },
+    userId: string,
+  ): Promise<DeliverableVersion> {
+    const source = await this.getVersion(versionId, userId);
+
+    // Build prompts
+    const systemPrompt = 'You are a concise, high-quality editor. Improve the given content according to the user instruction without changing factual meaning. Maintain original format.';
+    const userMessage = `Instruction:\n${dto.instruction}\n\n---\n\nOriginal Content (${source.format}):\n\n${source.content}`;
+
+    // Choose provider/model or fall back to defaults (let LLMService route if not provided)
+    const provider = dto.providerName || 'openai';
+    const model = dto.modelName || 'gpt-4o-mini';
+
+    const response = await this.llmService.generateUnifiedResponse({
+      provider,
+      model,
+      systemPrompt,
+      userMessage,
+      options: {
+        temperature: dto.temperature,
+        maxTokens: dto.maxTokens,
+        includeMetadata: true,
+        callerType: 'service',
+        callerName: 'deliverable-versions',
+      },
+    });
+
+    const content = typeof response === 'string' ? response : response.content;
+    const metadata = typeof response === 'string' ? undefined : (response as any).metadata;
+    const piiMetadata = typeof response === 'string' ? undefined : (response as any).piiMetadata;
+
+    const createVersionDto: CreateVersionDto = {
+      content,
+      format: source.format,
+      createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
+      taskId: source.taskId,
+      metadata: {
+        ...(source.metadata || {}),
+        enhancedFromVersionId: versionId,
+        enhancementAt: new Date().toISOString(),
+        enhancementInstruction: dto.instruction,
+        llmMetadata: metadata
+          ? {
+              provider: metadata.provider,
+              model: metadata.model,
+              inputTokens: metadata.usage?.inputTokens,
+              outputTokens: metadata.usage?.outputTokens,
+              cost: metadata.usage?.cost,
+              duration: metadata.timing?.duration,
+            }
+          : undefined,
+        piiMetadata,
+      },
+    };
+
+    return this.createVersion(source.deliverableId, createVersionDto, userId);
+  }
+
+  /**
    * Merge multiple versions into a new version using LLM
    */
   async mergeVersions(

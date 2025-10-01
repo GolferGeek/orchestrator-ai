@@ -224,6 +224,25 @@ class DeliverablesService {
     const response = await this.axiosInstance.post(`/deliverable-versions/version/${versionId}/rerun`, llmConfig);
     return response.data;
   }
+
+  /**
+   * Copy an existing version (same content/metadata)
+   */
+  async copyVersion(versionId: string): Promise<DeliverableVersion> {
+    const response = await this.axiosInstance.post(`/deliverable-versions/version/${versionId}/copy`);
+    return response.data;
+  }
+
+  /**
+   * Enhance an existing version with an instruction using LLM
+   */
+  async enhanceVersion(
+    versionId: string,
+    params: { instruction: string; providerName?: string; modelName?: string; temperature?: number; maxTokens?: number },
+  ): Promise<DeliverableVersion> {
+    const response = await this.axiosInstance.post(`/deliverable-versions/version/${versionId}/enhance`, params);
+    return response.data;
+  }
   /**
    * Search deliverables with advanced query options
    */

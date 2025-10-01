@@ -777,6 +777,42 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         const chatMode = this.getActiveChatMode();
 
+        // Enhancement path: if a deliverable is selected for enhancement, treat the user message as an enhancement instruction
+        try {
+          const deliverablesStore = useDeliverablesStore();
+          const enhancing = (deliverablesStore as any).enhancementContext?.isEnhancing && (deliverablesStore as any).enhancementContext?.sourceDeliverableId;
+          if (enhancing) {
+            const deliverableId = (deliverablesStore as any).enhancementContext.sourceDeliverableId as string;
+            // Determine current version to enhance
+            let currentVersion = deliverablesStore.getCurrentVersion(deliverableId);
+            if (!currentVersion) {
+              await deliverablesStore.loadDeliverableVersions(deliverableId);
+              currentVersion = deliverablesStore.getCurrentVersion(deliverableId);
+            }
+            if (currentVersion?.id) {
+              // Map current LLM selection into optional enhancement params
+              const sel = this.getLLMSelection();
+              const params: any = {};
+              if (sel?.providerName) params.providerName = sel.providerName;
+              if (sel?.modelName) params.modelName = sel.modelName;
+              await deliverablesStore.enhanceVersion(currentVersion.id, content, params);
+              // Add assistant confirmation message
+              const assistantMessage: AgentChatMessage = {
+                id: `enhance-${Date.now()}`,
+                role: 'assistant',
+                content: `✨ Enhanced deliverable "${deliverableId}" with your instruction`,
+                timestamp: new Date(),
+                metadata: { enhancedDeliverableId: deliverableId, enhancedFromVersionId: currentVersion.id },
+              };
+              activeConversation.messages.push(assistantMessage);
+              activeConversation.isSendingMessage = false;
+              return; // Skip normal task flow
+            }
+          }
+        } catch (e) {
+          console.warn('Enhancement path failed; falling back to normal flow', e);
+        }
+
         if (chatMode === 'plan') {
           try {
             analyticsService.trackEvent({
@@ -868,7 +904,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           });
         }
 
-        // Execute task using service
+      // Execute task using service
         await taskExecution.createAndExecuteTask(taskOptions, {
           onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
           onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),

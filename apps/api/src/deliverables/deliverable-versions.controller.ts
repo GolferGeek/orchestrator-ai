@@ -21,7 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeliverableVersionsService } from './deliverable-versions.service';
-import { CreateVersionDto, RerunWithLLMDto } from './dto';
+import { CreateVersionDto, RerunWithLLMDto, EnhanceVersionDto } from './dto';
 import { DeliverableVersion } from './entities/deliverable.entity';
 
 @ApiTags('deliverable-versions')
@@ -236,5 +236,32 @@ export class DeliverableVersionsController {
       });
       throw error;
     }
+  }
+
+  @Post('version/:versionId/copy')
+  @ApiOperation({ summary: 'Copy a version', description: 'Creates a new version by copying an existing version (same content/metadata).' })
+  @ApiParam({ name: 'versionId', description: 'Source version UUID to copy' })
+  @ApiResponse({ status: 201, description: 'Version copied successfully', type: DeliverableVersion })
+  async copyVersion(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @Req() req: any,
+  ): Promise<DeliverableVersion> {
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) throw new Error('User not authenticated');
+    return this.versionsService.copyVersion(versionId, userId);
+  }
+
+  @Post('version/:versionId/enhance')
+  @ApiOperation({ summary: 'Enhance a version with LLM', description: 'Creates a new version by enhancing the content with the given instruction using an LLM.' })
+  @ApiParam({ name: 'versionId', description: 'Source version UUID to enhance' })
+  @ApiResponse({ status: 201, description: 'Version enhanced successfully', type: DeliverableVersion })
+  async enhanceVersion(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @Body() dto: EnhanceVersionDto,
+    @Req() req: any,
+  ): Promise<DeliverableVersion> {
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) throw new Error('User not authenticated');
+    return this.versionsService.enhanceVersion(versionId, dto, userId);
   }
 }

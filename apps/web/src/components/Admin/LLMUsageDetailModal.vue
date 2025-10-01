@@ -109,6 +109,17 @@
           </ion-card-content>
         </ion-card>
 
+        <!-- Actions -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Actions</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-button size="small" fill="outline" @click="copyJson">Copy JSON</ion-button>
+            <ion-button size="small" fill="outline" color="secondary" @click="downloadJson">Download JSON</ion-button>
+          </ion-card-content>
+        </ion-card>
+
         <!-- PII Detection Summary -->
         <ion-card v-if="hasPIIData">
           <ion-card-header>
@@ -399,6 +410,23 @@ async function loadUsageDetails(runId: string) {
 function handleDismiss() {
   emit('update:isOpen', false);
   emit('dismiss');
+}
+
+function copyJson() {
+  if (!usageDetails.value) return;
+  const text = JSON.stringify(usageDetails.value, null, 2);
+  navigator.clipboard?.writeText(text).catch(() => {});
+}
+
+function downloadJson() {
+  if (!usageDetails.value) return;
+  const blob = new Blob([JSON.stringify(usageDetails.value, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `llm_usage_${usageDetails.value.run_id || 'details'}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function getStatusColor(status: string): string {

@@ -397,6 +397,49 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     enhancementContext.value.isEnhancing = true;
     return deliverableId;
   };
+
+  const enhanceVersion = async (
+    versionId: string,
+    instruction: string,
+    options?: { providerName?: string; modelName?: string; temperature?: number; maxTokens?: number },
+  ) => {
+    try {
+      setLoading(true);
+      clearError();
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const newVersion = await deliverablesService.enhanceVersion(versionId, {
+        instruction,
+        providerName: options?.providerName,
+        modelName: options?.modelName,
+        temperature: options?.temperature,
+        maxTokens: options?.maxTokens,
+      });
+      addVersion(newVersion.deliverableId, newVersion);
+      // Optionally set as current if backend flagged it
+      return newVersion;
+    } catch (error: any) {
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyVersion = async (versionId: string) => {
+    try {
+      setLoading(true);
+      clearError();
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const newVersion = await deliverablesService.copyVersion(versionId);
+      addVersion(newVersion.deliverableId, newVersion);
+      return newVersion;
+    } catch (error: any) {
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
   // Additional methods needed by useDeliverables composable
   const processAgentDeliverable = async (deliverableId: string, conversationId: string, messageId?: string, enhancedFrom?: string) => {
     // Process agent deliverable creation/update
@@ -846,6 +889,8 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     setCurrentVersion,
     deleteVersion,
     rerunWithDifferentLLM,
+    enhanceVersion,
+    copyVersion,
     loadCurrentVersion,
     // Additional methods for compatibility
     processAgentDeliverable,

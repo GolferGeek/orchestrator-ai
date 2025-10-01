@@ -620,6 +620,10 @@ const selectDeliverable = async (deliverable: any) => {
   // Always open the work product pane when a deliverable is selected
   showWorkProductPane.value = true;
   showDeliverableSelector.value = false;
+  try {
+    // Set enhancement context so user composer enhancements route to versioning
+    await deliverablesStore.startEnhancement(deliverable.id);
+  } catch (_) {}
 };
 const handleDeliverableCreated = async (deliverable: any) => {
   // Use the correct camelCase field name
