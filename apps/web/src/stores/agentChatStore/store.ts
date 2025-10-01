@@ -24,6 +24,8 @@ import { taskExecution } from './taskExecution';
 import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
 import analyticsService from '@/services/analyticsService';
+import approvalsService from '@/services/approvalsService';
+import { useAuthStore } from '@/stores/authStore';
 import type {
   AgentStreamChunkEvent,
   AgentStreamCompleteEvent,
@@ -745,14 +747,39 @@ export const useAgentChatStore = defineStore('agentChat', {
         };
         activeConversation.messages.push(userMessage);
         this.setChatMode(pending.type);
-        // Try to approve pending human gate if an approvalId exists on the last assistant message
+        // Try approve-and-continue if a human gate approvalId exists
         try {
           const lastAssistant = [...activeConversation.messages].reverse().find(m => m.role === 'assistant' && m.metadata?.approvalId);
-          const approvalId = lastAssistant?.metadata?.approvalId;
+          const approvalId = lastAssistant?.metadata?.approvalId as string | undefined;
           if (approvalId) {
-            await (await import('@/services/apiService')).apiService.post(`/agent-approvals/${approvalId}/approve`);
+            const auth = useAuthStore();
+            const orgSlug = auth.currentNamespace || null;
+            const agentSlug = activeConversation.agent.name;
+            // Attempt to approve and continue with streaming enabled
+            const response = await approvalsService.approveAndContinue(orgSlug, agentSlug, approvalId, { options: { stream: true } });
+            const streamId = response?.payload?.metadata?.streamId;
+            if (streamId) {
+              await this.startStreamSubscription(activeConversation, streamId, 'Continuing build…');
+            } else if (response?.payload?.content) {
+              // Fallback: append a simple assistant message with returned content
+              const content = typeof response.payload.content === 'string'
+                ? response.payload.content
+                : (response.payload.content.output || response.payload.content.message || JSON.stringify(response.payload.content));
+              activeConversation.messages.push({
+                id: `assistant-${Date.now()}`,
+                role: 'assistant',
+                content: String(content),
+                timestamp: new Date(),
+                metadata: { ...(response.payload.metadata || {}), approvalId },
+              });
+            }
+            // Clear pending action since we handled approval
+            this.clearPendingAction();
+            return; // Skip legacy execution path
           }
-        } catch (_) {}
+        } catch (e) {
+          console.warn('Approval continue failed; falling back to legacy execution path', e);
+        }
         // Track natural acceptance
         analyticsService.trackEvent({
           eventType: 'ui',

@@ -32,7 +32,16 @@ export const approvalsService = {
     const res = await apiService.post(`/agent-approvals/${id}/reject`);
     return res?.data ?? res;
   },
+  async approveAndContinue(
+    orgSlug: string | null | undefined,
+    agentSlug: string,
+    id: string,
+    body?: { options?: Record<string, any>; payload?: Record<string, any> },
+  ) {
+    const org = !orgSlug || orgSlug.trim().length === 0 ? 'global' : orgSlug;
+    const url = `/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(agentSlug)}/approvals/${encodeURIComponent(id)}/continue`;
+    return apiService.post(url, body ?? {});
+  },
 };
 
 export default approvalsService;
-
