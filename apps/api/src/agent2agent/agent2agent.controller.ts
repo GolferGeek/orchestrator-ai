@@ -133,6 +133,7 @@ export class Agent2AgentController {
     }
   }
 
+
   private async normalizeTaskRequest(
     payload: any,
   ): Promise<NormalizedTaskRequest> {

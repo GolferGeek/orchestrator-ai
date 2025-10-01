@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
+import { AgentRuntimeMetricsService } from '@agent-platform/services/agent-runtime-metrics.service';
 
 export interface AgentCardOptions {
   includePrivateFields?: boolean;
@@ -15,6 +16,7 @@ export class AgentCardBuilderService {
   constructor(
     private readonly agentRegistry: AgentRegistryService,
     private readonly configService: ConfigService,
+    private readonly metricsService: AgentRuntimeMetricsService,
   ) {}
 
   async build(
@@ -35,6 +37,28 @@ export class AgentCardBuilderService {
     const combined = agent.agent_card
       ? this.mergeCards(agent.agent_card, specCard)
       : specCard;
+
+    // When private fields are explicitly requested, attach safe metrics into metadata
+    if (options.includePrivateFields === true) {
+      try {
+        const apiSnap = this.metricsService.snapshot('api', agent.slug);
+        const extSnap = this.metricsService.snapshot('external', agent.slug);
+        const metrics = {
+          api: apiSnap[`api:${agent.slug}`] ?? null,
+          external: extSnap[`external:${agent.slug}`] ?? null,
+        };
+        combined.metadata = {
+          ...(combined.metadata || {}),
+          operations: {
+            ...(combined.metadata?.operations || {}),
+            // Provide a stable location for ops metrics; safe numeric summaries only
+            metrics,
+          },
+        };
+      } catch (_e) {
+        // ignore metrics errors for card composition
+      }
+    }
 
     return options.includePrivateFields === false
       ? this.stripPrivateFields(combined)
