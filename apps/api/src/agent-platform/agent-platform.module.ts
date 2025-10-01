@@ -22,13 +22,17 @@ import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-delive
 import { DeliverablesModule } from '@/deliverables/deliverables.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
+import { HumanApprovalsRepository } from './repositories/human-approvals.repository';
 import { RedactionPatternsRepository } from './repositories/redaction-patterns.repository';
+import { AgentApprovalsController } from './controllers/agent-approvals.controller';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule],
+  controllers: [AgentApprovalsController],
   providers: [
     AgentsRepository,
     RedactionPatternsRepository,
+    HumanApprovalsRepository,
     ConversationPlansRepository,
     OrchestrationRunsRepository,
     OrganizationCredentialsRepository,
@@ -51,6 +55,7 @@ import { RedactionPatternsRepository } from './repositories/redaction-patterns.r
   exports: [
     AgentsRepository,
     RedactionPatternsRepository,
+    HumanApprovalsRepository,
     ConversationPlansRepository,
     OrchestrationRunsRepository,
     OrganizationCredentialsRepository,

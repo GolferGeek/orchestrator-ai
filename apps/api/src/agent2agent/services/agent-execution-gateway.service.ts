@@ -69,7 +69,16 @@ export class AgentExecutionGateway {
       return unsupported;
     }
 
-    const gated = this.checkHumanGate(definition, request.mode);
+    const gated = await this.checkHumanGate(
+      definition,
+      request.mode,
+      {
+        organizationSlug,
+        agentSlug: agent.slug,
+        conversationId: request.conversationId ?? null,
+        taskId: undefined,
+      },
+    );
     if (gated) {
       return gated;
     }

@@ -745,6 +745,14 @@ export const useAgentChatStore = defineStore('agentChat', {
         };
         activeConversation.messages.push(userMessage);
         this.setChatMode(pending.type);
+        // Try to approve pending human gate if an approvalId exists on the last assistant message
+        try {
+          const lastAssistant = [...activeConversation.messages].reverse().find(m => m.role === 'assistant' && m.metadata?.approvalId);
+          const approvalId = lastAssistant?.metadata?.approvalId;
+          if (approvalId) {
+            await (await import('@/services/apiService')).apiService.post(`/agent-approvals/${approvalId}/approve`);
+          }
+        } catch (_) {}
         // Track natural acceptance
         analyticsService.trackEvent({
           eventType: 'ui',
