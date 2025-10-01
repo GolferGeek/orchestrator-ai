@@ -142,7 +142,7 @@ export class AgentRuntimeNormalizationService {
     const m = re.exec(text);
     if (!m) return null;
     try {
-      return JSON.parse(m[1]);
+      return JSON.parse(m[1] || '');
     } catch {
       return null;
     }
@@ -167,11 +167,13 @@ export class AgentRuntimeNormalizationService {
       .map((l) => l.trim())
       .filter(Boolean);
     if (lines.length < 2) return null;
-    const headers = this.splitCsvLine(lines[0]);
+    const headerLine = lines[0] as string;
+    const headers = this.splitCsvLine(headerLine);
     if (!headers.length) return null;
     const rows: any[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const cols = this.splitCsvLine(lines[i]);
+      const line = lines[i] as string;
+      const cols = this.splitCsvLine(line);
       const obj: Record<string, any> = {};
       headers.forEach((h, idx) => (obj[h] = cols[idx] ?? null));
       rows.push(obj);

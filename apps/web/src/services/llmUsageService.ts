@@ -19,6 +19,7 @@ export interface LlmUsageRecord {
   model_name: string;
   is_local: boolean;
   model_tier: string | null;
+  route?: 'local' | 'remote' | null;
   fallback_used: boolean;
   routing_reason: string | null;
   complexity_level: string | null;

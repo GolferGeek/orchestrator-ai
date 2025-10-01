@@ -58,11 +58,10 @@ export class AgentRuntimeMetricsService {
       const durations = samples.map((s) => s.durationMs).sort((a, b) => a - b);
       const avgMs = durations.reduce((a, b) => a + b, 0) / (durations.length || 1);
       const p95Index = Math.max(0, Math.floor(durations.length * 0.95) - 1);
-      const p95Ms = durations.length ? durations[p95Index] : 0;
+      const p95Ms = durations.length ? (durations[p95Index] ?? 0) : 0;
       const lastStatus = samples[samples.length - 1]?.status;
       out[k] = { total, failures, avgMs, p95Ms, lastStatus };
     }
     return out;
   }
 }
-

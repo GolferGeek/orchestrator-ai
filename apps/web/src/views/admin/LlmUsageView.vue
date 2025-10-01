@@ -97,6 +97,46 @@
               </ion-card-content>
             </ion-card>
 
+            <!-- Route Split (Local vs Remote) -->
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon :icon="barChartOutline" />
+                  Route Split (Local vs Remote)
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-grid>
+                  <ion-row>
+                    <ion-col size="12" size-md="6">
+                      <div class="route-stat">
+                        <div class="route-label">
+                          <ion-chip color="success" outline>Local</ion-chip>
+                        </div>
+                        <div class="route-values">
+                          <span class="route-count">{{ routeSplit.local }}</span>
+                          <span class="route-percent">({{ routeSplit.localPercent }}%)</span>
+                        </div>
+                        <ion-progress-bar color="success" :value="routeSplit.localPercent / 100" />
+                      </div>
+                    </ion-col>
+                    <ion-col size="12" size-md="6">
+                      <div class="route-stat">
+                        <div class="route-label">
+                          <ion-chip color="tertiary" outline>Remote</ion-chip>
+                        </div>
+                        <div class="route-values">
+                          <span class="route-count">{{ routeSplit.remote }}</span>
+                          <span class="route-percent">({{ routeSplit.remotePercent }}%)</span>
+                        </div>
+                        <ion-progress-bar color="tertiary" :value="routeSplit.remotePercent / 100" />
+                      </div>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
+              </ion-card-content>
+            </ion-card>
+
             <!-- Recent Activity -->
             <ion-card>
               <ion-card-header>
@@ -326,6 +366,16 @@ const recentRecords = computed(() => {
     .slice(0, 5);
 });
 
+const routeSplit = computed(() => {
+  const records = usageRecords.value || [];
+  const total = records.length || 0;
+  const local = records.filter((r: any) => (r.route ? r.route === 'local' : r.is_local)).length;
+  const remote = total - local;
+  const localPercent = total ? Math.round((local / total) * 100) : 0;
+  const remotePercent = total ? 100 - localPercent : 0;
+  return { total, local, remote, localPercent, remotePercent };
+});
+
 // Methods
 const onTabChange = (event: CustomEvent) => {
   selectedTab.value = event.detail.value;
@@ -437,6 +487,27 @@ onUnmounted(() => {
 .quick-stat {
   text-align: center;
   padding: 8px;
+}
+
+.route-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.route-label {
+  font-weight: 600;
+}
+.route-values {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.route-count {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.route-percent {
+  color: var(--ion-color-medium);
 }
 
 .stat-value {
