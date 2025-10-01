@@ -75,6 +75,7 @@ describe('AgentModeRouterService', () => {
   let dispatcher: jest.Mocked<AgentRuntimeDispatchService>;
   let streamService: jest.Mocked<AgentRuntimeStreamService>;
   let definition: AgentRuntimeDefinition;
+  let lifecycle: { start: jest.Mock; progress: jest.Mock; complete: jest.Mock; fail: jest.Mock };
   let service: AgentModeRouterService;
 
   beforeEach(() => {
@@ -196,12 +197,20 @@ describe('AgentModeRouterService', () => {
       buildDefinition: jest.fn().mockReturnValue(definition),
     } as unknown as jest.Mocked<AgentRuntimeDefinitionService>;
 
+    lifecycle = {
+      start: jest.fn(),
+      progress: jest.fn(),
+      complete: jest.fn(),
+      fail: jest.fn(),
+    };
+
     service = new AgentModeRouterService(
       agentRegistry,
       runtimeDefinitions,
       promptBuilder,
       dispatcher,
       streamService,
+      lifecycle as any,
     );
   });
 

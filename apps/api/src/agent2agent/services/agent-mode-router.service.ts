@@ -9,6 +9,7 @@ import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agen
 import { AgentRuntimePromptService, PromptPayload } from '@agent-platform/services/agent-runtime-prompt.service';
 import { AgentRuntimeDispatchService } from '@agent-platform/services/agent-runtime-dispatch.service';
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
+import { AgentRuntimeLifecycleService } from '@agent-platform/services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDispatchResult } from '@agent-platform/services/agent-runtime-dispatch.service';
 
 export interface AgentExecutionContext {
@@ -37,6 +38,7 @@ export class AgentModeRouterService {
     private readonly promptBuilder: AgentRuntimePromptService,
     private readonly dispatcher: AgentRuntimeDispatchService,
     private readonly streamService: AgentRuntimeStreamService,
+    private readonly lifecycle: AgentRuntimeLifecycleService,
   ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
@@ -85,12 +87,14 @@ export class AgentModeRouterService {
     });
 
     try {
+      this.lifecycle.start(this.toLifecycleCtx(context));
       const { response, streamId } = await this.generateLlmResponse(
         context,
         decision,
         prompt,
         AgentTaskMode.CONVERSE,
       );
+      this.lifecycle.complete(this.toLifecycleCtx(context), { message: response.content });
       if (this.isErrorResponse(response)) {
         return TaskResponseDto.failure(
           AgentTaskMode.CONVERSE,
@@ -112,6 +116,10 @@ export class AgentModeRouterService {
     } catch (error) {
       this.logger.error(
         `Failed to generate converse response for agent ${context.agent.slug}: ${String(error)}`,
+      );
+      this.lifecycle.fail(
+        this.toLifecycleCtx(context),
+        error instanceof Error ? error.message : String(error),
       );
       return TaskResponseDto.failure(
         AgentTaskMode.CONVERSE,
@@ -137,12 +145,14 @@ export class AgentModeRouterService {
     });
 
     try {
+      this.lifecycle.start(this.toLifecycleCtx(context));
       const { response, streamId } = await this.generateLlmResponse(
         context,
         decision,
         prompt,
         AgentTaskMode.BUILD,
       );
+      this.lifecycle.complete(this.toLifecycleCtx(context), { output: response.content });
       if (this.isErrorResponse(response)) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
@@ -165,6 +175,10 @@ export class AgentModeRouterService {
     } catch (error) {
       this.logger.error(
         `Failed to generate build response for agent ${context.agent.slug}: ${String(error)}`,
+      );
+      this.lifecycle.fail(
+        this.toLifecycleCtx(context),
+        error instanceof Error ? error.message : String(error),
       );
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
@@ -342,5 +356,15 @@ export class AgentModeRouterService {
       agent: agentRecord,
       definition,
     };
+  }
+
+  private toLifecycleCtx(context: HydratedExecutionContext) {
+    return {
+      conversationId: context.request.conversationId,
+      sessionId: context.request.sessionId,
+      organizationSlug: context.organizationSlug,
+      agentSlug: context.agent.slug,
+      mode: context.request.mode,
+    } as const;
   }
 }
