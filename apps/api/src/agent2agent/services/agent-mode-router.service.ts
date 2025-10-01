@@ -240,6 +240,9 @@ export class AgentModeRouterService {
       } else if (created?.kind === 'version' && created.version) {
         successPayload.metadata.deliverableId = created.deliverableId;
         successPayload.metadata.newVersionId = created.version.id;
+        if (typeof created.version.version_number === 'number') {
+          successPayload.metadata.versionNumber = created.version.version_number;
+        }
       }
 
       return TaskResponseDto.success(AgentTaskMode.BUILD, successPayload);

@@ -39,6 +39,9 @@ Owner: Codex with Matt
 - M3.3: PII/pseudonymization integrated in dispatch + logs
 - M3.4: Human-in-the-loop gates + approvals
 
+## Phase 4 (Preview)
+- P4.1: Image Deliverables MVP — see `docs/feature/matt/phase-4-image-deliverables-kickoff.md`
+
 ## Success Criteria
 - End-to-end parity scenarios pass on DB runtime without legacy base services
 - Deliverables create + version reliably; errors are structured and discoverable

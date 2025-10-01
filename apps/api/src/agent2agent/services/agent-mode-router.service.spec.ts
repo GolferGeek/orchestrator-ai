@@ -76,6 +76,7 @@ describe('AgentModeRouterService', () => {
   let streamService: jest.Mocked<AgentRuntimeStreamService>;
   let definition: AgentRuntimeDefinition;
   let lifecycle: { start: jest.Mock; progress: jest.Mock; complete: jest.Mock; fail: jest.Mock };
+  let deliverables: { maybeCreateFromBuild: jest.Mock };
   let service: AgentModeRouterService;
 
   beforeEach(() => {
@@ -203,6 +204,7 @@ describe('AgentModeRouterService', () => {
       complete: jest.fn(),
       fail: jest.fn(),
     };
+    deliverables = { maybeCreateFromBuild: jest.fn().mockResolvedValue(null) } as any;
 
     service = new AgentModeRouterService(
       agentRegistry,
@@ -211,6 +213,7 @@ describe('AgentModeRouterService', () => {
       dispatcher,
       streamService,
       lifecycle as any,
+      deliverables as any,
     );
   });
 
@@ -285,6 +288,8 @@ describe('AgentModeRouterService', () => {
       createDispatchResult('Build output'),
     );
 
+    // Simulate deliverable created
+    deliverables.maybeCreateFromBuild.mockResolvedValueOnce({ kind: 'deliverable', deliverable: { id: 'd1' } });
     const result = await service.execute(
       buildContext(
         {
@@ -305,6 +310,23 @@ describe('AgentModeRouterService', () => {
     expect(result.success).toBe(true);
     expect(result.payload?.content?.status).toBe('build_completed');
     expect(result.payload?.content?.output).toBe('Build output');
+    expect(result.payload?.deliverables?.[0]?.id).toBe('d1');
+  });
+
+  it('attaches version metadata when enhancement path returns version', async () => {
+    deliverables.maybeCreateFromBuild.mockResolvedValueOnce({ kind: 'version', deliverableId: 'deliv-1', version: { id: 'v2' } });
+    const result = await service.execute(
+      buildContext(
+        {
+          mode: AgentTaskMode.BUILD,
+          userMessage: 'Enhance',
+          payload: { options: { stream: false } },
+        },
+        routingDecision,
+      ),
+    );
+    expect(result.payload?.metadata?.deliverableId).toBe('deliv-1');
+    expect(result.payload?.metadata?.newVersionId).toBe('v2');
   });
 
   it('returns failure when dispatcher returns error metadata for converse', async () => {

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { load as yamlLoad } from 'js-yaml';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
 import { AgentTaskMode, TaskRequestDto } from '@agent2agent/dto/task-request.dto';
 
@@ -102,17 +103,24 @@ export class AgentRuntimeNormalizationService {
       return clone;
     }
 
-    // Markdown -> JSON (extract fenced JSON)
+    // Markdown/Text -> JSON (extract fenced JSON, YAML, or CSV)
     if (provided?.startsWith('text/') && expected === 'application/json') {
-      const extracted = this.extractFencedJson(request.userMessage || '');
+      const text = request.userMessage || '';
+      // Try fenced JSON first
+      const extracted = this.extractFencedJson(text);
       if (extracted) {
-        const clone: TaskRequestDto = {
-          ...request,
-          payload: { ...(request.payload || {}), normalized: extracted },
-        };
-        return clone;
+        return this.attachNormalizedJson(request, extracted);
       }
-      // no adapter, cannot adapt
+      // Try YAML
+      const yamlObj = this.tryParseYaml(text);
+      if (yamlObj) {
+        return this.attachNormalizedJson(request, yamlObj);
+      }
+      // Try CSV
+      const csvObj = this.tryParseCsv(text);
+      if (csvObj) {
+        return this.attachNormalizedJson(request, csvObj);
+      }
       return null;
     }
 
@@ -140,6 +148,69 @@ export class AgentRuntimeNormalizationService {
     }
   }
 
+  private tryParseYaml(text: string): any | null {
+    // Heuristic: contains ':' pairs or starts with '-'
+    if (!text || (!text.includes(':') && !/^\s*-\s/m.test(text))) return null;
+    try {
+      const obj = yamlLoad(text);
+      if (obj && typeof obj === 'object') return obj as any;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private tryParseCsv(text: string): any[] | null {
+    if (!text || !text.includes(',')) return null;
+    const lines = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length < 2) return null;
+    const headers = this.splitCsvLine(lines[0]);
+    if (!headers.length) return null;
+    const rows: any[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = this.splitCsvLine(lines[i]);
+      const obj: Record<string, any> = {};
+      headers.forEach((h, idx) => (obj[h] = cols[idx] ?? null));
+      rows.push(obj);
+    }
+    return rows;
+  }
+
+  private splitCsvLine(line: string): string[] {
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === ',' && !inQuotes) {
+        out.push(cur);
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+  }
+
+  private attachNormalizedJson(request: TaskRequestDto, obj: any): TaskRequestDto {
+    const clone: TaskRequestDto = {
+      ...request,
+      payload: { ...(request.payload || {}), normalized: obj },
+    };
+    return clone;
+  }
+
   private safeStringify(obj: any): string {
     try {
       return JSON.stringify(obj, null, 2);
@@ -161,4 +232,3 @@ export class AgentRuntimeNormalizationService {
     }
   }
 }
-

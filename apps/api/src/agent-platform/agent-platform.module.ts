@@ -21,6 +21,7 @@ import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle
 import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-deliverables.adapter';
 import { DeliverablesModule } from '@/deliverables/deliverables.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
+import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule],
@@ -43,6 +44,7 @@ import { AgentRuntimeNormalizationService } from './services/agent-runtime-norma
     AgentRuntimeLifecycleService,
     AgentRuntimeDeliverablesAdapter,
     AgentRuntimeNormalizationService,
+    AgentRuntimeRedactionService,
   ],
   exports: [
     AgentsRepository,
@@ -63,6 +65,7 @@ import { AgentRuntimeNormalizationService } from './services/agent-runtime-norma
     AgentRuntimeLifecycleService,
     AgentRuntimeDeliverablesAdapter,
     AgentRuntimeNormalizationService,
+    AgentRuntimeRedactionService,
   ],
 })
 export class AgentPlatformModule {}
