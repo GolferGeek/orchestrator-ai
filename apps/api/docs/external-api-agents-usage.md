@@ -33,10 +33,12 @@ X-Agent-Api-Key: <your-api-key>
 
 What reaches your n8n webhook
 - If the agent YAML has `request_transform` with `template: '{"sessionId": "{{sessionId}}", "prompt": "{{userMessage}}"}'`, we render that exactly and send it.
+- Template variables available: `{{userMessage}}`, `{{prompt}}`, `{{sessionId}}`, `{{conversationId}}`, `{{agentSlug}}`, `{{organizationSlug}}`.
 - Otherwise, we send the minimal default body: `{ "prompt": "Tell me a quick productivity joke" }`.
 
 Response handling
 - If the agent YAML has `response_transform` with `format: field_extraction` and `field: output`, we return just that field as `payload.content`.
+- Supports dotted/bracket paths (e.g., `data.items[0].text`). If the value isn’t a string, we JSON-stringify it.
 - Otherwise, we stringify the response payload.
 
 Response envelope (from our API)

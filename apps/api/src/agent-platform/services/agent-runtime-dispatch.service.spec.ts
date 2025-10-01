@@ -139,6 +139,44 @@ describe('AgentRuntimeDispatchService (API/external minimal)', () => {
     expect(result.response.content).toBe('A funny line');
   });
 
+  it('supports dotted field extraction from nested payload', async () => {
+    const called: any[] = [];
+    const axios = {
+      request: jest.fn(async (args: any) => {
+        called.push(args);
+        return { status: 200, headers: {}, data: { result: { data: { output: 'Nested OK' } } } };
+      }),
+    };
+    const service = makeService(axios);
+
+    const definition = baseDefinition({
+      endpoint: 'https://example.test/webhook',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 1000,
+      responseTransform: {
+        format: 'field_extraction',
+        field: 'data.output',
+      },
+    });
+
+    const prompt = {
+      systemPrompt: 'system',
+      userMessage: 'go',
+      metadata: {},
+      optionMetadata: {},
+    };
+
+    const result = await service.dispatch({
+      definition,
+      routingDecision: baseRouting,
+      prompt,
+      request: baseRequest(),
+    });
+
+    expect(result.response.content).toBe('Nested OK');
+  });
+
   it('forwards JSON-RPC to external agents and unwraps result', async () => {
     const called: any[] = [];
     const axios = {

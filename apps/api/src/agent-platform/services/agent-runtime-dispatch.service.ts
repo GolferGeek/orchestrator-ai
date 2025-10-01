@@ -645,6 +645,9 @@ export class AgentRuntimeDispatchService {
     const t = api?.requestTransform;
     const sessionId = options.request.sessionId ?? options.request.conversationId ?? null;
     const userMessage = options.prompt.userMessage ?? '';
+    const conversationId = options.request.conversationId ?? null;
+    const agentSlug = options.definition.slug;
+    const organizationSlug = options.definition.organizationSlug ?? null;
 
     if (t && t.format === 'custom' && typeof t.template === 'string') {
       try {
@@ -655,6 +658,12 @@ export class AgentRuntimeDispatchService {
               return userMessage;
             case 'sessionId':
               return String(sessionId ?? '');
+            case 'conversationId':
+              return String(conversationId ?? '');
+            case 'agentSlug':
+              return String(agentSlug ?? '');
+            case 'organizationSlug':
+              return String(organizationSlug ?? '');
             default:
               return '';
           }
@@ -681,15 +690,37 @@ export class AgentRuntimeDispatchService {
     const rt = api?.responseTransform;
     if (rt && rt.format === 'field_extraction' && rt.field) {
       try {
-        if (data && typeof data === 'object' && rt.field in data) {
-          const value = (data as any)[rt.field];
-          return typeof value === 'string' ? value : this.stringifyContent(value);
+        // Support dotted/bracket paths like "a.b[0].c"
+        const tryExtract = (obj: any, path: string): any => {
+          if (!obj || typeof obj !== 'object') return undefined;
+          // direct field hit
+          if (Object.prototype.hasOwnProperty.call(obj, path)) {
+            return obj[path];
+          }
+          // dotted/bracket notation
+          const parts: Array<string|number> = [];
+          const re = /([^\.\[\]]+)|(\[(\d+)\])/g;
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(path))) {
+            if (m[1]) parts.push(m[1]);
+            else if (m[3]) parts.push(parseInt(m[3], 10));
+          }
+          let cur: any = obj;
+          for (const p of parts) {
+            if (cur == null) return undefined;
+            cur = typeof p === 'number' ? cur[p] : cur[p];
+          }
+          return cur;
+        };
+
+        const fromRoot = tryExtract(data, rt.field);
+        if (fromRoot !== undefined) {
+          return typeof fromRoot === 'string' ? fromRoot : this.stringifyContent(fromRoot);
         }
-        // Also check nested result wrappers
-        if (data && typeof data === 'object' && data.result && typeof data.result === 'object') {
-          const inner = (data.result as any)[rt.field];
-          if (inner !== undefined) {
-            return typeof inner === 'string' ? inner : this.stringifyContent(inner);
+        if (data && typeof data === 'object' && data.result) {
+          const fromResult = tryExtract(data.result, rt.field);
+          if (fromResult !== undefined) {
+            return typeof fromResult === 'string' ? fromResult : this.stringifyContent(fromResult);
           }
         }
       } catch {
