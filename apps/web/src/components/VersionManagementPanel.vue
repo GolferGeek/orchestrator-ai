@@ -280,7 +280,16 @@ const copySpecificVersion = async (versionId: string) => {
   try {
     const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
     const store = useDeliverablesStore();
-    await store.copyVersion(versionId);
+    const newVersion = await store.copyVersion(versionId);
+    try {
+      const { toastController } = await import('@ionic/vue');
+      const oldNum = getVersionNumber(versionId);
+      const msg = oldNum
+        ? `Copied v${oldNum} → v${newVersion.versionNumber}`
+        : `Copied to v${newVersion.versionNumber}`;
+      const toast = await toastController.create({ message: msg, duration: 2000, color: 'success' });
+      await toast.present();
+    } catch (_) {}
   } catch (e) {
     console.warn('Failed to copy version', e);
   }

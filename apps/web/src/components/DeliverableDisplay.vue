@@ -70,7 +70,7 @@
       </div>
     </div>
     <!-- Version Navigation (always visible) -->
-    <div class="version-section">
+  <div class="version-section">
       <div class="version-info">
         <span class="version-label">
           Version {{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}
@@ -108,6 +108,9 @@
         >
           <ion-icon :icon="chevronForwardOutline" />
         </ion-button>
+        <ion-chip v-if="previousVersion" :color="showDiff ? 'primary' : 'medium'" outline @click="showDiff = !showDiff" style="margin-left:8px;">
+          {{ showDiff ? 'Hide Changes' : 'View Changes vs Previous' }}
+        </ion-chip>
       </div>
     </div>
     <!-- Version History Timeline -->
@@ -310,6 +313,15 @@
       </div>
       <!-- Read-Only Mode -->
       <div v-else class="content-display" :class="`format-${displayVersion?.format || 'text'}`">
+        <template v-if="showDiff && previousVersion">
+          <div class="diff-view">
+            <div v-for="(line, idx) in diffLines" :key="idx" :class="['diff-line', `diff-${line.type}`]">
+              <span class="diff-prefix">{{ line.type === 'add' ? '+' : line.type === 'del' ? '-' : ' ' }}</span>
+              <span class="diff-text">{{ line.text }}</span>
+            </div>
+          </div>
+        </template>
+        <template v-else>
         <!-- Markdown Content -->
         <div 
           v-if="displayVersion?.format === 'markdown'"
@@ -332,6 +344,7 @@
           v-else
           class="text-content"
         >{{ displayVersion?.content || '' }}</div>
+        </template>
       </div>
     </div>
     <!-- Compact Footer -->
@@ -483,6 +496,7 @@ const displayTitle = computed(() => {
 // Reactive state
 const showVersionHistory = ref(false);
 const showVersionManagement = ref(false);
+const showDiff = ref(false);
 const showVersionControls = ref(true);
 const showActionsMenu = ref(false);
 const showFooterMenu = ref(false);
@@ -512,6 +526,12 @@ const displayVersion = computed(() => {
   if (selectedVersion.value) return selectedVersion.value;
   const list = [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
   return list[0] || currentVersion.value;
+});
+const previousVersion = computed(() => {
+  const list = [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
+  if (!displayVersion.value) return null;
+  const idx = list.findIndex(v => v.id === displayVersion.value!.id);
+  return idx >= 0 && idx + 1 < list.length ? list[idx + 1] : null;
 });
 const sortedVersions = computed(() => {
   return [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
@@ -557,6 +577,25 @@ const renderedMarkdown = computed(() => {
     // Return raw content as fallback
     return displayVersion.value.content || '';
   }
+});
+
+// Simple line-by-line diff for markdown/text
+const diffLines = computed(() => {
+  if (!showDiff.value) return [] as Array<{ type: 'same' | 'add' | 'del'; text: string }>;
+  const curr = (displayVersion.value?.content || '').split('\n');
+  const prev = (previousVersion.value?.content || '').split('\n');
+  const maxLen = Math.max(curr.length, prev.length);
+  const out: Array<{ type: 'same' | 'add' | 'del'; text: string }> = [];
+  for (let i = 0; i < maxLen; i++) {
+    const a = curr[i] ?? '';
+    const b = prev[i] ?? '';
+    if (a === b) out.push({ type: 'same', text: a });
+    else {
+      if (b) out.push({ type: 'del', text: b });
+      if (a) out.push({ type: 'add', text: a });
+    }
+  }
+  return out;
 });
 const sanitizedHtml = computed(() => {
   if (displayVersion.value?.format !== 'html') return '';
@@ -1259,6 +1298,21 @@ watch(() => props.deliverable?.id, async () => {
   border-radius: 4px;
   font-family: 'Courier New', monospace;
 }
+
+/* Simple diff styling */
+.diff-view {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  background: var(--ion-color-light);
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.diff-line { display: flex; gap: 8px; white-space: pre-wrap; }
+.diff-prefix { width: 1em; display: inline-block; }
+.diff-same { color: var(--ion-color-dark); }
+.diff-add { color: #0a7a0a; background: rgba(14, 159, 110, 0.08); }
+.diff-del { color: #933; background: rgba(220, 53, 69, 0.08); text-decoration: line-through; }
 .markdown-content :deep(blockquote) {
   border-left: 4px solid var(--ion-color-primary);
   padding-left: 16px;

@@ -327,7 +327,14 @@ const formattedTimestamp = computed(() => {
 // Enhancement undo CTA bindings
 const enhancedDeliverableId = computed(() => props.message.metadata?.enhancedDeliverableId || null);
 const enhancedFromVersionId = computed(() => props.message.metadata?.enhancedFromVersionId || null);
-const showUndoEnhancement = computed(() => !!(enhancedDeliverableId.value && enhancedFromVersionId.value));
+const showUndoEnhancement = computed(() => {
+  const dId = enhancedDeliverableId.value;
+  const prevId = enhancedFromVersionId.value;
+  if (!dId || !prevId) return false;
+  const current = deliverablesStore.getCurrentVersion(dId);
+  if (current?.id === prevId) return false; // gate: previous already current
+  return true;
+});
 const undoEnhancement = async () => {
   try {
     if (!enhancedFromVersionId.value) return;
