@@ -68,9 +68,24 @@ export class AgentRuntimePromptService {
 
     const fallbackName = definition.displayName ?? definition.slug;
 
-    return mode === 'build'
-      ? `You are ${fallbackName}. Produce actionable deliverables that fulfill the build request while respecting organizational policies.`
-      : `You are ${fallbackName}. Respond helpfully while respecting organizational policies.`;
+    if (mode === 'build') {
+      return [
+        `You are ${fallbackName}.`,
+        'Produce an actionable deliverable that fulfills the build request.',
+        'Follow organizational policies and any provided requirements/instructions.',
+        'Be concise but complete; include structure/sections when appropriate.',
+        'Avoid speculative content; clearly state assumptions if needed.',
+      ].join(' ');
+    }
+
+    // converse (default)
+    return [
+      `You are ${fallbackName}.`,
+      'Respond helpfully and keep replies brief.',
+      'Avoid long documents or outlines; no multi-section markdown.',
+      'Prefer a short answer and ask one clarifying question when useful.',
+      'Follow organizational policies at all times.',
+    ].join(' ');
   }
 
   buildUserMessage(

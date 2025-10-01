@@ -63,6 +63,17 @@ export class AgentExecutionGateway {
       );
     }
 
+    // Enforce execution capabilities + human gate before routing
+    const unsupported = this.checkUnsupportedMode(definition, request.mode);
+    if (unsupported) {
+      return unsupported;
+    }
+
+    const gated = this.checkHumanGate(definition, request.mode);
+    if (gated) {
+      return gated;
+    }
+
     switch (request.mode) {
       case AgentTaskMode.CONVERSE:
         return this.modeRouter.execute({
@@ -188,6 +199,41 @@ export class AgentExecutionGateway {
       default:
         return TaskResponseDto.failure(request.mode, 'Unsupported mode');
     }
+  }
+
+  private checkUnsupportedMode(
+    definition: AgentRuntimeDefinition,
+    mode: AgentTaskMode,
+  ): TaskResponseDto | null {
+    const exec = definition.execution;
+    switch (mode) {
+      case AgentTaskMode.CONVERSE:
+        return exec.canConverse ? null : TaskResponseDto.failure(mode, 'Mode not supported by agent');
+      case AgentTaskMode.PLAN:
+        return exec.canPlan ? null : TaskResponseDto.failure(mode, 'Mode not supported by agent');
+      case AgentTaskMode.BUILD:
+        return exec.canBuild ? null : TaskResponseDto.failure(mode, 'Mode not supported by agent');
+      default:
+        return null;
+    }
+  }
+
+  private checkHumanGate(
+    definition: AgentRuntimeDefinition,
+    mode: AgentTaskMode,
+  ): TaskResponseDto | null {
+    const exec = definition.execution;
+    if (!exec.requiresHumanGate) {
+      return null;
+    }
+
+    // For Phase 2, gate high-impact modes by default
+    if (mode === AgentTaskMode.BUILD) {
+      return TaskResponseDto.human('Manual confirmation required before build');
+    }
+
+    // Future: gate orchestration execution modes as needed
+    return null;
   }
 
   private async handlePlan(

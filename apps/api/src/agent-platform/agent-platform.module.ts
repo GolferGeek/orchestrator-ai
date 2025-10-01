@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { LLMModule } from '@/llms/llm.module';
 import { AgentsRepository } from './repositories/agents.repository';
@@ -16,7 +17,7 @@ import { AgentRuntimeDispatchService } from './services/agent-runtime-dispatch.s
 import { AgentRuntimeStreamService } from './services/agent-runtime-stream.service';
 
 @Module({
-  imports: [SupabaseModule, LLMModule],
+  imports: [SupabaseModule, LLMModule, HttpModule],
   providers: [
     AgentsRepository,
     ConversationPlansRepository,

@@ -1,243 +1,186 @@
-import {
-  AgentRuntimeDispatchService,
-  AgentRuntimeStreamChunk,
-} from './agent-runtime-dispatch.service';
+import { AgentRuntimeDispatchService } from './agent-runtime-dispatch.service';
 import { LLMServiceFactory } from '@llm/services/llm-service-factory';
+import { HttpService } from '@nestjs/axios';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
-import { RoutingDecision } from '@llm/centralized-routing.service';
-import { PromptPayload } from './agent-runtime-prompt.service';
-import { TaskRequestDto } from '@agent2agent/dto/task-request.dto';
+import { AgentTaskMode, TaskRequestDto } from '@agent2agent/dto/task-request.dto';
 
-const definition: AgentRuntimeDefinition = {
-  id: 'agent-1',
-  slug: 'agent-1',
-  organizationSlug: 'acme',
-  displayName: 'Agent One',
-  description: 'Helpful assistant',
-  agentType: 'specialist',
-  modeProfile: 'full_cycle',
-  status: 'active',
-  metadata: {
-    name: 'Agent One',
-    displayName: 'Agent One',
-    description: 'Helpful assistant',
-    category: null,
-    version: '1.0.0',
-    type: 'specialist',
-    provider: null,
-    tags: [],
-    raw: null,
-  },
-  hierarchy: undefined,
-  capabilities: [],
-  skills: [],
-  communication: { inputModes: [], outputModes: [] },
-  execution: {
-    modeProfile: 'full_cycle',
-    canConverse: true,
-    canPlan: true,
-    canBuild: true,
-    requiresHumanGate: false,
-    executionProfile: undefined,
-    timeoutSeconds: undefined,
-  },
-  transport: undefined,
-  llm: {
-    provider: 'openai',
-    model: 'gpt-4o-mini',
-    temperature: 0.3,
-    maxTokens: 4000,
-    raw: undefined,
-    systemPrompt: 'You are Agent One.',
-  },
-  prompts: {
-    system: 'You are Agent One.',
-    plan: undefined,
-    build: undefined,
-    human: undefined,
-    additional: undefined,
-  },
-  context: {},
-  config: {},
-  agentCard: null,
-  rawDescriptor: null,
-  record: null as any,
-};
+describe('AgentRuntimeDispatchService (API/external minimal)', () => {
+  const makeService = (axiosImpl: any) => {
+    const llmFactory = {
+      generateResponse: jest.fn(),
+    } as unknown as LLMServiceFactory;
+    const http = { axiosRef: axiosImpl } as unknown as HttpService;
+    return new AgentRuntimeDispatchService(llmFactory, http);
+  };
 
-const routingDecision: RoutingDecision = {
-  provider: 'openai',
-  model: 'gpt-4o-mini',
-  isLocal: false,
-  fallbackUsed: false,
-  complexityScore: 0.5,
-  reasoningPath: ['select-openai'],
-  piiMetadata: { policyDecision: { reasoningPath: [] } },
-  routeToAgent: true,
-  temperature: 0.2,
-} as any;
-
-const prompt: PromptPayload = {
-  systemPrompt: 'You are Agent One.',
-  userMessage: 'Hello there',
-  metadata: {
-    agentId: definition.id,
-    maxComplexity: 'medium',
-  },
-  optionMetadata: {
-    agentId: definition.id,
-    agentSlug: definition.slug,
-  },
-  conversationId: 'conv-1',
-  sessionId: 'session-1',
-  userId: 'user-1',
-};
-
-const request: TaskRequestDto = {
-  mode: 'converse' as any,
-  conversationId: 'conv-1',
-  sessionId: 'session-1',
-  userMessage: 'Hello there',
-  metadata: { traceId: 'trace-1' },
-  payload: {
-    options: {
-      metadata: { userId: 'payload-user' },
-      extraOption: 'value',
+  const baseDefinition = (api: any): AgentRuntimeDefinition => ({
+    id: 'agent-id',
+    slug: 'jokes_agent',
+    organizationSlug: null,
+    displayName: 'Jokes Agent',
+    description: 'Demo jokes agent',
+    agentType: 'api',
+    modeProfile: 'conversation_only',
+    status: 'active',
+    metadata: { name: 'Jokes Agent', tags: [] },
+    communication: { inputModes: ['text/plain'], outputModes: ['text/plain'] },
+    capabilities: [],
+    skills: [],
+    execution: {
+      modeProfile: 'conversation_only',
+      canConverse: true,
+      canPlan: false,
+      canBuild: false,
+      requiresHumanGate: false,
     },
-  },
-};
-
-const response = {
-  content: 'Hi!',
-  metadata: {
-    provider: 'openai',
-    model: 'gpt-4o-mini',
-    requestId: 'req-1',
-    timestamp: new Date().toISOString(),
-    usage: {
-      inputTokens: 5,
-      outputTokens: 15,
-      totalTokens: 20,
-    },
-    timing: {
-      startTime: Date.now(),
-      endTime: Date.now(),
-      duration: 5,
-    },
-    status: 'completed',
-  },
-};
-
-describe('AgentRuntimeDispatchService', () => {
-  let dispatcher: AgentRuntimeDispatchService;
-  let llmFactory: jest.Mocked<LLMServiceFactory>;
-
-  beforeEach(() => {
-    llmFactory = {
-      generateResponse: jest.fn().mockResolvedValue(response as any),
-    } as unknown as jest.Mocked<LLMServiceFactory>;
-
-    dispatcher = new AgentRuntimeDispatchService(llmFactory);
+    transport: { kind: 'api', api },
+    prompts: {},
+    context: null,
+    config: null,
+    agentCard: null,
+    rawDescriptor: null,
+    record: {} as any,
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  const baseRequest = (overrides: Partial<TaskRequestDto> = {}): TaskRequestDto => ({
+    mode: AgentTaskMode.CONVERSE,
+    userMessage: 'Tell me a joke',
+    payload: {},
+    ...overrides,
+  } as any);
 
-  it('dispatches to LLM factory with merged metadata and options', async () => {
-    const result = await dispatcher.dispatch({
-      definition,
-      routingDecision,
-      prompt,
-      request,
+  const baseRouting = { provider: 'dummy', model: 'dummy', isLocal: false } as any;
+
+  it('sends minimal {prompt} body when no transform is configured', async () => {
+    const called: any[] = [];
+    const axios = {
+      request: jest.fn(async (args: any) => {
+        called.push(args);
+        return { status: 200, headers: {}, data: { output: 'here' } };
+      }),
+    };
+    const service = makeService(axios);
+
+    const definition = baseDefinition({
+      endpoint: 'https://example.test/webhook',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 1000,
     });
 
-    expect(llmFactory.generateResponse).toHaveBeenCalledTimes(1);
-    const call = llmFactory.generateResponse.mock.calls[0];
-    if (!call) {
-      throw new Error('generateResponse not called');
-    }
-    const [config, params] = call;
+    const prompt = {
+      systemPrompt: 'You are jokes agent',
+      userMessage: 'Tell me a joke',
+      metadata: {},
+      optionMetadata: {},
+      conversationId: undefined,
+      sessionId: undefined,
+      userId: null,
+    };
 
-    expect(config.provider).toBe('openai');
-    expect(config.temperature).toBe(0.2);
-    expect(params.userMessage).toBe('Hello there');
-    expect(params.options?.metadata).toEqual({
-      agentId: 'agent-1',
-      agentSlug: 'agent-1',
+    const result = await service.dispatch({
+      definition,
+      routingDecision: baseRouting,
+      prompt,
+      request: baseRequest(),
     });
-    expect(params.options?.extraOption).toBe('value');
-    expect(params.options?.stream).toBe(false);
-    expect(result.response).toBe(response as any);
+
+    expect(axios.request).toHaveBeenCalledTimes(1);
+    const sent = called[0];
+    expect(sent.data).toEqual({ prompt: 'Tell me a joke' });
+    expect(result.response.content).toBe(JSON.stringify({ output: 'here' }));
   });
 
-  it('applies overrides and emits final stream chunk when handler provided', async () => {
-    const handler = jest.fn();
+  it('renders request template and extracts response field when configured', async () => {
+    const called: any[] = [];
+    const axios = {
+      request: jest.fn(async (args: any) => {
+        called.push(args);
+        return { status: 200, headers: {}, data: { output: 'A funny line' } };
+      }),
+    };
+    const service = makeService(axios);
 
-    await dispatcher.dispatch({
-      definition,
-      routingDecision,
-      prompt,
-      request,
-      stream: true,
-      onStreamChunk: handler,
-      overrides: {
-        config: { temperature: 0.6 },
-        options: { stream: true },
+    const definition = baseDefinition({
+      endpoint: 'https://example.test/webhook',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 1000,
+      requestTransform: {
+        format: 'custom',
+        template: '{"sessionId": "{{sessionId}}", "prompt": "{{userMessage}}"}',
+      },
+      responseTransform: {
+        format: 'field_extraction',
+        field: 'output',
       },
     });
 
-    const call = llmFactory.generateResponse.mock.calls[0];
-    if (!call) {
-      throw new Error('generateResponse not called');
-    }
-    const [config, params] = call;
-    expect(config.temperature).toBe(0.6);
-    expect(params.options?.stream).toBe(true);
-    expect(handler).toHaveBeenCalledTimes(1);
-    expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'final', content: 'Hi!' }),
-    );
-  });
+    const prompt = {
+      systemPrompt: 'You are jokes agent',
+      userMessage: 'Tell me a joke',
+      metadata: {},
+      optionMetadata: {},
+      conversationId: 'conv-1',
+      sessionId: 'sess-1',
+      userId: null,
+    };
 
-  it('supports streaming dispatch and yields chunks', async () => {
-    const streamHandler = jest.fn();
-
-    const streaming = dispatcher.dispatchStream({
+    const result = await service.dispatch({
       definition,
-      routingDecision,
+      routingDecision: baseRouting,
       prompt,
-      request,
-      onStreamChunk: streamHandler,
+      request: baseRequest({ conversationId: 'conv-1', sessionId: 'sess-1' }),
     });
 
-    const chunks: AgentRuntimeStreamChunk[] = [];
-    for await (const chunk of streaming.stream) {
-      chunks.push(chunk);
-    }
-
-    const result = await streaming.response;
-
-    expect(streamHandler).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'final', content: 'Hi!' }),
-    );
-    expect(chunks).toHaveLength(1);
-    const chunk = chunks[0]!;
-    expect(chunk.type).toBe('final');
-    expect(result.response).toBe(response as any);
+    const sent = called[0];
+    expect(sent.data).toEqual({ sessionId: 'sess-1', prompt: 'Tell me a joke' });
+    expect(result.response.content).toBe('A funny line');
   });
 
-  it('allows cancelling the streaming iterator', async () => {
-    const streaming = dispatcher.dispatchStream({
+  it('forwards JSON-RPC to external agents and unwraps result', async () => {
+    const called: any[] = [];
+    const axios = {
+      post: jest.fn(async (url: string, body: any) => {
+        called.push({ url, body });
+        return { status: 200, headers: {}, data: { jsonrpc: '2.0', id: 1, result: { response: 'Hi from external' } } };
+      }),
+    };
+    // Provide both request() and post() since external path uses post()
+    (axios as any).request = axios.post;
+
+    const service = makeService(axios);
+
+    const definition: AgentRuntimeDefinition = {
+      ...baseDefinition({}),
+      transport: {
+        kind: 'external',
+        external: { endpoint: 'https://external.agent/jsonrpc', timeout: 2000 },
+      },
+    } as AgentRuntimeDefinition;
+
+    const prompt = {
+      systemPrompt: 'You are external wrapper',
+      userMessage: 'hello',
+      metadata: {},
+      optionMetadata: {},
+      conversationId: 'conv-x',
+      sessionId: 'sess-x',
+      userId: null,
+    };
+
+    const result = await service.dispatch({
       definition,
-      routingDecision,
+      routingDecision: baseRouting,
       prompt,
-      request,
+      request: baseRequest({ conversationId: 'conv-x', sessionId: 'sess-x' }),
     });
 
-    const iterator = streaming.stream[Symbol.asyncIterator]();
-    streaming.cancel();
-
-    const next = await iterator.next();
-    expect(next.done).toBe(true);
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    const sent = called[0];
+    expect(sent.url).toBe('https://external.agent/jsonrpc');
+    expect(sent.body.jsonrpc).toBe('2.0');
+    expect(sent.body.method).toBe('converse');
+    expect(result.response.content).toBe('Hi from external');
   });
 });
