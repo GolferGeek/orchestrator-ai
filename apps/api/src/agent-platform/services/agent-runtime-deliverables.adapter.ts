@@ -8,6 +8,7 @@ import {
   DeliverableVersionCreationType,
 } from '@/deliverables/dto';
 import { AgentTaskMode, TaskRequestDto } from '@agent2agent/dto/task-request.dto';
+import { AssetsService } from '@/assets/assets.service';
 
 export interface BuildDeliverableInput {
   organizationSlug: string | null;
@@ -29,6 +30,7 @@ export class AgentRuntimeDeliverablesAdapter {
   constructor(
     private readonly deliverables: DeliverablesService,
     private readonly versions: DeliverableVersionsService,
+    private readonly assets?: AssetsService,
   ) {}
 
   async maybeCreateFromBuild(
@@ -48,6 +50,11 @@ export class AgentRuntimeDeliverablesAdapter {
       const images = Array.isArray((request.payload as any)?.images)
         ? ((request.payload as any).images as any[]).filter(Boolean)
         : [];
+      const storedImages = await this.maybePersistImages(images, {
+        organizationSlug: ctx.organizationSlug,
+        conversationId,
+        userId,
+      });
       const title = this.computeTitle(baseTitle, ctx);
 
       // Enhancement path: if a target deliverableId is provided, create a new version instead
@@ -58,9 +65,9 @@ export class AgentRuntimeDeliverablesAdapter {
         const version = await this.versions.createVersion(
           targetDeliverableId,
           {
-            content: content || (images.length ? 'Image assets' : ''),
+            content: content || (storedImages.length ? 'Image assets' : ''),
             format:
-              images.length > 0
+              storedImages.length > 0
                 ? DeliverableFormat.JSON
                 : this.coerceDeliverableFormat(ctx.deliverableFormat) ?? DeliverableFormat.TEXT,
             createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
@@ -71,8 +78,8 @@ export class AgentRuntimeDeliverablesAdapter {
               mode: ctx.mode,
             },
             fileAttachments:
-              images.length > 0
-                ? { images: images.map((img) => this.normalizeImageAttachment(img)) }
+              storedImages.length > 0
+                ? { images: storedImages }
                 : {},
           },
           userId,
@@ -98,7 +105,7 @@ export class AgentRuntimeDeliverablesAdapter {
       const deliverable = await this.deliverables.create(dto, userId);
 
       // If images provided, append a version with the image file attachments and make it current
-      if (images.length > 0) {
+      if (storedImages.length > 0) {
         await this.versions.createVersion(
           deliverable.id,
           {
@@ -111,7 +118,7 @@ export class AgentRuntimeDeliverablesAdapter {
               agentSlug: ctx.agentSlug,
               mode: ctx.mode,
             },
-            fileAttachments: { images: images.map((img) => this.normalizeImageAttachment(img)) },
+            fileAttachments: { images: storedImages },
           },
           userId,
         );
@@ -183,8 +190,6 @@ export class AgentRuntimeDeliverablesAdapter {
         return undefined;
     }
   }
-}
-
   private normalizeImageAttachment(input: any) {
     const obj = typeof input === 'object' && input ? input : {};
     const out: Record<string, any> = {
@@ -199,3 +204,63 @@ export class AgentRuntimeDeliverablesAdapter {
     if (obj.hash) out.hash = obj.hash;
     return out;
   }
+
+  private async maybePersistImages(
+    images: any[],
+    ctx: { organizationSlug: string | null; conversationId: string | null; userId: string | null },
+  ): Promise<any[]> {
+    if (!images || images.length === 0) return [];
+    const results: any[] = [];
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i] || {};
+      const hasData = typeof img.data === 'string' && img.data.length > 0;
+      if (hasData && this.assets) {
+        try {
+          let mime = img.mime || img.contentType || 'image/png';
+          let base64 = img.data as string;
+          const match = /^data:([^;]+);base64,(.*)$/i.exec(base64);
+          if (match) {
+            mime = match[1] || mime;
+            base64 = match[2] || '';
+          }
+          const buffer = Buffer.from(base64, 'base64');
+          const filename = img.filename || `image-${Date.now()}-${i}.${this.extFromMime(mime)}`;
+          const rec = await this.assets.saveBuffer({
+            organizationSlug: ctx.organizationSlug,
+            conversationId: ctx.conversationId,
+            userId: ctx.userId,
+            mime,
+            buffer,
+            filename,
+            subpath: 'images',
+          });
+          results.push({
+            assetId: rec.id,
+            url: `/assets/${rec.id}`,
+            mime,
+            width: img.width || undefined,
+            height: img.height || undefined,
+            size: rec.size || undefined,
+            thumbnailUrl: img.thumbnailUrl || undefined,
+            altText: img.altText || undefined,
+            hash: img.hash || undefined,
+          });
+          continue;
+        } catch (e) {
+          this.logger.warn(`Failed to persist image asset: ${String(e)}`);
+        }
+      }
+      results.push(this.normalizeImageAttachment(img));
+    }
+    return results;
+  }
+
+  private extFromMime(mime: string): string {
+    const m = (mime || '').toLowerCase();
+    if (m.includes('png')) return 'png';
+    if (m.includes('jpeg') || m.includes('jpg')) return 'jpg';
+    if (m.includes('webp')) return 'webp';
+    if (m.includes('gif')) return 'gif';
+    return 'bin';
+  }
+}

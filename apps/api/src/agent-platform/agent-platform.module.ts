@@ -20,6 +20,7 @@ import { AgentRuntimeMetricsService } from './services/agent-runtime-metrics.ser
 import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-deliverables.adapter';
 import { DeliverablesModule } from '@/deliverables/deliverables.module';
+import { AssetsModule } from '@/assets/assets.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
 import { HumanApprovalsRepository } from './repositories/human-approvals.repository';
@@ -27,7 +28,7 @@ import { RedactionPatternsRepository } from './repositories/redaction-patterns.r
 import { AgentApprovalsController } from './controllers/agent-approvals.controller';
 
 @Module({
-  imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule],
+  imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule, AssetsModule],
   controllers: [AgentApprovalsController],
   providers: [
     AgentsRepository,

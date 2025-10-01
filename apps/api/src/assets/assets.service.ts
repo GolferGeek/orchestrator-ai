@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { createReadStream, promises as fs } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, dirname } from 'path';
 import { AssetsRepository, AssetRecord } from './assets.repository';
 
 @Injectable()
@@ -38,5 +38,62 @@ export class AssetsService {
       return { stream: createReadStream(p), mime: rec.mime };
     })();
   }
-}
 
+  async saveBuffer(params: {
+    organizationSlug?: string | null;
+    conversationId?: string | null;
+    userId?: string | null;
+    mime: string;
+    buffer: Buffer;
+    filename?: string;
+    subpath?: string; // optional additional subpath
+  }): Promise<AssetRecord> {
+    if (this.backend !== 'local') {
+      // Placeholder for future supabase implementation
+      throw new Error('Only local storage is implemented');
+    }
+    await this.ensureBaseDir();
+    const org = (params.organizationSlug || 'global').toString();
+    const convo = params.conversationId || 'unknown';
+    const name = params.filename || `asset-${Date.now()}`;
+    const rel = join(org, convo, params.subpath || '', name);
+    const abs = join(this.baseDir, rel);
+    await fs.mkdir(dirname(abs), { recursive: true });
+    await fs.writeFile(abs, params.buffer);
+    const rec = await this.repo.create({
+      storage: 'local',
+      path: rel,
+      mime: params.mime,
+      size: params.buffer.length,
+      user_id: params.userId || null,
+      conversation_id: convo as any,
+    } as any);
+    return rec;
+  }
+
+  async registerLocalPath(params: {
+    path: string; // relative to baseDir
+    mime: string;
+    size?: number;
+    userId?: string | null;
+    conversationId?: string | null;
+  }): Promise<AssetRecord> {
+    if (this.backend !== 'local') {
+      throw new Error('Only local storage is implemented');
+    }
+    await this.ensureBaseDir();
+    const rel = params.path.replace(/^\/+/, '');
+    const abs = join(this.baseDir, rel);
+    const stat = await fs.stat(abs);
+    const size = params.size ?? stat.size;
+    const rec = await this.repo.create({
+      storage: 'local',
+      path: rel,
+      mime: params.mime,
+      size,
+      user_id: params.userId || null,
+      conversation_id: params.conversationId || null,
+    } as any);
+    return rec;
+  }
+}
