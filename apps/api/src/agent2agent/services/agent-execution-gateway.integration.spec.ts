@@ -133,6 +133,11 @@ describe('AgentExecutionGateway (runtime integration)', () => {
       orchestrationRunner,
       agentOrchestrations,
       streamService,
+      ({
+        create: jest.fn(),
+        setStatus: jest.fn(),
+        get: jest.fn(),
+      } as any),
     );
 
     return {

@@ -150,6 +150,45 @@ These are already present in the demo `jokes_agent` and `golf_rules_agent` confi
   - `configuration.deliverables.title_template` — e.g., `"Report by {agent} on {date}"` (tokens: `{agent}`, `{date}`, `{conversation}`, `{title}`)
   - `configuration.deliverables.type` — one of `document|analysis|report|plan|requirements`
   - `configuration.deliverables.format` — one of `markdown|text|json|html`
+
+## Human Approvals (Phase 3)
+
+Some agents require a human gate before Build. When triggered, the tasks API returns a human response with an `approvalId` you can act on.
+
+Example human-gated response
+```
+{
+  "success": false,
+  "mode": "human_response",
+  "humanResponse": {
+    "message": "Manual confirmation required before build"
+  },
+  "payload": {
+    "metadata": {
+      "humanRequired": true,
+      "approvalStatus": "pending",
+      "approvalId": "8f1e5f7e-...",
+      "mode": "build",
+      "agentSlug": "demo_orchestrator",
+      "organizationSlug": "global",
+      "conversationId": "b2d6a..."
+    }
+  }
+}
+```
+
+Approve and continue (single call)
+- Endpoint: `POST /agent-to-agent/:orgSlug/:agentSlug/approvals/:id/continue`
+- Body (optional): `{ "options": { "stream": true }, "payload": { /* overrides */ } }`
+- Uses the stored, gated Build request; returns the normal Build response (with streaming metadata when requested).
+
+Approve only (two-step)
+- Endpoint: `POST /api/agent-approvals/:id/approve`
+- After approval, re-issue your original Build task call.
+
+List/Reject
+- List: `GET /api/agent-approvals?status=pending&conversationId=<id>&agentSlug=<slug>`
+- Reject: `POST /api/agent-approvals/:id/reject`
 ## Error Responses (Legacy Dynamic Agents)
 
 For legacy routes that pass through DynamicAgentsController, failures return HTTP 200 with a standardized payload:

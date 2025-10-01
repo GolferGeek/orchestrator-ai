@@ -1,8 +1,8 @@
 # Agent-to-Agent Modernization Implementation Plan
 
 **Owner:** Codex (with Matt)  
-**Last Updated:** 2025-01-20  
-**Status:** In progress (Phase 2)  
+**Last Updated:** 2025-10-01  
+**Status:** In progress (Phase 3 kickoff)  
 
 > This plan tracks the greenfield Agent-to-Agent (A2A) controller/runtime and database-backed agent work. Orchestration enhancements are explicitly deferred until after Phase 3 (see `orchestrator-project-planning-prd.md`).
 
@@ -143,3 +143,64 @@ We will add a hierarchical publishing suite for the `my-org` namespace that prod
 - **2025-01-20:** Saved orchestration execution without templates covered (prompt inputs default to empty). (Codex)
 - **2025-01-20:** Added my-org hierarchy agent fixtures + smoke tests for descriptor integrity. (Codex)
 - **2025-01-18:** Initial plan draft, orchestration work marked as deferred (Codex).
+
+---
+
+## Phase 3 Implementation Plan
+
+Aligned with `docs/feature/matt/phase-3-kickoff.md`.
+
+1) Task lifecycle parity
+- Normalize `public.tasks` usage for converse/plan/build; emit progress via `AgentRuntimeStreamService` and websocket gateway (`subscribe_stream`)
+- Standardize failure envelopes with redacted messages and `error_code`
+
+2) Deliverables persistence and versioning
+- Respect `DELIVERABLES_REQUIRE_BUILD` (default true) to gate creation to Build mode
+- Auto‑create when `userId` + `conversationId` are present; attach `task_id` to `deliverable_versions`
+- Enhancement path on `payload.deliverableId` produces new version instead of a new deliverable
+
+3) PII/redaction in dispatch + logs
+- Apply org regex patterns to inputs (unless local route bypass); ensure logs and error messages mask secrets
+- Preserve policy metadata on responses (`tasks.response_metadata`)
+
+4) Human‑in‑the‑loop approvals
+- Generate `human_approvals` pending rows when `requiresHumanGate` or step requires approval
+- Expose approve/reject actions via `/api/agent-approvals/:id/approve|reject`; resume/abort runs accordingly
+
+5) IO contracts enforcement
+- Require `input_modes` and `output_modes` in agent records; support optional adapters under `configuration.transforms`
+- Fail fast with clear errors when `strict: true` and input/output types mismatch
+
+### Exit Criteria (Phase 3)
+- End‑to‑end DB runtime paths implement lifecycle, deliverables, approvals, and redaction without legacy base services
+- Integration tests cover streaming, approvals, and deliverable versioning
+- No secrets in logs; PII policy metadata preserved on responses
+
+---
+
+## Phase 4 Cutover Plan
+
+1) Dual‑run and compare
+- For selected agents, run legacy and new paths in parallel; compare envelopes, latencies, and error rates
+
+2) Flag‑guarded enablement
+- Roll out `DELIVERABLES_REQUIRE_BUILD` and stream features globally; keep ability to toggle
+
+3) Deprecate legacy ingress
+- Disable `dynamic-agents.controller.ts` paths behind env flag; then remove filesystem YAML ingestion after sign‑off
+
+4) Telemetry checks
+- Confirm card metrics, task success/failure rates, and stream error ratios remain within agreed bounds
+
+---
+
+## Operational Readiness
+- Logs: structured, secret‑safe, include route, duration, status; approval actions audited
+- Metrics: totals/failures/latencies per agent/mode; optional card‑private metrics via feature flag
+- Docs: developer usage at `apps/api/docs/external-api-agents-usage.md`; Phase 3 kickoff at `docs/feature/matt/phase-3-kickoff.md`
+
+---
+
+## Change Log (recent)
+- 2025-10-01: Phase 3 kickoff published; approvals API documented; deliverables gating default set to true (Codex)
+- 2025-10-01: Added Phase 4 cutover steps (dual‑run, flagging, deprecation) and operational readiness notes (Codex)

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { Agent2AgentController } from './agent2agent.controller';
+import { AgentApprovalsActionsController } from './controllers/agent-approvals-actions.controller';
 import { AgentPlatformModule } from '../agent-platform/agent-platform.module';
 import { AgentCardBuilderService } from './services/agent-card-builder.service';
 import { AgentExecutionGateway } from './services/agent-execution-gateway.service';
@@ -10,7 +11,7 @@ import { LLMModule } from '../llms/llm.module';
 
 @Module({
   imports: [AgentPlatformModule, LLMModule],
-  controllers: [Agent2AgentController],
+  controllers: [Agent2AgentController, AgentApprovalsActionsController],
   providers: [
     AgentCardBuilderService,
     AgentExecutionGateway,

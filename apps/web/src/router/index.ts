@@ -121,6 +121,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresRole: ['admin'] }
       },
       {
+        path: 'admin/approvals',
+        name: 'AdminApprovals',
+        component: () => import('../views/admin/AdminApprovalsView.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
         path: 'admin/pii-testing',
         name: 'PIITesting',
         component: () => import('../views/PIITestingPage.vue'),

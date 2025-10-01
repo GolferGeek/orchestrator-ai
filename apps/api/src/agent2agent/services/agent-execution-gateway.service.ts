@@ -19,6 +19,7 @@ import { AgentRuntimeAgentMetadata } from '@agent-platform/interfaces/agent-runt
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
+import { HumanApprovalsRepository } from '@agent-platform/repositories/human-approvals.repository';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -32,6 +33,7 @@ export class AgentExecutionGateway {
     private readonly orchestrationRunner: OrchestrationRunnerService,
     private readonly agentOrchestrations: AgentOrchestrationsRepository,
     private readonly streamService: AgentRuntimeStreamService,
+    private readonly approvals: HumanApprovalsRepository,
   ) {}
 
   async execute(
@@ -77,6 +79,7 @@ export class AgentExecutionGateway {
         agentSlug: agent.slug,
         conversationId: request.conversationId ?? null,
         taskId: undefined,
+        request,
       },
     );
     if (gated) {
@@ -241,10 +244,11 @@ export class AgentExecutionGateway {
     }
   }
 
-  private checkHumanGate(
+  private async checkHumanGate(
     definition: AgentRuntimeDefinition,
     mode: AgentTaskMode,
-  ): TaskResponseDto | null {
+    context?: { organizationSlug: string | null; agentSlug: string; conversationId: string | null; taskId?: string | null; request?: TaskRequestDto },
+  ): Promise<TaskResponseDto | null> {
     const exec = definition.execution;
     if (!exec.requiresHumanGate) {
       return null;
@@ -252,13 +256,49 @@ export class AgentExecutionGateway {
 
     // For Phase 2, gate high-impact modes by default
     if (mode === AgentTaskMode.BUILD) {
-      return TaskResponseDto.human('Manual confirmation required before build', {
-        metadata: {
+      let approvalId: string | undefined = undefined;
+      try {
+        if (context) {
+          const minimalRequest = context.request
+            ? (() => {
+                const base: any = {
+                  userMessage: context.request.userMessage,
+                  payload: context.request.payload ? { ...context.request.payload } : undefined,
+                };
+                // Remove potentially sensitive per-request headers before persisting
+                if (base.payload?.options?.headers) {
+                  base.payload.options = { ...(base.payload.options || {}) };
+                  delete base.payload.options.headers;
+                }
+                return base;
+              })()
+            : undefined;
+          const rec = await this.approvals.create({
+            organizationSlug: context.organizationSlug ?? null,
+            agentSlug: context.agentSlug,
+            conversationId: context.conversationId ?? null,
+            taskId: context.taskId ?? null,
+            mode: 'build',
+            metadata: { reason: 'requires_human_gate', request: minimalRequest },
+          });
+          approvalId = rec.id;
+        }
+      } catch (_err) {
+        // If approval creation fails, still return a human gate without ID
+      }
+
+      return TaskResponseDto.human(
+        'Manual confirmation required before build',
+        {
           humanRequired: true,
           approvalStatus: 'pending',
+          approvalId,
           mode: 'build',
+          agentSlug: context?.agentSlug,
+          organizationSlug: context?.organizationSlug ?? null,
+          conversationId: context?.conversationId ?? null,
         },
-      });
+      );
     }
 
     // Future: gate orchestration execution modes as needed

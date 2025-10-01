@@ -21,11 +21,31 @@ export class TaskResponseDto {
     return new TaskResponseDto(true, mode, payload);
   }
 
-  static human(message: string, reason?: string) {
-    return new TaskResponseDto(false, 'human_response', undefined, {
-      message,
-      reason,
-    });
+  static human(
+    message: string,
+    metadataOrReason?: string | Record<string, any>,
+    maybeReason?: string,
+  ) {
+    let reason: string | undefined = undefined;
+    let metadata: Record<string, any> | undefined = undefined;
+    if (typeof metadataOrReason === 'string') {
+      reason = metadataOrReason;
+    } else if (metadataOrReason && typeof metadataOrReason === 'object') {
+      metadata = metadataOrReason as Record<string, any>;
+    }
+    if (typeof maybeReason === 'string') {
+      reason = maybeReason;
+    }
+
+    return new TaskResponseDto(
+      false,
+      'human_response',
+      metadata ? { metadata } : undefined,
+      {
+        message,
+        reason,
+      },
+    );
   }
 
   static failure(mode: string, reason: string) {

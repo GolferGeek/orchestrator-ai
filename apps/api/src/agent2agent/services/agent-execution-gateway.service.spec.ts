@@ -139,6 +139,11 @@ const instantiateGateway = (mocks: ReturnType<typeof createMocks>) =>
     mocks.orchestrationRunner,
     mocks.agentOrchestrations,
     mocks.streamService,
+    ({
+      create: jest.fn(),
+      setStatus: jest.fn(),
+      get: jest.fn(),
+    } as any),
   );
 
 describe('AgentExecutionGateway', () => {
@@ -228,6 +233,7 @@ describe('AgentExecutionGateway', () => {
       orchestrationRunner,
       agentOrchestrations,
       streamService,
+      ({ create: jest.fn(), setStatus: jest.fn(), get: jest.fn() } as any),
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -395,6 +401,7 @@ describe('AgentExecutionGateway', () => {
       orchestrationRunner,
       agentOrchestrations,
       streamService,
+      ({ create: jest.fn(), setStatus: jest.fn(), get: jest.fn() } as any),
     );
 
     const result = await gateway.execute('demo', 'agent-1', {
@@ -462,6 +469,7 @@ describe('AgentExecutionGateway', () => {
       orchestrationRunner,
       agentOrchestrations,
       streamService,
+      ({ create: jest.fn(), setStatus: jest.fn(), get: jest.fn() } as any),
     );
 
     await expect(
@@ -512,6 +520,7 @@ describe('AgentExecutionGateway', () => {
       orchestrationRunner,
       agentOrchestrations,
       streamService,
+      ({ create: jest.fn(), setStatus: jest.fn(), get: jest.fn() } as any),
     );
 
     await expect(
@@ -562,6 +571,7 @@ describe('AgentExecutionGateway', () => {
       orchestrationRunner,
       agentOrchestrations,
       streamService,
+      ({ create: jest.fn(), setStatus: jest.fn(), get: jest.fn() } as any),
     );
 
     await expect(
