@@ -53,7 +53,11 @@ export class AgentModeRouterService {
       case AgentTaskMode.CONVERSE:
         return this.handleConverse(hydrated);
       case AgentTaskMode.PLAN:
-        return this.handlePlan(hydrated);
+        // Plan creation is handled at the gateway layer to maintain single source of truth
+        return TaskResponseDto.failure(
+          AgentTaskMode.PLAN,
+          'Plan mode is handled by the gateway',
+        );
       case AgentTaskMode.BUILD:
         return this.handleBuild(hydrated);
       case AgentTaskMode.HUMAN_RESPONSE:
@@ -116,16 +120,7 @@ export class AgentModeRouterService {
     }
   }
 
-  private async handlePlan(context: HydratedExecutionContext) {
-    return TaskResponseDto.success(AgentTaskMode.PLAN, {
-      content: {
-        planDraft: {
-          summary: 'Plan generation placeholder',
-          agent: context.agent.slug,
-        },
-      },
-    });
-  }
+  // Plan mode intentionally not implemented here – handled by AgentExecutionGateway
 
   private async handleBuild(context: HydratedExecutionContext) {
     const decision = this.extractDecision(context.routingMetadata);

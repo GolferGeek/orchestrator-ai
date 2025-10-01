@@ -391,8 +391,9 @@ describe('AgentModeRouterService', () => {
     expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
   });
 
-  it('handles plan mode without dispatcher call', async () => {
+  it('returns failure for plan mode (handled by gateway)', async () => {
     const result = await service.execute(buildContext({ mode: AgentTaskMode.PLAN }));
+    expect(result.success).toBe(false);
     expect(result.mode).toBe(AgentTaskMode.PLAN);
     expect(dispatcher.dispatch).not.toHaveBeenCalled();
     expect(dispatcher.dispatchStream).not.toHaveBeenCalled();
