@@ -46,7 +46,8 @@
     "ollama:stop:all": "./scripts/ollama-stop-all-models.sh",
     "ollama:add": "./scripts/ollama-add-model.sh",
     "ollama:stop": "./scripts/ollama-stop-model.sh",
-    "publish:public": "node scripts/publish-public-branch.js"
+    "publish:public": "node scripts/publish-public-branch.js",
+    "inventory:agents": "node scripts/agents/inventory-file-agents.js > docs/reports/filesystem-agent-inventory.md || node scripts/agents/inventory-file-agents.js"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",

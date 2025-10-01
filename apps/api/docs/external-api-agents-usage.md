@@ -103,6 +103,17 @@ We return the external result as text in `payload.content` with light metadata.
 - Put static headers in the agent definition under `api_configuration.headers` (API agents) or `external_a2a_configuration.authentication.headers` (external agents).
 - Add per-request keys in `payload.options.headers` to pass user keys (useful for user-billed usage). We forward these headers as-is.
 
+Header allowlist (env)
+- Default forwarded headers: `authorization`, `x-user-key`, `x-api-key`, `x-agent-api-key`, `content-type`.
+- Extend via `.env` or `.env.production`:
+  - `AGENT_EXTERNAL_HEADER_ALLOWLIST="x-custom-one,x-custom-two"`
+
+Timeouts (env)
+- Default 30s if not specified per agent in YAML.
+- Override via `.env` or `.env.production`:
+  - `AGENT_API_DEFAULT_TIMEOUT_MS=45000`
+  - `AGENT_EXTERNAL_DEFAULT_TIMEOUT_MS=45000`
+
 ## YAML Transforms (Quick Reference)
 
 - Request transform (API agent):

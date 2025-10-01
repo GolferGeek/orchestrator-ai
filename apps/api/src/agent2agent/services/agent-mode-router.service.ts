@@ -87,6 +87,12 @@ export class AgentModeRouterService {
         prompt,
         AgentTaskMode.CONVERSE,
       );
+      if (this.isErrorResponse(response)) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.CONVERSE,
+          this.extractErrorMessage(response) || 'External service error',
+        );
+      }
       return TaskResponseDto.success(AgentTaskMode.CONVERSE, {
         content: {
           message: response.content,
@@ -142,6 +148,12 @@ export class AgentModeRouterService {
         prompt,
         AgentTaskMode.BUILD,
       );
+      if (this.isErrorResponse(response)) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          this.extractErrorMessage(response) || 'External service error',
+        );
+      }
       return TaskResponseDto.success(AgentTaskMode.BUILD, {
         content: {
           status: 'build_completed',
@@ -271,6 +283,29 @@ export class AgentModeRouterService {
       ...(promptMetadata ?? {}),
       streamId,
     };
+  }
+
+  private isErrorResponse(response: AgentRuntimeDispatchResult['response']): boolean {
+    try {
+      const status = (response?.metadata as any)?.status;
+      return status === 'error';
+    } catch {
+      return false;
+    }
+  }
+
+  private extractErrorMessage(response: AgentRuntimeDispatchResult['response']): string | null {
+    try {
+      const meta = response?.metadata as any;
+      if (typeof meta?.errorMessage === 'string' && meta.errorMessage.trim()) {
+        return meta.errorMessage;
+      }
+      const providerStatus = meta?.providerSpecific?.status;
+      if (providerStatus) {
+        return `External service error (status ${providerStatus})`;
+      }
+    } catch {}
+    return null;
   }
 
   private async hydrateContext(

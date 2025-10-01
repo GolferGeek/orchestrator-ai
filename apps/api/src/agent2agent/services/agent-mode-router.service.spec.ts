@@ -298,6 +298,57 @@ describe('AgentModeRouterService', () => {
     expect(result.payload?.content?.output).toBe('Build output');
   });
 
+  it('returns failure when dispatcher returns error metadata for converse', async () => {
+    // Make dispatcher return error status
+    dispatcher.dispatch.mockResolvedValueOnce({
+      response: {
+        content: 'error text',
+        metadata: {
+          provider: 'external_api',
+          model: 'api_endpoint',
+          requestId: 'req-err',
+          timestamp: new Date().toISOString(),
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          timing: { startTime: Date.now(), endTime: Date.now(), duration: 1 },
+          status: 'error',
+          errorMessage: 'External service error (status 500)'
+        }
+      }
+    } as any);
+
+    const result = await service.execute(
+      buildContext({ mode: AgentTaskMode.CONVERSE, userMessage: 'Hello' }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.payload?.metadata?.reason).toMatch(/External service error/i);
+  });
+
+  it('returns failure when dispatcher returns error metadata for build', async () => {
+    dispatcher.dispatch.mockResolvedValueOnce({
+      response: {
+        content: 'error text',
+        metadata: {
+          provider: 'external_api',
+          model: 'api_endpoint',
+          requestId: 'req-err',
+          timestamp: new Date().toISOString(),
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          timing: { startTime: Date.now(), endTime: Date.now(), duration: 1 },
+          status: 'error',
+          errorMessage: 'External service error (status 502)'
+        }
+      }
+    } as any);
+
+    const result = await service.execute(
+      buildContext({ mode: AgentTaskMode.BUILD, userMessage: 'Do it' }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.payload?.metadata?.reason).toMatch(/External service error/i);
+  });
+
   it('merges top-level metadata into prompt payload', async () => {
     await service.execute(
       buildContext({

@@ -308,27 +308,32 @@ export class AgentRuntimeDispatchService {
     const method = (api.method || 'POST').toUpperCase();
     const url = api.endpoint;
 
-    const headers: Record<string, any> = {
+    const mergedHeaders: Record<string, any> = {
       'content-type': 'application/json',
       ...(api.headers ?? {}),
       ...((options.request.payload?.options?.headers as Record<string, any>) || {}),
     };
+    const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
     const body = this.buildApiRequestBody(api, options);
 
     const start = Date.now();
-    const res = await this.http.axiosRef.request({
-      url,
-      method: method as any,
-      headers,
-      timeout: api.timeout ?? 30_000,
-      data: body,
-      validateStatus: () => true,
-    });
+    const defaultTimeout = this.resolveDefaultTimeout('api');
+    const res = await this.performWithRetry(() =>
+      this.http.axiosRef.request({
+        url,
+        method: method as any,
+        headers,
+        timeout: api.timeout ?? defaultTimeout,
+        data: body,
+        validateStatus: () => true,
+      })
+    );
 
     const end = Date.now();
     // Normalize content (apply response transform if configured)
     const content = this.extractApiResponseContent(api, res.data);
+    const isOk = res.status >= 200 && res.status < 300;
     const response = {
       content,
       metadata: {
@@ -339,8 +344,11 @@ export class AgentRuntimeDispatchService {
         usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         timing: { startTime: start, endTime: end, duration: end - start },
         tier: 'external',
-        status: res.status >= 200 && res.status < 300 ? 'completed' : 'error',
+        status: isOk ? 'completed' : 'error',
         providerSpecific: { status: res.status },
+        ...(isOk
+          ? {}
+          : { errorMessage: this.buildHttpErrorMessage(res.status, res.data) }),
       },
     } as const;
 
@@ -371,11 +379,12 @@ export class AgentRuntimeDispatchService {
     const external = options.definition.transport!.external!;
     const url = external.endpoint;
 
-    const headers: Record<string, any> = {
+    const mergedHeaders: Record<string, any> = {
       'content-type': 'application/json',
       ...(external.authentication?.headers ?? {}),
       ...((options.request.payload?.options?.headers as Record<string, any>) || {}),
     };
+    const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
     const methodName = this.mapModeToMethod(options.request.mode);
     const id = Date.now();
@@ -397,16 +406,25 @@ export class AgentRuntimeDispatchService {
     };
 
     const start = Date.now();
-    const res = await this.http.axiosRef.post(url, body, {
-      headers,
-      timeout: external.timeout ?? 30_000,
-      validateStatus: () => true,
-    });
+    const defaultTimeout = this.resolveDefaultTimeout('external');
+    const res = await this.performWithRetry(() =>
+      this.http.axiosRef.post(url, body, {
+        headers,
+        timeout: external.timeout ?? defaultTimeout,
+        validateStatus: () => true,
+      })
+    );
     const end = Date.now();
 
-    const envelope = res.data && res.data.result ? res.data.result : res.data;
+    const hasRpcError = res.data && typeof res.data === 'object' && 'error' in res.data && res.data.error;
+    const envelope = hasRpcError
+      ? res.data.error
+      : res.data && res.data.result
+        ? res.data.result
+        : res.data;
     const content = this.stringifyContent(envelope);
 
+    const isOk = res.status >= 200 && res.status < 300 && !hasRpcError;
     const response = {
       content,
       metadata: {
@@ -417,8 +435,11 @@ export class AgentRuntimeDispatchService {
         usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         timing: { startTime: start, endTime: end, duration: end - start },
         tier: 'external',
-        status: res.status >= 200 && res.status < 300 ? 'completed' : 'error',
+        status: isOk ? 'completed' : 'error',
         providerSpecific: { status: res.status },
+        ...(isOk
+          ? {}
+          : { errorMessage: this.buildRpcErrorMessage(res.data?.error, res.status) }),
       },
     } as const;
 
@@ -465,6 +486,89 @@ export class AgentRuntimeDispatchService {
       }
     }
     return String(value);
+  }
+
+  private sanitizeForwardHeaders(source: Record<string, any>): Record<string, any> {
+    const allow = this.resolveHeaderAllowlist();
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(source)) {
+      const key = String(k).toLowerCase();
+      if (!allow.has(key)) continue;
+      if (v === undefined || v === null) continue;
+      out[key] = v;
+    }
+    return out;
+  }
+
+  private resolveHeaderAllowlist(): Set<string> {
+    const base = [
+      'authorization',
+      'x-user-key',
+      'x-api-key',
+      'x-agent-api-key',
+      'content-type',
+    ];
+    const extra = (process.env.AGENT_EXTERNAL_HEADER_ALLOWLIST || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    return new Set([...base, ...extra]);
+  }
+
+  private resolveDefaultTimeout(kind: 'api' | 'external'): number {
+    const raw =
+      kind === 'api'
+        ? process.env.AGENT_API_DEFAULT_TIMEOUT_MS
+        : process.env.AGENT_EXTERNAL_DEFAULT_TIMEOUT_MS;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    return 30_000;
+  }
+
+  private async performWithRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+    let attempt = 0;
+    let lastError: any;
+    while (attempt <= retries) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        lastError = err;
+        // Axios/network errors: retry on ECONNRESET/ETIMEDOUT/5xx indicated by response
+        const status = err?.response?.status as number | undefined;
+        const retriable = status ? status >= 500 : true;
+        if (attempt === retries || !retriable) {
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, 200 * Math.pow(2, attempt)));
+        attempt++;
+      }
+    }
+    throw lastError;
+  }
+
+  private buildHttpErrorMessage(status: number, data: any): string {
+    const base = `HTTP ${status}`;
+    if (!data) return base;
+    if (typeof data === 'string') {
+      const snippet = data.length > 180 ? data.slice(0, 180) + '…' : data;
+      return `${base}: ${snippet}`;
+    }
+    try {
+      if (typeof data?.message === 'string' && data.message.trim()) {
+        return `${base}: ${data.message}`;
+      }
+      return `${base}: ${JSON.stringify(data).slice(0, 200)}${JSON.stringify(data).length > 200 ? '…' : ''}`;
+    } catch {
+      return base;
+    }
+  }
+
+  private buildRpcErrorMessage(error: any, status?: number): string {
+    const statusText = status ? ` (HTTP ${status})` : '';
+    if (!error) return `External A2A error${statusText}`;
+    const code = error.code !== undefined ? ` [code ${error.code}]` : '';
+    const msg = typeof error.message === 'string' ? error.message : this.stringifyContent(error);
+    return `External A2A error${statusText}${code}: ${msg}`;
   }
 
   private buildApiRequestBody(
