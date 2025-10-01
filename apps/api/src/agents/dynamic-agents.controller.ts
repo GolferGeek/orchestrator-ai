@@ -81,6 +81,28 @@ export class DynamicAgentsController {
     };
   }
 
+  // Redact common secret patterns in log messages
+  private redactString(input: string): string {
+    try {
+      let s = input;
+      const patterns: Array<[RegExp, string]> = [
+        [/sk-[A-Za-z0-9-_]{10,}/g, 'sk-REDACTED'],
+        [/Bearer\s+[A-Za-z0-9-_.]+/gi, 'Bearer REDACTED'],
+        [/api[-_]?key\s*[:=]\s*[^\s"']+/gi, 'api_key=REDACTED'],
+        [/x-?api-?key\s*[:=]\s*[^\s"']+/gi, 'x-api-key=REDACTED'],
+        [/authorization\s*[:=]\s*[^\s"']+/gi, 'authorization=REDACTED'],
+        [/("authorization"\s*:\s*")[^"]+(")/gi, '"authorization":"REDACTED"'],
+        [/("x-?api-?key"\s*:\s*")[^"]+(")/gi, '"x-api-key":"REDACTED"'],
+        [/("api[-_]?key"\s*:\s*")[^"]+(")/gi, '"apiKey":"REDACTED"'],
+        [/("token"\s*:\s*")[^"]+(")/gi, '"token":"REDACTED"'],
+      ];
+      for (const [re, repl] of patterns) s = s.replace(re, repl);
+      return s;
+    } catch {
+      return input;
+    }
+  }
+
   /**
    * Get agent hierarchy
    * Route: GET /agents/.well-known/hierarchy
@@ -207,8 +229,10 @@ export class DynamicAgentsController {
     }
 
     // Debug: Log the received LLM selection
+    // Log only minimal llm selection info to avoid leaking sensitive fields
+    const _sel = normalizedTaskRequest.llmSelection;
     this.logger.log(
-      `🎤 [DynamicAgentsController] Received llmSelection: ${JSON.stringify(normalizedTaskRequest.llmSelection)}`,
+      `🎤 [DynamicAgentsController] Received llmSelection: provider=${_sel?.providerName ?? 'n/a'}, model=${_sel?.modelName ?? 'n/a'}`,
     );
     this.logger.log(
       `🎤 [DynamicAgentsController] Full normalized request has llmSelection: ${!!normalizedTaskRequest.llmSelection}`,
@@ -288,9 +312,9 @@ export class DynamicAgentsController {
         };
       }
     } catch (_audioError) {
+      const errMsg = _audioError instanceof Error ? this.redactString(_audioError.message) : 'Unknown error';
       this.logger.error(
-        `🎤 [DynamicAgentsController] Audio transcription failed for ${agentType}/${agentName}:`,
-        _audioError,
+        `🎤 [DynamicAgentsController] Audio transcription failed for ${agentType}/${agentName}: ${errMsg}`,
       );
       // If audio transcription fails, continue with original prompt but log the error
       if (audioDetected) {
@@ -442,7 +466,8 @@ export class DynamicAgentsController {
 
     // Get agent configuration for timeout and other settings
     const agentCard = await agentInstance.getAgentCard();
-    const agentTimeout = agentCard.timeout || 300; // Default to 5 minutes if not specified
+    const defaultTimeout = parseInt(process.env.AGENT_TASK_TIMEOUT_SECONDS || '300', 10);
+    const agentTimeout = agentCard.timeout || defaultTimeout; // Prefer card, else env fallback
 
     // Task type is no longer used - all tasks are handled as ephemeral
 
@@ -622,9 +647,10 @@ export class DynamicAgentsController {
           );
         } catch (_synthesisError) {
           this.logger.error(
-            `🔊 [DynamicAgentsController] Audio synthesis failed for ${agentType}/${agentName}:`,
-            _synthesisError,
-          );
+        `🔊 [DynamicAgentsController] Audio synthesis failed for ${agentType}/${agentName}: ${
+          _synthesisError instanceof Error ? this.redactString(_synthesisError.message) : 'Unknown error'
+        }`,
+      );
           // Continue without audio - don't fail the entire request
         }
       }
@@ -692,13 +718,30 @@ export class DynamicAgentsController {
       };
     } catch (error) {
       // Mark task as failed via TaskStatusService (single source of truth)
+      const redactedMessage =
+        error instanceof Error ? this.redactString(error.message) : 'Unknown error';
       await this.taskStatusService.failTask(
         task.id,
         currentUser.id,
-        error instanceof Error ? error.message : 'Unknown error',
+        redactedMessage,
       );
 
-      throw error;
+      // Return standardized failure payload (keep HTTP 200 per @HttpCode)
+      return {
+        taskId: task.id,
+        conversationId: task.agentConversationId,
+        status: 'failed',
+        error: {
+          code: 'agent_execution_error',
+          message: redactedMessage,
+        },
+        metadata: {
+          agentType,
+          agentName,
+          namespace: activeNamespace,
+          timestamp: new Date().toISOString(),
+        },
+      };
     }
   }
 

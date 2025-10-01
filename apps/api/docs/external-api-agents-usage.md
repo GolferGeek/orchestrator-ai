@@ -98,6 +98,12 @@ What we send to the external A2A endpoint
 
 We return the external result as text in `payload.content` with light metadata.
 
+## Health Check (A2A)
+
+- Liveness route per agent: `GET /agent-to-agent/:orgSlug/:agentSlug/health`
+- Returns `{ ok: true, service: 'agent-to-agent', organization, agent, timestamp }`
+- No secrets or dynamic data; useful for basic health probes
+
 ## Passing User-Billed Keys
 
 - Put static headers in the agent definition under `api_configuration.headers` (API agents) or `external_a2a_configuration.authentication.headers` (external agents).
@@ -132,3 +138,28 @@ api_configuration:
 ```
 
 These are already present in the demo `jokes_agent` and `golf_rules_agent` configurations.
+## Error Responses (Legacy Dynamic Agents)
+
+For legacy routes that pass through DynamicAgentsController, failures return HTTP 200 with a standardized payload:
+
+```
+{
+  "taskId": "...",
+  "conversationId": "...",
+  "status": "failed",
+  "error": {
+    "code": "agent_execution_error",
+    "message": "<redacted message>"
+  },
+  "metadata": {
+    "agentType": "...",
+    "agentName": "...",
+    "namespace": "...",
+    "timestamp": "2025-01-20T12:34:56.000Z"
+  }
+}
+```
+
+Notes:
+- Messages are redacted to avoid leaking secrets (API keys, bearer tokens, etc.).
+- PII policy blocks return a `blocked: true` structure with a human‑safe reason.
