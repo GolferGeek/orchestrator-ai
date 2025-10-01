@@ -17,6 +17,7 @@ export interface BuildDeliverableInput {
   userId?: string | null;
   title?: string | null;
   content?: string | null;
+  titleTemplate?: string | null;
 }
 
 @Injectable()
@@ -40,8 +41,9 @@ export class AgentRuntimeDeliverablesAdapter {
         return null;
       }
 
-      const title = ctx.title || `Build output from ${ctx.agentSlug}`;
+      const baseTitle = ctx.title || `Build output from ${ctx.agentSlug}`;
       const content = ctx.content || (request.payload as any)?.output || '';
+      const title = this.computeTitle(baseTitle, ctx);
 
       // Enhancement path: if a target deliverableId is provided, create a new version instead
       const targetDeliverableId =
@@ -92,5 +94,18 @@ export class AgentRuntimeDeliverablesAdapter {
     const fromTop = request.metadata?.userId || request.metadata?.createdBy;
     const fromPayload = request.payload?.metadata?.userId || request.payload?.metadata?.createdBy;
     return (fromTop as string) || (fromPayload as string) || null;
+  }
+
+  private computeTitle(defaultTitle: string, ctx: BuildDeliverableInput): string {
+    const template = ctx.titleTemplate?.trim();
+    if (!template) {
+      return defaultTitle;
+    }
+    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    return template
+      .replaceAll('{agent}', ctx.agentSlug)
+      .replaceAll('{date}', date)
+      .replaceAll('{conversation}', String(ctx.conversationId ?? ''))
+      .replaceAll('{title}', defaultTitle);
   }
 }

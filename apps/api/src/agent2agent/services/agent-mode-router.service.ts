@@ -194,6 +194,7 @@ export class AgentModeRouterService {
           conversationId: context.request.conversationId,
           content: response.content,
           title: context.definition.displayName ?? context.agent.slug,
+          titleTemplate: this.resolveDeliverableTitleTemplate(context),
         },
         context.request,
       );
@@ -421,5 +422,14 @@ export class AgentModeRouterService {
       agentSlug: context.agent.slug,
       mode: context.request.mode,
     } as const;
+  }
+
+  private resolveDeliverableTitleTemplate(context: HydratedExecutionContext): string | null {
+    const cfg = context.definition.config || {};
+    // Support both snake_case and camelCase
+    const fromDeliverables =
+      (cfg as any)?.deliverables?.title_template ||
+      (cfg as any)?.deliverables?.titleTemplate || null;
+    return (fromDeliverables && String(fromDeliverables)) || null;
   }
 }
