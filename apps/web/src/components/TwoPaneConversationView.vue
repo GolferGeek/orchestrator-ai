@@ -187,6 +187,13 @@
             <CompactLLMControl />
             <TaskExecutionControls />
           </div>
+          <!-- Enhance-here hint when a deliverable is selected -->
+          <div v-if="activeWorkProduct?.type === 'deliverable'" class="enhance-hint">
+            <ion-chip color="warning" outline>
+              Enhancing: {{ activeWorkProduct.data?.title || 'Deliverable' }} — type instructions and press send
+            </ion-chip>
+            <ion-button size="small" fill="clear" @click="cancelEnhancement">Cancel</ion-button>
+          </div>
         </div>
         <!-- Typing Indicator -->
         <div v-if="isSendingMessage" class="typing-indicator">
@@ -624,6 +631,10 @@ const selectDeliverable = async (deliverable: any) => {
     // Set enhancement context so user composer enhancements route to versioning
     await deliverablesStore.startEnhancement(deliverable.id);
   } catch (_) {}
+};
+
+const cancelEnhancement = async () => {
+  try { await deliverablesStore.stopEnhancement(); } catch (_) {}
 };
 const handleDeliverableCreated = async (deliverable: any) => {
   // Use the correct camelCase field name

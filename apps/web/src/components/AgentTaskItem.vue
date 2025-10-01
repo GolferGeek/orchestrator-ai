@@ -324,6 +324,25 @@ const formattedTimestamp = computed(() => {
   });
 });
 
+// Enhancement undo CTA bindings
+const enhancedDeliverableId = computed(() => props.message.metadata?.enhancedDeliverableId || null);
+const enhancedFromVersionId = computed(() => props.message.metadata?.enhancedFromVersionId || null);
+const showUndoEnhancement = computed(() => !!(enhancedDeliverableId.value && enhancedFromVersionId.value));
+const undoEnhancement = async () => {
+  try {
+    if (!enhancedFromVersionId.value) return;
+    await deliverablesStore.setCurrentVersion(enhancedFromVersionId.value);
+  } catch (e) {
+    console.warn('Failed to undo enhancement', e);
+  }
+};
+const emitSelectDeliverable = () => {
+  const id = enhancedDeliverableId.value;
+  if (!id) return;
+  const d = deliverablesStore.getDeliverableById(id);
+  if (d) emit('deliverable-selected', d);
+};
+
 // LLM Information computed properties
         const llmUsed = computed(() => {
           const metadata = props.message.metadata;

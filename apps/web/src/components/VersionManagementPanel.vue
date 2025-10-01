@@ -79,6 +79,17 @@
           v-if="!version.isCurrentVersion"
           fill="clear"
           size="small"
+          color="primary"
+          @click.stop="copySpecificVersion(version.id)"
+          class="delete-single-btn"
+          style="right: 44px;"
+        >
+          Copy
+        </ion-button>
+        <ion-button
+          v-if="!version.isCurrentVersion"
+          fill="clear"
+          size="small"
           color="danger"
           @click.stop="deleteVersion(version.id)"
           class="delete-single-btn"
@@ -264,6 +275,15 @@ const executeDelete = async () => {
   );
   selectedVersions.value = [];
   showDeleteDialog.value = false;
+};
+const copySpecificVersion = async (versionId: string) => {
+  try {
+    const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
+    const store = useDeliverablesStore();
+    await store.copyVersion(versionId);
+  } catch (e) {
+    console.warn('Failed to copy version', e);
+  }
 };
 const executeMerge = async () => {
   if (mergeSelectedVersions.value.length < 2 || !mergePrompt.value.trim()) return;

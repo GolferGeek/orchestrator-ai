@@ -397,6 +397,10 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     enhancementContext.value.isEnhancing = true;
     return deliverableId;
   };
+  const stopEnhancement = () => {
+    enhancementContext.value.sourceDeliverableId = null;
+    enhancementContext.value.isEnhancing = false;
+  };
 
   const enhanceVersion = async (
     versionId: string,
@@ -903,5 +907,6 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     loadStandaloneDeliverables,
     createEditingConversation,
     handleConversationDeleted,
+    stopEnhancement,
   };
 });
