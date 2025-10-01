@@ -179,8 +179,8 @@ Example human-gated response
 
 Approve and continue (single call)
 - Endpoint: `POST /agent-to-agent/:orgSlug/:agentSlug/approvals/:id/continue`
-- Body (optional): `{ "options": { "stream": true }, "payload": { /* overrides */ } }`
-- Uses the stored, gated Build request; returns the normal Build response (with streaming metadata when requested).
+- Body (optional): `{ "options": { "stream": true }, "payload": { /* overrides */ }, "metadata": { "stream": true, "streamId": "<uuid>" } }`
+- Uses the stored, gated Build request; returns the normal Build response. If you provide `metadata.streamId`, the backend will stream using your ID so you can subscribe before sending the request.
 
 Approve only (two-step)
 - Endpoint: `POST /api/agent-approvals/:id/approve`

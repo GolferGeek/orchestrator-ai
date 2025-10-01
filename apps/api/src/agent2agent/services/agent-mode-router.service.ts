@@ -327,6 +327,10 @@ export class AgentModeRouterService {
       message: 'Streaming session started',
       percent: 30,
     });
+    const providedStreamId =
+      context.request.metadata?.streamId ||
+      (context.request.payload as any)?.metadata?.streamId ||
+      undefined;
     const streamSession = this.streamService.start({
       conversationId: context.request.conversationId,
       sessionId: context.request.sessionId,
@@ -334,7 +338,7 @@ export class AgentModeRouterService {
       organizationSlug: context.organizationSlug,
       agentSlug: context.agent.slug,
       mode,
-    });
+    }, providedStreamId);
 
     const maxComplexity = this.promptBuilder.mapComplexity(
       decision.complexityScore,

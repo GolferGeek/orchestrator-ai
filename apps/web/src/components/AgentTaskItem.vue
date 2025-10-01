@@ -19,6 +19,15 @@
             <ion-icon :icon="informationCircleOutline" slot="icon-only" />
           </ion-button>
         </div>
+
+        <!-- Human approval status badge (assistant messages) -->
+        <div v-if="approvalStatus" class="approval-status">
+          <ion-chip :color="approvalColor" size="small" outline>
+            <ion-icon :icon="approvalIcon" />
+            <span class="approval-text">{{ approvalText }}</span>
+            <span v-if="approvalTime" class="approval-time">&nbsp;· {{ approvalTime }}</span>
+          </ion-chip>
+        </div>
         
 
         <!-- Task text content -->
@@ -322,6 +331,60 @@ const formattedTimestamp = computed(() => {
     hour: '2-digit', 
     minute: '2-digit' 
   });
+});
+
+// Approval badge computed values
+const approvalStatus = computed(() => {
+  const meta: any = props.message.metadata || {};
+  if (meta.approvalStatus) return String(meta.approvalStatus);
+  if (meta.humanRequired === true) return 'pending';
+  return '';
+});
+const approvalText = computed(() => {
+  switch (approvalStatus.value) {
+    case 'approved':
+      return 'Approved';
+    case 'rejected':
+      return 'Rejected';
+    case 'pending':
+      return 'Awaiting Approval';
+    default:
+      return '';
+  }
+});
+const approvalIcon = computed(() => {
+  switch (approvalStatus.value) {
+    case 'approved':
+      return checkmarkCircleOutline;
+    case 'rejected':
+      return closeCircleOutline;
+    case 'pending':
+      return ellipseOutline;
+    default:
+      return ellipseOutline;
+  }
+});
+const approvalColor = computed(() => {
+  switch (approvalStatus.value) {
+    case 'approved':
+      return 'success';
+    case 'rejected':
+      return 'danger';
+    case 'pending':
+      return 'warning';
+    default:
+      return 'medium';
+  }
+});
+const approvalTime = computed(() => {
+  const meta: any = props.message.metadata || {};
+  const ts = meta.approvedAt || meta.decisionAt || props.message.timestamp?.toISOString?.();
+  if (!ts) return '';
+  try {
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
 });
 
 // Enhancement undo CTA bindings

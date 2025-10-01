@@ -897,6 +897,9 @@ export class AgentExecutionGateway {
       return null;
     }
 
+    const providedStreamId =
+      request.metadata?.streamId || request.payload?.metadata?.streamId ||
+      undefined;
     return this.streamService.start({
       conversationId: request.conversationId,
       sessionId: request.sessionId,
@@ -904,7 +907,7 @@ export class AgentExecutionGateway {
       organizationSlug,
       agentSlug: agent.slug,
       mode,
-    });
+    }, providedStreamId);
   }
 
   private publishStreamChunk(

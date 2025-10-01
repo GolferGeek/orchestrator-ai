@@ -21,7 +21,7 @@ export class AgentApprovalsActionsController {
     @Param('agentSlug') agentSlug: string,
     @Param('id') id: string,
     @Req() req: any,
-    @Body() body?: { options?: Record<string, any>; payload?: Record<string, any> },
+    @Body() body?: { options?: Record<string, any>; payload?: Record<string, any>; metadata?: Record<string, any> },
   ) {
     const record = await this.approvals.get(id);
     if (!record) {
@@ -46,6 +46,9 @@ export class AgentApprovalsActionsController {
       payload: {
         ...(stored.payload || {}),
       },
+      metadata: {
+        ...(body?.metadata || {}),
+      },
     };
 
     if (body?.payload) {
@@ -54,6 +57,12 @@ export class AgentApprovalsActionsController {
     if (body?.options) {
       request.payload = request.payload || {};
       request.payload.options = { ...(request.payload.options || {}), ...body.options };
+    }
+    // If caller provided a pre-supplied streamId in metadata, mirror it into payload.metadata for downstream consumers
+    if (request.metadata?.streamId) {
+      request.metadata.stream = Boolean(request.metadata.stream || body?.options?.stream);
+      request.payload = request.payload || {};
+      request.payload.metadata = { ...(request.payload.metadata || {}), streamId: request.metadata.streamId };
     }
 
     const response = await this.gateway.execute(

@@ -756,10 +756,17 @@ export const useAgentChatStore = defineStore('agentChat', {
             const orgSlug = auth.currentNamespace || null;
             const agentSlug = activeConversation.agent.name;
             // Attempt to approve and continue with streaming enabled
-            const response = await approvalsService.approveAndContinue(orgSlug, agentSlug, approvalId, { options: { stream: true } });
+            // Pre-supply a streamId so we can subscribe before backend starts streaming
+            const preStreamId = generateUUID();
+            const response = await approvalsService.approveAndContinue(
+              orgSlug,
+              agentSlug,
+              approvalId,
+              { options: { stream: true }, metadata: { stream: true, streamId: preStreamId } }
+            );
             const streamId = response?.payload?.metadata?.streamId;
-            if (streamId) {
-              await this.startStreamSubscription(activeConversation, streamId, 'Continuing build…');
+            if (streamId || preStreamId) {
+              await this.startStreamSubscription(activeConversation, streamId || preStreamId, 'Continuing build…');
             } else if (response?.payload?.content) {
               // Fallback: append a simple assistant message with returned content
               const content = typeof response.payload.content === 'string'
@@ -772,6 +779,14 @@ export const useAgentChatStore = defineStore('agentChat', {
                 timestamp: new Date(),
                 metadata: { ...(response.payload.metadata || {}), approvalId },
               });
+            }
+            // Update the original assistant message to show approved chip
+            if (lastAssistant) {
+              lastAssistant.metadata = {
+                ...(lastAssistant.metadata || {}),
+                approvalStatus: 'approved',
+                approvedAt: new Date().toISOString(),
+              };
             }
             // Clear pending action since we handled approval
             this.clearPendingAction();
