@@ -39,7 +39,7 @@ export class AgentCardBuilderService {
       : specCard;
 
     // When private fields are explicitly requested, attach safe metrics into metadata
-    if (options.includePrivateFields === true) {
+    if (options.includePrivateFields === true && this.privateMetricsEnabled()) {
       try {
         const apiSnap = this.metricsService.snapshot('api', agent.slug);
         const extSnap = this.metricsService.snapshot('external', agent.slug);
@@ -63,6 +63,11 @@ export class AgentCardBuilderService {
     return options.includePrivateFields === false
       ? this.stripPrivateFields(combined)
       : combined;
+  }
+
+  private privateMetricsEnabled(): boolean {
+    const raw = process.env.AGENT_CARD_INCLUDE_PRIVATE_METRICS ?? 'false';
+    return String(raw).trim().toLowerCase() === 'true';
   }
 
   private composeSpecCard(agent: AgentRecord): Record<string, any> {

@@ -578,15 +578,11 @@ export class AgentRuntimeDispatchService {
   private buildHttpErrorMessage(status: number, data: any): string {
     const base = `HTTP ${status}`;
     if (!data) return base;
-    if (typeof data === 'string') {
-      const snippet = data.length > 180 ? data.slice(0, 180) + '…' : data;
-      return `${base}: ${snippet}`;
-    }
     try {
-      if (typeof data?.message === 'string' && data.message.trim()) {
-        return `${base}: ${data.message}`;
-      }
-      return `${base}: ${JSON.stringify(data).slice(0, 200)}${JSON.stringify(data).length > 200 ? '…' : ''}`;
+      const text = typeof data === 'string' ? data : JSON.stringify(data);
+      const redacted = this.redactString(text);
+      const snippet = redacted.length > 160 ? redacted.slice(0, 160) + '…' : redacted;
+      return `${base}: ${snippet}`;
     } catch {
       return base;
     }
@@ -596,8 +592,10 @@ export class AgentRuntimeDispatchService {
     const statusText = status ? ` (HTTP ${status})` : '';
     if (!error) return `External A2A error${statusText}`;
     const code = error.code !== undefined ? ` [code ${error.code}]` : '';
-    const msg = typeof error.message === 'string' ? error.message : this.stringifyContent(error);
-    return `External A2A error${statusText}${code}: ${msg}`;
+    const raw = typeof error.message === 'string' ? error.message : this.stringifyContent(error);
+    const msg = this.redactString(raw);
+    const snippet = msg.length > 160 ? msg.slice(0, 160) + '…' : msg;
+    return `External A2A error${statusText}${code}: ${snippet}`;
   }
 
   private safeLog(kind: 'api' | 'external', url: string, status: number, durationMs: number) {
@@ -616,6 +614,28 @@ export class AgentRuntimeDispatchService {
     } catch {
       // ignore logging errors
     }
+  }
+
+  private redactString(input: string): string {
+    // Mask common secret patterns and headers
+    let s = input;
+    const patterns: Array<[RegExp, string]> = [
+      // API keys (generic sk-..., bearer tokens, UUID-like secrets)
+      [/sk-[A-Za-z0-9-_]{10,}/g, 'sk-REDACTED'],
+      [/Bearer\s+[A-Za-z0-9-_.]+/gi, 'Bearer REDACTED'],
+      [/api[-_]?key\s*[:=]\s*[^\s"']+/gi, 'api_key=REDACTED'],
+      [/x-?api-?key\s*[:=]\s*[^\s"']+/gi, 'x-api-key=REDACTED'],
+      [/authorization\s*[:=]\s*[^\s"']+/gi, 'authorization=REDACTED'],
+      // JSON fields
+      [/("authorization"\s*:\s*")[^"]+(")/gi, '"authorization":"REDACTED"'],
+      [/("x-?api-?key"\s*:\s*")[^"]+(")/gi, '"x-api-key":"REDACTED"'],
+      [/("api[-_]?key"\s*:\s*")[^"]+(")/gi, '"apiKey":"REDACTED"'],
+      [/("token"\s*:\s*")[^"]+(")/gi, '"token":"REDACTED"'],
+    ];
+    for (const [re, repl] of patterns) {
+      s = s.replace(re, repl);
+    }
+    return s;
   }
 
   private buildApiRequestBody(

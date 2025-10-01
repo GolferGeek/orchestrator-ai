@@ -133,6 +133,27 @@ export class Agent2AgentController {
     }
   }
 
+  /**
+   * Minimal health endpoint for A2A agents
+   * Route: GET /agent-to-agent/:orgSlug/:agentSlug/health
+   * Public: returns a simple status payload without secrets
+   */
+  @Get('agent-to-agent/:orgSlug/:agentSlug/health')
+  async getHealth(
+    @Param('orgSlug') orgSlug: string,
+    @Param('agentSlug') agentSlug: string,
+  ) {
+    const org = orgSlug === 'global' ? null : orgSlug;
+    // We do not fetch agent details here to avoid side effects; this is a simple liveness check
+    return {
+      ok: true,
+      service: 'agent-to-agent',
+      organization: org ?? 'global',
+      agent: agentSlug,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
 
   private async normalizeTaskRequest(
     payload: any,
