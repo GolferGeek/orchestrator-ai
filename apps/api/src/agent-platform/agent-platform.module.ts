@@ -20,6 +20,7 @@ import { AgentRuntimeMetricsService } from './services/agent-runtime-metrics.ser
 import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-deliverables.adapter';
 import { DeliverablesModule } from '@/deliverables/deliverables.module';
+import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule],
@@ -41,6 +42,7 @@ import { DeliverablesModule } from '@/deliverables/deliverables.module';
     AgentRuntimeMetricsService,
     AgentRuntimeLifecycleService,
     AgentRuntimeDeliverablesAdapter,
+    AgentRuntimeNormalizationService,
   ],
   exports: [
     AgentsRepository,
@@ -60,6 +62,7 @@ import { DeliverablesModule } from '@/deliverables/deliverables.module';
     AgentRuntimeMetricsService,
     AgentRuntimeLifecycleService,
     AgentRuntimeDeliverablesAdapter,
+    AgentRuntimeNormalizationService,
   ],
 })
 export class AgentPlatformModule {}

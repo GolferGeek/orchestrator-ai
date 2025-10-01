@@ -11,6 +11,7 @@ import { AgentRuntimeDispatchService } from '@agent-platform/services/agent-runt
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 import { AgentRuntimeLifecycleService } from '@agent-platform/services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDispatchResult } from '@agent-platform/services/agent-runtime-dispatch.service';
+import { AgentRuntimeNormalizationService } from '@agent-platform/services/agent-runtime-normalization.service';
 import { AgentRuntimeDeliverablesAdapter } from '@agent-platform/services/agent-runtime-deliverables.adapter';
 
 export interface AgentExecutionContext {
@@ -41,6 +42,7 @@ export class AgentModeRouterService {
     private readonly streamService: AgentRuntimeStreamService,
     private readonly lifecycle: AgentRuntimeLifecycleService,
     private readonly deliverables: AgentRuntimeDeliverablesAdapter,
+    private readonly normalization: AgentRuntimeNormalizationService,
   ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
@@ -82,9 +84,15 @@ export class AgentModeRouterService {
         'Routing decision unavailable for conversation request',
       );
     }
+    // Normalize content before building prompt
+    const norm = this.normalization.normalize(context.definition, context.request, AgentTaskMode.CONVERSE);
+    if (!norm.ok && norm.strict) {
+      return TaskResponseDto.failure(AgentTaskMode.CONVERSE, norm.reason || 'invalid_input_format');
+    }
+    const normRequest = norm.request || context.request;
     const prompt = this.promptBuilder.buildPromptPayload({
       definition: context.definition,
-      request: context.request,
+      request: normRequest,
       mode: 'converse',
     });
 
@@ -155,9 +163,15 @@ export class AgentModeRouterService {
         'Routing decision unavailable for build request',
       );
     }
+    // Normalize content before dispatch
+    const norm = this.normalization.normalize(context.definition, context.request, AgentTaskMode.BUILD);
+    if (!norm.ok && norm.strict) {
+      return TaskResponseDto.failure(AgentTaskMode.BUILD, norm.reason || 'invalid_input_format');
+    }
+    const normRequest = norm.request || context.request;
     const prompt = this.promptBuilder.buildPromptPayload({
       definition: context.definition,
-      request: context.request,
+      request: normRequest,
       mode: 'build',
     });
 
@@ -195,6 +209,8 @@ export class AgentModeRouterService {
           content: response.content,
           title: context.definition.displayName ?? context.agent.slug,
           titleTemplate: this.resolveDeliverableTitleTemplate(context),
+          deliverableType: this.resolveDeliverableType(context),
+          deliverableFormat: this.resolveDeliverableFormat(context),
         },
         context.request,
       );
@@ -204,12 +220,11 @@ export class AgentModeRouterService {
           this.extractErrorMessage(response) || 'External service error',
         );
       }
-      return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      const successPayload: any = {
         content: {
           status: 'build_completed',
           output: response.content,
         },
-        ...(created && { deliverables: [created] }),
         metadata: {
           provider: response.metadata.provider,
           model: response.metadata.model,
@@ -217,7 +232,17 @@ export class AgentModeRouterService {
           routingDecision: decision,
           metadata: this.mergeMetadata(prompt.metadata, streamId),
         },
-      });
+      };
+
+      if (created?.kind === 'deliverable' && created.deliverable) {
+        successPayload.deliverables = [created.deliverable];
+        successPayload.metadata.deliverableId = created.deliverable.id;
+      } else if (created?.kind === 'version' && created.version) {
+        successPayload.metadata.deliverableId = created.deliverableId;
+        successPayload.metadata.newVersionId = created.version.id;
+      }
+
+      return TaskResponseDto.success(AgentTaskMode.BUILD, successPayload);
     } catch (error) {
       this.logger.error(
         `Failed to generate build response for agent ${context.agent.slug}: ${String(error)}`,
@@ -431,5 +456,17 @@ export class AgentModeRouterService {
       (cfg as any)?.deliverables?.title_template ||
       (cfg as any)?.deliverables?.titleTemplate || null;
     return (fromDeliverables && String(fromDeliverables)) || null;
+  }
+
+  private resolveDeliverableType(context: HydratedExecutionContext): string | null {
+    const cfg = context.definition.config || {};
+    const from = (cfg as any)?.deliverables?.type || (cfg as any)?.deliverables?.deliverable_type || null;
+    return from ? String(from) : null;
+  }
+
+  private resolveDeliverableFormat(context: HydratedExecutionContext): string | null {
+    const cfg = context.definition.config || {};
+    const from = (cfg as any)?.deliverables?.format || (cfg as any)?.deliverables?.deliverable_format || null;
+    return from ? String(from) : null;
   }
 }

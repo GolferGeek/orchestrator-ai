@@ -28,6 +28,11 @@ Owner: Codex with Matt
 - Gate build operations when `requiresHumanGate` is true
 - Approval/continue hooks via gateway (no custom endpoints)
 
+5) IO Normalization (Contracts)
+- Enforce MIME-type based `input_modes`/`output_modes` with lightweight normalization before dispatch
+- Honor optional `configuration.transforms` (expected/by_mode/adapters)
+- For API agents, keep existing request/response transforms; ensure dotted field extraction and template variables are supported
+
 ## Milestones
 - M3.1: Task lifecycle parity (A2A)
 - M3.2: Deliverables persistence + versioning
@@ -38,6 +43,8 @@ Owner: Codex with Matt
 - End-to-end parity scenarios pass on DB runtime without legacy base services
 - Deliverables create + version reliably; errors are structured and discoverable
 - No secrets in logs; PII policy metadata preserved
+- IO contracts are explicit in agent YAML; normalization succeeds or fails with clear errors when `strict: true`
+- Authoring policy enforced: all new/updated agents must follow `docs/agent-types/AUTHORING-STANDARDS.md`
 
 ---
 

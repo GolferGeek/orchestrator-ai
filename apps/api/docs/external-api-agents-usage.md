@@ -146,6 +146,10 @@ These are already present in the demo `jokes_agent` and `golf_rules_agent` confi
 - On successful build tasks, the runtime attempts to auto-create a deliverable when `conversationId` and `userId` are available.
 - If you pass a `deliverableId` in `payload.deliverableId` (or `payload.metadata.deliverableId`), the runtime creates a new version of that deliverable instead of creating a new one.
 - The response includes `payload.deliverables` when a new deliverable was created.
+- Agent config can influence deliverables (optional):
+  - `configuration.deliverables.title_template` — e.g., `"Report by {agent} on {date}"` (tokens: `{agent}`, `{date}`, `{conversation}`, `{title}`)
+  - `configuration.deliverables.type` — one of `document|analysis|report|plan|requirements`
+  - `configuration.deliverables.format` — one of `markdown|text|json|html`
 ## Error Responses (Legacy Dynamic Agents)
 
 For legacy routes that pass through DynamicAgentsController, failures return HTTP 200 with a standardized payload:

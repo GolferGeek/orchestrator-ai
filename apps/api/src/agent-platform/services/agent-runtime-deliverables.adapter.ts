@@ -18,6 +18,8 @@ export interface BuildDeliverableInput {
   title?: string | null;
   content?: string | null;
   titleTemplate?: string | null;
+  deliverableType?: DeliverableType | string | null;
+  deliverableFormat?: DeliverableFormat | string | null;
 }
 
 @Injectable()
@@ -50,9 +52,9 @@ export class AgentRuntimeDeliverablesAdapter {
         (request.payload as any)?.deliverableId ||
         (request.payload as any)?.metadata?.deliverableId;
       if (targetDeliverableId) {
-        await this.versions.createVersion(targetDeliverableId, {
+        const version = await this.versions.createVersion(targetDeliverableId, {
           content,
-          format: DeliverableFormat.TEXT,
+          format: this.coerceDeliverableFormat(ctx.deliverableFormat) ?? DeliverableFormat.TEXT,
           createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
           taskId: (request as any).taskId,
           metadata: {
@@ -61,15 +63,15 @@ export class AgentRuntimeDeliverablesAdapter {
             mode: ctx.mode,
           },
         }, userId);
-        return null; // No new deliverable created; version was added to existing
+        return { kind: 'version', deliverableId: targetDeliverableId, version };
       }
       const dto: CreateDeliverableDto = {
         title,
-        type: DeliverableType.DOCUMENT,
+        type: this.coerceDeliverableType(ctx.deliverableType) ?? DeliverableType.DOCUMENT,
         conversationId,
         agentName: ctx.agentSlug,
         initialContent: content || undefined,
-        initialFormat: DeliverableFormat.TEXT,
+        initialFormat: this.coerceDeliverableFormat(ctx.deliverableFormat) ?? DeliverableFormat.TEXT,
         initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
         initialTaskId: (request as any).taskId,
         initialMetadata: {
@@ -79,8 +81,8 @@ export class AgentRuntimeDeliverablesAdapter {
         },
       };
 
-      const created = await this.deliverables.create(dto, userId);
-      return created;
+      const deliverable = await this.deliverables.create(dto, userId);
+      return { kind: 'deliverable', deliverable };
     } catch (error) {
       this.logger.warn(
         `Failed to auto-create deliverable: ${error instanceof Error ? error.message : String(error)}`,
@@ -107,5 +109,43 @@ export class AgentRuntimeDeliverablesAdapter {
       .replaceAll('{date}', date)
       .replaceAll('{conversation}', String(ctx.conversationId ?? ''))
       .replaceAll('{title}', defaultTitle);
+  }
+
+  private coerceDeliverableType(value?: DeliverableType | string | null): DeliverableType | undefined {
+    if (!value) return undefined;
+    if (Object.values(DeliverableType).includes(value as DeliverableType)) return value as DeliverableType;
+    const s = String(value).toLowerCase();
+    switch (s) {
+      case 'document':
+        return DeliverableType.DOCUMENT;
+      case 'analysis':
+        return DeliverableType.ANALYSIS;
+      case 'report':
+        return DeliverableType.REPORT;
+      case 'plan':
+        return DeliverableType.PLAN;
+      case 'requirements':
+        return DeliverableType.REQUIREMENTS;
+      default:
+        return undefined;
+    }
+  }
+
+  private coerceDeliverableFormat(value?: DeliverableFormat | string | null): DeliverableFormat | undefined {
+    if (!value) return undefined;
+    if (Object.values(DeliverableFormat).includes(value as DeliverableFormat)) return value as DeliverableFormat;
+    const s = String(value).toLowerCase();
+    switch (s) {
+      case 'markdown':
+        return DeliverableFormat.MARKDOWN;
+      case 'text':
+        return DeliverableFormat.TEXT;
+      case 'json':
+        return DeliverableFormat.JSON;
+      case 'html':
+        return DeliverableFormat.HTML;
+      default:
+        return undefined;
+    }
   }
 }
