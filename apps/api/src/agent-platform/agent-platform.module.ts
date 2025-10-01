@@ -22,11 +22,13 @@ import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-delive
 import { DeliverablesModule } from '@/deliverables/deliverables.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
+import { RedactionPatternsRepository } from './repositories/redaction-patterns.repository';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule],
   providers: [
     AgentsRepository,
+    RedactionPatternsRepository,
     ConversationPlansRepository,
     OrchestrationRunsRepository,
     OrganizationCredentialsRepository,
@@ -48,6 +50,7 @@ import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction
   ],
   exports: [
     AgentsRepository,
+    RedactionPatternsRepository,
     ConversationPlansRepository,
     OrchestrationRunsRepository,
     OrganizationCredentialsRepository,

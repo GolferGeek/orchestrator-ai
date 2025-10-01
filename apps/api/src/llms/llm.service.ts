@@ -176,6 +176,16 @@ export class LLMService {
           const pseudonymResult =
             await this.dictionaryPseudonymizerService.pseudonymizeText(
               userMessage,
+              {
+                organizationSlug:
+                  (options as any)?.organizationSlug ||
+                  (options as any)?.routingDecision?.organizationSlug ||
+                  null,
+                agentSlug:
+                  (options as any)?.agentSlug ||
+                  (options as any)?.routingDecision?.agentSlug ||
+                  null,
+              },
             );
           processedUserMessage = pseudonymResult.pseudonymizedText;
           dictionaryMappings = pseudonymResult.mappings;

@@ -1,19 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
 import { TaskRequestDto } from '@agent2agent/dto/task-request.dto';
+import { RedactionPatternsRepository } from '../repositories/redaction-patterns.repository';
+
+interface RedactionOptions {
+  // When true, skip org/DB regex redactions (local route bypass)
+  isLocal?: boolean;
+  organizationSlug?: string | null;
+  agentSlug?: string | null;
+}
 
 @Injectable()
 export class AgentRuntimeRedactionService {
-  redact(definition: AgentRuntimeDefinition, request: TaskRequestDto): TaskRequestDto {
+  constructor(
+    private readonly redactionRepo: RedactionPatternsRepository,
+  ) {}
+
+  async redact(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    options: RedactionOptions = {},
+  ): Promise<TaskRequestDto> {
     const cfg = (definition.config as any) || {};
     const fields: string[] = ((cfg.transforms?.redaction?.fields as any) || [])
       .filter((f: any) => typeof f === 'string');
 
     let next: TaskRequestDto = request;
 
+    // Apply org/DB regex redactions to userMessage unless local route
+    const shouldApplyDbPatterns = options.isLocal !== true;
+    if (shouldApplyDbPatterns && typeof next.userMessage === 'string') {
+      const redacted = await this.applyOrgPatterns(
+        definition.organizationSlug ?? null,
+        next.userMessage,
+      );
+      if (redacted !== next.userMessage) {
+        next = { ...next, userMessage: redacted };
+      }
+    }
+
     // Redact userMessage for obvious secrets
-    if (typeof request.userMessage === 'string') {
-      const masked = this.redactString(request.userMessage);
+    if (typeof next.userMessage === 'string') {
+      const masked = this.redactString(next.userMessage);
       if (masked !== request.userMessage) {
         next = { ...next, userMessage: masked };
       }
@@ -42,8 +70,41 @@ export class AgentRuntimeRedactionService {
     return s;
   }
 
+  private async applyOrgPatterns(
+    organizationSlug: string | null,
+    text: string,
+  ): Promise<string> {
+    try {
+      const records = await this.redactionRepo.listByOrganization(
+        organizationSlug,
+      );
+      if (!records || records.length === 0) return text;
+
+      let s = text;
+      for (const rec of records) {
+        const source = rec.pattern?.trim();
+        if (!source) continue;
+        const flags = (rec.flags || 'g').includes('g')
+          ? rec.flags || 'g'
+          : `${rec.flags || ''}g`;
+        let re: RegExp | null = null;
+        try {
+          re = new RegExp(source, flags);
+        } catch {
+          // Skip invalid regex rows
+          continue;
+        }
+        const replacement = rec.replacement ?? '[REDACTED]';
+        s = s.replace(re, replacement);
+      }
+      return s;
+    } catch {
+      return text;
+    }
+  }
+
   private maskPath(obj: any, path: string, value: any) {
-    const parts: Array<string|number> = [];
+    const parts: Array<string | number> = [];
     const re = /([^\.\[\]]+)|(\[(\d+)\])/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(path))) {
@@ -55,17 +116,17 @@ export class AgentRuntimeRedactionService {
     for (let i = 0; i < parts.length - 1; i++) {
       const p = parts[i];
       if (cur == null) return;
-      cur = typeof p === 'number' ? cur[p] : cur[p];
+      const key: any = p as any;
+      cur = (cur as any)[key];
       if (cur == null) return;
     }
-    const last = parts[parts.length - 1];
+    const last = parts[parts.length - 1] as string | number;
     if (cur != null) {
       if (typeof last === 'number') {
         if (Array.isArray(cur) && last < cur.length) cur[last] = value;
-      } else if (Object.prototype.hasOwnProperty.call(cur, last)) {
-        cur[last] = value;
+      } else if (Object.prototype.hasOwnProperty.call(cur, last as any)) {
+        (cur as any)[last as any] = value;
       }
     }
   }
 }
-

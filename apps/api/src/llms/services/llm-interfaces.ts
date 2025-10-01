@@ -44,6 +44,9 @@ export interface GenerateResponseParams {
     currentUser?: any;
     callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
     callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
+    // Org/Agent context for policy + dictionary scoping
+    organizationSlug?: string | null;
+    agentSlug?: string | null;
     dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
     // PII metadata from routing decision
     piiMetadata?: any; // PIIProcessingMetadata from centralized routing
@@ -67,6 +70,9 @@ export interface UnifiedGenerateResponseParams {
     // Caller tracking for usage analytics
     callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
     callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
+    // Org/Agent context for policy + dictionary scoping
+    organizationSlug?: string | null;
+    agentSlug?: string | null;
     conversationId?: string; // Optional conversation/session context
     sessionId?: string;
     userId?: string;

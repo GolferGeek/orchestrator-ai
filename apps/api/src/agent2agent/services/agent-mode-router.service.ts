@@ -92,7 +92,11 @@ export class AgentModeRouterService {
       return TaskResponseDto.failure(AgentTaskMode.CONVERSE, norm.reason || 'invalid_input_format');
     }
     const normRequest = norm.request || context.request;
-    const redactedRequest = this.redaction.redact(context.definition, normRequest);
+    const redactedRequest = await this.redaction.redact(
+      context.definition,
+      normRequest,
+      { isLocal: Boolean(decision.isLocal), organizationSlug: context.organizationSlug, agentSlug: context.agent.slug },
+    );
     const prompt = this.promptBuilder.buildPromptPayload({
       definition: context.definition,
       request: redactedRequest,
@@ -172,7 +176,11 @@ export class AgentModeRouterService {
       return TaskResponseDto.failure(AgentTaskMode.BUILD, norm.reason || 'invalid_input_format');
     }
     const normRequest = norm.request || context.request;
-    const redactedRequest = this.redaction.redact(context.definition, normRequest);
+    const redactedRequest = await this.redaction.redact(
+      context.definition,
+      normRequest,
+      { isLocal: Boolean(decision.isLocal), organizationSlug: context.organizationSlug, agentSlug: context.agent.slug },
+    );
     const prompt = this.promptBuilder.buildPromptPayload({
       definition: context.definition,
       request: redactedRequest,

@@ -200,6 +200,8 @@ export class AgentRuntimeDispatchService {
       piiMetadata: routingDecision.piiMetadata,
       routingDecision,
       preferLocal: routingDecision.isLocal,
+      organizationSlug: options.definition.organizationSlug ?? null,
+      agentSlug: options.definition.slug,
       maxComplexity:
         overrideOptions.maxComplexity ??
         prompt.metadata?.maxComplexity ??

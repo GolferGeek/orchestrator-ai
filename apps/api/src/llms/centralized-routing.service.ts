@@ -286,10 +286,65 @@ export class CentralizedRoutingService {
       // Step 2: CRITICAL DECISION POINT - Check for showstoppers
       if (piiResult.metadata.showstopperDetected) {
         this.logger.warn(
-          `🛑 [CENTRALIZED-ROUTING] SHOWSTOPPER DETECTED - Blocking request`,
+          `🛑 [CENTRALIZED-ROUTING] SHOWSTOPPER DETECTED`,
         );
 
-        // Record a blocked usage row for analytics (single insert)
+        // If sovereign mode forces local or explicit provider is local, bypass blocking
+        const explicitProvider = options.provider || options.providerName;
+        const explicitLocal =
+          explicitProvider && String(explicitProvider).toLowerCase() === 'ollama';
+
+        // Analyze complexity/tier to check local availability when not explicitly local
+        const complexity = this.analyzeComplexity({ prompt, options });
+        const tier = this.selectTierForComplexity(complexity);
+        const localModelAvailable = await this.checkLocalModelAvailability(tier);
+
+        if (explicitLocal || sovereignModeActive || localModelAvailable) {
+          reasoningPath.push(
+            'Showstopper detected, but routing to local model (bypass enforcement)',
+          );
+          const localModel = explicitLocal
+            ? options.model || options.modelName || (await this.selectBestLocalModel(tier, sovereignPolicy))
+            : await this.selectBestLocalModel(tier, sovereignPolicy);
+
+          // Create minimal local PII metadata (no-op) for consistency
+          const localPii = await this.piiService.checkPolicy(prompt, {
+            conversationId: options.conversationId,
+            userId: options.userId,
+            requestId: options.requestId,
+            providerName: 'ollama',
+          });
+
+          const localDecision: RoutingDecision = {
+            provider: 'ollama',
+            model: String(localModel),
+            isLocal: true,
+            modelTier: tier,
+            fallbackUsed: false,
+            complexityScore: this.getComplexityScore(complexity),
+            reasoningPath,
+            sovereignModeEnforced: sovereignModeActive,
+            sovereignModeViolation: false,
+            piiMetadata: localPii.metadata,
+            originalPrompt: prompt,
+            routeToAgent: true,
+          };
+
+          this.logRoutingDecision(
+            request,
+            localDecision,
+            sovereignPolicy,
+            sovereignModeActive,
+            sovereignRoutingEnabled,
+            violations,
+            warnings,
+            startTime,
+          );
+
+          return localDecision;
+        }
+
+        // Otherwise, block (remote enforcement)
         try {
           await this.runMetadataService.insertCompletedUsage({
             provider: 'policy',
@@ -323,7 +378,6 @@ export class CentralizedRoutingService {
           });
         } catch {}
 
-        // IMMEDIATE RETURN - Never route to agents
         return {
           provider: 'policy-blocked',
           model: 'showstopper-pii',
@@ -333,7 +387,7 @@ export class CentralizedRoutingService {
           reasoningPath,
           piiMetadata: piiResult.metadata,
           originalPrompt: prompt,
-          routeToAgent: false, // 🔥 KEY: Don't route to agents
+          routeToAgent: false,
           blockingReason: 'showstopper-pii',
         };
       }

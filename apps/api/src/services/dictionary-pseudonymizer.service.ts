@@ -49,9 +49,12 @@ export class DictionaryPseudonymizerService {
   }
 
   /**
-   * Load active dictionary entries from database
+   * Load active dictionary entries from database, scoped by organization/agent when provided
    */
-  private async loadDictionary(): Promise<DictionaryPseudonymMapping[]> {
+  private async loadDictionary(options?: {
+    organizationSlug?: string | null;
+    agentSlug?: string | null;
+  }): Promise<DictionaryPseudonymMapping[]> {
     const now = Date.now();
 
     // Return cached entries if still valid
@@ -60,11 +63,42 @@ export class DictionaryPseudonymizerService {
     }
 
     try {
-      const { data, error } = await this.supabaseService
-        .getServiceClient()
+      const client = this.supabaseService.getServiceClient();
+      const { organizationSlug = null, agentSlug = null } = options || {};
+
+      // Prefer agent-scoped -> org-scoped -> global
+      const resultSets: any[][] = [];
+
+      if (organizationSlug && agentSlug) {
+        const { data } = await client
+          .from('pseudonym_dictionaries')
+          .select('original_value, pseudonym, data_type, category')
+          .eq('is_active', true)
+          .eq('organization_slug', organizationSlug)
+          .eq('agent_slug', agentSlug)
+          .not('original_value', 'is', null)
+          .not('pseudonym', 'is', null);
+        if (data) resultSets.push(data as any[]);
+      }
+
+      if (organizationSlug) {
+        const { data } = await client
+          .from('pseudonym_dictionaries')
+          .select('original_value, pseudonym, data_type, category')
+          .eq('is_active', true)
+          .eq('organization_slug', organizationSlug)
+          .is('agent_slug', null)
+          .not('original_value', 'is', null)
+          .not('pseudonym', 'is', null);
+        if (data) resultSets.push(data as any[]);
+      }
+
+      const { data: globalData, error } = await client
         .from('pseudonym_dictionaries')
         .select('original_value, pseudonym, data_type, category')
         .eq('is_active', true)
+        .is('organization_slug', null)
+        .is('agent_slug', null)
         .not('original_value', 'is', null)
         .not('pseudonym', 'is', null);
 
@@ -73,7 +107,19 @@ export class DictionaryPseudonymizerService {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      const dictionary: DictionaryPseudonymMapping[] = (data || []).map(
+      if (globalData) resultSets.push(globalData as any[]);
+
+      // Merge and de-duplicate by original_value/pseudonym pair
+      const merged = ([] as any[]).concat(...resultSets);
+      const seen = new Set<string>();
+      const unique = merged.filter((row) => {
+        const key = `${row.original_value}::${row.pseudonym}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const dictionary: DictionaryPseudonymMapping[] = (unique || []).map(
         (row: any) => ({
           originalValue: row.original_value,
           pseudonym: row.pseudonym,
@@ -99,6 +145,7 @@ export class DictionaryPseudonymizerService {
    */
   async pseudonymizeText(
     text: string,
+    options?: { organizationSlug?: string | null; agentSlug?: string | null },
   ): Promise<DictionaryPseudonymizationResult> {
     const startTime = Date.now();
     let processedText = text;
@@ -106,7 +153,7 @@ export class DictionaryPseudonymizerService {
 
     try {
       // Load dictionary entries
-      const dictionary = await this.loadDictionary();
+      const dictionary = await this.loadDictionary(options);
 
       // Process each dictionary entry
       for (const entry of dictionary) {

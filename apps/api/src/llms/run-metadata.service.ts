@@ -248,6 +248,7 @@ export class RunMetadataService {
         model_name: params.model,
         is_local: !!params.isLocal,
         model_tier: params.isLocal ? 'local' : 'external',
+        route: params.isLocal ? 'local' : 'remote',
         fallback_used: false,
         status: params.status || 'completed',
         started_at: new Date(startTime).toISOString(),
