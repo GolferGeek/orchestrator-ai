@@ -54,5 +54,67 @@ describe('AgentRuntimeDeliverablesAdapter', () => {
     expect(call.title).toContain('Report by demo-agent on ');
     expect(call.initialContent).toBe('Hello');
   });
-});
 
+  it('appends image attachments as a new version when images are provided on create', async () => {
+    const deliverables = { create: jest.fn().mockResolvedValue({ id: 'd1' }) } as any;
+    const versions = { createVersion: jest.fn().mockResolvedValue({ id: 'v2' }) } as any;
+    const adapter = new AgentRuntimeDeliverablesAdapter(deliverables, versions);
+
+    const ctx = {
+      organizationSlug: null,
+      agentSlug: 'demo-agent',
+      mode: AgentTaskMode.BUILD,
+      conversationId: 'conv-1',
+      content: 'See images',
+    };
+    const request: any = {
+      payload: {
+        images: [
+          { url: 'https://cdn/x.png', mime: 'image/png', width: 640, height: 480, thumbnailUrl: 'https://cdn/x_t.jpg' },
+          { url: 'https://cdn/y.jpg', mime: 'image/jpeg' },
+        ],
+      },
+      metadata: { userId: 'user-1' },
+      taskId: 'task-1',
+    };
+
+    const result = await adapter.maybeCreateFromBuild(ctx, request);
+    expect(result?.kind).toBe('deliverable');
+    // Ensure a follow-up version was created with file attachments
+    expect(versions.createVersion).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({
+        fileAttachments: expect.objectContaining({ images: expect.any(Array) }),
+      }),
+      'user-1',
+    );
+  });
+
+  it('adds image attachments on enhancement path when deliverableId present', async () => {
+    const deliverables = { create: jest.fn() } as any;
+    const versions = { createVersion: jest.fn().mockResolvedValue({ id: 'v3' }) } as any;
+    const adapter = new AgentRuntimeDeliverablesAdapter(deliverables, versions);
+
+    const ctx = {
+      organizationSlug: 'org',
+      agentSlug: 'demo-agent',
+      mode: AgentTaskMode.BUILD,
+      conversationId: 'conv-1',
+      content: 'Enhance with images',
+    };
+    const request: any = {
+      payload: { deliverableId: 'deliv-1', images: [{ url: 'https://x/a.webp', mime: 'image/webp' }] },
+      metadata: { userId: 'user-1' },
+      taskId: 'task-1',
+    };
+
+    const result = await adapter.maybeCreateFromBuild(ctx, request);
+    expect(result?.kind).toBe('version');
+    expect(versions.createVersion).toHaveBeenCalledWith(
+      'deliv-1',
+      expect.objectContaining({ fileAttachments: expect.any(Object) }),
+      'user-1',
+    );
+    expect(deliverables.create).not.toHaveBeenCalled();
+  });
+});

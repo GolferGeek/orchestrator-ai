@@ -45,6 +45,9 @@ export class AgentRuntimeDeliverablesAdapter {
 
       const baseTitle = ctx.title || `Build output from ${ctx.agentSlug}`;
       const content = ctx.content || (request.payload as any)?.output || '';
+      const images = Array.isArray((request.payload as any)?.images)
+        ? ((request.payload as any).images as any[]).filter(Boolean)
+        : [];
       const title = this.computeTitle(baseTitle, ctx);
 
       // Enhancement path: if a target deliverableId is provided, create a new version instead
@@ -52,17 +55,28 @@ export class AgentRuntimeDeliverablesAdapter {
         (request.payload as any)?.deliverableId ||
         (request.payload as any)?.metadata?.deliverableId;
       if (targetDeliverableId) {
-        const version = await this.versions.createVersion(targetDeliverableId, {
-          content,
-          format: this.coerceDeliverableFormat(ctx.deliverableFormat) ?? DeliverableFormat.TEXT,
-          createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
-          taskId: (request as any).taskId,
-          metadata: {
-            organizationSlug: ctx.organizationSlug,
-            agentSlug: ctx.agentSlug,
-            mode: ctx.mode,
+        const version = await this.versions.createVersion(
+          targetDeliverableId,
+          {
+            content: content || (images.length ? 'Image assets' : ''),
+            format:
+              images.length > 0
+                ? DeliverableFormat.JSON
+                : this.coerceDeliverableFormat(ctx.deliverableFormat) ?? DeliverableFormat.TEXT,
+            createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
+            taskId: (request as any).taskId,
+            metadata: {
+              organizationSlug: ctx.organizationSlug,
+              agentSlug: ctx.agentSlug,
+              mode: ctx.mode,
+            },
+            fileAttachments:
+              images.length > 0
+                ? { images: images.map((img) => this.normalizeImageAttachment(img)) }
+                : {},
           },
-        }, userId);
+          userId,
+        );
         return { kind: 'version', deliverableId: targetDeliverableId, version };
       }
       const dto: CreateDeliverableDto = {
@@ -82,6 +96,27 @@ export class AgentRuntimeDeliverablesAdapter {
       };
 
       const deliverable = await this.deliverables.create(dto, userId);
+
+      // If images provided, append a version with the image file attachments and make it current
+      if (images.length > 0) {
+        await this.versions.createVersion(
+          deliverable.id,
+          {
+            content: content || 'Image assets',
+            format: DeliverableFormat.JSON,
+            createdByType: DeliverableVersionCreationType.AI_RESPONSE,
+            taskId: (request as any).taskId,
+            metadata: {
+              organizationSlug: ctx.organizationSlug,
+              agentSlug: ctx.agentSlug,
+              mode: ctx.mode,
+            },
+            fileAttachments: { images: images.map((img) => this.normalizeImageAttachment(img)) },
+          },
+          userId,
+        );
+      }
+
       return { kind: 'deliverable', deliverable };
     } catch (error) {
       this.logger.warn(
@@ -149,3 +184,18 @@ export class AgentRuntimeDeliverablesAdapter {
     }
   }
 }
+
+  private normalizeImageAttachment(input: any) {
+    const obj = typeof input === 'object' && input ? input : {};
+    const out: Record<string, any> = {
+      url: obj.url || obj.href || '',
+      mime: obj.mime || obj.contentType || null,
+    };
+    if (obj.width) out.width = obj.width;
+    if (obj.height) out.height = obj.height;
+    if (obj.size) out.size = obj.size;
+    if (obj.thumbnailUrl) out.thumbnailUrl = obj.thumbnailUrl;
+    if (obj.altText) out.altText = obj.altText;
+    if (obj.hash) out.hash = obj.hash;
+    return out;
+  }

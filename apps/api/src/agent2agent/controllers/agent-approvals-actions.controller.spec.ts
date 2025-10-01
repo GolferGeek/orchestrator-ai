@@ -24,14 +24,17 @@ describe('AgentApprovalsActionsController', () => {
     const controller = new AgentApprovalsActionsController(gateway, approvals);
 
     const req: any = { user: { id: 'user-1' } };
-    const result = await controller.approveAndContinue('global', 'demo_agent', 'appr-1', req, { options: { stream: true } });
+    const result = await controller.approveAndContinue('global', 'demo_agent', 'appr-1', req, { options: { stream: true }, metadata: { stream: true, streamId: 'client-sid' } });
 
     expect(approvals.get).toHaveBeenCalledWith('appr-1');
     expect(approvals.setStatus).toHaveBeenCalledWith('appr-1', 'approved', 'user-1');
-    expect(gateway.execute).toHaveBeenCalledWith('global', 'demo_agent', expect.objectContaining({ mode: 'build' }));
+    expect(gateway.execute).toHaveBeenCalledWith(
+      'global',
+      'demo_agent',
+      expect.objectContaining({ mode: 'build', metadata: expect.objectContaining({ streamId: 'client-sid' }) })
+    );
     expect(result.success).toBe(true);
     expect(result.payload?.metadata?.approvalId).toBe('appr-1');
     expect(result.payload?.metadata?.approvalStatus).toBe('approved');
   });
 });
-

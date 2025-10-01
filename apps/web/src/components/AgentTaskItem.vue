@@ -37,6 +37,13 @@
         </div>
         
 
+        <!-- Inline image gallery (if deliverable has image attachments) -->
+        <div v-if="message.role === 'assistant' && imageAssets.length" class="image-gallery">
+          <div class="thumb-grid">
+            <img v-for="(img, idx) in imageAssets" :key="idx" class="thumb" :src="img.thumbnailUrl || img.url" :alt="img.altText || 'image'" @click.stop="openImage(img)" />
+          </div>
+        </div>
+
         <!-- Task text content -->
         <div class="task-text" v-if="message.content && !willHideForDeliverable">
           <!-- Debug comment -->
@@ -433,6 +440,19 @@ onMounted(() => {
       chatStore.setPendingAction(mode as any, props.message.taskId, 30000);
     }
   } catch (_) {}
+});
+
+// Image attachments for associated deliverable (if any)
+const imageAssets = computed(() => {
+  try {
+    const dId = (props.message as any).deliverableId || props.message.metadata?.deliverableId;
+    if (!dId) return [] as any[];
+    const current = deliverablesStore.getCurrentVersion(String(dId));
+    const imgs = (current?.fileAttachments?.images || []) as any[];
+    return Array.isArray(imgs) ? imgs : [];
+  } catch {
+    return [] as any[];
+  }
 });
 
 // LLM Information computed properties
@@ -1031,6 +1051,12 @@ async function playAudio(audioData: string) {
     audio.play().catch(reject);
   });
 }
+
+function openImage(img: any) {
+  try {
+    window.open(img.url, '_blank');
+  } catch {}
+}
 </script>
 
 <style scoped>
@@ -1211,6 +1237,22 @@ async function playAudio(audioData: string) {
 
 .metadata-button:hover {
   --color: var(--ion-color-primary);
+}
+
+.image-gallery {
+  margin-bottom: 8px;
+}
+.thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .approval-status {

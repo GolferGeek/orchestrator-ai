@@ -124,7 +124,20 @@
                 </div>
               </ion-card-header>
               <ion-card-content>
-                <div class="deliverable-preview">
+                <div class="image-preview" v-if="getImageAssets(deliverable).length">
+                  <div class="thumb-grid">
+                    <img
+                      v-for="(img, idx) in getImageAssets(deliverable).slice(0,3)"
+                      :key="idx"
+                      class="thumb"
+                      :src="img.thumbnailUrl || img.url"
+                      :alt="img.altText || 'image'"
+                      @click.stop="openImage(img)"
+                    />
+                    <div v-if="getImageAssets(deliverable).length > 3" class="more-overlay">+{{ getImageAssets(deliverable).length - 3 }}</div>
+                  </div>
+                </div>
+                <div class="deliverable-preview" v-else>
                   <p class="content-preview">{{ getContentPreview(getDeliverableContent(deliverable)) }}</p>
                 </div>
                 <div class="deliverable-meta">
@@ -487,6 +500,21 @@ const handleDeliverableCreated = (deliverableId: string) => {
   loadDeliverables();
   showNewDeliverableDialog.value = false;
 };
+
+function getImageAssets(deliverable: any) {
+  try {
+    const current = deliverablesStore.getCurrentVersion(deliverable.id);
+    const images = (current?.fileAttachments?.images || []) as any[];
+    return Array.isArray(images) ? images : [];
+  } catch {
+    return [];
+  }
+}
+function openImage(img: any) {
+  try {
+    window.open(img.url, '_blank');
+  } catch {}
+}
 const viewDeliverable = async (deliverable: any) => {
   // Create a viewing conversation for this deliverable
   try {
@@ -829,6 +857,30 @@ const {
 }
 .deliverable-preview {
   margin-bottom: 1rem;
+}
+.image-preview {
+  margin-bottom: 1rem;
+}
+.thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.more-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 600;
 }
 .content-preview {
   color: var(--ion-color-medium);

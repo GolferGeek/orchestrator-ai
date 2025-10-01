@@ -525,6 +525,23 @@ describe('AgentModeRouterService', () => {
     expect(result.payload?.metadata?.metadata?.streamId).toBe('stream-1');
   });
 
+  it('uses client-provided streamId when streaming', async () => {
+    const clientStreamId = 'client-stream-123';
+    const result = await service.execute(
+      buildContext({
+        mode: AgentTaskMode.CONVERSE,
+        payload: { options: { stream: true }, metadata: { streamId: clientStreamId } },
+        metadata: { stream: true, streamId: clientStreamId } as any,
+      }),
+    );
+
+    // Ensure streamService.start was invoked with provided streamId as the second arg
+    const call = (streamService.start as any).mock.calls.at(-1);
+    expect(call?.[1]).toBe(clientStreamId);
+    // And result metadata should echo the same streamId
+    expect(result.payload?.metadata?.metadata?.streamId).toBe(clientStreamId);
+  });
+
   it('propagates streaming errors and invokes session.error', async () => {
     const streamingError = new Error('stream failure');
     dispatcher.dispatchStream.mockImplementationOnce(() => ({
