@@ -67,6 +67,9 @@
                     <ion-label>Remote</ion-label>
                   </ion-segment-button>
                 </ion-segment>
+                <div style="margin-top:12px;">
+                  <ion-button size="small" fill="outline" @click="applyPresetLocal7d">Local last 7 days</ion-button>
+                </div>
               </ion-card-content>
             </ion-card>
             <!-- Quick Stats -->
@@ -426,6 +429,16 @@ const onRouteFilterChange = async () => {
   await store.fetchUsageRecords();
   // Update analytics
   store.updateAnalyticsFilters({ route: route as any });
+  await store.fetchAnalytics();
+};
+
+const applyPresetLocal7d = async () => {
+  routeFilter.value = 'local';
+  const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const end = new Date().toISOString().split('T')[0];
+  store.updateFilters({ route: 'local' as any, startDate: start, endDate: end });
+  await store.fetchUsageRecords();
+  store.updateAnalyticsFilters({ route: 'local' as any, startDate: start, endDate: end });
   await store.fetchAnalytics();
 };
 

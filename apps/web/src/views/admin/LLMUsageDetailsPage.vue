@@ -50,6 +50,18 @@
                   <div>{{ formatDate(details.completed_at) || '—' }}</div>
                 </ion-col>
               </ion-row>
+              <ion-row>
+                <ion-col size="12" size-md="6">
+                  <strong>Route:</strong>
+                  <ion-chip :color="(details.route ?? (details.is_local ? 'local' : 'remote')) === 'local' ? 'success' : 'tertiary'" size="small">
+                    {{ details.route ?? (details.is_local ? 'local' : 'remote') }}
+                  </ion-chip>
+                </ion-col>
+                <ion-col size="12" size-md="6">
+                  <strong>Conversation ID:</strong>
+                  <div class="mono">{{ details.conversation_id || '—' }}</div>
+                </ion-col>
+              </ion-row>
             </ion-grid>
           </ion-card-content>
         </ion-card>

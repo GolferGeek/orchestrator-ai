@@ -78,6 +78,20 @@
             <ion-row>
               <ion-col size="12" size-md="6" size-lg="3">
                 <ion-item>
+                  <ion-select
+                    v-model="localFilters.route"
+                    placeholder="Route"
+                    interface="popover"
+                    @ion-change="applyFilters"
+                  >
+                    <ion-select-option value="">All Routes</ion-select-option>
+                    <ion-select-option value="local">Local</ion-select-option>
+                    <ion-select-option value="remote">Remote</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-item>
                   <ion-input
                     v-model="localFilters.limit"
                     type="number"
@@ -108,6 +122,17 @@
                 >
                   <ion-icon :icon="refreshOutline" slot="start" />
                   Refresh
+                </ion-button>
+              </ion-col>
+
+              <ion-col size="12" size-md="6" size-lg="3">
+                <ion-button 
+                  fill="outline" 
+                  color="secondary"
+                  @click="exportCsv"
+                  :disabled="loading || usageRecords.length === 0"
+                >
+                  Export CSV
                 </ion-button>
               </ion-col>
             </ion-row>
@@ -203,6 +228,7 @@
                   <th>Time</th>
                   <th>Caller</th>
                   <th>Model</th>
+                  <th>Route</th>
                   <th>Status</th>
                   <th>PII</th>
                   <th>Duration</th>
@@ -245,6 +271,12 @@
                         Local
                       </ion-chip>
                     </div>
+                  </td>
+
+                  <td>
+                    <ion-chip :color="(record.route ?? (record.is_local ? 'local' : 'remote')) === 'local' ? 'success' : 'tertiary'" size="small">
+                      {{ (record.route ?? (record.is_local ? 'local' : 'remote')) }}
+                    </ion-chip>
                   </td>
                   
                   <td>
@@ -446,7 +478,8 @@ const localFilters = ref({
   callerName: '',
   startDate: '',
   endDate: '',
-  limit: 100
+  limit: 100,
+  route: '' as '' | 'local' | 'remote'
 });
 
 const showDetailsModal = ref(false);
@@ -484,7 +517,8 @@ const clearFilters = () => {
     callerName: '',
     startDate: '',
     endDate: '',
-    limit: 100
+    limit: 100,
+    route: ''
   };
   store.clearFilters();
   store.fetchUsageRecords();
@@ -529,6 +563,50 @@ const closeDetails = () => {
 
 const clearError = () => {
   store.clearError();
+};
+
+const exportCsv = () => {
+  const headers = [
+    'started_at',
+    'caller_type',
+    'caller_name',
+    'provider_name',
+    'model_name',
+    'route',
+    'status',
+    'duration_ms',
+    'input_tokens',
+    'output_tokens',
+    'total_cost',
+    'run_id',
+  ];
+  const rows = usageRecords.value.map((r) => [
+    r.started_at,
+    r.caller_type,
+    r.caller_name,
+    r.provider_name,
+    r.model_name,
+    (r.route ?? (r.is_local ? 'local' : 'remote')),
+    r.status,
+    r.duration_ms ?? '',
+    r.input_tokens ?? '',
+    r.output_tokens ?? '',
+    r.total_cost ?? '',
+    r.run_id,
+  ]);
+  const csv = [headers, ...rows]
+    .map((row) => row.map((v) => {
+      const s = String(v ?? '');
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `llm_usage_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 // Lifecycle

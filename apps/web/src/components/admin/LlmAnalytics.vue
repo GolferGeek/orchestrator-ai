@@ -57,6 +57,29 @@
               </ion-item>
             </ion-col>
           </ion-row>
+          <ion-row>
+            <ion-col size="12" size-md="4">
+              <ion-item>
+                <ion-select
+                  v-model="localFilters.route"
+                  placeholder="All Routes"
+                  label="Route"
+                  label-placement="stacked"
+                  interface="popover"
+                  @ion-change="applyFilters"
+                >
+                  <ion-select-option value="">All Routes</ion-select-option>
+                  <ion-select-option value="local">Local</ion-select-option>
+                  <ion-select-option value="remote">Remote</ion-select-option>
+                </ion-select>
+              </ion-item>
+            </ion-col>
+            <ion-col size="12" size-md="4">
+              <ion-button expand="block" fill="outline" @click="applyPresetLocal7d">
+                Local last 7 days
+              </ion-button>
+            </ion-col>
+          </ion-row>
         </ion-grid>
       </ion-card-content>
     </ion-card>
@@ -324,10 +347,11 @@ const systemHealthStatus = computed(() => {
 });
 
 // Reactive data
-const localFilters = ref({
+const localFilters = ref<{ startDate: string; endDate: string; callerType: string; route: '' | 'local' | 'remote' }>({
   startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   endDate: new Date().toISOString().split('T')[0],
-  callerType: ''
+  callerType: '',
+  route: ''
 });
 
 // Computed - Use storeToRefs to maintain reactivity
@@ -486,6 +510,15 @@ const getCallerColor = (callerType: string) => {
 onMounted(() => {
   store.fetchAnalytics(localFilters.value);
 });
+
+function applyPresetLocal7d() {
+  const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const end = new Date().toISOString().split('T')[0];
+  localFilters.value.startDate = start;
+  localFilters.value.endDate = end;
+  localFilters.value.route = 'local';
+  applyFilters();
+}
 </script>
 
 <style scoped>

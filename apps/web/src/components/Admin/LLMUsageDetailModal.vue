@@ -83,6 +83,28 @@
                   </ion-item>
                 </ion-col>
               </ion-row>
+              <ion-row>
+                <ion-col size="12" size-md="6">
+                  <ion-item lines="none">
+                    <ion-label>
+                      <p>Route</p>
+                      <h3>
+                        <ion-chip :color="(usageDetails.route ?? (usageDetails.is_local ? 'local' : 'remote')) === 'local' ? 'success' : 'tertiary'" size="small">
+                          {{ usageDetails.route ?? (usageDetails.is_local ? 'local' : 'remote') }}
+                        </ion-chip>
+                      </h3>
+                    </ion-label>
+                  </ion-item>
+                </ion-col>
+                <ion-col size="12" size-md="6">
+                  <ion-item lines="none">
+                    <ion-label>
+                      <p>Conversation</p>
+                      <h3 class="mono">{{ usageDetails.conversation_id || '—' }}</h3>
+                    </ion-label>
+                  </ion-item>
+                </ion-col>
+              </ion-row>
             </ion-grid>
           </ion-card-content>
         </ion-card>
