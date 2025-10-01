@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { LLMServiceFactory } from '@llm/services/llm-service-factory';
 import {
@@ -52,6 +52,7 @@ interface StreamController {
 
 @Injectable()
 export class AgentRuntimeDispatchService {
+  private readonly logger = new Logger(AgentRuntimeDispatchService.name);
   constructor(
     private readonly llmFactory: LLMServiceFactory,
     private readonly http: HttpService,
@@ -352,6 +353,9 @@ export class AgentRuntimeDispatchService {
       },
     } as const;
 
+    // Observability: log sanitized outcome
+    this.safeLog('api', url, res.status, end - start);
+
     if (options.onStreamChunk) {
       options.onStreamChunk({ type: 'final', content: response.content, metadata: response.metadata });
     }
@@ -442,6 +446,9 @@ export class AgentRuntimeDispatchService {
           : { errorMessage: this.buildRpcErrorMessage(res.data?.error, res.status) }),
       },
     } as const;
+
+    // Observability: log sanitized outcome
+    this.safeLog('external', url, res.status, end - start);
 
     if (options.onStreamChunk) {
       options.onStreamChunk({ type: 'final', content: response.content, metadata: response.metadata });
@@ -569,6 +576,24 @@ export class AgentRuntimeDispatchService {
     const code = error.code !== undefined ? ` [code ${error.code}]` : '';
     const msg = typeof error.message === 'string' ? error.message : this.stringifyContent(error);
     return `External A2A error${statusText}${code}: ${msg}`;
+  }
+
+  private safeLog(kind: 'api' | 'external', url: string, status: number, durationMs: number) {
+    try {
+      const target = new URL(url);
+      const host = target.host;
+      const path = target.pathname;
+      const msg = `${kind.toUpperCase()} ${status} ${host}${path} in ${durationMs}ms`;
+      if (status >= 200 && status < 300) {
+        this.logger.debug(msg);
+      } else if (status >= 500) {
+        this.logger.error(msg);
+      } else {
+        this.logger.warn(msg);
+      }
+    } catch {
+      // ignore logging errors
+    }
   }
 
   private buildApiRequestBody(

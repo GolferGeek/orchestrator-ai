@@ -134,6 +134,29 @@ export class AgentsRepository {
     return data ?? [];
   }
 
+  /**
+   * Returns the most recent updated_at timestamp across all agents.
+   * Useful for cache invalidation polling.
+   */
+  async getLatestUpdatedAt(): Promise<string | null> {
+    const client = this.getClient();
+    const { data, error } = (await client
+      .from(AGENTS_TABLE)
+      .select('updated_at')
+      .order('updated_at', { ascending: false, nullsLast: true })
+      .limit(1)
+      .maybeSingle()) as SupabaseSelectResponse<{ updated_at: string }>;
+
+    if (error && error.code !== 'PGRST116') {
+      this.logger.error(
+        `Failed to query latest agent updated_at: ${error.message}`,
+      );
+      throw new Error(`Failed to query latest agent updated_at: ${error.message}`);
+    }
+
+    return data?.updated_at ?? null;
+  }
+
   async deleteById(id: string): Promise<void> {
     const client = this.getClient();
     const { error } = await client.from(AGENTS_TABLE).delete().eq('id', id);
