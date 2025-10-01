@@ -13,6 +13,8 @@ import {
   HttpStatus,
   Res,
   Sse,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { Observable } from 'rxjs';
@@ -36,6 +38,16 @@ export class TasksController {
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
   ) {}
+
+  /**
+   * Validate task ID parameter
+   */
+  private validateTaskId(taskId: string, userId: string): void {
+    if (!taskId || taskId === 'undefined' || taskId === 'null') {
+      this.logger.warn(`Invalid task ID received: "${taskId}" from user ${userId}`);
+      throw new BadRequestException('Invalid task ID provided');
+    }
+  }
 
   /**
    * List tasks for the current user
@@ -78,10 +90,12 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
+    this.validateTaskId(taskId, currentUser.id);
+
     const task = await this.tasksService.getTaskById(taskId, currentUser.id);
 
     if (!task) {
-      throw new Error('Task not found');
+      throw new NotFoundException('Task not found');
     }
 
     return task;
@@ -98,6 +112,7 @@ export class TasksController {
     @Body() updates: UpdateTaskDto,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
+    this.validateTaskId(taskId, currentUser.id);
     return this.tasksService.updateTask(taskId, currentUser.id, updates);
   }
 
@@ -111,6 +126,7 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
+    this.validateTaskId(taskId, currentUser.id);
     await this.tasksService.cancelTask(taskId, currentUser.id);
     return { success: true, message: 'Task cancelled' };
   }
@@ -133,13 +149,15 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    const _status = this.taskStatusService.getTaskStatus(
+    this.validateTaskId(taskId, currentUser.id);
+    
+    const status = this.taskStatusService.getTaskStatus(
       taskId,
       currentUser.id,
     );
 
     if (!status) {
-      throw new Error('Task not found or not accessible');
+      throw new NotFoundException('Task not found or not accessible');
     }
 
     return status;
@@ -155,6 +173,8 @@ export class TasksController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Res() response: Response,
   ) {
+    this.validateTaskId(taskId, currentUser.id);
+    
     // Set SSE headers
     response.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -203,6 +223,8 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
+    this.validateTaskId(taskId, currentUser.id);
+    
     // Use TaskStatusService for live messages first
     const liveMessages = this.taskStatusService.getTaskMessages(
       taskId,
@@ -228,6 +250,8 @@ export class TasksController {
     @Body() body: { progress: number; message?: string },
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
+    this.validateTaskId(taskId, currentUser.id);
+    
     await this.tasksService.updateTaskProgress(
       taskId,
       body.progress,

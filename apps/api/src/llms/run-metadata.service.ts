@@ -724,12 +724,12 @@ export class RunMetadataService {
     const client = this.supabaseService.getServiceClient();
 
     let query = client
-      .from('llm_usage_analytics')
+      .from('llm_usage')
       .select('*')
-      .order('date', { ascending: false });
+      .order('created_at', { ascending: false });
 
-    if (filters?.startDate) query = query.gte('date', filters.startDate);
-    if (filters?.endDate) query = query.lte('date', filters.endDate);
+    if (filters?.startDate) query = query.gte('created_at', filters.startDate);
+    if (filters?.endDate) query = query.lte('created_at', filters.endDate);
     if (filters?.callerType)
       query = query.eq('caller_type', filters.callerType);
 

@@ -152,6 +152,23 @@ export class AgentExecutionGateway {
           agent,
           request,
         );
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_LIST:
+        return this.handleOrchestratorRecipeList(
+          organizationSlug,
+          agent,
+        );
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_LOAD:
+        return this.handleOrchestratorRecipeLoad(
+          organizationSlug,
+          agent,
+          request,
+        );
+      case AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE:
+        return this.handleOrchestratorRecipeValidate(
+          organizationSlug,
+          agent,
+          request,
+        );
       case AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE:
         return TaskResponseDto.human('Manual confirmation required');
       case AgentTaskMode.ORCHESTRATOR_PLAN_REVIEW:
@@ -165,8 +182,6 @@ export class AgentExecutionGateway {
       case AgentTaskMode.ORCHESTRATOR_RUN_EVALUATE:
       case AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE:
       case AgentTaskMode.ORCHESTRATOR_RECIPE_DELETE:
-      case AgentTaskMode.ORCHESTRATOR_RECIPE_LOAD:
-      case AgentTaskMode.ORCHESTRATOR_RECIPE_LIST:
         return this.notImplemented(request.mode);
       case AgentTaskMode.HUMAN_RESPONSE:
         return TaskResponseDto.human('Manual confirmation required');
@@ -596,6 +611,97 @@ export class AgentExecutionGateway {
     }
 
     return result;
+  }
+
+  private async handleOrchestratorRecipeList(
+    organizationSlug: string | null,
+    agent: AgentRecord,
+  ) {
+    const list = await this.agentOrchestrations.listByAgent(
+      organizationSlug,
+      agent.slug,
+    );
+    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATOR_RECIPE_LIST, {
+      content: list,
+      metadata: {
+        organizationSlug,
+        agentSlug: agent.slug,
+      },
+    });
+  }
+
+  private async handleOrchestratorRecipeLoad(
+    organizationSlug: string | null,
+    agent: AgentRecord,
+    request: TaskRequestDto,
+  ) {
+    const slug =
+      request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
+    if (!slug) {
+      throw new BadRequestException('orchestrationSlug is required to load');
+    }
+
+    const record = await this.agentOrchestrations.findBySlug(
+      organizationSlug,
+      agent.slug,
+      slug,
+    );
+
+    if (!record) {
+      throw new NotFoundException('Saved orchestration not found');
+    }
+
+    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATOR_RECIPE_LOAD, {
+      content: record,
+      metadata: {
+        organizationSlug,
+        agentSlug: agent.slug,
+        slug,
+      },
+    });
+  }
+
+  private async handleOrchestratorRecipeValidate(
+    organizationSlug: string | null,
+    agent: AgentRecord,
+    request: TaskRequestDto,
+  ) {
+    const slug =
+      request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
+    if (!slug) {
+      throw new BadRequestException(
+        'orchestrationSlug is required to validate prompt parameters',
+      );
+    }
+
+    const record = await this.agentOrchestrations.findBySlug(
+      organizationSlug,
+      agent.slug,
+      slug,
+    );
+
+    if (!record) {
+      throw new NotFoundException('Saved orchestration not found');
+    }
+
+    const provided =
+      request.promptParameters ?? request.payload?.promptParameters ?? {};
+    const resolved = this.validatePromptInputs(record, provided);
+
+    return TaskResponseDto.success(
+      AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE,
+      {
+        content: {
+          valid: true,
+          resolvedParameters: resolved,
+        },
+        metadata: {
+          organizationSlug,
+          agentSlug: agent.slug,
+          slug,
+        },
+      },
+    );
   }
 
   private async resolvePlanForExecution(
