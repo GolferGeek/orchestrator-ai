@@ -243,7 +243,13 @@ export class AgentExecutionGateway {
 
     // For Phase 2, gate high-impact modes by default
     if (mode === AgentTaskMode.BUILD) {
-      return TaskResponseDto.human('Manual confirmation required before build');
+      return TaskResponseDto.human('Manual confirmation required before build', {
+        metadata: {
+          humanRequired: true,
+          approvalStatus: 'pending',
+          mode: 'build',
+        },
+      });
     }
 
     // Future: gate orchestration execution modes as needed

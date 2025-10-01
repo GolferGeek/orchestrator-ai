@@ -176,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { marked } from 'marked';
 import { IonIcon, IonButton, IonSpinner, IonChip } from '@ionic/vue';
 import { 
@@ -349,6 +349,18 @@ const emitSelectDeliverable = () => {
   const d = deliverablesStore.getDeliverableById(id);
   if (d) emit('deliverable-selected', d);
 };
+
+// If this message requires human approval, set pending action so a simple "yes" continues
+onMounted(() => {
+  try {
+    const meta = props.message.metadata || {};
+    const needsHuman = meta.humanRequired === true || meta.approvalStatus === 'pending';
+    const mode = (meta.mode || '').toLowerCase();
+    if (needsHuman && (mode === 'build' || mode === 'plan')) {
+      chatStore.setPendingAction(mode as any, props.message.taskId, 30000);
+    }
+  } catch (_) {}
+});
 
 // LLM Information computed properties
         const llmUsed = computed(() => {
