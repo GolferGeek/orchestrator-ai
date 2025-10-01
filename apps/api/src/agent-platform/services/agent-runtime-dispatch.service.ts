@@ -10,6 +10,7 @@ import { RoutingDecision } from '@llm/centralized-routing.service';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
 import { PromptPayload } from './agent-runtime-prompt.service';
 import { TaskRequestDto, AgentTaskMode } from '@agent2agent/dto/task-request.dto';
+import { AgentRuntimeMetricsService } from './agent-runtime-metrics.service';
 
 export interface AgentRuntimeDispatchOptions {
   definition: AgentRuntimeDefinition;
@@ -56,6 +57,7 @@ export class AgentRuntimeDispatchService {
   constructor(
     private readonly llmFactory: LLMServiceFactory,
     private readonly http: HttpService,
+    private readonly metrics: AgentRuntimeMetricsService,
   ) {}
 
   async dispatch(
@@ -320,16 +322,25 @@ export class AgentRuntimeDispatchService {
 
     const start = Date.now();
     const defaultTimeout = this.resolveDefaultTimeout('api');
-    const res = await this.performWithRetry(() =>
-      this.http.axiosRef.request({
-        url,
-        method: method as any,
-        headers,
-        timeout: api.timeout ?? defaultTimeout,
-        data: body,
-        validateStatus: () => true,
-      })
-    );
+    let res;
+    try {
+      res = await this.performWithRetry(() =>
+        this.http.axiosRef.request({
+          url,
+          method: method as any,
+          headers,
+          timeout: api.timeout ?? defaultTimeout,
+          data: body,
+          validateStatus: () => true,
+        })
+      );
+    } catch (err: any) {
+      const end = Date.now();
+      const status = err?.response?.status ?? -1;
+      this.safeLog('api', url, status, end - start);
+      this.metrics.record('api', options.definition.slug, false, end - start, status);
+      throw err;
+    }
 
     const end = Date.now();
     // Normalize content (apply response transform if configured)
@@ -355,6 +366,7 @@ export class AgentRuntimeDispatchService {
 
     // Observability: log sanitized outcome
     this.safeLog('api', url, res.status, end - start);
+    this.metrics.record('api', options.definition.slug, isOk, end - start, res.status);
 
     if (options.onStreamChunk) {
       options.onStreamChunk({ type: 'final', content: response.content, metadata: response.metadata });
@@ -411,13 +423,22 @@ export class AgentRuntimeDispatchService {
 
     const start = Date.now();
     const defaultTimeout = this.resolveDefaultTimeout('external');
-    const res = await this.performWithRetry(() =>
-      this.http.axiosRef.post(url, body, {
-        headers,
-        timeout: external.timeout ?? defaultTimeout,
-        validateStatus: () => true,
-      })
-    );
+    let res;
+    try {
+      res = await this.performWithRetry(() =>
+        this.http.axiosRef.post(url, body, {
+          headers,
+          timeout: external.timeout ?? defaultTimeout,
+          validateStatus: () => true,
+        })
+      );
+    } catch (err: any) {
+      const end = Date.now();
+      const status = err?.response?.status ?? -1;
+      this.safeLog('external', url, status, end - start);
+      this.metrics.record('external', options.definition.slug, false, end - start, status);
+      throw err;
+    }
     const end = Date.now();
 
     const hasRpcError = res.data && typeof res.data === 'object' && 'error' in res.data && res.data.error;
@@ -449,6 +470,7 @@ export class AgentRuntimeDispatchService {
 
     // Observability: log sanitized outcome
     this.safeLog('external', url, res.status, end - start);
+    this.metrics.record('external', options.definition.slug, isOk, end - start, res.status);
 
     if (options.onStreamChunk) {
       options.onStreamChunk({ type: 'final', content: response.content, metadata: response.metadata });

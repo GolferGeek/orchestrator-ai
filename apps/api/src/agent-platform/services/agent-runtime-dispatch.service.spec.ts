@@ -10,7 +10,8 @@ describe('AgentRuntimeDispatchService (API/external minimal)', () => {
       generateResponse: jest.fn(),
     } as unknown as LLMServiceFactory;
     const http = { axiosRef: axiosImpl } as unknown as HttpService;
-    return new AgentRuntimeDispatchService(llmFactory, http);
+    const metrics = { record: jest.fn(), snapshot: jest.fn() } as any;
+    return new AgentRuntimeDispatchService(llmFactory, http, metrics);
   };
 
   const baseDefinition = (api: any): AgentRuntimeDefinition => ({

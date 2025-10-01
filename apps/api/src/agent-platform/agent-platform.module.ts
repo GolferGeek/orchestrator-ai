@@ -16,6 +16,7 @@ import { AgentRuntimePromptService } from './services/agent-runtime-prompt.servi
 import { AgentRuntimeDispatchService } from './services/agent-runtime-dispatch.service';
 import { AgentRuntimeStreamService } from './services/agent-runtime-stream.service';
 import { AgentRegistryInvalidationService } from './services/agent-registry-invalidation.service';
+import { AgentRuntimeMetricsService } from './services/agent-runtime-metrics.service';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule],
@@ -34,6 +35,7 @@ import { AgentRegistryInvalidationService } from './services/agent-registry-inva
     AgentRuntimeDispatchService,
     AgentRuntimeStreamService,
     AgentRegistryInvalidationService,
+    AgentRuntimeMetricsService,
   ],
   exports: [
     AgentsRepository,
@@ -50,6 +52,7 @@ import { AgentRegistryInvalidationService } from './services/agent-registry-inva
     AgentRuntimeDispatchService,
     AgentRuntimeStreamService,
     AgentRegistryInvalidationService,
+    AgentRuntimeMetricsService,
   ],
 })
 export class AgentPlatformModule {}
