@@ -21,13 +21,41 @@
             <span>{{ video.title }}</span>
           </button>
         </div>
+        
+        <!-- Demo Highlight Card -->
+        <ion-card class="demo-highlight-box">
+          <ion-card-header>
+            <ion-card-title class="demo-highlight-title">
+              🚀 Try the Full App Now
+            </ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <p class="demo-highlight-text">
+              <strong>Jump right in:</strong> The demo environment is a <span class="highlight">fully functional system</span>—everything you see here (and in the videos) is live and ready for you to explore.
+            </p>
+            <ul class="demo-highlight-list">
+              <li>Log in instantly with the provided demo credentials.</li>
+              <li>All agents are active and ready—ask what they do, then try them out!</li>
+              <li>Switch between LLM models to see real-time differences in performance.</li>
+              <li>This is the exact system we deploy for you, inside your own infrastructure.</li>
+            </ul>
+            <p class="demo-highlight-text">
+              <em>Experience OrchestratorAI hands-on—no waiting, no limitations.</em>
+            </p>
+            <div class="demo-actions">
+              <ion-button size="large" @click="goToDemo">
+                Launch Full App
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
       </div>
     </div>
   </section>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { IonButton, IonIcon } from '@ionic/vue';
+import { IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue';
 import { 
   playCircleOutline
 } from 'ionicons/icons';
@@ -88,6 +116,11 @@ function selectVideo(video: VideoPlayerVideo) {
 function openVideoModal(video: any) {
   emit('openVideoModal', video);
 }
+
+function goToDemo() {
+  router.push('/login');
+}
+
 
 onMounted(() => {
   // Track hero section view
@@ -208,29 +241,17 @@ onMounted(() => {
   font-size: 1.2rem;
   color: var(--landing-accent);
 }
-.cta-button {
-  margin: 0 0.5rem;
-  font-weight: 600;
-  --border-radius: 8px;
-}
-.cta-button.primary {
+/* Match other CTA buttons on the page */
+.demo-actions ion-button {
   --background: var(--landing-accent);
   --color: white;
-  --box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+  --border-radius: 8px;
+  font-weight: 600;
+  width: 100%;
 }
-.cta-button.secondary {
-  --color: white;
-  --border-color: rgba(255, 255, 255, 0.5);
-}
-.cta-button.app-access {
-  --color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-}
-.cta-button.app-access:hover {
-  --color: white;
-}
-.cta-button:hover {
+
+.demo-actions ion-button:hover {
+  --background: var(--landing-accent-light);
   transform: translateY(-2px);
   transition: var(--transition-smooth);
 }
@@ -337,6 +358,92 @@ onMounted(() => {
   }
   .video-title p {
     font-size: 0.8rem;
+  }
+}
+
+/* Demo Highlight Card Styles */
+.demo-highlight-box {
+  margin: 2rem auto;
+  max-width: 800px;
+  --background: rgba(255, 255, 255, 0.95);
+  --color: var(--landing-dark);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.demo-highlight-title {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--landing-primary);
+  margin: 0;
+  text-align: center;
+}
+
+.demo-highlight-text {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--landing-dark);
+  margin: 1rem 0;
+}
+
+.demo-highlight-text .highlight {
+  background: linear-gradient(120deg, var(--landing-accent) 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: var(--font-weight-semibold);
+}
+
+.demo-highlight-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.demo-highlight-list li {
+  padding: 0.25rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+  color: var(--landing-dark);
+  font-size: var(--text-sm);
+}
+
+.demo-highlight-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--landing-primary);
+  font-weight: bold;
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+
+@media (max-width: 768px) {
+  .demo-highlight-box {
+    margin: 1rem auto;
+    max-width: 800px;
+  }
+  
+  .demo-highlight-title {
+    font-size: 1.5rem;
+  }
+  
+  .demo-highlight-list {
+    text-align: center;
+  }
+  
+  .demo-actions {
+    flex-direction: column;
+    align-items: center;
   }
 }
 </style>

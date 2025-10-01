@@ -12,36 +12,6 @@
             Comprehensive details about OrchestratorAI's offerings, technology, and implementation
           </p>
           
-          <!-- Demo Highlight Card -->
-          <ion-card class="demo-highlight-box">
-            <ion-card-header>
-              <ion-card-title class="demo-highlight-title">
-                🚀 Try the Full Demo Now!
-              </ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-              <p class="demo-highlight-text">
-                <strong>Jump right in:</strong> The demo environment is a <span class="highlight">fully functional system</span>—everything you see here (and in the videos) is live and ready for you to explore.
-              </p>
-              <ul class="demo-highlight-list">
-                <li>Log in instantly with the provided demo credentials.</li>
-                <li>All agents are active and ready—ask what they do, then try them out!</li>
-                <li>Switch between LLM models to see real-time differences in performance.</li>
-                <li>This is the exact system we deploy for you, inside your own infrastructure.</li>
-              </ul>
-              <p class="demo-highlight-text">
-                <em>Experience OrchestratorAI hands-on—no waiting, no limitations.</em>
-              </p>
-              <div class="demo-actions">
-                <ion-button color="primary" size="large" @click="goToDemo">
-                  Launch Live Demo
-                </ion-button>
-                <ion-button fill="clear" size="large" @click="scrollToSection('small-business-ai')">
-                  Learn Why It Matters
-                </ion-button>
-              </div>
-            </ion-card-content>
-          </ion-card>
         </div>
       </div>
       <!-- Accordion Content -->
@@ -991,16 +961,6 @@ onMounted(() => {
   initializeViewMode();
 });
 
-function goToDemo() {
-  router.push('/login');
-}
-
-function scrollToSection(id: string) {
-  const target = document.getElementById(id);
-  if (target) {
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-}
 </script>
 
 <style scoped>
@@ -1042,17 +1002,6 @@ function scrollToSection(id: string) {
   max-width: 600px;
 }
 
-.demo-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 1.75rem;
-}
-
-.demo-actions ion-button {
-  --border-radius: 999px;
-  font-weight: var(--font-weight-semibold);
-}
 
 .accordion-container {
   padding: 2rem 0;
@@ -1069,14 +1018,6 @@ function scrollToSection(id: string) {
   border-left: 4px solid var(--landing-primary);
 }
 
-.demo-highlight-box {
-  margin: 1rem 0;
-  --background: rgba(255, 255, 255, 0.95);
-  --color: var(--landing-dark);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(139, 90, 60, 0.2);
-}
 
 .challenge-highlight-box {
   margin: 1rem 0;
@@ -1123,13 +1064,6 @@ function scrollToSection(id: string) {
   border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-.demo-highlight-title {
-  font-size: 1.75rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--landing-primary);
-  text-align: center;
-  margin: 0;
-}
 
 .challenge-highlight-title {
   font-size: 1.75rem;
@@ -1712,13 +1646,6 @@ function scrollToSection(id: string) {
   border-bottom: none;
 }
 
-.demo-highlight-text {
-  font-size: var(--text-base);
-  line-height: 1.5;
-  color: var(--landing-dark);
-  margin: 0.75rem 0;
-  text-align: center;
-}
 
 .challenge-highlight-text {
   font-size: var(--text-base);
@@ -1728,28 +1655,6 @@ function scrollToSection(id: string) {
   text-align: center;
 }
 
-.demo-highlight-list {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0;
-  text-align: left;
-  display: inline-block;
-}
-
-.demo-highlight-list li {
-  padding: 0.25rem 0;
-  position: relative;
-  padding-left: 1.5rem;
-  color: var(--landing-dark);
-}
-
-.demo-highlight-list li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--landing-primary);
-  font-weight: bold;
-}
 
 .challenge-highlight-list {
   list-style: none;
@@ -1846,17 +1751,7 @@ function scrollToSection(id: string) {
     padding: 1rem 0;
   }
   
-  .demo-highlight-box {
-    margin: 0.5rem 0;
-  }
   
-  .demo-highlight-title {
-    font-size: 1.5rem;
-  }
-  
-  .demo-highlight-list {
-    text-align: center;
-  }
   
   .challenge-highlight-box {
     margin: 0.5rem 0;
