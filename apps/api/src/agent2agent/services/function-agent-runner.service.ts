@@ -1,15 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import * as vm from 'vm';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { ImageAgentsService } from '@/image-agents/image-agents.service';
+import { AgentBuilderService } from '@agent-platform/services/agent-builder.service';
 
 @Injectable()
 export class FunctionAgentRunnerService {
   private readonly logger = new Logger(FunctionAgentRunnerService.name);
 
-  constructor(private readonly images: ImageAgentsService) {}
+  constructor(
+    private readonly images: ImageAgentsService,
+    @Inject(forwardRef(() => AgentBuilderService))
+    private readonly agentBuilder: AgentBuilderService,
+  ) {}
 
   async execute(
     definition: AgentRuntimeDefinition,
@@ -52,6 +57,7 @@ export class FunctionAgentRunnerService {
             return last;
           },
         },
+        agentBuilder: this.agentBuilder.getContext(),
       };
 
       const sandbox: any = { console: { log: (...a: any[]) => this.logger.log(a.join(' ')) } };

@@ -13,6 +13,7 @@ describe('Seed payloads (local smoke without HTTP)', () => {
   const blogPath = resolve(root, 'docs/feature/matt/payloads/blog_post_writer.json');
   const hrPath = resolve(root, 'docs/feature/matt/payloads/hr_assistant.json');
   const builderPath = resolve(root, 'docs/feature/matt/payloads/agent_builder_orchestrator.json');
+  const chatBuilderPath = resolve(root, 'docs/feature/matt/payloads/agent_builder_chat.json');
 
   it('validates Blog Post Writer and dry-runs function code', async () => {
     const blog = JSON.parse(readFileSync(blogPath, 'utf8'));
@@ -51,6 +52,16 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     expect(res.ok).toBe(true);
     expect(res.result?.state?.step).toBe('basic_info');
     expect(res.result?.content).toContain('Organization slug');
+  });
+
+  it('validates Agent Builder Chat payload', async () => {
+    const chatBuilder = JSON.parse(readFileSync(chatBuilderPath, 'utf8'));
+    const v = validator.validateByType(chatBuilder.agent_type, chatBuilder);
+    const p = policy.check(chatBuilder);
+    expect(v.ok).toBe(true);
+    expect(p.length).toBe(0);
+    expect(chatBuilder.config?.configuration?.function?.code).toBeDefined();
+    expect(chatBuilder.config?.configuration?.function?.timeout_ms).toBe(15000);
   });
 });
 

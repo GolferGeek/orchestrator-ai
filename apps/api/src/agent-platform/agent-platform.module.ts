@@ -32,6 +32,7 @@ import { AgentsAdminController } from './controllers/agents-admin.controller';
 import { AgentValidationService } from './services/agent-validation.service';
 import { AgentDryRunService } from './services/agent-dry-run.service';
 import { AgentPolicyService } from './services/agent-policy.service';
+import { AgentBuilderService } from './services/agent-builder.service';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule, AssetsModule, ImageAgentsModule],
@@ -62,6 +63,7 @@ import { AgentPolicyService } from './services/agent-policy.service';
     AgentValidationService,
     AgentDryRunService,
     AgentPolicyService,
+    AgentBuilderService,
   ],
   exports: [
     AgentsRepository,
@@ -89,6 +91,7 @@ import { AgentPolicyService } from './services/agent-policy.service';
     AgentValidationService,
     AgentDryRunService,
     AgentPolicyService,
+    AgentBuilderService,
   ],
 })
 export class AgentPlatformModule {}

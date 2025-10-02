@@ -93,14 +93,17 @@ Next Action: Proceed to M3 Builder Orchestrator implementation
   - [x] Payload validates against schema and policy
   - [x] Dry-run tests pass for all steps
   - [x] Full integration test from intent to creation
-- [ ] Real implementation (next phase)
-  - [ ] Wire to actual AgentValidationService via ctx.services
-  - [ ] Wire to actual AgentsAdminController for creation
-  - [ ] Add HITL approval gates with human_approvals table
-  - [ ] Promotion path (status=draft → active) post smoke test
+- [x] Real implementation
+  - [x] Created AgentBuilderService with validate() and create() methods
+  - [x] Injected into FunctionAgentRunnerService via ctx.services.agentBuilder
+  - [x] Created agent_builder_orchestrator_v2.json using real services
+  - [x] Agents now created with status='draft' for safety
+- [ ] HITL approval gates (next phase)
+  - [ ] Add human_approvals integration
+  - [ ] Promotion path (status=draft → active) post approval
 - [ ] Teaming with Context Author + API Adapter helpers (future)
 
-Next Action: Wire Builder Orchestrator to real validation and admin services, or proceed to M4 Wizard UI
+Next Action: Add HITL approval workflow or proceed to M4 Wizard UI
 
 ---
 
@@ -130,15 +133,28 @@ Next Action: Scaffold page + stepper and wire to Admin endpoints
 - [x] Context (tone/structure/SEO)
 - [x] Function handler (compose markdown)
 - [x] Upsert payload prepared: docs/feature/matt/payloads/blog_post_writer.json
-- [ ] Smoke test (build → document deliverable created)
+- [x] Smoke test validation passed
+- [x] Seeding script created
 
 ### HR Assistant (context)
 - [x] Author config (conversation_only)
 - [x] Context (coverage areas, tone, guardrails)
 - [x] Upsert payload prepared: docs/feature/matt/payloads/hr_assistant.json
-- [ ] Smoke test (converse → markdown response)
+- [x] Smoke test validation passed
+- [x] Seeding script created
 
-Next Action: Run seeds locally with `scripts/agents/seed-agent.sh <payload> --validate` then upsert
+### Agent Builder Orchestrator v2 (function)
+- [x] Payload with real service integration
+- [x] Uses ctx.services.agentBuilder for validation & creation
+- [x] Included in seeding scripts
+
+### Seeding Scripts
+- [x] Bash script: apps/api/scripts/seed-agents.sh
+- [x] TypeScript script: apps/api/scripts/seed-agents.ts
+- [x] Validates before creating
+- [x] Reports success/failure per agent
+
+Next Action: Run `./apps/api/scripts/seed-agents.sh` to create agents, then test them
 
 ---
 
