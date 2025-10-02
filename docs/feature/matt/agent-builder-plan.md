@@ -40,12 +40,17 @@ Next Action (completed work): Proceed to Agent Builder endpoints + wizard
   - [x] Accepts: { organization_slug, slug, display_name, agent_type, mode_profile, yaml, context, config }
   - [x] Validates required fields by type; writes to public.agents
   - [x] Auth guard (admin only)
-- [ ] PATCH /api/admin/agents/:id (exists)
-  - [ ] Extend DTOs for type-safe config updates
-- [x] GET /api/admin/agents?type=function|context|api (exists)
-  - [x] Confirm filtering/ordering
+  - [x] Unit tests added
+- [x] PATCH /api/admin/agents/:id
+  - [x] UpdateAgentDto for type-safe config updates
+  - [x] Validates merged payload after patch
+  - [x] Removed duplicate update method
+  - [x] Unit tests added
+- [x] GET /api/admin/agents?type=function|context|api
+  - [x] Filtering/ordering confirmed
+  - [x] Unit tests added
 
-Next Action: Extend PATCH with typed DTO for configuration diffs
+Next Action: Proceed to M2 policy checks and M3 Builder Orchestrator
 
 ---
 
@@ -56,13 +61,20 @@ Next Action: Extend PATCH with typed DTO for configuration diffs
   - [x] function.code presence and timeouts (basic)
   - [ ] api_configuration transforms shape (todo)
   - [ ] tool.actions[] schema (name, version, inputSchema, outputSchema)
-- [ ] Policy checks against authoring standards
+- [x] Policy checks against authoring standards
+  - [x] IO contract (input_modes/output_modes)
+  - [x] Context agents require system prompt
+  - [x] Function agents timeout validation (<=30s)
+  - [x] API agents require api_configuration
+  - [x] Unit tests (15 tests passing)
 - [x] Dry-run harness
   - [x] function: run handler(input, mock ctx.services) inside sandbox with timeout
-- [x] api: render request_transform + simulate field_extraction
+  - [x] api: render request_transform + simulate field_extraction
+  - [x] Unit tests for dry-run in controller
 - [x] Endpoint: POST /api/admin/agents/validate (returns { ok, issues[], dryRun? })
+- [x] Smoke tests for seed payloads (blog_post_writer, hr_assistant)
 
-Next Action: Add policy checks and API-agent transform validation
+Next Action: Proceed to M3 Builder Orchestrator implementation
 
 ---
 

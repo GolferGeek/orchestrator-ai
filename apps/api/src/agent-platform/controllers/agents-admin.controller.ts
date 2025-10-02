@@ -29,32 +29,6 @@ export class AgentsAdminController {
     return { success: true, data };
   }
 
-  @Patch(':id')
-  @AdminOnly()
-  async update(@Param('id') id: string, @Body() body: any) {
-    // Update config.function.code (and timeout) if provided
-    const { function: fn } = body?.configuration || body || {};
-    const { data: current, error: ferr } = await this.supabase
-      .getServiceClient()
-      .from('agents')
-      .select('config, yaml')
-      .eq('id', id)
-      .maybeSingle();
-    if (ferr) throw new Error(ferr.message);
-    const config = current?.config || {};
-    const conf = { ...(config.configuration || {}), function: { ...((config.configuration || {}).function || {}), ...(fn || {}) } };
-    const nextConfig = { ...config, configuration: conf };
-    const { data, error } = await this.supabase
-      .getServiceClient()
-      .from('agents')
-      .update({ config: nextConfig })
-      .eq('id', id)
-      .select('*')
-      .single();
-    if (error) throw new Error(error.message);
-    return { success: true, data };
-  }
-
   @Post()
   @AdminOnly()
   async upsert(@Body() dto: CreateAgentDto) {
