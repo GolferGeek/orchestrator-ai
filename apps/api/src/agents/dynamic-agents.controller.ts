@@ -182,14 +182,6 @@ export class DynamicAgentsController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Req() req: ExpressRequest & { activeNamespace?: string },
   ) {
-    // CRITICAL: Reject routes that look like database agent routes (namespace-based)
-    // Valid file-based agentTypes: context, function, api, python_function, orchestrator, specialist, manager, external
-    // Database agent routes use org slugs (e.g., "my-org") which should NOT be handled here
-    const validFileBasedTypes = ['context', 'function', 'api', 'python_function', 'orchestrator', 'specialist', 'specialists', 'manager', 'external', 'demo'];
-    if (!validFileBasedTypes.includes(agentType.toLowerCase())) {
-      // This looks like a database agent route (org slug), let Agent2AgentController handle it
-      throw new NotFoundException(`Agent type "${agentType}" not found in file-based agents`);
-    }
     // 🔍 Log minimal info about incoming request
     this.logger.log(
       `[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`,

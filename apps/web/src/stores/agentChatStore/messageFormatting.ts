@@ -235,12 +235,18 @@ export class MessageFormattingService {
         
         // Extract content from various possible formats
         if (parsedResult) {
-          if (parsedResult.success && parsedResult.message) {
+          // New A2A format: { success: true, payload: { content: { message: "..." } } }
+          if (parsedResult.success && parsedResult.payload?.content?.message) {
+            finalContent = String(parsedResult.payload.content.message);
+          } else if (parsedResult.success && parsedResult.message) {
             // Format: { success: true, message: "content", metadata: {...} } (orchestrator format)
             finalContent = String(parsedResult.message);
           } else if (parsedResult.success && parsedResult.response) {
             // Format: { success: true, response: "content", metadata: {...} }
             finalContent = String(parsedResult.response);
+          } else if (parsedResult.payload?.content?.message) {
+            // A2A format without success flag
+            finalContent = String(parsedResult.payload.content.message);
           } else if (parsedResult.message) {
             // Format: { message: "content" }
             finalContent = String(parsedResult.message);

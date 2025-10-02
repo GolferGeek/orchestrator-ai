@@ -83,10 +83,7 @@ export class Agent2AgentController {
     return this.cardBuilder.build(org, agentSlug, options);
   }
 
-  @Post([
-    'agent-to-agent/:orgSlug/:agentSlug/tasks',
-    'agents/:orgSlug/:agentSlug/tasks',
-  ])
+  @Post('agent-to-agent/:orgSlug/:agentSlug/tasks')
   @UseGuards(JwtAuthGuard)
   async executeTask(
     @Param('orgSlug') orgSlug: string,
@@ -94,32 +91,56 @@ export class Agent2AgentController {
     @Body() body: any,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope | JsonRpcErrorEnvelope> {
+    // CRITICAL DEBUG: Log that this controller method was called
+    this.logger.debug(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
+    
     const org = orgSlug === 'global' ? null : orgSlug;
-    const { dto, jsonrpc } = await this.normalizeTaskRequest(body);
+    
+    // ADAPTER: Transform frontend CreateTaskDto format to Agent2Agent TaskRequestDto format
+    const adaptedBody = this.adaptFrontendRequest(body);
+    
+    const { dto, jsonrpc } = await this.normalizeTaskRequest(adaptedBody);
     
     try {
-      this.logger.log(`🔍 [Agent2AgentController] Creating task for user ${currentUser.id}, agent ${agentSlug}`);
-      this.logger.log(`🔍 Request body: ${JSON.stringify({ method: body.method, taskId: body.taskId, conversationId: body.conversationId })}`);
+      this.logger.debug(`🔍 [Agent2AgentController] Creating task for user ${currentUser.id}, agent ${agentSlug}`);
+      this.logger.debug(`🔍 Normalized DTO: ${JSON.stringify({ mode: dto.mode, conversationId: dto.conversationId })}`);
+      
+      // Extract data from normalized DTO (which came from adaptedBody)
+      const taskIdFromPayload = dto.payload?.taskId || body.id; // JSON-RPC id or payload.taskId
+      const llmSelectionFromPayload = dto.payload?.llmSelection;
+      const conversationHistoryFromMessages = dto.messages?.map(msg => ({
+        role: msg.role,
+        content: String(msg.content || ''),
+        timestamp: new Date().toISOString(),
+      })) || [];
       
       // CRITICAL: Persist task AND conversation to database BEFORE execution
       // (like DynamicAgentsController does)
       // TasksService.createTask automatically handles conversation creation/retrieval
+      this.logger.debug(`📝 Attempting to create task in database with:`, {
+        userId: currentUser.id,
+        agentName: agentSlug,
+        method: dto.mode,
+        conversationId: dto.conversationId,
+        taskId: taskIdFromPayload,
+      });
+      
       const task = await this.tasksService.createTask(
         currentUser.id,
         agentSlug, // agentName
         'specialist' as AgentType, // agentType - use specialist category for database agents
         {
-          method: body.method || 'converse',
-          prompt: body.prompt || body.userMessage || '',
-          conversationId: body.conversationId, // Will be validated/created by TasksService
-          taskId: body.taskId,
-          metadata: body.metadata || {},
-          llmSelection: body.llmSelection,
-          conversationHistory: body.conversationHistory || [],
+          method: dto.mode, // Use the normalized mode from DTO
+          prompt: dto.userMessage || '',
+          conversationId: dto.conversationId, // Will be validated/created by TasksService
+          taskId: taskIdFromPayload,
+          metadata: dto.metadata || {},
+          llmSelection: llmSelectionFromPayload,
+          conversationHistory: conversationHistoryFromMessages,
         },
       );
 
-      this.logger.log(`✅ Task ${task.id} and conversation ${task.agentConversationId} persisted to database`);
+      this.logger.debug(`✅ Task ${task.id} and conversation ${task.agentConversationId} persisted to database`);
 
       // Execute the agent with the persisted task ID
       const result = await this.gateway.execute(org, agentSlug, dto);
@@ -198,6 +219,61 @@ export class Agent2AgentController {
     };
   }
 
+
+  /**
+   * Adapt frontend CreateTaskDto format to Agent2Agent TaskRequestDto format
+   * Frontend sends: { method, prompt, conversationHistory, llmSelection, ... }
+   * Backend expects: { mode, userMessage, messages, payload, metadata, ... }
+   */
+  private adaptFrontendRequest(body: any): any {
+    // Check if it's JSON-RPC format (frontend now sends this for database agents)
+    if (body.jsonrpc === '2.0') {
+      this.logger.debug('📥 Request is JSON-RPC 2.0 format - passing through to normalizeTaskRequest');
+      return body; // Let normalizeTaskRequest handle JSON-RPC
+    }
+    
+    // If it already has 'mode' field, assume it's already in correct format
+    if (body.mode) {
+      this.logger.debug('📥 Request already in Agent2Agent format');
+      return body;
+    }
+
+    this.logger.debug(`📥 Adapting frontend CreateTaskDto to Agent2Agent format: method=${body.method}`);
+    
+    // Transform frontend format to backend format
+    const adapted: any = {
+      // Map 'method' to 'mode' enum
+      mode: body.method || 'converse',
+      
+      // Map 'prompt' to 'userMessage'
+      userMessage: body.prompt,
+      
+      // Map 'conversationHistory' to 'messages'
+      messages: body.conversationHistory?.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      
+      // Pass through standard fields
+      conversationId: body.conversationId,
+      
+      // Pack additional data into payload
+      payload: {
+        ...(body.params || {}),
+        llmSelection: body.llmSelection,
+        executionMode: body.executionMode,
+        taskId: body.taskId,
+        timeoutSeconds: body.timeoutSeconds,
+      },
+      
+      // Preserve metadata
+      metadata: body.metadata,
+    };
+
+    this.logger.debug(`✅ Adapted request: mode=${adapted.mode}, conversationId=${adapted.conversationId}`);
+    
+    return adapted;
+  }
 
   private async normalizeTaskRequest(
     payload: any,

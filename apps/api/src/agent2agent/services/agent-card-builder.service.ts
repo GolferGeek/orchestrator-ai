@@ -116,6 +116,9 @@ export class AgentCardBuilderService {
         version: agent.version ?? null,
         updatedAt: agent.updated_at,
         createdAt: agent.created_at,
+        // Expose execution fields from config for frontend
+        execution_profile: agent.config?.execution_profile ?? null,
+        execution_capabilities: agent.config?.execution_capabilities ?? null,
       },
     };
   }

@@ -232,40 +232,74 @@ class TasksService {
       throw new Error('Cannot create agent task: missing agentType or agentName');
     }
 
-    // Determine routing pattern based on namespace:
-    // - demo namespace: Use DynamicAgentsController (old system) - /agents/:agentType/:agentName/tasks
-    // - my-org namespace: Use Agent2AgentController (new system) - /agents/:namespace/:agentName/tasks
+    // Determine routing pattern and payload format based on agent source:
+    // - File-based agents (source: undefined): Use DynamicAgentsController - /agents/:agentType/:agentName/tasks
+    //   Format: CreateTaskDto { method, prompt, conversationHistory, ... }
+    // - Database agents (source: 'database'): Use Agent2AgentController - /agent-to-agent/:namespace/:agentName/tasks
+    //   Format: JSON-RPC 2.0 { jsonrpc, method, id, params }
+    // 
+    // For now, we detect database agents by checking if namespace exists and is NOT 'demo'
+    // Future: Check agent.metadata.source === 'database' when agent info is passed in
     let url: string;
+    let payload: any;
     
-    if (options?.namespace && options.namespace !== 'demo') {
+    const isDatabaseAgent = options?.namespace && options.namespace !== 'demo';
+    
+    if (isDatabaseAgent) {
       // New system: Database agents with org namespace (my-org, etc.)
-      // Use Agent2AgentController with org-based routing
-      url = `/agents/${options.namespace}/${agentName}/tasks`;
+      // Use Agent2AgentController with A2A-compliant JSON-RPC 2.0 format
+      url = `/agent-to-agent/${options.namespace}/${agentName}/tasks`;
+      
+      // Transform to JSON-RPC 2.0 format (A2A protocol compliant)
+      payload = {
+        jsonrpc: '2.0',
+        method: taskData.method,
+        id: taskData.taskId, // Use taskId as JSON-RPC id
+        params: {
+          conversationId: taskData.conversationId,
+          userMessage: taskData.prompt,
+          messages: taskData.conversationHistory?.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          payload: {
+            ...(taskData.params || {}),
+            llmSelection: taskData.llmSelection,
+            executionMode: taskData.executionMode,
+            taskId: taskData.taskId,
+            timeoutSeconds: taskData.timeoutSeconds,
+          },
+          metadata: taskData.metadata,
+        },
+      };
+      
+      console.log('🚀 Sending A2A JSON-RPC 2.0 request:', {
+        url,
+        namespace: options.namespace,
+        method: payload.method,
+        id: payload.id,
+        conversationId: payload.params.conversationId,
+      });
     } else {
       // Old system: File-based agents in demo namespace
-      // Use DynamicAgentsController with type-based routing
-      // Normalize agentType to match backend discovery paths
-      // Backend discovers specialists under "specialists/<name>"
+      // Use DynamicAgentsController with legacy CreateTaskDto format
       const normalizedAgentType = agentType === 'specialist' ? 'specialists' : agentType;
       url = `/agents/${normalizedAgentType}/${agentName}/tasks`;
+      
+      // Sanitize but keep original format
+      payload = this.apiSanitization.sanitizeTaskRequest(taskData);
+      
+      console.log('🚀 Sending legacy CreateTaskDto request:', {
+        url,
+        agentType,
+        agentName,
+        method: payload.method,
+        taskId: payload.taskId,
+        conversationId: payload.conversationId,
+      });
     }
-    // Sanitize the task data before sending
-    const sanitizedTaskData = this.apiSanitization.sanitizeTaskRequest(taskData);
 
-    // Debug: Log what's being sent to the backend
-    console.log('🚀 Sending task to backend:', {
-      url,
-      agentType,
-      agentName,
-      namespace: options?.namespace,
-      llmSelection: sanitizedTaskData.llmSelection,
-      hasLlmSelection: !!sanitizedTaskData.llmSelection,
-      method: sanitizedTaskData.method,
-      taskId: sanitizedTaskData.taskId,
-      conversationId: sanitizedTaskData.conversationId
-    });
-
-    const response = await apiService.post(url, sanitizedTaskData);
+    const response = await apiService.post(url, payload);
     return response;
   }
   /**

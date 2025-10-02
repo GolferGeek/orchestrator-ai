@@ -9,6 +9,14 @@
   "yaml": "input_modes: ['application/json']\noutput_modes: ['text/markdown']\n",
   "context": {
     "system": "You are a blog post writer. Produce SEO-friendly Markdown with clear headings, intro, body, and conclusion. Maintain a helpful, concise tone."
+  },
+  "config": {
+    "execution_profile": "full_capabilities",
+    "execution_capabilities": {
+      "can_converse": true,
+      "can_plan": true,
+      "can_build": true
+    }
   }
 }
 
