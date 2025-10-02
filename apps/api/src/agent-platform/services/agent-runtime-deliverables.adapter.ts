@@ -250,6 +250,51 @@ export class AgentRuntimeDeliverablesAdapter {
           this.logger.warn(`Failed to persist image asset: ${String(e)}`);
         }
       }
+      // Optionally fetch-and-store external URLs
+      const hasUrl = typeof img.url === 'string' && /^https?:\/\//i.test(img.url);
+      if (hasUrl && this.assets) {
+        try {
+          const rec = await this.assets.saveFromUrl({
+            url: img.url,
+            organizationSlug: ctx.organizationSlug,
+            conversationId: ctx.conversationId,
+            userId: ctx.userId,
+            filename: img.filename,
+            subpath: 'images',
+          });
+          results.push({
+            assetId: rec.id,
+            url: `/assets/${rec.id}`,
+            mime: rec.mime,
+            width: img.width || undefined,
+            height: img.height || undefined,
+            size: rec.size || undefined,
+            thumbnailUrl: img.thumbnailUrl || undefined,
+            altText: img.altText || undefined,
+            hash: img.hash || undefined,
+          });
+          continue;
+        } catch (e) {
+          this.logger.warn(`Fetch-and-store disabled or failed, registering external: ${String(e)}`);
+          try {
+            const rec = await this.assets.registerExternal({ url: img.url, mime: img.mime || img.contentType });
+            results.push({
+              assetId: rec.id,
+              url: `/assets/${rec.id}`,
+              mime: img.mime || img.contentType || 'application/octet-stream',
+              width: img.width || undefined,
+              height: img.height || undefined,
+              size: img.size || undefined,
+              thumbnailUrl: img.thumbnailUrl || undefined,
+              altText: img.altText || undefined,
+              hash: img.hash || undefined,
+            });
+            continue;
+          } catch (e2) {
+            this.logger.warn(`Failed to register external reference: ${String(e2)}`);
+          }
+        }
+      }
       results.push(this.normalizeImageAttachment(img));
     }
     return results;

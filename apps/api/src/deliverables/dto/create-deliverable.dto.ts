@@ -18,6 +18,7 @@ export enum DeliverableType {
   REPORT = 'report',
   PLAN = 'plan',
   REQUIREMENTS = 'requirements',
+  IMAGE = 'image',
 }
 
 export enum DeliverableFormat {

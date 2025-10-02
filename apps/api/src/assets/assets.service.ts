@@ -2,12 +2,16 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { createReadStream, promises as fs } from 'fs';
 import { join, resolve, dirname } from 'path';
 import { AssetsRepository, AssetRecord } from './assets.repository';
+import axios from 'axios';
 
 @Injectable()
 export class AssetsService {
   private readonly logger = new Logger(AssetsService.name);
   private readonly backend = (process.env.ASSET_STORAGE_BACKEND || 'local') as 'local' | 'supabase';
   private readonly baseDir = resolve(process.env.IMAGE_STORAGE_DIR || './storage/images');
+  private readonly fetchExternal = (process.env.ASSET_FETCH_EXTERNAL || 'false') === 'true';
+  private readonly fetchMaxBytes = parseInt(process.env.ASSET_FETCH_MAX_BYTES || `${10 * 1024 * 1024}`, 10); // 10MB default
+  private readonly externalStrategy = (process.env.ASSET_EXTERNAL_STRATEGY || 'redirect') as 'redirect' | 'proxy';
 
   constructor(private readonly repo: AssetsRepository) {}
 
@@ -95,5 +99,96 @@ export class AssetsService {
       conversation_id: params.conversationId || null,
     } as any);
     return rec;
+  }
+
+  async saveFromUrl(params: {
+    url: string;
+    organizationSlug?: string | null;
+    conversationId?: string | null;
+    userId?: string | null;
+    filename?: string;
+    subpath?: string;
+  }): Promise<AssetRecord> {
+    if (!this.fetchExternal) {
+      throw new Error('External fetching disabled (set ASSET_FETCH_EXTERNAL=true)');
+    }
+    if (this.backend !== 'local') {
+      throw new Error('Only local storage is implemented');
+    }
+    await this.ensureBaseDir();
+    const resp = await axios.get(params.url, { responseType: 'arraybuffer', maxContentLength: this.fetchMaxBytes });
+    const mime = (resp.headers['content-type'] as string) || 'application/octet-stream';
+    const buffer = Buffer.from(resp.data);
+    if (buffer.length > this.fetchMaxBytes) {
+      throw new Error(`Asset exceeds max size (${buffer.length} > ${this.fetchMaxBytes})`);
+    }
+    const filename = params.filename || this.deriveFilenameFromUrl(params.url, mime);
+    return this.saveBuffer({
+      organizationSlug: params.organizationSlug ?? null,
+      conversationId: params.conversationId ?? null,
+      userId: params.userId ?? null,
+      mime,
+      buffer,
+      filename,
+      subpath: params.subpath || 'images',
+    });
+  }
+
+  private deriveFilenameFromUrl(u: string, mime: string): string {
+    try {
+      const url = new URL(u);
+      const last = url.pathname.split('/').filter(Boolean).pop();
+      if (last && /\.[a-zA-Z0-9]+$/.test(last)) return last;
+    } catch {}
+    const ext = this.extFromMime(mime);
+    return `image-${Date.now()}.${ext}`;
+  }
+
+  private extFromMime(mime: string): string {
+    const m = (mime || '').toLowerCase();
+    if (m.includes('png')) return 'png';
+    if (m.includes('jpeg') || m.includes('jpg')) return 'jpg';
+    if (m.includes('webp')) return 'webp';
+    if (m.includes('gif')) return 'gif';
+    return 'bin';
+  }
+
+  async registerExternal(params: {
+    url: string;
+    mime?: string;
+    userId?: string | null;
+    conversationId?: string | null;
+  }): Promise<AssetRecord> {
+    // Metadata-only record pointing to external source URL
+    const rec = await this.repo.create({
+      storage: 'external' as any,
+      source_url: params.url,
+      mime: params.mime || 'application/octet-stream',
+      user_id: params.userId || null,
+      conversation_id: params.conversationId || null,
+    } as any);
+    return rec;
+  }
+
+  async streamByIdOrRedirect(id: string, res: import('express').Response) {
+    const rec = await this.getMetadata(id);
+    if (rec.storage === 'external') {
+      const url = rec.source_url || '';
+      if (!url) throw new NotFoundException('External asset URL missing');
+      if (this.externalStrategy === 'redirect') {
+        res.redirect(302, url);
+        return;
+      }
+      // proxy
+      const prox = await axios.get(url, { responseType: 'stream' });
+      const mime = (prox.headers['content-type'] as string) || 'application/octet-stream';
+      res.setHeader('Content-Type', mime);
+      prox.data.pipe(res);
+      return;
+    }
+    // local streaming
+    const { stream, mime } = await this.getReadStream(id);
+    res.setHeader('Content-Type', mime || 'application/octet-stream');
+    stream.pipe(res);
   }
 }

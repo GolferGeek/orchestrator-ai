@@ -63,6 +63,7 @@ import { SpeechModule } from './speech/speech.module';
 import { Agent2AgentModule } from './agent2agent/agent2agent.module';
 import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
+import { ImageAgentsModule } from './image-agents/image-agents.module';
 
 @Module({
   imports: [
@@ -127,6 +128,7 @@ import { AssetsModule } from './assets/assets.module';
     SystemModule, // System analytics and monitoring
     SpeechModule, // Speech-to-text and text-to-speech functionality
     AssetsModule, // Asset storage and streaming (images, etc.)
+    ImageAgentsModule, // Image generation (providers) and deliverable creation
   ],
   controllers: [
     AppController,

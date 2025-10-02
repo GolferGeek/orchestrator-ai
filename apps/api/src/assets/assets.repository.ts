@@ -7,6 +7,7 @@ export interface AssetRecord {
   path?: string | null;
   bucket?: string | null;
   object_key?: string | null;
+  source_url?: string | null;
   mime: string;
   size?: number | null;
   width?: number | null;
@@ -50,4 +51,3 @@ export class AssetsRepository {
     return data as AssetRecord;
   }
 }
-

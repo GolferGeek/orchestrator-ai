@@ -9,9 +9,7 @@ export class AssetsController {
   @Get(':id')
   async stream(@Param('id') id: string, @Res() res: Response) {
     try {
-      const { stream, mime } = await this.assets.getReadStream(id);
-      res.setHeader('Content-Type', mime || 'application/octet-stream');
-      stream.pipe(res);
+      await this.assets.streamByIdOrRedirect(id, res);
     } catch (e) {
       throw new NotFoundException('Asset not found');
     }
@@ -25,6 +23,16 @@ export class AssetsController {
     }
     const mime = body.mime || this.inferMime(body.path);
     const rec = await this.assets.registerLocalPath({ path: body.path, mime, size: body.size });
+    return { success: true, id: rec.id, url: `/assets/${rec.id}` };
+  }
+
+  // Test/helper endpoint: register an external URL as metadata-only asset
+  @Post('register-external')
+  async registerExternal(@Body() body: { url: string; mime?: string }) {
+    if (!body?.url) {
+      throw new NotFoundException('url is required');
+    }
+    const rec = await this.assets.registerExternal({ url: body.url, mime: body.mime });
     return { success: true, id: rec.id, url: `/assets/${rec.id}` };
   }
 

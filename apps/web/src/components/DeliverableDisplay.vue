@@ -169,6 +169,25 @@
     />
     <!-- Content Display -->
     <div class="content-section">
+      <!-- Sub-tabs: Plan, Document, Images -->
+      <ion-segment v-model="activeSubTab" class="subtabs">
+        <ion-segment-button value="plan">Plan</ion-segment-button>
+        <ion-segment-button value="document">Document</ion-segment-button>
+        <ion-segment-button value="images" :disabled="imageAssets.length === 0">Images</ion-segment-button>
+      </ion-segment>
+
+      <!-- Plan Tab -->
+      <div v-if="activeSubTab === 'plan'" class="plan-panel content-display">
+        <template v-if="hasPlanContent">
+          <pre class="json-content"><code>{{ planPretty }}</code></pre>
+        </template>
+        <template v-else>
+          <div class="text-content">No structured plan content available for this version.</div>
+        </template>
+      </div>
+
+      <!-- Document Tab -->
+      <template v-else-if="activeSubTab === 'document'">
       <!-- Edit Mode -->
       <div v-if="isEditing" class="edit-mode-content">
         <!-- Title Editing -->
@@ -346,6 +365,22 @@
         >{{ displayVersion?.content || '' }}</div>
         </template>
       </div>
+      </template>
+
+      <!-- Images Tab -->
+      <div v-else-if="activeSubTab === 'images'" class="images-panel content-display">
+        <div v-if="imageAssets.length" class="thumb-grid">
+          <img
+            v-for="(img, idx) in imageAssets"
+            :key="idx"
+            class="thumb"
+            :src="img.thumbnailUrl || img.url"
+            :alt="img.altText || 'image'"
+            @click="openImage(img)"
+          />
+        </div>
+        <div v-else class="text-content">No images attached to this version.</div>
+      </div>
     </div>
     <!-- Compact Footer -->
     <div class="deliverable-footer compact">
@@ -433,6 +468,8 @@ import {
   IonList,
   IonFab,
   IonFabButton,
+  IonSegment,
+  IonSegmentButton,
 } from '@ionic/vue';
 import {
   timeOutline,
@@ -508,6 +545,8 @@ const editedContent = ref('');
 const editedTitle = ref('');
 const isSaving = ref(false);
 const contentTextarea = ref<any>(null);
+const activeSubTab = ref<'plan' | 'document' | 'images'>('document');
+const hasAutoSelectedTab = ref(false);
 // Computed versions that reactively watches the store state
 const versions = computed(() => {
   // This will trigger whenever the store state changes
@@ -844,6 +883,40 @@ const loadVersions = async () => {
     // The computed property will handle the fallback through the store
   }
 };
+const imageAssets = computed(() => {
+  try {
+    const imgs = (displayVersion.value as any)?.fileAttachments?.images || [];
+    return Array.isArray(imgs) ? imgs : [];
+  } catch { return []; }
+});
+const hasPlanContent = computed(() => {
+  const c = displayVersion.value?.content || '';
+  if (displayVersion.value?.format === 'json') {
+    try {
+      const parsed = JSON.parse(c);
+      return Boolean(parsed?.phases || parsed?.steps || parsed?.plan || parsed?.plan_json);
+    } catch { return false; }
+  }
+  return /(^|\n)#+\s*plan\b/i.test(c);
+});
+const planPretty = computed(() => {
+  const c = displayVersion.value?.content || '';
+  if (displayVersion.value?.format === 'json') {
+    try { return JSON.stringify(JSON.parse(c), null, 2); } catch { return c; }
+  }
+  return c;
+});
+function openImage(img: any) {
+  try { window.open(img.url, '_blank'); } catch {}
+}
+
+// Auto-select Plan tab once when structured plan content is detected
+watch(hasPlanContent, (val) => {
+  if (val && !hasAutoSelectedTab.value) {
+    activeSubTab.value = 'plan';
+    hasAutoSelectedTab.value = true;
+  }
+});
 const goToPreviousVersion = async () => {
   if (!canGoPrevious.value) return;
   // Find current version index in sortedVersions (newest first)
@@ -1264,6 +1337,21 @@ watch(() => props.deliverable?.id, async () => {
   background: white;
   position: relative;
   z-index: 1;
+}
+.subtabs {
+  margin: 8px 16px 0 16px;
+}
+.images-panel .thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.images-panel .thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
 }
 .markdown-content {
   line-height: 1.7;
