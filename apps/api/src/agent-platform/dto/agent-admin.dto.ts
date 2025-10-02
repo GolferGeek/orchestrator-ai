@@ -1,0 +1,89 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsObject, IsOptional, IsString, Matches, ValidateNested } from 'class-validator';
+
+export enum AgentType {
+  FUNCTION = 'function',
+  CONTEXT = 'context',
+  API = 'api',
+  ORCHESTRATOR = 'orchestrator',
+}
+
+export class CreateAgentDto {
+  @ApiProperty({ description: 'Organization slug (null for global)', required: false })
+  @IsOptional()
+  @IsString()
+  organization_slug?: string | null;
+
+  @ApiProperty({ description: 'Unique agent slug', examples: ['blog_post', 'hr_assistant'] })
+  @IsString()
+  @Matches(/^[a-z0-9][a-z0-9_-]{1,62}$/)
+  slug!: string;
+
+  @ApiProperty({ description: 'Display name', example: 'Blog Post Writer' })
+  @IsString()
+  display_name!: string;
+
+  @ApiProperty({ enum: AgentType, example: AgentType.FUNCTION })
+  @IsEnum(AgentType)
+  agent_type!: AgentType;
+
+  @ApiProperty({ description: 'Mode profile (e.g., draft, active)', example: 'draft' })
+  @IsString()
+  mode_profile!: string;
+
+  @ApiProperty({ description: 'YAML definition (JSON string allowed)', required: false })
+  @IsOptional()
+  @IsString()
+  yaml?: string;
+
+  @ApiProperty({ description: 'Optional long-form description', required: false })
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @ApiProperty({ description: 'Agent card metadata', required: false })
+  @IsOptional()
+  @IsObject()
+  agent_card?: Record<string, any> | null;
+
+  @ApiProperty({ description: 'Context/Prompt configuration', required: false })
+  @IsOptional()
+  @IsObject()
+  context?: Record<string, any> | null;
+
+  @ApiProperty({ description: 'Runtime configuration (type-specific)', required: false })
+  @IsOptional()
+  @IsObject()
+  config?: Record<string, any> | null;
+}
+
+export class UpdateAgentDto {
+  @IsOptional()
+  @IsString()
+  display_name?: string;
+
+  @IsOptional()
+  @IsString()
+  mode_profile?: string;
+
+  @IsOptional()
+  @IsString()
+  yaml?: string | null;
+
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsObject()
+  agent_card?: Record<string, any> | null;
+
+  @IsOptional()
+  @IsObject()
+  context?: Record<string, any> | null;
+
+  @IsOptional()
+  @IsObject()
+  config?: Record<string, any> | null;
+}
+

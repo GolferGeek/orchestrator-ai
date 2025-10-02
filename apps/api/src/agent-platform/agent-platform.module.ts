@@ -29,6 +29,7 @@ import { HumanApprovalsRepository } from './repositories/human-approvals.reposit
 import { RedactionPatternsRepository } from './repositories/redaction-patterns.repository';
 import { AgentApprovalsController } from './controllers/agent-approvals.controller';
 import { AgentsAdminController } from './controllers/agents-admin.controller';
+import { AgentValidationService } from './services/agent-validation.service';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule, AssetsModule, ImageAgentsModule],
@@ -56,6 +57,7 @@ import { AgentsAdminController } from './controllers/agents-admin.controller';
     AgentRuntimeNormalizationService,
     AgentRuntimeRedactionService,
     FunctionAgentRunnerService,
+    AgentValidationService,
   ],
   exports: [
     AgentsRepository,
@@ -80,6 +82,7 @@ import { AgentsAdminController } from './controllers/agents-admin.controller';
     AgentRuntimeNormalizationService,
     AgentRuntimeRedactionService,
     FunctionAgentRunnerService,
+    AgentValidationService,
   ],
 })
 export class AgentPlatformModule {}

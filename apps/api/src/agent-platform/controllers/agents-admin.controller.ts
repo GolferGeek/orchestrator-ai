@@ -1,11 +1,20 @@
-import { Body, Controller, Get, Patch, Query, Param } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Query, Param, Post } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
+import { AdminOnly } from '@/auth/decorators/roles.decorator';
+import { CreateAgentDto } from '../dto/agent-admin.dto';
+import { AgentValidationService } from '../services/agent-validation.service';
+import { AgentsRepository } from '../repositories/agents.repository';
 
 @Controller('api/admin/agents')
 export class AgentsAdminController {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly validator: AgentValidationService,
+    private readonly agents: AgentsRepository,
+  ) {}
 
   @Get()
+  @AdminOnly()
   async list(@Query('type') type?: string) {
     let q = this.supabase.getServiceClient().from('agents').select('*');
     if (type) q = q.eq('agent_type', type);
@@ -15,6 +24,7 @@ export class AgentsAdminController {
   }
 
   @Patch(':id')
+  @AdminOnly()
   async update(@Param('id') id: string, @Body() body: any) {
     // Update config.function.code (and timeout) if provided
     const { function: fn } = body?.configuration || body || {};
@@ -38,5 +48,35 @@ export class AgentsAdminController {
     if (error) throw new Error(error.message);
     return { success: true, data };
   }
-}
 
+  @Post()
+  @AdminOnly()
+  async upsert(@Body() dto: CreateAgentDto) {
+    // Run JSON-schema validation by type
+    const type = dto.agent_type as any;
+    const { ok, issues } = this.validator.validateByType(type, dto as any);
+    if (!ok) {
+      return { success: false, issues };
+    }
+
+    // Normalize null org when empty string
+    const organization_slug = dto.organization_slug ?? null;
+
+    const record = await this.agents.upsert({
+      organization_slug,
+      slug: dto.slug,
+      display_name: dto.display_name,
+      description: dto.description ?? null,
+      agent_type: dto.agent_type,
+      mode_profile: dto.mode_profile,
+      version: null,
+      status: null,
+      yaml: dto.yaml ?? '',
+      agent_card: dto.agent_card ?? null,
+      context: dto.context ?? null,
+      config: dto.config ?? null,
+    });
+
+    return { success: true, data: record };
+  }
+}
