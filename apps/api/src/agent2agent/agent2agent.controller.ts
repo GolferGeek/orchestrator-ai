@@ -14,7 +14,12 @@ import { AgentCardBuilderService } from './services/agent-card-builder.service';
 import { AgentExecutionGateway } from './services/agent-execution-gateway.service';
 import { TaskRequestDto } from './dto/task-request.dto';
 import { TaskResponseDto } from './dto/task-response.dto';
-import { ApiKeyGuard } from './guards/api-key.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
+import { TasksService } from '../tasks/tasks.service';
+import { TaskStatusService } from '../tasks/task-status.service';
+import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { AgentTaskMode } from './dto/task-request.dto';
@@ -48,6 +53,9 @@ export class Agent2AgentController {
   constructor(
     private readonly cardBuilder: AgentCardBuilderService,
     private readonly gateway: AgentExecutionGateway,
+    private readonly tasksService: TasksService,
+    private readonly taskStatusService: TaskStatusService,
+    private readonly agentConversationsService: AgentConversationsService,
   ) {}
 
   private readonly logger = new Logger(Agent2AgentController.name);
@@ -78,16 +86,46 @@ export class Agent2AgentController {
     'agent-to-agent/:orgSlug/:agentSlug/tasks',
     'agents/:orgSlug/:agentSlug/tasks',
   ])
-  @UseGuards(ApiKeyGuard)
+  @UseGuards(JwtAuthGuard)
   async executeTask(
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,
     @Body() body: any,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
   ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope | JsonRpcErrorEnvelope> {
     const org = orgSlug === 'global' ? null : orgSlug;
     const { dto, jsonrpc } = await this.normalizeTaskRequest(body);
+    
     try {
+      // CRITICAL: Persist task AND conversation to database BEFORE execution 
+      // (like DynamicAgentsController does)
+      // TasksService.createTask automatically handles conversation creation/retrieval
+      const task = await this.tasksService.createTask(
+        currentUser.id,
+        agentSlug, // agentName
+        'context', // agentType - database agents are context agents
+        {
+          method: body.method || 'converse',
+          prompt: body.prompt || body.userMessage || '',
+          conversationId: body.conversationId, // Will be validated/created by TasksService
+          taskId: body.taskId,
+          metadata: body.metadata || {},
+          llmSelection: body.llmSelection,
+          conversationHistory: body.conversationHistory || [],
+        },
+      );
+
+      this.logger.log(`✅ Task ${task.id} and conversation ${task.agentConversationId} persisted to database`);
+
+      // Execute the agent with the persisted task ID
       const result = await this.gateway.execute(org, agentSlug, dto);
+
+      // Update task with result (using TaskStatusService like DynamicAgentsController does)
+      await this.taskStatusService.completeTask(
+        task.id,
+        currentUser.id,
+        result,
+      );
 
       this.logRequest({
         org,
