@@ -1080,6 +1080,9 @@ export class DynamicAgentsController {
           namespace: record.organization_slug ?? null,
           isTool: isTool || undefined,
           isOrchestrator: isOrchestrator || undefined,
+          // Expose execution fields from config for frontend
+          execution_profile: record.config?.execution_profile ?? undefined,
+          execution_capabilities: record.config?.execution_capabilities ?? undefined,
         },
         children,
       };
