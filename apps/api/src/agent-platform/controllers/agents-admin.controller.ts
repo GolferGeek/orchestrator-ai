@@ -153,6 +153,7 @@ export class AgentsAdminController {
     const files = [
       resolve(root, 'docs/feature/matt/payloads/blog_post_writer.json'),
       resolve(root, 'docs/feature/matt/payloads/hr_assistant.json'),
+      resolve(root, 'docs/feature/matt/payloads/agent_builder_orchestrator.json'),
     ];
 
     const results: any[] = [];

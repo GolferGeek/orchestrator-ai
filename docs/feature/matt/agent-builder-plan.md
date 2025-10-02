@@ -80,12 +80,27 @@ Next Action: Proceed to M3 Builder Orchestrator implementation
 
 ## M3 — Builder Orchestrator (Function Agent)
 
-- [ ] Design prompt flow (intent → type → IO → context → behavior → actions (for tool) → hierarchy → validate → approve → create)
-- [ ] Implement function agent: calls validator + admin upsert; manages HITL (human_approvals)
-- [ ] Promotion path (status=draft → active) post smoke test
-- [ ] Teaming with Context Author + API Adapter helpers (later)
+- [x] Design prompt flow (intent → type → IO → context → behavior → validate → approve → create)
+  - [x] 7-step conversational flow implemented
+  - [x] Supports function, context, and API agents
+  - [x] State management for multi-turn conversations
+- [x] Implement function agent: agent_builder_orchestrator.json
+  - [x] Guides users through agent creation
+  - [x] Collects requirements step-by-step
+  - [x] Mock validation and approval flow
+  - [x] 15 comprehensive tests covering full flow
+- [x] Smoke tests and validation
+  - [x] Payload validates against schema and policy
+  - [x] Dry-run tests pass for all steps
+  - [x] Full integration test from intent to creation
+- [ ] Real implementation (next phase)
+  - [ ] Wire to actual AgentValidationService via ctx.services
+  - [ ] Wire to actual AgentsAdminController for creation
+  - [ ] Add HITL approval gates with human_approvals table
+  - [ ] Promotion path (status=draft → active) post smoke test
+- [ ] Teaming with Context Author + API Adapter helpers (future)
 
-Next Action: Seed draft builder orchestrator (function) with minimal flow and tie to validator + upsert
+Next Action: Wire Builder Orchestrator to real validation and admin services, or proceed to M4 Wizard UI
 
 ---
 
