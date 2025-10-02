@@ -1,5 +1,5 @@
 # Agent Default Overview Video Script
-**Target Duration:** 6 minutes  
+**Target Duration:** 6.5 minutes  
 **Purpose:** General overview of working with Orchestrator AI agents  
 **Audience:** New users and those wanting to understand the platform
 
@@ -60,7 +60,7 @@ I need to create a Product Requirements Document for a new mobile app feature th
 
 > "This is the magic - it's like having a conversation with someone who actually knows what they're doing. You're not teaching it how to do its job."
 
-### Advanced Tips & Workflows (3:00 - 4:30)
+### Advanced Tips & Workflows (3:00 - 5:00)
 **[SCREEN: Continue the conversation or switch to another agent]**
 
 > "Okay, so here are a few things I've learned from using these agents in our actual business:"
@@ -70,6 +70,16 @@ I need to create a Product Requirements Document for a new mobile app feature th
 > "First - treat it like a real conversation. Don't try to get everything perfect in one shot. Build on what it gives you, ask follow-ups, refine things. It remembers everything you've talked about."
 
 **[SCREEN: Show how conversation builds context]**
+
+> "Now here's something cool about how the chat actually works - you've got different response modes depending on what you need. Like, if I just need a quick answer, there's immediate mode where it fires back responses right away. But if I'm working on something complex, I can switch to real-time mode and actually watch it think through the problem step by step."
+
+**[ACTION: Show toggling between chat modes or demonstrate the difference]**
+
+> "The real-time mode is wild - you can literally see it building the response as it goes. Super helpful when you're working on big projects because you can jump in and course-correct if it's heading in the wrong direction. Instead of waiting for a full response and then saying 'no, that's not what I meant,' you can guide it while it's working."
+
+**[SCREEN: Demonstrate real-time response building]**
+
+> "And honestly? Sometimes I just leave it in real-time mode because it feels more like having an actual conversation with a teammate. You know how when you're brainstorming with someone, ideas build on each other? It's like that."
 
 > "Second - if you need something in a specific format, just ask. Like:"
 
@@ -89,7 +99,7 @@ What am I missing here? What edge cases should I be worried about? What would an
 
 **[SCREEN: Show expert-level insights from agent]**
 
-### Multi-Agent Workflows (4:30 - 5:30)
+### Multi-Agent Workflows (5:00 - 6:00)
 **[SCREEN: Navigate to a different agent or show agent switching]**
 
 > "Now here's where it gets really cool. For big projects, you can bounce between different agents. Like, start with the Requirements Writer to figure out what you're building, then hop over to our Finance agent to see if the numbers make sense, then maybe hit up the Marketing agent to figure out how to actually sell it."
@@ -102,7 +112,7 @@ What am I missing here? What edge cases should I be worried about? What would an
 
 > "Here's a cool trick - you can reference your other conversations. Like, you can tell the Finance agent 'Hey, based on that PRD I just made with the Requirements Writer...' and it knows what you're talking about."
 
-### Closing & Next Steps (5:30 - 6:00)
+### Closing & Next Steps (6:00 - 6:30)
 **[SCREEN: Return to main dashboard or agent selection]**
 
 > "So that's basically it. We built this because we're a small business too, and we know what it's like to need expertise you can't afford to hire full-time. These agents are like having specialists on call whenever you need them."
