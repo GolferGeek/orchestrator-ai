@@ -40,6 +40,7 @@ const mkRecord = (
   version: '0.1.0',
   status: 'active',
   yaml: JSON.stringify(descriptor, null, 2),
+  function_code: null,
   agent_card: null,
   context: {
     supported_modes: ['converse', 'plan', 'build'],

@@ -182,6 +182,14 @@ export class DynamicAgentsController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Req() req: ExpressRequest & { activeNamespace?: string },
   ) {
+    // CRITICAL: Reject routes that look like database agent routes (namespace-based)
+    // Valid file-based agentTypes: context, function, api, python_function, orchestrator, specialist, manager, external
+    // Database agent routes use org slugs (e.g., "my-org") which should NOT be handled here
+    const validFileBasedTypes = ['context', 'function', 'api', 'python_function', 'orchestrator', 'specialist', 'specialists', 'manager', 'external', 'demo'];
+    if (!validFileBasedTypes.includes(agentType.toLowerCase())) {
+      // This looks like a database agent route (org slug), let Agent2AgentController handle it
+      throw new NotFoundException(`Agent type "${agentType}" not found in file-based agents`);
+    }
     // 🔍 Log minimal info about incoming request
     this.logger.log(
       `[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`,
@@ -1154,8 +1162,28 @@ export class DynamicAgentsController {
         return;
       }
 
+      // Track which specialists are assigned to orchestrators
+      const assignedSpecialistSlugs = new Set<string>();
+
       orchestrators.forEach((record) => {
-        const children = specialists.map((child) => {
+        // Filter specialists that report to this orchestrator
+        const matchingSpecialists = specialists.filter((child) => {
+          // Check YAML for hierarchy.reportsTo or hierarchy.reports_to
+          let reportsTo = null;
+          try {
+            const yamlData = child.yaml ? JSON.parse(child.yaml) : null;
+            reportsTo = yamlData?.hierarchy?.reportsTo || yamlData?.hierarchy?.reports_to || null;
+          } catch {
+            // Ignore parse errors
+          }
+          if (reportsTo === record.slug) {
+            assignedSpecialistSlugs.add(child.slug);
+            return true;
+          }
+          return false;
+        });
+
+        const children = matchingSpecialists.map((child) => {
           const specialistNode = specialistBySlug.get(child.slug);
           return specialistNode
             ? this.cloneHierarchyNode(specialistNode)
@@ -1168,6 +1196,22 @@ export class DynamicAgentsController {
 
         roots.push(createNode(record, children));
       });
+
+      // Add standalone specialists (those not assigned to any orchestrator) as root nodes
+      const standaloneSpecialists = specialists.filter(
+        (specialist) => !assignedSpecialistSlugs.has(specialist.slug)
+      );
+
+      if (standaloneSpecialists.length > 0) {
+        const standaloneNodes = standaloneSpecialists
+          .map((specialist) => {
+            const node = specialistBySlug.get(specialist.slug);
+            return node ? this.cloneHierarchyNode(node) : createNode(specialist, []);
+          })
+          .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+        roots.push(...standaloneNodes);
+      }
 
       appendToolsFolder();
     });

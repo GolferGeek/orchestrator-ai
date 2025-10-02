@@ -23,6 +23,7 @@ import { AgentConversationsService } from '../agent-conversations/agent-conversa
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { AgentTaskMode } from './dto/task-request.dto';
+import { AgentType } from '../common/types/agent-conversations.types';
 
 interface NormalizedTaskRequest {
   dto: TaskRequestDto;
@@ -97,13 +98,16 @@ export class Agent2AgentController {
     const { dto, jsonrpc } = await this.normalizeTaskRequest(body);
     
     try {
-      // CRITICAL: Persist task AND conversation to database BEFORE execution 
+      this.logger.log(`🔍 [Agent2AgentController] Creating task for user ${currentUser.id}, agent ${agentSlug}`);
+      this.logger.log(`🔍 Request body: ${JSON.stringify({ method: body.method, taskId: body.taskId, conversationId: body.conversationId })}`);
+      
+      // CRITICAL: Persist task AND conversation to database BEFORE execution
       // (like DynamicAgentsController does)
       // TasksService.createTask automatically handles conversation creation/retrieval
       const task = await this.tasksService.createTask(
         currentUser.id,
         agentSlug, // agentName
-        'context', // agentType - database agents are context agents
+        'specialist' as AgentType, // agentType - use specialist category for database agents
         {
           method: body.method || 'converse',
           prompt: body.prompt || body.userMessage || '',
@@ -146,6 +150,8 @@ export class Agent2AgentController {
 
       return result;
     } catch (error) {
+      this.logger.error(`❌ [Agent2AgentController] Error executing task:`, error);
+      
       if (!jsonrpc) {
         this.logRequest({
           org,

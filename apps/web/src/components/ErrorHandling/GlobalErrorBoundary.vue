@@ -121,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, getCurrentInstance } from 'vue';
 import {
   IonToast, IonModal, IonHeader, IonToolbar, IonTitle, 
   IonButtons, IonButton, IonContent, IonIcon, IonFabButton
@@ -138,6 +138,7 @@ import UserFriendlyError from './UserFriendlyError.vue';
 // Composables
 const router = useRouter();
 const errorStore = useErrorStore();
+const instance = getCurrentInstance();
 
 // Local state
 const showErrorModal = ref(false);
@@ -291,8 +292,11 @@ const handleOffline = () => {
   console.log('Gone offline');
 };
 
-// Watch for new critical errors
+// Watch for new critical errors with lifecycle guard
 watch(currentGlobalError, (newError, oldError) => {
+  // Check if component is still mounted before updating
+  if (instance?.isUnmounted) return;
+  
   if (newError && newError.id !== oldError?.id) {
     showGlobalError.value = true;
   }

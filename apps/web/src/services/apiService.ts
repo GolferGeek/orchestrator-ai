@@ -758,12 +758,13 @@ class ApiService {
   /**
    * Generic GET method
    */
-  async get(url: string): Promise<any> {
+  async get(url: string, options?: { suppressErrors?: boolean }): Promise<any> {
 
     
     try {
       // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
-      const response = await this.axiosInstance.get(url);
+      const config = options?.suppressErrors ? { _suppressStatuses: [404] } : {};
+      const response = await this.axiosInstance.get(url, config);
 
       
 

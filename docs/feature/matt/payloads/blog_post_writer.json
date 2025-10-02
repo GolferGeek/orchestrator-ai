@@ -2,20 +2,13 @@
   "organization_slug": "my-org",
   "slug": "blog_post_writer",
   "display_name": "Blog Post Writer",
-  "agent_type": "function",
+  "description": "Creates SEO-friendly blog posts in Markdown format with clear structure and helpful tone",
+  "agent_type": "context",
   "mode_profile": "draft",
   "status": "active",
   "yaml": "input_modes: ['application/json']\noutput_modes: ['text/markdown']\n",
   "context": {
     "system": "You are a blog post writer. Produce SEO-friendly Markdown with clear headings, intro, body, and conclusion. Maintain a helpful, concise tone."
-  },
-  "config": {
-    "configuration": {
-      "function": {
-        "timeout_ms": 5000,
-        "code": "module.exports = async (input, ctx) => { const title = input?.title || 'Untitled'; const outline = Array.isArray(input?.outline) ? input.outline : []; const sections = outline.map(h => `## ${h}\n\n`).join(''); const body = `# ${title}\n\n` + sections + (input?.notes ? `\n\n> Notes: ${input.notes}` : ''); return { ok: true, format: 'text/markdown', content: body }; }"
-      }
-    }
   }
 }
 

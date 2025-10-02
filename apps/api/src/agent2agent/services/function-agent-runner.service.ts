@@ -22,10 +22,15 @@ export class FunctionAgentRunnerService {
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     try {
-      const fnConfig = (definition.config as any)?.configuration?.function || (definition.config as any)?.function;
-      if (!fnConfig || typeof fnConfig.code !== 'string' || !fnConfig.code.trim()) {
-        return TaskResponseDto.failure(request.mode, 'function_code_missing');
+      // Function code must be in function_code column
+      const code = (definition as any).function_code;
+
+      if (!code || typeof code !== 'string' || !code.trim()) {
+        throw new Error('function_code is required but missing from agent record');
       }
+
+      // Get timeout from config
+      const fnConfig = (definition.config as any)?.configuration?.function || (definition.config as any)?.function || {};
 
       const prompt = request.userMessage || (request.payload as any)?.prompt || 'Generate image';
       const input = { prompt, ...(request.payload || {}) } as Record<string, any>;
@@ -62,7 +67,7 @@ export class FunctionAgentRunnerService {
 
       const sandbox: any = { console: { log: (...a: any[]) => this.logger.log(a.join(' ')) } };
       vm.createContext(sandbox);
-      const script = new vm.Script(`"use strict";\n${fnConfig.code}\n;handler;`);
+      const script = new vm.Script(`"use strict";\n${code}\n;handler;`);
       const exported = script.runInContext(sandbox, { timeout: 1000 });
       if (typeof exported !== 'function') {
         return TaskResponseDto.failure(request.mode, 'function_handler_not_found');

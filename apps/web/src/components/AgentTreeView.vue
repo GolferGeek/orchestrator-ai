@@ -835,27 +835,34 @@ const hierarchyGroups = computed(() => {
     topOrchestrator ? agent.name !== topOrchestrator.name : true
   );
   const specialistAgents: any[] = [];
-  
+
   otherRootNodes.forEach((agent: any) => {
-    const nodeConversations = conversationsStore.conversations.filter(conv => 
-      conv.agentName === agent.name && conv.agentType === agent.type
-    );
-    
-        const matchesSearch = !searchQuery.value || 
-          agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      agent.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-          agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
-    
-    if (matchesSearch) {
-      specialistAgents.push({
-              name: agent.name,
-              type: agent.type || 'specialist',
-              description: agent.metadata?.description || agent.description || '',
-              execution_modes: [],
-        conversations: nodeConversations,
-        activeConversations: nodeConversations.filter(c => !c.endedAt).length,
-        totalConversations: nodeConversations.length,
-      });
+    // If this node has children, it's an orchestrator - process it as a manager group
+    if (agent.children && agent.children.length > 0) {
+      processNode(agent);
+    } else {
+      // This is a standalone specialist/agent
+      const nodeConversations = conversationsStore.conversations.filter(conv =>
+        conv.agentName === agent.name && conv.agentType === agent.type
+      );
+
+      const matchesSearch = !searchQuery.value ||
+        agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        agent.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+      if (matchesSearch) {
+        specialistAgents.push({
+          name: agent.name,
+          displayName: agent.displayName || agent.metadata?.displayName || agent.name,
+          type: agent.type || 'specialist',
+          description: agent.metadata?.description || agent.description || '',
+          execution_modes: [],
+          conversations: nodeConversations,
+          activeConversations: nodeConversations.filter(c => !c.endedAt).length,
+          totalConversations: nodeConversations.length,
+        });
+      }
     }
   });
   

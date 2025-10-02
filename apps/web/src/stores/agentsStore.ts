@@ -106,7 +106,7 @@ export const useAgentsStore = defineStore('agents', () => {
               return false;
             }
             if (!('namespace' in agent) || !agent.namespace) {
-              // If backend doesn’t tag the agent, assume it belongs to the active namespace
+              // If backend doesn't tag the agent, assume it belongs to the active namespace
               return true;
             }
             return agent.namespace === namespace;

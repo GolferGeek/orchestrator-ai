@@ -55,6 +55,7 @@ export class AgentsAdminController {
       version: null,
       status: dto.status ?? null,
       yaml: dto.yaml ?? '',
+      function_code: dto.function_code ?? null,
       agent_card: dto.agent_card ?? null,
       context: dto.context ?? null,
       config: dto.config ?? null,

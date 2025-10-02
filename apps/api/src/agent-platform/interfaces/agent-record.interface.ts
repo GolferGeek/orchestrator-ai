@@ -9,6 +9,7 @@ export interface AgentRecord {
   version: string | null;
   status: string | null;
   yaml: string;
+  function_code: string | null;
   agent_card: Record<string, any> | null;
   context: Record<string, any> | null;
   config: Record<string, any> | null;
@@ -26,6 +27,7 @@ export interface AgentUpsertInput {
   version?: string | null;
   status?: string | null;
   yaml: string;
+  function_code?: string | null;
   agent_card?: Record<string, any> | null;
   context?: Record<string, any> | null;
   config?: Record<string, any> | null;

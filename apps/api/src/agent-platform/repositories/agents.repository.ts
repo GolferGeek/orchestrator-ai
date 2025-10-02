@@ -42,6 +42,7 @@ export class AgentsRepository {
         version: payload.version ?? null,
         status: payload.status ?? null,
         yaml: payload.yaml,
+        function_code: payload.function_code ?? null,
         agent_card: payload.agent_card ?? null,
         context: payload.context ?? null,
         config: payload.config ?? null,

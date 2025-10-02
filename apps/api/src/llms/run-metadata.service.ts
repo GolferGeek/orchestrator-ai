@@ -730,7 +730,7 @@ export class RunMetadataService {
     let query = client
       .from('llm_usage')
       .select(
-        'run_id, user_id, caller_type, agent_name, conversation_id, provider_name, model_name, is_local, model_tier, route, status, started_at, completed_at, duration_ms, input_tokens, output_tokens, total_cost',
+        'run_id, user_id, caller_type, agent_name, conversation_id, provider_name, model_name, is_local, model_tier, route, status, started_at, completed_at, duration_ms, input_tokens, output_tokens',
       )
       .order('created_at', { ascending: false });
 

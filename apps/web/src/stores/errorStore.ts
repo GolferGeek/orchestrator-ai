@@ -177,8 +177,8 @@ export const useErrorStore = defineStore('error', () => {
       reportSent: false
     };
     
-    // Add to errors array
-    errors.value.unshift(appError);
+    // Add to errors array using safer mutation
+    errors.value = [appError, ...errors.value];
     
     // Trim errors if we exceed max
     if (errors.value.length > maxErrors.value) {

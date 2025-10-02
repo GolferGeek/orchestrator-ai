@@ -41,6 +41,9 @@ export function useGlobalErrorHandler() {
   const handleGlobalError = (event: ErrorEvent) => {
     console.error('🚨 Global JavaScript error:', event.error);
     
+    // Check if component is still mounted before adding error
+    if (instance?.isUnmounted) return;
+    
     errorStore.addError(event.error || new Error(event.message), {
       component: 'Global',
       url: event.filename,
@@ -57,6 +60,9 @@ export function useGlobalErrorHandler() {
    */
   const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
     console.error('🚨 Unhandled promise rejection:', event.reason);
+    
+    // Check if component is still mounted before adding error
+    if (instance?.isUnmounted) return;
     
     // Create error from rejection reason
     const error = event.reason instanceof Error 

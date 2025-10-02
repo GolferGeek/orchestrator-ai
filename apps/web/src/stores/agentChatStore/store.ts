@@ -501,6 +501,19 @@ export const useAgentChatStore = defineStore('agentChat', {
         }
       }
 
+      // Use authStore.currentNamespace as source of truth for routing
+      // (agent.namespace might be null even when user selected a namespace)
+      const authStore = useAuthStore();
+      const effectiveNamespace = authStore.currentNamespace || activeConversation.agent.namespace || null;
+      
+      console.log('🔍 Namespace resolution:', {
+        authStoreNamespace: authStore.currentNamespace,
+        agentNamespace: activeConversation.agent.namespace,
+        effectiveNamespace,
+        agentName: activeConversation.agent.name,
+        agentType: activeConversation.agent.type
+      });
+
       const taskOptions = {
         method: String(mode), // Ensure method is always a string for JSON-RPC
         prompt: basePrompt,
@@ -510,7 +523,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         executionMode: effectiveMode,
         agentType: activeConversation.agent.type,
         agentName: activeConversation.agent.name,
-        agentNamespace: activeConversation.agent.namespace ?? null,
+        agentNamespace: effectiveNamespace,
         taskId: preGeneratedTaskId,
         mode,
         timeoutSeconds: mode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60,
@@ -963,6 +976,18 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Prepare task execution options
         // Ensure chatMode is a string to prevent JSON-RPC errors
+        // Use authStore.currentNamespace as source of truth for routing
+        const authStore = useAuthStore();
+        const effectiveNamespace = authStore.currentNamespace || activeConversation.agent.namespace || null;
+        
+        console.log('🔍 Namespace resolution (sendMessage):', {
+          authStoreNamespace: authStore.currentNamespace,
+          agentNamespace: activeConversation.agent.namespace,
+          effectiveNamespace,
+          agentName: activeConversation.agent.name,
+          agentType: activeConversation.agent.type
+        });
+        
         const taskOptions = {
           method: chatMode, // This must be a string for JSON-RPC
           prompt: content,
@@ -972,7 +997,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           executionMode: effectiveMode,
           agentType: activeConversation.agent.type,
           agentName: activeConversation.agent.name,
-          agentNamespace: activeConversation.agent.namespace ?? null,
+          agentNamespace: effectiveNamespace,
           taskId: preGeneratedTaskId,
           mode: chatMode,
           timeoutSeconds: chatMode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60,
@@ -1472,10 +1497,42 @@ export const useAgentChatStore = defineStore('agentChat', {
 
 
       try {
-        // Get completed task - small delay to work around backend timing issue
+        // Guard against undefined taskId; try to derive from immediateTask
+        let effectiveTaskId = taskId;
+        if (!effectiveTaskId && immediateTask) {
+          effectiveTaskId = (immediateTask as any).taskId || (immediateTask as any).id || undefined;
+        }
+        if (!effectiveTaskId) {
+          console.error('handleTaskCompletion called without a valid taskId; aborting to avoid /tasks/undefined');
+          return;
+        }
 
-        await new Promise(resolve => setTimeout(resolve, 100)); // Workaround: backend sends WebSocket before DB commit
-        let completedTask = await tasksService.getTask(taskId);
+        // Retry mechanism for database timing issues (task not yet committed)
+        let completedTask;
+        let retryCount = 0;
+        const maxRetries = 5;
+        const retryDelays = [100, 200, 400, 800, 1600]; // Exponential backoff in ms
+        
+        while (retryCount <= maxRetries) {
+          try {
+            if (retryCount > 0) {
+              console.log(`🔄 Retry ${retryCount}/${maxRetries} fetching task ${effectiveTaskId}`);
+            }
+            // Suppress error notifications for retry attempts (not the final one)
+            const suppressErrors = retryCount < maxRetries;
+            completedTask = await tasksService.getTask(effectiveTaskId, { suppressErrors });
+            break; // Success - exit retry loop
+          } catch (error: any) {
+            // Only retry on 404 (task not yet in DB)
+            if (error?.response?.status === 404 && retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, retryDelays[retryCount]));
+              retryCount++;
+            } else {
+              // Non-404 error or max retries reached - rethrow
+              throw error;
+            }
+          }
+        }
 
 
         if (completedTask.status !== 'completed') {
@@ -1489,7 +1546,7 @@ export const useAgentChatStore = defineStore('agentChat', {
               metadata: immediateTask.metadata || completedTask.metadata,
             } as any;
           } else {
-            console.warn(`Task ${taskId} is not completed, status: ${completedTask.status}`);
+            console.warn(`Task ${effectiveTaskId} is not completed, status: ${completedTask.status}`);
             return;
           }
         }
@@ -1649,7 +1706,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         }
 
         // Force Vue reactivity by replacing the message in the array (after all metadata updates)
-        const finalMessageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
+        const finalMessageIndex = conv.messages.findIndex(msg => msg.taskId === effectiveTaskId && msg.role === 'assistant');
         if (finalMessageIndex >= 0) {
           const updatedMessage = { ...existingMessage };
           conv.messages[finalMessageIndex] = updatedMessage;
@@ -1661,7 +1718,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         }
 
         // Cleanup WebSocket subscriptions
-        websocketHandler.unsubscribeFromTask(taskId);
+        websocketHandler.unsubscribeFromTask(effectiveTaskId);
 
 
       } catch (error) {

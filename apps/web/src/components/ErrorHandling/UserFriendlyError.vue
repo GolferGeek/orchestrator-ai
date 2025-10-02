@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, getCurrentInstance } from 'vue';
 import {
   IonCard, IonCardContent, IonButton, IonIcon
 } from '@ionic/vue';
@@ -137,6 +137,7 @@ const emit = defineEmits<{
 
 // Local state
 const detailsExpanded = ref(false);
+const instance = getCurrentInstance();
 
 // Recovery action interface
 interface RecoveryAction {
@@ -308,6 +309,9 @@ const formatTimestamp = (timestamp: number): string => {
 };
 
 const executeAction = (action: RecoveryAction) => {
+  // Check if component is still mounted before executing actions
+  if (instance?.isUnmounted) return;
+  
   switch (action.action) {
     case 'retry':
       emit('retry', props.error);
@@ -336,6 +340,9 @@ const executeAction = (action: RecoveryAction) => {
 };
 
 const dismissError = () => {
+  // Check if component is still mounted before dismissing
+  if (instance?.isUnmounted) return;
+  
   emit('dismiss', props.error.id);
 };
 </script>

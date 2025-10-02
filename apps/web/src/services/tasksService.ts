@@ -105,8 +105,8 @@ class TasksService {
   /**
    * Get task by ID
    */
-  async getTask(taskId: string): Promise<Task> {
-    const response = await apiService.get(`${this.baseUrl}/${taskId}`);
+  async getTask(taskId: string, options?: { suppressErrors?: boolean }): Promise<Task> {
+    const response = await apiService.get(`${this.baseUrl}/${taskId}`, options);
     return response;
   }
   /**
@@ -232,19 +232,37 @@ class TasksService {
       throw new Error('Cannot create agent task: missing agentType or agentName');
     }
 
-    // Normalize agentType to match backend discovery paths
-    // Backend discovers specialists under "specialists/<name>"
-    const normalizedAgentType = agentType === 'specialist' ? 'specialists' : agentType;
-    const url = `/agents/${normalizedAgentType}/${agentName}/tasks`;
+    // Determine routing pattern based on namespace:
+    // - demo namespace: Use DynamicAgentsController (old system) - /agents/:agentType/:agentName/tasks
+    // - my-org namespace: Use Agent2AgentController (new system) - /agents/:namespace/:agentName/tasks
+    let url: string;
+    
+    if (options?.namespace && options.namespace !== 'demo') {
+      // New system: Database agents with org namespace (my-org, etc.)
+      // Use Agent2AgentController with org-based routing
+      url = `/agents/${options.namespace}/${agentName}/tasks`;
+    } else {
+      // Old system: File-based agents in demo namespace
+      // Use DynamicAgentsController with type-based routing
+      // Normalize agentType to match backend discovery paths
+      // Backend discovers specialists under "specialists/<name>"
+      const normalizedAgentType = agentType === 'specialist' ? 'specialists' : agentType;
+      url = `/agents/${normalizedAgentType}/${agentName}/tasks`;
+    }
     // Sanitize the task data before sending
     const sanitizedTaskData = this.apiSanitization.sanitizeTaskRequest(taskData);
 
     // Debug: Log what's being sent to the backend
     console.log('🚀 Sending task to backend:', {
       url,
+      agentType,
+      agentName,
+      namespace: options?.namespace,
       llmSelection: sanitizedTaskData.llmSelection,
       hasLlmSelection: !!sanitizedTaskData.llmSelection,
-      method: sanitizedTaskData.method
+      method: sanitizedTaskData.method,
+      taskId: sanitizedTaskData.taskId,
+      conversationId: sanitizedTaskData.conversationId
     });
 
     const response = await apiService.post(url, sanitizedTaskData);

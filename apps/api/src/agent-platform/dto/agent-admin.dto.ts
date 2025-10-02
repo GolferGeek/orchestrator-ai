@@ -41,6 +41,11 @@ export class CreateAgentDto {
   @IsString()
   yaml?: string;
 
+  @ApiProperty({ description: 'Function code (JavaScript/TypeScript) for function agents', required: false })
+  @IsOptional()
+  @IsString()
+  function_code?: string | null;
+
   @ApiProperty({ description: 'Optional long-form description', required: false })
   @IsOptional()
   @IsString()

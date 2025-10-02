@@ -32,9 +32,11 @@ export class AgentValidationService {
 
     // Additional runtime checks per type
     if (type === 'function') {
-      const code = (payload as any)?.config?.configuration?.function?.code;
-      if (!code || typeof code !== 'string' || code.trim().length === 0) {
-        issues.push({ message: 'config.configuration.function.code is required for function agents' });
+      // Function code must be in function_code column
+      const functionCode = (payload as any)?.function_code;
+
+      if (!functionCode || typeof functionCode !== 'string' || functionCode.trim().length === 0) {
+        issues.push({ message: 'function_code is required for function agents' });
       }
     }
 

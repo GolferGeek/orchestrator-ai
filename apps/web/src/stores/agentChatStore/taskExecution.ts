@@ -35,6 +35,14 @@ export class TaskExecutionService {
     }
     
     // Create the task
+    console.log('🔍 TaskExecutionService.createAndExecuteTask - Agent info:', {
+      agentType: options.agentType,
+      agentName: options.agentName,
+      agentNamespace: options.agentNamespace,
+      conversationId: options.conversationId,
+      taskId: options.taskId
+    });
+    
     const task = await tasksService.createAgentTask(
       options.agentType,
       options.agentName,
@@ -58,6 +66,13 @@ export class TaskExecutionService {
       { namespace: options.agentNamespace ?? null }
     );
 
+    // Normalize taskId for downstream usage
+    const resolvedTaskId = (task && (task as any).taskId) || (task && (task as any).id) || options.taskId;
+    if (!resolvedTaskId) {
+      throw new Error('Task creation response missing taskId; cannot proceed with completion handling');
+    }
+    (task as any).taskId = resolvedTaskId;
+
     // Check if the response indicates a PII policy block (successful response but blocked)
     if (task?.blocked && task?.reason === 'PII_POLICY_VIOLATION') {
       // Handle PII policy violation by calling the status update handler
@@ -72,7 +87,7 @@ export class TaskExecutionService {
         }
       };
       
-      handlers.onStatusUpdate(conversationId, task.taskId || options.taskId, piiViolationUpdate);
+      handlers.onStatusUpdate(conversationId, (task as any).taskId, piiViolationUpdate);
       return; // Exit early, no need to continue processing
     }
 
