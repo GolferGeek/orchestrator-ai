@@ -127,6 +127,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresRole: ['admin'] }
       },
       {
+        path: 'admin/function-agents',
+        name: 'AdminFunctionAgents',
+        component: () => import('../views/admin/AdminFunctionAgentsView.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
         path: 'admin/pii-testing',
         name: 'PIITesting',
         component: () => import('../views/PIITestingPage.vue'),

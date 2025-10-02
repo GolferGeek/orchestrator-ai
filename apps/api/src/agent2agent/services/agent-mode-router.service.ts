@@ -13,6 +13,7 @@ import { AgentRuntimeLifecycleService } from '@agent-platform/services/agent-run
 import { AgentRuntimeDispatchResult } from '@agent-platform/services/agent-runtime-dispatch.service';
 import { AgentRuntimeNormalizationService } from '@agent-platform/services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from '@agent-platform/services/agent-runtime-redaction.service';
+import { FunctionAgentRunnerService } from './function-agent-runner.service';
 import { AgentRuntimeDeliverablesAdapter } from '@agent-platform/services/agent-runtime-deliverables.adapter';
 
 export interface AgentExecutionContext {
@@ -45,6 +46,7 @@ export class AgentModeRouterService {
     private readonly deliverables: AgentRuntimeDeliverablesAdapter,
     private readonly normalization: AgentRuntimeNormalizationService,
     private readonly redaction: AgentRuntimeRedactionService,
+    private readonly functionRunner: FunctionAgentRunnerService,
   ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
@@ -163,6 +165,12 @@ export class AgentModeRouterService {
   // Plan mode intentionally not implemented here – handled by AgentExecutionGateway
 
   private async handleBuild(context: HydratedExecutionContext) {
+    // Function agent short-circuit
+    const agentType = context.definition.agentType;
+    const fnConfig = (context.definition.config as any)?.configuration?.function || (context.definition.config as any)?.function;
+    if (agentType === 'function' && fnConfig && typeof fnConfig.code === 'string') {
+      return this.functionRunner.execute(context.definition, context.request, context.organizationSlug);
+    }
     const decision = this.extractDecision(context.routingMetadata);
     if (!decision) {
       return TaskResponseDto.failure(

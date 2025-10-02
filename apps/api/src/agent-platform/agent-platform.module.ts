@@ -23,13 +23,16 @@ import { DeliverablesModule } from '@/deliverables/deliverables.module';
 import { AssetsModule } from '@/assets/assets.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
+import { FunctionAgentRunnerService } from '@/agent2agent/services/function-agent-runner.service';
+import { ImageAgentsModule } from '@/image-agents/image-agents.module';
 import { HumanApprovalsRepository } from './repositories/human-approvals.repository';
 import { RedactionPatternsRepository } from './repositories/redaction-patterns.repository';
 import { AgentApprovalsController } from './controllers/agent-approvals.controller';
+import { AgentsAdminController } from './controllers/agents-admin.controller';
 
 @Module({
-  imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule, AssetsModule],
-  controllers: [AgentApprovalsController],
+  imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule, AssetsModule, ImageAgentsModule],
+  controllers: [AgentApprovalsController, AgentsAdminController],
   providers: [
     AgentsRepository,
     RedactionPatternsRepository,
@@ -52,6 +55,7 @@ import { AgentApprovalsController } from './controllers/agent-approvals.controll
     AgentRuntimeDeliverablesAdapter,
     AgentRuntimeNormalizationService,
     AgentRuntimeRedactionService,
+    FunctionAgentRunnerService,
   ],
   exports: [
     AgentsRepository,
@@ -75,6 +79,7 @@ import { AgentApprovalsController } from './controllers/agent-approvals.controll
     AgentRuntimeDeliverablesAdapter,
     AgentRuntimeNormalizationService,
     AgentRuntimeRedactionService,
+    FunctionAgentRunnerService,
   ],
 })
 export class AgentPlatformModule {}

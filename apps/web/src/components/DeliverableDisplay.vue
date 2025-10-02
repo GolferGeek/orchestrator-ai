@@ -369,6 +369,9 @@
 
       <!-- Images Tab -->
       <div v-else-if="activeSubTab === 'images'" class="images-panel content-display">
+        <div class="images-actions">
+          <ion-button size="small" color="primary" @click="openGenerateModal">Generate Images</ion-button>
+        </div>
         <div v-if="imageAssets.length" class="thumb-grid">
           <img
             v-for="(img, idx) in imageAssets"
@@ -451,6 +454,39 @@
     </ion-popover>
     </div>
   </div>
+  <!-- Generate Images Modal -->
+  <ion-modal :is-open="showGenerateModal" @didDismiss="showGenerateModal = false">
+    <div class="ion-padding">
+      <h3>Generate Images</h3>
+      <ion-item>
+        <ion-label position="stacked">Prompt</ion-label>
+        <ion-input v-model="genPrompt" placeholder="Describe the image..." />
+      </ion-item>
+      <ion-item>
+        <ion-label>Size</ion-label>
+        <ion-select v-model="genSize">
+          <ion-select-option value="256x256">256 x 256</ion-select-option>
+          <ion-select-option value="512x512">512 x 512</ion-select-option>
+          <ion-select-option value="1024x1024">1024 x 1024</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-label>Providers</ion-label>
+        <ion-select v-model="genProviders" multiple>
+          <ion-select-option value="openai">OpenAI</ion-select-option>
+          <ion-select-option value="gemini">Gemini/Imagen</ion-select-option>
+        </ion-select>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Count</ion-label>
+        <ion-input type="number" min="1" max="4" v-model="genN" />
+      </ion-item>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+        <ion-button fill="clear" @click="showGenerateModal = false">Cancel</ion-button>
+        <ion-button color="primary" @click="submitGenerate">Generate</ion-button>
+      </div>
+    </div>
+  </ion-modal>
 </template>
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
@@ -470,6 +506,10 @@ import {
   IonFabButton,
   IonSegment,
   IonSegmentButton,
+  IonModal,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
 } from '@ionic/vue';
 import {
   timeOutline,
@@ -547,6 +587,11 @@ const isSaving = ref(false);
 const contentTextarea = ref<any>(null);
 const activeSubTab = ref<'plan' | 'document' | 'images'>('document');
 const hasAutoSelectedTab = ref(false);
+const showGenerateModal = ref(false);
+const genPrompt = ref('');
+const genSize = ref<'256x256' | '512x512' | '1024x1024'>('512x512');
+const genN = ref(1);
+const genProviders = ref<string[]>(['openai']);
 // Computed versions that reactively watches the store state
 const versions = computed(() => {
   // This will trigger whenever the store state changes
@@ -917,6 +962,39 @@ watch(hasPlanContent, (val) => {
     hasAutoSelectedTab.value = true;
   }
 });
+
+function openGenerateModal() {
+  genPrompt.value = '';
+  genSize.value = '512x512';
+  genN.value = 1;
+  genProviders.value = ['openai'];
+  showGenerateModal.value = true;
+}
+
+async function submitGenerate() {
+  try {
+    // Execute function agent "image_basic_generator" via Agent2Agent
+    const orgSlug = (await import('@/stores/authStore')).useAuthStore().currentNamespace || 'my-org';
+    const selectedProviders = genProviders.value || [];
+    const agentSlug = (selectedProviders.length === 1)
+      ? (selectedProviders[0] === 'gemini' ? 'image_google_generator' : 'image_openai_generator')
+      : 'image_orchestrator';
+    const { agentExecutionService } = await import('@/services/agentExecutionService');
+    const convId = (props as any).conversationId || (await import('@/stores/agentChatStore')).useAgentChatStore().getActiveConversation()?.id;
+    if (!convId) throw new Error('No conversation available');
+    const response = await agentExecutionService.executeAgentTask(orgSlug, agentSlug, {
+      mode: 'build',
+      conversationId: convId,
+      userMessage: genPrompt.value || 'Generate image',
+      payload: { size: genSize.value, n: genN.value, deliverableId: (props.deliverable as any).id, providers: genProviders.value },
+    });
+    showGenerateModal.value = false;
+    // Refresh versions
+    await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
+  } catch (e: any) {
+    alert(`Image generation failed: ${e?.message || e}`);
+  }
+}
 const goToPreviousVersion = async () => {
   if (!canGoPrevious.value) return;
   // Find current version index in sortedVersions (newest first)
@@ -1345,6 +1423,11 @@ watch(() => props.deliverable?.id, async () => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+}
+.images-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 .images-panel .thumb {
   width: 100%;

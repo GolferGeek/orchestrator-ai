@@ -4,6 +4,7 @@ import { DeliverablesService } from '@/deliverables/deliverables.service';
 import { DeliverableVersionsService } from '@/deliverables/deliverable-versions.service';
 import { DeliverableVersionCreationType, DeliverableFormat } from '@/deliverables/dto';
 import { OpenAIImageProvider } from './providers/openai-image.provider';
+import { GeminiImageProvider } from './providers/gemini-image.provider';
 
 @Injectable()
 export class ImageAgentsService {
@@ -22,6 +23,7 @@ export class ImageAgentsService {
     size?: '256x256' | '512x512' | '1024x1024';
     n?: number;
     title?: string;
+    deliverableId?: string | null;
   }) {
     const provider = input.provider || 'openai';
     let images: { mime: string; base64: string }[] = [];
@@ -29,7 +31,12 @@ export class ImageAgentsService {
       const svc = new OpenAIImageProvider();
       images = await svc.generate({ prompt: input.prompt, size: input.size, n: input.n });
     } else {
-      throw new Error(`Unsupported image provider: ${provider}`);
+      if (provider === 'gemini' || provider === 'imagen') {
+        const svc = new GeminiImageProvider();
+        images = await svc.generate({ prompt: input.prompt, size: input.size, n: input.n });
+      } else {
+        throw new Error(`Unsupported image provider: ${provider}`);
+      }
     }
 
     // Persist assets
@@ -49,27 +56,54 @@ export class ImageAgentsService {
       stored.push({ assetId: rec.id, url: `/assets/${rec.id}`, mime: rec.mime, size: rec.size });
     }
 
-    // Create deliverable then add image version
-    const title = input.title || 'Generated Images';
-    const d = await this.deliverables.create(
-      {
-        title,
-        type: 'image' as any,
-        conversationId: input.conversationId,
-        agentName: 'image_agent',
-        initialContent: 'Image assets',
-        initialFormat: DeliverableFormat.JSON,
-        initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
-        initialTaskId: undefined,
-        initialMetadata: {
-          organizationSlug: input.organizationSlug ?? null,
-          mode: 'build',
-          prompt: input.prompt,
-          provider,
-        },
-      } as any,
-      input.userId,
-    );
+    let d;
+    if (input.deliverableId) {
+      d = await this.deliverables.findOne(input.deliverableId, input.userId as any).catch(() => null);
+      if (!d) {
+        // fallback to create if not found
+        const title = input.title || 'Generated Images';
+        d = await this.deliverables.create(
+          {
+            title,
+            type: 'image' as any,
+            conversationId: input.conversationId,
+            agentName: 'image_agent',
+            initialContent: 'Image assets',
+            initialFormat: DeliverableFormat.JSON,
+            initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
+            initialTaskId: undefined,
+            initialMetadata: {
+              organizationSlug: input.organizationSlug ?? null,
+              mode: 'build',
+              prompt: input.prompt,
+              provider,
+            },
+          } as any,
+          input.userId,
+        );
+      }
+    } else {
+      const title = input.title || 'Generated Images';
+      d = await this.deliverables.create(
+        {
+          title,
+          type: 'image' as any,
+          conversationId: input.conversationId,
+          agentName: 'image_agent',
+          initialContent: 'Image assets',
+          initialFormat: DeliverableFormat.JSON,
+          initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
+          initialTaskId: undefined,
+          initialMetadata: {
+            organizationSlug: input.organizationSlug ?? null,
+            mode: 'build',
+            prompt: input.prompt,
+            provider,
+          },
+        } as any,
+        input.userId,
+      );
+    }
 
     const v = await this.versions.createVersion(
       d.id,
@@ -86,4 +120,3 @@ export class ImageAgentsService {
     return { deliverable: d, version: v, images: stored };
   }
 }
-
