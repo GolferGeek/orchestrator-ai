@@ -4,6 +4,7 @@ import { AdminOnly } from '@/auth/decorators/roles.decorator';
 import { CreateAgentDto } from '../dto/agent-admin.dto';
 import { AgentValidationService } from '../services/agent-validation.service';
 import { AgentsRepository } from '../repositories/agents.repository';
+import { AgentDryRunService } from '../services/agent-dry-run.service';
 
 @Controller('api/admin/agents')
 export class AgentsAdminController {
@@ -11,6 +12,7 @@ export class AgentsAdminController {
     private readonly supabase: SupabaseService,
     private readonly validator: AgentValidationService,
     private readonly agents: AgentsRepository,
+    private readonly dryRun: AgentDryRunService,
   ) {}
 
   @Get()
@@ -78,5 +80,25 @@ export class AgentsAdminController {
     });
 
     return { success: true, data: record };
+  }
+
+  @Post('validate')
+  @AdminOnly()
+  async validate(@Body() dto: CreateAgentDto, @Query('dryRun') dryRun?: string) {
+    const type = dto.agent_type as any;
+    const validation = this.validator.validateByType(type, dto as any);
+
+    const response: any = { success: validation.ok, issues: validation.issues };
+    const wantsDryRun = (dryRun || '').toString().toLowerCase() === 'true';
+    if (validation.ok && wantsDryRun && type === 'function') {
+      const code = (dto as any)?.config?.configuration?.function?.code as string | undefined;
+      const timeout = Number((dto as any)?.config?.configuration?.function?.timeout_ms) || 2000;
+      if (code && code.length < 50000) {
+        response.dryRun = await this.dryRun.runFunction(code, {}, timeout);
+      } else {
+        response.dryRun = { ok: false, error: 'No code provided or code too large for dry-run' };
+      }
+    }
+    return response;
   }
 }

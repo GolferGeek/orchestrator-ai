@@ -1,5 +1,3 @@
-import type { JSONSchemaType } from 'ajv';
-
 export type AgentType = 'function' | 'context' | 'api' | 'orchestrator';
 
 export interface CreateAgentPayload {
@@ -16,7 +14,7 @@ export interface CreateAgentPayload {
 }
 
 // Common base schema for all agents
-export const baseAgentSchema: JSONSchemaType<CreateAgentPayload> = {
+export const baseAgentSchema: any = {
   type: 'object',
   properties: {
     organization_slug: { type: 'string', nullable: true, optional: true },
@@ -35,7 +33,7 @@ export const baseAgentSchema: JSONSchemaType<CreateAgentPayload> = {
 };
 
 // Function agent must include configuration.function.code
-export const functionAgentSchema: JSONSchemaType<CreateAgentPayload> = {
+export const functionAgentSchema: any = {
   ...baseAgentSchema,
   allOf: [
     {
@@ -75,17 +73,17 @@ export const functionAgentSchema: JSONSchemaType<CreateAgentPayload> = {
 };
 
 // Context agent should provide either `context` object or `yaml`
-export const contextAgentSchema: JSONSchemaType<CreateAgentPayload> = {
+export const contextAgentSchema: any = {
   ...baseAgentSchema,
 };
 
 // API agent expects api_configuration under config
-export const apiAgentSchema: JSONSchemaType<CreateAgentPayload> = {
+export const apiAgentSchema: any = {
   ...baseAgentSchema,
 };
 
 // Orchestrator agent – no extra requireds yet
-export const orchestratorAgentSchema: JSONSchemaType<CreateAgentPayload> = {
+export const orchestratorAgentSchema: any = {
   ...baseAgentSchema,
 };
 
@@ -103,4 +101,3 @@ export function schemaFor(type: AgentType) {
       return baseAgentSchema;
   }
 }
-

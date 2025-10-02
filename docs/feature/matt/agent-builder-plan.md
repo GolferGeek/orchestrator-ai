@@ -36,32 +36,32 @@ Next Action (completed work): Proceed to Agent Builder endpoints + wizard
 
 ## M1 — Admin Endpoints
 
-- [ ] POST /api/admin/agents (upsert)
-  - [ ] Accepts: { organization_slug, slug, display_name, agent_type, mode_profile, yaml (JSON string allowed), context, config }
-  - [ ] Validates required fields by type; writes to public.agents
-  - [ ] Auth guard (admin only)
+- [x] POST /api/admin/agents (upsert)
+  - [x] Accepts: { organization_slug, slug, display_name, agent_type, mode_profile, yaml, context, config }
+  - [x] Validates required fields by type; writes to public.agents
+  - [x] Auth guard (admin only)
 - [ ] PATCH /api/admin/agents/:id (exists)
   - [ ] Extend DTOs for type-safe config updates
-- [ ] GET /api/admin/agents?type=function|context|api (exists)
-  - [ ] Confirm filtering/ordering
+- [x] GET /api/admin/agents?type=function|context|api (exists)
+  - [x] Confirm filtering/ordering
 
-Next Action: Define DTOs and JSON-schema for agent payload by type
+Next Action: Extend PATCH with typed DTO for configuration diffs
 
 ---
 
 ## M2 — Validator (Schema + Dry-Run)
 
-- [ ] JSON-schema per agent type (function|context|api|orchestrator)
-  - [ ] Validate metadata, capabilities, input_modes, output_modes
-  - [ ] function.code presence and timeouts
-  - [ ] api_configuration transforms shape
+- [x] JSON-schema per agent type (function|context|api|orchestrator)
+  - [x] Validate required metadata and presence checks
+  - [x] function.code presence and timeouts (basic)
+  - [ ] api_configuration transforms shape (todo)
 - [ ] Policy checks against authoring standards
-- [ ] Dry-run harness
-  - [ ] function: run handler(input, mock ctx.services) within sandbox
+- [x] Dry-run harness
+  - [x] function: run handler(input, mock ctx.services) inside sandbox with timeout
   - [ ] api: render request_transform + simulate field_extraction
-- [ ] Endpoint: POST /api/admin/agents/validate (returns { ok, issues[], dryRun? })
+- [x] Endpoint: POST /api/admin/agents/validate (returns { ok, issues[], dryRun? })
 
-Next Action: Draft schemas + a mock ctx for function dry-run
+Next Action: Add policy checks and API-agent transform validation
 
 ---
 
@@ -147,4 +147,3 @@ Next Action: Draft minimal plan with 2 steps and run via A2A
 - API-first creation only (no direct SQL) for blog_post and hr_assistant
 - Sandbox function runner only exposes ctx.services.*; no require()
 - HITL gates (human_approvals) for promotion as needed
-

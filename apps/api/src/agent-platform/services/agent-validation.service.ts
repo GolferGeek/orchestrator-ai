@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import Ajv, { ErrorObject } from 'ajv';
-import addFormats from 'ajv-formats';
+import * as AjvNS from 'ajv';
 import {
   AgentType,
   baseAgentSchema,
@@ -15,15 +14,11 @@ export type ValidationIssue = {
 
 @Injectable()
 export class AgentValidationService {
-  private ajv: Ajv;
+  private ajv: any;
 
   constructor() {
-    this.ajv = new Ajv({
-      allErrors: true,
-      allowUnionTypes: true,
-      strict: false,
-    });
-    addFormats(this.ajv);
+    const AjvCtor: any = (AjvNS as any).default ?? (AjvNS as any);
+    this.ajv = new AjvCtor({ allErrors: true, strict: false } as any);
   }
 
   validateByType(type: AgentType, payload: CreateAgentPayload): {
@@ -46,9 +41,9 @@ export class AgentValidationService {
     return { ok: issues.length === 0 && !!valid, issues };
   }
 
-  private formatAjvError(err: ErrorObject): ValidationIssue {
-    const msg = err.message || 'validation error';
-    return { message: msg, instancePath: err.instancePath };
+  private formatAjvError(err: AjvNS.ErrorObject | any): ValidationIssue {
+    const msg = err?.message || 'validation error';
+    const instancePath = (err && (err.instancePath || err.dataPath)) || undefined;
+    return { message: msg, instancePath };
   }
 }
-
