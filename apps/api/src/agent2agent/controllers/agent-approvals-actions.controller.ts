@@ -69,14 +69,19 @@ export class AgentApprovalsActionsController {
       request,
     );
 
-    // Attach approval context to response metadata for client convenience
-    response.payload = response.payload || {};
-    response.payload.metadata = {
-      ...(response.payload.metadata || {}),
-      approvalId: id,
-      approvalStatus: 'approved',
+    // Attach approval context to response metadata (avoid mutating readonly types)
+    const resp = {
+      ...response,
+      payload: {
+        ...(response as any).payload,
+        metadata: {
+          ...((response as any).payload?.metadata || {}),
+          approvalId: id,
+          approvalStatus: 'approved',
+        },
+      },
     };
 
-    return response;
+    return resp as typeof response;
   }
 }

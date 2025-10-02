@@ -319,7 +319,7 @@ export class DeliverableVersionsService {
   async copyVersion(versionId: string, userId: string): Promise<DeliverableVersion> {
     const source = await this.getVersion(versionId, userId);
     const createVersionDto: CreateVersionDto = {
-      content: source.content,
+      content: source.content || '',
       format: source.format,
       createdByType: DeliverableVersionCreationType.MANUAL_EDIT,
       metadata: {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-API_BASE=${API_BASE:-"http://localhost:9000"}
+API_BASE=${API_BASE:-"http://localhost:7100"}
 TOKEN=${TOKEN:-""}
 
 if [ $# -lt 1 ]; then
@@ -32,4 +32,3 @@ else
   echo "-- Upserting agent from $FILE"
   curl -sS -X POST "${API_BASE}/api/admin/agents" -H "${HDRS[@]}" --data-binary @"$FILE" | jq .
 fi
-

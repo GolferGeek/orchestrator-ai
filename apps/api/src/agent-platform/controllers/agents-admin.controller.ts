@@ -6,6 +6,8 @@ import { AgentValidationService } from '../services/agent-validation.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { AgentDryRunService } from '../services/agent-dry-run.service';
 import { AgentPolicyService } from '../services/agent-policy.service';
+import { readFile } from 'fs/promises';
+import { resolve } from 'path';
 
 @Controller('api/admin/agents')
 export class AgentsAdminController {
@@ -103,6 +105,16 @@ export class AgentsAdminController {
         response.dryRun = { ok: false, error: 'No code provided or code too large for dry-run' };
       }
     }
+    if (validation.ok && wantsDryRun && type === 'api') {
+      const apiCfg = (dto as any)?.config?.configuration?.api?.api_configuration;
+      if (apiCfg) {
+        const sampleInput = (dto as any)?.config?.configuration?.api?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' };
+        const sampleResp = (dto as any)?.config?.configuration?.api?.sample_response || { output: 'dry-run-ok' };
+        response.dryRun = await this.dryRun.runApiTransform(apiCfg, sampleInput, sampleResp);
+      } else {
+        response.dryRun = { ok: false, error: 'No api_configuration provided for dry-run' };
+      }
+    }
     return response;
   }
 
@@ -158,5 +170,58 @@ export class AgentsAdminController {
       .maybeSingle();
     if (uerr) throw new Error(uerr.message);
     return { success: true, data: updated };
+  }
+
+  @Post('smoke-run')
+  @AdminOnly()
+  async smokeRun() {
+    const root = resolve(__dirname, '../../../../..');
+    const files = [
+      resolve(root, 'docs/feature/matt/payloads/blog_post_writer.json'),
+      resolve(root, 'docs/feature/matt/payloads/hr_assistant.json'),
+    ];
+
+    const results: any[] = [];
+    for (const f of files) {
+      try {
+        const raw = await readFile(f, 'utf8');
+        const dto = JSON.parse(raw);
+        const type = dto.agent_type as any;
+        const validation = this.validator.validateByType(type, dto as any);
+        const policyIssues = this.policy.check(dto);
+        const item: any = {
+          file: f,
+          success: validation.ok && policyIssues.length === 0,
+          issues: [...validation.issues, ...policyIssues],
+        };
+        if (item.success) {
+          if (type === 'function') {
+            const code = dto?.config?.configuration?.function?.code as string | undefined;
+            if (code) {
+              item.dryRun = await this.dryRun.runFunction(
+                code,
+                { title: 'Smoke Test', outline: ['Intro', 'Body', 'Conclusion'] },
+                Number(dto?.config?.configuration?.function?.timeout_ms) || 1000,
+              );
+            }
+          } else if (type === 'api') {
+            const apiCfg = dto?.config?.configuration?.api?.api_configuration;
+            if (apiCfg) {
+              item.dryRun = await this.dryRun.runApiTransform(
+                apiCfg,
+                dto?.config?.configuration?.api?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' },
+                dto?.config?.configuration?.api?.sample_response || { output: 'ok' },
+              );
+            }
+          }
+        }
+        results.push(item);
+      } catch (e: any) {
+        results.push({ file: f, success: false, issues: [{ message: e?.message || String(e) }] });
+      }
+    }
+
+    const allOk = results.every((r) => r.success && (!r.dryRun || r.dryRun.ok !== false));
+    return { success: allOk, results };
   }
 }

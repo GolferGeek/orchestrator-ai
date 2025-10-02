@@ -606,7 +606,7 @@ class AgentBuilderService {
 User Input: "Analyze our Q4 sales data and create a summary report"
 Orchestrator Plan:
 1. sales-data-analyst → Analyze Q4 sales data
-2. supabase-query-agent → Fetch customer records
+2. supabase-db → Fetch customer records (action=query)
 3. marketing-data-analyst → Segment customers by behavior
 4. report-generator → Create executive summary
 5. slack-notification-agent → Send report to leadership
@@ -796,9 +796,8 @@ const testAgents = [
   { name: "data-analyzer", type: "context", purpose: "Analyze data and generate insights" },
   { name: "report-generator", type: "context", purpose: "Create formatted reports" },
   
-  // Database Operations
-  { name: "supabase-query", type: "tool", purpose: "Execute Supabase queries" },
-  { name: "supabase-insert", type: "tool", purpose: "Insert data into Supabase" },
+  // Database Operations (single multi-action tool agent)
+  { name: "supabase-db", type: "tool", purpose: "Perform Supabase actions (query, insert, update, delete)" },
   
   // Communication
   { name: "email-sender", type: "api", purpose: "Send email notifications" },
@@ -822,12 +821,12 @@ const simpleScenarios = [
   },
   {
     name: "Customer Data Update",
-    agents: ["supabase-query", "data-analyzer", "supabase-insert"],
+    agents: ["supabase-db", "data-analyzer", "supabase-db"],
     steps: 3
   },
   {
     name: "Daily Report Automation",
-    agents: ["supabase-query", "data-analyzer", "report-generator", "slack-notifier"],
+    agents: ["supabase-db", "data-analyzer", "report-generator", "slack-notifier"],
     steps: 4
   }
 ];
@@ -836,12 +835,12 @@ const simpleScenarios = [
 const moderateScenarios = [
   {
     name: "Customer Onboarding Workflow",
-    agents: ["supabase-insert", "email-sender", "data-analyzer", "report-generator", "slack-notifier"],
+    agents: ["supabase-db", "email-sender", "data-analyzer", "report-generator", "slack-notifier"],
     steps: 5
   },
   {
     name: "Sales Pipeline Update",
-    agents: ["supabase-query", "data-analyzer", "supabase-insert", "report-generator", "email-sender"],
+    agents: ["supabase-db", "data-analyzer", "supabase-db", "report-generator", "email-sender"],
     steps: 5
   }
 ];
@@ -898,9 +897,9 @@ const week5Scenarios = [
 // Same agents, different combinations
 const agentCombinations = {
   "data-workflow": ["data-analyzer", "report-generator", "email-sender"],
-  "database-workflow": ["supabase-query", "data-analyzer", "supabase-insert"],
+  "database-workflow": ["supabase-db", "data-analyzer", "supabase-db"],
   "notification-workflow": ["data-analyzer", "slack-notifier", "email-sender"],
-  "full-workflow": ["supabase-query", "data-analyzer", "report-generator", "email-sender", "slack-notifier"]
+  "full-workflow": ["supabase-db", "data-analyzer", "report-generator", "email-sender", "slack-notifier"]
 };
 ```
 
@@ -917,7 +916,7 @@ Human Checkpoints: None (fully automated)
 #### **2. Customer Data Update (3 agents)**
 ```
 User Input: "Update customer records and notify the team"
-Agents: supabase-query → data-analyzer → supabase-insert → slack-notifier
+Agents: supabase-db → data-analyzer → supabase-db → slack-notifier
 Steps: 4
 Human Checkpoints: Review data changes before update
 ```
@@ -925,7 +924,7 @@ Human Checkpoints: Review data changes before update
 #### **3. Daily Report Automation (4 agents)**
 ```
 User Input: "Generate daily sales report and distribute"
-Agents: supabase-query → data-analyzer → report-generator → email-sender
+Agents: supabase-db → data-analyzer → report-generator → email-sender
 Steps: 4
 Human Checkpoints: Review report before sending
 ```
@@ -933,7 +932,7 @@ Human Checkpoints: Review report before sending
 #### **4. Customer Onboarding (5 agents)**
 ```
 User Input: "Process new customer onboarding"
-Agents: supabase-insert → email-sender → data-analyzer → report-generator → slack-notifier
+Agents: supabase-db → email-sender → data-analyzer → report-generator → slack-notifier
 Steps: 5
 Human Checkpoints: Review customer data, approve welcome email
 ```

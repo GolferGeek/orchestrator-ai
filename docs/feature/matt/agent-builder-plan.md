@@ -51,14 +51,15 @@ Next Action: Extend PATCH with typed DTO for configuration diffs
 
 ## M2 — Validator (Schema + Dry-Run)
 
-- [x] JSON-schema per agent type (function|context|api|orchestrator)
+- [x] JSON-schema per agent type (function|context|api|orchestrator|tool)
   - [x] Validate required metadata and presence checks
   - [x] function.code presence and timeouts (basic)
   - [ ] api_configuration transforms shape (todo)
+  - [ ] tool.actions[] schema (name, version, inputSchema, outputSchema)
 - [ ] Policy checks against authoring standards
 - [x] Dry-run harness
   - [x] function: run handler(input, mock ctx.services) inside sandbox with timeout
-  - [ ] api: render request_transform + simulate field_extraction
+- [x] api: render request_transform + simulate field_extraction
 - [x] Endpoint: POST /api/admin/agents/validate (returns { ok, issues[], dryRun? })
 
 Next Action: Add policy checks and API-agent transform validation
@@ -67,7 +68,7 @@ Next Action: Add policy checks and API-agent transform validation
 
 ## M3 — Builder Orchestrator (Function Agent)
 
-- [ ] Design prompt flow (intent → type → IO → context → behavior → hierarchy → validate → approve → create)
+- [ ] Design prompt flow (intent → type → IO → context → behavior → actions (for tool) → hierarchy → validate → approve → create)
 - [ ] Implement function agent: calls validator + admin upsert; manages HITL (human_approvals)
 - [ ] Promotion path (status=draft → active) post smoke test
 - [ ] Teaming with Context Author + API Adapter helpers (later)

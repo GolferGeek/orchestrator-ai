@@ -48,6 +48,53 @@ export class AgentDryRunService {
     }
   }
 
+  async runApiTransform(apiConfig: any, input: any = {}, mockResponse?: any): Promise<{
+    ok: boolean;
+    request?: { format?: string; body?: string };
+    response?: { format?: string; extracted?: any };
+    error?: string;
+  }> {
+    try {
+      const reqT = apiConfig?.request_transform || apiConfig?.requestTransform;
+      const resT = apiConfig?.response_transform || apiConfig?.responseTransform;
+
+      let body: string | undefined;
+      if (reqT?.format === 'custom' && typeof reqT?.template === 'string') {
+        body = this.renderTemplate(reqT.template, input);
+      } else if (typeof reqT === 'object') {
+        // Best-effort stringify
+        body = JSON.stringify(reqT);
+      }
+
+      let extracted: any = undefined;
+      if (resT?.format === 'field_extraction' && typeof resT?.field === 'string') {
+        const src = mockResponse ?? {};
+        extracted = this.getByPath(src, resT.field);
+      }
+
+      return {
+        ok: true,
+        request: { format: reqT?.format, body },
+        response: { format: resT?.format, extracted },
+      };
+    } catch (err: any) {
+      return { ok: false, error: err?.message || 'api dry-run error' };
+    }
+  }
+
+  private renderTemplate(tpl: string, ctx: any): string {
+    return String(tpl).replace(/\{\{\s*([^}]+)\s*\}\}/g, (_m, p1) => {
+      const v = this.getByPath(ctx, String(p1).trim());
+      return v == null ? '' : String(v);
+    });
+  }
+
+  private getByPath(obj: any, path: string): any {
+    if (!obj || !path) return undefined;
+    return String(path)
+      .split('.')
+      .reduce((acc: any, key: string) => (acc != null ? acc[key] : undefined), obj);
+  }
   private withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const t = setTimeout(() => reject(new Error('dry-run timeout')), Math.max(1, ms));

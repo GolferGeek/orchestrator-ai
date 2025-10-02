@@ -41,9 +41,11 @@ export class GeminiImageProvider {
       const resp = await axios.post(url, body, { headers: { 'Content-Type': 'application/json' } });
       const images = resp.data?.images || resp.data?.data || [];
       return images.map((i: any) => ({ mime: i.mimeType || 'image/png', base64: i.base64 || i.b64_json }));
-    } catch (e) {
-      // Fallback: return empty; caller can handle
-      throw new Error(`Gemini/Imagen image generation failed: ${String(e?.response?.data || e?.message || e)}`);
+    } catch (e: any) {
+      const data = (e && e.response && e.response.data) ? e.response.data : undefined;
+      const msg = (e && typeof e.message === 'string') ? e.message : undefined;
+      const detail = data || msg || String(e);
+      throw new Error(`Gemini/Imagen image generation failed: ${String(detail)}`);
     }
   }
 }

@@ -43,7 +43,8 @@ export class ImageAgentsService {
     const stored: any[] = [];
     for (let i = 0; i < images.length; i++) {
       const img = images[i];
-      const buf = Buffer.from(img.base64, 'base64');
+      if (!img) continue;
+      const buf = Buffer.from(img.base64 || '', 'base64');
       const rec = await this.assets.saveBuffer({
         organizationSlug: input.organizationSlug ?? null,
         conversationId: input.conversationId,
