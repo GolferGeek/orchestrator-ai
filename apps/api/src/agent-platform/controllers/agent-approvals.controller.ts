@@ -1,9 +1,13 @@
 import { Controller, Param, Post, Req, Get, Query } from '@nestjs/common';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
+import { AgentPromotionService } from '../services/agent-promotion.service';
 
 @Controller('api/agent-approvals')
 export class AgentApprovalsController {
-  constructor(private readonly approvals: HumanApprovalsRepository) {}
+  constructor(
+    private readonly approvals: HumanApprovalsRepository,
+    private readonly promotion: AgentPromotionService,
+  ) {}
 
   @Get()
   async list(
@@ -27,7 +31,29 @@ export class AgentApprovalsController {
   @Post(':id/approve')
   async approve(@Param('id') id: string, @Req() req: any) {
     const userId = req.user?.sub || req.user?.id || req.user?.userId || null;
+
+    // Approve the request
     const record = await this.approvals.setStatus(id, 'approved', userId);
+
+    // If this is an agent_promotion approval, complete the promotion
+    if (record.mode === 'agent_promotion') {
+      try {
+        const promotionResult = await this.promotion.completePromotionAfterApproval(id);
+        return {
+          success: true,
+          data: record,
+          promotion: promotionResult
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          success: false,
+          data: record,
+          error: `Approval succeeded but promotion failed: ${message}`
+        };
+      }
+    }
+
     return { success: true, data: record };
   }
 

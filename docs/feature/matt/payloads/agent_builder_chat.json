@@ -4,6 +4,7 @@
   "display_name": "Agent Builder (Chat)",
   "agent_type": "function",
   "mode_profile": "conversation_only",
+  "status": "active",
   "description": "Conversational agent builder - creates agents through natural chat with AI code generation",
   "yaml": "input_modes: ['text/plain']\noutput_modes: ['text/markdown', 'application/json']\ncapabilities: ['agent_creation', 'validation', 'conversation', 'code_generation']\n",
   "context": {

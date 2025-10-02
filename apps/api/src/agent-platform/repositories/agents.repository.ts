@@ -165,4 +165,41 @@ export class AgentsRepository {
       throw new Error(`Failed to delete agent: ${error.message}`);
     }
   }
+
+  async getById(id: string): Promise<AgentRecord | null> {
+    const client = this.getClient();
+    const { data, error } = (await client
+      .from(AGENTS_TABLE)
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()) as SupabaseSelectResponse<AgentRecord>;
+
+    if (error && error.code !== 'PGRST116') {
+      this.logger.error(`Failed to load agent ${id}: ${error.message}`);
+      throw new Error(`Failed to load agent: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async updateStatus(id: string, status: string): Promise<AgentRecord> {
+    const client = this.getClient();
+    const { data, error} = (await client
+      .from(AGENTS_TABLE)
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()) as SupabaseSelectResponse<AgentRecord>;
+
+    if (error) {
+      this.logger.error(`Failed to update agent ${id} status: ${error.message}`);
+      throw new Error(`Failed to update agent status: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error('Update succeeded but no agent returned');
+    }
+
+    return data;
+  }
 }

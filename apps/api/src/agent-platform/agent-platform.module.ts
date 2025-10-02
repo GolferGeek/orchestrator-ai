@@ -33,6 +33,7 @@ import { AgentValidationService } from './services/agent-validation.service';
 import { AgentDryRunService } from './services/agent-dry-run.service';
 import { AgentPolicyService } from './services/agent-policy.service';
 import { AgentBuilderService } from './services/agent-builder.service';
+import { AgentPromotionService } from './services/agent-promotion.service';
 
 @Module({
   imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule, AssetsModule, ImageAgentsModule],
@@ -64,6 +65,7 @@ import { AgentBuilderService } from './services/agent-builder.service';
     AgentDryRunService,
     AgentPolicyService,
     AgentBuilderService,
+    AgentPromotionService,
   ],
   exports: [
     AgentsRepository,
@@ -92,6 +94,7 @@ import { AgentBuilderService } from './services/agent-builder.service';
     AgentDryRunService,
     AgentPolicyService,
     AgentBuilderService,
+    AgentPromotionService,
   ],
 })
 export class AgentPlatformModule {}

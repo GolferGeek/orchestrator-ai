@@ -31,6 +31,11 @@ export class CreateAgentDto {
   @IsString()
   mode_profile!: string;
 
+  @ApiProperty({ description: 'Agent status (draft, active, archived)', required: false })
+  @IsOptional()
+  @IsString()
+  status?: string | null;
+
   @ApiProperty({ description: 'YAML definition (JSON string allowed)', required: false })
   @IsOptional()
   @IsString()

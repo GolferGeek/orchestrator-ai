@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Query, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Query, Param, Post, Req } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { AdminOnly } from '@/auth/decorators/roles.decorator';
 import { CreateAgentDto, UpdateAgentDto } from '../dto/agent-admin.dto';
@@ -6,6 +6,7 @@ import { AgentValidationService } from '../services/agent-validation.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { AgentDryRunService } from '../services/agent-dry-run.service';
 import { AgentPolicyService } from '../services/agent-policy.service';
+import { AgentPromotionService } from '../services/agent-promotion.service';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 
@@ -17,6 +18,7 @@ export class AgentsAdminController {
     private readonly agents: AgentsRepository,
     private readonly dryRun: AgentDryRunService,
     private readonly policy: AgentPolicyService,
+    private readonly promotion: AgentPromotionService,
   ) {}
 
   @Get()
@@ -51,7 +53,7 @@ export class AgentsAdminController {
       agent_type: dto.agent_type,
       mode_profile: dto.mode_profile,
       version: null,
-      status: null,
+      status: dto.status ?? null,
       yaml: dto.yaml ?? '',
       agent_card: dto.agent_card ?? null,
       context: dto.context ?? null,
@@ -198,5 +200,50 @@ export class AgentsAdminController {
 
     const allOk = results.every((r) => r.success && (!r.dryRun || r.dryRun.ok !== false));
     return { success: allOk, results };
+  }
+
+  // === Promotion Endpoints ===
+
+  @Post(':id/promote')
+  @AdminOnly()
+  async requestPromotion(
+    @Param('id') id: string,
+    @Body() body: { requireApproval?: boolean; skipValidation?: boolean },
+    @Req() req: any,
+  ) {
+    const userId = req.user?.sub || req.user?.id || req.user?.userId || null;
+    const result = await this.promotion.requestPromotion(id, {
+      requireApproval: body.requireApproval,
+      skipValidation: body.skipValidation,
+      requestedBy: userId,
+    });
+    return result;
+  }
+
+  @Post(':id/demote')
+  @AdminOnly()
+  async demote(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    const result = await this.promotion.demote(id, body.reason);
+    return result;
+  }
+
+  @Post(':id/archive')
+  @AdminOnly()
+  async archive(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    const result = await this.promotion.archive(id, body.reason);
+    return result;
+  }
+
+  @Get(':id/promotion-requirements')
+  @AdminOnly()
+  async getPromotionRequirements(@Param('id') id: string) {
+    const requirements = await this.promotion.getPromotionRequirements(id);
+    return { success: true, data: requirements };
   }
 }
