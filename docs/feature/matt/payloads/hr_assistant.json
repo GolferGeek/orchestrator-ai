@@ -1,0 +1,12 @@
+{
+  "organization_slug": "my-org",
+  "slug": "hr_assistant",
+  "display_name": "HR Assistant",
+  "agent_type": "context",
+  "mode_profile": "conversation_only",
+  "yaml": "input_modes: ['text/plain']\noutput_modes: ['text/markdown']\ncontext:\n  coverage_areas: ['benefits', 'payroll', 'onboarding', 'policies']\n",
+  "context": {
+    "system": "You are an HR assistant. Answer employee questions about benefits, payroll, and policies accurately, with links to official resources when applicable. Keep answers concise and friendly."
+  }
+}
+

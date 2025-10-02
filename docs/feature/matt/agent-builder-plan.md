@@ -98,19 +98,19 @@ Next Action: Scaffold page + stepper and wire to Admin endpoints
 ## M5 — Seed Agents via API (No migrations)
 
 ### Blog Post Writer (function)
-- [ ] Author config (metadata, capabilities, IO)
-- [ ] Context (tone/structure/SEO)
-- [ ] Function handler (compose markdown; optionally call images)
-- [ ] Upsert via POST /api/admin/agents
+- [x] Author config (metadata, capabilities, IO)
+- [x] Context (tone/structure/SEO)
+- [x] Function handler (compose markdown)
+- [x] Upsert payload prepared: docs/feature/matt/payloads/blog_post_writer.json
 - [ ] Smoke test (build → document deliverable created)
 
 ### HR Assistant (context)
-- [ ] Author config (conversation_only)
-- [ ] Context (coverage areas, tone, guardrails)
-- [ ] Upsert via POST /api/admin/agents
+- [x] Author config (conversation_only)
+- [x] Context (coverage areas, tone, guardrails)
+- [x] Upsert payload prepared: docs/feature/matt/payloads/hr_assistant.json
 - [ ] Smoke test (converse → markdown response)
 
-Next Action: Prepare JSON payload templates for both agents using authoring guides
+Next Action: Run seeds locally with `scripts/agents/seed-agent.sh <payload> --validate` then upsert
 
 ---
 

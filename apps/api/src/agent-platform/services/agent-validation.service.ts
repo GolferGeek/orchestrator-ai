@@ -38,6 +38,18 @@ export class AgentValidationService {
       }
     }
 
+    if (type === 'api') {
+      const api = (payload as any)?.config?.configuration?.api?.api_configuration;
+      if (!api) {
+        issues.push({ message: 'config.configuration.api.api_configuration is required for api agents' });
+      } else {
+        const rt = api.request_transform;
+        const rstr = api.response_transform;
+        if (rt && typeof rt !== 'object') issues.push({ message: 'api.request_transform must be an object' });
+        if (rstr && typeof rstr !== 'object') issues.push({ message: 'api.response_transform must be an object' });
+      }
+    }
+
     return { ok: issues.length === 0 && !!valid, issues };
   }
 
