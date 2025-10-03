@@ -201,12 +201,22 @@ export class Agent2AgentController {
       // Execute the agent with the persisted task ID
       const result = await this.gateway.execute(org, agentSlug, dto);
 
-      // Update task with result (using TaskStatusService like DynamicAgentsController does)
-      await this.taskStatusService.completeTask(
-        task.id,
-        currentUser.id,
-        result,
+      // Check if task completion was already handled by the agent (to avoid duplicate completion)
+      const taskAlreadyHandled = result && (
+        (result.taskCompletionHandled === true) ||
+        (result.metadata && result.metadata.taskCompletionHandled === true)
       );
+
+      if (!taskAlreadyHandled) {
+        // Update task with result (using TaskStatusService which handles deliverable creation)
+        await this.taskStatusService.completeTask(
+          task.id,
+          currentUser.id,
+          result,
+        );
+      } else {
+        this.logger.debug(`🎯 [Agent2AgentController] Task ${task.id} was already completed by agent instance – skipping duplicate completion call`);
+      }
 
       this.logRequest({
         org,
