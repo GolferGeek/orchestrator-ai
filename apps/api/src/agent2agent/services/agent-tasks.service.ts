@@ -67,10 +67,13 @@ export class Agent2AgentTasksService {
       if (!conversationId) {
         this.logger.log(`🚨 [Agent2AgentTasksService] Creating conversation with agentType: "${agentType}"`);
         
+        const now = new Date().toISOString();
         const conversationData = {
           user_id: userId,
           agent_name: agentName,
           agent_type: agentType,
+          started_at: now,
+          last_active_at: now,
           metadata: {
             source: 'agent2agent',
             method: params.method,

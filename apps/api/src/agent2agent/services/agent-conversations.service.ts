@@ -37,11 +37,14 @@ export class Agent2AgentConversationsService {
     createdAt: Date;
   }> {
     try {
+      const now = new Date().toISOString();
       const conversationData = {
         id: options?.conversationId || undefined,
         user_id: userId,
         agent_name: agentName,
         agent_type: namespace, // Store namespace in agent_type column
+        started_at: now,
+        last_active_at: now,
         metadata: {
           ...options?.metadata,
           title: options?.title || `${agentName} - ${new Date().toLocaleDateString()}`,
