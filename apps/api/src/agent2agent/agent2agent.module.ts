@@ -12,7 +12,6 @@ import { AuthModule } from '../auth/auth.module';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { TasksModule } from '../tasks/tasks.module';
 import { AgentConversationsModule } from '../agent-conversations/agent-conversations.module';
-import { DeliverablesModule } from '../deliverables/deliverables.module';
 import { AgentDeliverablesService } from './services/agent-deliverables.service';
 
 @Module({
@@ -23,7 +22,6 @@ import { AgentDeliverablesService } from './services/agent-deliverables.service'
     SupabaseModule,
     TasksModule,
     AgentConversationsModule,
-    DeliverablesModule,
   ],
   controllers: [Agent2AgentController, AgentApprovalsActionsController],
   providers: [

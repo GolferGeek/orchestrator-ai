@@ -1,13 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { DeliverablesService } from '../../deliverables/deliverables.service';
-import { DeliverableType, DeliverableFormat } from '../../deliverables/dto';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { SupabaseService } from '../../supabase/supabase.service';
+import { getTableName } from '../../supabase/supabase.config';
 
 @Injectable()
 export class AgentDeliverablesService {
   private readonly logger = new Logger(AgentDeliverablesService.name);
 
   constructor(
-    private readonly deliverablesService: DeliverablesService,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   /**
@@ -40,16 +40,23 @@ export class AgentDeliverablesService {
       // Extract title from content (simple heuristic)
       const title = this.extractTitleFromContent(content) || `${agentSlug} Output - ${new Date().toLocaleDateString()}`;
 
-      // Create the deliverable
-      const deliverable = await this.deliverablesService.create({
+      // Create the deliverable record directly
+      const deliverableId = await this.createDeliverable({
         title,
-        type: 'document' as DeliverableType,
+        type: 'document',
         conversationId,
         agentName: agentSlug,
-        initialContent: content,
-        initialFormat: 'markdown' as DeliverableFormat,
-        initialCreationType: 'conversation_task' as any,
-        initialMetadata: {
+        userId,
+      });
+
+      // Create the first version with the content
+      await this.createDeliverableVersion({
+        deliverableId,
+        content,
+        format: 'markdown',
+        createdByType: 'conversation_task',
+        userId,
+        metadata: {
           agentName: agentSlug,
           agentType: 'context',
           mode,
@@ -57,10 +64,10 @@ export class AgentDeliverablesService {
           source: 'agent2agent',
           createdAt: new Date().toISOString(),
         },
-      }, userId);
+      });
 
-      this.logger.log(`📄 Created deliverable ${deliverable.id} from Agent2Agent task ${taskId}`);
-      return deliverable.id;
+      this.logger.log(`📄 Created deliverable ${deliverableId} with first version from Agent2Agent task ${taskId}`);
+      return deliverableId;
 
     } catch (error) {
       this.logger.error(`Failed to create deliverable from task result:`, error);
@@ -94,5 +101,72 @@ export class AgentDeliverablesService {
     }
 
     return null;
+  }
+
+  /**
+   * Create deliverable record directly in database
+   */
+  private async createDeliverable(params: {
+    title: string;
+    type: string;
+    conversationId: string;
+    agentName: string;
+    userId: string;
+  }): Promise<string> {
+    const { data, error } = await this.supabaseService
+      .getServiceClient()
+      .from(getTableName('deliverables'))
+      .insert([
+        {
+          user_id: params.userId,
+          conversation_id: params.conversationId,
+          agent_name: params.agentName,
+          title: params.title,
+          type: params.type,
+        },
+      ])
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new BadRequestException(`Failed to create deliverable: ${error.message}`);
+    }
+
+    return data.id;
+  }
+
+  /**
+   * Create deliverable version directly in database
+   */
+  private async createDeliverableVersion(params: {
+    deliverableId: string;
+    content: string;
+    format: string;
+    createdByType: string;
+    userId: string;
+    metadata: Record<string, any>;
+  }): Promise<string> {
+    const { data, error } = await this.supabaseService
+      .getServiceClient()
+      .from(getTableName('deliverable_versions'))
+      .insert([
+        {
+          deliverable_id: params.deliverableId,
+          user_id: params.userId,
+          content: params.content,
+          format: params.format,
+          created_by_type: params.createdByType,
+          metadata: params.metadata,
+          version_number: 1, // First version
+        },
+      ])
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new BadRequestException(`Failed to create deliverable version: ${error.message}`);
+    }
+
+    return data.id;
   }
 }
