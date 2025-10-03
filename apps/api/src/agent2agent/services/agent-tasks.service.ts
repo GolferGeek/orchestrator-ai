@@ -100,7 +100,7 @@ export class Agent2AgentTasksService {
         user_id: userId,
         agent_name: agentName,
         agent_type: agentType,
-        agent_conversation_id: conversationId,
+        conversation_id: conversationId,
         status: 'pending',
         params: {
           method: params.method,
@@ -135,7 +135,7 @@ export class Agent2AgentTasksService {
         userId: task.user_id,
         agentName: task.agent_name,
         agentType: task.agent_type,
-        agentConversationId: task.agent_conversation_id,
+        agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
         createdAt: new Date(task.created_at),
@@ -184,7 +184,7 @@ export class Agent2AgentTasksService {
         userId: task.user_id,
         agentName: task.agent_name,
         agentType: task.agent_type,
-        agentConversationId: task.agent_conversation_id,
+        agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
         result: task.result,
@@ -211,7 +211,7 @@ export class Agent2AgentTasksService {
         .getServiceClient()
         .from(getTableName('tasks'))
         .select('*')
-        .eq('agent_conversation_id', conversationId)
+        .eq('conversation_id', conversationId)
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
 
