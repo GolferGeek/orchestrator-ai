@@ -326,14 +326,16 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       const defaultAllowed: AgentChatMode[] = [...DEFAULT_CHAT_MODES];
       let allowedChatModes = [...defaultAllowed];
 
-      // Use execution fields from the original agent object (from hierarchy) if agentInfo doesn't have them
-      const profile = agentInfo?.execution_profile || conversation.agent.execution_profile;
-      const capabilities = agentInfo?.execution_capabilities || conversation.agent.execution_capabilities;
+      // Always use execution fields from the original agent object (from hierarchy)
+      // The agentsStore.availableAgents may have stale data
+      const profile = conversation.agent.execution_profile;
+      const capabilities = conversation.agent.execution_capabilities;
 
       console.log('🔍 [ConversationService.updateConversationExecutionModes] Final execution fields:', {
         profile,
         capabilities,
-        source: agentInfo?.execution_profile ? 'agentsStore' : 'originalAgent'
+        source: 'originalAgent',
+        agentStoreHadFields: !!(agentInfo?.execution_profile)
       });
 
       conversation.executionProfile = profile;
