@@ -188,8 +188,8 @@ export class Agent2AgentTasksService {
       return {
         id: task.id,
         userId: task.user_id,
-        agentName: task.agent_name,
-        agentType: task.agent_type,
+        agentName: agentName, // Use parameter since tasks table doesn't have agent_name
+        namespace: agentType, // Use parameter since tasks table doesn't have agent_type
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,

@@ -161,7 +161,7 @@ export class Agent2AgentConversationsService {
     }
 
     // Create new conversation
-    return this.createConversation(userId, agentName, agentType);
+    return this.createConversation(userId, agentName, namespace);
   }
 
   /**
@@ -240,8 +240,8 @@ export class Agent2AgentConversationsService {
         query = query.eq('agent_name', agentName);
       }
 
-      if (agentType) {
-        query = query.eq('agent_type', agentType);
+      if (namespace) {
+        query = query.eq('agent_type', namespace);
       }
 
       const { data: conversations, error } = await query.order('updated_at', {
