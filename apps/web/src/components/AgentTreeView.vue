@@ -687,8 +687,10 @@ const hierarchyGroups = computed(() => {
     if (!matchesSearch && !hasMatchingChildren) return;
 
     // Get conversations for this manager/orchestrator
+    // For database agents, use namespace as agentType; for file-based agents, use actual type
+    const expectedAgentType = node.namespace || node.type;
     const nodeConversations = conversationsStore.conversations.filter(conv =>
-      conv.agentName === node.name && conv.agentType === node.type
+      conv.agentName === node.name && conv.agentType === expectedAgentType
     );
 
     // Create the manager/orchestrator agent
@@ -719,8 +721,9 @@ const hierarchyGroups = computed(() => {
           child.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
 
         if (childMatchesSearch) {
+          const expectedChildAgentType = child.namespace || child.type;
           const childConversations = conversationsStore.conversations.filter(conv =>
-            conv.agentName === child.name && conv.agentType === child.type
+            conv.agentName === child.name && conv.agentType === expectedChildAgentType
           );
 
           // Add this child as a team member
@@ -777,8 +780,9 @@ const hierarchyGroups = computed(() => {
   ) || hierarchy.data[0]; // Fallback to first node if none have children
 
   if (topOrchestrator) {
+    const expectedOrchestratorAgentType = topOrchestrator.namespace || topOrchestrator.type;
     const orchestratorConversations = conversationsStore.conversations.filter(conv =>
-      conv.agentName === topOrchestrator.name && conv.agentType === topOrchestrator.type
+      conv.agentName === topOrchestrator.name && conv.agentType === expectedOrchestratorAgentType
     );
 
     const orchestratorMatchesSearch = !searchQuery.value ||
@@ -805,8 +809,9 @@ const hierarchyGroups = computed(() => {
         topOrchestrator.children.forEach((child: any) => {
           if (!child.children || child.children.length === 0) {
             // This is a non-manager child - add it to the orchestrator's team
+            const expectedChildAgentType = child.namespace || child.type;
             const childConversations = conversationsStore.conversations.filter(conv =>
-              conv.agentName === child.name && conv.agentType === child.type
+              conv.agentName === child.name && conv.agentType === expectedChildAgentType
             );
             orchestratorAgents.push({
               name: child.name,
@@ -855,8 +860,9 @@ const hierarchyGroups = computed(() => {
       processNode(agent);
     } else {
       // This is a standalone specialist/agent
+      const expectedAgentType = agent.namespace || agent.type;
       const nodeConversations = conversationsStore.conversations.filter(conv =>
-        conv.agentName === agent.name && conv.agentType === agent.type
+        conv.agentName === agent.name && conv.agentType === expectedAgentType
       );
 
       const matchesSearch = !searchQuery.value ||

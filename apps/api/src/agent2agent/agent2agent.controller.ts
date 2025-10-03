@@ -194,7 +194,7 @@ export class Agent2AgentController {
       const task = await this.tasksService.createTask(
         currentUser.id,
         agentSlug, // agentName
-        agentRecord.agent_type as AgentType, // Use actual agent type from database
+        (org || 'global') as AgentType, // Use namespace as agent_type for database agents
         {
           method: dto.mode, // Use the normalized mode from DTO
           prompt: dto.userMessage || '',
