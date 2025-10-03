@@ -18,9 +18,9 @@ import { TaskResponseDto } from './dto/task-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
-import { TasksService } from '../tasks/tasks.service';
-import { TaskStatusService } from '../tasks/task-status.service';
-import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
+import { Agent2AgentTasksService } from './services/agent-tasks.service';
+import { Agent2AgentTaskStatusService } from './services/agent-task-status.service';
+import { Agent2AgentConversationsService } from './services/agent-conversations.service';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { AgentTaskMode } from './dto/task-request.dto';
@@ -59,9 +59,9 @@ export class Agent2AgentController {
   constructor(
     private readonly cardBuilder: AgentCardBuilderService,
     private readonly gateway: AgentExecutionGateway,
-    private readonly tasksService: TasksService,
-    private readonly taskStatusService: TaskStatusService,
-    private readonly agentConversationsService: AgentConversationsService,
+    private readonly tasksService: Agent2AgentTasksService,
+    private readonly taskStatusService: Agent2AgentTaskStatusService,
+    private readonly agentConversationsService: Agent2AgentConversationsService,
     private readonly agentRegistry: AgentRegistryService,
     private readonly agentDeliverablesService: AgentDeliverablesService,
   ) {}
@@ -179,13 +179,18 @@ export class Agent2AgentController {
         timestamp: new Date().toISOString(),
       })) || [];
       
+      // Use namespace as agentType for database agents (clean architecture separation)
+      const effectiveAgentType = (org || 'global') as AgentType;
+      
       // CRITICAL: Persist task AND conversation to database BEFORE execution
       // (like DynamicAgentsController does)
       // TasksService.createTask automatically handles conversation creation/retrieval
       this.logger.debug(`📝 Attempting to create task in database with:`, {
         userId: currentUser.id,
         agentName: agentSlug,
-        agentType: agentRecord.agent_type,
+        originalAgentType: agentRecord.agent_type,
+        effectiveAgentType,
+        orgSlug: org,
         method: dto.mode,
         conversationId: dto.conversationId,
         taskId: taskIdFromPayload,
@@ -194,7 +199,7 @@ export class Agent2AgentController {
       const task = await this.tasksService.createTask(
         currentUser.id,
         agentSlug, // agentName
-        (org || 'global') as AgentType, // Use namespace as agent_type for database agents
+        effectiveAgentType, // Use namespace as agent_type for database agents
         {
           method: dto.mode, // Use the normalized mode from DTO
           prompt: dto.userMessage || '',
