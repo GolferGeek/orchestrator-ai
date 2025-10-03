@@ -325,10 +325,11 @@ export const useAgentChatStore = defineStore('agentChat', {
         this.activeConversationId = conversationId;
 
         const conversationsStore = useAgentConversationsStore();
+        const effectiveAgentType = activeConversation.agent.namespace || activeConversation.agent.type;
         conversationsStore.addExistingConversation({
           id: conversationId,
           agentName: activeConversation.agent.name,
-          agentType: activeConversation.agent.type,
+          agentType: effectiveAgentType,
           startedAt: new Date(),
           lastActiveAt: new Date(),
           createdAt: new Date(),
@@ -341,10 +342,11 @@ export const useAgentChatStore = defineStore('agentChat', {
       } else if (hasInitialWelcomeOnly) {
         const conversationsStore = useAgentConversationsStore();
         if (conversationsStore.getConversationById?.(conversationId) == null) {
+          const effectiveAgentType2 = activeConversation.agent.namespace || activeConversation.agent.type;
           conversationsStore.addExistingConversation({
             id: conversationId,
             agentName: activeConversation.agent.name,
-            agentType: activeConversation.agent.type,
+            agentType: effectiveAgentType2,
             startedAt: new Date(),
             lastActiveAt: new Date(),
             createdAt: new Date(),
@@ -592,10 +594,11 @@ export const useAgentChatStore = defineStore('agentChat', {
       
       // Add to navigation store immediately so it appears in the left pane
       const conversationsStore = useAgentConversationsStore();
+      const effectiveAgentType3 = agent.namespace || agent.type;
       conversationsStore.addExistingConversation({
         id: newConversation.id,
         agentName: agent.name,
-        agentType: agent.type,
+        agentType: effectiveAgentType3,
         startedAt: new Date(),
         lastActiveAt: new Date(),
         createdAt: new Date(),
@@ -1070,10 +1073,11 @@ export const useAgentChatStore = defineStore('agentChat', {
 
             
             const conversationsStore = useAgentConversationsStore();
+            const effectiveAgentType4 = activeConversation.agent.namespace || activeConversation.agent.type;
             conversationsStore.addExistingConversation({
               id: conversationId,
               agentName: activeConversation.agent.name,
-              agentType: activeConversation.agent.type,
+              agentType: effectiveAgentType4,
               startedAt: new Date(),
               lastActiveAt: new Date(),
               createdAt: new Date(),

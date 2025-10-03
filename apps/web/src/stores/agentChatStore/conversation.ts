@@ -30,13 +30,22 @@ export class ConversationService {
    * Create a new conversation in the backend
    */
   async createConversation(agent: Agent): Promise<string> {
-
+    // For database agents, use namespace as agentType; for file-based agents, use actual type
+    const effectiveAgentType = agent.namespace || agent.type;
+    
+    console.log('🔍 [ConversationService.createConversation] Creating with:', {
+      agentName: agent.name,
+      originalType: agent.type,
+      namespace: agent.namespace,
+      effectiveAgentType
+    });
     
     const backendConversation = await agentConversationsService.createConversation({
       agentName: agent.name,
-      agentType: agent.type as AgentType,
+      agentType: effectiveAgentType as AgentType,
     });
     
+    console.log('✅ [ConversationService.createConversation] Created:', backendConversation.id);
 
     return backendConversation.id;
   }
