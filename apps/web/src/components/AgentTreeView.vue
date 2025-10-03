@@ -920,6 +920,14 @@ const filterAgents = () => {
 
 const createNewConversation = async (agent: any) => {
   try {
+    console.log('🔍 [AgentTreeView] Creating conversation with agent:', {
+      name: agent.name,
+      type: agent.type,
+      namespace: agent.namespace,
+      execution_profile: agent.execution_profile,
+      execution_capabilities: agent.execution_capabilities,
+      fullAgent: agent
+    });
     emit('agent-selected', agent);
   } catch (err) {
     console.error('Failed to create conversation:', err);
