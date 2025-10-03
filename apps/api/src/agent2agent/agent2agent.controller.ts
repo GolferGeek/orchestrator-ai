@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpException,
   Logger,
   Param,
@@ -24,6 +25,9 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { AgentTaskMode } from './dto/task-request.dto';
 import { AgentType } from '../common/types/agent-conversations.types';
+import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
+import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
+import { Public } from '../auth/decorators/public.decorator';
 
 interface NormalizedTaskRequest {
   dto: TaskRequestDto;
@@ -57,9 +61,61 @@ export class Agent2AgentController {
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
     private readonly agentConversationsService: AgentConversationsService,
+    private readonly agentRegistry: AgentRegistryService,
   ) {}
 
   private readonly logger = new Logger(Agent2AgentController.name);
+
+  /**
+   * Get hierarchy of database agents (A2A protocol)
+   * Route: GET /agent-to-agent/.well-known/hierarchy
+   */
+  @Get('agent-to-agent/.well-known/hierarchy')
+  @Public()
+  async getAgentHierarchy(
+    @Headers('x-agent-namespace') namespaceHeader?: string,
+    @Headers('X-Agent-Namespace') namespaceHeaderCaps?: string,
+  ) {
+    // Handle both lowercase and capitalized header names
+    const effectiveNamespace = namespaceHeader || namespaceHeaderCaps;
+    const namespaces = effectiveNamespace
+      ? effectiveNamespace
+          .split(',')
+          .map((ns) => ns.trim())
+          .filter(Boolean)
+      : undefined;
+
+    try {
+      const databaseAgents = await this.fetchDatabaseAgents(namespaces);
+      const hierarchy = this.buildDatabaseHierarchy(databaseAgents);
+
+      return {
+        success: true,
+        data: hierarchy,
+        metadata: {
+          totalAgents: databaseAgents.length,
+          rootNodes: hierarchy.length,
+          namespaces: namespaces ?? 'all',
+          source: 'database',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      this.logger.error('Error fetching agent hierarchy:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        data: [],
+        metadata: {
+          totalAgents: 0,
+          rootNodes: 0,
+          namespaces: namespaces ?? 'all',
+          source: 'database',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+  }
 
   @Get([
     'agent-to-agent/:orgSlug/:agentSlug/.well-known/agent.json',
@@ -525,5 +581,103 @@ export class Agent2AgentController {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Fetch database agents filtered by namespaces
+   */
+  private async fetchDatabaseAgents(
+    namespaces?: string[],
+  ): Promise<AgentRecord[]> {
+    if (namespaces && namespaces.length > 0) {
+      const normalized = namespaces
+        .map((ns) => (ns && ns.trim().length ? ns.trim() : null))
+        .map((ns) => (ns === 'global' ? null : ns));
+      return this.agentRegistry.listAgentsForNamespaces(normalized);
+    }
+
+    return this.agentRegistry.listAllAgents();
+  }
+
+  /**
+   * Build hierarchy structure from database agent records
+   */
+  private buildDatabaseHierarchy(records: AgentRecord[]): any[] {
+    if (!records.length) {
+      return [];
+    }
+
+    // Group agents by organization
+    const grouped = new Map<string | null, AgentRecord[]>();
+    for (const record of records) {
+      const key = record.organization_slug ?? null;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(record);
+    }
+
+    const createNode = (
+      record: AgentRecord,
+      children: any[] = [],
+    ): any => {
+      const isTool = record.config?.agent_category === 'tool';
+      const isOrchestrator =
+        record.agent_type === 'orchestrator' || record.config?.orchestrator;
+      const category = isTool
+        ? 'tool'
+        : isOrchestrator
+        ? 'orchestrator'
+        : record.agent_type ?? 'specialist';
+
+      return {
+        id: record.id,
+        name: record.slug,
+        displayName: record.display_name,
+        type: isTool ? 'tool' : record.agent_type ?? 'specialist',
+        path: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
+        relativePath: record.slug,
+        namespace: record.organization_slug ?? undefined,
+        namespacedPath: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
+        metadata: {
+          description: record.description ?? undefined,
+          version: record.version ?? undefined,
+          category,
+          agentType: record.agent_type,
+          source: 'database',
+          namespace: record.organization_slug ?? null,
+          isTool: isTool || undefined,
+          isOrchestrator: isOrchestrator || undefined,
+          // Expose execution fields from config for frontend
+          execution_profile: record.config?.execution_profile ?? undefined,
+          execution_capabilities: record.config?.execution_capabilities ?? undefined,
+        },
+        children,
+      };
+    };
+
+    const roots: any[] = [];
+
+    grouped.forEach((agents, namespaceKey) => {
+      const orchestrators = agents.filter(
+        (a) => a.agent_type === 'orchestrator' || a.config?.orchestrator,
+      );
+      const nonOrchestrators = agents.filter(
+        (a) => a.agent_type !== 'orchestrator' && !a.config?.orchestrator,
+      );
+
+      if (orchestrators.length > 0) {
+        orchestrators.forEach((orc) => {
+          const children = nonOrchestrators.map((child) => createNode(child));
+          roots.push(createNode(orc, children));
+        });
+      } else {
+        nonOrchestrators.forEach((agent) => {
+          roots.push(createNode(agent));
+        });
+      }
+    });
+
+    return roots;
   }
 }

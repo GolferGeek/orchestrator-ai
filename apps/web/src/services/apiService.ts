@@ -523,9 +523,24 @@ class ApiService {
     return response.data.agents || [];
   }
 
-  async getAgentHierarchy(): Promise<any> {
-    const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
-    return response.data;
+  async getAgentHierarchy(namespace?: string): Promise<any> {
+    // Route to appropriate hierarchy endpoint based on namespace
+    // - Database agents (my-org, etc.) use A2A endpoint: /agent-to-agent/.well-known/hierarchy
+    // - File-based agents (demo, null, undefined) use legacy endpoint: /agents/.well-known/hierarchy
+    
+    // Determine if this is a database namespace or file-based
+    const isDatabaseNamespace = namespace && namespace !== 'demo' && namespace !== 'global';
+    
+    if (isDatabaseNamespace) {
+      // Database agents: use A2A controller endpoint
+      const response = await this.axiosInstance.get('/agent-to-agent/.well-known/hierarchy');
+      return response.data;
+    } else {
+      // File-based agents: use legacy DynamicAgents controller endpoint
+      // This returns both file-based AND database agents merged together for backward compatibility
+      const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
+      return response.data;
+    }
   }
 
   /**

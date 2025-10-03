@@ -93,7 +93,7 @@ export const useAgentsStore = defineStore('agents', () => {
     try {
       const [agents, hierarchy] = await Promise.all([
         apiService.getAvailableAgents(),
-        apiService.getAgentHierarchy().catch(() => null),
+        apiService.getAgentHierarchy(namespace).catch(() => null),
       ]);
 
       if (requestId !== activeRequestId) {
