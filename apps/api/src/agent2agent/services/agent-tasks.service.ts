@@ -41,6 +41,8 @@ export class Agent2AgentTasksService {
     params: any;
     createdAt: Date;
   }> {
+    this.logger.debug(`🚨 [Agent2AgentTasksService.createTask] Received agentType: "${agentType}" for agent: ${agentName}`);
+    
     try {
       // If conversationId provided, validate it exists
       let conversationId = params.conversationId || null;
@@ -63,22 +65,26 @@ export class Agent2AgentTasksService {
 
       // Create conversation if needed
       if (!conversationId) {
+        this.logger.debug(`🚨 [Agent2AgentTasksService] Creating conversation with agentType: "${agentType}"`);
+        
+        const conversationData = {
+          user_id: userId,
+          agent_name: agentName,
+          agent_type: agentType,
+          title: `${agentName} - ${new Date().toLocaleDateString()}`,
+          metadata: {
+            source: 'agent2agent',
+            method: params.method,
+            protocol: 'a2a-google',
+          },
+        };
+        
+        this.logger.debug(`🚨 [Agent2AgentTasksService] Conversation data:`, conversationData);
+        
         const { data: newConv, error: convError } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('conversations'))
-          .insert([
-            {
-              user_id: userId,
-              agent_name: agentName,
-              agent_type: agentType,
-              title: `${agentName} - ${new Date().toLocaleDateString()}`,
-              metadata: {
-                source: 'agent2agent',
-                method: params.method,
-                protocol: 'a2a-google',
-              },
-            },
-          ])
+          .insert([conversationData])
           .select('id')
           .single();
 
