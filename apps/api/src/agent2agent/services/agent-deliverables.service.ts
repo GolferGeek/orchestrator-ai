@@ -55,6 +55,7 @@ export class AgentDeliverablesService {
         content,
         format: 'markdown',
         createdByType: 'conversation_task',
+        taskId, // Associate with the task for LLM rerun functionality
         userId,
         metadata: {
           agentName: agentSlug,
@@ -143,6 +144,7 @@ export class AgentDeliverablesService {
     content: string;
     format: string;
     createdByType: string;
+    taskId?: string;
     userId: string;
     metadata: Record<string, any>;
   }): Promise<string> {
@@ -155,6 +157,7 @@ export class AgentDeliverablesService {
           content: params.content,
           format: params.format,
           created_by_type: params.createdByType,
+          task_id: params.taskId || null, // Associate with task for LLM rerun
           metadata: params.metadata,
           version_number: 1, // First version
           is_current_version: true, // Mark as current version

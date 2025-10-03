@@ -547,6 +547,8 @@ interface Emits {
   (e: 'version-created', version: DeliverableVersion): void;
   (e: 'current-version-changed', version: DeliverableVersion): void;
   (e: 'edit-requested', deliverable: Deliverable): void;
+  (e: 'merge-requested', deliverable: Deliverable): void;
+  (e: 'run-with-different-llm', data: { deliverable: any; version: any }): void;
 }
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
