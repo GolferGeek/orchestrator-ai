@@ -44,6 +44,7 @@ export class ConversationService {
     
     if (isDatabaseAgent) {
       // Database agents: Use dedicated Agent2Agent conversation service
+      console.log('🚀 [ConversationService] Using Agent2Agent service for database agent');
       const backendConversation = await agent2AgentConversationsService.createConversation({
         agentName: agent.name,
         namespace: agent.namespace!, // Database namespace
@@ -56,6 +57,7 @@ export class ConversationService {
       return backendConversation.id;
     } else {
       // File-based agents: Use existing flow with old service
+      console.log('🚀 [ConversationService] Using legacy service for file-based agent');
       const backendConversation = await agentConversationsService.createConversation({
         agentName: agent.name,
         agentType: agent.type as AgentType,
