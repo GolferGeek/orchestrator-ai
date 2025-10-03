@@ -196,6 +196,8 @@ export class Agent2AgentController {
         taskId: taskIdFromPayload,
       });
       
+      this.logger.debug(`🚨 [Agent2AgentController] CALLING tasksService.createTask with effectiveAgentType: "${effectiveAgentType}"`);
+      
       const task = await this.tasksService.createTask(
         currentUser.id,
         agentSlug, // agentName
