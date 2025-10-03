@@ -292,14 +292,14 @@
               </p>
               <div class="cta-options">
                 <div class="cta-option">
-                  <h3>Schedule a Consultation</h3>
-                  <p>Book a 30-minute call to discuss your business challenges and explore how our AI platform can help.</p>
+                  <h3>Call Us Today</h3>
+                  <p>Speak directly with our team to discuss your business challenges and explore how our AI platform can help.</p>
                   <button 
                     class="cta-button primary"
-                    @click="openCalendly"
+                    @click="callPhone"
                   >
-                    <ion-icon :icon="calendarOutline"></ion-icon>
-                    Book Free Consultation
+                    <ion-icon :icon="callOutline"></ion-icon>
+                    Call us today
                   </button>
                 </div>
                 <div class="cta-option">
@@ -313,21 +313,6 @@
                     Send Message
                   </button>
                 </div>
-              </div>
-              <div class="cta-note">
-                <p>
-                  <strong>What to expect:</strong> We'll discuss your current challenges, demonstrate our platform's capabilities, 
-                  and explore customization options for your specific requirements. No obligation or high-pressure sales tactics.
-                </p>
-                <ion-button 
-                  fill="clear" 
-                  size="small" 
-                  class="view-video-button"
-                  @click="openCTAVideoModal"
-                >
-                  <ion-icon slot="start" :icon="playCircleOutline"></ion-icon>
-                  Watch Demo Video
-                </ion-button>
               </div>
             </div>
           </div>
@@ -481,6 +466,11 @@ function openCTAVideoModal() {
 function openCalendly() {
   // Open Calendly in a new window/tab
   window.open('https://calendly.com/orchestrator-ai/founding-partner-consultation', '_blank');
+}
+
+function callPhone() {
+  // Initiate phone call
+  window.location.href = 'tel:+17632200146';
 }
 
 function openEmailForm() {
