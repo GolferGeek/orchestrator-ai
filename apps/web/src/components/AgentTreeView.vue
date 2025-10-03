@@ -729,9 +729,13 @@ const hierarchyGroups = computed(() => {
           // Add this child as a team member
           console.log('🔍 [AgentTreeView] Building child agent object:', {
             name: child.name,
+            type: child.type,
+            namespace: child.namespace,
+            hasNamespace: !!child.namespace,
             metadata: child.metadata,
             execution_profile_from_metadata: child.metadata?.execution_profile,
-            execution_capabilities_from_metadata: child.metadata?.execution_capabilities
+            execution_capabilities_from_metadata: child.metadata?.execution_capabilities,
+            fullChild: child
           });
           
           agents.push({
