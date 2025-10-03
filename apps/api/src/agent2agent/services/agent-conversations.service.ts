@@ -132,7 +132,7 @@ export class Agent2AgentConversationsService {
     conversationId: string | undefined,
     userId: string,
     agentName: string,
-    agentType: AgentType,
+    namespace: string,
   ): Promise<{
     id: string;
     userId: string;
@@ -150,7 +150,7 @@ export class Agent2AgentConversationsService {
           id: existing.id,
           userId: existing.userId,
           agentName: existing.agentName,
-          agentType: existing.agentType,
+          namespace: existing.namespace,
           title: existing.title,
           metadata: existing.metadata,
           createdAt: existing.createdAt,
@@ -227,7 +227,7 @@ export class Agent2AgentConversationsService {
   async listConversations(
     userId: string,
     agentName?: string,
-    agentType?: AgentType,
+    namespace?: string,
   ): Promise<any[]> {
     try {
       let query = this.supabaseService

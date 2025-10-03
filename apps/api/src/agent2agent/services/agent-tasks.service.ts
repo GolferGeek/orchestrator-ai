@@ -35,7 +35,7 @@ export class Agent2AgentTasksService {
     id: string;
     userId: string;
     agentName: string;
-    agentType: AgentType;
+    namespace: string; // Database namespace
     agentConversationId: string | null;
     status: string;
     params: any;
@@ -140,7 +140,7 @@ export class Agent2AgentTasksService {
         id: task.id,
         userId: task.user_id,
         agentName: agentName, // Use the parameter since it's not in the task record
-        agentType: agentType, // Use the parameter since it's not in the task record  
+        namespace: agentType, // Use the parameter since it's not in the task record  
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
@@ -163,7 +163,7 @@ export class Agent2AgentTasksService {
     id: string;
     userId: string;
     agentName: string;
-    agentType: AgentType;
+    namespace: string; // Database namespace
     agentConversationId: string | null;
     status: string;
     params: any;
