@@ -75,13 +75,13 @@ export class Agent2AgentController {
   @Post('agent-to-agent/conversations')
   @UseGuards(JwtAuthGuard)
   async createConversation(
-    @Body() body: { agentName: string; agentType: string; metadata?: Record<string, any> },
+    @Body() body: { agentName: string; namespace: string; metadata?: Record<string, any> },
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
     const conversation = await this.agentConversationsService.createConversation(
       currentUser.id,
       body.agentName,
-      body.agentType as AgentType,
+      body.namespace, // No AgentType casting needed - just a string
       {
         metadata: body.metadata,
       },

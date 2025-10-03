@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { getTableName } from '../../supabase/supabase.config';
-import { AgentType } from '../../common/types/agent-conversations.types';
+// No AgentType import needed - we treat agent_type as a simple string
 
 /**
  * Agent2Agent-specific Tasks Service
@@ -21,7 +21,7 @@ export class Agent2AgentTasksService {
   async createTask(
     userId: string,
     agentName: string,
-    agentType: AgentType,
+    agentType: string, // Simple string - no enum validation needed
     params: {
       method: string;
       prompt: string;

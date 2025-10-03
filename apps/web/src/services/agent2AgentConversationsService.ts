@@ -3,7 +3,7 @@ import apiService from './apiService';
 export interface Agent2AgentConversation {
   id: string;
   agentName: string;
-  agentType: string;
+  namespace: string; // Database namespace (my-org, etc.)
   startedAt: string;
   lastActiveAt: string;
   createdAt: string;
@@ -13,7 +13,7 @@ export interface Agent2AgentConversation {
 
 export interface CreateAgent2AgentConversationDto {
   agentName: string;
-  agentType: string; // This will be the namespace for database agents
+  namespace: string; // Database namespace (my-org, etc.)
   metadata?: Record<string, any>;
 }
 
@@ -30,7 +30,7 @@ class Agent2AgentConversationsService {
     
     const response = await apiService.post('/agent-to-agent/conversations', {
       agentName: dto.agentName,
-      agentType: dto.agentType, // Namespace like 'my-org'
+      namespace: dto.namespace, // Database namespace like 'my-org'
       metadata: {
         source: 'agent2agent-frontend',
         ...dto.metadata,

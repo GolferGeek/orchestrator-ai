@@ -46,7 +46,7 @@ export class ConversationService {
       // Database agents: Use dedicated Agent2Agent conversation service
       const backendConversation = await agent2AgentConversationsService.createConversation({
         agentName: agent.name,
-        agentType: agent.namespace!, // Use namespace as agentType
+        namespace: agent.namespace!, // Database namespace
         metadata: {
           source: 'frontend',
         },

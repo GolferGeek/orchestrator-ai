@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { getTableName } from '../../supabase/supabase.config';
-import { AgentType } from '../../common/types/agent-conversations.types';
+// No AgentType import needed - we treat agent_type as a simple string
 
 /**
  * Agent2Agent-specific Conversations Service
@@ -21,7 +21,7 @@ export class Agent2AgentConversationsService {
   async createConversation(
     userId: string,
     agentName: string,
-    agentType: AgentType,
+    namespace: string, // Database namespace (my-org, etc.)
     options?: {
       title?: string;
       metadata?: Record<string, any>;
@@ -31,7 +31,7 @@ export class Agent2AgentConversationsService {
     id: string;
     userId: string;
     agentName: string;
-    agentType: AgentType;
+    namespace: string;
     title: string;
     metadata: Record<string, any>;
     createdAt: Date;
@@ -41,7 +41,7 @@ export class Agent2AgentConversationsService {
         id: options?.conversationId || undefined,
         user_id: userId,
         agent_name: agentName,
-        agent_type: agentType,
+        agent_type: namespace, // Store namespace in agent_type column
         metadata: {
           ...options?.metadata,
           title: options?.title || `${agentName} - ${new Date().toLocaleDateString()}`,
@@ -67,7 +67,7 @@ export class Agent2AgentConversationsService {
         id: conversation.id,
         userId: conversation.user_id,
         agentName: conversation.agent_name,
-        agentType: conversation.agent_type,
+        namespace: conversation.agent_type, // agent_type column stores the namespace
         title: conversation.title,
         metadata: conversation.metadata,
         createdAt: new Date(conversation.created_at),
@@ -89,7 +89,7 @@ export class Agent2AgentConversationsService {
     id: string;
     userId: string;
     agentName: string;
-    agentType: AgentType;
+    namespace: string;
     title: string;
     metadata: Record<string, any>;
     createdAt: Date;
@@ -112,7 +112,7 @@ export class Agent2AgentConversationsService {
         id: conversation.id,
         userId: conversation.user_id,
         agentName: conversation.agent_name,
-        agentType: conversation.agent_type,
+        namespace: conversation.agent_type, // agent_type column stores the namespace
         title: conversation.title,
         metadata: conversation.metadata,
         createdAt: new Date(conversation.created_at),
@@ -137,7 +137,7 @@ export class Agent2AgentConversationsService {
     id: string;
     userId: string;
     agentName: string;
-    agentType: AgentType;
+    namespace: string;
     title: string;
     metadata: Record<string, any>;
     createdAt: Date;
