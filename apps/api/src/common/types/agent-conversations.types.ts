@@ -10,7 +10,11 @@ export type AgentType =
   | 'legal' // Legal and compliance agents
   | 'engineering' // Engineering and technical agents
   | 'product' // Product management agents
-  | 'research'; // Research and analytics agents
+  | 'research' // Research and analytics agents
+  | 'context' // Context-based database agents
+  | 'function' // Function-based database agents
+  | 'tool' // Tool-based database agents
+  | string; // Allow any string for database namespaces (my-org, etc.)
 
 export interface AgentConversation {
   id: string;
