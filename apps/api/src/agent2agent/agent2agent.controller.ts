@@ -28,6 +28,7 @@ import { AgentType } from '../common/types/agent-conversations.types';
 import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
 import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
 import { Public } from '../auth/decorators/public.decorator';
+import { AgentDeliverablesService } from './services/agent-deliverables.service';
 
 interface NormalizedTaskRequest {
   dto: TaskRequestDto;
@@ -62,6 +63,7 @@ export class Agent2AgentController {
     private readonly taskStatusService: TaskStatusService,
     private readonly agentConversationsService: AgentConversationsService,
     private readonly agentRegistry: AgentRegistryService,
+    private readonly agentDeliverablesService: AgentDeliverablesService,
   ) {}
 
   private readonly logger = new Logger(Agent2AgentController.name);
@@ -208,7 +210,22 @@ export class Agent2AgentController {
       );
 
       if (!taskAlreadyHandled) {
-        // Update task with result (using TaskStatusService which handles deliverable creation)
+        // Create deliverable using Agent2Agent deliverable service
+        const deliverableId = await this.agentDeliverablesService.createFromTaskResult(
+          result,
+          currentUser.id,
+          task.id,
+          agentSlug,
+          dto.conversationId,
+          dto.mode,
+        );
+
+        // Attach deliverable ID to result if created
+        if (deliverableId && typeof result === 'object' && result !== null) {
+          result.deliverableId = deliverableId;
+        }
+
+        // Update task with result
         await this.taskStatusService.completeTask(
           task.id,
           currentUser.id,
