@@ -659,23 +659,11 @@ export class Agent2AgentController {
     const roots: any[] = [];
 
     grouped.forEach((agents, namespaceKey) => {
-      const orchestrators = agents.filter(
-        (a) => a.agent_type === 'orchestrator' || a.config?.orchestrator,
-      );
-      const nonOrchestrators = agents.filter(
-        (a) => a.agent_type !== 'orchestrator' && !a.config?.orchestrator,
-      );
-
-      if (orchestrators.length > 0) {
-        orchestrators.forEach((orc) => {
-          const children = nonOrchestrators.map((child) => createNode(child));
-          roots.push(createNode(orc, children));
-        });
-      } else {
-        nonOrchestrators.forEach((agent) => {
-          roots.push(createNode(agent));
-        });
-      }
+      // Each agent should be a root node - no automatic parent-child relationships
+      // The hierarchy should be flat unless explicitly defined in the agent config
+      agents.forEach((agent) => {
+        roots.push(createNode(agent, [])); // No children by default
+      });
     });
 
     return roots;
