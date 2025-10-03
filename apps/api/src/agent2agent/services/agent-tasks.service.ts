@@ -65,21 +65,21 @@ export class Agent2AgentTasksService {
 
       // Create conversation if needed
       if (!conversationId) {
-        this.logger.debug(`🚨 [Agent2AgentTasksService] Creating conversation with agentType: "${agentType}"`);
+        this.logger.log(`🚨 [Agent2AgentTasksService] Creating conversation with agentType: "${agentType}"`);
         
         const conversationData = {
           user_id: userId,
           agent_name: agentName,
           agent_type: agentType,
-          title: `${agentName} - ${new Date().toLocaleDateString()}`,
           metadata: {
             source: 'agent2agent',
             method: params.method,
             protocol: 'a2a-google',
+            title: `${agentName} - ${new Date().toLocaleDateString()}`, // Store title in metadata
           },
         };
         
-        this.logger.debug(`🚨 [Agent2AgentTasksService] Conversation data:`, conversationData);
+        this.logger.log(`🚨 [Agent2AgentTasksService] Conversation data:`, JSON.stringify(conversationData));
         
         const { data: newConv, error: convError } = await this.supabaseService
           .getServiceClient()
