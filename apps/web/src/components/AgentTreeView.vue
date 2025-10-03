@@ -666,6 +666,16 @@ const hierarchyGroups = computed(() => {
   const groups: any[] = [];
   
   const processNode = (node: any) => {
+    // Debug: Log the raw node data to see if namespace exists
+    if (node.name === 'blog_post_writer') {
+      console.log('🔍 [AgentTreeView.processNode] Raw node data for blog_post_writer:', {
+        name: node.name,
+        namespace: node.namespace,
+        hasNamespace: !!node.namespace,
+        fullNode: node
+      });
+    }
+    
     // Apply search filter to the manager/orchestrator
     const matchesSearch = !searchQuery.value ||
       node.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
