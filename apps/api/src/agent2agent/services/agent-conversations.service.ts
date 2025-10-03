@@ -38,8 +38,7 @@ export class Agent2AgentConversationsService {
   }> {
     try {
       const now = new Date().toISOString();
-      const conversationData = {
-        id: options?.conversationId || undefined,
+      const conversationData: any = {
         user_id: userId,
         agent_name: agentName,
         agent_type: namespace, // Store namespace in agent_type column
@@ -52,6 +51,11 @@ export class Agent2AgentConversationsService {
           source: 'agent2agent',
         },
       };
+
+      // Only include id if explicitly provided, otherwise let database generate it
+      if (options?.conversationId) {
+        conversationData.id = options.conversationId;
+      }
 
       const { data: conversation, error } = await this.supabaseService
         .getServiceClient()

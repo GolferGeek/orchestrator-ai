@@ -14,6 +14,7 @@ export interface Agent2AgentConversation {
 export interface CreateAgent2AgentConversationDto {
   agentName: string;
   namespace: string; // Database namespace (my-org, etc.)
+  conversationId?: string; // Pre-generated conversation ID
   metadata?: Record<string, any>;
 }
 
@@ -31,6 +32,7 @@ class Agent2AgentConversationsService {
     const response = await apiService.post('/agent-to-agent/conversations', {
       agentName: dto.agentName,
       namespace: dto.namespace, // Database namespace like 'my-org'
+      conversationId: dto.conversationId, // Pre-generated ID
       metadata: {
         source: 'agent2agent-frontend',
         ...dto.metadata,

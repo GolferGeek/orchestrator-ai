@@ -31,23 +31,39 @@ export class ConversationService {
    * Create a new conversation in the backend
    */
   async createConversation(agent: Agent): Promise<string> {
-    const isDatabaseAgent = agent.namespace && agent.namespace !== 'demo';
+    // Use canonical namespace source (user's selection) for routing decision
+    const { useAuthStore } = await import('@/stores/authStore');
+    const authStore = useAuthStore();
+    const currentNamespace = authStore.currentNamespace;
+    
+    const isDatabaseAgent = currentNamespace && currentNamespace !== 'demo';
+    
+    console.log('🔍 [ConversationService.createConversation] Routing logic:', {
+      currentNamespace: currentNamespace,
+      currentNamespaceType: typeof currentNamespace,
+      currentNamespaceTruthy: !!currentNamespace,
+      notDemo: currentNamespace !== 'demo',
+      isDatabaseAgent: isDatabaseAgent,
+      calculation: `${!!currentNamespace} && ${currentNamespace !== 'demo'} = ${isDatabaseAgent}`
+    });
     
     console.log('🔍 [ConversationService.createConversation] Agent routing:', {
       agentName: agent.name,
       agentType: agent.type,
-      namespace: agent.namespace,
+      agentNamespace: agent.namespace,
+      currentNamespace: currentNamespace,
       isDatabaseAgent,
-      approach: isDatabaseAgent ? 'agent2agent-service' : 'legacy-service',
-      fullAgent: agent
+      approach: isDatabaseAgent ? 'agent2agent-service' : 'legacy-service'
     });
     
     if (isDatabaseAgent) {
       // Database agents: Use dedicated Agent2Agent conversation service
       console.log('🚀 [ConversationService] Using Agent2Agent service for database agent');
+      const conversationId = generateUUID(); // Generate ID upfront
       const backendConversation = await agent2AgentConversationsService.createConversation({
         agentName: agent.name,
-        namespace: agent.namespace!, // Database namespace
+        namespace: currentNamespace, // Use canonical namespace source
+        conversationId: conversationId, // Pass the generated ID
         metadata: {
           source: 'frontend',
         },

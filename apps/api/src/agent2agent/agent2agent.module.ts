@@ -10,9 +10,10 @@ import { ApiKeyGuard } from './guards/api-key.guard';
 import { LLMModule } from '../llms/llm.module';
 import { AuthModule } from '../auth/auth.module';
 import { SupabaseModule } from '../supabase/supabase.module';
-import { TasksModule } from '../tasks/tasks.module';
-import { AgentConversationsModule } from '../agent-conversations/agent-conversations.module';
 import { AgentDeliverablesService } from './services/agent-deliverables.service';
+import { Agent2AgentTasksService } from './services/agent-tasks.service';
+import { Agent2AgentTaskStatusService } from './services/agent-task-status.service';
+import { Agent2AgentConversationsService } from './services/agent-conversations.service';
 
 @Module({
   imports: [
@@ -20,8 +21,6 @@ import { AgentDeliverablesService } from './services/agent-deliverables.service'
     LLMModule,
     AuthModule,
     SupabaseModule,
-    TasksModule,
-    AgentConversationsModule,
   ],
   controllers: [Agent2AgentController, AgentApprovalsActionsController],
   providers: [
@@ -31,6 +30,9 @@ import { AgentDeliverablesService } from './services/agent-deliverables.service'
     RoutingPolicyAdapterService,
     ApiKeyGuard,
     AgentDeliverablesService,
+    Agent2AgentTasksService,
+    Agent2AgentTaskStatusService,
+    Agent2AgentConversationsService,
   ],
   exports: [AgentExecutionGateway],
 })
