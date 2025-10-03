@@ -176,7 +176,10 @@ export class Agent2AgentTasksService {
       const { data: task, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
-        .select('*')
+        .select(`
+          *,
+          conversations!inner(agent_name, agent_type)
+        `)
         .eq('id', taskId)
         .eq('user_id', userId)
         .single();
@@ -188,8 +191,8 @@ export class Agent2AgentTasksService {
       return {
         id: task.id,
         userId: task.user_id,
-        agentName: agentName, // Use parameter since tasks table doesn't have agent_name
-        namespace: agentType, // Use parameter since tasks table doesn't have agent_type
+        agentName: (task as any).conversations?.agent_name || 'unknown',
+        namespace: (task as any).conversations?.agent_type || 'unknown',
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
