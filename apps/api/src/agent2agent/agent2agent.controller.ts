@@ -659,10 +659,39 @@ export class Agent2AgentController {
     const roots: any[] = [];
 
     grouped.forEach((agents, namespaceKey) => {
-      // Each agent should be a root node - no automatic parent-child relationships
-      // The hierarchy should be flat unless explicitly defined in the agent config
-      agents.forEach((agent) => {
-        roots.push(createNode(agent, [])); // No children by default
+      // Group agents by logical hierarchy based on naming patterns
+      const orchestrators = agents.filter(
+        (a) => a.agent_type === 'orchestrator' || a.config?.orchestrator,
+      );
+      const nonOrchestrators = agents.filter(
+        (a) => a.agent_type !== 'orchestrator' && !a.config?.orchestrator,
+      );
+
+      // Create orchestrator nodes with their related children
+      orchestrators.forEach((orc) => {
+        // Find children that belong to this orchestrator based on naming pattern
+        const orcPrefix = orc.slug.replace('-orchestrator', '').replace('_orchestrator', '');
+        const children = nonOrchestrators
+          .filter((agent) => {
+            // Match agents with same prefix (e.g., "hiverarchy-*" for "hiverarchy-orchestrator")
+            return agent.slug.startsWith(orcPrefix + '-') || agent.slug.startsWith(orcPrefix + '_');
+          })
+          .map((child) => createNode(child));
+
+        roots.push(createNode(orc, children));
+      });
+
+      // Add standalone agents (not belonging to any orchestrator)
+      const standaloneAgents = nonOrchestrators.filter((agent) => {
+        // Check if this agent belongs to any orchestrator
+        return !orchestrators.some((orc) => {
+          const orcPrefix = orc.slug.replace('-orchestrator', '').replace('_orchestrator', '');
+          return agent.slug.startsWith(orcPrefix + '-') || agent.slug.startsWith(orcPrefix + '_');
+        });
+      });
+
+      standaloneAgents.forEach((agent) => {
+        roots.push(createNode(agent, []));
       });
     });
 
