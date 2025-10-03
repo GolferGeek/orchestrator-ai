@@ -32,6 +32,9 @@ export class AgentConversationsService {
       'engineering',
       'product',
       'research',
+      'context', // Add context for database agents
+      'function',
+      'tool',
     ];
     // Allow file-based types
     if (validTypes.includes(agentType as AgentType)) {

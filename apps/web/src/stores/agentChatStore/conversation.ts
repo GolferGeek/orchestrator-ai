@@ -35,9 +35,11 @@ export class ConversationService {
     
     console.log('🔍 [ConversationService.createConversation] Agent routing:', {
       agentName: agent.name,
+      agentType: agent.type,
       namespace: agent.namespace,
       isDatabaseAgent,
-      approach: isDatabaseAgent ? 'skip-creation' : 'create-upfront'
+      approach: isDatabaseAgent ? 'agent2agent-service' : 'legacy-service',
+      fullAgent: agent
     });
     
     if (isDatabaseAgent) {
