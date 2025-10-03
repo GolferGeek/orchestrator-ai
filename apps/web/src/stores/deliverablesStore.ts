@@ -722,11 +722,13 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       while (Date.now() - start < timeoutMs) {
         // Prefer a precise check by taskId if available
         if (newTaskId) {
+          console.log(`🔍 [LLM Rerun] Checking for deliverable with taskId: ${newTaskId}`);
           const maybeDeliverable = await deliverablesService.findExistingDeliverable(conversationId, newTaskId);
           if (maybeDeliverable) {
             // Load versions and pick the one created by this task
             const versions = await deliverablesService.getVersionHistory(maybeDeliverable.id);
             const created = versions.find(v => v.taskId === newTaskId) || null;
+            console.log(`🔍 [LLM Rerun] Found ${versions.length} versions, taskId match:`, !!created);
             if (created) {
               latest = created;
               break;
@@ -734,8 +736,10 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
           }
         } else {
           // Fallback: detect by version number increment
+          console.log(`🔍 [LLM Rerun] Checking for version number increment (current: ${currentNumber})`);
           const versions = await deliverablesService.getVersionHistory(deliverableId);
           const maxVersion = versions.reduce((max, v) => (v.versionNumber > max.versionNumber ? v : max), versions[0] || sourceVersion);
+          console.log(`🔍 [LLM Rerun] Max version found: ${maxVersion?.versionNumber}`);
           if (maxVersion && maxVersion.versionNumber > currentNumber) {
             latest = maxVersion;
             break;
