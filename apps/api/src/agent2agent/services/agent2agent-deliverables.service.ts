@@ -3,8 +3,8 @@ import { SupabaseService } from '../../supabase/supabase.service';
 import { getTableName } from '../../supabase/supabase.config';
 
 @Injectable()
-export class AgentDeliverablesService {
-  private readonly logger = new Logger(AgentDeliverablesService.name);
+export class Agent2AgentDeliverablesService {
+  private readonly logger = new Logger(Agent2AgentDeliverablesService.name);
 
   constructor(
     private readonly supabaseService: SupabaseService,

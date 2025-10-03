@@ -10,7 +10,7 @@ import { ApiKeyGuard } from './guards/api-key.guard';
 import { LLMModule } from '../llms/llm.module';
 import { AuthModule } from '../auth/auth.module';
 import { SupabaseModule } from '../supabase/supabase.module';
-import { AgentDeliverablesService } from './services/agent-deliverables.service';
+import { Agent2AgentDeliverablesService } from './services/agent2agent-deliverables.service';
 import { Agent2AgentTasksService } from './services/agent-tasks.service';
 import { Agent2AgentTaskStatusService } from './services/agent-task-status.service';
 import { Agent2AgentConversationsService } from './services/agent-conversations.service';
@@ -29,7 +29,7 @@ import { Agent2AgentConversationsService } from './services/agent-conversations.
     AgentModeRouterService,
     RoutingPolicyAdapterService,
     ApiKeyGuard,
-    AgentDeliverablesService,
+    Agent2AgentDeliverablesService,
     Agent2AgentTasksService,
     Agent2AgentTaskStatusService,
     Agent2AgentConversationsService,

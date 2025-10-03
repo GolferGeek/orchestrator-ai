@@ -8,7 +8,28 @@ export interface Agent2AgentConversation {
   lastActiveAt: string;
   createdAt: string;
   updatedAt: string;
+  title?: string; // Friendly display name
   metadata?: Record<string, any>;
+}
+
+/**
+ * Format a date string into a relative time display (e.g., "2h ago", "yesterday")
+ */
+function formatRelativeTime(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return date.toLocaleDateString();
 }
 
 export interface CreateAgent2AgentConversationDto {
@@ -53,6 +74,15 @@ class Agent2AgentConversationsService {
     agentType?: string;
   } = {}): Promise<{ conversations: Agent2AgentConversation[]; total: number }> {
     const response = await apiService.get('/agent-to-agent/conversations', { params });
+
+    // Add formatted titles to conversations
+    if (response.conversations) {
+      response.conversations = response.conversations.map((conv: Agent2AgentConversation) => ({
+        ...conv,
+        title: conv.title || formatRelativeTime(conv.startedAt || conv.createdAt),
+      }));
+    }
+
     return response;
   }
 

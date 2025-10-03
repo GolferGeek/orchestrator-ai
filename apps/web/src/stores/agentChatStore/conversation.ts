@@ -534,6 +534,7 @@ console.error(`Failed to archive conversation ${conversationId}:`, error);
 
   /**
    * Get all conversations for current user
+   * @deprecated Use useAgentConversationsStore().fetchConversations() instead for reactive updates
    */
   async getUserConversations(): Promise<any[]> {
     try {

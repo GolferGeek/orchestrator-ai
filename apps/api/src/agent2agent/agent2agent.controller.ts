@@ -28,7 +28,7 @@ import { AgentType } from '../common/types/agent-conversations.types';
 import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
 import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
 import { Public } from '../auth/decorators/public.decorator';
-import { AgentDeliverablesService } from './services/agent-deliverables.service';
+import { Agent2AgentDeliverablesService } from './services/agent2agent-deliverables.service';
 
 interface NormalizedTaskRequest {
   dto: TaskRequestDto;
@@ -63,7 +63,7 @@ export class Agent2AgentController {
     private readonly taskStatusService: Agent2AgentTaskStatusService,
     private readonly agentConversationsService: Agent2AgentConversationsService,
     private readonly agentRegistry: AgentRegistryService,
-    private readonly agentDeliverablesService: AgentDeliverablesService,
+    private readonly agentDeliverablesService: Agent2AgentDeliverablesService,
   ) {}
 
   private readonly logger = new Logger(Agent2AgentController.name);

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { agentConversationsService, type AgentType } from '@/services/agentConversationsService';
+import agent2AgentConversationsService from '@/services/agent2AgentConversationsService';
 interface AgentConversation {
   id: string;
   userId: string;
@@ -60,9 +61,25 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
       this.isLoading = true;
       this.error = null;
       try {
-        const response = await agentConversationsService.listConversations({
-          limit: 1000,
-        });
+        // Determine which service to use based on namespace
+        const { useAuthStore } = await import('@/stores/authStore');
+        const authStore = useAuthStore();
+        const currentNamespace = authStore.currentNamespace;
+        const isDatabaseAgent = currentNamespace && currentNamespace !== 'demo';
+
+        let response;
+        if (isDatabaseAgent) {
+          console.log('🚀 [AgentConversationsStore] Using Agent2Agent service for database agents');
+          response = await agent2AgentConversationsService.listConversations({
+            limit: 1000,
+          });
+        } else {
+          console.log('🚀 [AgentConversationsStore] Using legacy service for file-based agents');
+          response = await agentConversationsService.listConversations({
+            limit: 1000,
+          });
+        }
+
         // Convert API response to store format
         this.conversations = response.conversations.map(conv => ({
           ...conv,
