@@ -152,12 +152,12 @@ export class AgentDeliverablesService {
       .insert([
         {
           deliverable_id: params.deliverableId,
-          user_id: params.userId,
           content: params.content,
           format: params.format,
           created_by_type: params.createdByType,
           metadata: params.metadata,
           version_number: 1, // First version
+          is_current_version: true, // Mark as current version
         },
       ])
       .select('id')
