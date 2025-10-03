@@ -149,8 +149,9 @@ export class Agent2AgentController {
     @Body() body: any,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope | JsonRpcErrorEnvelope> {
-    // CRITICAL DEBUG: Log that this controller method was called
-    this.logger.debug(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
+    // CRITICAL: Log that this controller method was called
+    console.log(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
+    this.logger.log(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
     
     const org = orgSlug === 'global' ? null : orgSlug;
     
