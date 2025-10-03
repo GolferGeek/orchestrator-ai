@@ -1,4 +1,5 @@
 import agentConversationsService, { type AgentType } from '@/services/agentConversationsService';
+import agent2AgentConversationsService from '@/services/agent2AgentConversationsService';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { tasksService } from '@/services/tasksService';
 import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, AgentChatMode } from './types';
@@ -40,12 +41,17 @@ export class ConversationService {
     });
     
     if (isDatabaseAgent) {
-      // Database agents: Don't create conversation upfront
-      // Let the backend Agent2AgentTasksService create it during task creation
-      // Just return a placeholder ID that will be replaced when task is created
-      const placeholderConversationId = generateUUID();
-      console.log('✅ [ConversationService.createConversation] Database agent - using placeholder ID:', placeholderConversationId);
-      return placeholderConversationId;
+      // Database agents: Use dedicated Agent2Agent conversation service
+      const backendConversation = await agent2AgentConversationsService.createConversation({
+        agentName: agent.name,
+        agentType: agent.namespace!, // Use namespace as agentType
+        metadata: {
+          source: 'frontend',
+        },
+      });
+      
+      console.log('✅ [ConversationService.createConversation] Database agent - created:', backendConversation.id);
+      return backendConversation.id;
     } else {
       // File-based agents: Use existing flow with old service
       const backendConversation = await agentConversationsService.createConversation({

@@ -69,6 +69,28 @@ export class Agent2AgentController {
   private readonly logger = new Logger(Agent2AgentController.name);
 
   /**
+   * Create conversation for database agents
+   * Route: POST /agent-to-agent/conversations
+   */
+  @Post('agent-to-agent/conversations')
+  @UseGuards(JwtAuthGuard)
+  async createConversation(
+    @Body() body: { agentName: string; agentType: string; metadata?: Record<string, any> },
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    const conversation = await this.agentConversationsService.createConversation(
+      currentUser.id,
+      body.agentName,
+      body.agentType,
+      {
+        metadata: body.metadata,
+      },
+    );
+    
+    return conversation;
+  }
+
+  /**
    * Get hierarchy of database agents (A2A protocol)
    * Route: GET /agent-to-agent/.well-known/hierarchy
    */
