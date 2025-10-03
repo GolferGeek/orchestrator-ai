@@ -30,24 +30,32 @@ export class ConversationService {
    * Create a new conversation in the backend
    */
   async createConversation(agent: Agent): Promise<string> {
-    // For database agents, use namespace as agentType; for file-based agents, use actual type
-    const effectiveAgentType = agent.namespace || agent.type;
+    const isDatabaseAgent = agent.namespace && agent.namespace !== 'demo';
     
-    console.log('🔍 [ConversationService.createConversation] Creating with:', {
+    console.log('🔍 [ConversationService.createConversation] Agent routing:', {
       agentName: agent.name,
-      originalType: agent.type,
       namespace: agent.namespace,
-      effectiveAgentType
+      isDatabaseAgent,
+      approach: isDatabaseAgent ? 'skip-creation' : 'create-upfront'
     });
     
-    const backendConversation = await agentConversationsService.createConversation({
-      agentName: agent.name,
-      agentType: effectiveAgentType as AgentType,
-    });
-    
-    console.log('✅ [ConversationService.createConversation] Created:', backendConversation.id);
-
-    return backendConversation.id;
+    if (isDatabaseAgent) {
+      // Database agents: Don't create conversation upfront
+      // Let the backend Agent2AgentTasksService create it during task creation
+      // Just return a placeholder ID that will be replaced when task is created
+      const placeholderConversationId = generateUUID();
+      console.log('✅ [ConversationService.createConversation] Database agent - using placeholder ID:', placeholderConversationId);
+      return placeholderConversationId;
+    } else {
+      // File-based agents: Use existing flow with old service
+      const backendConversation = await agentConversationsService.createConversation({
+        agentName: agent.name,
+        agentType: agent.type as AgentType,
+      });
+      
+      console.log('✅ [ConversationService.createConversation] File-based agent - created:', backendConversation.id);
+      return backendConversation.id;
+    }
   }
 
   /**
