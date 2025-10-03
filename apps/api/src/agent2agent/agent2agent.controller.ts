@@ -205,8 +205,8 @@ export class Agent2AgentController {
 
       // Check if task completion was already handled by the agent (to avoid duplicate completion)
       const taskAlreadyHandled = result && (
-        (result.taskCompletionHandled === true) ||
-        (result.metadata && result.metadata.taskCompletionHandled === true)
+        ((result as any).taskCompletionHandled === true) ||
+        ((result as any).metadata && (result as any).metadata.taskCompletionHandled === true)
       );
 
       if (!taskAlreadyHandled) {
@@ -216,13 +216,13 @@ export class Agent2AgentController {
           currentUser.id,
           task.id,
           agentSlug,
-          dto.conversationId,
+          dto.conversationId || '',
           dto.mode,
         );
 
         // Attach deliverable ID to result if created
         if (deliverableId && typeof result === 'object' && result !== null) {
-          result.deliverableId = deliverableId;
+          (result as any).deliverableId = deliverableId;
         }
 
         // Update task with result

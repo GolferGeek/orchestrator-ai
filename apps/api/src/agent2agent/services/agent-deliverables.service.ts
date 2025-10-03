@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DeliverablesService } from '../../deliverables/deliverables.service';
+import { DeliverableType, DeliverableFormat } from '../../deliverables/dto';
 
 @Injectable()
 export class AgentDeliverablesService {
@@ -27,7 +28,7 @@ export class AgentDeliverablesService {
       }
 
       // Check if result has deliverable content
-      if (!result?.payload?.content?.status === 'build_completed') {
+      if (result?.payload?.content?.status !== 'build_completed') {
         return null;
       }
 
@@ -42,11 +43,11 @@ export class AgentDeliverablesService {
       // Create the deliverable
       const deliverable = await this.deliverablesService.create({
         title,
-        type: 'document',
+        type: 'document' as DeliverableType,
         conversationId,
         agentName: agentSlug,
         initialContent: content,
-        initialFormat: 'markdown',
+        initialFormat: 'markdown' as DeliverableFormat,
         initialCreationType: 'conversation_task' as any,
         initialMetadata: {
           agentName: agentSlug,
@@ -73,19 +74,19 @@ export class AgentDeliverablesService {
   private extractTitleFromContent(content: string): string | null {
     // Look for markdown title (# Title)
     const titleMatch = content.match(/^#\s+(.+)$/m);
-    if (titleMatch) {
+    if (titleMatch && titleMatch[1]) {
       return titleMatch[1].trim();
     }
 
     // Look for "Title:" pattern
     const titleColonMatch = content.match(/^Title:\s*(.+)$/m);
-    if (titleColonMatch) {
+    if (titleColonMatch && titleColonMatch[1]) {
       return titleColonMatch[1].trim();
     }
 
     // Use first line if it looks like a title (short and not starting with lowercase)
     const lines = content.split('\n').filter(line => line.trim());
-    if (lines.length > 0) {
+    if (lines.length > 0 && lines[0]) {
       const firstLine = lines[0].trim();
       if (firstLine.length < 100 && !firstLine.match(/^[a-z]/)) {
         return firstLine;
