@@ -33,13 +33,23 @@ export class AgentConversationsService {
       'product',
       'research',
     ];
+    // Allow file-based types
     if (validTypes.includes(agentType as AgentType)) {
       return agentType as AgentType;
     }
 
-    // Default to 'specialist' if type is not recognized
+    // Allow database namespaces (contain hyphens, underscores, or end with -org)
+    if (agentType.includes('-') || agentType.includes('_') || agentType.endsWith('org')) {
+      return agentType as AgentType;
+    }
 
-    return 'specialist';
+    // NO FALLBACKS - fail fast with clear error instead of defaulting
+    throw new Error(
+      `Invalid agentType '${agentType}'. ` +
+      `Must be a valid file-based type (${validTypes.join(', ')}) ` +
+      `or a database namespace (e.g., 'my-org', 'company-name'). ` +
+      `No default agentType is provided - explicit configuration required.`
+    );
   }
 
   /**
