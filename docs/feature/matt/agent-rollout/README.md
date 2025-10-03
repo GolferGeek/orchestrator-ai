@@ -1,10 +1,14 @@
 # Agent Rollout - Phased Implementation Plan
 
-This directory contains the 6-phase roadmap for rolling out the database-driven agent platform, replacing the file-based agent system.
+This directory contains the complete roadmap for rolling out the database-driven agent platform.
+
+## High-Level Vision
+
+**Read first:** [High-Level Vision PRD](./high-level-vision-prd.md) - Use this as your North Star for all decisions.
 
 ## Overview
 
-The agent platform implementation is broken into 6 sequential phases, each building on the previous phase's foundation. This phased approach ensures:
+The agent platform implementation is broken into sequential phases. **Phase 0 is CRITICAL** - it removes all file-based agent code to create a clean foundation for rapid development.
 
 - **Low risk:** Each phase is independently testable
 - **Clear progress:** Easy to track completion and celebrate wins
@@ -16,15 +20,39 @@ The agent platform implementation is broken into 6 sequential phases, each build
 
 | Phase | Name | Duration | Status |
 |-------|------|----------|--------|
-| 1 | Context Agents (Deliverable Workflow) | 7 days | 🔜 Next |
+| **0** | **Aggressive Cleanup** | 3 days | 🔜 **START HERE** |
+| 1 | Context Agents (Deliverable Workflow) | 7 days | ⏳ Pending |
 | 2 | Conversation-Only Agents | 3 days | ⏳ Pending |
 | 3 | API Agents (n8n Integration) | 10 days | ⏳ Pending |
 | 4 | Migrate File-Based Agents to Database | 10 days | ⏳ Pending |
-| 5 | Remove File-Based Agent System | 9 days | ⏳ Pending |
-| 6 | Orchestration System | 22 days | ⏳ Pending |
-| **Total** | | **~61 days (~3 months)** | |
+| 5 | Orchestration System | 22 days | ⏳ Pending |
+| **Total** | | **~55 days (~11 weeks)** | |
+
+**🎯 1-Week Goal:** Complete Phases 0-1, ship to main, then iterate on Phases 2-5
 
 ## Phase Details
+
+### Phase 0: Aggressive Cleanup ⚡ (REQUIRED FIRST)
+**Focus:** Remove all file-based agent code NOW
+
+- Delete DynamicAgentsController and YAML execution code
+- Delete legacy frontend store (old agentChatStore)
+- Rename agent2Agent services to simpler names
+- **Keep demo directory intact** (for reference)
+- Single, clean code path
+
+**Why First:**
+- Eliminates dual-system confusion forever
+- Simplifies ALL future phases
+- Faster development (one path, not two)
+- Forces commitment to database-only
+- Enables 1-week timeline
+
+**Key Deliverable:** Clean codebase ready for rapid Phase 1-5 development
+
+[📄 Full PRD](./phase-0-aggressive-cleanup-prd.md) ← **Read this tomorrow**
+
+---
 
 ### Phase 1: Context Agents (Deliverable Workflow)
 **Focus:** Get blog_post_writer working end-to-end
@@ -32,9 +60,9 @@ The agent platform implementation is broken into 6 sequential phases, each build
 - Complete deliverable lifecycle: converse → plan → build → edit
 - Deliverables panel with versions
 - LLM rerun functionality
-- Separate agent2AgentChatStore for database agents
+- Clean agentChatStore (no routing logic)
 
-**Key Deliverable:** blog_post_writer produces deliverables like file-based agents
+**Key Deliverable:** blog_post_writer produces deliverables
 
 [📄 Full PRD](./phase-1-context-agents-prd.md)
 
@@ -85,21 +113,7 @@ The agent platform implementation is broken into 6 sequential phases, each build
 
 ---
 
-### Phase 5: Remove File-Based Agent System
-**Focus:** Clean up legacy code
-
-- Delete DynamicAgentsController
-- Remove YAML agent files
-- Simplify frontend to single code path
-- Reduce codebase by 30-40%
-
-**Key Deliverable:** Clean, maintainable codebase with database-only agents
-
-[📄 Full PRD](./phase-5-remove-file-agents-prd.md)
-
----
-
-### Phase 6: Orchestration System
+### Phase 5: Orchestration System
 **Focus:** Multi-agent workflow orchestration
 
 - Orchestration plans (multi-step workflows)
@@ -110,7 +124,7 @@ The agent platform implementation is broken into 6 sequential phases, each build
 
 **Key Deliverable:** Orchestrators coordinate specialists through complex workflows
 
-[📄 Full PRD](./phase-6-orchestration-prd.md)
+[📄 Full PRD](./phase-5-orchestration-prd.md)
 
 ---
 
@@ -131,7 +145,7 @@ When starting a new phase:
 3. **Development workflow**
    - Work on feature branch: `feature/phase-N-description`
    - Commit frequently with clear messages
-   - Reference PRD in commits: `Phase 1: Implement agent2AgentTasksService`
+   - Reference PRD in commits: `Phase 0: Delete DynamicAgentsController`
 
 4. **Testing**
    - Follow testing plan in PRD
@@ -141,7 +155,7 @@ When starting a new phase:
 5. **Review and merge**
    - Code review with team
    - QA approval
-   - Merge to main
+   - Merge to feature branch (or main for Phase 0-1)
 
 6. **Deployment**
    - Deploy to staging
@@ -157,6 +171,8 @@ When starting a new phase:
 ## Dependencies Between Phases
 
 ```
+Phase 0 (Aggressive Cleanup) ← START HERE
+  ↓
 Phase 1 (Context Agents)
   ↓
 Phase 2 (Conversation-Only)
@@ -165,12 +181,10 @@ Phase 3 (API Agents)
   ↓
 Phase 4 (Migration)
   ↓
-Phase 5 (Cleanup)
-  ↓
-Phase 6 (Orchestration)
+Phase 5 (Orchestration)
 ```
 
-**Important:** Each phase MUST be complete and stable before starting the next phase.
+**CRITICAL:** Phase 0 MUST be done first. It creates clean foundation for all other phases.
 
 ## Success Criteria for Phase Completion
 
@@ -180,23 +194,60 @@ A phase is considered complete when:
 - ✅ Manual testing checklist complete
 - ✅ Automated tests passing
 - ✅ Code reviewed and merged
-- ✅ Deployed to production
-- ✅ Monitored for 48+ hours with no critical issues
+- ✅ Deployed to production (or feature branch for Phase 0-1)
+- ✅ Monitored for stability
 - ✅ Documentation updated
+
+## The 1-Week Plan
+
+**Goal:** Ship Phases 0-1 to main in 1 week, then iterate
+
+**Day 1-3: Phase 0 (Aggressive Cleanup)**
+- Delete all file-based execution code
+- Rename frontend services
+- Test existing database agents still work
+- Merge to feature branch
+
+**Day 4-7: Phase 1 (Context Agents)**
+- Create missing frontend services
+- Build deliverables workflow
+- Test blog_post_writer end-to-end
+- Merge to main
+
+**Week 2+: Iterate on Phases 2-5**
+- Ship incrementally
+- Get user feedback
+- Prioritize based on usage
+
+## Architecture Evolution
+
+### After Phase 0: Clean Slate
+- File-based agents ❌ (execution removed, demo/ kept as reference)
+- Database agents ✅ (only system)
+- Single, clean code path
+
+### After Phase 1: Basic Platform
+- Context agents ✅ (deliverable workflow)
+- Clean architecture ✅
+- Production-ready ✅
+
+### After Phase 5: Full Platform
+- All agent types ✅
+- Orchestration ✅ (new capability)
+- Platform feature-complete ✅
 
 ## Risk Management
 
 ### General Risks
 - **Scope creep:** Stick to PRD scope, defer new ideas to future phases
 - **Timeline slippage:** Daily standup to track progress, adjust estimates early
-- **Technical debt:** Refactor as you go, don't defer cleanup
-- **Breaking changes:** Maintain backward compatibility through Phase 4
+- **Breaking changes:** Phase 0 is big change, test thoroughly
 
 ### Mitigation Strategies
 - **Clear scope:** Each PRD defines in-scope and out-of-scope explicitly
 - **Incremental delivery:** Each phase delivers working functionality
-- **Backward compatibility:** Phases 1-4 support both systems
 - **Rollback plans:** Each PRD includes rollback procedures
+- **Phase 0 first:** Creates clean foundation for everything else
 
 ## Communication
 
@@ -220,46 +271,27 @@ Share progress in team channel:
 
 Update this README as phases complete:
 
-```markdown
 | Phase | Status | Started | Completed | Notes |
 |-------|--------|---------|-----------|-------|
-| 1 | ✅ Done | 2025-10-04 | 2025-10-15 | Blog post writer working perfectly |
-| 2 | 🔄 In Progress | 2025-10-16 | - | HR agent in QA |
+| 0 | ⏳ Pending | - | - | - |
+| 1 | ⏳ Pending | - | - | - |
+| 2 | ⏳ Pending | - | - | - |
 | 3 | ⏳ Pending | - | - | - |
-```
-
-## Architecture Evolution
-
-### Phase 1-3: Dual System
-- File-based agents ✅ (legacy, working)
-- Database agents ✅ (new, in development)
-- Routing logic based on agent source
-
-### Phase 4: Migration
-- File-based agents ✅ (still working)
-- Database agents ✅ (all migrated, validated)
-- Both systems fully functional
-
-### Phase 5: Cleanup
-- File-based agents ❌ (removed)
-- Database agents ✅ (only system)
-- Clean, simple codebase
-
-### Phase 6: Orchestration
-- Database agents ✅ (mature)
-- Orchestration ✅ (new capability)
-- Platform feature-complete
+| 4 | ⏳ Pending | - | - | - |
+| 5 | ⏳ Pending | - | - | - |
 
 ## Questions?
 
 If you have questions about any phase:
-1. Read the full PRD first
-2. Check architecture docs
-3. Ask in team channel
-4. Update PRD with clarifications
+1. Read the [High-Level Vision PRD](./high-level-vision-prd.md) first
+2. Read the specific phase PRD
+3. Check architecture docs
+4. Ask in team channel
+5. Update PRD with clarifications
 
 ## Related Documentation
 
+- **[High-Level Vision PRD](./high-level-vision-prd.md)** - North Star for all decisions
 - [Agent Platform Unified PRD](../agent-platform-unified-prd.md) - Original vision
 - [Database-Driven Agent Architecture](../database-driven-agent-architecture-prd.md) - Architecture details
 - [n8n Workflow Sync](../n8n/prd-bidirectional-workflow-sync.md) - n8n integration
@@ -267,5 +299,6 @@ If you have questions about any phase:
 ---
 
 **Last Updated:** 2025-10-03
-**Current Phase:** Phase 1 (Context Agents)
-**Next Milestone:** blog_post_writer deliverable workflow working
+**Current Phase:** Phase 0 (Aggressive Cleanup)
+**Next Milestone:** Clean codebase, ready for Phase 1
+**Target:** Ship Phases 0-1 to main in 1 week

@@ -1,13 +1,19 @@
-# Phase 2: Conversation-Only Agents
+# Phase 2: Conversation-Only Profile
 
 ## Overview
-Implement conversation-only agents (like HR agent) that chat with users without creating deliverables or plans. These agents are purely conversational - no planning, no building, just ongoing dialogue.
+Enable conversation-only execution profile for agents. This is a **capability flag**, not an agent type. Any agent type (context, API, function) can be set to conversation-only by configuring `execution_profile: 'conversation_only'` in their YAML/database configuration.
+
+## Key Concept
+**Conversation-only is a profile, not a type:**
+- Context agent + conversation_only = chat-only context agent (HR agent)
+- API agent + conversation_only = chat-only API agent
+- Function agent + conversation_only = chat-only function agent (rare but possible)
 
 ## Goals
-- Get HR agent working as conversation-only reference implementation
-- Support agents with `execution_profile: 'conversation_only'`
+- Support `execution_profile: 'conversation_only'` on any agent type
 - Simplify UI for conversation-only agents (no deliverables panel)
-- Validate agent execution capabilities filtering
+- Validate execution capabilities filtering
+- Get HR agent (context + conversation_only) working as reference
 
 ## Prerequisites
 - ✅ Phase 1 complete (context agents working)
@@ -17,10 +23,11 @@ Implement conversation-only agents (like HR agent) that chat with users without 
 ## Scope
 
 ### In Scope
-1. **Conversation-Only Agent Type**
+1. **Conversation-Only Execution Profile**
+   - Works with ANY agent type (context, API, function)
+   - Set via `execution_profile: 'conversation_only'` in config
    - Only converse mode supported
    - No plan or build modes
-   - Execution profile: `conversation_only`
    - Execution capabilities: `{ can_plan: false, can_build: false }`
 
 2. **UI Adaptations**
@@ -118,15 +125,15 @@ Implement conversation-only agents (like HR agent) that chat with users without 
 
 ## Data Model
 
-### HR Agent Configuration
+### HR Agent Configuration (Context + Conversation-Only)
 ```typescript
 {
   id: 'uuid',
   slug: 'hr_agent',
   name: 'HR Assistant',
   description: 'Helpful HR assistant for employee questions',
-  agent_type: 'context',
-  execution_profile: 'conversation_only',
+  agent_type: 'context', // ← Still a context agent!
+  execution_profile: 'conversation_only', // ← But conversation-only profile
   execution_capabilities: {
     can_plan: false,
     can_build: false
@@ -138,6 +145,21 @@ Implement conversation-only agents (like HR agent) that chat with users without 
   },
   source: 'database',
   status: 'active'
+}
+```
+
+### Example: API Agent + Conversation-Only
+```typescript
+{
+  slug: 'metrics_chat_agent',
+  agent_type: 'api', // ← API agent
+  execution_profile: 'conversation_only', // ← Conversation-only profile
+  config: {
+    api: {
+      webhook_url: 'https://n8n.example.com/webhook/metrics-chat'
+    }
+  }
+  // This agent would call n8n but never create deliverables
 }
 ```
 
