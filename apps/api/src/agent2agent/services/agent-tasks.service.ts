@@ -94,13 +94,13 @@ export class Agent2AgentTasksService {
         );
       }
 
-      // Create task record
+      // Create task record (agent info is stored in the linked conversation)
       const taskData = {
         id: params.taskId || undefined,
         user_id: userId,
-        agent_name: agentName,
-        agent_type: agentType,
         conversation_id: conversationId,
+        method: params.method,
+        prompt: params.prompt,
         status: 'pending',
         params: {
           method: params.method,
@@ -133,8 +133,8 @@ export class Agent2AgentTasksService {
       return {
         id: task.id,
         userId: task.user_id,
-        agentName: task.agent_name,
-        agentType: task.agent_type,
+        agentName: agentName, // Use the parameter since it's not in the task record
+        agentType: agentType, // Use the parameter since it's not in the task record  
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
