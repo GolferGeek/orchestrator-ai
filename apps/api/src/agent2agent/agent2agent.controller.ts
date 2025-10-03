@@ -81,7 +81,7 @@ export class Agent2AgentController {
     const conversation = await this.agentConversationsService.createConversation(
       currentUser.id,
       body.agentName,
-      body.agentType,
+      body.agentType as AgentType,
       {
         metadata: body.metadata,
       },
