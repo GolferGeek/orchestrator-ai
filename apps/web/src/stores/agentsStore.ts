@@ -204,6 +204,15 @@ export const useAgentsStore = defineStore('agents', () => {
     return agentHierarchy.value;
   };
 
+  const forceRefreshAgents = async () => {
+    const namespace = currentNamespace.value;
+    if (!namespace) return;
+    
+    // Clear cache and force reload
+    lastLoadedNamespace.value = null;
+    await loadAgentsForNamespace(namespace);
+  };
+
   return {
     // state
     availableAgents,
@@ -218,6 +227,7 @@ export const useAgentsStore = defineStore('agents', () => {
     // actions
     fetchAvailableAgents,
     fetchAgentHierarchy,
+    forceRefreshAgents,
     ensureAgentsLoaded,
   };
 });

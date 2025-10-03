@@ -531,14 +531,29 @@ class ApiService {
     // Determine if this is a database namespace or file-based
     const isDatabaseNamespace = namespace && namespace !== 'demo' && namespace !== 'global';
     
+    console.log('🔍 [ApiService.getAgentHierarchy] Routing decision:', {
+      namespace,
+      isDatabaseNamespace,
+      endpoint: isDatabaseNamespace ? '/agent-to-agent/.well-known/hierarchy' : '/agents/.well-known/hierarchy'
+    });
+    
     if (isDatabaseNamespace) {
       // Database agents: use A2A controller endpoint
       const response = await this.axiosInstance.get('/agent-to-agent/.well-known/hierarchy');
+      console.log('✅ [ApiService.getAgentHierarchy] A2A response:', {
+        totalAgents: response.data?.metadata?.totalAgents,
+        source: response.data?.metadata?.source,
+        rootNodes: response.data?.data?.length
+      });
       return response.data;
     } else {
       // File-based agents: use legacy DynamicAgents controller endpoint
       // This returns both file-based AND database agents merged together for backward compatibility
       const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
+      console.log('✅ [ApiService.getAgentHierarchy] Legacy response:', {
+        totalAgents: response.data?.metadata?.totalAgents,
+        rootNodes: response.data?.data?.length
+      });
       return response.data;
     }
   }
