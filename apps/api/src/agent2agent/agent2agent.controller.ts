@@ -160,8 +160,15 @@ export class Agent2AgentController {
     const { dto, jsonrpc } = await this.normalizeTaskRequest(adaptedBody);
     
     try {
+      // Get the agent record to use the correct agent_type
+      const agentRecord = await this.agentRegistry.getAgent(org, agentSlug);
+      if (!agentRecord) {
+        throw new Error(`Agent ${agentSlug} not found in organization ${org || 'global'}`);
+      }
+
       this.logger.debug(`🔍 [Agent2AgentController] Creating task for user ${currentUser.id}, agent ${agentSlug}`);
       this.logger.debug(`🔍 Normalized DTO: ${JSON.stringify({ mode: dto.mode, conversationId: dto.conversationId })}`);
+      this.logger.debug(`🔍 Agent record: ${JSON.stringify({ agentType: agentRecord.agent_type, slug: agentRecord.slug })}`);
       
       // Extract data from normalized DTO (which came from adaptedBody)
       const taskIdFromPayload = dto.payload?.taskId || body.id; // JSON-RPC id or payload.taskId
@@ -178,6 +185,7 @@ export class Agent2AgentController {
       this.logger.debug(`📝 Attempting to create task in database with:`, {
         userId: currentUser.id,
         agentName: agentSlug,
+        agentType: agentRecord.agent_type,
         method: dto.mode,
         conversationId: dto.conversationId,
         taskId: taskIdFromPayload,
@@ -186,7 +194,7 @@ export class Agent2AgentController {
       const task = await this.tasksService.createTask(
         currentUser.id,
         agentSlug, // agentName
-        'specialist' as AgentType, // agentType - use specialist category for database agents
+        agentRecord.agent_type as AgentType, // Use actual agent type from database
         {
           method: dto.mode, // Use the normalized mode from DTO
           prompt: dto.userMessage || '',
