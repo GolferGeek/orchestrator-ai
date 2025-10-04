@@ -9,8 +9,8 @@ import {
   ModelHealth,
 } from './local-model-status.service';
 import { MemoryManagerService, MemoryStats } from './memory-manager.service';
-import { SupabaseService } from '../supabase/supabase.service';
-import { getTableName } from '../supabase/supabase.config';
+import { SupabaseService } from '@/supabase/supabase.service';
+import { getTableName } from '@/supabase/supabase.config';
 
 export interface AlertThresholds {
   responseTime: number; // milliseconds

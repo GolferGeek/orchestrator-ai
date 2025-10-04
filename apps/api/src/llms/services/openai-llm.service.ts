@@ -6,11 +6,11 @@ import {
   LLMServiceConfig,
   ResponseMetadata,
 } from './llm-interfaces';
-import { PIIService } from '../../services/pii.service';
+import { PIIService } from '../pii/pii.service';
 import {
   DictionaryPseudonymizerService,
   DictionaryPseudonymMapping,
-} from '../../services/dictionary-pseudonymizer.service';
+} from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import OpenAI from 'openai';

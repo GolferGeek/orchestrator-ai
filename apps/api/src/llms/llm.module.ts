@@ -2,8 +2,13 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { LLMService } from './llm.service';
 import { LLMController } from './llm.controller';
-import { SupabaseModule } from '../supabase/supabase.module';
-import { CIDAFMModule } from '../cidafm/cidafm.module';
+import { SupabaseModule } from '@/supabase/supabase.module';
+import { CIDAFMModule } from './cidafm/cidafm.module';
+import { ProvidersModule } from './providers/providers.module';
+import { EvaluationModule } from './evaluation/evaluation.module';
+import { UsageModule } from './usage/usage.module';
+import { LangChainModule } from './langchain/langchain.module';
+import { SimplifiedPIIModule } from './pii/pii-simplified.module';
 import { SovereignPolicyModule } from '../config/sovereign-policy.module';
 import { ModelConfigurationModule } from '../config/model-configuration.module';
 import { FeatureFlagModule } from '../config/feature-flag.module';
@@ -23,8 +28,8 @@ import { LlmUsageController } from './llm-usage.controller';
 import { SourceBlindingService } from './source-blinding.service';
 import { BlindedLLMService } from './blinded-llm.service';
 import { BlindedHttpService } from './blinded-http.service';
-import { PIIService } from '../services/pii.service';
-import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
+import { PIIService } from './pii/pii.service';
+import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
 import { LLMServiceFactory } from './services/llm-service-factory';
 import { OpenAILLMService } from './services/openai-llm.service';
 import { AnthropicLLMService } from './services/anthropic-llm.service';
@@ -35,11 +40,17 @@ import { GrokLLMService } from './services/grok-llm.service';
 @Module({
   imports: [
     SupabaseModule,
-    CIDAFMModule,
+    HttpModule,
     SovereignPolicyModule,
     FeatureFlagModule,
     ModelConfigurationModule,
-    HttpModule,
+    // LLM Sub-modules
+    CIDAFMModule,
+    ProvidersModule,
+    EvaluationModule,
+    UsageModule,
+    LangChainModule,
+    SimplifiedPIIModule,
   ],
   controllers: [
     LLMController,

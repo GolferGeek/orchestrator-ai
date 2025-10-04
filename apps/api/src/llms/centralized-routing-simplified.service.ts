@@ -8,7 +8,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { SimplifiedPIIService } from '../services/pii-simplified.service';
+import { SimplifiedPIIService } from './pii/pii-simplified.service';
 import { SimplifiedPIIMetadata } from '../common/types/simplified-pii-metadata.types';
 import { FeatureFlagService } from '../config/feature-flag.service';
 import { SovereignPolicyService } from '../config/sovereign-policy.service';

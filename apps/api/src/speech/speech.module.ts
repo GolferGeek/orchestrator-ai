@@ -4,8 +4,8 @@ import { HttpModule } from '@nestjs/axios';
 import { SpeechController } from './speech.controller';
 import { SpeechService } from './speech.service';
 import { SpeechService as DeepgramElevenLabsService } from './deepgram-elevenlabs.service';
-import { AgentConversationsModule } from '../agent-conversations/agent-conversations.module';
-import { TasksModule } from '../tasks/tasks.module';
+import { AgentConversationsModule } from '@/agent2agent/conversations/agent-conversations.module';
+import { TasksModule } from '../agent2agent/tasks/tasks.module';
 import { SupabaseModule } from '../supabase/supabase.module';
 
 @Module({

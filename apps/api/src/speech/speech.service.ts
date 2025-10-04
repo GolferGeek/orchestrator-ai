@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SpeechService as DeepgramElevenLabsService } from './deepgram-elevenlabs.service';
-import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
-import { TasksService } from '../tasks/tasks.service';
+import { AgentConversationsService } from '@/agent2agent/conversations/agent-conversations.service';
+import { TasksService } from '../agent2agent/tasks/tasks.service';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 import {
   ConversationRequestDto,

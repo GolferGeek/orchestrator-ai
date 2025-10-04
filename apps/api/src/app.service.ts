@@ -1,7 +1,4 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { AgentDiscoveryService } from './agent-discovery.service';
-import { AgentFactoryService } from './agent-factory.service';
-import { AgentPoolService } from './agent-pool/agent-pool.service';
 import { LLMService } from '@llm/llm.service';
 import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
 import { AgentRecord } from './agent-platform/interfaces/agent-record.interface';
@@ -18,129 +15,18 @@ export class AppService implements OnModuleInit {
   private agentRecords: Array<{ agent: any; instance: any }> = [];
 
   constructor(
-    private readonly agentDiscovery: AgentDiscoveryService,
-    private readonly agentFactory: AgentFactoryService,
-    private readonly agentPoolService: AgentPoolService,
     private readonly llmService: LLMService,
     private readonly agentRegistry: AgentRegistryService,
   ) {}
 
   async onModuleInit() {
-    try {
-      // Step 1: Discover all agents
-
-      this.discoveredAgents = await this.agentDiscovery.discoverAgents();
-
-      if (this.discoveredAgents.length === 0) {
-        return;
-      }
-
-      // Step 2: Create agent instances using factory
-
-      this.agentRecords = [];
-      this.agentInstances = [];
-
-      for (const discoveredAgent of this.discoveredAgents) {
-        try {
-          const serviceInstance =
-            await this.agentFactory.createAgent(discoveredAgent);
-
-          discoveredAgent.serviceInstance = serviceInstance;
-
-          this.agentRecords.push({
-            agent: discoveredAgent,
-            instance: serviceInstance,
-          });
-
-          // Step 3: Register with agent pool
-          await this.registerAgentWithPool(serviceInstance, discoveredAgent);
-
-          this.agentInstances.push(serviceInstance);
-        } catch (error: any) {
-          this.agentRecords.push({
-            agent: discoveredAgent,
-            instance: null,
-          });
-
-          // Continue with other agents
-          this.agentInstances.push(null);
-        }
-      }
-
-      // Summary log
-      if (this.discoveredAgents.length > 0) {
-        this.agentRecords.forEach(({ agent, instance }) => {
-          const _status = instance ? '✅' : '❌';
-        });
-      }
-    } catch (error: any) {
-      throw error;
-    }
+    // Legacy file-based agent discovery removed
+    // Now using agent-platform for all agent execution
+    this.discoveredAgents = [];
+    this.agentRecords = [];
+    this.agentInstances = [];
   }
 
-  /**
-   * Register agent with internal agent pool
-   */
-  private async registerAgentWithPool(
-    serviceInstance: any,
-    discoveredAgent: any,
-  ): Promise<void> {
-    try {
-      // Get agent card information from the service instance (includes YAML description)
-      let agentCard = null;
-      try {
-        if (
-          serviceInstance &&
-          typeof serviceInstance.getAgentCard === 'function'
-        ) {
-          agentCard = await serviceInstance.getAgentCard();
-        }
-      } catch (_error) {}
-
-      // Build agent registration object
-      const agentRegistration = {
-        id: this.agentDiscovery.generateAgentId(
-          discoveredAgent.name,
-          discoveredAgent.namespacedPath || discoveredAgent.path,
-        ),
-        name: agentCard?.name || discoveredAgent.name,
-        type: this.agentDiscovery.determineAgentType(
-          discoveredAgent.namespacedPath || discoveredAgent.path,
-        ),
-        path: discoveredAgent.namespacedPath || discoveredAgent.path,
-        url: this.agentDiscovery.buildAgentUrl(
-          discoveredAgent.namespacedPath || discoveredAgent.path,
-          discoveredAgent.name,
-        ),
-        description:
-          agentCard?.description ||
-          `${discoveredAgent.name} - A specialized agent for handling specific tasks`,
-        capabilities: agentCard?.capabilities || [], // Will be enhanced by individual agents if needed
-        skills: agentCard?.skills || [], // Will be enhanced by individual agents if needed
-        inputModes: agentCard?.inputModes || ['text/plain', 'application/json'],
-        outputModes: agentCard?.outputModes || [
-          'text/plain',
-          'application/json',
-        ],
-        metadata: {
-          version: '1.0.0',
-          agentPath: discoveredAgent.namespacedPath || discoveredAgent.path,
-          servicePath: discoveredAgent.servicePath,
-          functionPath: discoveredAgent.functionPath,
-          pythonFunctionPath: discoveredAgent.pythonFunctionPath,
-          namespace: discoveredAgent.namespace,
-        },
-        status: 'online' as const,
-        registeredAt: new Date(),
-        lastHeartbeat: new Date(),
-      };
-
-      // Register with internal agent pool
-      await this.agentPoolService.registerAgent(agentRegistration);
-    } catch (error: any) {
-      throw error;
-    }
-  }
 
   getHello(): string {
     return 'NestJS A2A Agent Framework - Ready!';
@@ -184,7 +70,7 @@ export class AppService implements OnModuleInit {
         } catch (_error) {}
 
         return {
-          id: this.agentDiscovery.generateAgentId(
+          id: this.generateAgentId(
             agent.name,
             agent.namespacedPath || agent.path,
           ),
@@ -392,5 +278,15 @@ export class AppService implements OnModuleInit {
     }
 
     return 'conversation_only';
+  }
+
+  private generateAgentId(name: string, path: string): string {
+    const normalizedName = (name ?? '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_');
+    const normalizedPath = (path ?? '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_');
+    return `${normalizedPath}_${normalizedName}`;
   }
 }

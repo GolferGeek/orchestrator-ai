@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DeliverablesService } from '@/deliverables/deliverables.service';
-import { DeliverableVersionsService } from '@/deliverables/deliverable-versions.service';
+import { DeliverablesService } from '@/agent2agent/deliverables/deliverables.service';
+import { DeliverableVersionsService } from '@/agent2agent/deliverables/deliverable-versions.service';
 import {
   CreateDeliverableDto,
   DeliverableFormat,
   DeliverableType,
   DeliverableVersionCreationType,
-} from '@/deliverables/dto';
+} from '@/agent2agent/deliverables/dto';
 import { AgentTaskMode, TaskRequestDto } from '@agent2agent/dto/task-request.dto';
 import { AssetsService } from '@/assets/assets.service';
 

@@ -14,6 +14,11 @@ import { Agent2AgentDeliverablesService } from './services/agent2agent-deliverab
 import { Agent2AgentTasksService } from './services/agent-tasks.service';
 import { Agent2AgentTaskStatusService } from './services/agent-task-status.service';
 import { Agent2AgentConversationsService } from './services/agent-conversations.service';
+import { AgentConversationsModule } from './conversations/agent-conversations.module';
+import { TasksModule } from './tasks/tasks.module';
+import { DeliverablesModule } from './deliverables/deliverables.module';
+import { ProjectsModule } from './projects/projects.module';
+import { ContextOptimizationModule } from './context-optimization/context-optimization.module';
 
 @Module({
   imports: [
@@ -21,6 +26,12 @@ import { Agent2AgentConversationsService } from './services/agent-conversations.
     LLMModule,
     AuthModule,
     SupabaseModule,
+    // Agent2Agent Sub-modules
+    AgentConversationsModule,
+    TasksModule,
+    DeliverablesModule,
+    ProjectsModule,
+    ContextOptimizationModule,
   ],
   controllers: [Agent2AgentController, AgentApprovalsActionsController],
   providers: [

@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, LogLevel } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { AgentPoolService } from './agent-pool/agent-pool.service';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as express from 'express';
 import * as dotenv from 'dotenv';
@@ -220,14 +219,8 @@ async function bootstrap() {
 
   await app.listen(port);
 
-  // Ensure agent pool service is ready
-  app.get(AgentPoolService);
-
-  // Agent discovery and instantiation is now handled by AppService.onModuleInit()
-  // No need for manual calls here - the AppService will handle:
-  // 1. AgentDiscoveryService.discoverAgents()
-  // 2. AgentFactoryService.createAgent() for each discovered agent
-  // 3. Registration with agent pool
+  // Agent discovery and registration is now handled by AgentPlatformModule
+  // All agents are now database-backed via agent-platform
 }
 
 bootstrap().catch((error) => {

@@ -10,8 +10,8 @@ import {
   LocalLLMRequest,
   LocalLLMResponse,
 } from './llm-interfaces';
-import { PIIService } from '../../services/pii.service';
-import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
+import { PIIService } from '../pii/pii.service';
+import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMErrorMapper } from './llm-error-handling';

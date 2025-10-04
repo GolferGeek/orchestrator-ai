@@ -7,13 +7,13 @@ import {
   SystemMessage,
   AIMessage,
 } from '@langchain/core/messages';
-import { SupabaseService } from '../supabase/supabase.service';
-import { CIDAFMService } from '../cidafm/cidafm.service';
+import { SupabaseService } from '@/supabase/supabase.service';
+import { CIDAFMService } from './cidafm/cidafm.service';
 import { CentralizedRoutingService } from './centralized-routing.service';
 import { RunMetadataService } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
-import { PIIService } from '../services/pii.service';
-import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
+import { PIIService } from './pii/pii.service';
+import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
@@ -33,11 +33,11 @@ import {
   SystemLLMConfigs,
   SystemOperationType,
   UserLLMPreferences,
-} from '../types/llm-evaluation';
-import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
+} from '@/types/llm-evaluation';
+import { mapProviderFromDb, mapModelFromDb } from '@/utils/case-converter';
 import { ModelConfigurationService } from '../config/model-configuration.service';
 import type { EnvironmentName } from '../config/model-configuration.service';
-import { getTableName } from '../supabase/supabase.config';
+import { getTableName } from '@/supabase/supabase.config';
 import {
   LLMError,
   LLMErrorMapper,

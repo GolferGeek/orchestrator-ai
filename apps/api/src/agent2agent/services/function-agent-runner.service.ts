@@ -3,7 +3,7 @@ import * as vm from 'vm';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
-import { ImageAgentsService } from '@/image-agents/image-agents.service';
+// ImageAgentsService archived - image functionality to be implemented via agent-platform
 import { AgentBuilderService } from '@agent-platform/services/agent-builder.service';
 
 @Injectable()
@@ -11,7 +11,6 @@ export class FunctionAgentRunnerService {
   private readonly logger = new Logger(FunctionAgentRunnerService.name);
 
   constructor(
-    private readonly images: ImageAgentsService,
     @Inject(forwardRef(() => AgentBuilderService))
     private readonly agentBuilder: AgentBuilderService,
   ) {}
@@ -44,22 +43,8 @@ export class FunctionAgentRunnerService {
             if (!conversationId || !userId) {
               throw new Error('conversationId and userId are required for image generation');
             }
-            const providers = Array.isArray(args.providers) && args.providers.length ? args.providers : [args.provider || (request.payload as any)?.provider || (request.payload as any)?.providers?.[0] || 'openai'];
-            let last: any = null;
-            for (const p of providers) {
-              last = await this.images.generateImage({
-                prompt: args.prompt,
-                conversationId,
-                userId,
-                organizationSlug,
-                size: (args.size as any) || '512x512',
-                n: args.n || (request.payload as any)?.n || 1,
-                title: args.title || undefined,
-                provider: p as any,
-                deliverableId: (args.deliverableId as any) || (request.payload as any)?.deliverableId || null,
-              });
-            }
-            return last;
+            // Image generation archived - to be reimplemented via agent-platform
+            throw new Error('Image generation functionality has been archived and will be reimplemented via agent-platform');
           },
         },
         agentBuilder: this.agentBuilder.getContext(),

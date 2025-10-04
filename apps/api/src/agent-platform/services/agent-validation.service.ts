@@ -32,8 +32,8 @@ export class AgentValidationService {
 
     // Additional runtime checks per type
     if (type === 'function') {
-      // Function code must be in function_code column
-      const functionCode = (payload as any)?.function_code;
+      // Function code can be in function_code column (database format) or config.configuration.function.code (payload format)
+      const functionCode = (payload as any)?.function_code || (payload as any)?.config?.configuration?.function?.code;
 
       if (!functionCode || typeof functionCode !== 'string' || functionCode.trim().length === 0) {
         issues.push({ message: 'function_code is required for function agents' });

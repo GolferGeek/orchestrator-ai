@@ -5,7 +5,7 @@ import {
   LocalModelStatusService,
   ModelStatus,
 } from './local-model-status.service';
-import { SupabaseService } from '../supabase/supabase.service';
+import { SupabaseService } from '@/supabase/supabase.service';
 
 export interface LocalLLMRequest {
   model: string;

@@ -1,5 +1,5 @@
 import { Controller, Get, Logger } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
+import { SupabaseService } from '@/supabase/supabase.service';
 import { PseudonymizationService } from './pseudonymization.service';
 
 @Controller('llm/sanitization')

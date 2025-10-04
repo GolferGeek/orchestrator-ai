@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { SupabaseService } from '../supabase/supabase.service';
-import { getTableName } from '../supabase/supabase.config';
-import { LLMUsageMetrics } from '../types/llm-evaluation';
+import { SupabaseService } from '@/supabase/supabase.service';
+import { getTableName } from '@/supabase/supabase.config';
+import { LLMUsageMetrics } from '@/types/llm-evaluation';
 
 export interface RunMetadata {
   runId: string;

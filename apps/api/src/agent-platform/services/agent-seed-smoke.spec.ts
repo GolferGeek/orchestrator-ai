@@ -15,17 +15,14 @@ describe('Seed payloads (local smoke without HTTP)', () => {
   const builderPath = resolve(root, 'docs/feature/matt/payloads/agent_builder_orchestrator.json');
   const chatBuilderPath = resolve(root, 'docs/feature/matt/payloads/agent_builder_chat.json');
 
-  it('validates Blog Post Writer and dry-runs function code', async () => {
+  it('validates Blog Post Writer (context agent)', async () => {
     const blog = JSON.parse(readFileSync(blogPath, 'utf8'));
     const v = validator.validateByType(blog.agent_type, blog);
     const p = policy.check(blog);
     expect(v.ok).toBe(true);
     expect(p.length).toBe(0);
-    const code = blog?.config?.configuration?.function?.code as string;
-    const res = await dry.runFunction(code, { title: 'Test Title', outline: ['Intro', 'Body', 'Conclusion'] }, 1000);
-    expect(res.ok).toBe(true);
-    expect(String(res.result?.format)).toContain('markdown');
-    expect(String(res.result?.content)).toContain('# Test Title');
+    // Context agent - no function code to dry-run
+    expect(blog.agent_type).toBe('context');
   });
 
   it('validates HR Assistant (context agent)', async () => {
@@ -40,6 +37,9 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     const builder = JSON.parse(readFileSync(builderPath, 'utf8'));
     const v = validator.validateByType(builder.agent_type, builder);
     const p = policy.check(builder);
+    if (!v.ok) {
+      console.log('Agent Builder Orchestrator validation errors:', v.issues);
+    }
     expect(v.ok).toBe(true);
     expect(p.length).toBe(0);
 
@@ -58,6 +58,9 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     const chatBuilder = JSON.parse(readFileSync(chatBuilderPath, 'utf8'));
     const v = validator.validateByType(chatBuilder.agent_type, chatBuilder);
     const p = policy.check(chatBuilder);
+    if (!v.ok) {
+      console.log('Agent Builder Chat validation errors:', v.issues);
+    }
     expect(v.ok).toBe(true);
     expect(p.length).toBe(0);
     expect(chatBuilder.config?.configuration?.function?.code).toBeDefined();

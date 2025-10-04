@@ -7,54 +7,9 @@ import { AppService } from './app.service';
 import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
-import { AgentPoolModule } from './agent-pool/agent-pool.module';
 import { LLMModule } from '@/llms/llm.module';
-import { AgentDiscoveryService } from './agent-discovery.service';
-import { AgentFactoryService } from './agent-factory.service';
-import { DynamicAgentsController } from './agents/dynamic-agents.controller';
-import { HierarchySimpleController } from './hierarchy-simple.controller';
-import { HierarchyController } from './hierarchy/hierarchy.controller';
-import { IntentRecognitionService } from './agents/base/implementations/base-services/orchestrator/intent-recognition.service';
-import { MarketingManagerOrchestratorModule } from './agents/demo/marketing/marketing_manager_orchestrator/agent.module';
-import { CEOOrchestratorModule } from './agents/demo/orchestrator/ceo_orchestrator/agent.module';
-import { EngineeringManagerOrchestratorModule } from './agents/demo/engineering/engineering_manager_orchestrator/agent.module';
-import { OperationsManagerOrchestratorModule } from './agents/demo/operations/operations_manager_orchestrator/agent.module';
-import { FinanceManagerOrchestratorModule } from './agents/demo/finance/finance_manager_orchestrator/agent.module';
-import { HRManagerOrchestratorModule } from './agents/demo/hr/hr_manager_orchestrator/agent.module';
-import { SalesManagerOrchestratorModule } from './agents/demo/sales/sales_manager_orchestrator/agent.module';
-import { ProductManagerOrchestratorModule } from './agents/demo/product/product_manager_orchestrator/agent.module';
-import { ResearchManagerOrchestratorModule } from './agents/demo/research/research_manager_orchestrator/agent.module';
-import { SpecialistsManagerOrchestratorModule } from './agents/demo/specialists/specialists_manager_orchestrator/agent.module';
-import { LegalManagerOrchestratorModule } from './agents/demo/legal/legal_manager_orchestrator/agent.module';
-import { ProductivityManagerOrchestratorModule } from './agents/demo/productivity/productivity_manager_orchestrator/agent.module';
-// Orchestrator service imports removed - services are now provided by their respective modules
-import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
-import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
-import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
-import { ProvidersModule } from './providers/providers.module';
-import { CIDAFMModule } from './cidafm/cidafm.module';
-import { EvaluationModule } from './evaluation/evaluation.module';
-import { UsageModule } from './usage/usage.module';
-// import { OrchestratorModule } from './agents/demo/orchestrator/agent.module'; // TODO: Create when orchestrator agents are built
-import { AgentConversationsModule } from './agent-conversations/agent-conversations.module';
-import { TasksModule } from './tasks/tasks.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { LangChainModule } from './langchain/langchain.module';
-import { ProjectsModule } from './projects/projects.module';
-import { DeliverablesModule } from './deliverables/deliverables.module';
-import { ContextOptimizationService } from './context-optimization/context-optimization.service';
-import { ContextMetricsListener } from './context-optimization/context-metrics.listener';
-import { ContextMetricsController } from './context-optimization/context-metrics.controller';
-import { AgentServicesContextModule } from './agents/base/services/agent-services-context.module';
-import { FunctionAgentServicesContextModule } from './agents/base/services/function-agent-services-context.module';
-import { ApiAgentServicesContextModule } from './agents/base/services/api-agent-services-context.module';
-import { PythonFunctionAgentServicesContextModule } from './agents/base/services/python-function-agent-services-context.module';
-import { ExternalAgentServicesContextModule } from './agents/base/services/external-agent-services-context.module';
-import { OrchestratorAgentServicesContextModule } from './agents/base/implementations/base-services/orchestrator/orchestrator-agent-services-context.module';
-import { UniversalAgentServicesContextModule } from './agents/base/services/universal-agent-services-context.module';
-// Temporarily disable supabase config to resolve build issue
-// import supabaseConfig from './supabase/supabase.config';
 import { MCPModule } from './mcp/mcp.module';
 import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
@@ -63,93 +18,47 @@ import { SpeechModule } from './speech/speech.module';
 import { Agent2AgentModule } from './agent2agent/agent2agent.module';
 import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
-import { ImageAgentsModule } from './image-agents/image-agents.module';
+import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        // Load from root directory .env file
         join(__dirname, '../../../.env'),
         '../../.env',
-        // Fallback for when running from different locations
         join(process.cwd(), '.env'),
         '.env',
       ],
       expandVariables: true,
-      // load: [supabaseConfig], // Temporarily disabled to resolve build issue
     }),
-    HttpModule, // Add HttpModule for agent services
-    LLMModule, // Add LLMModule for LLM and LangSmith services
-    BaseSubServicesModule, // Add BaseSubServicesModule for agent sub-services
+    // Core Infrastructure
+    HttpModule,
     SupabaseModule,
     AuthModule,
     HealthModule,
-    AgentPoolModule,
-    // LLM Evaluation Enhancement Modules
-    ProvidersModule, // LLM providers and models management
-    CIDAFMModule, // AI Function Module behavior modification
-    EvaluationModule, // Message evaluation and feedback
-    UsageModule, // Usage analytics and cost tracking
-    // Agent Modules
-    // OrchestratorModule, // TODO: Add when orchestrator agents are built
-    MarketingManagerOrchestratorModule, // Marketing orchestrator with full DI
-    CEOOrchestratorModule, // CEO orchestrator with full DI
-    EngineeringManagerOrchestratorModule, // Engineering manager orchestrator
-    OperationsManagerOrchestratorModule, // Operations manager orchestrator
-    FinanceManagerOrchestratorModule, // Finance manager orchestrator
-    HRManagerOrchestratorModule, // HR manager orchestrator
-    SalesManagerOrchestratorModule, // Sales manager orchestrator
-    ProductManagerOrchestratorModule, // Product manager orchestrator
-    ResearchManagerOrchestratorModule, // Research manager orchestrator
-    SpecialistsManagerOrchestratorModule, // Specialists manager orchestrator
-    LegalManagerOrchestratorModule, // Legal manager orchestrator
-    ProductivityManagerOrchestratorModule, // Productivity manager orchestrator
-    // Direct Agent Access Modules
-    EventEmitterModule.forRoot(), // Event system for real-time updates
-    AgentConversationsModule, // Agent conversation tracking
-    TasksModule, // Task lifecycle management
-    WebSocketModule, // Real-time WebSocket updates
-    LangChainModule, // LangChain.js integration for agents
-    ProjectsModule, // Project lifecycle management and recovery
-    DeliverablesModule, // Deliverables persistence and management
-    AgentPlatformModule,
-    Agent2AgentModule,
-    AgentServicesContextModule, // Service container for simplified context agent DI
-    FunctionAgentServicesContextModule, // Service container for simplified function agent DI
-    ApiAgentServicesContextModule, // Service container for simplified API agent DI
-    PythonFunctionAgentServicesContextModule, // Service container for simplified Python function agent DI
-    ExternalAgentServicesContextModule, // Service container for simplified external agent DI
-    OrchestratorAgentServicesContextModule, // Service container for simplified orchestrator agent DI
-    UniversalAgentServicesContextModule, // Universal service container for all agent types
-    MCPModule, // MCP (Model Context Protocol) server and client functionality
-    SovereignPolicyModule, // Sovereign mode policy management
-    SystemModule, // System analytics and monitoring
-    SpeechModule, // Speech-to-text and text-to-speech functionality
-    AssetsModule, // Asset storage and streaming (images, etc.)
-    ImageAgentsModule, // Image generation (providers) and deliverable creation
+    WebSocketModule,
+    MCPModule,
+    EventEmitterModule.forRoot(),
+
+    // Main Modules (consolidated)
+    LLMModule,              // Includes: providers, models, evaluation, cidafm, usage, langchain, pii
+    Agent2AgentModule,      // Includes: conversations, tasks, deliverables, projects, context-optimization, orchestration
+    AgentPlatformModule,    // Includes: database agents, registry, hierarchy
+
+    // Standalone Features
+    SovereignPolicyModule,
+    SystemModule,
+    SpeechModule,
+    AssetsModule,
   ],
   controllers: [
     AppController,
-    DynamicAgentsController,
-    HierarchySimpleController,
-    ContextMetricsController,
-    HierarchyController,
-    // Dev analytics sink to avoid 404s from frontend tracking
     AnalyticsController,
   ],
   providers: [
     AppService,
-    AgentDiscoveryService,
-    AgentFactoryService,
-    IntentRecognitionService, // Orchestrator service for testing
-    ConfigurationService,
-    AgentRegistrationService,
-    ContextOptimizationService,
-    ContextMetricsListener,
-    // TODO: Dynamic agents will be instantiated via discovery service + factory
-    // No need for hardcoded agent imports - everything is discovered and created dynamically
+    AgentRegistryService,
   ],
 })
 export class AppModule {}

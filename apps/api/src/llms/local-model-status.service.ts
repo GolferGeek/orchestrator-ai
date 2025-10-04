@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { SupabaseService } from '../supabase/supabase.service';
-import { getTableName } from '../supabase/supabase.config';
+import { SupabaseService } from '@/supabase/supabase.service';
+import { getTableName } from '@/supabase/supabase.config';
 
 export interface ModelStatus {
   name: string;

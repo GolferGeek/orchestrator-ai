@@ -19,12 +19,11 @@ import { AgentRegistryInvalidationService } from './services/agent-registry-inva
 import { AgentRuntimeMetricsService } from './services/agent-runtime-metrics.service';
 import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-deliverables.adapter';
-import { DeliverablesModule } from '@/deliverables/deliverables.module';
+import { DeliverablesModule } from '@/agent2agent/deliverables/deliverables.module';
 import { AssetsModule } from '@/assets/assets.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
 import { FunctionAgentRunnerService } from '@/agent2agent/services/function-agent-runner.service';
-import { ImageAgentsModule } from '@/image-agents/image-agents.module';
 import { HumanApprovalsRepository } from './repositories/human-approvals.repository';
 import { RedactionPatternsRepository } from './repositories/redaction-patterns.repository';
 import { AgentApprovalsController } from './controllers/agent-approvals.controller';
@@ -34,9 +33,18 @@ import { AgentDryRunService } from './services/agent-dry-run.service';
 import { AgentPolicyService } from './services/agent-policy.service';
 import { AgentBuilderService } from './services/agent-builder.service';
 import { AgentPromotionService } from './services/agent-promotion.service';
+import { HierarchyModule } from './hierarchy/hierarchy.module';
 
 @Module({
-  imports: [SupabaseModule, LLMModule, HttpModule, DeliverablesModule, AssetsModule, ImageAgentsModule],
+  imports: [
+    SupabaseModule,
+    LLMModule,
+    HttpModule,
+    DeliverablesModule,
+    AssetsModule,
+    // Agent Platform Sub-modules
+    HierarchyModule,
+  ],
   controllers: [AgentApprovalsController, AgentsAdminController],
   providers: [
     AgentsRepository,

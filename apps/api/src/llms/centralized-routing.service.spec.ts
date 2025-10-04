@@ -1,10 +1,10 @@
 import { CentralizedRoutingService } from './centralized-routing.service';
 import { LocalModelStatusService } from './local-model-status.service';
-import { SupabaseService } from '../supabase/supabase.service';
+import { SupabaseService } from '@/supabase/supabase.service';
 import { SovereignPolicyService } from '../config/sovereign-policy.service';
 import { FeatureFlagService } from '../config/feature-flag.service';
-import { PIIService } from '../services/pii.service';
-import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
+import { PIIService } from './pii/pii.service';
+import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from './run-metadata.service';
 
 function makeService(overrides?: Partial<{
