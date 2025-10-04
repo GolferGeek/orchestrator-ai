@@ -2,21 +2,163 @@
   "organization_slug": "my-org",
   "slug": "blog_post_writer",
   "display_name": "Blog Post Writer",
-  "description": "Creates SEO-friendly blog posts in Markdown format with clear structure and helpful tone",
+  "description": "Creates SEO-friendly blog posts in Markdown format with clear structure and helpful tone. Supports full mode × action architecture with plans and deliverables.",
   "agent_type": "context",
-  "mode_profile": "draft",
+  "mode_profile": "autonomous_build",
   "status": "active",
   "yaml": "input_modes: ['application/json']\noutput_modes: ['text/markdown']\n",
   "context": {
     "system": "You are a blog post writer. Produce SEO-friendly Markdown with clear headings, intro, body, and conclusion. Maintain a helpful, concise tone."
   },
   "config": {
-    "execution_profile": "full_capabilities",
+    "execution_profile": "autonomous_build",
     "execution_capabilities": {
       "can_converse": true,
       "can_plan": true,
       "can_build": true
-    }
+    },
+    "a2a_capabilities": [
+      {
+        "mode": "plan",
+        "action": "create",
+        "description": "Create or refine a plan for the blog post",
+        "requires": ["title", "content"],
+        "returns": "Plan with initial version"
+      },
+      {
+        "mode": "plan",
+        "action": "read",
+        "description": "Read the current plan",
+        "requires": [],
+        "returns": "Current plan with version"
+      },
+      {
+        "mode": "plan",
+        "action": "list",
+        "description": "List all plan versions",
+        "requires": [],
+        "returns": "Array of plan versions"
+      },
+      {
+        "mode": "plan",
+        "action": "edit",
+        "description": "Manually edit the plan (creates new version)",
+        "requires": ["content"],
+        "returns": "New plan version"
+      },
+      {
+        "mode": "plan",
+        "action": "set_current",
+        "description": "Set a specific plan version as current",
+        "requires": ["versionId"],
+        "returns": "Updated plan"
+      },
+      {
+        "mode": "plan",
+        "action": "delete_version",
+        "description": "Delete a specific plan version",
+        "requires": ["versionId"],
+        "returns": "Success status"
+      },
+      {
+        "mode": "plan",
+        "action": "merge_versions",
+        "description": "Merge multiple plan versions using LLM",
+        "requires": ["versionIds", "mergePrompt"],
+        "returns": "New merged version"
+      },
+      {
+        "mode": "plan",
+        "action": "copy_version",
+        "description": "Copy a plan version to create a new version",
+        "requires": ["versionId"],
+        "returns": "New copied version"
+      },
+      {
+        "mode": "plan",
+        "action": "delete",
+        "description": "Delete the entire plan",
+        "requires": [],
+        "returns": "Success status"
+      },
+      {
+        "mode": "build",
+        "action": "create",
+        "description": "Create or enhance a deliverable (blog post)",
+        "requires": ["title", "content"],
+        "returns": "Deliverable with initial version"
+      },
+      {
+        "mode": "build",
+        "action": "read",
+        "description": "Read the current deliverable",
+        "requires": [],
+        "returns": "Current deliverable with version"
+      },
+      {
+        "mode": "build",
+        "action": "list",
+        "description": "List all deliverable versions",
+        "requires": [],
+        "returns": "Array of deliverable versions"
+      },
+      {
+        "mode": "build",
+        "action": "edit",
+        "description": "Manually edit the deliverable (creates new version)",
+        "requires": ["content"],
+        "returns": "New deliverable version"
+      },
+      {
+        "mode": "build",
+        "action": "rerun",
+        "description": "Rerun the deliverable with a different LLM",
+        "requires": ["versionId", "provider", "model"],
+        "returns": "New rerun version"
+      },
+      {
+        "mode": "build",
+        "action": "set_current",
+        "description": "Set a specific deliverable version as current",
+        "requires": ["versionId"],
+        "returns": "Updated deliverable"
+      },
+      {
+        "mode": "build",
+        "action": "delete_version",
+        "description": "Delete a specific deliverable version",
+        "requires": ["versionId"],
+        "returns": "Success status"
+      },
+      {
+        "mode": "build",
+        "action": "merge_versions",
+        "description": "Merge multiple deliverable versions using LLM",
+        "requires": ["versionIds", "mergePrompt"],
+        "returns": "New merged version"
+      },
+      {
+        "mode": "build",
+        "action": "copy_version",
+        "description": "Copy a deliverable version to create a new version",
+        "requires": ["versionId"],
+        "returns": "New copied version"
+      },
+      {
+        "mode": "build",
+        "action": "delete",
+        "description": "Delete the entire deliverable",
+        "requires": [],
+        "returns": "Success status"
+      },
+      {
+        "mode": "converse",
+        "action": "chat",
+        "description": "Have a conversation about blog post ideas",
+        "requires": ["message"],
+        "returns": "AI response"
+      }
+    ]
   }
 }
 
