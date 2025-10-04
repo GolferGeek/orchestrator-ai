@@ -20,16 +20,19 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 
 | Phase | Name | Duration | Status |
 |-------|------|----------|--------|
-| **0** | **Aggressive Cleanup** | 3 days | 🔜 **START HERE** |
-| 1 | Context Agents (Deliverable Workflow) | 7 days | ⏳ Pending |
+| **0** | **Aggressive Cleanup** | 3 days | ✅ **COMPLETE** |
+| 1 | Context Agents (Plans & Deliverables) | 7 days | 🔄 In Progress |
 | 2 | Conversation-Only Agents | 3 days | ⏳ Pending |
 | 3 | API Agents (n8n Integration) | 10 days | ⏳ Pending |
-| 4 | Migrate File-Based Agents to Database | 10 days | ⏳ Pending |
-| 5 | Image Generation & Deliverables | 7 days | ⏳ Pending |
-| 6 | Orchestration System | 22 days | ⏳ Pending |
-| **Total** | | **~62 days (~12.5 weeks)** | |
+| 4 | Tool Agents (MCP Integration) | 5 days | ⏳ Pending |
+| 5 | Agent Builder UI | 10 days | ⏳ Pending |
+| 6 | Orchestration Examples (Finance Manager) | 7 days | ⏳ Pending |
+| 7 | Enhanced Orchestration | 15 days | ⏳ Pending |
+| 8 | Image Generation & Deliverables | 7 days | ⏳ Future |
+| 9 | Migrate File-Based Agents to Database | 10 days | ⏳ Future |
+| **Total** | | **~77 days (~15 weeks)** | |
 
-**🎯 1-Week Goal:** Complete Phases 0-1, ship to main, then iterate on Phases 2-5
+**🎯 Current Focus:** Phase 1 - Context Agents with Plans & Deliverables workflow
 
 ## Phase Details
 
@@ -70,11 +73,11 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 ---
 
 ### Phase 2: Conversation-Only Agents
-**Focus:** Get HR agent working as conversation-only
+**Focus:** Support agents that only converse (no deliverables)
 
-- Support `execution_profile: 'conversation_only'`
-- No deliverables panel for conversation-only agents
+- `execution_profile: 'conversation_only'` support
 - UI adapts based on agent capabilities
+- No deliverables panel for conversation-only agents
 - Execution capability validation
 
 **Key Deliverable:** HR agent provides helpful conversation without deliverables
@@ -84,15 +87,12 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 ---
 
 ### Phase 3: API Agents (n8n Integration)
-**Focus:** Implement 3 API agents backed by n8n workflows
+**Focus:** Complex agents backed by n8n workflows
 
 - API agent execution via webhooks
 - Async execution with callbacks
-- Three reference agents:
-  - Metrics agent
-  - Marketing swarm agent
-  - Requirements writer agent
-- n8n workflow versioning in git
+- n8n workflow versioning
+- Three reference agents: Metrics, Marketing Swarm, Requirements Writer
 
 **Key Deliverable:** Complex agents offloaded to n8n workflows
 
@@ -100,7 +100,80 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 
 ---
 
-### Phase 4: Migrate File-Based Agents to Database
+### Phase 4: Tool Agents (MCP Integration)
+**Focus:** Build agents using MCP tools
+
+- Supabase MCP agent for database queries
+- Investigate Obsidian MCP for /obsidian folder management
+- MCPToolAdapter pattern established
+- Tool execution logging and metrics
+
+**Key Deliverable:** Working tool agents that wrap MCP tools
+
+[📄 Full PRD](./phase-4-tool-agents-prd.md)
+
+---
+
+### Phase 5: Agent Builder UI
+**Focus:** Visual interface for creating agents
+
+- Template selector with pre-built agents
+- Config editor for all agent types
+- Live test studio with instant feedback
+- Version control and deployment pipeline
+- Monitor dashboard for agent analytics
+
+**Key Deliverable:** Non-technical users can create agents through UI
+
+[📄 Full PRD](./phase-5-agent-builder-prd.md)
+
+---
+
+### Phase 6: Orchestration Examples (Finance Manager)
+**Focus:** Real-world orchestration with Finance Manager
+
+- Finance Manager orchestrator using tool agents
+- Plans → Build workflow with orchestration mode
+- Supabase agent for metrics retrieval
+- Chart generation and report compilation
+- Template for building similar orchestrators
+
+**Key Deliverable:** Working Finance Manager that generates financial reports
+
+[📄 Full PRD](./phase-6-orchestration-examples-prd.md)
+
+---
+
+### Phase 7: Enhanced Orchestration
+**Focus:** Advanced multi-agent workflows
+
+- Complex orchestration workflows
+- Conditional branching and error handling
+- Parallel agent execution
+- Human-in-the-loop capabilities
+- Visual workflow editor
+
+**Key Deliverable:** Platform supports sophisticated orchestration patterns
+
+[📄 Full PRD](./phase-7-enhanced-orchestration-prd.md)
+
+---
+
+### Phase 8: Image Generation & Deliverables (Future)
+**Focus:** Complete image generation and deliverable system
+
+- Image generation agents (OpenAI DALL-E, Gemini Imagen)
+- Image storage and versioning
+- Asset management integration
+- Image deliverables workflow
+
+**Key Deliverable:** Image agents generate and store images
+
+[📄 Full PRD](./phase-8-image-generation-deliverables-prd.md)
+
+---
+
+### Phase 9: Migrate File-Based Agents to Database (Future)
 **Focus:** Bulk migration of all demo agents
 
 - YAML → database converter scripts
@@ -110,37 +183,7 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 
 **Key Deliverable:** All demo agents exist in database with identical behavior
 
-[📄 Full PRD](./phase-4-migration-database-agents-prd.md)
-
----
-
-### Phase 5: Image Generation & Deliverables
-**Focus:** Complete image generation and deliverable system
-
-- Image generation agents (OpenAI DALL-E, Gemini Imagen)
-- Image storage and versioning
-- Deliverable workflow completion (plan → build → edit)
-- Deliverable versions and history
-- Asset management integration
-
-**Key Deliverable:** Image agents generate and store images, deliverables fully functional
-
-[📄 Full PRD](./phase-5-image-generation-deliverables-prd.md)
-
----
-
-### Phase 6: Orchestration System
-**Focus:** Multi-agent workflow orchestration
-
-- Orchestration plans (multi-step workflows)
-- Orchestration runs (execution tracking)
-- Recipes/capabilities (reusable workflows)
-- Nested sub-orchestrations
-- Rich orchestration UI panel
-
-**Key Deliverable:** Orchestrators coordinate specialists through complex workflows
-
-[📄 Full PRD](./phase-6-orchestration-prd.md)
+[📄 Full PRD](./phase-9-migration-database-agents-prd.md)
 
 ---
 
@@ -187,20 +230,28 @@ When starting a new phase:
 ## Dependencies Between Phases
 
 ```
-Phase 0 (Aggressive Cleanup) ← START HERE
+Phase 0 (Aggressive Cleanup) ← ✅ COMPLETE
   ↓
-Phase 1 (Context Agents)
+Phase 1 (Context Agents - Plans & Deliverables) ← 🔄 IN PROGRESS
   ↓
-Phase 2 (Conversation-Only)
-  ↓
-Phase 3 (API Agents)
-  ↓
-Phase 4 (Migration)
-  ↓
-Phase 5 (Orchestration)
+  ├→ Phase 2 (Conversation-Only Agents)
+  │
+  ├→ Phase 3 (API Agents - n8n)
+  │
+  └→ Phase 4 (Tool Agents - MCP)
+      ↓
+      Phase 5 (Agent Builder UI)
+      ↓
+      Phase 6 (Orchestration Examples - Finance Manager)
+      ↓
+      Phase 7 (Enhanced Orchestration)
+      ↓
+      Phase 8 (Image Generation) - Future
+      ↓
+      Phase 9 (File-Based Migration) - Future
 ```
 
-**CRITICAL:** Phase 0 MUST be done first. It creates clean foundation for all other phases.
+**CRITICAL:** Phase 0 is complete ✅. Phase 1 establishes Plans & Deliverables foundation.
 
 ## Success Criteria for Phase Completion
 
@@ -214,26 +265,43 @@ A phase is considered complete when:
 - ✅ Monitored for stability
 - ✅ Documentation updated
 
-## The 1-Week Plan
+## Implementation Roadmap
 
-**Goal:** Ship Phases 0-1 to main in 1 week, then iterate
+### ✅ Phase 0: Complete (3 days)
+- Aggressive cleanup completed
+- Legacy code removed
+- Clean foundation established
 
-**Day 1-3: Phase 0 (Aggressive Cleanup)**
-- Delete all file-based execution code
-- Rename frontend services
-- Test existing database agents still work
-- Merge to feature branch
+### 🎯 Phase 1: In Progress (7 days)
+- Plans & Deliverables workflow
+- Mode-based routing (plan, build, tool, orchestrate, converse)
+- Version control for plans and deliverables
+- Manual edit + LLM refinement workflows
 
-**Day 4-7: Phase 1 (Context Agents)**
-- Create missing frontend services
-- Build deliverables workflow
-- Test blog_post_writer end-to-end
-- Merge to main
+### 📋 Phase 2-3: Agent Capabilities (13 days)
+- Conversation-only agents (no deliverables)
+- n8n API agents (complex workflows)
+- UI adapts to agent capabilities
 
-**Week 2+: Iterate on Phases 2-5**
-- Ship incrementally
-- Get user feedback
-- Prioritize based on usage
+### 🔧 Phase 4: Tool Foundation (5 days)
+- Supabase MCP agent
+- Obsidian MCP investigation
+- Tool agent adapter pattern
+
+### 🎨 Phase 5: Agent Builder (10 days)
+- Visual agent creation UI
+- Template library
+- Test studio
+- Deployment pipeline
+
+### 📊 Phase 6-7: Orchestration (22 days)
+- Finance Manager example (using Supabase agent)
+- Enhanced workflow capabilities
+- Visual workflow editor
+
+### 🔮 Phase 8-9: Future Enhancements
+- Image generation & deliverables
+- File-based agent migration
 
 ## Architecture Evolution
 
@@ -289,12 +357,16 @@ Update this README as phases complete:
 
 | Phase | Status | Started | Completed | Notes |
 |-------|--------|---------|-----------|-------|
-| 0 | ⏳ Pending | - | - | - |
-| 1 | ⏳ Pending | - | - | - |
-| 2 | ⏳ Pending | - | - | - |
-| 3 | ⏳ Pending | - | - | - |
-| 4 | ⏳ Pending | - | - | - |
-| 5 | ⏳ Pending | - | - | - |
+| 0 | ✅ Complete | 2025-10-03 | 2025-10-04 | Aggressive cleanup done |
+| 1 | 🔄 In Progress | 2025-10-04 | - | Plans & Deliverables |
+| 2 | ⏳ Pending | - | - | Conversation-Only Agents |
+| 3 | ⏳ Pending | - | - | API Agents (n8n) |
+| 4 | ⏳ Pending | - | - | Tool Agents (MCP) |
+| 5 | ⏳ Pending | - | - | Agent Builder UI |
+| 6 | ⏳ Pending | - | - | Finance Manager Orchestrator |
+| 7 | ⏳ Pending | - | - | Enhanced Orchestration |
+| 8 | ⏳ Future | - | - | Image Generation |
+| 9 | ⏳ Future | - | - | File-Based Migration |
 
 ## Questions?
 
@@ -314,7 +386,7 @@ If you have questions about any phase:
 
 ---
 
-**Last Updated:** 2025-10-03
-**Current Phase:** Phase 0 (Aggressive Cleanup)
-**Next Milestone:** Clean codebase, ready for Phase 1
-**Target:** Ship Phases 0-1 to main in 1 week
+**Last Updated:** 2025-10-04
+**Current Phase:** Phase 1 (Context Agents - Plans & Deliverables)
+**Next Milestone:** Complete Plans & Deliverables workflow
+**Architecture:** Mode-based routing (plan | build | tool | orchestrate | converse)

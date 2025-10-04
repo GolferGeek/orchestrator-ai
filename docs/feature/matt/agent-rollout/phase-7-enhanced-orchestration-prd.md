@@ -330,6 +330,54 @@ Implement full orchestration capabilities allowing orchestrator agents to coordi
 
 ## Implementation Tasks
 
+### Key Architectural Decision: Mode-Based Routing for Orchestration
+
+**Same pattern as Context Agents (Phase 1):**
+- ❌ **NO separate Orchestration controller** with its own endpoints
+- ✅ **Tasks API handles orchestration** via mode-based routing
+
+**Orchestration modes through Tasks API:**
+```typescript
+POST /api/agent2agent/conversations/:id/tasks
+{
+  mode: 'orchestrate',  // NEW mode for orchestrator agents
+  message: 'Create a blog post with social media promotion',
+  action?: 'plan' | 'execute' | 'refine' | 'pause' | 'resume'
+}
+```
+
+**Tasks Service Mode Routing:**
+```typescript
+switch (mode) {
+  case 'plan':        → PlansAdapter → PlansService
+  case 'build':       → DeliverablesAdapter → DeliverablesService
+  case 'orchestrate': → OrchestrationAdapter → OrchestrationService  // NEW
+  case 'converse':    → No artifacts
+}
+```
+
+**Orchestration Actions:**
+- `action: 'plan'` → Generate orchestration plan (multi-step workflow)
+- `action: 'execute'` → Execute approved plan (run orchestration)
+- `action: 'refine'` → Refine/edit existing plan
+- `action: 'pause'` → Pause running orchestration
+- `action: 'resume'` → Resume paused orchestration
+
+**Benefits:**
+- ✅ Consistent with Phase 1 architecture
+- ✅ Single entry point (Tasks API)
+- ✅ Mode determines behavior (plan, build, orchestrate)
+- ✅ Orchestration is internal implementation detail
+- ✅ Clean A2A protocol compliance
+
+**Read endpoints for UI:**
+```typescript
+GET /api/agent2agent/conversations/:id/orchestration/plan
+GET /api/agent2agent/conversations/:id/orchestration/runs
+GET /api/agent2agent/conversations/:id/orchestration/runs/:runId
+GET /api/agent2agent/conversations/:id/orchestration/recipes
+```
+
 ### Phase 6.1: Database Schema (2 days)
 
 1. **Create orchestration_plans table**
