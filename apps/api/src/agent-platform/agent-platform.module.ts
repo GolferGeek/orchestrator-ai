@@ -19,7 +19,9 @@ import { AgentRegistryInvalidationService } from './services/agent-registry-inva
 import { AgentRuntimeMetricsService } from './services/agent-runtime-metrics.service';
 import { AgentRuntimeLifecycleService } from './services/agent-runtime-lifecycle.service';
 import { AgentRuntimeDeliverablesAdapter } from './services/agent-runtime-deliverables.adapter';
+import { AgentRuntimePlansAdapter } from './services/agent-runtime-plans.adapter';
 import { DeliverablesModule } from '@/agent2agent/deliverables/deliverables.module';
+import { PlansModule } from '@/agent2agent/plans/plans.module';
 import { AssetsModule } from '@/assets/assets.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
@@ -41,6 +43,7 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     LLMModule,
     HttpModule,
     DeliverablesModule,
+    PlansModule,
     AssetsModule,
     // Agent Platform Sub-modules
     HierarchyModule,
@@ -66,6 +69,7 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     AgentRuntimeMetricsService,
     AgentRuntimeLifecycleService,
     AgentRuntimeDeliverablesAdapter,
+    AgentRuntimePlansAdapter,
     AgentRuntimeNormalizationService,
     AgentRuntimeRedactionService,
     FunctionAgentRunnerService,
@@ -95,6 +99,7 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     AgentRuntimeMetricsService,
     AgentRuntimeLifecycleService,
     AgentRuntimeDeliverablesAdapter,
+    AgentRuntimePlansAdapter,
     AgentRuntimeNormalizationService,
     AgentRuntimeRedactionService,
     FunctionAgentRunnerService,

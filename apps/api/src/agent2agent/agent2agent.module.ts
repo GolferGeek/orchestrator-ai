@@ -17,6 +17,7 @@ import { Agent2AgentConversationsService } from './services/agent-conversations.
 import { AgentConversationsModule } from './conversations/agent-conversations.module';
 import { TasksModule } from './tasks/tasks.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
+import { PlansModule } from './plans/plans.module';
 import { ProjectsModule } from './projects/projects.module';
 import { ContextOptimizationModule } from './context-optimization/context-optimization.module';
 
@@ -30,6 +31,7 @@ import { ContextOptimizationModule } from './context-optimization/context-optimi
     AgentConversationsModule,
     TasksModule,
     DeliverablesModule,
+    PlansModule,
     ProjectsModule,
     ContextOptimizationModule,
   ],
