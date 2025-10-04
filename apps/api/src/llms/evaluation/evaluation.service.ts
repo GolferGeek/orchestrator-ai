@@ -4,8 +4,8 @@ import { SupabaseService } from '@/supabase/supabase.service';
 import {
   MessageEvaluationDto,
   EnhancedMessageResponseDto,
-} from '@/dto/llm-evaluation.dto';
-import { UserRatingScale } from '@/types/llm-evaluation';
+} from '@/llms/dto/llm-evaluation.dto';
+import { UserRatingScale } from '@/llms/types/llm-evaluation';
 import {
   mapLLMProviderFromDb,
   mapLLMModelFromDb,
@@ -23,7 +23,7 @@ import {
   WorkflowStepDto,
   ConstraintEffectivenessDto,
   AgentLLMRecommendationDto,
-} from '@/dto/enhanced-evaluation.dto';
+} from '@/llms/dto/enhanced-evaluation.dto';
 import { UserRole } from '@/auth/decorators/roles.decorator';
 
 interface EvaluationFilters {

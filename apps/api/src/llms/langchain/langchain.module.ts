@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { LLMModule } from '@/llms/llm.module';
@@ -22,7 +22,7 @@ import { LangChainClientService } from './services/langchain-client.service';
   imports: [
     HttpModule, // For HTTP-based tools and integrations
     SupabaseModule, // For database connectivity
-    LLMModule, // For language model access
+    forwardRef(() => LLMModule), // For language model access (circular dependency resolution)
   ],
   providers: [LangChainNotionService, LangChainClientService],
   exports: [LangChainNotionService, LangChainClientService],

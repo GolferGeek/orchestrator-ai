@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
-import { UsageStatsResponseDto } from '@/dto/llm-evaluation.dto';
+import { UsageStatsResponseDto } from '@/llms/dto/llm-evaluation.dto';
 import { getTableName } from '@/supabase/supabase.config';
 
 interface UsageStatsOptions {

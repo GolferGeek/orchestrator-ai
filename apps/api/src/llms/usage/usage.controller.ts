@@ -9,7 +9,7 @@ import {
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { UsageService } from './usage.service';
-import { UsageStatsResponseDto } from '@/dto/llm-evaluation.dto';
+import { UsageStatsResponseDto } from '@/llms/dto/llm-evaluation.dto';
 
 @ApiTags('Usage Analytics')
 @Controller('usage')

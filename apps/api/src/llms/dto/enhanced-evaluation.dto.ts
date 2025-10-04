@@ -15,7 +15,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { UserRole } from '../auth/decorators/roles.decorator';
+import { UserRole } from '@/auth/decorators/roles.decorator';
 
 /**
  * User information for evaluation context

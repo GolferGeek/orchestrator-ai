@@ -33,10 +33,10 @@ import {
   SystemLLMConfigs,
   SystemOperationType,
   UserLLMPreferences,
-} from '@/types/llm-evaluation';
+} from '@/llms/types/llm-evaluation';
 import { mapProviderFromDb, mapModelFromDb } from '@/utils/case-converter';
-import { ModelConfigurationService } from '../config/model-configuration.service';
-import type { EnvironmentName } from '../config/model-configuration.service';
+import { ModelConfigurationService } from './config/model-configuration.service';
+import type { EnvironmentName } from './config/model-configuration.service';
 import { getTableName } from '@/supabase/supabase.config';
 import {
   LLMError,
@@ -849,7 +849,7 @@ export class LLMService {
    * Call provider using routing decision with conditional sanitization
    */
   private async callProviderWithRouting(
-    routingDecision: import('../common/types/pii-metadata.types').RoutingDecisionWithPII,
+    routingDecision: import('./types/pii-metadata.types').RoutingDecisionWithPII,
     systemPrompt: string,
     userMessage: string,
     headers: any,

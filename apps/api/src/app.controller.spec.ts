@@ -1,65 +1,47 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AgentDiscoveryService } from './agent-discovery.service';
-import { AgentFactoryService } from './agent-factory.service';
-import { AgentPoolService } from './agent-pool/agent-pool.service';
-import { LLMService } from './llms/llm.service';
 
 describe('AppController', () => {
   let appController: AppController;
+  let appService: AppService;
 
   beforeEach(async () => {
-    const mockAgentDiscoveryService = {
-      discoverAndInstantiateAgents: jest.fn().mockResolvedValue([]),
-      getAgentInstances: jest.fn().mockReturnValue([]),
-      getDiscoveredAgents: jest.fn().mockReturnValue([]),
-    };
-
-    const mockLLMService = {
-      // Add any methods that might be called during AppService initialization
-    };
-
-    const mockAgentFactoryService = {
-      createAgentInstance: jest.fn(),
-    };
-
-    const mockAgentPoolService = {
-      getAgentPool: jest.fn().mockReturnValue([]),
-      addAgent: jest.fn(),
+    const mockAppService = {
+      getHello: jest.fn().mockReturnValue('NestJS A2A Agent Framework - Ready!'),
+      getAgentStatus: jest.fn().mockResolvedValue({
+        status: 'running',
+        discoveredAgents: 0,
+        runningInstances: 0,
+        agents: [],
+      }),
     };
 
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
       providers: [
-        AppService,
         {
-          provide: AgentDiscoveryService,
-          useValue: mockAgentDiscoveryService,
-        },
-        {
-          provide: LLMService,
-          useValue: mockLLMService,
-        },
-        {
-          provide: AgentFactoryService,
-          useValue: mockAgentFactoryService,
-        },
-        {
-          provide: AgentPoolService,
-          useValue: mockAgentPoolService,
+          provide: AppService,
+          useValue: mockAppService,
         },
       ],
     }).compile();
 
     appController = app.get<AppController>(AppController);
+    appService = app.get<AppService>(AppService);
   });
 
   describe('root', () => {
-    it('should return "NestJS A2A Agent Framework - Ready!"', () => {
-      expect(appController.getHello()).toBe(
-        'NestJS A2A Agent Framework - Ready!',
-      );
+    it('should return hello message', () => {
+      expect(appController.getHello()).toBe('NestJS A2A Agent Framework - Ready!');
+    });
+  });
+
+  describe('agents', () => {
+    it('should return agent status', async () => {
+      const result = await appController.getAgentStatus();
+      expect(result).toHaveProperty('status');
+      expect(result).toHaveProperty('agents');
     });
   });
 });

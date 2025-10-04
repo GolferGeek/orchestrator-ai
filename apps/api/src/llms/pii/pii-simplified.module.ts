@@ -11,7 +11,7 @@ import { PIIPatternService } from '../pii-pattern.service';
 import { DictionaryPseudonymizerService } from './dictionary-pseudonymizer.service';
 import { SimplifiedCentralizedRoutingService } from '../centralized-routing-simplified.service';
 import { FeatureFlagService } from '@/config/feature-flag.service';
-import { SovereignPolicyService } from '@/config/sovereign-policy.service';
+import { SovereignPolicyService } from '@/llms/config/sovereign-policy.service';
 import { SupabaseModule } from '@/supabase/supabase.module';
 
 @Module({

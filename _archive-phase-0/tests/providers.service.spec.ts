@@ -5,8 +5,8 @@ import { SupabaseService } from '@/supabase/supabase.service';
 import {
   CreateProviderDto,
   UpdateProviderDto,
-} from '@/dto/llm-evaluation.dto';
-import { AuthType } from '@/types/llm-evaluation';
+} from '@/llms/dto/llm-evaluation.dto';
+import { AuthType } from '@/llms/types/llm-evaluation';
 
 describe('ProvidersService', () => {
   let service: ProvidersService;

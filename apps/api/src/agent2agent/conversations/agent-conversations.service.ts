@@ -6,7 +6,7 @@ import {
   CreateAgentConversationDto,
   AgentConversationQueryParams,
   AgentType,
-} from '@/common/types/agent-conversations.types';
+} from '@/agent2agent/types/agent-conversations.types';
 import { getTableName } from '@/supabase/supabase.config';
 
 @Injectable()

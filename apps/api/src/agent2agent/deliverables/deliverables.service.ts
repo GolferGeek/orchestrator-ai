@@ -20,7 +20,7 @@ import {
 import { getTableName } from '@/supabase/supabase.config';
 import { DeliverableVersionsService } from './deliverable-versions.service';
 import { AgentConversationsService } from '@/agent2agent/conversations/agent-conversations.service';
-import { CreateAgentConversationDto } from '@/common/types/agent-conversations.types';
+import { CreateAgentConversationDto } from '@/agent2agent/types/agent-conversations.types';
 
 @Injectable()
 export class DeliverablesService {

@@ -6,8 +6,8 @@ import {
   ModelConfiguration,
 } from './model-configuration.service';
 import * as fs from 'fs';
-import { SupabaseModule } from '../supabase/supabase.module';
-import { SupabaseService } from '../supabase/supabase.service';
+import { SupabaseModule } from '@/supabase/supabase.module';
+import { SupabaseService } from '@/supabase/supabase.service';
 
 function deepMerge<T>(base: T, patch: Partial<T>): T {
   const out: any = Array.isArray(base)

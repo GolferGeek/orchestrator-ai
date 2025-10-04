@@ -8,13 +8,12 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { LLMModule } from '@/llms/llm.module';
-import { WebSocketModule } from './websocket/websocket.module';
+import { WebSocketModule } from './agent-platform/websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MCPModule } from './mcp/mcp.module';
-import { SovereignPolicyModule } from './config/sovereign-policy.module';
+import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
-import { SpeechModule } from './speech/speech.module';
 import { Agent2AgentModule } from './agent2agent/agent2agent.module';
 import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
@@ -49,7 +48,6 @@ import { AgentRegistryService } from './agent-platform/services/agent-registry.s
     // Standalone Features
     SovereignPolicyModule,
     SystemModule,
-    SpeechModule,
     AssetsModule,
   ],
   controllers: [

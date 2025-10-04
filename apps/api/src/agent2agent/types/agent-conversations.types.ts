@@ -49,7 +49,7 @@ export interface Task {
   evaluation?: Record<string, any>;
   llmMetadata?: Record<string, any>;
   // PII Processing metadata
-  piiMetadata?: import('./pii-metadata.types').PIIProcessingMetadata;
+  piiMetadata?: import('@/llms/types/pii-metadata.types').PIIProcessingMetadata;
   // Error tracking
   errorCode?: string;
   errorMessage?: string;
@@ -128,7 +128,7 @@ export interface UpdateTaskDto {
   responseMetadata?: Record<string, any>;
   evaluation?: Record<string, any>;
   llmMetadata?: Record<string, any>;
-  piiMetadata?: import('./pii-metadata.types').PIIProcessingMetadata;
+  piiMetadata?: import('@/llms/types/pii-metadata.types').PIIProcessingMetadata;
   errorCode?: string;
   errorMessage?: string;
   errorData?: Record<string, any>;

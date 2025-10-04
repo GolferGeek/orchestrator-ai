@@ -29,13 +29,13 @@ import { EvaluationService } from './evaluation.service';
 import {
   MessageEvaluationDto,
   EnhancedMessageResponseDto,
-} from '@/dto/llm-evaluation.dto';
+} from '@/llms/dto/llm-evaluation.dto';
 import {
   AdminEvaluationFiltersDto,
   EvaluationAnalyticsDto,
   EnhancedEvaluationMetadataDto,
   AgentLLMRecommendationDto,
-} from '@/dto/enhanced-evaluation.dto';
+} from '@/llms/dto/enhanced-evaluation.dto';
 
 @ApiTags('Message Evaluation')
 @Controller('evaluation')

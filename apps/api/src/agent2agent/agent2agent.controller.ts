@@ -24,7 +24,7 @@ import { Agent2AgentConversationsService } from './services/agent-conversations.
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { AgentTaskMode } from './dto/task-request.dto';
-import { AgentType } from '../common/types/agent-conversations.types';
+import { AgentType } from '@/agent2agent/types/agent-conversations.types';
 import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
 import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
 import { Public } from '../auth/decorators/public.decorator';

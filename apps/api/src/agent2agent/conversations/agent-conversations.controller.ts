@@ -19,7 +19,7 @@ import { SupabaseAuthUserDto } from '@/auth/dto/auth.dto';
 import {
   CreateAgentConversationDto,
   AgentConversationQueryParams,
-} from '@/common/types/agent-conversations.types';
+} from '@/agent2agent/types/agent-conversations.types';
 
 @Controller('agent-conversations')
 @UseGuards(JwtAuthGuard)

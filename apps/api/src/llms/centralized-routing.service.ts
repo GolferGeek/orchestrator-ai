@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LocalModelStatusService } from './local-model-status.service';
 import { SupabaseService } from '@/supabase/supabase.service';
-import { SovereignPolicyService } from '../config/sovereign-policy.service';
+import { SovereignPolicyService } from './config/sovereign-policy.service';
 import {
   FeatureFlagService,
   FeatureFlagContext,
@@ -11,7 +11,7 @@ import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.s
 import {
   PIIProcessingMetadata,
   RoutingDecisionWithPII,
-} from '../common/types/pii-metadata.types';
+} from './types/pii-metadata.types';
 import { RunMetadataService } from './run-metadata.service';
 import { createHash } from 'crypto';
 

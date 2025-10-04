@@ -16,7 +16,7 @@ import {
 import { DeliverableVersion } from './entities/deliverable.entity';
 import { getTableName } from '@/supabase/supabase.config';
 import { LLMService } from '@/llms/llm.service';
-import { Task } from '@/common/types/agent-conversations.types';
+import { Task } from '@/agent2agent/types/agent-conversations.types';
 import { snakeToCamel } from '@/utils/case-converter';
 
 @Injectable()

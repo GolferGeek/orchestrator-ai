@@ -7,8 +7,8 @@ import {
   CIDAFMCommand,
   EnhancedMessage,
   UserUsageStats,
-} from '../types/llm-evaluation';
-import { ModelResponseDto } from '../dto/llm-evaluation.dto';
+} from '@/llms/types/llm-evaluation';
+import { ModelResponseDto } from '@/llms/dto/llm-evaluation.dto';
 
 // Generic function to convert snake_case to camelCase
 export function snakeToCamel(obj: any): any {

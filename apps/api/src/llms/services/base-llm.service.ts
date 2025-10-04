@@ -3,7 +3,7 @@ import { PIIService } from '../pii/pii.service';
 import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
-import { PIIProcessingMetadata } from '../../common/types/pii-metadata.types';
+import { PIIProcessingMetadata } from '../types/pii-metadata.types';
 import {
   LLMError,
   LLMErrorMapper,

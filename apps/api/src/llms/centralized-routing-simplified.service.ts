@@ -9,9 +9,9 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { SimplifiedPIIService } from './pii/pii-simplified.service';
-import { SimplifiedPIIMetadata } from '../common/types/simplified-pii-metadata.types';
+import { SimplifiedPIIMetadata } from './types/simplified-pii-metadata.types';
 import { FeatureFlagService } from '../config/feature-flag.service';
-import { SovereignPolicyService } from '../config/sovereign-policy.service';
+import { SovereignPolicyService } from './config/sovereign-policy.service';
 
 export interface SimplifiedRoutingDecision {
   provider: string;

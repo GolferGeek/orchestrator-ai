@@ -8,8 +8,8 @@ import {
   ProviderNameDto,
   ModelNameDto,
   ProviderWithModelsDto,
-} from '@/dto/llm-evaluation.dto';
-import { ProviderStatus, ModelStatus } from '@/types/llm-evaluation';
+} from '@/llms/dto/llm-evaluation.dto';
+import { ProviderStatus, ModelStatus } from '@/llms/types/llm-evaluation';
 import {
   mapLLMProviderFromDb,
   mapLLMModelFromDb,

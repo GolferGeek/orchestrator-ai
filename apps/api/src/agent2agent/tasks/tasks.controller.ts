@@ -27,7 +27,7 @@ import {
   CreateTaskDto,
   UpdateTaskDto,
   TaskQueryParams,
-} from '@/common/types/agent-conversations.types';
+} from '@/agent2agent/types/agent-conversations.types';
 
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)

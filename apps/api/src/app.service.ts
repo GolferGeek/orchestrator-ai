@@ -5,7 +5,7 @@ import { AgentRecord } from './agent-platform/interfaces/agent-record.interface'
 import {
   DEFAULT_EXECUTION_CAPABILITIES,
   DEFAULT_EXECUTION_PROFILE,
-} from './common/types/agent-execution.types';
+} from './agent-platform/types/agent-execution.types';
 
 @Injectable()
 export class AppService implements OnModuleInit {

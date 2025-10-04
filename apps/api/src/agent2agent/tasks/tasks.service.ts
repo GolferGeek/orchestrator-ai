@@ -17,7 +17,7 @@ import {
   TaskQueryParams,
   TaskProgressEvent,
   AgentType,
-} from '@/common/types/agent-conversations.types';
+} from '@/agent2agent/types/agent-conversations.types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { snakeToCamel } from '@/utils/case-converter';
 import { TaskMessageService } from './task-message.service';

@@ -6,8 +6,8 @@
  * provider-specific services.
  */
 
-import { PIIProcessingMetadata } from '../../common/types/pii-metadata.types';
-import { LLMUsageMetrics } from '../../types/llm-evaluation';
+import { PIIProcessingMetadata } from '../types/pii-metadata.types';
+import { LLMUsageMetrics } from '../types/llm-evaluation';
 
 /**
  * Configuration interface for LLM services

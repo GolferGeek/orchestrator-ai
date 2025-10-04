@@ -14,7 +14,7 @@ import {
   UserMessage,
   ProcessingFlow,
   PIISeverity,
-} from '@/common/types/pii-metadata.types';
+} from '@/llms/types/pii-metadata.types';
 
 const dataTypeToHumanReadable: Record<string, string> = {
   email: 'Email Address',

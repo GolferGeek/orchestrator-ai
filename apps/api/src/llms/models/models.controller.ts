@@ -29,7 +29,7 @@ import {
   CostEstimateDto,
   CostEstimateResponseDto,
   ModelNameDto,
-} from '@/dto/llm-evaluation.dto';
+} from '@/llms/dto/llm-evaluation.dto';
 
 @ApiTags('LLM Models')
 @Controller('models')

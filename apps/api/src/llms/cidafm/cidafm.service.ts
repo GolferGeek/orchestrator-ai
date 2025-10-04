@@ -3,8 +3,8 @@ import { SupabaseService } from '@/supabase/supabase.service';
 import {
   CreateCIDAFMCommandDto,
   CIDAFMCommandResponseDto,
-} from '@/dto/llm-evaluation.dto';
-import { CIDAFMCommandType } from '@/types/llm-evaluation';
+} from '@/llms/dto/llm-evaluation.dto';
+import { CIDAFMCommandType } from '@/llms/types/llm-evaluation';
 
 interface CommandFilters {
   type?: CIDAFMCommandType;

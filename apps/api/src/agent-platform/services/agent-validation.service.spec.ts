@@ -12,7 +12,7 @@ describe('AgentValidationService', () => {
       config: { configuration: { function: {} } },
     } as any);
     expect(res.ok).toBe(false);
-    expect(res.issues.some((i) => i.message.includes('function.code'))).toBe(true);
+    expect(res.issues.some((i) => i.message.includes('function_code'))).toBe(true);
   });
 
   it('accepts valid function agent payload', () => {

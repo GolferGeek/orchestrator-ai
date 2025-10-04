@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
+import { TaskProgressGateway } from '@/agent-platform/websocket/task-progress.gateway';
 
 export interface ContextMetricsEvent {
   originalCount: number;

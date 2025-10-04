@@ -30,7 +30,7 @@ import {
   ProviderNameDto,
   ModelNameDto,
   ProviderWithModelsDto,
-} from '@/dto/llm-evaluation.dto';
+} from '@/llms/dto/llm-evaluation.dto';
 
 @ApiTags('LLM Providers')
 @Controller('providers')

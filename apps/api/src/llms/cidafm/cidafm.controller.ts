@@ -26,7 +26,7 @@ import { CIDAFMService } from './cidafm.service';
 import {
   CreateCIDAFMCommandDto,
   CIDAFMCommandResponseDto,
-} from '@/dto/llm-evaluation.dto';
+} from '@/llms/dto/llm-evaluation.dto';
 
 @ApiTags('CIDAFM Commands')
 @Controller('cidafm')

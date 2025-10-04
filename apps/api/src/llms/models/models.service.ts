@@ -7,8 +7,8 @@ import {
   CostEstimateDto,
   CostEstimateResponseDto,
   ModelNameDto,
-} from '@/dto/llm-evaluation.dto';
-import { ModelStatus, CostCalculation } from '@/types/llm-evaluation';
+} from '@/llms/dto/llm-evaluation.dto';
+import { ModelStatus, CostCalculation } from '@/llms/types/llm-evaluation';
 import { mapModelFromDb, mapLLMModelFromDb } from '@/utils/case-converter';
 import { getTableName } from '@/supabase/supabase.config';
 

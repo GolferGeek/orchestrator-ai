@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
-import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
+import { TaskProgressGateway } from '@/agent-platform/websocket/task-progress.gateway';
 import {
   Project,
   ProjectStep,

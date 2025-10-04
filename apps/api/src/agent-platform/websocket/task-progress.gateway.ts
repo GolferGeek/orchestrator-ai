@@ -11,11 +11,11 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { SupabaseService } from '../supabase/supabase.service';
+import { SupabaseService } from '@/supabase/supabase.service';
 import {
   TaskProgressEvent,
   WorkflowStepProgressEvent,
-} from '../common/types/agent-conversations.types';
+} from '@/agent2agent/types/agent-conversations.types';
 import {
   AgentStreamChunkEvent,
   AgentStreamCompleteEvent,

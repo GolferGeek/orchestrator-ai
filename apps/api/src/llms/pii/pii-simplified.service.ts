@@ -12,7 +12,7 @@ import {
   SimplifiedPIIMetadata,
   PIIFlag,
   PIIPseudonym,
-} from '@/common/types/simplified-pii-metadata.types';
+} from '@/llms/types/simplified-pii-metadata.types';
 
 @Injectable()
 export class SimplifiedPIIService {
