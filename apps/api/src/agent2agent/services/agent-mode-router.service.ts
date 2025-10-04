@@ -15,6 +15,8 @@ import { AgentRuntimeNormalizationService } from '@agent-platform/services/agent
 import { AgentRuntimeRedactionService } from '@agent-platform/services/agent-runtime-redaction.service';
 import { FunctionAgentRunnerService } from './function-agent-runner.service';
 import { AgentRuntimeDeliverablesAdapter } from '@agent-platform/services/agent-runtime-deliverables.adapter';
+import { AgentRuntimePlansAdapter } from '@agent-platform/services/agent-runtime-plans.adapter';
+import { PlansService } from '@/agent2agent/plans/services/plans.service';
 
 export interface AgentExecutionContext {
   organizationSlug?: string | null;
@@ -44,6 +46,8 @@ export class AgentModeRouterService {
     private readonly streamService: AgentRuntimeStreamService,
     private readonly lifecycle: AgentRuntimeLifecycleService,
     private readonly deliverables: AgentRuntimeDeliverablesAdapter,
+    private readonly plans: AgentRuntimePlansAdapter,
+    private readonly plansService: PlansService,
     private readonly normalization: AgentRuntimeNormalizationService,
     private readonly redaction: AgentRuntimeRedactionService,
     private readonly functionRunner: FunctionAgentRunnerService,
@@ -63,11 +67,7 @@ export class AgentModeRouterService {
       case AgentTaskMode.CONVERSE:
         return this.handleConverse(hydrated);
       case AgentTaskMode.PLAN:
-        // Plan creation is handled at the gateway layer to maintain single source of truth
-        return TaskResponseDto.failure(
-          AgentTaskMode.PLAN,
-          'Plan mode is handled by the gateway',
-        );
+        return this.handlePlan(hydrated);
       case AgentTaskMode.BUILD:
         return this.handleBuild(hydrated);
       case AgentTaskMode.HUMAN_RESPONSE:
@@ -162,7 +162,207 @@ export class AgentModeRouterService {
     }
   }
 
-  // Plan mode intentionally not implemented here – handled by AgentExecutionGateway
+  /**
+   * Handle PLAN mode with action-based routing
+   * Routes to PlansService.executeAction() based on action parameter
+   */
+  private async handlePlan(context: HydratedExecutionContext) {
+    try {
+      // Extract action from request (default to 'create')
+      const action = (context.request.payload as any)?.action || 'create';
+      const userId = this.resolveUserId(context.request);
+      const conversationId = context.request.conversationId;
+
+      if (!userId || !conversationId) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.PLAN,
+          'Missing required userId or conversationId',
+        );
+      }
+
+      this.logger.debug(
+        `Handling PLAN mode with action: ${action} for conversation ${conversationId}`,
+      );
+
+      // Route based on action
+      if (action === 'create') {
+        // For 'create' action, we need to generate plan content using LLM
+        return this.handlePlanCreate(context, userId, conversationId);
+      } else {
+        // For other actions (read, list, edit, etc.), skip LLM and route directly to service
+        return this.handlePlanAction(context, userId, conversationId, action);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle plan mode: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return TaskResponseDto.failure(
+        AgentTaskMode.PLAN,
+        'Failed to handle plan operation',
+      );
+    }
+  }
+
+  /**
+   * Handle plan 'create' action - requires LLM to generate plan content
+   */
+  private async handlePlanCreate(
+    context: HydratedExecutionContext,
+    userId: string,
+    conversationId: string,
+  ) {
+    const decision = this.extractDecision(context.routingMetadata);
+    if (!decision) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.PLAN,
+        'Routing decision unavailable for plan creation',
+      );
+    }
+
+    // Build prompt for plan generation
+    const prompt = this.promptBuilder.buildPromptPayload({
+      definition: context.definition,
+      request: context.request,
+      mode: 'plan',
+    });
+
+    try {
+      this.lifecycle.start(this.toLifecycleCtx(context));
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'generating_plan',
+        message: 'Generating plan content',
+        percent: 20,
+      });
+
+      // Generate plan content with LLM
+      const { response } = await this.generateLlmResponse(
+        context,
+        decision,
+        prompt,
+        AgentTaskMode.PLAN,
+      );
+
+      this.lifecycle.progress(this.toLifecycleCtx(context), {
+        step: 'saving_plan',
+        message: 'Saving plan to database',
+        percent: 80,
+      });
+
+      // Extract title and content from LLM response
+      const planContent = response.content;
+      const title =
+        (context.request.payload as any)?.title ||
+        `Plan from ${context.agent.slug}`;
+
+      // Create/refine plan using PlansService
+      const result = await this.plansService.executeAction(
+        'create',
+        {
+          title,
+          content: planContent,
+          format: 'markdown',
+          agentName: context.agent.slug,
+          namespace: context.organizationSlug || 'default',
+          taskId: (context.request as any).taskId,
+          metadata: {
+            llmProvider: response.metadata.provider,
+            llmModel: response.metadata.model,
+            usage: response.metadata.usage,
+          },
+        },
+        {
+          conversationId,
+          userId,
+          agentSlug: context.agent.slug,
+          taskId: (context.request as any).taskId,
+        },
+      );
+
+      this.lifecycle.complete(this.toLifecycleCtx(context), {
+        planId: result.data?.plan?.id,
+      });
+
+      if (!result.success) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.PLAN,
+          result.error?.message || 'Failed to create plan',
+        );
+      }
+
+      return TaskResponseDto.success(AgentTaskMode.PLAN, {
+        content: {
+          plan: result.data.plan,
+          version: result.data.version,
+          isNew: result.data.isNew,
+        },
+        metadata: {
+          provider: response.metadata.provider,
+          model: response.metadata.model,
+          usage: response.metadata.usage,
+          routingDecision: decision,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to create plan: ${String(error)}`);
+      this.lifecycle.fail(
+        this.toLifecycleCtx(context),
+        error instanceof Error ? error.message : String(error),
+      );
+      return TaskResponseDto.failure(
+        AgentTaskMode.PLAN,
+        'Failed to create plan',
+      );
+    }
+  }
+
+  /**
+   * Handle non-create plan actions - route directly to PlansService without LLM
+   */
+  private async handlePlanAction(
+    context: HydratedExecutionContext,
+    userId: string,
+    conversationId: string,
+    action: string,
+  ) {
+    this.logger.debug(`Executing plan action: ${action}`);
+
+    // Extract params from request payload
+    const params = (context.request.payload as any)?.params || {};
+
+    // Route to PlansService.executeAction()
+    const result = await this.plansService.executeAction(
+      action,
+      params,
+      {
+        conversationId,
+        userId,
+        agentSlug: context.agent.slug,
+      },
+    );
+
+    if (!result.success) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.PLAN,
+        result.error?.message || `Failed to execute plan action: ${action}`,
+      );
+    }
+
+    return TaskResponseDto.success(AgentTaskMode.PLAN, {
+      content: result.data,
+      metadata: {
+        action,
+        executedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  private resolveUserId(request: TaskRequestDto): string | null {
+    const fromTop = request.metadata?.userId || request.metadata?.createdBy;
+    const fromPayload =
+      request.payload?.metadata?.userId ||
+      request.payload?.metadata?.createdBy;
+    return (fromTop as string) || (fromPayload as string) || null;
+  }
 
   private async handleBuild(context: HydratedExecutionContext) {
     // Function agent short-circuit

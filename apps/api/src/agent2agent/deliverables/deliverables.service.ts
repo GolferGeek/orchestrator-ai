@@ -11,6 +11,7 @@ import {
   UpdateDeliverableDto,
   DeliverableFiltersDto,
   CreateEditingConversationDto,
+  DeliverableVersionCreationType,
 } from './dto';
 import {
   Deliverable,
@@ -21,9 +22,14 @@ import { getTableName } from '@/supabase/supabase.config';
 import { DeliverableVersionsService } from './deliverable-versions.service';
 import { AgentConversationsService } from '@/agent2agent/conversations/agent-conversations.service';
 import { CreateAgentConversationDto } from '@/agent2agent/types/agent-conversations.types';
+import {
+  IActionHandler,
+  ActionExecutionContext,
+  ActionResult,
+} from '../common/interfaces/action-handler.interface';
 
 @Injectable()
-export class DeliverablesService {
+export class DeliverablesService implements IActionHandler {
   private readonly logger = new Logger(DeliverablesService.name);
 
   constructor(
@@ -31,6 +37,424 @@ export class DeliverablesService {
     private readonly versionsService: DeliverableVersionsService,
     private readonly agentConversationsService: AgentConversationsService,
   ) {}
+
+  // ============================================================================
+  // MAIN ENTRY POINT - Mode × Action Architecture
+  // ============================================================================
+
+  /**
+   * Main entry point for all deliverable operations
+   * Implements IActionHandler interface for mode × action routing
+   *
+   * Supported actions:
+   * 1. create - Create or enhance a deliverable
+   * 2. read - Get current deliverable
+   * 3. list - Get version history
+   * 4. edit - Save manual edit as new version
+   * 5. rerun - Rerun with different LLM
+   * 6. set_current - Set a specific version as current
+   * 7. delete_version - Delete a specific version
+   * 8. merge_versions - LLM-based merge of multiple versions
+   * 9. copy_version - Duplicate a version
+   * 10. delete - Delete entire deliverable
+   */
+  async executeAction<T = any>(
+    action: string,
+    params: any,
+    context: ActionExecutionContext,
+  ): Promise<ActionResult<T>> {
+    try {
+      this.logger.debug(
+        `Executing deliverable action: ${action}`,
+        JSON.stringify({ action, context }),
+      );
+
+      let result: any;
+
+      switch (action) {
+        case 'create':
+          result = await this.createOrEnhance(params, context);
+          break;
+
+        case 'read':
+          result = await this.getCurrentDeliverable(context);
+          break;
+
+        case 'list':
+          result = await this.getVersionHistory(context);
+          break;
+
+        case 'edit':
+          result = await this.saveManualEdit(params, context);
+          break;
+
+        case 'rerun':
+          result = await this.rerunWithLLM(params, context);
+          break;
+
+        case 'set_current':
+          result = await this.setCurrentVersion(params, context);
+          break;
+
+        case 'delete_version':
+          result = await this.deleteVersion(params, context);
+          break;
+
+        case 'merge_versions':
+          result = await this.mergeVersions(params, context);
+          break;
+
+        case 'copy_version':
+          result = await this.copyVersion(params, context);
+          break;
+
+        case 'delete':
+          result = await this.deleteDeliverable(context);
+          break;
+
+        default:
+          throw new BadRequestException(
+            `Unknown deliverable action: ${action}`,
+          );
+      }
+
+      return {
+        success: true,
+        data: result as T,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute deliverable action ${action}:`,
+        error,
+      );
+      return {
+        success: false,
+        error: {
+          code:
+            error instanceof BadRequestException
+              ? 'BAD_REQUEST'
+              : error instanceof NotFoundException
+                ? 'NOT_FOUND'
+                : 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          details: { action, context },
+        },
+      };
+    }
+  }
+
+  // ============================================================================
+  // ACTION HANDLERS (Private methods)
+  // ============================================================================
+
+  /**
+   * Action: create
+   * Create new deliverable or enhance existing (creates new version)
+   */
+  private async createOrEnhance(
+    params: {
+      title: string;
+      content: string;
+      format?: string;
+      type?: string;
+      agentName?: string;
+      taskId?: string;
+      metadata?: Record<string, any>;
+    },
+    context: ActionExecutionContext,
+  ) {
+    // Check if deliverable already exists for this conversation
+    const existingDeliverables = await this.findByConversationId(
+      context.conversationId,
+      context.userId,
+    );
+
+    const existingDeliverable = existingDeliverables[0];
+    if (existingDeliverable) {
+      // Enhance existing deliverable - create new version
+      const newVersion = await this.versionsService.createVersion(
+        existingDeliverable.id,
+        {
+          content: params.content,
+          format: (params.format as any) || 'markdown',
+          createdByType: DeliverableVersionCreationType.AI_RESPONSE,
+          taskId: params.taskId || context.taskId,
+          metadata: params.metadata || {},
+        },
+        context.userId,
+      );
+
+      return {
+        deliverable: await this.findOne(existingDeliverable.id, context.userId),
+        version: newVersion,
+        isNew: false,
+      };
+    } else {
+      // Create new deliverable
+      const createDto: CreateDeliverableDto = {
+        conversationId: context.conversationId,
+        title: params.title,
+        type: params.type as any,
+        agentName: params.agentName || context.agentSlug,
+        initialContent: params.content,
+        initialFormat: (params.format as any) || 'markdown',
+        initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
+        initialTaskId: params.taskId || context.taskId,
+        initialMetadata: params.metadata || {},
+      };
+
+      const deliverable = await this.create(createDto, context.userId);
+
+      return {
+        deliverable,
+        version: deliverable.currentVersion,
+        isNew: true,
+      };
+    }
+  }
+
+  /**
+   * Action: read
+   * Get current deliverable with current version
+   */
+  private async getCurrentDeliverable(context: ActionExecutionContext) {
+    const deliverables = await this.findByConversationId(
+      context.conversationId,
+      context.userId,
+    );
+
+    const deliverable = deliverables[0];
+    if (!deliverable) {
+      throw new NotFoundException(
+        `No deliverable found for conversation ${context.conversationId}`,
+      );
+    }
+
+    return this.findOne(deliverable.id, context.userId);
+  }
+
+  /**
+   * Action: list
+   * Get version history for deliverable
+   */
+  private async getVersionHistory(context: ActionExecutionContext) {
+    const deliverables = await this.findByConversationId(
+      context.conversationId,
+      context.userId,
+    );
+
+    const deliverable = deliverables[0];
+    if (!deliverable) {
+      throw new NotFoundException(
+        `No deliverable found for conversation ${context.conversationId}`,
+      );
+    }
+
+    const versions = await this.versionsService.getVersionHistory(
+      deliverable.id,
+      context.userId,
+    );
+
+    return { deliverable, versions };
+  }
+
+  /**
+   * Action: edit
+   * Save manual edit as new version
+   */
+  private async saveManualEdit(
+    params: {
+      content: string;
+      metadata?: Record<string, any>;
+    },
+    context: ActionExecutionContext,
+  ) {
+    const deliverables = await this.findByConversationId(
+      context.conversationId,
+      context.userId,
+    );
+
+    const deliverable = deliverables[0];
+    if (!deliverable) {
+      throw new NotFoundException(
+        `No deliverable found for conversation ${context.conversationId}`,
+      );
+    }
+
+    const currentVersion = await this.versionsService.getCurrentVersion(
+      deliverable.id,
+      context.userId,
+    );
+
+    if (!currentVersion) {
+      throw new NotFoundException(`No current version found for deliverable`);
+    }
+
+    const newVersion = await this.versionsService.createVersion(
+      deliverable.id,
+      {
+        content: params.content,
+        format: currentVersion.format,
+        createdByType: DeliverableVersionCreationType.MANUAL_EDIT,
+        metadata: {
+          ...params.metadata,
+          editedFromVersionId: currentVersion.id,
+          editedAt: new Date().toISOString(),
+        },
+      },
+      context.userId,
+    );
+
+    return {
+      deliverable: await this.findOne(deliverable.id, context.userId),
+      version: newVersion,
+    };
+  }
+
+  /**
+   * Action: rerun
+   * Rerun deliverable with different LLM
+   */
+  private async rerunWithLLM(
+    params: {
+      versionId: string;
+      provider: string;
+      model: string;
+      temperature?: number;
+      maxTokens?: number;
+    },
+    context: ActionExecutionContext,
+  ) {
+    return this.versionsService.rerunWithDifferentLLM(
+      params.versionId,
+      {
+        provider: params.provider,
+        model: params.model,
+        temperature: params.temperature,
+        maxTokens: params.maxTokens,
+      },
+      context.userId,
+    );
+  }
+
+  /**
+   * Action: set_current
+   * Set a specific version as current
+   */
+  private async setCurrentVersion(
+    params: { versionId: string },
+    context: ActionExecutionContext,
+  ) {
+    const version = await this.versionsService.setCurrentVersion(
+      params.versionId,
+      context.userId,
+    );
+
+    const deliverable = await this.findOne(
+      version.deliverableId,
+      context.userId,
+    );
+
+    return { deliverable, version };
+  }
+
+  /**
+   * Action: delete_version
+   * Delete a specific version
+   */
+  private async deleteVersion(
+    params: { versionId: string },
+    context: ActionExecutionContext,
+  ) {
+    return this.versionsService.deleteVersion(params.versionId, context.userId);
+  }
+
+  /**
+   * Action: merge_versions
+   * Merge multiple versions using LLM
+   */
+  private async mergeVersions(
+    params: {
+      versionIds: string[];
+      mergePrompt: string;
+    },
+    context: ActionExecutionContext,
+  ) {
+    const deliverables = await this.findByConversationId(
+      context.conversationId,
+      context.userId,
+    );
+
+    const deliverable = deliverables[0];
+    if (!deliverable) {
+      throw new NotFoundException(
+        `No deliverable found for conversation ${context.conversationId}`,
+      );
+    }
+
+    const result = await this.versionsService.mergeVersions(
+      deliverable.id,
+      params.versionIds,
+      params.mergePrompt,
+      context.userId,
+    );
+
+    return {
+      deliverable: await this.findOne(deliverable.id, context.userId),
+      newVersion: result.newVersion,
+      conflictSummary: result.conflictSummary,
+    };
+  }
+
+  /**
+   * Action: copy_version
+   * Duplicate a version as a new version
+   */
+  private async copyVersion(
+    params: { versionId: string },
+    context: ActionExecutionContext,
+  ) {
+    const newVersion = await this.versionsService.copyVersion(
+      params.versionId,
+      context.userId,
+    );
+
+    const deliverable = await this.findOne(
+      newVersion.deliverableId,
+      context.userId,
+    );
+
+    return { deliverable, version: newVersion };
+  }
+
+  /**
+   * Action: delete
+   * Delete entire deliverable and all versions
+   */
+  private async deleteDeliverable(context: ActionExecutionContext) {
+    const deliverables = await this.findByConversationId(
+      context.conversationId,
+      context.userId,
+    );
+
+    const deliverable = deliverables[0];
+    if (!deliverable) {
+      throw new NotFoundException(
+        `No deliverable found for conversation ${context.conversationId}`,
+      );
+    }
+
+    await this.remove(deliverable.id, context.userId);
+
+    return {
+      success: true,
+      message: `Deliverable ${deliverable.id} deleted successfully`,
+    };
+  }
+
+  // ============================================================================
+  // EXISTING PUBLIC METHODS (Keep for backward compatibility)
+  // ============================================================================
 
   /**
    * Create a new deliverable with optional initial version

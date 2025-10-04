@@ -281,7 +281,7 @@ export class PlanVersionsService {
     // Create new version with merged content
     const newVersion = await this.createVersion(planId, userId, {
       content: finalContent,
-      format: versions[0].format,
+      format: versions[0]?.format || 'markdown',
       createdByType: 'agent',
       metadata: {
         mergedFromVersions: versionIds,
