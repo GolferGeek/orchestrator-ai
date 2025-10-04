@@ -129,11 +129,50 @@
 
 ## Implementation Notes
 
-### Phase 0: Keep Demo Directory
-- Keep **entire** `apps/api/src/agents/demo/` directory
-- Not just YAML files - has important utilities, types, etc.
-- Only delete **execution code** (DynamicAgentsController, loaders, etc.)
-- Demo directory becomes reference/documentation
+### Phase 0: NUCLEAR CLEANUP - Delete EVERYTHING Except agent2agent + demo
+
+**Keep ONLY These Two Directories:**
+1. ✅ `apps/api/src/agents/demo/` - Reference agents (agents + their files, some code is fine)
+2. ✅ `apps/api/src/agent2agent/` - The ONE TRUE agent execution system
+
+**DELETE EVERYTHING ELSE Agent-Related:**
+- ❌ `apps/api/src/agents/base/` - **DELETE ENTIRE DIRECTORY** (all base implementations)
+- ❌ `apps/api/src/agents/dynamic-agents.controller.ts` - DELETE
+- ❌ Any agent loaders, parsers, file readers - DELETE
+- ❌ **Clean up `llms/` directory** - remove any agent-specific code
+- ❌ **Clean up `mcp/` directory** - remove any agent-specific code
+- ❌ **Any stray agent files ANYWHERE** - DELETE
+
+**Handle Strays:**
+- IF agent2agent NEEDS a file from deleted areas → **MOVE it INTO agent2agent/**
+- NO stray files scattered around
+- Everything agent-related lives in agent2agent/ (except demo reference)
+
+**After Cleanup:**
+```
+apps/api/src/
+├── agent2agent/           ✅ ONLY agent execution system
+│   ├── controllers/
+│   ├── services/
+│   ├── dto/
+│   └── [any needed utilities moved here]
+│
+├── agents/
+│   └── demo/              ✅ Reference agents only (not executed)
+│
+├── llms/                  ✅ CLEAN - just LLM integrations
+├── mcp/                   ✅ CLEAN - just MCP protocol
+├── deliverables/          ✅ Universal deliverables API
+├── supabase/              ✅ Database layer
+└── [other modules]        ✅ Simple, focused
+```
+
+**Goal:**
+- API directory becomes **VERY simple**
+- ONE agent system (agent2agent)
+- NO confusion
+- NO scattered files
+- Clean module boundaries
 
 ### Phase 2: Minimal Effort
 - Just respect `execution_profile` flag
@@ -148,13 +187,144 @@
 
 ---
 
+---
+
+### 3. Image Generation & Deliverables Need Their Own Phase
+
+**Phase Structure Update:**
+
+**OLD Plan:**
+- Phase 5: Orchestration (assumed deliverables/images working)
+
+**NEW Plan:**
+- Phase 5: Image Generation & Deliverables (7 days)
+- Phase 6: Orchestration (22 days)
+
+**Why Separate Phase:**
+- Image generation has only initial code, needs full implementation
+- Deliverables need complete workflow (plan → build → edit)
+- Version management needs work
+- Asset storage integration incomplete
+- Should be working BEFORE orchestration (orchestrators will use these)
+
+**What's in Phase 5:**
+- OpenAI DALL-E integration (complete)
+- Gemini Imagen integration (complete)
+- Image storage via assets module
+- Deliverable lifecycle (plan, build, edit modes)
+- Deliverable versioning
+- Deliverables UI panel
+- Edit conversations
+
+**Agent Types Added:**
+```typescript
+// Image generation agent
+{
+  agent_type: 'image_generation',
+  config: {
+    image_generation: {
+      provider: 'openai' | 'gemini',
+      model: 'dall-e-3' | 'imagen-3'
+    }
+  }
+}
+```
+
+**Timeline Impact:**
+- Total: ~55 days → ~62 days (~11 weeks → ~12.5 weeks)
+- Phase 5 must complete before Phase 6 (Orchestration)
+
+---
+
+### 4. Consolidate Image Generation into Agent2AgentDeliverablesService
+
+**Architecture Decision:**
+
+**OLD Approach:**
+- Separate `image-agents/` module
+- Separate `ImageAgentsService`
+- Separate controller/routes
+
+**NEW Approach:**
+- Single `Agent2AgentDeliverablesService` handles ALL deliverable types
+- Image generation providers in `agent2agent/providers/`
+- Unified deliverable creation pattern
+
+**Why:**
+- Single source of truth for deliverable creation
+- Consistent API across text, image, video, audio deliverables
+- Easier to maintain and extend
+- Clean separation: providers generate, service stores/versions
+
+**Implementation:**
+```typescript
+// Agent2AgentDeliverablesService methods:
+- createFromTaskResult()        // Text (existing)
+- generateImageDeliverable()    // Images (Phase 5)
+- generateVideoDeliverable()    // Future
+- generateAudioDeliverable()    // Future
+```
+
+**Providers:**
+```
+agent2agent/providers/
+├── openai-image.provider.ts     // DALL-E 3
+├── gemini-image.provider.ts     // Imagen
+├── openai-video.provider.ts     // Future: Sora
+└── elevenlabs-audio.provider.ts // Future: TTS
+```
+
+**Phase 0 Impact:**
+- ❌ DELETE `image-agents/` module entirely
+- Will be reimplemented in Phase 5 inside agent2agent
+
+**Phase 5 Impact:**
+- Simpler - just add methods to existing service
+- No new module to maintain
+- Consistent with existing deliverable patterns
+
+---
+
+---
+
+### 5. Better Naming: "Document" over "Text"
+
+**Terminology Update:**
+
+**OLD:** `generateTextDeliverable()` - too narrow, implies plain text only
+
+**NEW:** Two explicit methods:
+- `generateDocumentDeliverable()` - formatted content (markdown, JSON, YAML, HTML)
+- `generateCodeDeliverable()` - syntax-highlighted code (TypeScript, Python, SQL, etc.)
+
+**Why:**
+- "Document" is user-facing, broader scope
+- Clear separation enables different UI rendering
+- Code gets syntax highlighting, documents get formatted rendering
+- Matches industry terms (Google Docs, not Google Texts)
+
+**Method Signatures:**
+```typescript
+generateDocumentDeliverable() → type: 'document', formats: markdown, json, yaml, html
+generateCodeDeliverable()      → type: 'code', formats: typescript, python, sql, css
+generateImageDeliverable()     → type: 'image', formats: png, jpg, webp
+```
+
+---
+
 ## Action Items
 
+- [x] Add Phase 5: Image Generation & Deliverables PRD
+- [x] Rename old Phase 5 to Phase 6
+- [x] Update README with new phase structure
+- [x] Document image consolidation decision in Phase 5 PRD
+- [x] Update Phase 0 to delete image-agents module
+- [x] Rename generateTextDeliverable → generateDocumentDeliverable
+- [x] Add generateCodeDeliverable for syntax-highlighted code
 - [ ] Update Phase 2 PRD title: "Conversation-Only Profile" (not "Agents")
 - [ ] Update Phase 2 to clarify it's a profile flag, not agent type
 - [ ] Update Phase 3 PRD title: "API & External Agents"
 - [ ] Add ExternalAgentRunnerService to Phase 3 tasks
-- [ ] Update Phase 0 to explicitly keep entire demo/ directory
 - [ ] Update high-level vision PRD with external agents
 
 ---
@@ -162,6 +332,9 @@
 **Bottom Line:**
 - Conversation-only = execution profile (applies to any agent type)
 - External agents = missing from plan, add to Phase 3 (very light effort)
+- Image generation & deliverables = need dedicated phase before orchestration
+- Image generation = consolidate into Agent2AgentDeliverablesService (cleaner architecture)
 - Keep demo/ directory intact in Phase 0
+- Delete image-agents/ in Phase 0, rebuild in Phase 5 inside agent2agent
 
-These are clarifications, not major scope changes. All timelines still valid.
+Total timeline: ~62 days (12.5 weeks), all scope accounted for.

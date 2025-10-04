@@ -1,7 +1,7 @@
 # Phase 0: Aggressive Cleanup - Remove Legacy Agent Code
 
 ## Overview
-Remove all file-based agent execution code from backend and frontend while preserving the demo agent directory for reference. This creates a clean foundation for rapid database-agent development without dual-system complexity.
+Move all file-based agent execution code to an archive directory at project root, then remove imports and routing. This allows us to fix build errors by evaluating each needed function/file and deciding how to properly integrate it into agent2agent with clean code standards. Archive is kept for reference through Phase 6, then deleted.
 
 ## Strategic Rationale
 **Why cleanup FIRST instead of last:**
@@ -16,51 +16,73 @@ Remove all file-based agent execution code from backend and frontend while prese
 - ✅ New plan: Cleanup → Build clean → Win
 
 ## Goals
-- Delete all file-based agent execution infrastructure
-- Preserve demo agent directory (YAML files, types, utilities)
-- Rename agent2agent services to simpler names
+- Move file-based agent code to _archive-phase-0/ at project root (safe, reversible)
+- Move deliverables/ into agent2agent/ (consolidate)
+- Remove imports and routing to legacy code
+- Fix build errors by properly integrating needed functions
+- Evaluate code quality before re-integrating (maintain standards)
+- Keep _archive-phase-0/ through Phase 6 (reference), then delete
 - Single, clean code path for database agents
-- Ready for rapid Phase 1-6 development
 
 ## Prerequisites
 - ✅ Agent2agent backend services exist and work
-- ✅ blog_post_writer, image generators, agent_builder_chat in database
+- ✅ blog_post_writer in database (primary test agent)
+- ✅ Agent discovery service loads agents from database
 - ✅ Team alignment on database-only commitment
 
 ## Scope
 
 ### In Scope
-1. **Backend Deletions**
-   - Delete `DynamicAgentsController`
-   - Delete YAML agent loader/parser services
-   - Delete file-based agent execution logic
-   - Delete file-based routing code
-   - Remove legacy agent type handling
+1. **Backend: Move to Archive (Safe, Reversible)**
+   - Move `agents/base/` → `_archive-phase-0/agents-base/`
+   - Move `agents/dynamic-agents.*` → `_archive-phase-0/`
+   - Move `agents/loaders/` → `_archive-phase-0/agents-loaders/`
+   - Move `agents/parsers/` → `_archive-phase-0/agents-parsers/`
+   - Move `image-agents/` → `_archive-phase-0/image-agents/`
+   - Move agent-specific code from `llms/` → `_archive-phase-0/llms-agent-code/`
+   - Move agent-specific code from `mcp/` → `_archive-phase-0/mcp-agent-code/`
 
-2. **Backend Renames (Simplification)**
-   - `Agent2AgentController` → keep as-is (describes protocol)
-   - `Agent2AgentConversationsService` → `AgentConversationsService`
-   - `Agent2AgentTasksService` → `AgentTasksService`
-   - `Agent2AgentDeliverablesService` → `AgentDeliverablesService`
-   - Module: `agent2agent/` → `agents/` (simpler)
+2. **Backend: Consolidate into agent2agent**
+   - Move `deliverables/` → `agent2agent/deliverables/`
+   - Keep `assets/` separate (universal file storage)
+   - NOTE: Plans service added in Phase 1, not Phase 0
 
-3. **Frontend Deletions**
+3. **Backend: Remove Imports**
+   - Remove all imports from archived directories
+   - Remove DynamicAgentsController from modules
+   - Remove file-based routing logic
+
+4. **Backend: Fix Build Errors**
+   - For each missing import/function:
+     - Evaluate: Is this needed?
+     - Evaluate: Is the code quality good?
+     - Evaluate: Is it organized properly?
+     - Evaluate: Should it be refactored?
+   - Properly integrate into agent2agent/ with clean standards
+   - Document decisions in ARCHIVE-DECISIONS.md
+
+5. **Agent Discovery (Keep & Verify)**
+   - Keep existing database agent loading service
+   - Loads agents from `agents` table in Supabase
+   - Used by hierarchy endpoint and agent execution
+   - Verify it works after cleanup
+
+6. **Frontend Deletions**
    - Delete `stores/agentChatStore/` (old file-based store)
    - Delete `services/agentConversationsService.ts` (legacy)
    - Delete any file-based agent utilities
    - Remove agent.source routing logic
 
-4. **Frontend Renames (Simplification)**
+7. **Frontend Renames (Simplification)**
    - `stores/agent2AgentChatStore/` → `stores/agentChatStore/`
    - `agent2AgentConversationsService.ts` → `agentConversationsService.ts`
    - `agent2AgentTasksService.ts` → `agentTasksService.ts` (create during rename)
    - `agent2AgentDeliverablesService.ts` → `agentDeliverablesService.ts` (create during rename)
 
-5. **Preserve for Reference**
+8. **Preserve for Reference**
    - ✅ Keep entire `apps/api/src/agents/demo/` directory
-   - ✅ Keep YAML files (templates, documentation)
-   - ✅ Keep agent types, interfaces, utilities
-   - ✅ Keep base implementations (may be useful)
+   - ✅ Keep `_archive-phase-0/` through Phase 6 (committed to git)
+   - ✅ Delete `_archive-phase-0/` after Phase 6 completion
 
 ### Out of Scope
 - New feature development (Phases 1-6)
@@ -82,51 +104,241 @@ Remove all file-based agent execution code from backend and frontend while prese
 9. ✅ Demo directory preserved intact
 
 ### Quality Gates:
-1. ✅ blog_post_writer still works (regression test)
-2. ✅ Conversation list still works
-3. ✅ Agent hierarchy still displays
-4. ✅ No console errors
-5. ✅ Codebase ~30% smaller
+1. ✅ Smoke tests pass (3 automated E2E tests)
+2. ✅ API starts without errors
+3. ✅ No orphaned test files
+4. ✅ Codebase ~30% smaller
+5. ✅ CI/CD configured
 
 ## Implementation Tasks
 
-### Phase 0.1: Backend Cleanup (1 day)
+### Phase 0.0: Write Smoke Tests (2 hours)
 
-#### Delete File-Based Execution
-1. **Delete DynamicAgentsController**
+**Create minimal automated safety net BEFORE deleting code:**
+
+1. **Create smoke test bash script**
    ```bash
-   rm apps/api/src/agents/dynamic-agents.controller.ts
-   rm apps/api/src/agents/dynamic-agents.controller.spec.ts
+   mkdir -p apps/api/test/agent2agent
+   # Create test/agent2agent/smoke-test.sh
+   # Bash script with curl calls using Supabase auth
+   chmod +x test/agent2agent/smoke-test.sh
    ```
 
-2. **Update agents.module.ts**
+2. **Write 3 critical curl tests**
+   - Authenticate with Supabase (test user credentials)
+   - List conversations (with auth token)
+   - Get hierarchy endpoint (with auth token)
+
+3. **Add test script**
+   ```json
+   // apps/api/package.json
+   "test:smoke": "./test/agent2agent/smoke-test.sh"
+   ```
+
+4. **Ensure test user exists**
+   ```bash
+   # Verify test@example.com exists in Supabase
+   # Or create test user if needed
+   ```
+
+5. **Verify tests pass**
+   ```bash
+   ./test/agent2agent/smoke-test.sh
+   # Should complete in < 10 seconds
+   ```
+
+**See:** [PHASE-0-TESTING-STRATEGY.md](./PHASE-0-TESTING-STRATEGY.md) for full test implementation.
+
+### Phase 0.1: Backend Triage & Consolidation (3 days)
+
+#### Step 1: Create Archive Directory (Project Root)
+1. **Create archive directory at project root**
+   ```bash
+   # At project root (NOT in source tree)
+   mkdir -p _archive-phase-0
+   ```
+
+2. **Create clear README in archive**
+   ```bash
+   cat > _archive-phase-0/README.md << 'EOF'
+   # Phase 0 Archive
+
+   **DO NOT USE CODE FROM THIS DIRECTORY**
+
+   This directory contains legacy file-based agent code that was removed during Phase 0.
+   It is kept as reference only during Phases 1-6 development.
+
+   - This code is NOT compiled
+   - This code is NOT imported
+   - This code is NOT part of the active system
+   - This code is FOR REFERENCE ONLY
+
+   See ARCHIVE-DECISIONS.md for what was migrated and where it went.
+
+   **Delete this entire directory after Phase 6 completion.**
+   EOF
+   ```
+
+3. **Update .claude.md with archive warning**
+   ```bash
+   cat >> .claude.md << 'EOF'
+
+   ## Phase 0 Archive Directory
+
+   **IMPORTANT: Do NOT use code from `_archive-phase-0/` directory**
+
+   This directory contains legacy code removed during Phase 0 cleanup.
+   It is kept for reference only during Phases 1-6.
+
+   - NOT compiled
+   - NOT imported
+   - NOT part of active system
+   - FOR REFERENCE ONLY
+
+   When helping with code:
+   - Do NOT suggest using code from _archive-phase-0/
+   - Do NOT copy code from _archive-phase-0/
+   - Only reference if explicitly asked to check legacy implementation
+
+   This directory will be deleted after Phase 6 completion.
+   EOF
+   ```
+
+#### Step 2: Move File-Based Code to Archive (Safe, Reversible)
+4. **Move legacy agent code to archive**
+   ```bash
+   # Move entire directories to archive at project root
+   mv apps/api/src/agents/base _archive-phase-0/agents-base
+   mv apps/api/src/agents/dynamic-agents.* _archive-phase-0/
+   mv apps/api/src/agents/loaders _archive-phase-0/agents-loaders
+   mv apps/api/src/agents/parsers _archive-phase-0/agents-parsers
+   mv apps/api/src/image-agents _archive-phase-0/image-agents
+
+   # Identify and move agent-specific code from llms/ and mcp/
+   # (manual evaluation needed - grep for agent execution logic)
+   ```
+
+#### Step 3: Consolidate Deliverables into agent2agent
+5. **Move deliverables into agent2agent**
+   ```bash
+   mv apps/api/src/deliverables apps/api/src/agent2agent/deliverables
+
+   # Update imports throughout codebase
+   # FROM: '@/deliverables/...'
+   # TO:   '@/agent2agent/deliverables/...'
+   ```
+
+6. **Update agent2agent module**
+   ```typescript
+   // apps/api/src/agent2agent/agent2agent.module.ts
+   @Module({
+     imports: [
+       // ... existing imports
+     ],
+     providers: [
+       DeliverablesService,  // Now internal to agent2agent
+       DeliverableVersionsService,
+       // ... other services
+     ],
+     controllers: [
+       DeliverablesController,  // Now internal to agent2agent
+       // ... other controllers
+     ],
+     exports: [
+       DeliverablesService,  // Export for other modules if needed
+       DeliverableVersionsService,
+     ],
+   })
+   ```
+
+#### Step 4: Remove Imports from Archive
+7. **Remove all imports pointing to archived code**
+   ```bash
+   # Find all imports from archived directories
+   grep -r "import.*agents/base" apps/api/src
+   grep -r "import.*image-agents" apps/api/src
+   grep -r "DynamicAgentsController" apps/api/src
+
+   # Remove these imports (will cause build errors - that's intentional)
+   ```
+
+8. **Update agents.module.ts**
    - Remove DynamicAgentsController import
-   - Remove file-based providers
-   - Keep only database agent infrastructure
+   - Remove ALL base/ imports
+   - Keep ONLY: demo/ (reference), agent2agent/ (execution)
 
-3. **Delete YAML loaders**
-   - Find and delete agent YAML loader services
-   - Delete file-based agent registry
-   - Keep types and interfaces (may be useful)
-
-4. **Clean up imports**
-   - Search for DynamicAgentsController imports
-   - Remove or update to database equivalents
-
-#### Rename Backend Services
-5. **Rename agent2agent module**
+#### Step 5: Fix Build Errors (Evaluation Phase)
+9. **Run build and fix errors iteratively**
    ```bash
-   mv apps/api/src/agent2agent apps/api/src/agents/database-agents
-   # Or keep as agent2agent - it describes the protocol
+   npm run build
+   # Will fail with missing imports
    ```
-   **Decision point:** Keep `agent2agent/` module name? It describes A2A protocol.
 
-6. **Rename services (optional)**
-   - `Agent2AgentConversationsService` → `AgentConversationsService`
-   - Update all imports
-   - **OR:** Keep "Agent2Agent" prefix - it's descriptive of the architecture
+10. **For each build error, evaluate:**
+   ```typescript
+   // DECISION TREE for each missing import/function:
 
-   **Recommendation:** Keep backend service names as-is. They describe the protocol.
+   // 1. Is this needed at all?
+   //    NO  → Remove the code that imports it
+   //    YES → Continue to step 2
+
+   // 2. Is the code quality good?
+   //    NO  → Refactor before integrating
+   //    YES → Continue to step 3
+
+   // 3. Is it organized properly?
+   //    NO  → Reorganize into proper structure
+   //    YES → Continue to step 4
+
+   // 4. Does it belong in agent2agent?
+   //    YES → Copy to agent2agent/ with proper organization
+   //    NO  → Put in appropriate module (llms/, mcp/, etc.)
+
+   // 5. Document in ARCHIVE-DECISIONS.md
+   //    - What was moved/refactored
+   //    - Why
+   //    - Where it went
+   ```
+
+11. **Create ARCHIVE-DECISIONS.md in archive**
+    ```bash
+    cat > _archive-phase-0/ARCHIVE-DECISIONS.md << 'EOF'
+    # Triage Decisions
+
+    **IMPORTANT: This directory is kept until Phase 6 completion**
+    - May contain code needed for Phases 1-6
+    - Faster than searching git history
+    - Delete after Phase 6 when all features implemented
+
+    ---
+
+    ## Decisions Log
+
+    EOF
+    ```
+
+    Document each decision:
+    ```markdown
+    ## File: agents/base/some-service.ts
+    - **Decision**: Refactored and moved to agent2agent/services/
+    - **Reason**: Needed for task execution, but had poor separation of concerns
+    - **Changes**: Split into 3 smaller services
+    - **New Location**: agent2agent/services/{task-executor, context-loader, result-processor}.ts
+
+    ## File: agents/base/unused-helper.ts
+    - **Decision**: Not needed
+    - **Reason**: Not imported anywhere, dead code
+    - **Action**: Left in archive, not migrated
+    ```
+
+#### Step 6: Iterate Until Build Passes
+12. **Repeat evaluation cycle**
+    - Fix build error
+    - Evaluate code quality
+    - Integrate properly into agent2agent/
+    - Document decision
+    - Run build again
+    - Repeat until `npm run build` succeeds
 
 ### Phase 0.2: Frontend Cleanup (1 day)
 
@@ -169,77 +381,169 @@ Remove all file-based agent execution code from backend and frontend while prese
     ```bash
     grep -r "agent.source" apps/web/src
     # Delete all conditional routing based on agent.source
+    # Examples to remove:
+    # - if (agent.source === 'database') { ... } else { ... }
+    # - agent.source === 'file' ? fileService : dbService
+    # - switch (agent.source) cases
     ```
 
 13. **Simplify component logic**
-    - No more "if file agent, else database agent"
-    - Single code path
+    - ❌ Remove: "if file agent, else database agent" conditionals
+    - ❌ Remove: agent.source-based routing
+    - ✅ Keep: namespace-based logic (we use multiple namespaces)
+    - ✅ Keep: organizationSlug handling
+    - Single code path for all agents
     - Remove conditionals in ConversationView, DeliverablesPanel, etc.
+
+14. **Preserve namespace filtering**
+    ```typescript
+    // KEEP this kind of logic:
+    agents.filter(a => a.namespace === currentNamespace)
+
+    // DELETE this kind of logic:
+    if (agent.source === 'database') {
+      await agent2AgentService.execute()
+    } else {
+      await fileAgentService.execute()
+    }
+    ```
 
 ### Phase 0.3: Verification & Testing (0.5 days)
 
-14. **Verify build**
+15. **Verify build passes**
     ```bash
     npm run build
     # Should succeed without errors
     ```
 
-15. **Test existing database agents**
+16. **Run smoke tests**
+    ```bash
+    ./test/agent2agent/smoke-test.sh
+    # All tests should pass
+    ```
+
+17. **Test existing database agents**
     - [ ] blog_post_writer conversation works
     - [ ] Agent list loads correctly
     - [ ] Hierarchy displays correctly
     - [ ] Can create new conversation
-    - [ ] Image generators work (if tested before)
+    - [ ] Namespace filtering still works
+    - [ ] Deliverables work (now under agent2agent/)
 
-16. **Check bundle size**
+18. **Verify archive is complete**
+    - All legacy code in `_archive-phase-0/`
+    - README.md created with warnings
+    - ARCHIVE-DECISIONS.md created
+    - .claude.md updated with archive warning
+
+19. **Verify ARCHIVE-DECISIONS.md**
+    - Review all decisions made
+    - Ensure documentation is complete
+    - Note: Keep updating through Phases 1-6 if we need more code
+
+20. **Check bundle size**
     - Verify frontend bundle smaller
     - Backend build faster
 
-17. **Git cleanup**
+21. **Git cleanup**
     ```bash
     git status
-    # Should show lots of deletions, some renames
+    # Should show:
+    # - _archive-phase-0/ added (committed for team visibility)
+    # - deliverables moved to agent2agent/
+    # - Frontend renames
+    # - Lots of import updates
+    # - .claude.md updated
     ```
 
-### Phase 0.4: Documentation (0.5 days)
+### Phase 0.4: Configure CI/CD (0.5 days)
 
-18. **Update architecture docs**
-    - Remove references to file-based agents
-    - Update diagrams
-    - Simple "database agents only" architecture
+22. **Add smoke tests to CI/CD**
+    ```yaml
+    # .github/workflows/api-tests.yml
+    - name: Run Agent2Agent Smoke Tests
+      run: npm run test:smoke --prefix apps/api
+      timeout-minutes: 2
+    ```
 
-19. **Update developer guide**
-    - How to create new database agent
-    - Remove YAML agent instructions
+23. **Verify CI/CD passes**
+    - Push to feature branch
+    - Ensure smoke tests run and pass
+    - Fast feedback loop established
 
-20. **Create PR**
-    - Title: "Phase 0: Remove file-based agent system"
-    - Large PR with mostly deletions
-    - Team review
+24. **Create PR**
+    - Title: "Phase 0: Consolidate to agent2agent architecture"
+    - PR includes:
+      - _archive-phase-0/ added (WITH README and ARCHIVE-DECISIONS.md)
+      - deliverables/ moved to agent2agent/
+      - Frontend simplified (no agent.source routing)
+      - .claude.md updated with archive warning
+    - Smoke tests prove nothing broke
     - Merge to feature branch
+    - Note: _archive-phase-0/ kept until Phase 6 completion
 
-## Files to Delete
+## File Structure Changes
 
-### Backend
+### Project Root - Archive Approach
 ```
-apps/api/src/agents/
-├── dynamic-agents.controller.ts ❌ DELETE
-├── dynamic-agents.controller.spec.ts ❌ DELETE
-├── dynamic-agents.service.ts ❌ DELETE (if exists)
-├── loaders/ ❌ DELETE (YAML loaders)
-├── demo/ ✅ KEEP ENTIRE DIRECTORY
-└── base/ ✅ KEEP (may have useful utilities)
+orchestrator-ai/  (project root)
+├── _archive-phase-0/  📦 ARCHIVE (kept until Phase 6)
+│   ├── README.md  ⚠️ "DO NOT USE CODE FROM THIS DIRECTORY"
+│   ├── ARCHIVE-DECISIONS.md  📝 Documents all migration decisions
+│   ├── agents-base/              # Moved from apps/api/src/agents/base/
+│   ├── agents-loaders/           # Moved from apps/api/src/agents/loaders/
+│   ├── agents-parsers/           # Moved from apps/api/src/agents/parsers/
+│   ├── dynamic-agents.*          # Moved controller/service
+│   ├── image-agents/             # Moved from apps/api/src/image-agents/
+│   ├── llms-agent-code/          # Agent execution code from llms/
+│   └── mcp-agent-code/           # Agent execution code from mcp/
+│
+├── .claude.md  ⚠️ Updated with archive warning
+│
+└── apps/api/src/
+    ├── agent2agent/  ✅ CONSOLIDATED
+    │   ├── deliverables/             # ⬅️ MOVED from deliverables/
+    │   │   ├── deliverables.service.ts
+    │   │   ├── deliverable-versions.service.ts
+    │   │   └── deliverables.controller.ts
+    │   ├── services/
+    │   │   ├── agent2agent-conversations.service.ts
+    │   │   ├── agent2agent-tasks.service.ts
+    │   │   └── agent2agent-deliverables.service.ts
+    │   └── agent2agent.module.ts  (now includes deliverables)
+    │
+    ├── agents/
+    │   └── demo/  ✅ KEEP (reference only)
+    │
+    ├── assets/  ✅ KEEP (universal file storage)
+    ├── llms/  ✅ KEEP (LLM clients only, no agent code)
+    └── mcp/  ✅ KEEP (MCP protocol only, no agent code)
 ```
 
 ### Frontend
 ```
 apps/web/src/stores/
-├── agentChatStore/ ❌ DELETE (old file-based)
-└── agent2AgentChatStore/ ✅ RENAME to agentChatStore/
+├── agentChatStore/  ❌ DELETE (old file-based)
+└── agent2AgentChatStore/  ⬅️ RENAME to agentChatStore/
 
 apps/web/src/services/
-├── agentConversationsService.ts ❌ DELETE (legacy)
-└── agent2AgentConversationsService.ts ✅ RENAME to agentConversationsService.ts
+├── agentConversationsService.ts  ❌ DELETE (legacy)
+└── agent2AgentConversationsService.ts  ⬅️ RENAME to agentConversationsService.ts
+```
+
+### Final Result (After Phase 6, delete archive)
+```
+orchestrator-ai/
+├── apps/api/src/
+│   ├── agent2agent/  ✅ Complete agent system
+│   │   ├── deliverables/  (moved in)
+│   │   └── services/
+│   ├── agents/demo/  ✅ Reference only
+│   ├── assets/  ✅ Universal storage
+│   ├── llms/  ✅ Clean
+│   └── mcp/  ✅ Clean
+│
+└── .claude.md  ✅ Clean (archive warning removed)
 ```
 
 ## Renames
@@ -267,73 +571,115 @@ Reason: "Agent2Agent" describes the protocol/architecture, not file vs database
 
 ## Testing Strategy
 
-### Smoke Tests
-1. **Backend starts without errors**
-   ```bash
-   npm run dev:api
-   # No import errors
-   # No missing module errors
-   ```
+### Automated Smoke Tests (Phase 0.0)
+**3 curl-based E2E tests, < 10 seconds, catches 90% of breaking changes:**
 
-2. **Frontend builds and runs**
-   ```bash
-   npm run dev
-   # No compilation errors
-   # App loads in browser
-   ```
+```bash
+# test/agent2agent/smoke-test.sh
+1. Authenticate with Supabase (test user credentials)
+2. List conversations (with auth token)
+3. Get hierarchy endpoint (with auth token)
+```
 
-3. **Existing agents work**
-   - blog_post_writer conversation
-   - Agent list loads
-   - Hierarchy displays
+**Uses real Supabase auth:**
+- Test user: `test@example.com`
+- Auth via Supabase token endpoint
+- All requests include `Authorization: Bearer <token>`
 
-### Regression Tests
-- [ ] Can list agents
-- [ ] Can create conversation
-- [ ] Can send message
-- [ ] Can view conversation history
-- [ ] Agent hierarchy displays correctly
+**Run before and after deletion:**
+```bash
+./test/agent2agent/smoke-test.sh  # Before deletion → pass ✅
+# ... delete code ...
+./test/agent2agent/smoke-test.sh  # After deletion → still pass ✅
+```
+
+**See:** [PHASE-0-TESTING-STRATEGY.md](./PHASE-0-TESTING-STRATEGY.md) for full implementation.
+
+### Manual Validation (Quick Checks)
+1. API starts without errors: `npm run dev:api`
+2. Frontend builds: `npm run dev`
+3. No console errors in browser
 
 ## Risks & Mitigations
 
 ### Risk: Break existing database agents
-**Mitigation:** Test blog_post_writer thoroughly before/after, quick rollback if needed
+**Mitigation:** Automated smoke tests catch regressions immediately, quick rollback if needed
 
 ### Risk: Miss hidden dependencies
-**Mitigation:** Comprehensive grep for imports, careful PR review
+**Mitigation:** Smoke tests + comprehensive grep for imports + careful PR review
 
 ### Risk: Naming confusion after renames
 **Mitigation:** Clear naming strategy, update all at once, team alignment
 
 ### Risk: Demo directory has important code
-**Mitigation:** Keep entire demo/ directory, only delete execution paths
+**Mitigation:** Keep entire demo/ directory intact, only delete execution paths
 
 ## Timeline Estimate
-- Phase 0.1 (Backend): 1 day
-- Phase 0.2 (Frontend): 1 day
-- Phase 0.3 (Testing): 0.5 days
-- Phase 0.4 (Documentation): 0.5 days
-- **Total: 3 days**
+- Phase 0.0 (Smoke Tests): 2 hours
+- Phase 0.1 (Backend Triage & Consolidation): 3 days (evaluation + integration)
+- Phase 0.2 (Frontend Cleanup): 1 day (includes renames)
+- Phase 0.3 (Delete Triage): 0.5 days (verification + deletion)
+- Phase 0.4 (CI/CD): 0.5 days
+- **Total: 5 days** (includes evaluation, documentation, testing)
+
+## Agent Discovery (How Agents are Loaded)
+
+**Current System (Keep This):**
+- Agents are stored in `agents` table in Supabase
+- Agent discovery service queries database for active agents
+- Used by:
+  - `/api/.well-known/agent-hierarchy` (loads all agents for hierarchy)
+  - Agent execution (loads specific agent by slug)
+- **NO CHANGES needed** - this already works
+
+**What we're removing:**
+- YAML file loaders (agents/loaders/)
+- File-based agent parsers (agents/parsers/)
+- DynamicAgentsController (loaded from filesystem)
+
+**After Phase 0:**
+- ✅ Database is the single source of truth for agents
+- ✅ Agent discovery service unchanged (already database-based)
+- ✅ Hierarchy endpoint works (loads from database)
+- ✅ Agent execution works (loads from database)
 
 ## Dependencies
-- blog_post_writer in database ✅
-- Image generators in database ✅
-- agent_builder_chat in database ✅
+- blog_post_writer in database ✅ (primary test agent)
+- Agent discovery service already database-based ✅
+- Hierarchy endpoint already working ✅
 - Team commitment to database-only ✅
 
 ## Definition of Done
-- [ ] DynamicAgentsController deleted
-- [ ] YAML execution code deleted
-- [ ] File-based store deleted
+- [ ] Smoke tests written and passing (Phase 0.0)
+- [ ] Legacy code moved to _archive-phase-0/ (project root)
+- [ ] _archive-phase-0/README.md created with warnings
+- [ ] _archive-phase-0/ARCHIVE-DECISIONS.md created
+- [ ] .claude.md updated with archive warning
+- [ ] deliverables/ moved to agent2agent/deliverables/
+- [ ] All imports from archived code removed
+- [ ] Build errors fixed by proper integration
+- [ ] Code quality evaluated for all re-integrated code
+- [ ] _archive-phase-0/ committed to git (team visibility)
 - [ ] Frontend services renamed (no agent2agent prefix)
 - [ ] Frontend store renamed (agentChatStore)
 - [ ] All agent.source checks removed
+- [ ] Namespace filtering still works
+- [ ] Smoke tests still passing after cleanup
+- [ ] CI/CD configured
 - [ ] Build passes
-- [ ] Smoke tests pass
 - [ ] blog_post_writer still works
+- [ ] Deliverables work (now under agent2agent/)
 - [ ] Demo directory intact
 - [ ] PR merged to feature branch
 - [ ] Ready for Phase 1
+
+## Post-Phase 6: Final Archive Cleanup
+**After Phase 6 (Orchestration) is complete:**
+- [ ] Verify all features work (Phases 1-6)
+- [ ] Confirm no additional code needed from _archive-phase-0/
+- [ ] Delete _archive-phase-0/ directory permanently
+- [ ] Remove archive warning from .claude.md
+- [ ] Create PR: "Phase 6 Complete: Remove legacy code archive"
 
 ## Impact on Future Phases
 

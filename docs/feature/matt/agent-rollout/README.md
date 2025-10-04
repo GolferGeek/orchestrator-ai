@@ -25,8 +25,9 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 | 2 | Conversation-Only Agents | 3 days | ⏳ Pending |
 | 3 | API Agents (n8n Integration) | 10 days | ⏳ Pending |
 | 4 | Migrate File-Based Agents to Database | 10 days | ⏳ Pending |
-| 5 | Orchestration System | 22 days | ⏳ Pending |
-| **Total** | | **~55 days (~11 weeks)** | |
+| 5 | Image Generation & Deliverables | 7 days | ⏳ Pending |
+| 6 | Orchestration System | 22 days | ⏳ Pending |
+| **Total** | | **~62 days (~12.5 weeks)** | |
 
 **🎯 1-Week Goal:** Complete Phases 0-1, ship to main, then iterate on Phases 2-5
 
@@ -113,7 +114,22 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 
 ---
 
-### Phase 5: Orchestration System
+### Phase 5: Image Generation & Deliverables
+**Focus:** Complete image generation and deliverable system
+
+- Image generation agents (OpenAI DALL-E, Gemini Imagen)
+- Image storage and versioning
+- Deliverable workflow completion (plan → build → edit)
+- Deliverable versions and history
+- Asset management integration
+
+**Key Deliverable:** Image agents generate and store images, deliverables fully functional
+
+[📄 Full PRD](./phase-5-image-generation-deliverables-prd.md)
+
+---
+
+### Phase 6: Orchestration System
 **Focus:** Multi-agent workflow orchestration
 
 - Orchestration plans (multi-step workflows)
@@ -124,7 +140,7 @@ The agent platform implementation is broken into sequential phases. **Phase 0 is
 
 **Key Deliverable:** Orchestrators coordinate specialists through complex workflows
 
-[📄 Full PRD](./phase-5-orchestration-prd.md)
+[📄 Full PRD](./phase-6-orchestration-prd.md)
 
 ---
 

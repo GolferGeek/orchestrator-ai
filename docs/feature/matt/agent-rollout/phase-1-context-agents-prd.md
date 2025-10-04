@@ -25,11 +25,35 @@ Establish the complete end-to-end workflow for context agents (like blog_post_wr
    - Switch between versions
    - Delete deliverables
 
-3. **Plan Editing Workflow**
-   - Generate plan from conversation
-   - Display plan in deliverables panel (as special deliverable type)
-   - Allow user to edit plan before building
-   - Conversation-based plan refinement ("change step 2 to focus on X")
+3. **Plan Editing Workflow** (Conversation-Driven)
+   - **Initial Plan Generation:**
+     - User switches to PLAN mode (or agent suggests planning)
+     - Agent receives: full conversation history + mode='plan'
+     - Agent generates initial plan outline
+     - Plan stored as deliverable (type='plan', format='markdown' or 'json')
+
+   - **Plan Refinement via Conversation:**
+     - User can refine plan through natural conversation
+     - Each refinement message includes:
+       - Full conversation history
+       - **Current version of the plan** (most important context)
+       - User's latest message (refinement request)
+       - Mode still set to 'plan'
+     - Agent generates updated plan based on conversation + current plan
+     - New plan version created automatically
+
+   - **Plan Context for Building:**
+     - When switching to BUILD mode, agent receives:
+       - Full conversation history
+       - **Approved plan** (current version of plan deliverable)
+       - Mode='build'
+     - Agent uses plan as blueprint for deliverable
+
+   - **NOT just button clicks:**
+     - Switching modes without a message → agent uses conversation history only
+     - Switching modes WITH a message → that message is the primary instruction
+     - Example: User types "make it more technical" then clicks BUILD
+       - Agent sees: conversation + plan + "make it more technical" + mode='build'
 
 4. **Deliverable Versioning**
    - Create initial version on build
@@ -88,6 +112,64 @@ Establish the complete end-to-end workflow for context agents (like blog_post_wr
 
 ## Implementation Tasks
 
+### Backend - Database Schema
+1. **Create plans tables migration**
+   ```sql
+   -- plans table (mirrors deliverables structure)
+   CREATE TABLE plans (
+     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+     conversation_id UUID NOT NULL UNIQUE,  -- One plan per conversation
+     user_id UUID NOT NULL,
+     title TEXT NOT NULL,
+     current_version_id UUID,
+     created_at TIMESTAMPTZ DEFAULT NOW(),
+     updated_at TIMESTAMPTZ DEFAULT NOW(),
+     FOREIGN KEY (conversation_id) REFERENCES agent_conversations(id) ON DELETE CASCADE
+   );
+
+   -- plan_versions table (mirrors deliverable_versions structure)
+   CREATE TABLE plan_versions (
+     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+     plan_id UUID NOT NULL,
+     version_number INTEGER NOT NULL,
+     content TEXT NOT NULL,
+     format VARCHAR(50) DEFAULT 'markdown',
+     is_current_version BOOLEAN DEFAULT false,
+     created_by_type VARCHAR(50),  -- 'conversation_task', 'manual_edit', 'llm_rerun'
+     task_id UUID,
+     metadata JSONB,
+     created_at TIMESTAMPTZ DEFAULT NOW(),
+     updated_at TIMESTAMPTZ DEFAULT NOW(),
+     FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+     UNIQUE (plan_id, version_number)
+   );
+   ```
+
+### Backend - Services
+2. **Create PlansService** (mirror of DeliverablesService)
+   - `create(conversationId, userId, title, content, format)` - Create plan
+   - `findByConversationId(conversationId, userId)` - Get plan for conversation
+   - `update(planId, updates)` - Update plan
+   - `delete(planId)` - Delete plan
+
+3. **Create PlanVersionsService** (mirror of DeliverableVersionsService)
+   - `createVersion(planId, content, format, metadata)` - Create new plan version
+   - `getCurrentVersion(planId)` - Get current plan version
+   - `getVersionHistory(planId)` - Get all versions
+   - `setCurrentVersion(versionId)` - Switch current version
+
+4. **Create PlansController**
+   ```typescript
+   GET    /api/plans/conversation/:conversationId  // Get plan for conversation
+   POST   /api/plans                               // Create plan
+   PATCH  /api/plans/:id                           // Update plan
+   DELETE /api/plans/:id                           // Delete plan
+
+   GET    /api/plans/:id/versions                  // Get version history
+   POST   /api/plans/:id/versions                  // Create new version
+   PATCH  /api/plans/:id/versions/:versionId       // Set as current
+   ```
+
 ### Backend (Already Complete)
 - ✅ Agent2AgentConversationsService
 - ✅ Agent2AgentTasksService
@@ -97,49 +179,209 @@ Establish the complete end-to-end workflow for context agents (like blog_post_wr
 
 ### Frontend - Services Layer
 1. **Create agent2AgentTasksService.ts**
-   - `createTask(agentSlug, conversationId, mode, userMessage)`
+   - `createTask(agentSlug, conversationId, mode, userMessage, planId?)`
    - `getTaskStatus(taskId)`
    - `listTasks(conversationId)`
 
-2. **Create agent2AgentDeliverablesService.ts**
-   - `listDeliverables(conversationId)`
+2. **Create agent2AgentPlansService.ts** (NEW)
+   - `getPlanByConversation(conversationId)` - Get plan for conversation
+   - `createPlan(conversationId, title, content)` - Create initial plan
+   - `updatePlan(planId, updates)` - Update plan
+   - `getPlanVersions(planId)` - Get version history
+   - `createPlanVersion(planId, content)` - Create new version
+   - `setCurrentVersion(versionId)` - Switch current version
+
+3. **Create agent2AgentDeliverablesService.ts**
+   - `getDeliverableByConversation(conversationId)` - Get deliverable for conversation
    - `getDeliverable(deliverableId)`
    - `getDeliverableVersions(deliverableId)`
    - `rerunWithLLM(versionId, llmConfig)`
    - `updateDeliverable(deliverableId, updates)`
 
 ### Frontend - Store Layer
-3. **Create stores/agent2AgentChatStore/**
+4. **Create stores/agent2AgentChatStore/**
    - Duplicate agentChatStore structure
    - Update to use agent2agent services (not legacy)
    - Remove file-based agent logic
    - Clean implementation for database agents only
 
-4. **Update agentConversationsStore.ts**
+5. **Update agentConversationsStore.ts**
    - Already routes to agent2AgentConversationsService ✅
    - Verify conversation title formatting works
 
-### Frontend - UI Components
-5. **Update DeliverablesPanel.vue**
-   - Detect agent source (database vs file)
-   - Route to appropriate deliverables service
-   - Support plan deliverables (editable outline)
-   - Version selector UI
-   - LLM rerun button
+### Backend - Plan Context Assembly
+6. **Enhance Agent2AgentTasksService to include plan context**
+   ```typescript
+   async executeTask(params: {
+     agentSlug: string;
+     conversationId: string;
+     mode: 'converse' | 'plan' | 'build';
+     userMessage?: string;
+     userId: string;
+     planId?: string;  // Optional: explicit plan ID to use
+   }) {
+     // 1. Load conversation history
+     const conversationHistory = await this.loadConversationHistory(params.conversationId);
 
-6. **Create/Update PlanEditor.vue**
-   - Display plan in editable format
-   - Save plan changes
-   - Conversation-based plan refinement
+     // 2. Load plan context (CRITICAL for plan refinement and building)
+     let currentPlan = null;
+
+     if (params.planId) {
+       // Explicit plan ID provided (user selected specific plan version)
+       currentPlan = await this.planVersions.getCurrentVersion(params.planId);
+     } else if (params.mode === 'plan' || params.mode === 'build') {
+       // Auto-load plan by conversation (if exists)
+       const plan = await this.plans.findByConversationId(params.conversationId, params.userId);
+       if (plan) {
+         currentPlan = await this.planVersions.getCurrentVersion(plan.id);
+       }
+     }
+
+     // 3. Assemble context for agent
+     const context = {
+       conversation: conversationHistory,
+       currentPlan: currentPlan?.content || null,  // The plan content
+       planVersion: currentPlan?.version_number || null,
+       mode: params.mode,
+       userMessage: params.userMessage || null,  // LAST MESSAGE - highest priority
+     };
+
+     // Context priority for BUILD mode:
+     // 1. userMessage (most important - "make it more technical")
+     // 2. currentPlan (the blueprint)
+     // 3. conversation history (background)
+
+     // 4. Execute task with full context
+     return await this.agent.execute(context);
+   }
+   ```
+
+### Frontend - UI Components
+7. **Create PlansPanel.vue** (NEW - similar to DeliverablesPanel)
+   - Display current plan for conversation
+   - Show plan version history
+   - Refinement UI (converse to update plan)
+   - Version comparison
    - "Approve & Build" button
 
-7. **Update ConversationView.vue**
-   - Route to agent2AgentChatStore for database agents
-   - Route to agentChatStore for file-based agents
-   - Check `agent.source` field to determine routing
+8. **Update DeliverablesPanel.vue**
+   - Display deliverable for conversation (ONE per conversation)
+   - Show deliverable version history
+   - Version selector UI
+   - LLM rerun button
+   - Manual edit capability
 
-### Agent Configuration
-8. **Verify blog_post_writer configuration**
+9. **Update ConversationView.vue - Mode Switching Logic**
+   ```typescript
+   // When user switches mode or sends message with mode change
+   async function handleModeSwitchOrMessage(
+     mode: 'converse' | 'plan' | 'build',
+     userMessage?: string,
+     planId?: string  // Optional: use specific plan version
+   ) {
+     // CRITICAL: userMessage (if present) is the PRIMARY context
+     // The mode switch is SECONDARY
+
+     const taskParams = {
+       agentSlug: currentAgent.slug,
+       conversationId: currentConversation.id,
+       mode: mode,
+       userMessage: userMessage || null,  // Can be null if just mode switch
+       planId: planId || null,  // Can be null (auto-load by conversation)
+       userId: currentUser.id
+     };
+
+     // Backend will:
+     // 1. Load conversation history
+     // 2. Load plan by planId OR auto-load by conversation (if mode=plan/build)
+     // 3. Assemble context with priority: userMessage > plan > conversation
+     // 4. Execute in specified mode
+     await agent2AgentTasksService.createTask(taskParams);
+   }
+
+   // Examples:
+   // 1. User clicks "Plan" button (no message) → mode='plan', userMessage=null, planId=null
+   // 2. User types "focus on healthcare" then clicks "Plan" → mode='plan', userMessage='focus on healthcare'
+   // 3. User types "make it longer" then clicks "Build" → mode='build', userMessage='make it longer'
+   // 4. User selects plan v2, clicks "Build" → mode='build', planId='plan-ver-2'
+   ```
+
+10. **Update ConversationView.vue**
+    - Route to agent2AgentChatStore for database agents
+    - Route to agentChatStore for file-based agents
+    - Check `agent.source` field to determine routing
+
+11. **Add Mode Action Buttons to Message Bubbles**
+    ```typescript
+    // Show under each assistant message (after first converse)
+    // Only for agents with execution_profile !== 'conversation_only'
+
+    <MessageBubble>
+      <MessageContent />
+
+      <MessageActions v-if="canShowModeButtons">
+        <Button @click="handleMode('plan', message.content)">
+          📋 Plan
+        </Button>
+        <Button @click="handleMode('build', message.content)">
+          🔨 Build
+        </Button>
+        <Button @click="handleMode('converse')">
+          💬 Continue Conversation
+        </Button>
+      </MessageActions>
+    </MessageBubble>
+
+    // canShowModeButtons = true when:
+    // - Agent is NOT conversation_only
+    // - Message is from assistant
+    // - At least one user message has been sent
+
+    // Clicking button:
+    // - "Plan" → executeTask(mode='plan', userMessage=null)
+    // - "Build" → executeTask(mode='build', userMessage=null)
+    // - If user types message THEN clicks → userMessage included
+    ```
+
+### Agent Configuration & Response Format
+12. **Update blog_post_writer system prompt to specify format**
+   ```yaml
+   config:
+     context:
+       system_prompt: |
+         You are a blog post writing assistant.
+
+         IMPORTANT CONTEXT HIERARCHY (when processing requests):
+         1. **User's last message** (highest priority - the specific instruction)
+         2. **Current plan** (if exists - the agreed blueprint)
+         3. **Conversation history** (background context)
+         4. **Current mode** (plan/build/converse - execution style)
+
+         When in PLAN mode, generate an outline/structure.
+         When in BUILD mode, create the full deliverable using the plan.
+
+         When generating deliverables in BUILD mode, always structure your response as:
+         {
+           "format": "markdown",  // REQUIRED: markdown, json, yaml, html, plaintext
+           "title": "Descriptive Title",
+           "output": "<your content here>"
+         }
+
+         This ensures proper rendering and syntax highlighting in the UI.
+   ```
+
+13. **Add format specification to Agent2AgentDeliverablesService**
+   ```typescript
+   // createFromTaskResult should use format from agent response
+   const format = result.payload.format || this.inferFormat(content);
+   // ↑ Agent explicitly provides format, no guessing needed
+
+   // Route to correct deliverable type
+   const isCode = ['typescript', 'javascript', 'python', 'css', 'sql'].includes(format);
+   const method = isCode ? 'generateCodeDeliverable' : 'generateDocumentDeliverable';
+   ```
+
+14. **Verify blog_post_writer configuration**
    - `agent_type: 'context'`
    - `execution_profile: 'autonomous_build'` or similar
    - `execution_capabilities: { can_plan: true, can_build: true }`
