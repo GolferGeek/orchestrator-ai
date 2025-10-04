@@ -23,6 +23,8 @@ import { conversation } from './conversation';
 import { taskExecution } from './taskExecution';
 import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
+import { planActions } from './planActions';
+import { deliverableActions } from './deliverableActions';
 import analyticsService from '@/services/analyticsService';
 import approvalsService from '@/services/approvalsService';
 import { useAuthStore } from '@/stores/authStore';
@@ -2059,6 +2061,13 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     setLastMessageWasSpeech(wasSpeech: boolean) {
       this.lastMessageWasSpeech = wasSpeech;
-    }
+    },
+
+    // ========================================================================
+    // MODE × ACTION ARCHITECTURE ACTIONS
+    // Import plan and deliverable actions from separate modules
+    // ========================================================================
+    ...planActions,
+    ...deliverableActions,
   }
 });

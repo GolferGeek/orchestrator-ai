@@ -133,3 +133,10 @@ export interface Conversation {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================================
+// RE-EXPORT SPECIFIC ACTION TYPES
+// ============================================================================
+
+export * from './plan.types';
+export * from './deliverable.types';

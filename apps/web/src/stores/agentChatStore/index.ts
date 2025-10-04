@@ -2,7 +2,8 @@
 export { useAgentChatStore } from './store';
 // Export services for advanced usage
 export { messageFormatting } from './messageFormatting';
-export { deliverable } from './deliverable'; 
+export { deliverable } from './deliverable';
+export { plans } from './plans';
 export { websocketHandler } from './websocketHandler';
 export { taskExecution } from './taskExecution';
 export { conversation } from './conversation';

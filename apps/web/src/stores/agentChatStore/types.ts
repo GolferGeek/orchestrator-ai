@@ -145,6 +145,11 @@ export interface AgentConversation {
   latestPlanId?: string | null;
   latestPlan?: ConversationPlanRecord | null;
   plans?: ConversationPlanRecord[];
+  // New mode × action architecture state
+  currentPlan?: any | null; // Plan from new architecture
+  planVersions?: any[]; // PlanVersion[] from new architecture
+  currentDeliverable?: any | null; // Deliverable from new architecture
+  deliverableVersions?: any[]; // DeliverableVersion[] from new architecture
   orchestrationRuns?: OrchestrationRunRecord[];
   savedOrchestrations?: AgentOrchestrationRecord[];
   streamSubscriptions?: Record<string, { messageId: string; unsubscribe: () => void }>;
