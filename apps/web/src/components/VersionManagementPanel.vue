@@ -296,13 +296,50 @@ const copySpecificVersion = async (versionId: string) => {
 };
 const executeMerge = async () => {
   if (mergeSelectedVersions.value.length < 2 || !mergePrompt.value.trim()) return;
-  await agentChatStore.sendMessageWithContext(
-    mergePrompt.value,
-    contextStore.createMergeMetadata(mergeSelectedVersions.value)
-  );
-  mergeSelectedVersions.value = [];
-  mergePrompt.value = '';
-  showMergeDialog.value = false;
+
+  try {
+    const { default: deliverablesService } = await import('@/services/deliverablesService');
+
+    // Call the merge API directly
+    const result = await deliverablesService.mergeVersions(
+      props.deliverableId,
+      mergeSelectedVersions.value,
+      mergePrompt.value
+    );
+
+    // Show success toast
+    try {
+      const { toastController } = await import('@ionic/vue');
+      const toast = await toastController.create({
+        message: `Successfully merged ${mergeSelectedVersions.value.length} versions into v${result.newVersion.versionNumber}`,
+        duration: 3000,
+        color: 'success',
+      });
+      await toast.present();
+    } catch (_) {}
+
+    // Emit event to refresh versions list
+    // The parent component should be listening for this and refresh the deliverable data
+    window.dispatchEvent(new CustomEvent('deliverable-updated', {
+      detail: { deliverableId: props.deliverableId }
+    }));
+
+  } catch (error) {
+    console.error('Failed to merge versions:', error);
+    try {
+      const { toastController } = await import('@ionic/vue');
+      const toast = await toastController.create({
+        message: error instanceof Error ? error.message : 'Failed to merge versions',
+        duration: 3000,
+        color: 'danger',
+      });
+      await toast.present();
+    } catch (_) {}
+  } finally {
+    mergeSelectedVersions.value = [];
+    mergePrompt.value = '';
+    showMergeDialog.value = false;
+  }
 };
 // Helper methods
 const getVersionNumber = (versionId: string): number => {

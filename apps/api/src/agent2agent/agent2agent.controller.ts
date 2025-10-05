@@ -239,6 +239,13 @@ export class Agent2AgentController {
 
       this.logger.debug(`✅ Task ${task.id} and conversation ${task.agentConversationId} persisted to database`);
 
+      // Add userId to metadata for mode router (needed for plans/deliverables services)
+      dto.metadata = {
+        ...dto.metadata,
+        userId: currentUser.id,
+        createdBy: currentUser.id,
+      };
+
       // Execute the agent with the persisted task ID
       const result = await this.gateway.execute(org, agentSlug, dto);
 

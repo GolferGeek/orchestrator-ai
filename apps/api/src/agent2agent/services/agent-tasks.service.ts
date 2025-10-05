@@ -104,8 +104,7 @@ export class Agent2AgentTasksService {
       }
 
       // Create task record (agent info is stored in the linked conversation)
-      const taskData = {
-        id: params.taskId || undefined,
+      const taskData: any = {
         user_id: userId,
         conversation_id: conversationId,
         method: params.method,
@@ -123,6 +122,11 @@ export class Agent2AgentTasksService {
           },
         },
       };
+
+      // Only include id if taskId is provided (otherwise let DB generate it)
+      if (params.taskId) {
+        taskData.id = params.taskId;
+      }
 
       const { data: task, error: taskError } = await this.supabaseService
         .getServiceClient()

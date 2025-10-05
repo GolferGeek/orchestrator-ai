@@ -243,6 +243,26 @@ class DeliverablesService {
     const response = await this.axiosInstance.post(`/deliverable-versions/version/${versionId}/enhance`, params);
     return response.data;
   }
+
+  /**
+   * Merge multiple versions using LLM
+   */
+  async mergeVersions(
+    deliverableId: string,
+    versionIds: string[],
+    mergePrompt: string,
+    providerName?: string,
+    modelName?: string,
+  ): Promise<{ newVersion: DeliverableVersion; conflictSummary?: string }> {
+    const response = await this.axiosInstance.post(`/deliverable-versions/${deliverableId}/merge`, {
+      versionIds,
+      mergePrompt,
+      providerName,
+      modelName,
+    });
+    return response.data;
+  }
+
   /**
    * Search deliverables with advanced query options
    */

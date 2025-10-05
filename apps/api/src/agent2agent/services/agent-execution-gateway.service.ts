@@ -97,22 +97,25 @@ export class AgentExecutionGateway {
           routingMetadata: assessment.metadata,
         });
       case AgentTaskMode.PLAN:
-        return this.handlePlan(
+        // Delegate to mode router (uses new plans table via PlansService)
+        return this.modeRouter.execute({
           organizationSlug,
+          agentSlug: agent.slug,
           agent,
           definition,
-          agentMetadata,
           request,
-        );
+          routingMetadata: assessment.metadata,
+        });
       case AgentTaskMode.BUILD:
-        return this.handleBuild(
+        // Delegate to mode router (uses new deliverables table via DeliverablesService)
+        return this.modeRouter.execute({
           organizationSlug,
+          agentSlug: agent.slug,
           agent,
           definition,
-          agentMetadata,
           request,
-          assessment.metadata,
-        );
+          routingMetadata: assessment.metadata,
+        });
       case AgentTaskMode.ORCHESTRATE_CREATE:
         return this.handleOrchestrateCreate(
           organizationSlug,

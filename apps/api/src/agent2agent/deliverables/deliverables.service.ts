@@ -377,6 +377,8 @@ export class DeliverablesService implements IActionHandler {
     params: {
       versionIds: string[];
       mergePrompt: string;
+      providerName?: string;
+      modelName?: string;
     },
     context: ActionExecutionContext,
   ) {
@@ -397,6 +399,8 @@ export class DeliverablesService implements IActionHandler {
       params.versionIds,
       params.mergePrompt,
       context.userId,
+      params.providerName,
+      params.modelName,
     );
 
     return {

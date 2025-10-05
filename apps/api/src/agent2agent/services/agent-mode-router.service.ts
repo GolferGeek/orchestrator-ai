@@ -17,6 +17,7 @@ import { FunctionAgentRunnerService } from './function-agent-runner.service';
 import { AgentRuntimeDeliverablesAdapter } from '@agent-platform/services/agent-runtime-deliverables.adapter';
 import { AgentRuntimePlansAdapter } from '@agent-platform/services/agent-runtime-plans.adapter';
 import { PlansService } from '@/agent2agent/plans/services/plans.service';
+import { DeliverablesService } from '@/agent2agent/deliverables/deliverables.service';
 
 export interface AgentExecutionContext {
   organizationSlug?: string | null;
@@ -48,6 +49,7 @@ export class AgentModeRouterService {
     private readonly deliverables: AgentRuntimeDeliverablesAdapter,
     private readonly plans: AgentRuntimePlansAdapter,
     private readonly plansService: PlansService,
+    private readonly deliverablesService: DeliverablesService,
     private readonly normalization: AgentRuntimeNormalizationService,
     private readonly redaction: AgentRuntimeRedactionService,
     private readonly functionRunner: FunctionAgentRunnerService,
@@ -326,8 +328,8 @@ export class AgentModeRouterService {
   ) {
     this.logger.debug(`Executing plan action: ${action}`);
 
-    // Extract params from request payload
-    const params = (context.request.payload as any)?.params || {};
+    // Extract params from request payload (use whole payload, excluding action)
+    const { action: _, taskId: __, llmSelection: ___, ...params } = (context.request.payload as any) || {};
 
     // Route to PlansService.executeAction()
     const result = await this.plansService.executeAction(
@@ -371,6 +373,51 @@ export class AgentModeRouterService {
     if (agentType === 'function' && fnConfig && typeof fnConfig.code === 'string') {
       return this.functionRunner.execute(context.definition, context.request, context.organizationSlug);
     }
+
+    try {
+      // Extract action from request (default to 'create')
+      const action = (context.request.payload as any)?.action || 'create';
+      const userId = this.resolveUserId(context.request);
+      const conversationId = context.request.conversationId;
+
+      if (!userId || !conversationId) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          'Missing required userId or conversationId',
+        );
+      }
+
+      this.logger.debug(
+        `Handling BUILD mode with action: ${action} for conversation ${conversationId}`,
+      );
+
+      // Route based on action
+      if (action === 'create') {
+        // For 'create' action, we need to generate deliverable content using LLM
+        return this.handleBuildCreate(context, userId, conversationId);
+      } else {
+        // For other actions (read, list, edit, etc.), skip LLM and route directly to service
+        return this.handleBuildAction(context, userId, conversationId, action);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle build mode: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'Failed to handle build operation',
+      );
+    }
+  }
+
+  /**
+   * Handle build 'create' action - requires LLM to generate deliverable content
+   */
+  private async handleBuildCreate(
+    context: HydratedExecutionContext,
+    userId: string,
+    conversationId: string,
+  ) {
     const decision = this.extractDecision(context.routingMetadata);
     if (!decision) {
       return TaskResponseDto.failure(
@@ -378,107 +425,179 @@ export class AgentModeRouterService {
         'Routing decision unavailable for build request',
       );
     }
-    // Normalize content before dispatch
-    const norm = this.normalization.normalize(context.definition, context.request, AgentTaskMode.BUILD);
-    if (!norm.ok && norm.strict) {
-      return TaskResponseDto.failure(AgentTaskMode.BUILD, norm.reason || 'invalid_input_format');
-    }
-    const normRequest = norm.request || context.request;
-    const redactedRequest = await this.redaction.redact(
-      context.definition,
-      normRequest,
-      { isLocal: Boolean(decision.isLocal), organizationSlug: context.organizationSlug, agentSlug: context.agent.slug },
-    );
-    const prompt = this.promptBuilder.buildPromptPayload({
-      definition: context.definition,
-      request: redactedRequest,
-      mode: 'build',
-    });
 
     try {
-      this.lifecycle.progress(this.toLifecycleCtx(context), {
-        step: 'prompt_prepared',
-        message: 'Prompt prepared for build',
-        percent: 10,
+      this.lifecycle.start(this.toLifecycleCtx(context));
+
+      // Check if there's a current plan for this conversation
+      let planContext = '';
+      try {
+        const planResult = await this.plansService.executeAction(
+          'read',
+          {},
+          {
+            conversationId,
+            userId,
+            agentSlug: context.agent.slug,
+          },
+        );
+
+        if (planResult.success && planResult.data) {
+          const plan = planResult.data;
+          const currentVersion = plan.currentVersion || plan.versions?.[0];
+          if (currentVersion?.content) {
+            planContext = `\n\n=== CURRENT PLAN ===\n${currentVersion.content}\n=== END PLAN ===\n\n`;
+            this.logger.debug(`Including plan context in build (plan ID: ${plan.id})`);
+          }
+        }
+      } catch (error) {
+        // Plan doesn't exist or error reading it - that's fine, continue without plan context
+        this.logger.debug(`No plan found for conversation ${conversationId}, building without plan context`);
+      }
+
+      // Build prompt for deliverable generation with plan context if available
+      const enhancedRequest = planContext ? {
+        ...context.request,
+        userMessage: `${planContext}${context.request.userMessage || ''}`,
+      } : context.request;
+
+      const prompt = this.promptBuilder.buildPromptPayload({
+        definition: context.definition,
+        request: enhancedRequest,
+        mode: 'build',
       });
+
       this.lifecycle.progress(this.toLifecycleCtx(context), {
-        step: 'dispatch_started',
-        message: 'Dispatching build LLM/API call',
+        step: 'generating_deliverable',
+        message: planContext ? 'Generating deliverable based on plan' : 'Generating deliverable content',
         percent: 20,
       });
-      this.lifecycle.start(this.toLifecycleCtx(context));
-      const { response, streamId } = await this.generateLlmResponse(
+
+      // Generate deliverable content with LLM
+      const { response } = await this.generateLlmResponse(
         context,
         decision,
         prompt,
         AgentTaskMode.BUILD,
       );
+
       this.lifecycle.progress(this.toLifecycleCtx(context), {
-        step: 'response_received',
-        message: 'Build response received',
+        step: 'saving_deliverable',
+        message: 'Saving deliverable to database',
         percent: 80,
       });
-      this.lifecycle.complete(this.toLifecycleCtx(context), { output: response.content });
-      // Attempt auto-deliverable creation when possible
-      const created = await this.deliverables.maybeCreateFromBuild(
+
+      // Extract title and content from LLM response
+      const deliverableContent = response.content;
+      const title =
+        (context.request.payload as any)?.title ||
+        `Deliverable from ${context.agent.slug}`;
+      const type =
+        (context.request.payload as any)?.type ||
+        this.resolveDeliverableType(context) ||
+        'document';
+
+      // Create deliverable using DeliverablesService
+      const result = await this.deliverablesService.executeAction(
+        'create',
         {
-          organizationSlug: context.organizationSlug,
-          agentSlug: context.agent.slug,
-          mode: context.request.mode,
-          conversationId: context.request.conversationId,
-          content: response.content,
-          title: context.definition.displayName ?? context.agent.slug,
-          titleTemplate: this.resolveDeliverableTitleTemplate(context),
-          deliverableType: this.resolveDeliverableType(context),
-          deliverableFormat: this.resolveDeliverableFormat(context),
+          title,
+          content: deliverableContent,
+          format: 'markdown',
+          type,
+          agentName: context.agent.slug,
+          namespace: context.organizationSlug || 'default',
+          taskId: (context.request as any).taskId,
+          metadata: {
+            llmProvider: response.metadata.provider,
+            llmModel: response.metadata.model,
+            usage: response.metadata.usage,
+          },
         },
-        context.request,
+        {
+          conversationId,
+          userId,
+          agentSlug: context.agent.slug,
+          taskId: (context.request as any).taskId,
+        },
       );
-      if (this.isErrorResponse(response)) {
+
+      this.lifecycle.complete(this.toLifecycleCtx(context), {
+        deliverableId: result.data?.deliverable?.id,
+      });
+
+      if (!result.success) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
-          this.extractErrorMessage(response) || 'External service error',
+          result.error?.message || 'Failed to create deliverable',
         );
       }
-      const successPayload: any = {
+
+      return TaskResponseDto.success(AgentTaskMode.BUILD, {
         content: {
-          status: 'build_completed',
-          output: response.content,
+          deliverable: result.data.deliverable,
+          version: result.data.version,
+          isNew: result.data.isNew,
         },
         metadata: {
           provider: response.metadata.provider,
           model: response.metadata.model,
           usage: response.metadata.usage,
           routingDecision: decision,
-          metadata: this.mergeMetadata(prompt.metadata, streamId),
         },
-      };
-
-      if (created?.kind === 'deliverable' && created.deliverable) {
-        successPayload.deliverables = [created.deliverable];
-        successPayload.metadata.deliverableId = created.deliverable.id;
-      } else if (created?.kind === 'version' && created.version) {
-        successPayload.metadata.deliverableId = created.deliverableId;
-        successPayload.metadata.newVersionId = created.version.id;
-        if (typeof created.version.version_number === 'number') {
-          successPayload.metadata.versionNumber = created.version.version_number;
-        }
-      }
-
-      return TaskResponseDto.success(AgentTaskMode.BUILD, successPayload);
+      });
     } catch (error) {
-      this.logger.error(
-        `Failed to generate build response for agent ${context.agent.slug}: ${String(error)}`,
-      );
+      this.logger.error(`Failed to create deliverable: ${String(error)}`);
       this.lifecycle.fail(
         this.toLifecycleCtx(context),
         error instanceof Error ? error.message : String(error),
       );
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
-        'Failed to execute build request',
+        'Failed to create deliverable',
       );
     }
+  }
+
+  /**
+   * Handle non-create build actions - route directly to DeliverablesService without LLM
+   */
+  private async handleBuildAction(
+    context: HydratedExecutionContext,
+    userId: string,
+    conversationId: string,
+    action: string,
+  ) {
+    this.logger.debug(`Executing build action: ${action}`);
+
+    // Extract params from request payload (use whole payload, excluding action)
+    const { action: _, taskId: __, llmSelection: ___, ...params } = (context.request.payload as any) || {};
+
+    // Route to DeliverablesService.executeAction()
+    const result = await this.deliverablesService.executeAction(
+      action,
+      params,
+      {
+        conversationId,
+        userId,
+        agentSlug: context.agent.slug,
+      },
+    );
+
+    if (!result.success) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        result.error?.message || `Failed to execute build action: ${action}`,
+      );
+    }
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: result.data,
+      metadata: {
+        action,
+        executedAt: new Date().toISOString(),
+      },
+    });
   }
 
   private extractDecision(

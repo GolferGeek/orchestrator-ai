@@ -402,6 +402,8 @@ export class DeliverableVersionsService {
     versionIds: string[],
     mergePrompt: string,
     userId: string,
+    providerName?: string,
+    modelName?: string,
   ): Promise<{ newVersion: DeliverableVersion; conflictSummary?: string }> {
     try {
       // Verify deliverable ownership
@@ -427,9 +429,13 @@ export class DeliverableVersionsService {
         }),
       );
 
-      // TODO: Integrate with LLM service for intelligent merging
-      // For now, implement a simple concatenation with conflict detection
-      const mergedContent = await this.performLLMMerge(versions, mergePrompt);
+      // Use LLM to intelligently merge the versions
+      const mergedContent = await this.performLLMMerge(
+        versions,
+        mergePrompt,
+        providerName,
+        modelName,
+      );
 
       // Create new version with merged content
       const createVersionDto: CreateVersionDto = {
@@ -440,6 +446,16 @@ export class DeliverableVersionsService {
           mergedFromVersions: versionIds,
           mergePrompt: mergePrompt,
           mergedAt: new Date().toISOString(),
+          llmMetadata: mergedContent.metadata
+            ? {
+                provider: mergedContent.metadata.provider,
+                model: mergedContent.metadata.model,
+                inputTokens: mergedContent.metadata.usage?.inputTokens,
+                outputTokens: mergedContent.metadata.usage?.outputTokens,
+                cost: mergedContent.metadata.usage?.cost,
+                duration: mergedContent.metadata.timing?.duration,
+              }
+            : undefined,
         },
       };
 
@@ -790,22 +806,63 @@ export class DeliverableVersionsService {
 
   /**
    * Perform LLM-based merge of multiple version contents
-   * TODO: Integrate with actual LLM service
    */
   private async performLLMMerge(
     versions: DeliverableVersion[],
     mergePrompt: string,
-  ): Promise<{ content: string; conflictSummary?: string }> {
-    // Placeholder implementation - will be replaced with actual LLM integration
+    providerName?: string,
+    modelName?: string,
+  ): Promise<{ content: string; conflictSummary?: string; metadata?: any }> {
+    // Build version contents for LLM
     const versionContents = versions
-      .map((v, i) => `=== VERSION ${v.versionNumber} ===\n${v.content || ''}`)
-      .join('\n\n');
+      .map((v, i) => `=== VERSION ${v.versionNumber} (Created: ${v.createdAt}) ===\n${v.content || ''}`)
+      .join('\n\n---\n\n');
 
-    const mergedContent = `${versionContents}\n\n=== MERGE INSTRUCTIONS ===\n${mergePrompt}\n\n[TODO: This will be replaced with LLM-generated merged content]`;
+    // Build prompts for LLM
+    const systemPrompt = `You are an expert content merger. Your task is to intelligently merge multiple versions of content into a single, coherent version.
+
+When merging:
+1. Preserve all unique information from all versions
+2. Resolve conflicts by choosing the most recent or most complete information
+3. Maintain the format and style of the original content
+4. If there are contradictions, note them in the output
+5. Follow the user's merge instructions carefully`;
+
+    const userMessage = `Please merge the following ${versions.length} versions of content according to these instructions:
+
+MERGE INSTRUCTIONS:
+${mergePrompt}
+
+VERSIONS TO MERGE:
+${versionContents}
+
+Please output ONLY the merged content, maintaining the same format as the original versions.`;
+
+    // Use LLM to generate merged content
+    const provider = providerName || 'openai';
+    const model = modelName || 'gpt-4o-mini';
+
+    const response = await this.llmService.generateUnifiedResponse({
+      provider,
+      model,
+      systemPrompt,
+      userMessage,
+      options: {
+        temperature: 0.3, // Lower temperature for more consistent merging
+        maxTokens: 4096,
+        includeMetadata: true,
+        callerType: 'service',
+        callerName: 'deliverable-versions-merge',
+      },
+    });
+
+    const content = typeof response === 'string' ? response : response.content;
+    const metadata = typeof response === 'string' ? undefined : (response as any).metadata;
 
     return {
-      content: mergedContent,
-      conflictSummary: `Merged ${versions.length} versions with prompt: "${mergePrompt}". LLM integration pending.`,
+      content,
+      conflictSummary: `Successfully merged ${versions.length} versions using LLM (${provider}/${model})`,
+      metadata,
     };
   }
 
