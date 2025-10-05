@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 # Function to run docker-compose commands
 run_compose() {
     cd "$SCRIPT_DIR"
-    # Load environment variables from n8n-specific .env file first
+    # Load environment variables from n8n-specific .env file
     if [ -f ".env" ]; then
         echo "Loading n8n environment from .env"
         set -a

@@ -1,6 +1,7 @@
 import agentConversationsService, { type AgentType } from '@/services/agentConversationsService';
 import agent2AgentConversationsService from '@/services/agent2AgentConversationsService';
 import { useAgentsStore } from '@/stores/agentsStore';
+import { useAuthStore } from '@/stores/authStore';
 import { tasksService } from '@/services/tasksService';
 import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, AgentChatMode } from './types';
 import { DEFAULT_CHAT_MODES } from './types';
@@ -31,18 +32,18 @@ export class ConversationService {
    * Create a new conversation in the backend
    */
   async createConversation(agent: Agent): Promise<string> {
-    // Use agent's organization_slug as the namespace for database agents
-    // This ensures proper routing regardless of user's current namespace selection
-    const agentNamespace = agent.namespace || (agent as any).organizationSlug || (agent as any).organization_slug;
+    // Get organization slug from authStore - the canonical source of truth
+    const authStore = useAuthStore();
+    const orgSlug = authStore.currentNamespace;
 
     // Database agents have an organization slug (like 'my-org')
     // File-based agents have type 'demo', 'specialist', etc.
-    const isDatabaseAgent = agentNamespace && agentNamespace !== 'demo';
+    const isDatabaseAgent = orgSlug && orgSlug !== 'demo';
 
     console.log('🔍 [ConversationService.createConversation] Agent routing:', {
       agentName: agent.name,
       agentType: agent.type,
-      agentNamespace: agentNamespace,
+      orgSlug: orgSlug,
       isDatabaseAgent,
       approach: isDatabaseAgent ? 'agent2agent-service' : 'legacy-service'
     });
@@ -53,13 +54,14 @@ export class ConversationService {
       const conversationId = generateUUID(); // Generate ID upfront
       const backendConversation = await agent2AgentConversationsService.createConversation({
         agentName: agent.name,
-        namespace: agentNamespace, // Use agent's organization slug
+        agentType: agent.type as AgentType, // Required for backend validation
+        namespace: orgSlug, // Use authStore.currentNamespace as canonical source
         conversationId: conversationId, // Pass the generated ID
         metadata: {
           source: 'frontend',
         },
       });
-      
+
       console.log('✅ [ConversationService.createConversation] Database agent - created:', backendConversation.id);
       return backendConversation.id;
     } else {
@@ -69,7 +71,7 @@ export class ConversationService {
         agentName: agent.name,
         agentType: agent.type as AgentType,
       });
-      
+
       console.log('✅ [ConversationService.createConversation] File-based agent - created:', backendConversation.id);
       return backendConversation.id;
     }

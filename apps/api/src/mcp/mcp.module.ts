@@ -93,7 +93,7 @@ export class MCPModule {
         ([namespace, healthy]) => {
           const _status = healthy ? '✅' : '❌';
           console.log(
-            `   ${status} ${namespace}: ${healthy ? 'healthy' : 'unhealthy'}`,
+            `   ${_status} ${namespace}: ${healthy ? 'healthy' : 'unhealthy'}`,
           );
         },
       );

@@ -220,18 +220,18 @@ if [ ! -f "pdm.lock" ]; then
 fi
 
 # Verify Python environment
-python_version=$(python --version 2>&1)
+python_version=$(python3 --version 2>&1)
 echo -e "${GREEN}✅ Python available: $python_version${NC}"
 
 # Verify LangGraph is available (with better error handling)
 echo -e "${BLUE}🔍 Checking LangGraph dependencies...${NC}"
-if python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
+if python3 -c "from langgraph.graph import StateGraph" 2>/dev/null; then
     echo -e "${GREEN}✅ LangGraph dependencies verified${NC}"
 else
     echo -e "${YELLOW}⚠️  LangGraph not available${NC}"
     echo -e "${BLUE}🔧 Running 'pdm install' to fix dependencies...${NC}"
     pdm install
-    if python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
+    if python3 -c "from langgraph.graph import StateGraph" 2>/dev/null; then
         echo -e "${GREEN}✅ LangGraph dependencies fixed${NC}"
     else
         echo -e "${YELLOW}⚠️  LangGraph still not available, but continuing...${NC}"

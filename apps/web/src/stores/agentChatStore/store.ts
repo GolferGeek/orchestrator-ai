@@ -930,10 +930,20 @@ export const useAgentChatStore = defineStore('agentChat', {
               context: { url: window.location.pathname, userAgent: navigator.userAgent },
             });
 
-            await this.createOrchestrationDraft({
-              planDraft: { summary: content, phases: [] },
-              summary: content,
-            });
+            const plansService = createPlansService(activeConversation.agent.name);
+            const result = await plansService.createPlan(conversationId, content);
+            console.log('📋 [Plan Create] Result:', result);
+            if (result) {
+              activeConversation.currentPlan = result.plan;
+              console.log('✅ [Plan Create] Set currentPlan:', result.plan);
+              console.log('🔍 [Plan Create] Active conversation state:', {
+                id: activeConversation.id,
+                hasCurrentPlan: !!activeConversation.currentPlan,
+                planId: activeConversation.currentPlan?.id
+              });
+            } else {
+              console.warn('⚠️ [Plan Create] No result returned from plansService.createPlan');
+            }
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to create plan';
             activeConversation.error = message;

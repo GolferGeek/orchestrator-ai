@@ -34,6 +34,7 @@ function formatRelativeTime(dateString: string): string {
 
 export interface CreateAgent2AgentConversationDto {
   agentName: string;
+  agentType: string; // Agent type (context, function, tool, etc.)
   namespace: string; // Database namespace (my-org, etc.)
   conversationId?: string; // Pre-generated conversation ID
   metadata?: Record<string, any>;
@@ -52,6 +53,7 @@ class Agent2AgentConversationsService {
 
     const response = await apiService.post('/agent-conversations', {
       agentName: dto.agentName,
+      agentType: dto.agentType, // Required for backend validation
       namespace: dto.namespace, // Database namespace like 'my-org'
       conversationId: dto.conversationId, // Pre-generated ID
       metadata: {

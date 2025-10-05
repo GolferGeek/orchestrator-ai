@@ -12,6 +12,9 @@ import {
 } from '../types';
 import { useAuthStore } from '@/stores/authStore';
 
+// Get API base URL from environment
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:7100';
+
 /**
  * Base API client configuration
  */
@@ -47,6 +50,17 @@ export class Agent2AgentApi {
       throw new Error('No organization context available');
     }
     return org;
+  }
+
+  /**
+   * Get auth headers with current access token
+   */
+  private getAuthHeaders(): Record<string, string> {
+    const token = this.authStore.token;
+    return {
+      ...this.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
   }
 
   // ============================================================================
@@ -276,12 +290,12 @@ export class Agent2AgentApi {
     request: any,
   ): Promise<T> {
     const org = this.getOrgSlug();
-    const endpoint = `/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
+    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: this.headers,
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({
           mode,
           action: request.action,
@@ -298,6 +312,17 @@ export class Agent2AgentApi {
       }
 
       const data = await response.json();
+
+      // Transform API response to match expected format
+      // API returns: { success, mode, payload: { content: {...} } }
+      // Frontend expects: { success, data: {...} }
+      if (data.success && data.payload?.content) {
+        return {
+          success: true,
+          data: data.payload.content,
+        };
+      }
+
       return data;
     } catch (error) {
       console.error(`Agent2Agent API error (${mode}/${request.action}):`, error);

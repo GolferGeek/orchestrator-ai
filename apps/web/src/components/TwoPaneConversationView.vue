@@ -201,40 +201,77 @@
           <span>Processing...</span>
         </div>
       </div>
-      <!-- Work Product Pane (Deliverable or Project) -->
-      <div 
-        class="work-product-pane" 
-        :class="{ 
+      <!-- Work Product Pane with Tabs -->
+      <div
+        class="work-product-pane"
+        :class="{
           'hidden': !showWorkProductPane,
           'full-width': isMobile && showWorkProductPane,
-          'empty-work-product': !hasActiveWorkProduct
+          'empty-work-product': !hasActiveWorkProduct && !conversation?.currentPlan
         }"
         v-if="showWorkProductPane"
       >
-        <!-- Deliverable Display -->
-        <template v-if="activeWorkProduct?.type === 'deliverable'">
-          <DeliverableDisplay
-            :deliverable="activeWorkProduct.data"
-            :conversation-id="conversation?.id"
-            @version-changed="handleVersionChanged"
-            @version-created="handleVersionCreated"
-            @merge-requested="handleMergeRequested"
-            @edit-requested="handleEditRequested"
-            @run-with-different-llm="handleRunWithDifferentLLM"
-          />
-        </template>
-        <!-- Project Display -->
-        <ProjectDisplay
-          v-else-if="activeWorkProduct?.type === 'project'"
-          :project="activeWorkProduct.data"
-          :conversation-id="conversation?.id"
-          @project-updated="handleProjectUpdated"
-          @step-updated="handleStepUpdated"
-          @edit-requested="handleEditRequested"
-        />
+        <!-- Tabs for Plan and Deliverable -->
+        <div v-if="conversation?.currentPlan || hasActiveWorkProduct" class="work-product-tabs">
+          <ion-segment :value="activeTab" @ionChange="activeTab = $event.detail.value">
+            <ion-segment-button v-if="conversation?.currentPlan" value="plan">
+              <ion-label>Plan</ion-label>
+              <ion-badge v-if="conversation?.currentPlan" color="primary">{{ conversation.currentPlan.currentVersion?.versionNumber || 1 }}</ion-badge>
+            </ion-segment-button>
+            <ion-segment-button v-if="activeWorkProduct?.type === 'deliverable'" value="deliverable">
+              <ion-label>Deliverable</ion-label>
+              <ion-badge v-if="activeWorkProduct?.data" color="success">{{ activeWorkProduct.data.currentVersion?.versionNumber || 1 }}</ion-badge>
+            </ion-segment-button>
+            <ion-segment-button v-if="activeWorkProduct?.type === 'project'" value="project">
+              <ion-label>Project</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Plan Tab -->
+          <div v-show="activeTab === 'plan' && conversation?.currentPlan">
+            <PlanDisplay
+              :plan="conversation.currentPlan"
+              :conversation-id="conversation?.id"
+              @version-changed="handlePlanVersionChanged"
+              @version-created="handlePlanVersionCreated"
+              @current-version-changed="handlePlanCurrentVersionChanged"
+              @run-with-different-llm="handleRunPlanWithDifferentLLM"
+            />
+          </div>
+
+          <!-- Deliverable Tab -->
+          <div v-show="activeTab === 'deliverable' && activeWorkProduct?.type === 'deliverable'">
+            <DeliverableDisplay
+              v-if="activeWorkProduct?.data"
+              :deliverable="activeWorkProduct.data"
+              :conversation-id="conversation?.id"
+              @version-changed="handleVersionChanged"
+              @version-created="handleVersionCreated"
+              @merge-requested="handleMergeRequested"
+              @edit-requested="handleEditRequested"
+              @run-with-different-llm="handleRunWithDifferentLLM"
+            />
+          </div>
+
+          <!-- Project Tab -->
+          <div v-show="activeTab === 'project' && activeWorkProduct?.type === 'project'">
+            <ProjectDisplay
+              v-if="activeWorkProduct?.data"
+              :project="activeWorkProduct.data"
+              :conversation-id="conversation?.id"
+              @project-updated="handleProjectUpdated"
+              @step-updated="handleStepUpdated"
+              @edit-requested="handleEditRequested"
+            />
+          </div>
+        </div>
+
         <!-- Empty work product state -->
-        <div 
-          v-else
+        <div
+          v-if="!conversation?.currentPlan && !hasActiveWorkProduct"
           class="empty-state"
         >
           <ion-icon :icon="documentTextOutline" size="large" color="medium" />
@@ -243,7 +280,7 @@
             Projects, deliverables, and plans will appear here when the orchestrator creates them.
           </p>
           <p v-else>
-            Deliverables will appear here when agents create content in this conversation.
+            Deliverables and plans will appear here when agents create them in this conversation.
           </p>
         </div>
       </div>
@@ -287,6 +324,10 @@ import {
   IonActionSheet,
   IonModal,
   IonChip,
+  IonBadge,
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
   IonHeader,
   IonToolbar,
   IonTitle,
@@ -320,6 +361,7 @@ import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
 import DeliverableDisplay from './DeliverableDisplay.vue';
+import PlanDisplay from './PlanDisplay.vue';
 import ProjectDisplay from './ProjectDisplay.vue';
 import DeliverableMergeView from './DeliverableMergeView.vue';
 import LLMSelector from './LLMSelector.vue';
@@ -350,6 +392,7 @@ const mergeDeliverable = ref<any>(null);
 const showLLMRerunModal = ref(false);
 const rerunDeliverableData = ref<{ deliverable: any; version: any } | null>(null);
 const activeWorkProduct = ref<{ type: 'deliverable' | 'project'; data: any } | null>(null);
+const activeTab = ref<'plan' | 'deliverable' | 'project'>('plan');
 const isMobile = ref(false);
 // Computed properties
 const currentAgent = computed(() => props.conversation?.agent);
@@ -727,6 +770,29 @@ const handleRunWithDifferentLLM = (data: { deliverable: any; version: any }) => 
   showLLMRerunModal.value = true;
 };
 
+// Plan event handlers
+const handlePlanVersionChanged = (version: any) => {
+  console.log('Plan version changed:', version);
+  // TODO: Update plan state if needed
+};
+
+const handlePlanVersionCreated = (version: any) => {
+  console.log('Plan version created:', version);
+  // TODO: Update plan state if needed
+};
+
+const handlePlanCurrentVersionChanged = (version: any) => {
+  console.log('Plan current version changed:', version);
+  // TODO: Update plan state if needed
+};
+
+const handleRunPlanWithDifferentLLM = (data: { plan: any; version: any }) => {
+  console.log('Run plan with different LLM:', data);
+  // Reuse the same modal for plans
+  rerunDeliverableData.value = { deliverable: data.plan, version: data.version };
+  showLLMRerunModal.value = true;
+};
+
 const closeLLMRerunModal = () => {
   showLLMRerunModal.value = false;
   rerunDeliverableData.value = null;
@@ -958,6 +1024,25 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
 watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   if (isAuthenticated && props.conversation?.id) {
     deliverablesStore.loadDeliverablesByConversation(props.conversation.id);
+  }
+});
+
+// Watch for plan creation and show in work product pane
+watch(() => props.conversation?.currentPlan, (plan) => {
+  console.log('👀 [TwoPaneConversationView] currentPlan changed:', plan);
+  if (plan) {
+    activeTab.value = 'plan';
+    showWorkProductPane.value = true;
+    console.log('✅ [TwoPaneConversationView] Switched to plan tab:', plan.id);
+  }
+}, { immediate: true });
+
+// Watch for deliverable selection and switch tabs
+watch(() => activeWorkProduct.value, (workProduct) => {
+  if (workProduct?.type === 'deliverable') {
+    activeTab.value = 'deliverable';
+  } else if (workProduct?.type === 'project') {
+    activeTab.value = 'project';
   }
 });
 </script>
