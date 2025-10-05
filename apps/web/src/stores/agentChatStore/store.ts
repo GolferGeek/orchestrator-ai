@@ -25,6 +25,7 @@ import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
 import { planActions } from './planActions';
 import { deliverableActions } from './deliverableActions';
+import { createPlansService } from './plans';
 import analyticsService from '@/services/analyticsService';
 import approvalsService from '@/services/approvalsService';
 import { useAuthStore } from '@/stores/authStore';
@@ -470,10 +471,11 @@ export const useAgentChatStore = defineStore('agentChat', {
             context: { url: window.location.pathname, userAgent: navigator.userAgent },
           });
 
-          await this.createOrchestrationDraft({
-            planDraft: { summary: basePrompt, phases: [] },
-            summary: basePrompt,
-          });
+          const plansService = createPlansService(activeConversation.agent.name);
+          const result = await plansService.createPlan(conversationId, basePrompt);
+          if (result) {
+            activeConversation.currentPlan = result.plan;
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to create plan';
           activeConversation.error = message;
@@ -508,11 +510,11 @@ export const useAgentChatStore = defineStore('agentChat', {
       // Use authStore.currentNamespace as source of truth for routing
       // (agent.namespace might be null even when user selected a namespace)
       const authStore = useAuthStore();
-      const effectiveNamespace = authStore.currentNamespace || activeConversation.agent.namespace || null;
+      const effectiveNamespace = authStore.currentNamespace || null;
       
       console.log('🔍 Namespace resolution:', {
         authStoreNamespace: authStore.currentNamespace,
-        agentNamespace: activeConversation.agent.namespace,
+        agentNamespace: authStore.currentNamespace,
         effectiveNamespace,
         agentName: activeConversation.agent.name,
         agentType: activeConversation.agent.type
@@ -983,11 +985,11 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Ensure chatMode is a string to prevent JSON-RPC errors
         // Use authStore.currentNamespace as source of truth for routing
         const authStore = useAuthStore();
-        const effectiveNamespace = authStore.currentNamespace || activeConversation.agent.namespace || null;
+        const effectiveNamespace = authStore.currentNamespace || null;
         
         console.log('🔍 Namespace resolution (sendMessage):', {
           authStoreNamespace: authStore.currentNamespace,
-          agentNamespace: activeConversation.agent.namespace,
+          agentNamespace: authStore.currentNamespace,
           effectiveNamespace,
           agentName: activeConversation.agent.name,
           agentType: activeConversation.agent.type
@@ -1162,13 +1164,14 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
 
       const conversationId = await this.ensureBackendConversation(activeConversation);
+      const authStore = useAuthStore();
       const response = await agentExecutionService.executeAgentTask(
-        activeConversation.agent.namespace ?? null,
+        authStore.currentNamespace ?? null,
         activeConversation.agent.name,
         {
-          mode: 'orchestrate_create',
+          mode: 'plan_create',
           conversationId,
-          userMessage: input.summary ?? 'Generate orchestration plan',
+          userMessage: input.summary ?? 'Generate plan',
           payload: {
             planDraft: input.planDraft,
             summary: input.summary ?? null,
@@ -1224,10 +1227,11 @@ export const useAgentChatStore = defineStore('agentChat', {
         console.warn('⚠️ Unable to subscribe to orchestration stream', error);
       }
 
+      const authStore = useAuthStore();
       let response: AgentTaskResponse;
       try {
         response = await agentExecutionService.executeAgentTask(
-        activeConversation.agent.namespace ?? null,
+        authStore.currentNamespace ?? null,
         activeConversation.agent.name,
         {
           mode: 'orchestrate_execute',
@@ -1303,10 +1307,11 @@ export const useAgentChatStore = defineStore('agentChat', {
         console.warn('⚠️ Unable to subscribe to orchestration stream', error);
       }
 
+      const authStore = useAuthStore();
       let response: AgentTaskResponse;
       try {
         response = await agentExecutionService.executeAgentTask(
-        activeConversation.agent.namespace ?? null,
+        authStore.currentNamespace ?? null,
         activeConversation.agent.name,
         {
           mode: 'orchestrate_continue',
@@ -1368,8 +1373,9 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
 
       const conversationId = await this.ensureBackendConversation(activeConversation);
+      const authStore = useAuthStore();
       const response = await agentExecutionService.executeAgentTask(
-        activeConversation.agent.namespace ?? null,
+        authStore.currentNamespace ?? null,
         activeConversation.agent.name,
         {
           mode: 'orchestrate_save_recipe',

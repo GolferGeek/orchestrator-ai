@@ -199,9 +199,6 @@ cleanup() {
         echo -e "${GREEN}✅ n8n container stopped${NC}"
     fi
 
-    # Deactivate PDM environment (handled automatically when shell exits)
-    echo -e "${GREEN}✅ Python virtual environment deactivated${NC}"
-
     echo -e "${GREEN}🏁 Cleanup complete${NC}"
     exit 0
 }
@@ -222,30 +219,19 @@ if [ ! -f "pdm.lock" ]; then
     pdm install
 fi
 
-# Check if virtual environment exists
-if [ ! -d ".venv" ]; then
-    echo -e "${RED}❌ Virtual environment not found. Please run 'pdm install' first.${NC}"
-    exit 1
-fi
-
-# Activate PDM virtual environment
-echo -e "${BLUE}🐍 Activating Python virtual environment...${NC}"
-export PATH="$(pwd)/.venv/bin:$PATH"
-export VIRTUAL_ENV="$(pwd)/.venv"
-
 # Verify Python environment
 python_version=$(python --version 2>&1)
-echo -e "${GREEN}✅ Python environment active: $python_version${NC}"
+echo -e "${GREEN}✅ Python available: $python_version${NC}"
 
 # Verify LangGraph is available (with better error handling)
 echo -e "${BLUE}🔍 Checking LangGraph dependencies...${NC}"
-if .venv/bin/python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
+if python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
     echo -e "${GREEN}✅ LangGraph dependencies verified${NC}"
 else
-    echo -e "${YELLOW}⚠️  LangGraph not available in virtual environment${NC}"
+    echo -e "${YELLOW}⚠️  LangGraph not available${NC}"
     echo -e "${BLUE}🔧 Running 'pdm install' to fix dependencies...${NC}"
     pdm install
-    if .venv/bin/python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
+    if python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
         echo -e "${GREEN}✅ LangGraph dependencies fixed${NC}"
     else
         echo -e "${YELLOW}⚠️  LangGraph still not available, but continuing...${NC}"
@@ -263,7 +249,7 @@ sleep 2
 
 echo -e "${GREEN}✅ Development environment ready!${NC}"
 echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-9000}${NC}"
-echo -e "${BLUE}🐍 Python Virtual Environment: Active${NC}"
+echo -e "${BLUE}🐍 Python: Available${NC}"
 echo -e "${BLUE}🔧 LangGraph: Available for Python agents${NC}"
 echo -e "\n${BLUE}Press Ctrl+C to stop all services${NC}"
 

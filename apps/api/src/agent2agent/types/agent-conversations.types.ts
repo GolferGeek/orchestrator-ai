@@ -74,6 +74,7 @@ export interface AgentConversationWithStats extends AgentConversation {
 export interface CreateAgentConversationDto {
   agentName: string;
   agentType: AgentType;
+  namespace?: string; // Organization slug for database agents (e.g., 'my-org')
   metadata?: Record<string, any>;
   workProduct?: WorkProductContext;
 }

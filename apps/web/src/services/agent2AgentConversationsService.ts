@@ -49,8 +49,8 @@ class Agent2AgentConversationsService {
    */
   async createConversation(dto: CreateAgent2AgentConversationDto): Promise<Agent2AgentConversation> {
     console.log('🔍 [Agent2AgentConversationsService] Creating conversation:', dto);
-    
-    const response = await apiService.post('/agent-to-agent/conversations', {
+
+    const response = await apiService.post('/agent-conversations', {
       agentName: dto.agentName,
       namespace: dto.namespace, // Database namespace like 'my-org'
       conversationId: dto.conversationId, // Pre-generated ID
@@ -73,7 +73,7 @@ class Agent2AgentConversationsService {
     agentName?: string;
     agentType?: string;
   } = {}): Promise<{ conversations: Agent2AgentConversation[]; total: number }> {
-    const response = await apiService.get('/agent-to-agent/conversations', { params });
+    const response = await apiService.get('/agent-conversations', { params });
 
     // Add formatted titles to conversations
     if (response.conversations) {
@@ -90,7 +90,7 @@ class Agent2AgentConversationsService {
    * Get conversation by ID
    */
   async getConversation(conversationId: string): Promise<Agent2AgentConversation> {
-    const response = await apiService.get(`/agent-to-agent/conversations/${conversationId}`);
+    const response = await apiService.get(`/agent-conversations/${conversationId}`);
     return response;
   }
 
@@ -98,7 +98,7 @@ class Agent2AgentConversationsService {
    * End a conversation
    */
   async endConversation(conversationId: string): Promise<void> {
-    await apiService.put(`/agent-to-agent/conversations/${conversationId}/end`);
+    await apiService.put(`/agent-conversations/${conversationId}/end`);
   }
 }
 

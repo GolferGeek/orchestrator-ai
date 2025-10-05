@@ -31,38 +31,29 @@ export class ConversationService {
    * Create a new conversation in the backend
    */
   async createConversation(agent: Agent): Promise<string> {
-    // Use canonical namespace source (user's selection) for routing decision
-    const { useAuthStore } = await import('@/stores/authStore');
-    const authStore = useAuthStore();
-    const currentNamespace = authStore.currentNamespace;
-    
-    const isDatabaseAgent = currentNamespace && currentNamespace !== 'demo';
-    
-    console.log('🔍 [ConversationService.createConversation] Routing logic:', {
-      currentNamespace: currentNamespace,
-      currentNamespaceType: typeof currentNamespace,
-      currentNamespaceTruthy: !!currentNamespace,
-      notDemo: currentNamespace !== 'demo',
-      isDatabaseAgent: isDatabaseAgent,
-      calculation: `${!!currentNamespace} && ${currentNamespace !== 'demo'} = ${isDatabaseAgent}`
-    });
-    
+    // Use agent's organization_slug as the namespace for database agents
+    // This ensures proper routing regardless of user's current namespace selection
+    const agentNamespace = agent.namespace || (agent as any).organizationSlug || (agent as any).organization_slug;
+
+    // Database agents have an organization slug (like 'my-org')
+    // File-based agents have type 'demo', 'specialist', etc.
+    const isDatabaseAgent = agentNamespace && agentNamespace !== 'demo';
+
     console.log('🔍 [ConversationService.createConversation] Agent routing:', {
       agentName: agent.name,
       agentType: agent.type,
-      agentNamespace: agent.namespace,
-      currentNamespace: currentNamespace,
+      agentNamespace: agentNamespace,
       isDatabaseAgent,
       approach: isDatabaseAgent ? 'agent2agent-service' : 'legacy-service'
     });
-    
+
     if (isDatabaseAgent) {
       // Database agents: Use dedicated Agent2Agent conversation service
       console.log('🚀 [ConversationService] Using Agent2Agent service for database agent');
       const conversationId = generateUUID(); // Generate ID upfront
       const backendConversation = await agent2AgentConversationsService.createConversation({
         agentName: agent.name,
-        namespace: currentNamespace, // Use canonical namespace source
+        namespace: agentNamespace, // Use agent's organization slug
         conversationId: conversationId, // Pass the generated ID
         metadata: {
           source: 'frontend',

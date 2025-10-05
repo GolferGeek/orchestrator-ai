@@ -4,7 +4,5 @@
 
 export {
   Agent2AgentApi,
-  agent2agentApi,
-  planApi,
-  deliverableApi,
+  createAgent2AgentApi,
 } from './agent2agent.api';

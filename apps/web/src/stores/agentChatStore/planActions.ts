@@ -4,7 +4,7 @@
  */
 
 import type { AgentConversation } from './types';
-import { plans } from './plans';
+import { createPlansService } from './plans';
 
 export const planActions = {
   /**
@@ -16,7 +16,8 @@ export const planActions = {
     );
     if (!conversation) return;
 
-    const result = await plans.readPlan(conversation.id);
+    const plansService = createPlansService(conversation.agent.name);
+    const result = await plansService.readPlan(conversation.id);
 
     if (result) {
       conversation.currentPlan = result;
@@ -32,7 +33,8 @@ export const planActions = {
     );
     if (!conversation) return;
 
-    const result = await plans.listPlanVersions(conversation.id);
+    const plansService = createPlansService(conversation.agent.name);
+    const result = await plansService.listPlanVersions(conversation.id);
 
     if (result) {
       conversation.currentPlan = result.plan;
@@ -49,7 +51,8 @@ export const planActions = {
     );
     if (!conversation) return;
 
-    const result = await plans.editPlan(conversation.id, content);
+    const plansService = createPlansService(conversation.agent.name);
+    const result = await plansService.editPlan(conversation.id, content);
 
     if (result) {
       conversation.currentPlan = result.plan;
@@ -67,7 +70,8 @@ export const planActions = {
     );
     if (!conversation) return;
 
-    const result = await plans.setCurrentVersion(conversation.id, versionId);
+    const plansService = createPlansService(conversation.agent.name);
+    const result = await plansService.setCurrentVersion(conversation.id, versionId);
 
     if (result) {
       conversation.currentPlan = result.plan;
@@ -89,7 +93,8 @@ export const planActions = {
     );
     if (!conversation) return;
 
-    const result = await plans.mergeVersions(
+    const plansService = createPlansService(conversation.agent.name);
+    const result = await plansService.mergeVersions(
       conversation.id,
       versionIds,
       mergePrompt,
@@ -111,7 +116,8 @@ export const planActions = {
     );
     if (!conversation) return;
 
-    const result = await plans.copyVersion(conversation.id, versionId);
+    const plansService = createPlansService(conversation.agent.name);
+    const result = await plansService.copyVersion(conversation.id, versionId);
 
     if (result) {
       conversation.currentPlan = result.plan;
@@ -129,7 +135,8 @@ export const planActions = {
     );
     if (!conversation) return;
 
-    const success = await plans.deleteVersion(conversation.id, versionId);
+    const plansService = createPlansService(conversation.agent.name);
+    const success = await plansService.deleteVersion(conversation.id, versionId);
 
     if (success) {
       // Reload versions to update list

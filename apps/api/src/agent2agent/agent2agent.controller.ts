@@ -29,6 +29,7 @@ import { AgentRegistryService } from '../agent-platform/services/agent-registry.
 import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
 import { Public } from '../auth/decorators/public.decorator';
 import { Agent2AgentDeliverablesService } from './services/agent2agent-deliverables.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 interface NormalizedTaskRequest {
   dto: TaskRequestDto;
@@ -64,6 +65,7 @@ export class Agent2AgentController {
     private readonly agentConversationsService: Agent2AgentConversationsService,
     private readonly agentRegistry: AgentRegistryService,
     private readonly agentDeliverablesService: Agent2AgentDeliverablesService,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   private readonly logger = new Logger(Agent2AgentController.name);
@@ -176,13 +178,34 @@ export class Agent2AgentController {
     console.log(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
     this.logger.log(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
     
-    const org = orgSlug === 'global' ? null : orgSlug;
-    
+    let org = orgSlug === 'global' ? null : orgSlug;
+
     // ADAPTER: Transform frontend CreateTaskDto format to Agent2Agent TaskRequestDto format
     const adaptedBody = this.adaptFrontendRequest(body);
-    
+
     const { dto, jsonrpc } = await this.normalizeTaskRequest(adaptedBody);
-    
+
+    // If conversation exists, use its organization_slug for routing
+    // This handles cases where frontend sends 'global' but conversation is actually in a specific org
+    if (dto.conversationId) {
+      try {
+        const { data: conversation } = await this.supabaseService
+          .getAnonClient()
+          .from('conversations')
+          .select('organization_slug')
+          .eq('id', dto.conversationId)
+          .single();
+
+        if (conversation?.organization_slug) {
+          this.logger.debug(`🔍 Using organization_slug from conversation: ${conversation.organization_slug}`);
+          org = conversation.organization_slug;
+        }
+      } catch (error) {
+        // Conversation doesn't exist yet, will be created with org from URL
+        this.logger.debug(`Conversation ${dto.conversationId} not found, will create with org: ${org}`);
+      }
+    }
+
     try {
       // Get the agent record to use the correct agent_type
       const agentRecord = await this.agentRegistry.getAgent(org, agentSlug);

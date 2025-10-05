@@ -3,23 +3,27 @@
  * Integrates with the new mode × action architecture
  */
 
-import { planApi } from '@/services/agent2agent';
+import { createAgent2AgentApi, type Agent2AgentApi } from '@/services/agent2agent/api/agent2agent.api';
 import type { Plan, PlanVersion } from '@/services/agent2agent/types';
 
 /**
  * Service for managing plan operations
  */
 export class PlansService {
+  private api: Agent2AgentApi;
+
+  constructor(agentSlug: string) {
+    this.api = createAgent2AgentApi(agentSlug);
+  }
   /**
    * Create or refine a plan
    */
   async createPlan(
     conversationId: string,
-    title: string,
-    content: string,
+    message: string,
   ): Promise<{ plan: Plan; version: PlanVersion; isNew: boolean } | null> {
     try {
-      const response = await planApi.create(conversationId, title, content);
+      const response = await this.api.plans.create(conversationId, message);
 
       if (response.success) {
         return response.data;
@@ -38,7 +42,7 @@ export class PlansService {
    */
   async readPlan(conversationId: string): Promise<Plan | null> {
     try {
-      const response = await planApi.read(conversationId);
+      const response = await this.api.plans.read(conversationId);
 
       if (response.success) {
         return response.data;
@@ -59,7 +63,7 @@ export class PlansService {
     conversationId: string,
   ): Promise<{ plan: Plan; versions: PlanVersion[] } | null> {
     try {
-      const response = await planApi.list(conversationId);
+      const response = await this.api.plans.list(conversationId);
 
       if (response.success) {
         return response.data;
@@ -78,10 +82,10 @@ export class PlansService {
    */
   async editPlan(
     conversationId: string,
-    content: string,
+    editedContent: string,
   ): Promise<{ plan: Plan; version: PlanVersion } | null> {
     try {
-      const response = await planApi.edit(conversationId, content);
+      const response = await this.api.plans.edit(conversationId, editedContent);
 
       if (response.success) {
         return response.data;
@@ -103,7 +107,7 @@ export class PlansService {
     versionId: string,
   ): Promise<{ plan: Plan; version: PlanVersion } | null> {
     try {
-      const response = await planApi.setCurrent(conversationId, versionId);
+      const response = await this.api.plans.setCurrent(conversationId, versionId);
 
       if (response.success) {
         return response.data;
@@ -125,7 +129,7 @@ export class PlansService {
     versionId: string,
   ): Promise<boolean> {
     try {
-      const response = await planApi.deleteVersion(conversationId, versionId);
+      const response = await this.api.plans.deleteVersion(conversationId, versionId);
 
       if (response.success) {
         return true;
@@ -152,7 +156,7 @@ export class PlansService {
     conflictSummary?: string;
   } | null> {
     try {
-      const response = await planApi.mergeVersions(
+      const response = await this.api.plans.mergeVersions(
         conversationId,
         versionIds,
         mergePrompt,
@@ -178,7 +182,7 @@ export class PlansService {
     versionId: string,
   ): Promise<{ plan: Plan; version: PlanVersion } | null> {
     try {
-      const response = await planApi.copyVersion(conversationId, versionId);
+      const response = await this.api.plans.copyVersion(conversationId, versionId);
 
       if (response.success) {
         return response.data;
@@ -197,7 +201,7 @@ export class PlansService {
    */
   async deletePlan(conversationId: string): Promise<boolean> {
     try {
-      const response = await planApi.delete(conversationId);
+      const response = await this.api.plans.delete(conversationId);
 
       if (response.success) {
         return true;
@@ -212,5 +216,9 @@ export class PlansService {
   }
 }
 
-// Export singleton instance
-export const plans = new PlansService();
+/**
+ * Factory function to create a PlansService instance for a specific agent
+ */
+export function createPlansService(agentSlug: string): PlansService {
+  return new PlansService(agentSlug);
+}

@@ -10,12 +10,13 @@ import {
   DeliverableResponse,
   TaskMode,
 } from '../types';
+import { useAuthStore } from '@/stores/authStore';
 
 /**
  * Base API client configuration
  */
 interface ApiConfig {
-  baseUrl?: string;
+  agentSlug: string;
   headers?: Record<string, string>;
 }
 
@@ -24,15 +25,28 @@ interface ApiConfig {
  * Handles all plan and deliverable operations through mode × action architecture
  */
 export class Agent2AgentApi {
-  private baseUrl: string;
+  private agentSlug: string;
   private headers: Record<string, string>;
+  private authStore: ReturnType<typeof useAuthStore>;
 
-  constructor(config: ApiConfig = {}) {
-    this.baseUrl = config.baseUrl || '/api/agent2agent';
+  constructor(config: ApiConfig) {
+    this.agentSlug = config.agentSlug;
+    this.authStore = useAuthStore();
     this.headers = {
       'Content-Type': 'application/json',
       ...config.headers,
     };
+  }
+
+  /**
+   * Get current organization slug from authStore
+   */
+  private getOrgSlug(): string {
+    const org = this.authStore.currentNamespace;
+    if (!org) {
+      throw new Error('No organization context available');
+    }
+    return org;
   }
 
   // ============================================================================
@@ -48,14 +62,15 @@ export class Agent2AgentApi {
 
   /**
    * Convenience methods for plan operations
+   * Match backend contract exactly: {mode, action, conversationId, ...actionParams}
    */
   plans = {
-    create: async (conversationId: string, title: string, content: string) => {
+    create: async (conversationId: string, message: string) => {
       return this.executePlanAction({
         mode: TaskMode.PLAN,
         action: 'create',
         conversationId,
-        params: { title, content },
+        params: { message },
       });
     },
 
@@ -64,6 +79,7 @@ export class Agent2AgentApi {
         mode: TaskMode.PLAN,
         action: 'read',
         conversationId,
+        params: {},
       });
     },
 
@@ -72,15 +88,16 @@ export class Agent2AgentApi {
         mode: TaskMode.PLAN,
         action: 'list',
         conversationId,
+        params: {},
       });
     },
 
-    edit: async (conversationId: string, content: string) => {
+    edit: async (conversationId: string, editedContent: string) => {
       return this.executePlanAction({
         mode: TaskMode.PLAN,
         action: 'edit',
         conversationId,
-        params: { content },
+        params: { editedContent },
       });
     },
 
@@ -129,6 +146,7 @@ export class Agent2AgentApi {
         mode: TaskMode.PLAN,
         action: 'delete',
         conversationId,
+        params: {},
       });
     },
   };
@@ -148,18 +166,15 @@ export class Agent2AgentApi {
 
   /**
    * Convenience methods for deliverable operations
+   * Match backend contract exactly: {mode, action, conversationId, ...actionParams}
    */
   deliverables = {
-    create: async (
-      conversationId: string,
-      title: string,
-      content: string,
-    ) => {
+    create: async (conversationId: string, message: string) => {
       return this.executeDeliverableAction({
         mode: TaskMode.BUILD,
         action: 'create',
         conversationId,
-        params: { title, content },
+        params: { message },
       });
     },
 
@@ -168,6 +183,7 @@ export class Agent2AgentApi {
         mode: TaskMode.BUILD,
         action: 'read',
         conversationId,
+        params: {},
       });
     },
 
@@ -176,29 +192,25 @@ export class Agent2AgentApi {
         mode: TaskMode.BUILD,
         action: 'list',
         conversationId,
+        params: {},
       });
     },
 
-    edit: async (conversationId: string, content: string) => {
+    edit: async (conversationId: string, editedContent: string) => {
       return this.executeDeliverableAction({
         mode: TaskMode.BUILD,
         action: 'edit',
         conversationId,
-        params: { content },
+        params: { editedContent },
       });
     },
 
-    rerun: async (
-      conversationId: string,
-      versionId: string,
-      provider: string,
-      model: string,
-    ) => {
+    rerun: async (conversationId: string, versionId: string, rerunConfig: object) => {
       return this.executeDeliverableAction({
         mode: TaskMode.BUILD,
         action: 'rerun',
         conversationId,
-        params: { versionId, provider, model },
+        params: { versionId, rerunConfig },
       });
     },
 
@@ -247,6 +259,7 @@ export class Agent2AgentApi {
         mode: TaskMode.BUILD,
         action: 'delete',
         conversationId,
+        params: {},
       });
     },
   };
@@ -262,7 +275,8 @@ export class Agent2AgentApi {
     mode: TaskMode,
     request: any,
   ): Promise<T> {
-    const endpoint = `${this.baseUrl}/execute`;
+    const org = this.getOrgSlug();
+    const endpoint = `/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
 
     try {
       const response = await fetch(endpoint, {
@@ -272,7 +286,7 @@ export class Agent2AgentApi {
           mode,
           action: request.action,
           conversationId: request.conversationId,
-          params: request.params || {},
+          ...request.params,
         }),
       });
 
@@ -310,12 +324,8 @@ export class Agent2AgentApi {
 }
 
 /**
- * Default export - singleton instance
+ * Factory function to create an Agent2AgentApi instance for a specific agent
  */
-export const agent2agentApi = new Agent2AgentApi();
-
-/**
- * Named exports for convenience
- */
-export const planApi = agent2agentApi.plans;
-export const deliverableApi = agent2agentApi.deliverables;
+export function createAgent2AgentApi(agentSlug: string): Agent2AgentApi {
+  return new Agent2AgentApi({ agentSlug });
+}

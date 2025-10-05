@@ -4,7 +4,7 @@
  */
 
 import type { AgentConversation } from './types';
-import { deliverableApi } from '@/services/agent2agent';
+import { createBuildsService } from './builds';
 
 export const deliverableActions = {
   /**
@@ -16,10 +16,11 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.read(conversation.id);
+    const buildsService = createBuildsService(conversation.agent.name);
+    const result = await buildsService.readBuild(conversation.id);
 
-    if (result.success) {
-      conversation.currentDeliverable = result.data;
+    if (result) {
+      conversation.currentDeliverable = result;
     }
   },
 
@@ -32,11 +33,12 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.list(conversation.id);
+    const buildsService = createBuildsService(conversation.agent.name);
+    const result = await buildsService.listBuildVersions(conversation.id);
 
-    if (result.success) {
-      conversation.currentDeliverable = result.data.deliverable;
-      conversation.deliverableVersions = result.data.versions;
+    if (result) {
+      conversation.currentDeliverable = result.deliverable;
+      conversation.deliverableVersions = result.versions;
     }
   },
 
@@ -49,10 +51,11 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.edit(conversation.id, content);
+    const buildsService = createBuildsService(conversation.agent.name);
+    const result = await buildsService.editBuild(conversation.id, content);
 
-    if (result.success) {
-      conversation.currentDeliverable = result.data.deliverable;
+    if (result) {
+      conversation.currentDeliverable = result.deliverable;
       // Reload versions to show new version
       await this.loadDeliverableVersions();
     }
@@ -72,14 +75,14 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.rerun(
+    const buildsService = createBuildsService(conversation.agent.name);
+    const result = await buildsService.rerunBuild(
       conversation.id,
       versionId,
-      provider,
-      model,
+      { provider, model },
     );
 
-    if (result.success) {
+    if (result) {
       // Reload versions to show new rerun version
       await this.loadDeliverableVersions();
     }
@@ -94,10 +97,11 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.setCurrent(conversation.id, versionId);
+    const buildsService = createBuildsService(conversation.agent.name);
+    const result = await buildsService.setCurrentVersion(conversation.id, versionId);
 
-    if (result.success) {
-      conversation.currentDeliverable = result.data.deliverable;
+    if (result) {
+      conversation.currentDeliverable = result.deliverable;
       // Reload versions to update current markers
       await this.loadDeliverableVersions();
     }
@@ -116,14 +120,15 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.mergeVersions(
+    const buildsService = createBuildsService(conversation.agent.name);
+    const result = await buildsService.mergeVersions(
       conversation.id,
       versionIds,
       mergePrompt,
     );
 
-    if (result.success) {
-      conversation.currentDeliverable = result.data.deliverable;
+    if (result) {
+      conversation.currentDeliverable = result.deliverable;
       // Reload versions to show merged version
       await this.loadDeliverableVersions();
     }
@@ -138,10 +143,11 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.copyVersion(conversation.id, versionId);
+    const buildsService = createBuildsService(conversation.agent.name);
+    const result = await buildsService.copyVersion(conversation.id, versionId);
 
-    if (result.success) {
-      conversation.currentDeliverable = result.data.deliverable;
+    if (result) {
+      conversation.currentDeliverable = result.deliverable;
       // Reload versions to show copied version
       await this.loadDeliverableVersions();
     }
@@ -156,12 +162,13 @@ export const deliverableActions = {
     );
     if (!conversation) return;
 
-    const result = await deliverableApi.deleteVersion(
+    const buildsService = createBuildsService(conversation.agent.name);
+    const success = await buildsService.deleteVersion(
       conversation.id,
       versionId,
     );
 
-    if (result.success) {
+    if (success) {
       // Reload versions to update list
       await this.loadDeliverableVersions();
     }

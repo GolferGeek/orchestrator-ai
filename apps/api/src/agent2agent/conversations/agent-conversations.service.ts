@@ -72,6 +72,7 @@ export class AgentConversationsService {
         user_id: userId,
         agent_name: dto.agentName,
         agent_type: validatedAgentType,
+        organization_slug: dto.namespace || null, // Store organization slug for database agents
         started_at: now,
         last_active_at: now,
         metadata: dto.metadata || {},

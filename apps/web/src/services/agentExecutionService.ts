@@ -27,8 +27,8 @@ export async function executeAgentTask(
 ): Promise<AgentTaskResponse> {
   const orgSegment = normalizeOrgSegment(orgSlug);
   const normalizedAgent = encodeURIComponent(agentSlug);
-  const primaryUrl = `/agents/${encodeURIComponent(orgSegment)}/${normalizedAgent}/tasks`;
-  const fallbackUrl = `/agent-to-agent/${encodeURIComponent(orgSegment)}/${normalizedAgent}/tasks`;
+  const primaryUrl = `/agent-to-agent/${encodeURIComponent(orgSegment)}/${normalizedAgent}/tasks`;
+  const fallbackUrl = `/agents/${encodeURIComponent(orgSegment)}/${normalizedAgent}/tasks`;
 
   const payload = {
     mode: request.mode,
