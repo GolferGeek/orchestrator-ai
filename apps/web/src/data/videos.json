@@ -147,12 +147,13 @@
         {
           "id": "agent-default-overview",
           "title": "Working with Orchestrator AI Agents",
-          "description": "Learn the essential workflows for engaging with Orchestrator AI agents. This comprehensive overview covers agent selection, conversation management, leveraging capabilities, and maximizing value from AI workforce solutions.",
-          "url": "TBD_RECORDING_NEEDED",
-          "duration": "6:00",
+          "description": "See how Orchestrator AI agents work in real-world scenarios. Watch a live demonstration of the Requirements Writer agent, learn how to craft effective prompts, iterate on responses, and get expert advice from specialized AI teammates built for small business needs.",
+          "url": "https://www.loom.com/embed/4c40e65004ff4f7c95f38c420a11c9be",
+          "duration": "4:50",
           "createdAt": "2025-01-24",
           "featured": true,
-          "order": 1
+          "order": 1,
+          "transcriptId": "agent-default-overview-transcript"
         },
         {
           "id": "metrics-agent-walkthrough",

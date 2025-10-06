@@ -1,14 +1,14 @@
 {
   "transcripts": {
-    "agent-default-overview": {
+    "agent-default-overview-transcript": {
       "title": "Working with Orchestrator AI Agents - Transcript",
-      "description": "Full transcript of the agent default overview video covering essential workflows for engaging with Orchestrator AI agents.",
+      "description": "Full transcript of the agent default overview video showing how specialized AI agents work in practice, featuring a live demonstration of the Requirements Writer agent.",
       "filePath": "video-texts/agent-default-overview-transcript.md",
       "videoId": "agent-default-overview",
       "lastUpdated": "2025-01-24",
-      "status": "pending",
+      "status": "available",
       "language": "en",
-      "tags": ["agents", "overview", "workflow"]
+      "tags": ["agents", "overview", "workflow", "requirements-writer", "demonstration"]
     },
     "metrics-agent-walkthrough": {
       "title": "Finance Metrics Agent Walkthrough - Transcript", 
