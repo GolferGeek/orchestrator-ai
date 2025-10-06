@@ -20,7 +20,22 @@ import type {
   AgentTaskMode,
   isJsonRpcSuccessResponse,
   isJsonRpcErrorResponse,
+  StrictA2ARequest,
+  StrictA2ASuccessResponse,
+  StrictA2AErrorResponse,
 } from '@orchestrator-ai/a2a-protocol';
+import {
+  buildRequest,
+  validateStrictRequest,
+  StrictRequestValidationError,
+} from '../utils/builders';
+import {
+  handleResponse,
+  validateJsonRpcEnvelope,
+  isStrictError,
+  extractErrorDetails,
+  StrictResponseValidationError,
+} from '../utils/handlers';
 
 // Get API base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:7100';
@@ -86,43 +101,33 @@ export class Agent2AgentApi {
 
   /**
    * Convenience methods for plan operations
-   * Match backend contract exactly: {mode, action, conversationId, ...actionParams}
+   * Uses strict type builders to guarantee all required fields are set
    */
   plans = {
     create: async (conversationId: string, message: string) => {
-      return this.executePlanAction({
-        mode: TaskMode.PLAN,
-        action: 'create',
-        conversationId,
-        params: { title: '', content: message },
-      } as CreatePlanRequest);
+      const strictRequest = buildRequest.plan.create(
+        { conversationId, userMessage: message },
+        { title: '', content: message }
+      );
+      return this.executeStrictRequest(strictRequest);
     },
 
     read: async (conversationId: string) => {
-      return this.executePlanAction({
-        mode: TaskMode.PLAN,
-        action: 'read',
-        conversationId,
-        params: {},
-      } as ReadPlanRequest);
+      const strictRequest = buildRequest.plan.read({ conversationId });
+      return this.executeStrictRequest(strictRequest);
     },
 
     list: async (conversationId: string) => {
-      return this.executePlanAction({
-        mode: TaskMode.PLAN,
-        action: 'list',
-        conversationId,
-        params: {},
-      } as PlanRequest);
+      const strictRequest = buildRequest.plan.list({ conversationId });
+      return this.executeStrictRequest(strictRequest);
     },
 
     edit: async (conversationId: string, editedContent: string) => {
-      return this.executePlanAction({
-        mode: TaskMode.PLAN,
-        action: 'edit',
-        conversationId,
-        params: { content: editedContent },
-      } as EditPlanRequest);
+      const strictRequest = buildRequest.plan.edit(
+        { conversationId, userMessage: 'Edit plan' },
+        { content: editedContent }
+      );
+      return this.executeStrictRequest(strictRequest);
     },
 
     setCurrent: async (conversationId: string, versionId: string) => {
@@ -190,34 +195,25 @@ export class Agent2AgentApi {
 
   /**
    * Convenience methods for deliverable operations
-   * Match backend contract exactly: {mode, action, conversationId, ...actionParams}
+   * Uses strict type builders to guarantee all required fields are set
    */
   deliverables = {
     create: async (conversationId: string, message: string) => {
-      return this.executeDeliverableAction({
-        mode: TaskMode.BUILD,
-        action: 'create',
-        conversationId,
-        params: { message },
-      } as unknown as DeliverableRequest);
+      const strictRequest = buildRequest.build.execute(
+        { conversationId, userMessage: message },
+        { message }
+      );
+      return this.executeStrictRequest(strictRequest);
     },
 
     read: async (conversationId: string) => {
-      return this.executeDeliverableAction({
-        mode: TaskMode.BUILD,
-        action: 'read',
-        conversationId,
-        params: {},
-      } as DeliverableRequest);
+      const strictRequest = buildRequest.build.read({ conversationId });
+      return this.executeStrictRequest(strictRequest);
     },
 
     list: async (conversationId: string) => {
-      return this.executeDeliverableAction({
-        mode: TaskMode.BUILD,
-        action: 'list',
-        conversationId,
-        params: {},
-      } as DeliverableRequest);
+      const strictRequest = buildRequest.build.list({ conversationId });
+      return this.executeStrictRequest(strictRequest);
     },
 
     edit: async (conversationId: string, editedContent: string) => {
@@ -230,12 +226,11 @@ export class Agent2AgentApi {
     },
 
     rerun: async (conversationId: string, versionId: string, rerunConfig: object) => {
-      return this.executeDeliverableAction({
-        mode: TaskMode.BUILD,
-        action: 'rerun',
-        conversationId,
-        params: { versionId, rerunConfig },
-      } as unknown as DeliverableRequest);
+      const strictRequest = buildRequest.build.rerun(
+        { conversationId, userMessage: 'Rerun build' },
+        { versionId, config: rerunConfig }
+      );
+      return this.executeStrictRequest(strictRequest);
     },
 
     setCurrent: async (conversationId: string, versionId: string) => {
@@ -289,11 +284,97 @@ export class Agent2AgentApi {
   };
 
   // ============================================================================
-  // CORE EXECUTION METHOD
+  // CORE EXECUTION METHODS
   // ============================================================================
 
   /**
-   * Core method to execute any mode × action request
+   * Execute a strict A2A request with full validation
+   * This is the preferred method that guarantees all required fields are set
+   */
+  private async executeStrictRequest<T = any>(
+    request: StrictA2ARequest,
+  ): Promise<T> {
+    // Validate request before sending
+    const validation = validateStrictRequest(request);
+    if (!validation.valid) {
+      throw new StrictRequestValidationError(
+        'request',
+        `Request validation failed: ${validation.errors.join(', ')}`
+      );
+    }
+
+    const org = this.getOrgSlug();
+    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        // Handle JSON-RPC error response
+        if (errorData.jsonrpc === '2.0' && errorData.error) {
+          throw new Error(
+            errorData.error.message || `API request failed: ${response.statusText}`,
+          );
+        }
+
+        throw new Error(
+          errorData.message || `API request failed: ${response.statusText}`,
+        );
+      }
+
+      const data: StrictA2ASuccessResponse | StrictA2AErrorResponse = await response.json();
+
+      // Validate JSON-RPC envelope
+      const envelopeValidation = validateJsonRpcEnvelope(data);
+      if (!envelopeValidation.valid) {
+        throw new StrictResponseValidationError(
+          `Invalid JSON-RPC envelope: ${envelopeValidation.errors.join(', ')}`,
+          data,
+        );
+      }
+
+      // Handle error response
+      if (isStrictError(data)) {
+        const errorDetails = extractErrorDetails(data);
+        throw new Error(errorDetails.message);
+      }
+
+      // Handle success response with mode-specific handler
+      const mode = request.method.split('.')[0]; // Extract mode from method (e.g., 'plan.create' -> 'plan')
+
+      let content;
+      if (mode === 'plan') {
+        content = handleResponse.plan.handle(data);
+      } else if (mode === 'build') {
+        content = handleResponse.build.handle(data);
+      } else if (mode === 'converse') {
+        content = handleResponse.converse.handle(data);
+      } else {
+        // Fallback for other modes
+        const taskResponse = data.result;
+        content = taskResponse.payload?.content || taskResponse;
+      }
+
+      // Return in frontend format
+      return {
+        success: true,
+        data: content,
+      } as T;
+    } catch (error) {
+      console.error(`Agent2Agent strict request error (${request.method}):`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Core method to execute any mode × action request (legacy)
+   * @deprecated Use executeStrictRequest instead
    */
   private async executeAction<T = any>(
     mode: TaskMode,
