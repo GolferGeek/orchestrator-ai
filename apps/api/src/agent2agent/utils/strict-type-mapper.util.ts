@@ -57,31 +57,34 @@ export function toStrictRequest(
       } as StrictConverseRequest;
 
     case AgentTaskMode.PLAN:
+      if (!dto.payload?.action) {
+        throw new Error('Plan mode requires action field in payload');
+      }
       return {
         jsonrpc: '2.0',
         id: jsonrpcId,
-        method: 'plan.create',
+        method: 'plan',
         params: {
           mode: AgentTaskMode.PLAN,
-          action: 'create',
           ...baseParams,
-          payload: dto.payload || {},
+          payload: dto.payload,
         },
-      } as StrictPlanRequest;
+      } as unknown as StrictPlanRequest;
 
     case AgentTaskMode.BUILD:
+      if (!dto.payload?.action) {
+        throw new Error('Build mode requires action field in payload');
+      }
       return {
         jsonrpc: '2.0',
         id: jsonrpcId,
-        method: 'build.execute',
+        method: 'build',
         params: {
           mode: AgentTaskMode.BUILD,
-          action: 'execute',
           ...baseParams,
-          planId: dto.planId,
-          payload: dto.payload || {},
+          payload: dto.payload,
         },
-      } as StrictBuildRequest;
+      } as unknown as StrictBuildRequest;
 
     default:
       // For unsupported modes, return null

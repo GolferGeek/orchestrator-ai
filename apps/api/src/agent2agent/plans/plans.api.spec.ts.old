@@ -1,10 +1,10 @@
-import crypto from 'crypto';
+import { randomUUID } from 'crypto';
 /**
  * Plans API Integration Test
- * Tests mode × action architecture for plans through HTTP endpoints with auth
+ * Tests strict A2A protocol types with JSON-RPC 2.0 envelope
  *
  * These tests use the actual API endpoint: POST /agent-to-agent/:orgSlug/:agentSlug/tasks
- * and require a valid JWT token for authentication.
+ * with strict request/response types and require a valid JWT token for authentication.
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -12,6 +12,27 @@ import { INestApplication } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { AppModule } from '@/app.module';
 import * as request from 'supertest';
+import type {
+  StrictPlanRequest,
+  StrictBuildRequest,
+  StrictConverseRequest,
+  StrictA2ASuccessResponse,
+  StrictA2AErrorResponse,
+  PlanCreateResponse,
+  PlanReadResponse,
+  PlanListResponse,
+  PlanEditResponse,
+  PlanSetCurrentResponse,
+  PlanDeleteVersionResponse,
+  PlanMergeVersionsResponse,
+  PlanCopyVersionResponse,
+  PlanDeleteResponse,
+  BuildCreateResponse,
+  BuildReadResponse,
+  BuildEditResponse,
+  BuildDeleteResponse,
+} from '@orchestrator-ai/a2a-protocol';
+import { AgentTaskMode } from '@orchestrator-ai/a2a-protocol';
 
 describe('Plans API Integration (with Auth)', () => {
   let app: INestApplication;
@@ -19,6 +40,66 @@ describe('Plans API Integration (with Auth)', () => {
   let authToken: string;
   let testUserId: string;
   let testConversationId: string;
+
+  // Helper to create strict plan request
+  const createPlanRequest = (
+    action: string,
+    payload: any,
+    userMessage?: string,
+  ): StrictPlanRequest => ({
+    jsonrpc: '2.0',
+    id: randomUUID(),
+    method: 'plan',
+    params: {
+      mode: AgentTaskMode.PLAN,
+      conversationId: testConversationId,
+      userMessage: userMessage || '',
+      payload: {
+        action: action as any,
+        ...payload,
+      },
+    },
+  });
+
+  // Helper to create strict build request
+  const createBuildRequest = (
+    action: string,
+    payload: any,
+    userMessage?: string,
+  ): StrictBuildRequest => ({
+    jsonrpc: '2.0',
+    id: randomUUID(),
+    method: 'build',
+    params: {
+      mode: AgentTaskMode.BUILD,
+      conversationId: testConversationId,
+      userMessage: userMessage || '',
+      payload: {
+        action: action as any,
+        ...payload,
+      },
+    },
+  });
+
+  // Helper to create strict converse request
+  const createConverseRequest = (
+    userMessage: string,
+    messages: any[] = [],
+    payload: any = {},
+  ): StrictConverseRequest => ({
+    jsonrpc: '2.0',
+    id: randomUUID(),
+    method: 'converse',
+    params: {
+      mode: AgentTaskMode.CONVERSE,
+      conversationId: testConversationId,
+      userMessage,
+      messages,
+      payload: {
+        ...payload,
+      },
+    },
+  });
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -88,59 +169,55 @@ describe('Plans API Integration (with Auth)', () => {
     let versionId2: string;
 
   it('should CREATE a new plan via API (action: create)', async () => {
-    const taskId = crypto.randomUUID();
+    const strictRequest = createPlanRequest(
+      'create',
+      {
+        title: 'AI Blog Post Plan',
+        content: '# AI Blog Post Plan\n\n1. Research AI trends\n2. Draft outline\n3. Write content',
+        format: 'markdown',
+        llmSelection: {
+          provider: 'ollama',
+          model: 'llama3.2:1b',
+        },
+      },
+      'Create a plan for blog post about AI',
+    );
+
     const response = await request(app.getHttpServer())
       .post('/agent-to-agent/my-org/blog_post_writer/tasks')
       .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        mode: 'plan',
-        conversationId: testConversationId,
-        userMessage: 'Create a plan for blog post about AI',
-        payload: {
+      .send(strictRequest)
+      .expect(201);
 
-            taskId,
+    const body = response.body as PlanCreateResponse;
 
-          action: 'create',
-          title: 'AI Blog Post Plan',
-          content: '# AI Blog Post Plan\n\n1. Research AI trends\n2. Draft outline\n3. Write content',
-          format: 'markdown',
-          llmSelection: {
-            provider: 'ollama',
-            model: 'llama3.2:1b',
-          },
-        },
-      })
-      .expect(200);
+    expect(body.jsonrpc).toBe('2.0');
+    expect(body.id).toBe(strictRequest.id);
+    expect(body.result.success).toBe(true);
+    expect(body.result.mode).toBe('plan');
+    expect(body.result.payload.content.plan).toBeDefined();
+    expect(body.result.payload.content.version).toBeDefined();
 
-    expect(response.body.success).toBe(true);
-    expect(response.body.payload?.content?.data?.plan).toBeDefined();
-    expect(response.body.payload?.content?.data?.version).toBeDefined();
-    expect(response.body.payload?.content?.data?.plan.title).toBe('AI Blog Post Plan');
-
-    createdPlanId = response.body.payload?.content?.data?.plan.id;
-    versionId = response.body.payload?.content?.data?.version.id;
+    createdPlanId = body.result.payload.content.plan.id;
+    versionId = body.result.payload.content.version.id;
   });
 
   it('should READ the current plan via API (action: read)', async () => {
-    const taskId = crypto.randomUUID();
+    const strictRequest = createPlanRequest('read', {});
+
     const response = await request(app.getHttpServer())
       .post('/agent-to-agent/my-org/blog_post_writer/tasks')
       .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        mode: 'plan',
-        conversationId: testConversationId,
-        payload: {
+      .send(strictRequest)
+      .expect(201);
 
-            taskId,
+    const body = response.body as PlanReadResponse;
 
-          action: 'read',
-        },
-      })
-      .expect(200);
-
-    expect(response.body.success).toBe(true);
-    expect(response.body.payload?.content?.data?.id).toBe(createdPlanId);
-    expect(response.body.payload?.content?.data?.currentVersion).toBeDefined();
+    expect(body.jsonrpc).toBe('2.0');
+    expect(body.result.success).toBe(true);
+    expect(body.result.mode).toBe('plan');
+    expect(body.result.payload.content.plan).toBeDefined();
+    expect(body.result.payload.content.version).toBeDefined();
   });
 
   it('should LIST plan versions via API (action: list)', async () => {
