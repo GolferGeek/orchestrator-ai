@@ -25,13 +25,10 @@
           >
             <template #content>
               <!-- Small Business Challenge Card -->
-              <ion-card class="challenge-highlight-box">
-                <ion-card-header>
-                  <ion-card-title class="challenge-highlight-title">
-                    🎯 The Small Business AI Challenge
-                  </ion-card-title>
-                </ion-card-header>
-                <ion-card-content>
+              
+                <h3 class="challenge-highlight-title">
+                  🎯 The Small Business AI Challenge
+                </h3>
                   <p class="challenge-highlight-text">
                     <strong>Small businesses face overwhelming choices when adopting AI.</strong> From information overload and decision fatigue 
                     to technical complexity and security concerns, the path to AI implementation is fraught with obstacles.
@@ -78,13 +75,10 @@
                       </div>
                     </div>
                   </div>
-                </ion-card-content>
-              </ion-card>
+              
 
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
                 
-                <ion-card class="information-overload-card">
-                  <ion-card-content>
                     <h3 class="info-overload-title">🌊 Information Overload Challenge</h3>
                     
                     <p class="info-overload-intro">
@@ -113,13 +107,11 @@
                     </ul>
                   </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="security-privacy" title="Security and Privacy">
-                <ion-card class="security-privacy-card">
-                  <ion-card-content>
+                
                     <h3 class="security-title">🔒 LLM Security & Privacy Concerns</h3>
                     
                     <p class="security-intro">
@@ -151,13 +143,11 @@
                     </ul>
                   </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="cost-roi" title="Cost and ROI">
-                <ion-card class="cost-roi-card">
-                  <ion-card-content>
+                
                     <h3 class="cost-title">💰 Financial Uncertainty & Hidden Costs</h3>
                     
                     <p class="cost-intro">
@@ -193,13 +183,11 @@
                     <div class="cost-footnote">
                       <p>* Growing local LLM usage may require multiple servers or a more traditional server</p>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="development-challenges" title="Development Challenges">
-                <ion-card class="development-challenges-card">
-                  <ion-card-content>
+                
                     <h3 class="development-title">⚙️ Development Barriers & Complexity</h3>
                     
                     <p class="development-intro">
@@ -231,8 +219,7 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -244,8 +231,7 @@
             :default-expanded="true"
           >
             <template #content>
-              <ion-card class="offering-summary-card">
-                <ion-card-content>
+              
                   <h3 class="offering-summary-title">🚀 Complete AI Implementation Package</h3>
                   
                   <p class="offering-summary-intro">
@@ -284,12 +270,10 @@
                     <p><strong>Forked code: $15k</strong> - consulting fees additional at $120/hr senior, $50/hr interns<br>
                     <small>*You provide: hardware and LLM API keys (we help with setup)</small></p>
                   </div>
-                </ion-card-content>
-              </ion-card>
+              
               
               <SubAccordion id="piloting-server" title="Piloting Server">
-                <ion-card class="piloting-server-card">
-                  <ion-card-content>
+                
                     <h3 class="piloting-title">🖥️ Your Local AI Hardware Setup*</h3>
                     
                     <p class="piloting-intro">
@@ -325,13 +309,11 @@
                     <div class="piloting-footnote">
                       <p>* You provide the server hardware. We recommend Mac Studio 128GB, but any equivalent hardware is fine.</p>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="forked-repository" title="Forked Repository">
-                <ion-card class="forked-repository-card">
-                  <ion-card-content>
+                
                     <h3 class="repository-title">📦 Pre-Built Agent Ecosystem</h3>
                     
                     <p class="repository-intro">
@@ -366,13 +348,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="consulting-services" title="Consulting Services">
-                <ion-card class="consulting-services-card">
-                  <ion-card-content>
+                
                     <h3 class="consulting-title">🤝 Expert Guidance & Support</h3>
                     
                     <p class="consulting-intro">
@@ -404,13 +384,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="pricing-structure" title="Pricing Structure">
-                <ion-card class="pricing-structure-card">
-                  <ion-card-content>
+                
                     <h3 class="pricing-structure-title">💎 Transparent Value Proposition</h3>
                     
                     <p class="pricing-structure-intro">
@@ -443,13 +421,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="team-building" title="Team Building">
-                <ion-card class="team-building-card">
-                  <ion-card-content>
+                
                     <h3 class="team-building-title">👥 AI Competency Development</h3>
                     
                     <p class="team-building-intro">
@@ -493,8 +469,7 @@
                 />
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -506,8 +481,7 @@
             :default-expanded="true"
           >
             <template #content>
-              <ion-card class="architecture-summary-card">
-                <ion-card-content>
+              
                   <h3 class="architecture-summary-title">🏗️ Advanced Agent Architecture</h3>
                   
                   <p class="architecture-summary-intro">
@@ -554,12 +528,10 @@
                   <div class="architecture-summary-footer">
                     <p><strong>File-based storage now</strong> - database-based agents coming soon for rapid creation</p>
                   </div>
-                </ion-card-content>
-              </ion-card>
+              
               
               <SubAccordion id="a2a-protocol" title="A2A Protocol">
-                <ion-card class="a2a-protocol-card">
-                  <ion-card-content>
+                
                     <h3 class="a2a-title">🔗 Industry-Standard Communication</h3>
                     
                     <p class="a2a-intro">
@@ -591,13 +563,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="mcp-integration" title="MCP Integration">
-                <ion-card class="mcp-integration-card">
-                  <ion-card-content>
+                
                     <h3 class="mcp-title">🔌 Connect to Any Tool or Service</h3>
                     
                     <p class="mcp-intro">
@@ -629,13 +599,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="agent-types" title="Agent Types">
-                <ion-card class="agent-types-card">
-                  <ion-card-content>
+                
                     <h3 class="agent-types-title">🤖 Five Specialized AI Agent Types</h3>
                     
                     <p class="agent-types-intro">
@@ -665,13 +633,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="file-vs-database-agents" title="File vs Database Agents">
-                <ion-card class="file-database-agents-card">
-                  <ion-card-content>
+                
                     <h3 class="file-database-title">📁 Current System + Future Upgrades</h3>
                     
                     <p class="file-database-intro">
@@ -703,13 +669,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="demo-vs-myorg" title="Demo vs MyOrg">
-                <ion-card class="demo-myorg-card">
-                  <ion-card-content>
+                
                     <h3 class="demo-myorg-title">🏢 Organized Agent Directories</h3>
                     
                     <p class="demo-myorg-intro">
@@ -741,8 +705,7 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -909,15 +872,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import {
-  IonPage,
-  IonContent,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
-  IonButton,
-} from '@ionic/vue';
+import { IonPage, IonContent } from '@ionic/vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 import AccordionSection from '@/components/landing/AccordionSection.vue';
 import SubAccordion from '@/components/landing/SubAccordion.vue';
