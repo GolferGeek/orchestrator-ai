@@ -8,7 +8,7 @@ import type {
   AgentTaskMode,
   PlanAction,
   StrictTaskMessage,
-} from '@orchestrator-ai/a2a-protocol';
+} from '@transport-types';
 
 interface RequestMetadata {
   conversationId: string;

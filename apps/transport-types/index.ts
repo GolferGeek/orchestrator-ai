@@ -16,6 +16,16 @@ export {
 } from './shared/enums';
 
 // ============================================================================
+// SHARED DATA TYPES
+// ============================================================================
+export {
+  PlanData,
+  PlanVersionData,
+  DeliverableData,
+  DeliverableVersionData,
+} from './shared/data-types';
+
+// ============================================================================
 // JSON-RPC 2.0 BASE TYPES
 // ============================================================================
 export {
@@ -96,6 +106,25 @@ export {
   ConverseResponseMetadata,
   ConverseResponseContent,
 } from './modes/converse.types';
+
+// ============================================================================
+// STRICT TYPE ALIASES (for web compatibility)
+// ============================================================================
+export {
+  StrictPlanResponse,
+  StrictBuildResponse,
+  StrictConverseResponse,
+  StrictOrchestrateResponse,
+  StrictA2ASuccessResponse,
+  StrictA2AErrorResponse,
+  StrictA2AResponse,
+  StrictA2ARequest,
+  isStrictPlanResponse,
+  isStrictBuildResponse,
+  isStrictConverseResponse,
+  isStrictErrorResponse,
+  isStrictSuccessResponse,
+} from './shared/strict-aliases';
 
 // ============================================================================
 // TYPE GUARDS

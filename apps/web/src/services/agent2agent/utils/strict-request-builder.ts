@@ -13,7 +13,7 @@ import type {
   PlanAction,
   BuildAction,
   StrictTaskMessage,
-} from '@orchestrator-ai/a2a-protocol';
+} from '@transport-types';
 
 /**
  * Base metadata for all requests

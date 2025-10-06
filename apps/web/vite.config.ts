@@ -96,6 +96,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@transport-types': path.resolve(__dirname, '../transport-types'),
       },
     },
     server: {

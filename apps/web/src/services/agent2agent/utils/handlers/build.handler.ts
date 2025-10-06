@@ -7,7 +7,7 @@ import type {
   StrictBuildResponse,
   DeliverableData,
   DeliverableVersionData,
-} from '@orchestrator-ai/a2a-protocol';
+} from '@transport-types';
 import {
   isStrictBuildResponse,
   validateSuccessResponse,

@@ -10,12 +10,15 @@ import type {
   StrictPlanResponse,
   StrictBuildResponse,
   StrictConverseResponse,
+} from '@transport-types';
+
+import {
   isStrictPlanResponse,
   isStrictBuildResponse,
   isStrictConverseResponse,
   isStrictErrorResponse,
   isStrictSuccessResponse,
-} from '@orchestrator-ai/a2a-protocol';
+} from '@transport-types';
 
 /**
  * Response validation error

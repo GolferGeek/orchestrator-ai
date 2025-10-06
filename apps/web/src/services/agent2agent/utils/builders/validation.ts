@@ -2,7 +2,7 @@
  * Strict Request Validation Utilities
  */
 
-import type { StrictA2ARequest } from '@orchestrator-ai/a2a-protocol';
+import type { StrictA2ARequest } from '@transport-types';
 
 /**
  * Validation error class

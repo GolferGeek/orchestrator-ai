@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import type { AgentTaskMode } from '@orchestrator-ai/a2a-protocol';
+import type { AgentTaskMode } from '@transport-types';
 
 // Types
 export type OrchestrationStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';

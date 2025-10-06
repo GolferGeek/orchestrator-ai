@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import type { DeliverableData, DeliverableVersionData } from '@orchestrator-ai/a2a-protocol';
+import type { DeliverableData, DeliverableVersionData } from '@transport-types';
 import type {
   BuildExecuteResult,
   BuildReadResult,
