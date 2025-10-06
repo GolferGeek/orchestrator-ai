@@ -17,6 +17,7 @@ export interface PlanVersionData {
     format: 'markdown' | 'json';
     createdByType: 'agent' | 'user';
     createdById: string | null;
+    taskId?: string;
     metadata?: Record<string, any>;
     isCurrentVersion: boolean;
     createdAt: string;

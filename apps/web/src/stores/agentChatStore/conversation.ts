@@ -157,43 +157,56 @@ export class ConversationService {
         
         // Create assistant message based on task status
         if (task.status === 'completed' && task.response) {
-          // Parse the JSON response to extract the actual content
+          // Parse the JSON response to extract the actual content and metadata
           let responseContent = task.response;
+          let mergedResponseMetadata: any = {};
           try {
-            // The response is stored as a JSON string, need to parse it
-            const parsedResponse = JSON.parse(task.response);
-            // Extract the actual response content from the parsed JSON
-            responseContent = parsedResponse.response || parsedResponse.content || parsedResponse;
-            
-            // If it's still an object, stringify it nicely
+            const parsedResponse = typeof task.response === 'string'
+              ? JSON.parse(task.response)
+              : task.response;
+
+            responseContent = parsedResponse?.response || parsedResponse?.content || parsedResponse;
             if (typeof responseContent === 'object') {
               responseContent = JSON.stringify(responseContent, null, 2);
             }
-          } catch (e) {
-            // If parsing fails, use the raw response
+
+            // Merge backend-provided metadata (provider/model/usage, etc.)
+            if (parsedResponse && typeof parsedResponse === 'object') {
+              if (parsedResponse.metadata) {
+                mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.metadata };
+              }
+              if (parsedResponse.result?.metadata) {
+                mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.result.metadata };
+              }
+            }
+          } catch {
+            // Keep raw response
             responseContent = task.response;
           }
-          
-        // Completed task - create assistant message with parsed response
-        const assistantMessageId = `assistant-${task.id}`;
-        const assistantMessage: AgentChatMessage = {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: responseContent,
-          timestamp: new Date(task.completedAt || task.updatedAt),
-          taskId: task.id,
-          metadata: {
-            isCompleted: true,
-            completedAt: task.completedAt,
-            responseMetadata: task.responseMetadata,
-            llmMetadata: task.llmMetadata,
-            originalTaskData: {
-              method: task.method,
-              status: task.status,
-              progress: task.progress
-            }
-          }
-        };
+
+          // Completed task - create assistant message with parsed response and merged metadata
+          const assistantMessageId = `assistant-${task.id}`;
+          const assistantMessage: AgentChatMessage = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: responseContent,
+            timestamp: new Date(task.completedAt || task.updatedAt),
+            taskId: task.id,
+            metadata: {
+              isCompleted: true,
+              completedAt: task.completedAt,
+              responseMetadata: task.responseMetadata,
+              // Include LLM metadata stored with the task (contains original selection)
+              ...(task.llmMetadata ? { llmMetadata: task.llmMetadata } : {}),
+              // Include provider/model/usage from response metadata for accurate display
+              ...mergedResponseMetadata,
+              originalTaskData: {
+                method: task.method,
+                status: task.status,
+                progress: task.progress,
+              },
+            },
+          };
           
           // Check if this message has an associated deliverable
           // Try both message ID and task ID mapping

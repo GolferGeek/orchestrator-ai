@@ -110,9 +110,16 @@
             <div class="callout-indicator" v-if="!displayedDeliverable && !displayedPlan">
               <ion-spinner name="dots" color="primary" />
             </div>
-            <ion-chip v-else size="small" color="primary" outline>
-              {{ displayedPlan ? 'plan' : displayedDeliverable?.type || 'document' }}
-            </ion-chip>
+            <div v-else class="callout-badges">
+              <ion-chip size="small" color="primary" outline>
+                {{ displayedPlan ? 'plan' : displayedDeliverable?.type || 'document' }}
+              </ion-chip>
+              <ion-chip v-if="llmUsed && llmUsed.providerName && llmUsed.modelName" size="small" color="medium" outline>
+                <span class="chip-provider">{{ llmUsed.providerName }}</span>
+                <span class="chip-divider">•</span>
+                <span class="chip-model">{{ llmUsed.modelName }}</span>
+              </ion-chip>
+            </div>
           </div>
           <div class="callout-action" v-if="(displayedDeliverable || displayedPlan) && !props.showWorkProductPane">
             <ion-button fill="clear" size="small">
@@ -153,7 +160,7 @@
         
         <!-- LLM Information for assistant messages -->
         <LLMInfo
-          v-if="message.role === 'assistant' && llmUsed && ((message.metadata?.mode || '').toLowerCase() !== 'converse') && ((message.metadata?.mode || '').toLowerCase() !== 'plan')"
+          v-if="message.role === 'assistant' && llmUsed && ((message.metadata?.mode || '').toLowerCase() !== 'converse')"
           :llmUsed="llmUsed"
           :usage="usage || undefined"
           :costCalculation="costCalculation || undefined"
@@ -490,7 +497,14 @@ const imageAssets = computed(() => {
           console.log('🔍 AgentTaskItem - Message metadata:', metadata);
           
           // Check both possible locations for LLM metadata
-          const llmMeta = metadata?.llmMetadata || metadata?.llmUsed;
+        // Prefer explicit provider/model from backend response metadata when available
+        // Fallback to llmMetadata (which typically contains originalLLMSelection)
+        const llmMeta =
+          (metadata && (metadata as any).provider && (metadata as any).model
+            ? { provider_name: (metadata as any).provider, model_name: (metadata as any).model, ...(metadata as any) }
+            : undefined) ||
+          metadata?.llmMetadata ||
+          metadata?.llmUsed;
           console.log('🔍 AgentTaskItem - Extracted llmMeta:', llmMeta);
           
           if (!llmMeta) {
@@ -504,16 +518,16 @@ const imageAssets = computed(() => {
   
           // Handle different possible field structures from backend
           // Check if data is in originalLLMSelection structure (new format)
-          const llmSelection = llmMeta.originalLLMSelection || llmMeta;
+          const llmSelection = (llmMeta as any).originalLLMSelection || llmMeta;
           
-          const providerName = llmSelection.providerName || 
-                              llmSelection.provider || 
-                              llmMeta.provider_name ||
+          const providerName = (llmSelection as any).providerName || 
+                              (llmSelection as any).provider || 
+                              (llmMeta as any).provider_name ||
                               'Unknown Provider';
                               
-          const modelName = llmSelection.modelName || 
-                           llmSelection.model || 
-                           llmMeta.model_name ||
+          const modelName = (llmSelection as any).modelName || 
+                           (llmSelection as any).model || 
+                           (llmMeta as any).model_name ||
                            'Unknown Model';
           
           const result = {
@@ -1349,6 +1363,16 @@ function openImage(img: any) {
   font-size: 0.85em;
   color: #7c3aed;
   opacity: 0.8;
+}
+
+.callout-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip-provider, .chip-model, .chip-divider {
+  font-size: 12px;
 }
 
 .callout-indicator {

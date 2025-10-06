@@ -249,15 +249,21 @@ export const usePlanStore = defineStore('plan', () => {
       const versionId = version.id;
 
       const currentNumber = sourceVersion.versionNumber;
-      const conversationId = sourceVersion.agentConversationId;
-      const taskId = sourceVersion.taskId;
+      // Conversation is tracked at the plan level
+      const conversationId = plan.conversationId;
+      // Task that produced this version (may be undefined for manual edits)
+      const taskId = (sourceVersion as any).taskId as string | undefined;
 
       if (!conversationId) {
-        throw new Error('Cannot rerun: version has no conversationId');
+        throw new Error('Cannot rerun: missing conversationId on plan');
       }
 
       // 2) Load the task to get original prompt
       const { tasksService } = await import('@/services/tasksService');
+      if (!taskId) {
+        throw new Error('Cannot rerun: version has no originating taskId');
+      }
+
       const originalTask = await tasksService.getTask(taskId);
       if (!originalTask) {
         throw new Error(`Original task ${taskId} not found`);

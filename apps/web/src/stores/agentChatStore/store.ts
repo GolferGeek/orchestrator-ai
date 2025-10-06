@@ -693,6 +693,15 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Add to conversations and make active
         this.conversations.push(newConversation);
         this.activeConversationId = backendConversationId;
+
+        // Hydrate current plan for this conversation (ensures Plan tab shows in second pane)
+        try {
+          const { planActions } = await import('./planActions');
+          // Bind planActions to this store instance and invoke loadCurrentPlan
+          await planActions.loadCurrentPlan.call(this);
+        } catch (e) {
+          console.warn('⚠️ Failed to load current plan during rehydration:', e);
+        }
         
         // Ensure the conversation is also in the navigation tree
         const conversationsStore = useAgentConversationsStore();
