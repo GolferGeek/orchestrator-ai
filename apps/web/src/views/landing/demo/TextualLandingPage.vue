@@ -971,7 +971,7 @@ onMounted(() => {
 
 .textual-content {
   --background: var(--landing-light);
-  padding-top: 180px; /* Account for fixed header - increased to handle layout issues */
+  padding-top: 24px; /* Small breathing room under sticky header */
 }
 
 .page-header {
@@ -1728,7 +1728,7 @@ onMounted(() => {
 /* Mobile responsive */
 @media (max-width: 768px) {
   .textual-content {
-    padding-top: 160px; /* Adjust for smaller mobile header - increased to handle layout issues */
+    padding-top: 16px; /* Mobile spacing under sticky header */
   }
   
   .container {

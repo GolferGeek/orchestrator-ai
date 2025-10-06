@@ -2,9 +2,6 @@
   <ion-page class="landing-page">
     <!-- Landing Header -->
     <LandingHeader />
-    
-    <!-- Section Navigation -->
-    <SectionNavigation @section-toggled="handleSectionToggle" />
       
       <ion-content :fullscreen="true" class="landing-content">
       <!-- Hero Section -->
@@ -378,7 +375,6 @@ import {
 } from 'ionicons/icons';
 // Import remaining components
 import LandingHeader from '@/components/landing/LandingHeader.vue';
-import SectionNavigation from '@/components/landing/SectionNavigation.vue';
 import VideoModal from '@/components/landing/VideoModal.vue';
 import VideoPlayer from '@/components/landing/VideoPlayer.vue';
 // Landing page store
@@ -480,13 +476,7 @@ function handleScheduleCall() {
 // Intersection Observer for scroll animations
 let observer: IntersectionObserver | null = null;
 
-function handleSectionToggle(sectionId: string, isActive: boolean) {
-  // Scroll to the section when button is clicked
-  const element = document.getElementById(sectionId);
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-}
+// SectionNavigation removed
 
 function handleOpenVideoModal(video: Video) {
   currentVideo.value = video;
