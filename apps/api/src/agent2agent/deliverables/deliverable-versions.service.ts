@@ -443,7 +443,7 @@ export class DeliverableVersionsService {
         format: versions[0]?.format || this.getMostCommonFormat(versions), // Use format from first version or most common
         createdByType: DeliverableVersionCreationType.CONVERSATION_MERGE,
         metadata: {
-          mergedFromVersions: versionIds,
+          mergedFromVersionIds: versionIds,
           mergePrompt: mergePrompt,
           mergedAt: new Date().toISOString(),
           llmMetadata: mergedContent.metadata
@@ -621,6 +621,10 @@ export class DeliverableVersionsService {
         sourceVersion,
       );
 
+      this.logger.debug(
+        `🔄 [RERUN] Calling LLM with provider=${rerunDto.provider}, model=${rerunDto.model}`,
+      );
+
       // Call LLM service with new model
       const llmResponse = await this.llmService.generateUnifiedResponse({
         provider: rerunDto.provider,
@@ -637,6 +641,8 @@ export class DeliverableVersionsService {
           includeMetadata: true, // We need the full response object
         },
       });
+
+      this.logger.debug(`🔄 [RERUN] LLM response received successfully`);
 
       // Handle string | LLMResponse union type
       const responseContent =

@@ -1,0 +1,58 @@
+/**
+ * Converse Mode Types
+ * Defines mode-specific payloads and metadata for conversational interactions
+ */
+
+/**
+ * Converse Mode Payload
+ * Converse mode typically doesn't have actions, just conversational interaction
+ */
+export interface ConverseModePayload {
+  /** Optional temperature for conversation behavior (defaults to model default) */
+  temperature?: number;
+  /** Max tokens for response (optional - defaults to model default) */
+  maxTokens?: number;
+  /** Stop sequences (optional) */
+  stop?: string[];
+}
+
+/**
+ * Converse Request Metadata
+ */
+export interface ConverseRequestMetadata {
+  /** Source of the request (e.g., 'web-ui', 'api', 'cli') */
+  source: string;
+  /** User ID making the request (REQUIRED) */
+  userId: string;
+  /** Conversation context (optional) */
+  context?: string;
+}
+
+/**
+ * Converse Response Metadata
+ */
+export interface ConverseResponseMetadata {
+  /** LLM provider used (REQUIRED) */
+  provider: string;
+  /** LLM model used (REQUIRED) */
+  model: string;
+  /** Token usage statistics (REQUIRED) */
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    cost: number;
+  };
+  /** Routing decision information (optional) */
+  routingDecision?: Record<string, any>;
+  /** Stream ID if streaming was used (optional) */
+  streamId?: string;
+}
+
+/**
+ * Converse Response Content
+ */
+export interface ConverseResponseContent {
+  /** The assistant's message (REQUIRED) */
+  message: string;
+}

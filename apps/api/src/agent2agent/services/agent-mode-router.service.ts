@@ -498,6 +498,11 @@ export class AgentModeRouterService {
         'document';
 
       // Create deliverable using DeliverablesService
+      // Extract taskId from request payload, metadata, or request itself
+      const taskId = (context.request.payload as any)?.taskId ||
+                     (context.request as any).metadata?.taskId ||
+                     (context.request as any).taskId;
+
       const result = await this.deliverablesService.executeAction(
         'create',
         {
@@ -507,7 +512,7 @@ export class AgentModeRouterService {
           type,
           agentName: context.agent.slug,
           namespace: context.organizationSlug || 'default',
-          taskId: (context.request as any).taskId,
+          taskId,
           metadata: {
             llmProvider: response.metadata.provider,
             llmModel: response.metadata.model,
@@ -518,7 +523,7 @@ export class AgentModeRouterService {
           conversationId,
           userId,
           agentSlug: context.agent.slug,
-          taskId: (context.request as any).taskId,
+          taskId,
         },
       );
 

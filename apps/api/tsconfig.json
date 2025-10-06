@@ -32,7 +32,8 @@
       "@config/*": ["src/config/*"],
       "@common/*": ["src/common/*"],
       "@agent-platform/*": ["src/agent-platform/*"],
-      "@agent2agent/*": ["src/agent2agent/*"]
+      "@agent2agent/*": ["src/agent2agent/*"],
+      "@transport-types": ["../transport-types"]
     }
   }
 }

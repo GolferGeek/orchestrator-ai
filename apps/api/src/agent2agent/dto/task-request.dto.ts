@@ -12,31 +12,13 @@ import {
   AgentTaskMode,
   TaskMessage,
   TaskRequestParams,
-  // Import strict types
-  StrictA2ARequest,
-  StrictPlanRequest,
-  StrictBuildRequest,
-  StrictConverseRequest,
-  PlanData,
-  PlanVersionData,
-  DeliverableData,
-  DeliverableVersionData,
-} from '@orchestrator-ai/a2a-protocol';
+} from '@transport-types';
 
 // Re-export shared types
 export {
   AgentTaskMode,
   TaskMessage,
   TaskRequestParams,
-  // Re-export strict types
-  StrictA2ARequest,
-  StrictPlanRequest,
-  StrictBuildRequest,
-  StrictConverseRequest,
-  PlanData,
-  PlanVersionData,
-  DeliverableData,
-  DeliverableVersionData,
 };
 
 // Extended mode enum for internal orchestration modes

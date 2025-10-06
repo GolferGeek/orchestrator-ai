@@ -230,7 +230,20 @@ export class DeliverablesService implements IActionHandler {
       );
     }
 
-    return this.findOne(deliverable.id, context.userId);
+    const deliverableWithVersion = await this.findOne(deliverable.id, context.userId);
+
+    // Return in strict A2A protocol format: { deliverable, version }
+    const currentVersion = deliverableWithVersion.currentVersion;
+    return {
+      deliverable: {
+        id: deliverableWithVersion.id,
+        conversationId: deliverableWithVersion.conversationId,
+        currentVersionId: currentVersion?.id || null,
+        createdAt: deliverableWithVersion.createdAt.toISOString(),
+        updatedAt: deliverableWithVersion.updatedAt.toISOString(),
+      },
+      version: currentVersion || null,
+    };
   }
 
   /**
@@ -313,25 +326,33 @@ export class DeliverablesService implements IActionHandler {
 
   /**
    * Action: rerun
-   * Rerun deliverable with different LLM
+   * Rerun deliverable with different LLM - matches BuildRerunPayload
    */
   private async rerunWithLLM(
     params: {
       versionId: string;
-      provider: string;
-      model: string;
-      temperature?: number;
-      maxTokens?: number;
+      rerunConfig: {
+        provider: string;  // Required
+        model: string;     // Required
+        temperature?: number;
+        maxTokens?: number;
+      };
     },
     context: ActionExecutionContext,
   ) {
+    const { provider, model, temperature, maxTokens } = params.rerunConfig;
+
+    this.logger.debug(
+      `🔄 [RERUN] versionId=${params.versionId}, provider=${provider}, model=${model}`,
+    );
+
     return this.versionsService.rerunWithDifferentLLM(
       params.versionId,
       {
-        provider: params.provider,
-        model: params.model,
-        temperature: params.temperature,
-        maxTokens: params.maxTokens,
+        provider,
+        model,
+        temperature,
+        maxTokens,
       },
       context.userId,
     );
@@ -366,7 +387,26 @@ export class DeliverablesService implements IActionHandler {
     params: { versionId: string },
     context: ActionExecutionContext,
   ) {
-    return this.versionsService.deleteVersion(params.versionId, context.userId);
+    // Get version before deletion to get deliverable ID
+    const version = await this.versionsService.getVersion(
+      params.versionId,
+      context.userId,
+    );
+
+    await this.versionsService.deleteVersion(params.versionId, context.userId);
+
+    const deliverable = await this.findOne(version.deliverableId, context.userId);
+    const remainingVersions = await this.versionsService.getVersionHistory(
+      version.deliverableId,
+      context.userId,
+    );
+
+    // Return in strict A2A protocol format for BuildDeleteVersionResponse
+    return {
+      deletedVersionId: params.versionId,
+      deliverable,
+      remainingVersions,
+    };
   }
 
   /**
@@ -403,10 +443,16 @@ export class DeliverablesService implements IActionHandler {
       params.modelName,
     );
 
+    // Get source versions
+    const sourceVersions = await Promise.all(
+      params.versionIds.map(id => this.versionsService.getVersion(id, context.userId))
+    );
+
+    // Return in strict A2A protocol format for BuildMergeVersionsResponse
     return {
       deliverable: await this.findOne(deliverable.id, context.userId),
-      newVersion: result.newVersion,
-      conflictSummary: result.conflictSummary,
+      mergedVersion: result.newVersion,
+      sourceVersions,
     };
   }
 
@@ -418,17 +464,28 @@ export class DeliverablesService implements IActionHandler {
     params: { versionId: string },
     context: ActionExecutionContext,
   ) {
-    const newVersion = await this.versionsService.copyVersion(
+    const sourceVersion = await this.versionsService.getVersion(
+      params.versionId,
+      context.userId,
+    );
+
+    const copiedVersion = await this.versionsService.copyVersion(
       params.versionId,
       context.userId,
     );
 
     const deliverable = await this.findOne(
-      newVersion.deliverableId,
+      copiedVersion.deliverableId,
       context.userId,
     );
 
-    return { deliverable, version: newVersion };
+    // Return in strict A2A protocol format for BuildCopyVersionResponse
+    return {
+      sourceDeliverable: deliverable,
+      sourceVersion,
+      targetDeliverable: deliverable, // Same deliverable for copy
+      copiedVersion,
+    };
   }
 
   /**
@@ -448,11 +505,16 @@ export class DeliverablesService implements IActionHandler {
       );
     }
 
+    // Get version count before deletion
+    const versions = await this.versionsService.getVersionHistory(deliverable.id, context.userId);
+    const versionCount = versions.length;
+
     await this.remove(deliverable.id, context.userId);
 
+    // Return in strict A2A protocol format for BuildDeleteResponse
     return {
-      success: true,
-      message: `Deliverable ${deliverable.id} deleted successfully`,
+      deletedDeliverableId: deliverable.id,
+      deletedVersionCount: versionCount,
     };
   }
 

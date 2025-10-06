@@ -34,11 +34,7 @@ import {
   A2ATaskSuccessResponse,
   A2ATaskErrorResponse,
   JsonRpcErrorCode,
-  StrictA2ASuccessResponse,
-  StrictA2AErrorResponse,
-} from '@orchestrator-ai/a2a-protocol';
-import { toStrictSuccessResponse, toStrictErrorResponse } from './utils/strict-type-mapper.util';
-import { validateTaskResponseDto, logValidationErrors } from './utils/strict-type-validator.util';
+} from '@transport-types';
 
 interface NormalizedTaskRequest {
   dto: NormalizedTaskRequestDto;
@@ -259,12 +255,18 @@ export class Agent2AgentController {
 
       this.logger.debug(`✅ Task ${task.id} and conversation ${task.agentConversationId} persisted to database`);
 
-      // Add userId to metadata for mode router (needed for plans/deliverables services)
+      // Add userId and taskId to metadata for mode router (needed for plans/deliverables services)
       dto.metadata = {
         ...dto.metadata,
         userId: currentUser.id,
         createdBy: currentUser.id,
+        taskId: task.id,
       };
+
+      // Also add taskId to payload for backward compatibility
+      if (dto.payload) {
+        dto.payload.taskId = task.id;
+      }
 
       // Execute the agent with the persisted task ID
       const result = await this.gateway.execute(org, agentSlug, dto);
@@ -311,28 +313,12 @@ export class Agent2AgentController {
       });
 
       if (jsonrpc) {
-        // Validate DTO before converting to strict types
-        const validation = validateTaskResponseDto(result);
-        if (!validation.valid) {
-          logValidationErrors(
-            validation.errors,
-            'Agent2AgentController.executeTask - Response Validation',
-            this.logger,
-          );
-        }
-
-        // Try to use strict response types for better type safety
-        const strictResponse = toStrictSuccessResponse(result, jsonrpc.id ?? null);
-        if (strictResponse) {
-          return strictResponse;
-        }
-
-        // Fallback to legacy envelope format
+        // Return JSON-RPC 2.0 success response
         return {
           jsonrpc: '2.0',
           id: jsonrpc.id ?? null,
           result,
-        };
+        } as A2ATaskSuccessResponse;
       }
 
       return result;
@@ -553,16 +539,16 @@ export class Agent2AgentController {
   private buildJsonRpcError(id: any, error: unknown): JsonRpcErrorEnvelope {
     const { code, message, data } = this.mapExceptionToError(error);
 
-    // Use strict error response format
-    const strictError = toStrictErrorResponse(
-      error,
-      data?.mode,
+    // Return JSON-RPC 2.0 error response
+    return {
+      jsonrpc: '2.0',
       id,
-      code,
-      message,
-    );
-
-    return strictError as JsonRpcErrorEnvelope;
+      error: {
+        code,
+        message,
+        data,
+      },
+    } as A2ATaskErrorResponse;
   }
 
   private mapExceptionToError(error: unknown): {

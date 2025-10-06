@@ -1,34 +1,12 @@
 import {
   TaskResponse,
   TaskResponsePayload,
-  // Import strict response types
-  StrictA2AResponse,
-  StrictA2ASuccessResponse,
-  StrictA2AErrorResponse,
-  StrictPlanResponse,
-  StrictBuildResponse,
-  StrictConverseResponse,
-  isStrictErrorResponse,
-  isStrictSuccessResponse,
-  isStrictPlanResponse,
-  isStrictBuildResponse,
-} from '@orchestrator-ai/a2a-protocol';
+} from '@transport-types';
 
 // Re-export shared types
 export {
   TaskResponse,
   TaskResponsePayload,
-  // Re-export strict response types
-  StrictA2AResponse,
-  StrictA2ASuccessResponse,
-  StrictA2AErrorResponse,
-  StrictPlanResponse,
-  StrictBuildResponse,
-  StrictConverseResponse,
-  isStrictErrorResponse,
-  isStrictSuccessResponse,
-  isStrictPlanResponse,
-  isStrictBuildResponse,
 };
 
 export interface HumanResponsePayload {
@@ -40,11 +18,11 @@ export class TaskResponseDto implements TaskResponse {
   constructor(
     public readonly success: boolean,
     public readonly mode: string,
-    public readonly payload?: TaskResponsePayload,
+    public readonly payload: TaskResponsePayload,
     public readonly humanResponse?: HumanResponsePayload,
   ) {}
 
-  static success(mode: string, payload?: TaskResponsePayload) {
+  static success(mode: string, payload: TaskResponsePayload) {
     return new TaskResponseDto(true, mode, payload);
   }
 
@@ -67,7 +45,10 @@ export class TaskResponseDto implements TaskResponse {
     return new TaskResponseDto(
       false,
       'human_response',
-      metadata ? { metadata } : undefined,
+      {
+        content: {},
+        metadata: metadata || {},
+      },
       {
         message,
         reason,
@@ -76,6 +57,9 @@ export class TaskResponseDto implements TaskResponse {
   }
 
   static failure(mode: string, reason: string) {
-    return new TaskResponseDto(false, mode, { metadata: { reason } });
+    return new TaskResponseDto(false, mode, {
+      content: {},
+      metadata: { reason },
+    });
   }
 }

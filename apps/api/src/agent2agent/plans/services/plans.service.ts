@@ -209,7 +209,19 @@ export class PlansService implements IActionHandler {
       );
     }
 
-    return this.findOne(plan.id, context.userId);
+    const planWithVersion = await this.findOne(plan.id, context.userId);
+
+    // Return in strict A2A protocol format: { plan, version }
+    return {
+      plan: {
+        id: planWithVersion.id,
+        conversationId: planWithVersion.conversationId,
+        currentVersionId: planWithVersion.currentVersionId,
+        createdAt: planWithVersion.createdAt.toISOString(),
+        updatedAt: planWithVersion.updatedAt.toISOString(),
+      },
+      version: planWithVersion.currentVersion || null,
+    };
   }
 
   /**
@@ -311,10 +323,29 @@ export class PlansService implements IActionHandler {
     params: { versionId: string },
     context: ActionExecutionContext,
   ) {
-    return this.versionsService.deleteVersion(
+    // Get version before deletion to get plan ID
+    const version = await this.versionsService.findOne(
       params.versionId,
       context.userId,
     );
+
+    const result = await this.versionsService.deleteVersion(
+      params.versionId,
+      context.userId,
+    );
+
+    const planData = await this.plansRepo.findById(version.planId, context.userId);
+    const remainingVersions = await this.versionsService.getVersionHistory(
+      version.planId,
+      context.userId,
+    );
+
+    // Return in strict A2A protocol format for PlanDeleteVersionResponse
+    return {
+      deletedVersionId: params.versionId,
+      plan: this.mapToPlan(planData),
+      remainingVersions,
+    };
   }
 
   /**
@@ -346,10 +377,16 @@ export class PlansService implements IActionHandler {
       params.mergePrompt,
     );
 
+    // Get source versions
+    const sourceVersions = await Promise.all(
+      params.versionIds.map(id => this.versionsService.findOne(id, context.userId))
+    );
+
+    // Return in strict A2A protocol format for PlanMergeVersionsResponse
     return {
       plan: this.mapToPlan(plan),
-      newVersion: result.newVersion,
-      conflictSummary: result.conflictSummary,
+      mergedVersion: result.newVersion,
+      sourceVersions,
     };
   }
 
@@ -361,14 +398,25 @@ export class PlansService implements IActionHandler {
     params: { versionId: string },
     context: ActionExecutionContext,
   ) {
-    const newVersion = await this.versionsService.copyVersion(
+    const sourceVersion = await this.versionsService.findOne(
       params.versionId,
       context.userId,
     );
 
-    const plan = await this.findOne(newVersion.planId, context.userId);
+    const copiedVersion = await this.versionsService.copyVersion(
+      params.versionId,
+      context.userId,
+    );
 
-    return { plan, version: newVersion };
+    const planData = await this.plansRepo.findById(copiedVersion.planId, context.userId);
+
+    // Return in strict A2A protocol format for PlanCopyVersionResponse
+    return {
+      sourcePlan: this.mapToPlan(planData),
+      sourceVersion,
+      targetPlan: this.mapToPlan(planData), // Same plan for copy
+      copiedVersion,
+    };
   }
 
   /**
@@ -387,11 +435,16 @@ export class PlansService implements IActionHandler {
       );
     }
 
+    // Get version count before deletion
+    const versions = await this.versionsService.getVersionHistory(plan.id, context.userId);
+    const versionCount = versions.length;
+
     await this.plansRepo.delete(plan.id, context.userId);
 
+    // Return in strict A2A protocol format for PlanDeleteResponse
     return {
-      success: true,
-      message: `Plan ${plan.id} deleted successfully`,
+      deletedPlanId: plan.id,
+      deletedVersionCount: versionCount,
     };
   }
 

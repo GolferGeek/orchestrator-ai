@@ -284,7 +284,7 @@ export class PlanVersionsService {
       format: versions[0]?.format || 'markdown',
       createdByType: 'agent',
       metadata: {
-        mergedFromVersions: versionIds,
+        mergedFromVersionIds: versionIds,
         mergePrompt,
         mergedAt: new Date().toISOString(),
       },

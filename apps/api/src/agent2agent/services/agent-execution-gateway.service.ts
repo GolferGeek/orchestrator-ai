@@ -541,6 +541,7 @@ export class AgentExecutionGateway {
 
     return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_SAVE_RECIPE, {
       content: saved,
+      metadata: {},
     });
   }
 

@@ -78,6 +78,7 @@ export class FunctionAgentRunnerService {
       // If returned a generic object with images/content
       return TaskResponseDto.success(request.mode!, {
         content: result || { status: 'completed' },
+        metadata: {},
       });
     } catch (error) {
       this.logger.warn(`Function agent execution failed: ${String(error)}`);
