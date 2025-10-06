@@ -1,6 +1,6 @@
 {
   "transcripts": {
-    "agent-default-overview-transcript": {
+    "agent-default-overview": {
       "title": "Working with Orchestrator AI Agents - Transcript",
       "description": "Full transcript of the agent default overview video showing how specialized AI agents work in practice, featuring a live demonstration of the Requirements Writer agent.",
       "filePath": "video-texts/agent-default-overview-transcript.md",

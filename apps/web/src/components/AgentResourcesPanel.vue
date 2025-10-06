@@ -123,6 +123,7 @@ import { playCircleOutline, closeOutline, documentTextOutline, alertCircleOutlin
 import { useRouter } from 'vue-router';
 import { marked } from 'marked';
 import { analyticsService } from '@/services/analyticsService';
+import { agentDefaultOverviewTranscript } from '@/data/transcripts/agent-default-overview';
 
 // Types
 interface Video {
@@ -247,24 +248,30 @@ function handleTabChange(event: any) {
 
 async function loadTranscript() {
   if (!selectedVideo.value?.id) return;
-  
+
   transcriptLoading.value = true;
   transcriptError.value = '';
-  
+
   try {
-    const response = await fetch(`/api/videos/transcripts/${selectedVideo.value.id}`);
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        transcriptError.value = 'Transcript not available for this video';
-      } else {
-        transcriptError.value = 'Failed to load transcript';
+    // Use static transcripts for now
+    if (selectedVideo.value.id === 'agent-default-overview') {
+      transcriptContent.value = agentDefaultOverviewTranscript;
+    } else {
+      // Try to fetch from API for other videos
+      const response = await fetch(`/api/videos/transcripts/${selectedVideo.value.id}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          transcriptError.value = 'Transcript not available for this video';
+        } else {
+          transcriptError.value = 'Failed to load transcript';
+        }
+        return;
       }
-      return;
+
+      const transcriptData = await response.json();
+      transcriptContent.value = transcriptData.content || 'Transcript content not available';
     }
-    
-    const transcriptData = await response.json();
-    transcriptContent.value = transcriptData.content || 'Transcript content not available';
   } catch (error) {
     console.error('Error loading transcript:', error);
     transcriptError.value = 'Error loading transcript';
