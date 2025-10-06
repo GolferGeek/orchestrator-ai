@@ -35,5 +35,7 @@
       "@agent2agent/*": ["src/agent2agent/*"],
       "@transport-types": ["../transport-types"]
     }
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "../transport-types"]
 }

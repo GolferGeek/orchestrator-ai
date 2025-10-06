@@ -13,7 +13,7 @@
     "start:dev:external": "nest start --watch -- --enable-external-agents",
     "start:dev:full": "./start-dev.sh",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/api/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
