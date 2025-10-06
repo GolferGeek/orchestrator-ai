@@ -481,6 +481,7 @@ export class AgentConversationsService {
       userId: data.user_id,
       agentName: data.agent_name,
       agentType: data.agent_type,
+      organizationSlug: data.organization_slug || null, // Add organization slug
       startedAt: data.started_at
         ? new Date(data.started_at)
         : new Date(data.created_at),

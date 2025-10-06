@@ -1577,8 +1577,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Extract final content for display - backend handles deliverable creation
         const finalContent = messageFormatting.extractDeliverableContent(completedTask);
 
-        // Parse the response to get deliverable info (backend puts it in the response JSON)
+        // Parse the response to get deliverable/plan info (backend puts it in the response JSON)
         let deliverableId = null;
+        let planId = null;
         let newVersionId = null;
         let versionNumber = null;
         let parsedResponse = null;
@@ -1591,12 +1592,37 @@ export const useAgentChatStore = defineStore('agentChat', {
 
             console.log('🔍 [FRONTEND-DEBUG] parsedResponse:', parsedResponse);
             console.log('🔍 [FRONTEND-DEBUG] completedTask.response type:', typeof completedTask.response);
-            
-            
-            // Backend puts deliverable info directly in the result object
-            deliverableId = parsedResponse?.deliverableId;
-            newVersionId = parsedResponse?.newVersionId;
-            versionNumber = parsedResponse?.versionNumber;
+
+
+            // Backend puts deliverable/plan info in the A2A protocol structure
+            // Check new A2A protocol structure first (result.payload.content)
+            const content = parsedResponse?.result?.payload?.content;
+
+            if (content?.deliverable) {
+              // Build mode - extract deliverable
+              const deliverable = content.deliverable;
+              deliverableId = deliverable.id;
+              // Version info is in currentVersion
+              if (deliverable.currentVersion) {
+                newVersionId = deliverable.currentVersion.id;
+                versionNumber = deliverable.currentVersion.versionNumber;
+              }
+            } else if (content?.plan) {
+              // Plan mode - extract plan
+              const plan = content.plan;
+              planId = plan.id;
+              // Version info is in currentVersion
+              if (plan.currentVersion) {
+                newVersionId = plan.currentVersion.id;
+                versionNumber = plan.currentVersion.versionNumber;
+              }
+            } else {
+              // Fallback to old structure
+              deliverableId = parsedResponse?.deliverableId;
+              planId = parsedResponse?.planId;
+              newVersionId = parsedResponse?.newVersionId;
+              versionNumber = parsedResponse?.versionNumber;
+            }
             
           } catch (e) {
             // Failed to parse deliverable response
@@ -1710,7 +1736,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           completedAt: new Date().toISOString()
         };
 
-        // Update message metadata immediately for deliverables (synchronous - triggers immediate UI update)
+        // Update message metadata immediately for deliverables/plans (synchronous - triggers immediate UI update)
         if (deliverableId) {
           (existingMessage as any).deliverableId = deliverableId;
           existingMessage.metadata = {
@@ -1718,7 +1744,15 @@ export const useAgentChatStore = defineStore('agentChat', {
             deliverableId: deliverableId
           };
         }
-        
+
+        if (planId) {
+          (existingMessage as any).planId = planId;
+          existingMessage.metadata = {
+            ...existingMessage.metadata,
+            planId: planId
+          };
+        }
+
         if (newVersionId) {
           existingMessage.metadata = {
             ...existingMessage.metadata,
@@ -1737,6 +1771,22 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Load deliverables in background (non-blocking) - fire and forget
         if (deliverableId) {
           this.loadDeliverableInBackground(deliverableId, conversationId);
+        }
+
+        // If this is a plan response, extract and set the full plan data
+        if (planId && parsedResponse?.result?.payload?.content?.plan) {
+          const fullPlan = parsedResponse.result.payload.content.plan;
+          const fullVersion = parsedResponse.result.payload.content.version;
+          console.log('✅ [Plan Response] Setting currentPlan:', fullPlan);
+
+          // Add to planStore for reactivity
+          const { usePlanStore } = await import('@/stores/planStore');
+          const planStore = usePlanStore();
+          planStore.addPlan(fullPlan, fullVersion);
+
+          // Also set on conversation for direct access
+          conv.currentPlan = fullPlan;
+          conv.latestPlanId = planId;
         }
 
         // Cleanup WebSocket subscriptions
@@ -1772,7 +1822,10 @@ export const useAgentChatStore = defineStore('agentChat', {
             : task.response;
           
           // Match the extraction logic from messageFormatting.ts
-          if (parsedResponse?.deliverableId) {
+          // Check new A2A protocol structure first (result.payload.content.deliverable.id)
+          if (parsedResponse?.result?.payload?.content?.deliverable?.id) {
+            deliverableId = parsedResponse.result.payload.content.deliverable.id;
+          } else if (parsedResponse?.deliverableId) {
             deliverableId = parsedResponse.deliverableId;
           } else if (parsedResponse?.success?.deliverableId) {
             deliverableId = parsedResponse.success.deliverableId;

@@ -6,6 +6,7 @@ interface AgentConversation {
   userId: string;
   agentName: string;
   agentType: AgentType;
+  organizationSlug?: string | null; // Organization identifier for database agents
   startedAt: Date;
   endedAt?: Date;
   lastActiveAt: Date;
@@ -34,14 +35,33 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
     getConversationById: (state) => (id: string) => {
       return state.conversations.find(conv => conv.id === id);
     },
-    getConversationsByAgent: (state) => (agentName: string, agentType: string) => {
-      const filtered = state.conversations.filter(conv => 
-        conv.agentName === agentName && conv.agentType === agentType
-      );
-      // Debug: Show actual conversation data for first few conversations
+    getConversationsByAgent: (state) => (agentName: string, organizationSlug?: string | null) => {
+      const filtered = state.conversations.filter(conv => {
+        // Match agent name
+        if (conv.agentName !== agentName) return false;
+
+        // For database agents, match by organizationSlug
+        if (organizationSlug) {
+          return conv.organizationSlug === organizationSlug;
+        }
+
+        // For file-based agents, no organization slug needed
+        return !conv.organizationSlug;
+      });
+
+      // Debug logging if no conversations found
       if (state.conversations.length > 0 && filtered.length === 0) {
-        // Debug: No conversations found for agent filter
+        console.log('🔍 [ConversationsFilter] No conversations found for:', {
+          agentName,
+          organizationSlug,
+          totalConversations: state.conversations.length,
+          sample: state.conversations.slice(0, 3).map(c => ({
+            agentName: c.agentName,
+            organizationSlug: c.organizationSlug
+          }))
+        });
       }
+
       return filtered;
     },
     getActiveConversations: (state) => {
@@ -61,28 +81,17 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
       this.isLoading = true;
       this.error = null;
       try {
-        // Determine which service to use based on namespace
-        const { useAuthStore } = await import('@/stores/authStore');
-        const authStore = useAuthStore();
-        const currentNamespace = authStore.currentNamespace;
-        const isDatabaseAgent = currentNamespace && currentNamespace !== 'demo';
-
-        let response;
-        if (isDatabaseAgent) {
-          console.log('🚀 [AgentConversationsStore] Using Agent2Agent service for database agents');
-          response = await agent2AgentConversationsService.listConversations({
-            limit: 1000,
-          });
-        } else {
-          console.log('🚀 [AgentConversationsStore] Using legacy service for file-based agents');
-          response = await agentConversationsService.listConversations({
-            limit: 1000,
-          });
-        }
+        // All agents are now database agents - use agent2agent service
+        console.log('🚀 [AgentConversationsStore] Fetching conversations from agent2agent service');
+        const response = await agent2AgentConversationsService.listConversations({
+          limit: 1000,
+        });
 
         // Convert API response to store format
-        this.conversations = response.conversations.map(conv => ({
+        const mappedConversations = response.conversations.map(conv => ({
           ...conv,
+          // organizationSlug should already be present from API (interface updated to match)
+          organizationSlug: conv.organizationSlug,
           startedAt: new Date(conv.startedAt),
           endedAt: conv.endedAt ? new Date(conv.endedAt) : undefined,
           lastActiveAt: new Date(conv.lastActiveAt),
@@ -93,7 +102,27 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
           failedTasks: conv.failedTasks || 0,
           activeTasks: conv.activeTasks || 0,
         }));
+
+        this.conversations = mappedConversations;
         this.lastUpdated = new Date();
+
+        console.log('✅ [AgentConversationsStore] Conversations loaded:', {
+          total: this.conversations.length,
+          rawSample: response.conversations.slice(0, 2).map((c: any) => ({
+            id: c.id,
+            agentName: c.agentName,
+            organizationSlug: c.organizationSlug,
+            hasOrgSlug: !!c.organizationSlug,
+            allFields: Object.keys(c)
+          })),
+          mappedSample: this.conversations.slice(0, 2).map(c => ({
+            id: c.id,
+            agentName: c.agentName,
+            organizationSlug: c.organizationSlug,
+            agentType: c.agentType,
+            hasOrgSlug: !!c.organizationSlug
+          }))
+        });
       } catch (error) {
         this.error = error instanceof Error ? error.message : 'Failed to fetch conversations';
       } finally {

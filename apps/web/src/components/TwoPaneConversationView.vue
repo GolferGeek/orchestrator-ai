@@ -349,6 +349,7 @@ import {
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
@@ -788,8 +789,8 @@ const handlePlanCurrentVersionChanged = (version: any) => {
 
 const handleRunPlanWithDifferentLLM = (data: { plan: any; version: any }) => {
   console.log('Run plan with different LLM:', data);
-  // Reuse the same modal for plans
-  rerunDeliverableData.value = { deliverable: data.plan, version: data.version };
+  // Store plan data separately from deliverable data
+  rerunDeliverableData.value = { plan: data.plan, version: data.version };
   showLLMRerunModal.value = true;
 };
 
@@ -822,14 +823,18 @@ const canExecuteRerun = computed(() => {
 });
 
 const executeRerunWithConfig = async (
-  capturedRerunData: { deliverable: any; version: any },
+  capturedRerunData: { deliverable?: any; plan?: any; version: any },
   llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
 ) => {
-  // Find the original user message that generated this deliverable
+  const isPlan = !!capturedRerunData.plan;
+  const workProduct = isPlan ? capturedRerunData.plan : capturedRerunData.deliverable;
+  const workProductType = isPlan ? 'plan' : 'deliverable';
+
+  // Find the original user message that generated this work product
   let originalUserPrompt = '';
   if (props.conversation && props.conversation.messages) {
     // Find the last user message in the conversation
-    // This would be the message that triggered the deliverable creation
+    // This would be the message that triggered the work product creation
     const userMessages = props.conversation.messages.filter(msg => msg.role === 'user');
     if (userMessages.length > 0) {
       // Get the last user message
@@ -839,7 +844,7 @@ const executeRerunWithConfig = async (
 
   // Use original prompt if found, otherwise create a descriptive message
   const rerunMessage = originalUserPrompt ||
-    `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`;
+    `🔄 Regenerating ${workProductType} "${workProduct.title}" with ${llmConfig.provider}/${llmConfig.model}`;
 
   // Log whether we found the original prompt
   if (originalUserPrompt) {
@@ -859,7 +864,8 @@ const executeRerunWithConfig = async (
         isRerunRequest: true,
         originalVersionId: capturedRerunData.version.id,
         rerunLLMConfig: llmConfig,
-        isRegeneratedPrompt: !!originalUserPrompt  // Track if we found the original
+        isRegeneratedPrompt: !!originalUserPrompt,  // Track if we found the original
+        workProductType
       }
     };
 
@@ -874,13 +880,23 @@ const executeRerunWithConfig = async (
       props.conversation.error = undefined;
     }
 
-    console.log('🔄 LLM Rerun Config:', llmConfig);
-    
-    // Call the store method to rerun with different LLM
-    const newVersion = await deliverablesStore.rerunWithDifferentLLM(
-      capturedRerunData.version.id,
-      llmConfig
-    );
+    console.log(`🔄 ${workProductType} LLM Rerun Config:`, llmConfig);
+
+    // Call the appropriate store method based on work product type
+    let newVersion;
+    if (isPlan) {
+      const planStore = usePlanStore();
+      newVersion = await planStore.rerunWithDifferentLLM(
+        workProduct,
+        capturedRerunData.version,
+        llmConfig
+      );
+    } else {
+      newVersion = await deliverablesStore.rerunWithDifferentLLM(
+        capturedRerunData.version.id,
+        llmConfig
+      );
+    }
 
     // Create assistant response message with the new deliverable
     const assistantMessage: AgentChatMessage = {
@@ -1003,10 +1019,14 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
       // Step 4: Set up the work product pane and select the deliverable
       activeWorkProduct.value = { type: 'deliverable', data: mostRecentDeliverable };
       showWorkProductPane.value = true;
+    } else if (props.conversation?.currentPlan) {
+      // If no deliverables but there's a plan, show the plan
+      activeTab.value = 'plan';
+      showWorkProductPane.value = true;
     } else {
-      // Reset active work product when no deliverables
+      // Reset active work product when no deliverables or plans
       activeWorkProduct.value = null;
-      // Hide work product pane when no deliverables (can be toggled back on)
+      // Hide work product pane when no deliverables or plans (can be toggled back on)
       if (!isMobile.value) {
         showWorkProductPane.value = false;
       }
@@ -1103,6 +1123,17 @@ watch(() => activeWorkProduct.value, (workProduct) => {
   border-left: 1px solid var(--ion-color-light);
   background: var(--ion-color-step-25);
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent parent from scrolling */
+}
+.work-product-tabs {
+  flex-shrink: 0; /* Don't shrink tabs */
+}
+.tab-content {
+  flex: 1;
+  overflow-y: auto; /* Make tab content scrollable */
+  padding: 16px;
 }
 .work-product-pane.full-width {
   width: 100%;

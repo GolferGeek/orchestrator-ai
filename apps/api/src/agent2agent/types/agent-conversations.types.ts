@@ -21,6 +21,7 @@ export interface AgentConversation {
   userId: string;
   agentName: string;
   agentType: AgentType;
+  organizationSlug?: string | null; // Organization identifier for database agents (e.g., "my-org")
   startedAt: Date;
   endedAt?: Date;
   lastActiveAt: Date;

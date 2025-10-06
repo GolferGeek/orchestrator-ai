@@ -3,7 +3,7 @@ import apiService from './apiService';
 export interface Agent2AgentConversation {
   id: string;
   agentName: string;
-  namespace: string; // Database namespace (my-org, etc.)
+  organizationSlug: string; // Database organization slug (my-org, etc.) - renamed from namespace to match API
   startedAt: string;
   lastActiveAt: string;
   createdAt: string;
@@ -35,7 +35,7 @@ function formatRelativeTime(dateString: string): string {
 export interface CreateAgent2AgentConversationDto {
   agentName: string;
   agentType: string; // Agent type (context, function, tool, etc.)
-  namespace: string; // Database namespace (my-org, etc.)
+  organizationSlug: string; // Database organization slug (my-org, etc.) - renamed from namespace to match API
   conversationId?: string; // Pre-generated conversation ID
   metadata?: Record<string, any>;
 }
@@ -54,7 +54,7 @@ class Agent2AgentConversationsService {
     const response = await apiService.post('/agent-conversations', {
       agentName: dto.agentName,
       agentType: dto.agentType, // Required for backend validation
-      namespace: dto.namespace, // Database namespace like 'my-org'
+      namespace: dto.organizationSlug, // Database organization slug like 'my-org' - API still expects 'namespace' field
       conversationId: dto.conversationId, // Pre-generated ID
       metadata: {
         source: 'agent2agent-frontend',

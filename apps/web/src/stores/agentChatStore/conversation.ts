@@ -55,7 +55,7 @@ export class ConversationService {
       const backendConversation = await agent2AgentConversationsService.createConversation({
         agentName: agent.name,
         agentType: agent.type as AgentType, // Required for backend validation
-        namespace: orgSlug, // Use authStore.currentNamespace as canonical source
+        organizationSlug: orgSlug!, // Use authStore.currentNamespace as canonical source
         conversationId: conversationId, // Pass the generated ID
         metadata: {
           source: 'frontend',

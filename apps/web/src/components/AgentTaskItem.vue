@@ -96,34 +96,34 @@
         
         <!-- Deliverable Creation Callout (shown instead of message content for deliverable messages) -->
         <!-- SHOWING CALLOUT: willHideForDeliverable = {{ willHideForDeliverable }}, hasDeliverableId = {{ hasBackendDeliverable }}, messageId = {{ message.id }} -->
-        <div v-if="willHideForDeliverable" class="deliverable-creation-callout" :class="{ 'clickable': displayedDeliverable }" @click="handleCalloutClick">
+        <div v-if="willHideForDeliverable" class="deliverable-creation-callout" :class="{ 'clickable': displayedDeliverable || displayedPlan }" @click="handleCalloutClick">
           <div class="callout-content">
             <ion-icon :icon="documentTextOutline" class="callout-icon" />
             <div class="callout-text">
               <div class="callout-title">
-                {{ displayedDeliverable ? 'Deliverable Created' : 'Creating deliverable...' }}
+                {{ displayedPlan ? 'Plan Created' : displayedDeliverable ? 'Deliverable Created' : (hasBackendPlan ? 'Creating plan...' : 'Creating deliverable...') }}
               </div>
               <div class="callout-description">
-                {{ displayedDeliverable ? displayedDeliverable.title : 'Processing your request into a structured document' }}
+                {{ displayedPlan ? displayedPlan.title : displayedDeliverable ? displayedDeliverable.title : 'Processing your request into a structured document' }}
               </div>
             </div>
-            <div class="callout-indicator" v-if="!displayedDeliverable">
+            <div class="callout-indicator" v-if="!displayedDeliverable && !displayedPlan">
               <ion-spinner name="dots" color="primary" />
             </div>
             <ion-chip v-else size="small" color="primary" outline>
-              {{ displayedDeliverable.type || 'document' }}
+              {{ displayedPlan ? 'plan' : displayedDeliverable?.type || 'document' }}
             </ion-chip>
           </div>
-          <div class="callout-action" v-if="displayedDeliverable && !props.showWorkProductPane">
+          <div class="callout-action" v-if="(displayedDeliverable || displayedPlan) && !props.showWorkProductPane">
             <ion-button fill="clear" size="small">
               <ion-icon :icon="arrowForwardOutline" slot="end" />
-              View in Document Pane
+              View in {{ displayedPlan ? 'Plan' : 'Document' }} Pane
             </ion-button>
           </div>
-          <div class="callout-action" v-else-if="displayedDeliverable && props.showWorkProductPane">
+          <div class="callout-action" v-else-if="(displayedDeliverable || displayedPlan) && props.showWorkProductPane">
             <ion-chip size="small" color="success" fill="outline">
               <ion-icon :icon="documentTextOutline" />
-              Showing in Document Pane
+              Showing in {{ displayedPlan ? 'Plan' : 'Document' }} Pane
             </ion-chip>
           </div>
         </div>
@@ -216,6 +216,7 @@ import TaskMetadataModal from './TaskMetadataModal.vue';
 import LLMInfo from './LLMInfo.vue';
 import UserPrivacyIndicators from './UserPrivacyIndicators.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { usePlanStore } from '@/stores/planStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
@@ -249,6 +250,7 @@ const emit = defineEmits<{
 
 // Stores
 const deliverablesStore = useDeliverablesStore();
+const planStore = usePlanStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 const llmStore = useLLMStore();
 const chatStore = useAgentChatStore();
@@ -293,13 +295,37 @@ const displayedDeliverable = computed(() => {
   return backendDeliverable.value;
 });
 
+// Plan tracking (similar to deliverable tracking)
+const hasBackendPlan = computed(() => {
+  return !!(props.message.planId ||
+           props.message.metadata?.planId);
+});
+
+const backendPlanId = computed(() => {
+  return props.message.planId ||
+         props.message.metadata?.planId;
+});
+
+const backendPlan = computed(() => {
+  const planId = backendPlanId.value;
+  if (!planId) return null;
+
+  // Get plan from store
+  const plan = planStore.planById(planId);
+  return plan;
+});
+
+const displayedPlan = computed(() => {
+  return backendPlan.value;
+});
+
 const willHideForDeliverable = computed(() => {
-  // Only hide content for Build mode. In Converse/Plan we always show text.
-  const hasDeliverableId = hasBackendDeliverable.value;
+  // Show callout bubble for both Plan and Build modes
+  const hasWorkProduct = hasBackendDeliverable.value || hasBackendPlan.value;
   const isAssistantMessage = props.message.role === 'assistant';
   const mode = (props.message.metadata?.mode || '').toLowerCase();
 
-  return hasDeliverableId && isAssistantMessage && mode === 'build';
+  return hasWorkProduct && isAssistantMessage && (mode === 'build' || mode === 'plan');
 });
 
 const renderedContent = computed(() => {
@@ -776,7 +802,10 @@ const currentPiiSeverityLevels = computed(() => {
 // Methods
 
 const handleCalloutClick = () => {
-  if (displayedDeliverable.value) {
+  if (displayedPlan.value) {
+    // Plan click - show plan pane (handled by parent)
+    // Could emit 'plan-selected' if needed
+  } else if (displayedDeliverable.value) {
     emit('deliverable-selected', displayedDeliverable.value);
   }
 };
