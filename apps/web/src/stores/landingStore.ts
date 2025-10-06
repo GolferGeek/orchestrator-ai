@@ -21,7 +21,7 @@ interface AccordionState {
 }
 
 interface ViewModeState {
-  mode: 'marketing' | 'technical';
+  mode: 'landing' | 'technical';
   lastUpdated: Date;
 }
 export const useLandingStore = defineStore('landing', () => {
@@ -45,7 +45,7 @@ export const useLandingStore = defineStore('landing', () => {
   // Accordion state management
   const accordionState = ref<AccordionState>({});
   const viewMode = ref<ViewModeState>({
-    mode: 'marketing',
+    mode: 'landing',
     lastUpdated: new Date()
   });
 
@@ -64,7 +64,7 @@ export const useLandingStore = defineStore('landing', () => {
   );
 
   // Accordion and view mode computed properties
-  const isMarketingView = computed(() => viewMode.value.mode === 'marketing');
+  const isMarketingView = computed(() => viewMode.value.mode === 'landing');
   const isTechnicalView = computed(() => viewMode.value.mode === 'technical');
   const openAccordions = computed(() => 
     Object.keys(accordionState.value).filter(id => accordionState.value[id])
@@ -99,7 +99,7 @@ export const useLandingStore = defineStore('landing', () => {
   }
 
   // View mode management actions
-  function setViewMode(mode: 'marketing' | 'technical') {
+  function setViewMode(mode: 'landing' | 'technical') {
     viewMode.value = {
       mode,
       lastUpdated: new Date()
@@ -109,7 +109,7 @@ export const useLandingStore = defineStore('landing', () => {
   }
 
   function toggleViewMode() {
-    const newMode = viewMode.value.mode === 'marketing' ? 'technical' : 'marketing';
+    const newMode = viewMode.value.mode === 'landing' ? 'technical' : 'landing';
     setViewMode(newMode);
   }
 
@@ -149,7 +149,7 @@ export const useLandingStore = defineStore('landing', () => {
       const stored = localStorage.getItem(VIEW_MODE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed.mode === 'string' && ['marketing', 'technical'].includes(parsed.mode)) {
+        if (parsed && typeof parsed.mode === 'string' && ['landing', 'technical'].includes(parsed.mode)) {
           viewMode.value = {
             mode: parsed.mode,
             lastUpdated: new Date(parsed.lastUpdated || Date.now())
@@ -185,8 +185,8 @@ export const useLandingStore = defineStore('landing', () => {
   function parseURLParams() {
     // Parse view mode from URL
     const urlViewMode = route.query.view as string;
-    if (urlViewMode && ['marketing', 'technical'].includes(urlViewMode)) {
-      viewMode.value.mode = urlViewMode as 'marketing' | 'technical';
+    if (urlViewMode && ['landing', 'technical'].includes(urlViewMode)) {
+      viewMode.value.mode = urlViewMode as 'landing' | 'technical';
     }
 
     // Parse accordion state from URL

@@ -11,9 +11,9 @@ const { currentNamespace } = storeToRefs(authStore);
 onMounted(() => {
   const namespace = (currentNamespace.value || 'demo').toLowerCase();
 
-  // For demo namespace, redirect to marketing view
+  // For demo namespace, redirect to landing view
   if (namespace === 'demo') {
-    router.replace('/marketing');
+    router.replace('/landing');
   } 
   // For my-org namespace
   else if (namespace === 'my-org') {
@@ -23,9 +23,9 @@ onMounted(() => {
   else if (namespace.startsWith('saas-')) {
     router.replace('/saas');
   }
-  // Default to marketing
+  // Default to landing
   else {
-    router.replace('/marketing');
+    router.replace('/landing');
   }
 });
 </script>

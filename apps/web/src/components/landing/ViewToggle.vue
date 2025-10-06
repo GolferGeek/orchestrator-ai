@@ -5,10 +5,10 @@
       :class="{ 'active': isMarketingView }"
       @click="navigateToMarketing"
       :aria-pressed="isMarketingView"
-      aria-label="Switch to Marketing view"
+      aria-label="Switch to Landing view"
     >
-      <ion-icon :icon="megaphoneOutline" />
-      <span class="toggle-label">Marketing</span>
+      <ion-icon :icon="homeOutline" />
+      <span class="toggle-label">Landing</span>
     </button>
     
     <button
@@ -27,17 +27,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { IonIcon } from '@ionic/vue';
-import { megaphoneOutline, documentTextOutline } from 'ionicons/icons';
+import { homeOutline, documentTextOutline } from 'ionicons/icons';
 import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
 
-const isMarketingView = computed(() => route.path === '/marketing' || route.path === '/');
+const isMarketingView = computed(() => route.path === '/landing' || route.path === '/');
 const isTechnicalView = computed(() => route.path === '/technical');
 
 function navigateToMarketing() {
-  router.push('/marketing');
+  router.push('/landing');
 }
 
 function navigateToTechnical() {

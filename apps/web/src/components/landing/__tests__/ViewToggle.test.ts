@@ -6,7 +6,7 @@ import ViewToggle from '../ViewToggle.vue';
 // Mock vue-router
 const mockPush = vi.fn();
 const mockRoute = {
-  path: '/marketing',
+  path: '/landing',
   query: {},
 };
 
@@ -28,7 +28,7 @@ vi.mock('@ionic/vue', () => ({
 describe('ViewToggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRoute.path = '/marketing';
+    mockRoute.path = '/landing';
   });
 
   it('should render both toggle buttons', () => {
@@ -37,18 +37,18 @@ describe('ViewToggle', () => {
     const buttons = wrapper.findAll('button');
     expect(buttons).toHaveLength(2);
     
-    expect(buttons[0].text()).toContain('Marketing');
+    expect(buttons[0].text()).toContain('Landing');
     expect(buttons[1].text()).toContain('Technical');
   });
 
-  it('should show marketing view as active when on marketing route', () => {
-    mockRoute.path = '/marketing';
+  it('should show landing view as active when on landing route', () => {
+    mockRoute.path = '/landing';
     const wrapper = mount(ViewToggle);
     
-    const marketingButton = wrapper.findAll('button')[0];
+    const landingButton = wrapper.findAll('button')[0];
     const technicalButton = wrapper.findAll('button')[1];
     
-    expect(marketingButton.classes()).toContain('active');
+    expect(landingButton.classes()).toContain('active');
     expect(technicalButton.classes()).not.toContain('active');
   });
 
@@ -56,20 +56,20 @@ describe('ViewToggle', () => {
     mockRoute.path = '/technical';
     const wrapper = mount(ViewToggle);
     
-    const marketingButton = wrapper.findAll('button')[0];
+    const landingButton = wrapper.findAll('button')[0];
     const technicalButton = wrapper.findAll('button')[1];
     
-    expect(marketingButton.classes()).not.toContain('active');
+    expect(landingButton.classes()).not.toContain('active');
     expect(technicalButton.classes()).toContain('active');
   });
 
-  it('should navigate to /marketing when marketing button is clicked', async () => {
+  it('should navigate to /landing when landing button is clicked', async () => {
     const wrapper = mount(ViewToggle);
     
-    const marketingButton = wrapper.findAll('button')[0];
-    await marketingButton.trigger('click');
+    const landingButton = wrapper.findAll('button')[0];
+    await landingButton.trigger('click');
     
-    expect(mockPush).toHaveBeenCalledWith('/marketing');
+    expect(mockPush).toHaveBeenCalledWith('/landing');
   });
 
   it('should navigate to /technical when technical button is clicked', async () => {
@@ -82,14 +82,14 @@ describe('ViewToggle', () => {
   });
 
   it('should have proper accessibility attributes', () => {
-    mockRoute.path = '/marketing';
+    mockRoute.path = '/landing';
     const wrapper = mount(ViewToggle);
     
-    const marketingButton = wrapper.findAll('button')[0];
+    const landingButton = wrapper.findAll('button')[0];
     const technicalButton = wrapper.findAll('button')[1];
     
-    expect(marketingButton.attributes('aria-pressed')).toBe('true');
-    expect(marketingButton.attributes('aria-label')).toBe('Switch to Marketing view');
+    expect(landingButton.attributes('aria-pressed')).toBe('true');
+    expect(landingButton.attributes('aria-label')).toBe('Switch to Landing view');
     
     expect(technicalButton.attributes('aria-pressed')).toBe('false');
     expect(technicalButton.attributes('aria-label')).toBe('Switch to Technical view');
@@ -103,7 +103,7 @@ describe('ViewToggle', () => {
   });
 
   it('should have proper CSS classes for styling', () => {
-    mockRoute.path = '/marketing';
+    mockRoute.path = '/landing';
     const wrapper = mount(ViewToggle);
     
     expect(wrapper.classes()).toContain('view-toggle');
@@ -117,11 +117,11 @@ describe('ViewToggle', () => {
     expect(wrapper.classes()).toContain('is-technical');
   });
 
-  it('should show marketing view as active when on root route', () => {
+  it('should show landing view as active when on root route', () => {
     mockRoute.path = '/';
     const wrapper = mount(ViewToggle);
     
-    const marketingButton = wrapper.findAll('button')[0];
-    expect(marketingButton.classes()).toContain('active');
+    const landingButton = wrapper.findAll('button')[0];
+    expect(landingButton.classes()).toContain('active');
   });
 });
