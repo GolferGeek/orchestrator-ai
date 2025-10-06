@@ -8,11 +8,39 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import {
+  AgentTaskMode,
+  TaskMessage,
+  TaskRequestParams,
+  // Import strict types
+  StrictA2ARequest,
+  StrictPlanRequest,
+  StrictBuildRequest,
+  StrictConverseRequest,
+  PlanData,
+  PlanVersionData,
+  DeliverableData,
+  DeliverableVersionData,
+} from '@orchestrator-ai/a2a-protocol';
 
-export enum AgentTaskMode {
-  CONVERSE = 'converse',
-  PLAN = 'plan',
-  BUILD = 'build',
+// Re-export shared types
+export {
+  AgentTaskMode,
+  TaskMessage,
+  TaskRequestParams,
+  // Re-export strict types
+  StrictA2ARequest,
+  StrictPlanRequest,
+  StrictBuildRequest,
+  StrictConverseRequest,
+  PlanData,
+  PlanVersionData,
+  DeliverableData,
+  DeliverableVersionData,
+};
+
+// Extended mode enum for internal orchestration modes
+export enum InternalAgentTaskMode {
   HUMAN_RESPONSE = 'human_response',
   ORCHESTRATE_CREATE = 'orchestrate_create',
   ORCHESTRATE_EXECUTE = 'orchestrate_execute',
@@ -40,6 +68,9 @@ export enum AgentTaskMode {
   ORCHESTRATOR_RECIPE_LIST = 'orchestrator_recipe_list',
 }
 
+// Combined mode type for internal use
+export type CombinedAgentTaskMode = AgentTaskMode | InternalAgentTaskMode;
+
 export class TaskMessageDto {
   @IsString()
   role!: string;
@@ -49,8 +80,13 @@ export class TaskMessageDto {
 }
 
 export class TaskRequestDto {
+  /**
+   * Agent task mode - Optional in raw requests but guaranteed to be set after normalization
+   * The controller ensures this is always set (defaults to CONVERSE if not provided)
+   */
+  @IsOptional()
   @IsEnum(AgentTaskMode)
-  mode!: AgentTaskMode;
+  mode?: AgentTaskMode;
 
   @IsOptional()
   @IsUUID()
@@ -98,3 +134,8 @@ export class TaskRequestDto {
   @IsObject()
   metadata?: Record<string, any>;
 }
+
+/**
+ * Task request after normalization (mode is guaranteed to be set)
+ */
+export type NormalizedTaskRequestDto = TaskRequestDto & { mode: AgentTaskMode };

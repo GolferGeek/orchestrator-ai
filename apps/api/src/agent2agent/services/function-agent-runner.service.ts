@@ -55,7 +55,7 @@ export class FunctionAgentRunnerService {
       const script = new vm.Script(`"use strict";\n${code}\n;handler;`);
       const exported = script.runInContext(sandbox, { timeout: 1000 });
       if (typeof exported !== 'function') {
-        return TaskResponseDto.failure(request.mode, 'function_handler_not_found');
+        return TaskResponseDto.failure(request.mode!, 'function_handler_not_found');
       }
 
       const timeoutMs = Number(fnConfig.timeout_ms || 20000);
@@ -72,16 +72,16 @@ export class FunctionAgentRunnerService {
           metadata: { provider: (result.version?.metadata as any)?.provider || 'image_service' },
           deliverables: [{ id: result.deliverable.id, versionId: result.version.id, title: result.deliverable.title }],
         };
-        return TaskResponseDto.success(request.mode, payload);
+        return TaskResponseDto.success(request.mode!, payload);
       }
 
       // If returned a generic object with images/content
-      return TaskResponseDto.success(request.mode, {
+      return TaskResponseDto.success(request.mode!, {
         content: result || { status: 'completed' },
       });
     } catch (error) {
       this.logger.warn(`Function agent execution failed: ${String(error)}`);
-      return TaskResponseDto.failure(request.mode, 'function_execution_failed');
+      return TaskResponseDto.failure(request.mode!, 'function_execution_failed');
     }
   }
 }

@@ -1,15 +1,42 @@
+import {
+  TaskResponse,
+  TaskResponsePayload,
+  // Import strict response types
+  StrictA2AResponse,
+  StrictA2ASuccessResponse,
+  StrictA2AErrorResponse,
+  StrictPlanResponse,
+  StrictBuildResponse,
+  StrictConverseResponse,
+  isStrictErrorResponse,
+  isStrictSuccessResponse,
+  isStrictPlanResponse,
+  isStrictBuildResponse,
+} from '@orchestrator-ai/a2a-protocol';
+
+// Re-export shared types
+export {
+  TaskResponse,
+  TaskResponsePayload,
+  // Re-export strict response types
+  StrictA2AResponse,
+  StrictA2ASuccessResponse,
+  StrictA2AErrorResponse,
+  StrictPlanResponse,
+  StrictBuildResponse,
+  StrictConverseResponse,
+  isStrictErrorResponse,
+  isStrictSuccessResponse,
+  isStrictPlanResponse,
+  isStrictBuildResponse,
+};
+
 export interface HumanResponsePayload {
   message: string;
   reason?: string;
 }
 
-export interface TaskResponsePayload {
-  content?: any;
-  deliverables?: any[];
-  metadata?: Record<string, any>;
-}
-
-export class TaskResponseDto {
+export class TaskResponseDto implements TaskResponse {
   constructor(
     public readonly success: boolean,
     public readonly mode: string,

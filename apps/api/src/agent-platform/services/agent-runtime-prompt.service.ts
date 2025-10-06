@@ -25,8 +25,11 @@ export interface PromptPayload {
 export class AgentRuntimePromptService {
   buildPromptPayload(options: PromptBuildOptions): PromptPayload {
     const mode = options.mode ?? 'converse';
+    console.log(`🎯 [PROMPT-PAYLOAD-DEBUG] buildPromptPayload called with mode: ${mode}`);
     const systemPrompt = this.buildSystemPrompt(options.definition, mode);
+    console.log(`🎯 [PROMPT-PAYLOAD-DEBUG] systemPrompt length: ${systemPrompt.length}`);
     const userMessage = this.buildUserMessage(options.definition, options.request, mode);
+    console.log(`🎯 [PROMPT-PAYLOAD-DEBUG] userMessage: ${userMessage.substring(0, 200)}`);
     const metadata = this.collectMetadata(
       options.definition,
       options.request,
@@ -62,30 +65,55 @@ export class AgentRuntimePromptService {
       definition.config?.systemPrompt ??
       definition.description;
 
-    if (typeof promptCandidate === 'string' && promptCandidate.trim()) {
-      return promptCandidate;
-    }
-
     const fallbackName = definition.displayName ?? definition.slug;
+    let basePrompt = '';
 
-    if (mode === 'build') {
-      return [
-        `You are ${fallbackName}.`,
-        'Produce an actionable deliverable that fulfills the build request.',
-        'Follow organizational policies and any provided requirements/instructions.',
-        'Be concise but complete; include structure/sections when appropriate.',
-        'Avoid speculative content; clearly state assumptions if needed.',
-      ].join(' ');
+    if (typeof promptCandidate === 'string' && promptCandidate.trim()) {
+      basePrompt = promptCandidate;
+    } else {
+      // Fallback prompts by mode
+      if (mode === 'build') {
+        basePrompt = [
+          `You are ${fallbackName}.`,
+          'Produce an actionable deliverable that fulfills the build request.',
+          'Follow organizational policies and any provided requirements/instructions.',
+          'Be concise but complete; include structure/sections when appropriate.',
+          'Avoid speculative content; clearly state assumptions if needed.',
+        ].join(' ');
+      } else if (mode === 'plan') {
+        basePrompt = [
+          `You are ${fallbackName}.`,
+          'Create a comprehensive plan for the requested task.',
+          'Follow organizational policies and any provided requirements/instructions.',
+          'Be thorough and structured; include all relevant planning elements.',
+        ].join(' ');
+      } else {
+        // converse (default)
+        basePrompt = [
+          `You are ${fallbackName}.`,
+          'Respond helpfully and keep replies brief.',
+          'Avoid long documents or outlines; no multi-section markdown.',
+          'Prefer a short answer and ask one clarifying question when useful.',
+          'Follow organizational policies at all times.',
+        ].join(' ');
+      }
     }
 
-    // converse (default)
-    return [
-      `You are ${fallbackName}.`,
-      'Respond helpfully and keep replies brief.',
-      'Avoid long documents or outlines; no multi-section markdown.',
-      'Prefer a short answer and ask one clarifying question when useful.',
-      'Follow organizational policies at all times.',
-    ].join(' ');
+    // Inject plan template for plan mode
+    if (mode === 'plan') {
+      const planTemplate = definition.context?.plan_template;
+      console.log(`🔍 [PLAN-TEMPLATE-DEBUG] Mode: ${mode}, Has template: ${!!planTemplate}, Template length: ${planTemplate?.length || 0}, Type: ${typeof planTemplate}`);
+      if (typeof planTemplate === 'string' && planTemplate.trim()) {
+        const finalPrompt = `${basePrompt}\n\n${planTemplate}`;
+        console.log(`✅ [PLAN-TEMPLATE-DEBUG] Injected template. Final prompt length: ${finalPrompt.length}`);
+        console.log(`✅ [PLAN-TEMPLATE-DEBUG] Final system prompt: ${finalPrompt.substring(0, 500)}...`);
+        return finalPrompt;
+      } else {
+        console.log(`❌ [PLAN-TEMPLATE-DEBUG] Template check failed - typeof: ${typeof planTemplate}, is string: ${typeof planTemplate === 'string'}, has trim: ${typeof planTemplate === 'string' && !!planTemplate.trim()}`);
+      }
+    }
+
+    return basePrompt;
   }
 
   buildUserMessage(

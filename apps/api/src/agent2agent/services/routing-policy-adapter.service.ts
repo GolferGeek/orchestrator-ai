@@ -82,7 +82,7 @@ export class RoutingPolicyAdapterService {
 
     if (!segments.length) {
       segments.push(
-        `Mode ${request.mode} request for agent ${agent.slug} (conversation ${request.conversationId ?? 'unknown'}, session ${request.sessionId ?? 'n/a'})`,
+        `Mode ${request.mode!} request for agent ${agent.slug} (conversation ${request.conversationId ?? 'unknown'}, session ${request.sessionId ?? 'n/a'})`,
       );
     }
 
@@ -97,7 +97,7 @@ export class RoutingPolicyAdapterService {
     const metadata = this.collectMetadata(request);
 
     return {
-      mode: request.mode,
+      mode: request.mode!,
       agentSlug: agent.slug,
       conversationId: request.conversationId,
       sessionId: request.sessionId,

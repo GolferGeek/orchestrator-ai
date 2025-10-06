@@ -9,8 +9,18 @@ import {
   DeliverableRequest,
   DeliverableResponse,
   TaskMode,
+  CreatePlanRequest,
+  EditPlanRequest,
+  ReadPlanRequest,
 } from '../types';
 import { useAuthStore } from '@/stores/authStore';
+import type {
+  A2ATaskRequest,
+  A2ATaskResponse,
+  AgentTaskMode,
+  isJsonRpcSuccessResponse,
+  isJsonRpcErrorResponse,
+} from '@orchestrator-ai/a2a-protocol';
 
 // Get API base URL from environment
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:7100';
@@ -84,8 +94,8 @@ export class Agent2AgentApi {
         mode: TaskMode.PLAN,
         action: 'create',
         conversationId,
-        params: { message },
-      });
+        params: { title: '', content: message },
+      } as CreatePlanRequest);
     },
 
     read: async (conversationId: string) => {
@@ -94,7 +104,7 @@ export class Agent2AgentApi {
         action: 'read',
         conversationId,
         params: {},
-      });
+      } as ReadPlanRequest);
     },
 
     list: async (conversationId: string) => {
@@ -103,7 +113,7 @@ export class Agent2AgentApi {
         action: 'list',
         conversationId,
         params: {},
-      });
+      } as PlanRequest);
     },
 
     edit: async (conversationId: string, editedContent: string) => {
@@ -111,8 +121,8 @@ export class Agent2AgentApi {
         mode: TaskMode.PLAN,
         action: 'edit',
         conversationId,
-        params: { editedContent },
-      });
+        params: { content: editedContent },
+      } as EditPlanRequest);
     },
 
     setCurrent: async (conversationId: string, versionId: string) => {
@@ -189,7 +199,7 @@ export class Agent2AgentApi {
         action: 'create',
         conversationId,
         params: { message },
-      });
+      } as unknown as DeliverableRequest);
     },
 
     read: async (conversationId: string) => {
@@ -198,7 +208,7 @@ export class Agent2AgentApi {
         action: 'read',
         conversationId,
         params: {},
-      });
+      } as DeliverableRequest);
     },
 
     list: async (conversationId: string) => {
@@ -207,7 +217,7 @@ export class Agent2AgentApi {
         action: 'list',
         conversationId,
         params: {},
-      });
+      } as DeliverableRequest);
     },
 
     edit: async (conversationId: string, editedContent: string) => {
@@ -216,7 +226,7 @@ export class Agent2AgentApi {
         action: 'edit',
         conversationId,
         params: { editedContent },
-      });
+      } as unknown as DeliverableRequest);
     },
 
     rerun: async (conversationId: string, versionId: string, rerunConfig: object) => {
@@ -225,7 +235,7 @@ export class Agent2AgentApi {
         action: 'rerun',
         conversationId,
         params: { versionId, rerunConfig },
-      });
+      } as unknown as DeliverableRequest);
     },
 
     setCurrent: async (conversationId: string, versionId: string) => {
@@ -293,19 +303,37 @@ export class Agent2AgentApi {
     const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
 
     try {
+      // Extract message and other params
+      const { message, userMessage, ...otherParams } = request.params || {};
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
-          mode,
-          action: request.action,
-          conversationId: request.conversationId,
-          ...request.params,
+          jsonrpc: '2.0',
+          id: crypto.randomUUID(),
+          method: mode,
+          params: {
+            userMessage: userMessage || message,
+            conversationId: request.conversationId,
+            payload: {
+              action: request.action,
+              ...otherParams,
+            },
+          },
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Handle JSON-RPC error response
+        if (errorData.jsonrpc === '2.0' && errorData.error) {
+          throw new Error(
+            errorData.error.message || `API request failed: ${response.statusText}`,
+          );
+        }
+
         throw new Error(
           errorData.message || `API request failed: ${response.statusText}`,
         );
@@ -313,17 +341,36 @@ export class Agent2AgentApi {
 
       const data = await response.json();
 
-      // Transform API response to match expected format
-      // API returns: { success, mode, payload: { content: {...} } }
-      // Frontend expects: { success, data: {...} }
-      if (data.success && data.payload?.content) {
-        return {
-          success: true,
-          data: data.payload.content,
-        };
+      // Handle JSON-RPC 2.0 response format
+      // Backend returns: { jsonrpc: "2.0", id: "...", result: TaskResponseDto }
+      let taskResponse;
+
+      if (data.jsonrpc === '2.0') {
+        // JSON-RPC success response
+        if (data.result) {
+          taskResponse = data.result;
+        } else if (data.error) {
+          // JSON-RPC error response (shouldn't reach here if !response.ok worked)
+          throw new Error(data.error.message || 'JSON-RPC error');
+        } else {
+          throw new Error('Invalid JSON-RPC response');
+        }
+      } else {
+        // Direct TaskResponseDto (legacy format)
+        taskResponse = data;
       }
 
-      return data;
+      // Transform TaskResponseDto to frontend format
+      // TaskResponseDto: { success, mode, payload: { content: {...} } }
+      // Frontend expects: { success, data: {...} }
+      if (taskResponse.success && taskResponse.payload?.content) {
+        return {
+          success: true,
+          data: taskResponse.payload.content,
+        } as T;
+      }
+
+      return taskResponse as T;
     } catch (error) {
       console.error(`Agent2Agent API error (${mode}/${request.action}):`, error);
       throw error;

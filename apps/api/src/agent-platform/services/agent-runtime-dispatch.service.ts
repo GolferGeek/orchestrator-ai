@@ -404,7 +404,7 @@ export class AgentRuntimeDispatchService {
     };
     const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
-    const methodName = this.mapModeToMethod(options.request.mode);
+    const methodName = this.mapModeToMethod(options.request.mode!);
     const id = Date.now();
     const params = {
       conversationId: options.request.conversationId,

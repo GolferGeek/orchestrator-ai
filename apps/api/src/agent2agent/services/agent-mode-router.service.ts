@@ -60,12 +60,12 @@ export class AgentModeRouterService {
 
     if (!hydrated) {
       return TaskResponseDto.failure(
-        context.request.mode,
+        context.request.mode!,
         'Agent record unavailable for execution',
       );
     }
 
-    switch (hydrated.request.mode) {
+    switch (hydrated.request.mode!) {
       case AgentTaskMode.CONVERSE:
         return this.handleConverse(hydrated);
       case AgentTaskMode.PLAN:
@@ -76,7 +76,7 @@ export class AgentModeRouterService {
         return TaskResponseDto.human('Manual confirmation required');
       default:
         return TaskResponseDto.failure(
-          hydrated.request.mode,
+          hydrated.request.mode!,
           'Unsupported mode',
         );
     }
@@ -791,7 +791,7 @@ export class AgentModeRouterService {
       sessionId: context.request.sessionId,
       organizationSlug: context.organizationSlug,
       agentSlug: context.agent.slug,
-      mode: context.request.mode,
+      mode: context.request.mode!,
     } as const;
   }
 

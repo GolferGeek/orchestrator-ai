@@ -23,37 +23,34 @@ import { Agent2AgentTaskStatusService } from './services/agent-task-status.servi
 import { Agent2AgentConversationsService } from './services/agent-conversations.service';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { AgentTaskMode } from './dto/task-request.dto';
+import { AgentTaskMode, NormalizedTaskRequestDto } from './dto/task-request.dto';
 import { AgentType } from '@/agent2agent/types/agent-conversations.types';
 import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
 import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
 import { Public } from '../auth/decorators/public.decorator';
 import { Agent2AgentDeliverablesService } from './services/agent2agent-deliverables.service';
 import { SupabaseService } from '../supabase/supabase.service';
+import {
+  A2ATaskSuccessResponse,
+  A2ATaskErrorResponse,
+  JsonRpcErrorCode,
+  StrictA2ASuccessResponse,
+  StrictA2AErrorResponse,
+} from '@orchestrator-ai/a2a-protocol';
+import { toStrictSuccessResponse, toStrictErrorResponse } from './utils/strict-type-mapper.util';
+import { validateTaskResponseDto, logValidationErrors } from './utils/strict-type-validator.util';
 
 interface NormalizedTaskRequest {
-  dto: TaskRequestDto;
+  dto: NormalizedTaskRequestDto;
   jsonrpc?: {
     id: any;
     method?: string | null;
   };
 }
 
-interface JsonRpcSuccessEnvelope {
-  jsonrpc: '2.0';
-  id: any;
-  result: TaskResponseDto;
-}
-
-interface JsonRpcErrorEnvelope {
-  jsonrpc: '2.0';
-  id: any;
-  error: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-}
+// Use shared protocol types
+type JsonRpcSuccessEnvelope = A2ATaskSuccessResponse;
+type JsonRpcErrorEnvelope = A2ATaskErrorResponse;
 
 @Controller()
 export class Agent2AgentController {
@@ -250,7 +247,7 @@ export class Agent2AgentController {
         agentSlug, // agentName
         effectiveAgentType, // Use namespace as agent_type for database agents
         {
-          method: dto.mode, // Use the normalized mode from DTO
+          method: dto.mode, // Use the normalized mode from DTO (guaranteed to be set)
           prompt: dto.userMessage || '',
           conversationId: dto.conversationId, // Will be validated/created by TasksService
           taskId: taskIdFromPayload,
@@ -314,6 +311,23 @@ export class Agent2AgentController {
       });
 
       if (jsonrpc) {
+        // Validate DTO before converting to strict types
+        const validation = validateTaskResponseDto(result);
+        if (!validation.valid) {
+          logValidationErrors(
+            validation.errors,
+            'Agent2AgentController.executeTask - Response Validation',
+            this.logger,
+          );
+        }
+
+        // Try to use strict response types for better type safety
+        const strictResponse = toStrictSuccessResponse(result, jsonrpc.id ?? null);
+        if (strictResponse) {
+          return strictResponse;
+        }
+
+        // Fallback to legacy envelope format
         return {
           jsonrpc: '2.0',
           id: jsonrpc.id ?? null,
@@ -458,6 +472,11 @@ export class Agent2AgentController {
       throw new BadRequestException(this.formatValidationErrors(errors));
     }
 
+    // Ensure mode is always set (default to converse if not specified)
+    if (!dto.mode) {
+      dto.mode = AgentTaskMode.CONVERSE;
+    }
+
     let jsonrpc: NormalizedTaskRequest['jsonrpc'] | undefined;
 
     if (isJsonRpc) {
@@ -474,7 +493,7 @@ export class Agent2AgentController {
       jsonrpc = jsonrpcContext;
     }
 
-    return { dto, jsonrpc };
+    return { dto: dto as NormalizedTaskRequestDto, jsonrpc };
   }
 
   private mapMethodToMode(method: string): AgentTaskMode | undefined {
@@ -533,15 +552,17 @@ export class Agent2AgentController {
 
   private buildJsonRpcError(id: any, error: unknown): JsonRpcErrorEnvelope {
     const { code, message, data } = this.mapExceptionToError(error);
-    return {
-      jsonrpc: '2.0',
+
+    // Use strict error response format
+    const strictError = toStrictErrorResponse(
+      error,
+      data?.mode,
       id,
-      error: {
-        code,
-        message,
-        ...(data !== undefined ? { data } : {}),
-      },
-    };
+      code,
+      message,
+    );
+
+    return strictError as JsonRpcErrorEnvelope;
   }
 
   private mapExceptionToError(error: unknown): {

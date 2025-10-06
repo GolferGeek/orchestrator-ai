@@ -66,14 +66,14 @@ export class AgentExecutionGateway {
     }
 
     // Enforce execution capabilities + human gate before routing
-    const unsupported = this.checkUnsupportedMode(definition, request.mode);
+    const unsupported = this.checkUnsupportedMode(definition, request.mode!);
     if (unsupported) {
       return unsupported;
     }
 
     const gated = await this.checkHumanGate(
       definition,
-      request.mode,
+      request.mode!,
       {
         organizationSlug,
         agentSlug: agent.slug,
@@ -86,7 +86,7 @@ export class AgentExecutionGateway {
       return gated;
     }
 
-    switch (request.mode) {
+    switch (request.mode!) {
       case AgentTaskMode.CONVERSE:
         return this.modeRouter.execute({
           organizationSlug,
@@ -208,7 +208,7 @@ export class AgentExecutionGateway {
       case AgentTaskMode.ORCHESTRATOR_RUN_EVALUATE:
       case AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE:
       case AgentTaskMode.ORCHESTRATOR_RECIPE_DELETE:
-        return this.notImplemented(request.mode);
+        return this.notImplemented(request.mode!);
       case AgentTaskMode.HUMAN_RESPONSE: {
         const decision = (request.payload as any)?.decision || (request.payload as any)?.approved;
         if (decision === true || decision === 'approve') {
@@ -226,7 +226,7 @@ export class AgentExecutionGateway {
         return TaskResponseDto.human('Manual confirmation required');
       }
       default:
-        return TaskResponseDto.failure(request.mode, 'Unsupported mode');
+        return TaskResponseDto.failure(request.mode!, 'Unsupported mode');
     }
   }
 

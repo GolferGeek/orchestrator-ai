@@ -25,6 +25,7 @@
     "agents:seed:hr": "bash ../../scripts/agents/seed-agent.sh ../../docs/feature/matt/payloads/hr_assistant.json"
   },
   "dependencies": {
+    "@orchestrator-ai/a2a-protocol": "file:../a2a-protocol",
     "@langchain/anthropic": "^0.3.21",
     "@langchain/community": "^0.3.49",
     "@langchain/core": "^0.3.66",
