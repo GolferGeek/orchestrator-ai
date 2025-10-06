@@ -1,61 +1,38 @@
-<template>
-  <component :is="activeLandingComponent" />
-</template>
-
 <script setup lang="ts">
-import { computed, defineAsyncComponent, defineComponent, h } from 'vue';
-import { IonContent, IonPage, IonSpinner } from '@ionic/vue';
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
+const router = useRouter();
 const authStore = useAuthStore();
 const { currentNamespace } = storeToRefs(authStore);
 
-const LoadingLandingPage = defineComponent({
-  name: 'LoadingLandingPage',
-  setup() {
-    return () => h(IonPage, null, {
-      default: () => h(IonContent, { fullscreen: true, class: 'landing-loading' }, () =>
-        h(IonSpinner, { name: 'crescent' })
-      )
-    });
-  }
-});
-
-const createAsyncLanding = (loader: () => Promise<any>) =>
-  defineAsyncComponent({
-    loader,
-    loadingComponent: LoadingLandingPage,
-    suspensible: false,
-  });
-
-const landingComponents = {
-  demo: createAsyncLanding(() => import('./landing/demo/DemoLandingPage.vue')),
-  'my-org': createAsyncLanding(() => import('./landing/my-org/MyOrgLandingPage.vue')),
-  saas: createAsyncLanding(() => import('./landing/saas/SaasLandingPage.vue')),
-} as const;
-
-type LandingNamespace = keyof typeof landingComponents;
-
-const resolvedNamespace = computed<LandingNamespace>(() => {
+onMounted(() => {
   const namespace = (currentNamespace.value || 'demo').toLowerCase();
 
-  // Check if namespace exists in components, handle saas-* namespaces
-  if (namespace in landingComponents) {
-    return namespace as LandingNamespace;
+  // For demo namespace, redirect to marketing view
+  if (namespace === 'demo') {
+    router.replace('/marketing');
+  } 
+  // For my-org namespace
+  else if (namespace === 'my-org') {
+    router.replace('/my-org');
   }
-
-  // For saas-* namespaces (like saas-ifm), use the saas component
-  if (namespace.startsWith('saas-')) {
-    return 'saas';
+  // For saas-* namespaces
+  else if (namespace.startsWith('saas-')) {
+    router.replace('/saas');
   }
-
-  // Default to demo if namespace not found
-  return 'demo';
+  // Default to marketing
+  else {
+    router.replace('/marketing');
+  }
 });
-
-const activeLandingComponent = computed(() => landingComponents[resolvedNamespace.value]);
 </script>
+
+<template>
+  <div></div>
+</template>
 
 <style scoped>
 .landing-loading {

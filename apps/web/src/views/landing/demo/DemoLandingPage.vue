@@ -3,10 +3,8 @@
     <!-- Landing Header -->
     <LandingHeader />
     
-    <!-- Conditional rendering based on view mode -->
-    <template v-if="isMarketingView">
-      <!-- Section Navigation -->
-      <SectionNavigation @section-toggled="handleSectionToggle" />
+    <!-- Section Navigation -->
+    <SectionNavigation @section-toggled="handleSectionToggle" />
       
       <ion-content :fullscreen="true" class="landing-content">
       <!-- Hero Section -->
@@ -326,14 +324,9 @@
         </footer>
 
       </ion-content>
-    </template>
     
-    <!-- Technical View -->
-    <TextualLandingPage v-else />
-    
-    <!-- Video Modal (only for marketing view) -->
+    <!-- Video Modal -->
     <VideoModal 
-      v-if="isMarketingView"
       :is-open="isVideoModalOpen"
       :video-title="currentVideo?.title || ''"
       :video-description="currentVideo?.description || ''"
@@ -388,13 +381,10 @@ import LandingHeader from '@/components/landing/LandingHeader.vue';
 import SectionNavigation from '@/components/landing/SectionNavigation.vue';
 import VideoModal from '@/components/landing/VideoModal.vue';
 import VideoPlayer from '@/components/landing/VideoPlayer.vue';
-import TextualLandingPage from './TextualLandingPage.vue';
 // Landing page store
 import { useLandingStore } from '@/stores/landingStore';
 // Video service
 import { videoService, type Video } from '@/services/videoService';
-// View toggle composable
-import { useViewToggle } from '@/composables/useViewToggle';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -409,9 +399,6 @@ interface VideoPlayerVideo {
 const landingStore = useLandingStore();
 const router = useRouter();
 const authStore = useAuthStore();
-
-// View toggle state
-const { isMarketingView, initializeViewMode } = useViewToggle();
 
 // Video modal state
 const isVideoModalOpen = ref(false);
@@ -535,9 +522,6 @@ function closeVideoModal() {
 }
 
 onMounted(() => {
-  // Initialize view mode
-  initializeViewMode();
-  
   // Track page view
   landingStore.trackPageView('demo-landing');
   
@@ -579,8 +563,8 @@ onMounted(() => {
     }
   }, 300);
   
-  // Check URL hash for direct navigation (only for marketing view)
-  if (isMarketingView.value && window.location.hash) {
+  // Check URL hash for direct navigation
+  if (window.location.hash) {
     const sectionId = window.location.hash.substring(1); // Remove the #
     setTimeout(() => {
       const element = document.getElementById(sectionId);
@@ -590,9 +574,9 @@ onMounted(() => {
     }, 100);
   }
   
-  // Listen for hash changes (only for marketing view)
+  // Listen for hash changes
   const handleHashChange = () => {
-    if (isMarketingView.value && window.location.hash) {
+    if (window.location.hash) {
       const sectionId = window.location.hash.substring(1);
       const element = document.getElementById(sectionId);
       if (element) {

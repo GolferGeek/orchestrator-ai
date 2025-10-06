@@ -3,7 +3,7 @@
     <button
       class="toggle-button"
       :class="{ 'active': isMarketingView }"
-      @click="setViewMode('marketing')"
+      @click="navigateToMarketing"
       :aria-pressed="isMarketingView"
       aria-label="Switch to Marketing view"
     >
@@ -14,7 +14,7 @@
     <button
       class="toggle-button"
       :class="{ 'active': isTechnicalView }"
-      @click="setViewMode('technical')"
+      @click="navigateToTechnical"
       :aria-pressed="isTechnicalView"
       aria-label="Switch to Technical view"
     >
@@ -25,11 +25,24 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { IonIcon } from '@ionic/vue';
 import { megaphoneOutline, documentTextOutline } from 'ionicons/icons';
-import { useViewToggle } from '@/composables/useViewToggle';
+import { useRouter, useRoute } from 'vue-router';
 
-const { isMarketingView, isTechnicalView, setViewMode } = useViewToggle();
+const router = useRouter();
+const route = useRoute();
+
+const isMarketingView = computed(() => route.path === '/marketing' || route.path === '/');
+const isTechnicalView = computed(() => route.path === '/technical');
+
+function navigateToMarketing() {
+  router.push('/marketing');
+}
+
+function navigateToTechnical() {
+  router.push('/technical');
+}
 </script>
 
 <style scoped>

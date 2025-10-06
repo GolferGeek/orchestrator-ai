@@ -3,15 +3,18 @@ import { mount } from '@vue/test-utils';
 import { IonIcon } from '@ionic/vue';
 import ViewToggle from '../ViewToggle.vue';
 
-// Mock the useViewToggle composable
-const mockUseViewToggle = {
-  isMarketingView: { value: true },
-  isTechnicalView: { value: false },
-  setViewMode: vi.fn(),
+// Mock vue-router
+const mockPush = vi.fn();
+const mockRoute = {
+  path: '/marketing',
+  query: {},
 };
 
-vi.mock('@/composables/useViewToggle', () => ({
-  useViewToggle: () => mockUseViewToggle,
+vi.mock('vue-router', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+  useRoute: () => mockRoute,
 }));
 
 // Mock IonIcon
@@ -25,8 +28,7 @@ vi.mock('@ionic/vue', () => ({
 describe('ViewToggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseViewToggle.isMarketingView.value = true;
-    mockUseViewToggle.isTechnicalView.value = false;
+    mockRoute.path = '/marketing';
   });
 
   it('should render both toggle buttons', () => {
@@ -39,7 +41,8 @@ describe('ViewToggle', () => {
     expect(buttons[1].text()).toContain('Technical');
   });
 
-  it('should show marketing view as active when isMarketingView is true', () => {
+  it('should show marketing view as active when on marketing route', () => {
+    mockRoute.path = '/marketing';
     const wrapper = mount(ViewToggle);
     
     const marketingButton = wrapper.findAll('button')[0];
@@ -49,10 +52,8 @@ describe('ViewToggle', () => {
     expect(technicalButton.classes()).not.toContain('active');
   });
 
-  it('should show technical view as active when isTechnicalView is true', () => {
-    mockUseViewToggle.isMarketingView.value = false;
-    mockUseViewToggle.isTechnicalView.value = true;
-    
+  it('should show technical view as active when on technical route', () => {
+    mockRoute.path = '/technical';
     const wrapper = mount(ViewToggle);
     
     const marketingButton = wrapper.findAll('button')[0];
@@ -62,25 +63,26 @@ describe('ViewToggle', () => {
     expect(technicalButton.classes()).toContain('active');
   });
 
-  it('should call setViewMode with marketing when marketing button is clicked', async () => {
+  it('should navigate to /marketing when marketing button is clicked', async () => {
     const wrapper = mount(ViewToggle);
     
     const marketingButton = wrapper.findAll('button')[0];
     await marketingButton.trigger('click');
     
-    expect(mockUseViewToggle.setViewMode).toHaveBeenCalledWith('marketing');
+    expect(mockPush).toHaveBeenCalledWith('/marketing');
   });
 
-  it('should call setViewMode with technical when technical button is clicked', async () => {
+  it('should navigate to /technical when technical button is clicked', async () => {
     const wrapper = mount(ViewToggle);
     
     const technicalButton = wrapper.findAll('button')[1];
     await technicalButton.trigger('click');
     
-    expect(mockUseViewToggle.setViewMode).toHaveBeenCalledWith('technical');
+    expect(mockPush).toHaveBeenCalledWith('/technical');
   });
 
   it('should have proper accessibility attributes', () => {
+    mockRoute.path = '/marketing';
     const wrapper = mount(ViewToggle);
     
     const marketingButton = wrapper.findAll('button')[0];
@@ -101,17 +103,25 @@ describe('ViewToggle', () => {
   });
 
   it('should have proper CSS classes for styling', () => {
+    mockRoute.path = '/marketing';
     const wrapper = mount(ViewToggle);
     
     expect(wrapper.classes()).toContain('view-toggle');
     expect(wrapper.classes()).not.toContain('is-technical');
   });
 
-  it('should have is-technical class when in technical view', () => {
-    mockUseViewToggle.isTechnicalView.value = true;
-    
+  it('should have is-technical class when on technical route', () => {
+    mockRoute.path = '/technical';
     const wrapper = mount(ViewToggle);
     
     expect(wrapper.classes()).toContain('is-technical');
+  });
+
+  it('should show marketing view as active when on root route', () => {
+    mockRoute.path = '/';
+    const wrapper = mount(ViewToggle);
+    
+    const marketingButton = wrapper.findAll('button')[0];
+    expect(marketingButton.classes()).toContain('active');
   });
 });
