@@ -23,7 +23,7 @@ import type {
   StrictA2ARequest,
   StrictA2ASuccessResponse,
   StrictA2AErrorResponse,
-} from '@transport-types';
+} from '@orchestrator-ai/transport-types';
 import {
   buildRequest,
   validateStrictRequest,

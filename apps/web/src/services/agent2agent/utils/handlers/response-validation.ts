@@ -10,15 +10,7 @@ import type {
   StrictPlanResponse,
   StrictBuildResponse,
   StrictConverseResponse,
-} from '@transport-types';
-
-import {
-  isStrictPlanResponse,
-  isStrictBuildResponse,
-  isStrictConverseResponse,
-  isStrictErrorResponse,
-  isStrictSuccessResponse,
-} from '@transport-types';
+} from '@orchestrator-ai/transport-types/shared/strict-aliases';
 
 /**
  * Response validation error
@@ -177,12 +169,48 @@ export function extractSuccessPayload<T = any>(
 }
 
 /**
- * Re-export type guards from protocol package
+ * Type guard functions for mode-specific responses
  */
-export {
-  isStrictPlanResponse,
-  isStrictBuildResponse,
-  isStrictConverseResponse,
-  isStrictErrorResponse,
-  isStrictSuccessResponse,
-};
+export function isStrictPlanResponse(response: any): response is StrictPlanResponse {
+  return (
+    response &&
+    response.jsonrpc === '2.0' &&
+    response.result &&
+    response.result.mode === 'plan'
+  );
+}
+
+export function isStrictBuildResponse(response: any): response is StrictBuildResponse {
+  return (
+    response &&
+    response.jsonrpc === '2.0' &&
+    response.result &&
+    response.result.mode === 'build'
+  );
+}
+
+export function isStrictConverseResponse(response: any): response is StrictConverseResponse {
+  return (
+    response &&
+    response.jsonrpc === '2.0' &&
+    response.result &&
+    response.result.mode === 'converse'
+  );
+}
+
+export function isStrictErrorResponse(response: any): response is StrictA2AErrorResponse {
+  return (
+    response &&
+    response.jsonrpc === '2.0' &&
+    'error' in response
+  );
+}
+
+export function isStrictSuccessResponse(response: any): response is StrictA2ASuccessResponse {
+  return (
+    response &&
+    response.jsonrpc === '2.0' &&
+    'result' in response &&
+    response.result.success === true
+  );
+}

@@ -1,7 +1,7 @@
 import {
   TaskResponse,
   TaskResponsePayload,
-} from '@transport-types';
+} from '@orchestrator-ai/transport-types';
 
 // Re-export shared types
 export {

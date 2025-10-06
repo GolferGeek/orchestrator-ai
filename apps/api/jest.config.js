@@ -27,7 +27,6 @@ module.exports = {
     '^@config/(.*)$': '<rootDir>/config/$1',
     '^@common/(.*)$': '<rootDir>/common/$1',
     '^@agent-platform/(.*)$': '<rootDir>/agent-platform/$1',
-    '^@agent2agent/(.*)$': '<rootDir>/agent2agent/$1',
-    '^@transport-types$': '<rootDir>/../transport-types'
+    '^@agent2agent/(.*)$': '<rootDir>/agent2agent/$1'
   }
 };

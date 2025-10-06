@@ -13,7 +13,7 @@
     "start:dev:external": "nest start --watch -- --enable-external-agents",
     "start:dev:full": "./start-dev.sh",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/api/src/main",
+    "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -25,6 +25,7 @@
     "agents:seed:hr": "bash ../../scripts/agents/seed-agent.sh ../../docs/feature/matt/payloads/hr_assistant.json"
   },
   "dependencies": {
+    "@orchestrator-ai/transport-types": "file:../transport-types",
     "@langchain/anthropic": "^0.3.21",
     "@langchain/community": "^0.3.49",
     "@langchain/core": "^0.3.66",

@@ -96,8 +96,8 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        '@transport-types': path.resolve(__dirname, '../transport-types'),
       },
+      extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
     },
     server: {
       // Prefer VITE_WEB_PORT; for non-VITE values, check process.env.WEB_PORT at runtime via fallback

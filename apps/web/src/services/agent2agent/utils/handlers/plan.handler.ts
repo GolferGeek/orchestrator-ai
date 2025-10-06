@@ -7,7 +7,7 @@ import type {
   StrictPlanResponse,
   PlanData,
   PlanVersionData,
-} from '@transport-types';
+} from '@orchestrator-ai/transport-types';
 import {
   isStrictPlanResponse,
   validateSuccessResponse,

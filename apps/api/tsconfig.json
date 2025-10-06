@@ -32,10 +32,9 @@
       "@config/*": ["src/config/*"],
       "@common/*": ["src/common/*"],
       "@agent-platform/*": ["src/agent-platform/*"],
-      "@agent2agent/*": ["src/agent2agent/*"],
-      "@transport-types": ["../transport-types"]
+      "@agent2agent/*": ["src/agent2agent/*"]
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "../transport-types"]
+  "exclude": ["node_modules", "dist", "test"]
 }

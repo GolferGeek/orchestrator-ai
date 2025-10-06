@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import type { AgentTaskMode } from '@transport-types';
+import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
 
 // Types
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';

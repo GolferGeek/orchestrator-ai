@@ -13,7 +13,7 @@ import type {
   PlanAction,
   BuildAction,
   StrictTaskMessage,
-} from '@transport-types';
+} from '@orchestrator-ai/transport-types';
 
 /**
  * Base metadata for all requests

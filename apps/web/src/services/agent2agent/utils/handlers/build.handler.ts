@@ -7,7 +7,7 @@ import type {
   StrictBuildResponse,
   DeliverableData,
   DeliverableVersionData,
-} from '@transport-types';
+} from '@orchestrator-ai/transport-types';
 import {
   isStrictBuildResponse,
   validateSuccessResponse,

@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import type { PlanData, PlanVersionData } from '@transport-types';
+import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
 import type { PlanCreateResult, PlanReadResult, PlanEditResult } from '@/services/agent2agent/utils/handlers';
 
 export const usePlanStore = defineStore('plan', () => {

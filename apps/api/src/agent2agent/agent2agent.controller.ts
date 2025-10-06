@@ -34,7 +34,7 @@ import {
   A2ATaskSuccessResponse,
   A2ATaskErrorResponse,
   JsonRpcErrorCode,
-} from '@transport-types';
+} from '@orchestrator-ai/transport-types';
 
 interface NormalizedTaskRequest {
   dto: NormalizedTaskRequestDto;
