@@ -8,9 +8,18 @@ The n8n MCP server provides AI assistants (like Claude/Cursor) with comprehensiv
 
 ## Setup
 
-### 1. MCP Server Configuration
+### 1. Enable n8n API Access
 
-The n8n MCP server is already configured in `.cursor/mcp.json`:
+First, you need to set up API access for n8n:
+
+1. **Open n8n UI**: Go to http://localhost:5678
+2. **Complete Setup**: If first time, complete the initial setup
+3. **Go to Settings**: Click your profile → Settings → API
+4. **Create API Key**: Generate a new API key for MCP access
+
+### 2. Update MCP Configuration
+
+Update `.cursor/mcp.json` with your API key:
 
 ```json
 {
@@ -21,16 +30,33 @@ The n8n MCP server is already configured in `.cursor/mcp.json`:
       "env": {
         "MCP_MODE": "stdio",
         "LOG_LEVEL": "error",
-        "DISABLE_CONSOLE_OUTPUT": "true"
+        "DISABLE_CONSOLE_OUTPUT": "true",
+        "N8N_API_URL": "http://localhost:5678/api/v1",
+        "N8N_API_KEY": "your-actual-api-key-here",
+        "DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+        "SUPABASE_URL": "http://127.0.0.1:54321",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       }
     }
   }
 }
 ```
 
-### 2. Restart Cursor
+### 3. Test Connection
 
-After updating the MCP configuration, restart Cursor to load the n8n MCP server.
+Use our test script to verify everything is working:
+
+```bash
+# Set your API key
+export N8N_API_KEY=your-api-key-here
+
+# Run the test script
+./apps/n8n/scripts/test-api-connection.sh
+```
+
+### 4. Restart Cursor
+
+After updating the MCP configuration, restart Cursor to load the n8n MCP server with Supabase connection.
 
 ## Usage
 

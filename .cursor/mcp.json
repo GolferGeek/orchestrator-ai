@@ -46,7 +46,12 @@
             "env": {
                 "MCP_MODE": "stdio",
                 "LOG_LEVEL": "error",
-                "DISABLE_CONSOLE_OUTPUT": "true"
+                "DISABLE_CONSOLE_OUTPUT": "true",
+                "N8N_API_URL": "http://localhost:5678/api/v1",
+                "N8N_API_KEY": "",
+                "DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+                "SUPABASE_URL": "http://127.0.0.1:54321",
+                "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
             }
         }
     }
