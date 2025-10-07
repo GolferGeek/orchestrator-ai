@@ -138,6 +138,12 @@ class WebSocketService {
     this.socket.on('workflow_step_progress', (event: WorkflowStepEvent) => {
       this.handleWorkflowStepEvent(event);
     });
+    
+    // Workflow status updates (from webhooks with complete history)
+    this.socket.on('workflow_status_update', (event: any) => {
+      // Emit as a task status change event so existing handlers can process it
+      this.emitTaskStatusChange(event);
+    });
     // Subscription confirmation events
     this.socket.on('subscription_confirmed', (data) => {
       // Subscription confirmed

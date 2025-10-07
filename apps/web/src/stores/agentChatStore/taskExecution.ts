@@ -19,6 +19,7 @@ export class TaskExecutionService {
       onPlaceholder: (taskId: string, mode?: string) => void;
       onCompletion: (taskId: string, immediateTask?: any) => void;
       onStatusUpdate: (conversationId: string, taskId: string, statusUpdate: any) => void;
+      onInitialResponse?: (conversationId: string, taskId: string, initialResult: any) => void;
       // onImmediateResult removed - all modes use consistent flow
     }
   ): Promise<void> {
@@ -73,6 +74,11 @@ export class TaskExecutionService {
       
       handlers.onStatusUpdate(conversationId, task.taskId || options.taskId, piiViolationUpdate);
       return; // Exit early, no need to continue processing
+    }
+
+    // If task has an immediate response but is not completed, update placeholder with initial content
+    if (task.result && task.status !== 'completed' && handlers.onInitialResponse) {
+      handlers.onInitialResponse(conversationId, task.taskId, task.result);
     }
 
     // Handle response based on execution mode and task status

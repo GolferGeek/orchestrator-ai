@@ -148,59 +148,59 @@ export class WebSocketHandlerService {
     message: any,
     statusUpdate: ProgressUpdate
   ): { contentUpdated: boolean; newContent?: string } {
-    let progressContent = message.content || 'Processing your request...';
-    // Handle multi-step workflow progress
+    // Initialize status list if it doesn't exist
+    if (!message.metadata.statusList) {
+      message.metadata.statusList = [];
+    }
+    
+    // Add this new status to the list
+    const newStatus = {
+      timestamp: new Date().toISOString(),
+      status: statusUpdate.status,
+      step: statusUpdate.data?.step,
+      message: statusUpdate.progressMessage,
+      sequence: statusUpdate.data?.sequence,
+      totalSteps: statusUpdate.data?.totalSteps,
+    };
+    
+    message.metadata.statusList.push(newStatus);
+    
+    console.log(`📊 [STATUS-ACCUMULATION] Added status #${message.metadata.statusList.length}:`, newStatus);
+    console.log(`📊 [STATUS-ACCUMULATION] Total statuses: ${message.metadata.statusList.length}`);
+    
+    // Build progress content from accumulated status list
+    let progressContent = message.metadata.initialContent || 'Processing your request...';
+    
+    // Add all accumulated status messages
+    if (message.metadata.statusList.length > 0) {
+      progressContent += '\n\n**Progress Updates:**\n';
+      message.metadata.statusList.forEach((status: any) => {
+        const emoji = status.status === 'completed' ? '✅' : 
+                     status.status === 'failed' ? '❌' : 
+                     status.status === 'in_progress' ? '🔄' : 
+                     status.status === 'started' ? '🚀' : '📍';
+        const stepInfo = status.step ? ` - ${status.step}` : '';
+        const msg = status.message ? `: ${status.message}` : '';
+        const sequenceInfo = status.sequence ? ` [${status.sequence}/${status.totalSteps || '?'}]` : '';
+        progressContent += `${emoji} ${status.status}${stepInfo}${msg}${sequenceInfo}\n`;
+      });
+    }
+    
+    // Handle multi-step workflow progress (legacy support)
     if (statusUpdate.data?.workflow_steps_realtime) {
       const workflowSteps = statusUpdate.data.workflow_steps_realtime;
-      let accumulatedContent = '';
-      workflowSteps.forEach((step: any, index: number) => {
-        const stepEmoji = step.status === 'completed' ? '✅' : 
-                         step.status === 'failed' ? '❌' : '🔄';
-        const stepMessage = `${stepEmoji} ${step.message || step.stepName} (${index + 1}/${workflowSteps.length})`;
-        if (accumulatedContent === '') {
-          accumulatedContent = stepMessage;
-        } else {
-          accumulatedContent += `\n${stepMessage}`;
-        }
-      });
-      // Handle completion state
-      const completedSteps = workflowSteps.filter((s: any) => s.status === 'completed');
-      if (completedSteps.length > 0) {
-        const stepIndex = completedSteps.length - 1;
-        const totalSteps = workflowSteps.length;
-        // Store completed steps in metadata
-        if (!message.metadata.completedSteps) {
-          message.metadata.completedSteps = [];
-        }
-        message.metadata.completedSteps.forEach((step: any) => {
-          const stepMessage = `✅ ${step.message} (${step.index + 1}/${step.total})`;
-          if (accumulatedContent === '') {
-            accumulatedContent = stepMessage;
-          } else {
-            accumulatedContent += `\n${stepMessage}`;
-          }
-        });
-        // If not the last step, show next step starting
-        if (stepIndex < totalSteps - 1) {
-          const nextStepMessage = `🔄 Step ${stepIndex + 2}/${totalSteps} starting...`;
-          accumulatedContent += `\n${nextStepMessage}`;
-        } else {
-          // Last step completed, show final processing
-          const finalProcessingMessage = `🔄 Processing final response...`;
-          accumulatedContent += `\n${finalProcessingMessage}`;
-        }
-        progressContent = accumulatedContent;
-      }
-      // Update workflow steps in metadata
       message.metadata.workflow_steps_realtime = workflowSteps;
       message.metadata.processing_type = 'langgraph-multi-step-workflow';
     }
-    // Update message metadata
+    
+    // Update message metadata (preserve initialContent)
     message.metadata = { 
       ...message.metadata, 
       ...statusUpdate.data,
+      initialContent: message.metadata.initialContent, // Preserve initial content
       lastUpdated: new Date().toISOString()
     };
+    
     return { contentUpdated: true, newContent: progressContent };
   }
   /**

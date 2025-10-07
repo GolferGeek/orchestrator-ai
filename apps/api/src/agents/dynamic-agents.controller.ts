@@ -506,8 +506,18 @@ export class DynamicAgentsController {
         }
       } else {
         this.logger.debug(
-          `🎯 [DynamicAgentsController] Task ${task.id} was already completed by agent instance – skipping duplicate completion call`,
+          `🎯 [DynamicAgentsController] Task ${task.id} marked as handled – saving initial response without completing`,
         );
+        // Still save the initial response to DB so webhooks can update it later
+        // Use TasksService instead of TaskStatusService for updates
+        try {
+          await this.tasksService.updateTask(task.id, currentUser.id, {
+            response: result.response || result,
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.logger.error(`Failed to save initial task response: ${errorMessage}`);
+        }
       }
 
       // 🔊 OPTIONAL AUDIO SYNTHESIS - Convert response to speech if original input was audio

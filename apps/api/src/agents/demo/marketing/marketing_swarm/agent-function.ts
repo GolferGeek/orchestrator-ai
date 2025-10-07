@@ -4,11 +4,14 @@ import {
 } from '@agents/base/implementations/base-services/a2a-base/interfaces';
 
 /**
- * Marketing Swarm Agent Function - Advanced Multi-Agent Orchestration
+ * Marketing Swarm Agent Function - N8N Workflow Integration
  *
- * This agent coordinates multiple specialist agents to create, evaluate, and refine
- * marketing content through sophisticated workflows. It demonstrates real production
- * multi-agent collaboration, not just examples.
+ * This agent triggers the marketing-swarm n8n workflow to coordinate multiple specialist
+ * agents for comprehensive marketing content creation. The n8n workflow handles the actual
+ * multi-agent orchestration and sends real-time status updates via webhooks.
+ *
+ * The workflow execution happens asynchronously in n8n, with status updates broadcast
+ * via WebSocket to the UI in real-time.
  */
 
 interface MarketingTask {
@@ -810,58 +813,199 @@ ${content}
 }
 
 /**
- * Main agent function export
+ * Main agent function export - triggers n8n workflow
  */
 export async function execute(
   params: AgentFunctionParams,
 ): Promise<AgentFunctionResponse> {
-  const { userMessage, sessionId, llmService, metadata, progressCallback } =
-    params;
+  const { userMessage, sessionId, metadata, currentUser } = params;
   const startTime = Date.now();
 
-  // Extract LLM preferences from metadata if available
-  const llmPreferences = metadata?.llmPreferences;
+  // Extract taskId, conversationId, and userId from metadata or currentUser
+  const taskId = metadata?.taskId || `task_${Date.now()}`;
+  const conversationId = metadata?.conversationId || sessionId;
+  const userId = currentUser?.id || metadata?.userId || 'unknown';
 
   try {
-    const { response, metadata: workflowMetadata } =
-      await executeMarketingSwarm(
-        userMessage,
-        llmService,
-        sessionId,
-        llmPreferences,
-        progressCallback,
-      );
+    // Get n8n configuration from environment
+    const n8nHost = process.env.N8N_HOST || 'localhost';
+    const n8nPort = process.env.N8N_PORT || '5678';
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || `http://${n8nHost}:${n8nPort}`;
 
+    // Build callback URL for status updates
+    const baseUrl = process.env.VITE_BASE_URL || 'http://localhost';
+    const apiPort = process.env.API_PORT || '7100';
+    const apiBaseUrl = process.env.API_BASE_URL || `${baseUrl}:${apiPort}`;
+    const callback_url = `${apiBaseUrl}/webhooks/status`;
+
+    // Prepare payload for n8n workflow
+    const payload = {
+      taskId,
+      conversationId,
+      userId,
+      callback_url,
+      announcement: userMessage,
+      product: metadata?.product || 'Unknown Product',
+      target_audience: metadata?.target_audience || 'general audience',
+      tone: metadata?.tone || 'professional',
+    };
+
+    // Trigger the n8n workflow with a simple fetch
+    const webhookUrl = `${n8nWebhookUrl}/webhook/marketing-swarm`;
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N workflow trigger failed: ${response.status} ${response.statusText}`);
+    }
+
+    const workflowResponse = await response.json();
     const processingTime = Date.now() - startTime;
 
-    return {
+    // If workflow completed successfully, format and return the content
+    // The base service will auto-create a deliverable from the response
+    if (workflowResponse.status === 'completed' &&
+        (workflowResponse.webPost || workflowResponse.seoContent || workflowResponse.socialMedia)) {
+
+      // Format the marketing content package
+      const sections: string[] = ['# Marketing Content Package\n'];
+
+      if (workflowResponse.webPost) {
+        sections.push('## Web Post\n');
+        sections.push(workflowResponse.webPost);
+        sections.push('\n');
+      }
+
+      if (workflowResponse.seoContent) {
+        sections.push('## SEO Content\n');
+        sections.push(workflowResponse.seoContent);
+        sections.push('\n');
+      }
+
+      if (workflowResponse.socialMedia) {
+        sections.push('## Social Media\n');
+        sections.push(workflowResponse.socialMedia);
+        sections.push('\n');
+      }
+
+      const formattedContent = sections.join('\n');
+
+      // Also send status update to webhook for UI updates
+      try {
+        await fetch(callback_url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            taskId,
+            conversationId,
+            userId,
+            status: 'completed',
+            timestamp: workflowResponse.timestamp || new Date().toISOString(),
+            executionId: workflowResponse.executionId,
+            message: 'Marketing content package generated successfully',
+          }),
+        });
+      } catch (error) {
+        console.error(`Failed to send completion to webhook for task ${taskId}:`, error);
+      }
+
+      // Return the formatted content - base service will auto-create deliverable
+      return {
+        success: true,
+        response: formattedContent,
+        metadata: {
+          agentName: 'marketing-swarm',
+          processingType: 'n8n-workflow',
+          processingTime,
+          sessionId,
+          taskId,
+          conversationId,
+          executionId: workflowResponse.executionId || 'unknown',
+          toolsUsed: ['n8n-workflow', 'webhook-status-system'],
+          responseType: 'marketing-content-package',
+        },
+      };
+    }
+
+    // Return empty response - actual work happens in n8n
+    // Status updates will come via webhooks and be broadcast via WebSocket
+    // No initial message to avoid triggering deliverable creation
+    // Mark as handled so controller doesn't complete the task prematurely
+    const result: any = {
       success: true,
-      response,
+      response: '',
       metadata: {
         agentName: 'marketing-swarm',
-        processingType: 'multi-agent-orchestration',
+        processingType: 'n8n-workflow-trigger',
         processingTime,
         sessionId,
-        toolsUsed: ['llm-service', 'langgraph', 'agent-coordination'],
-        responseType: 'comprehensive-content-package',
-        swarm_workflow: workflowMetadata,
+        taskId,
+        conversationId,
+        executionId: workflowResponse.executionId || 'unknown',
+        toolsUsed: ['n8n-workflow', 'webhook-status-system'],
+        responseType: 'workflow-initiated',
+        workflowStatus: 'started',
+        statusUpdatesVia: 'websocket',
+        taskCompletionHandled: true, // Don't let controller complete the task
       },
+      __taskCompletionHandled: true, // Also set at top level
     };
+    return result;
   } catch (error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    return {
-      success: false,
-      response: `Marketing swarm orchestration failed: ${errorMessage}. The system attempted to coordinate multiple specialist agents for comprehensive content creation but encountered an error.`,
-      metadata: {
-        agentName: 'marketing-swarm',
-        processingType: 'error-fallback',
-        processingTime,
-        sessionId,
-        error: errorMessage,
-        toolsUsed: ['llm-service'],
-      },
-    };
+    // Fallback to old implementation if n8n is not available
+    console.warn('N8N workflow trigger failed, falling back to direct execution:', errorMessage);
+
+    try {
+      const { userMessage, sessionId, llmService, metadata, progressCallback } = params;
+      const llmPreferences = metadata?.llmPreferences;
+
+      const { response, metadata: workflowMetadata } =
+        await executeMarketingSwarm(
+          userMessage,
+          llmService,
+          sessionId,
+          llmPreferences,
+          progressCallback,
+        );
+
+      return {
+        success: true,
+        response,
+        metadata: {
+          agentName: 'marketing-swarm',
+          processingType: 'multi-agent-orchestration-fallback',
+          processingTime: Date.now() - startTime,
+          sessionId,
+          toolsUsed: ['llm-service', 'langgraph', 'agent-coordination'],
+          responseType: 'comprehensive-content-package',
+          swarm_workflow: workflowMetadata,
+          fallbackReason: 'n8n-unavailable',
+        },
+      };
+    } catch (fallbackError) {
+      const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      return {
+        success: false,
+        response: `Marketing swarm orchestration failed: ${fallbackErrorMessage}. Both n8n workflow and fallback execution encountered errors.`,
+        metadata: {
+          agentName: 'marketing-swarm',
+          processingType: 'error-fallback',
+          processingTime: Date.now() - startTime,
+          sessionId,
+          error: fallbackErrorMessage,
+          toolsUsed: ['llm-service'],
+        },
+      };
+    }
   }
 }

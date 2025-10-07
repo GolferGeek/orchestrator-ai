@@ -61,6 +61,7 @@ import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { SpeechModule } from './speech/speech.module';
 import { AgentCreatorModule } from './agents/demo/specialists/agent_creator/agent.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { AgentCreatorModule } from './agents/demo/specialists/agent_creator/agen
     SystemModule, // System analytics and monitoring
     SpeechModule, // Speech-to-text and text-to-speech functionality
     AgentCreatorModule, // Agent configuration service for discovery
+    WebhooksModule, // Webhook endpoints for external integrations (n8n, etc.)
   ],
   controllers: [
     AppController,

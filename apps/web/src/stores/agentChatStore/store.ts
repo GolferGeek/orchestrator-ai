@@ -570,6 +570,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
           onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
+          onInitialResponse: (convId, taskId, initialResult) => this.handleInitialResponse(convId, taskId, initialResult),
         });
 
       } catch (error) {
@@ -677,6 +678,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
           onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
+          onInitialResponse: (convId, taskId, initialResult) => this.handleInitialResponse(convId, taskId, initialResult),
         });
 
       } catch (error) {
@@ -755,7 +757,6 @@ export const useAgentChatStore = defineStore('agentChat', {
 
       console.log('🔍 [FRONTEND-DEBUG] handleTaskCompletion called for taskId:', taskId);
 
-
       // Prevent duplicate completion handling
       if ((this as any)._completingTasks?.has(taskId)) {
         return;
@@ -766,6 +767,21 @@ export const useAgentChatStore = defineStore('agentChat', {
         (this as any)._completingTasks = new Set();
       }
       (this as any)._completingTasks.add(taskId);
+      
+      // If we don't have an immediate task, or it has empty response, fetch fresh from DB
+      // (This handles n8n workflows that complete via webhook)
+      if (!immediateTask || !immediateTask.response || immediateTask.response === '' || immediateTask.response === '{}') {
+        console.log('🔄 [TASK-FETCH] Fetching fresh task from database...');
+        try {
+          const freshTask = await tasksService.getTask(taskId);
+          if (freshTask) {
+            immediateTask = freshTask;
+            console.log('✅ [TASK-FETCH] Got fresh task with response:', typeof freshTask.response);
+          }
+        } catch (error) {
+          console.error('❌ [TASK-FETCH] Failed to fetch fresh task:', error);
+        }
+      }
 
       const conv = this.getConversationById(conversationId);
       if (!conv) {
@@ -827,13 +843,20 @@ export const useAgentChatStore = defineStore('agentChat', {
         let versionNumber = null;
         let parsedResponse = null;
 
+        console.log('🔍 [N8N-DEBUG] ===== TASK COMPLETION =====');
+        console.log('🔍 [N8N-DEBUG] completedTask:', JSON.stringify(completedTask, null, 2));
+        console.log('🔍 [N8N-DEBUG] finalContent extracted:', finalContent);
+
         if (completedTask.response) {
           try {
             parsedResponse = typeof completedTask.response === 'string'
               ? JSON.parse(completedTask.response)
               : completedTask.response;
 
-            console.log('🔍 [FRONTEND-DEBUG] parsedResponse:', parsedResponse);
+            console.log('🔍 [N8N-DEBUG] parsedResponse:', JSON.stringify(parsedResponse, null, 2));
+            console.log('🔍 [N8N-DEBUG] Has webPost?', !!parsedResponse?.webPost);
+            console.log('🔍 [N8N-DEBUG] Has seoContent?', !!parsedResponse?.seoContent);
+            console.log('🔍 [N8N-DEBUG] Has socialMedia?', !!parsedResponse?.socialMedia);
             console.log('🔍 [FRONTEND-DEBUG] completedTask.response type:', typeof completedTask.response);
             
             
@@ -1050,6 +1073,44 @@ export const useAgentChatStore = defineStore('agentChat', {
 
 
     /**
+     * Handle initial response from task creation (for n8n workflows)
+     */
+    handleInitialResponse(conversationId: string, taskId: string, initialResult: any) {
+      const conv = this.getConversationById(conversationId);
+      if (!conv) return;
+
+      // Find the placeholder message
+      const messageIndex = conv.messages.findIndex(msg => 
+        msg.taskId === taskId && msg.role === 'assistant' && msg.metadata?.isPlaceholder
+      );
+      
+      if (messageIndex >= 0) {
+        const message = conv.messages[messageIndex];
+        
+        // Extract the response text from the result
+        let responseText = '';
+        if (typeof initialResult === 'string') {
+          responseText = initialResult;
+        } else if (initialResult.response) {
+          responseText = initialResult.response;
+        } else if (initialResult.message) {
+          responseText = initialResult.message;
+        }
+        
+        if (responseText) {
+          // Update the message content AND store it as initialContent for status accumulation
+          message.content = responseText;
+          message.metadata = {
+            ...message.metadata,
+            initialContent: responseText,
+          };
+          
+          conv.messages[messageIndex] = { ...message }; // Trigger reactivity
+        }
+      }
+    },
+
+    /**
      * Handle task status updates
      */
     handleTaskStatusUpdate(conversationId: string, taskId: string, statusUpdate: any) {
@@ -1107,9 +1168,16 @@ export const useAgentChatStore = defineStore('agentChat', {
         const message = conv.messages[messageIndex];
         const result = websocketHandler.processTaskStatusUpdate(message, statusUpdate);
         
+        console.log('📝 [STATUS-UPDATE] Result from processTaskStatusUpdate:', {
+          contentUpdated: result.contentUpdated,
+          newContentLength: result.newContent?.length,
+          newContentPreview: result.newContent?.substring(0, 200)
+        });
+        
         if (result.contentUpdated && result.newContent) {
           message.content = result.newContent;
           conv.messages[messageIndex] = { ...message }; // Trigger reactivity
+          console.log('✅ [STATUS-UPDATE] Updated message content, length:', message.content.length);
         }
       }
     },
