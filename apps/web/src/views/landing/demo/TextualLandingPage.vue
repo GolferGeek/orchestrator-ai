@@ -971,6 +971,12 @@
           </AccordionSection>
         </div>
       </div>
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <div class="footer-content">
+        <p>2025 – Orchestrator AI</p>
+      </div>
+    </footer>
     </ion-content>
     
     <!-- Video Modal -->
@@ -1837,6 +1843,28 @@ onMounted(() => {
   font-weight: 600;
 }
 
+  /* Footer */
+  .landing-footer {
+    background: var(--landing-gradient);
+    color: var(--landing-white);
+    padding: var(--space-8) 0;
+    text-align: center;
+    margin-top: var(--space-16);
+  }
+
+  .footer-content {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-8);
+  }
+
+  .footer-content p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--landing-white);
+    font-weight: var(--font-weight-medium);
+  }
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .textual-content {
@@ -1982,5 +2010,14 @@ onMounted(() => {
   .demo-directory-column, .myorg-directory-column {
     flex: none;
   }
+
+    .landing-footer {
+      padding: var(--space-6) 0;
+      margin-top: var(--space-12);
+    }
+
+    .footer-content {
+      padding: 0 var(--space-4);
+    }
 }
 </style>
