@@ -83,6 +83,14 @@ ion-select {
   --padding-top: 0.25rem;
   --padding-bottom: 0.25rem;
   --min-height: 36px;
+  /* Ensure trigger text is visible on light header */
+  --color: var(--ion-color-dark, #222);
+  --placeholder-color: var(--ion-color-medium, #6b7280);
   font-size: 0.85rem;
+}
+
+/* Fallback for browsers needing part selector */
+ion-select::part(text) {
+  color: var(--ion-color-dark, #222);
 }
 </style>
