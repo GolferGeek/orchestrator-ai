@@ -3,6 +3,7 @@
     <ion-select
       :value="currentNamespace"
       interface="popover"
+      :interface-options="{ cssClass: 'namespace-popover' }"
       aria-label="Select active namespace"
       placeholder="Namespace"
       @ionChange="onNamespaceChange"
