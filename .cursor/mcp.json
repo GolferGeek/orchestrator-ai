@@ -41,14 +41,12 @@
             }
         },
         "n8n-mcp": {
-            "command": "npx",
-            "args": ["n8n-mcp"],
+            "command": "./apps/n8n/scripts/run-mcp.sh",
+            "args": [],
             "env": {
                 "MCP_MODE": "stdio",
                 "LOG_LEVEL": "error",
-                "DISABLE_CONSOLE_OUTPUT": "false",
-                "N8N_API_URL": "http://localhost:5678",
-                "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMDYxNWQzYS0xNDc3LTQ1ODgtYWVlNi1lZTBmODI2NGNlZWMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU4NTQ4OTg0fQ.zEaDisWx-1lqMj6PWrJhUTdAEXrziSY5v2A6ua1nP64"
+                "DISABLE_CONSOLE_OUTPUT": "false"
             }
         }
     }

@@ -10,9 +10,17 @@ To enable the n8n MCP server to work with your actual n8n instance and Supabase 
 4. **API Section**: Navigate to "API" in the settings
 5. **Create API Key**: Generate a new API key for MCP access
 
-## Step 2: Update MCP Configuration
+## Step 2: Add API Key to Environment
 
-Once you have the API key, update `.cursor/mcp.json` to match the working production setup:
+Once you have the API key, add it to `apps/n8n/.env`:
+
+```bash
+# n8n Configuration  
+N8N_API_URL=http://localhost:5678
+N8N_API_KEY=your-local-n8n-api-key-here
+```
+
+The MCP configuration in `.cursor/mcp.json` uses these environment variables:
 
 ```json
 {
@@ -21,18 +29,18 @@ Once you have the API key, update `.cursor/mcp.json` to match the working produc
       "command": "npx",
       "args": ["n8n-mcp"],
       "env": {
-        "MCP_MODE": "stdio",
-        "LOG_LEVEL": "error",
-        "DISABLE_CONSOLE_OUTPUT": "false",
-        "N8N_API_URL": "http://localhost:5678",
-        "N8N_API_KEY": "your-local-n8n-api-key-here"
+        "N8N_API_URL": "${N8N_API_URL}",
+        "N8N_API_KEY": "${N8N_API_KEY}"
       }
     }
   }
 }
 ```
 
-**Important:** Use the API key from your **local** n8n instance (http://localhost:5678), not production.
+**Benefits:**
+- ✅ **Secure**: API keys in .env (not committed to Git)
+- ✅ **Team-friendly**: Each developer has their own API key
+- ✅ **Simple**: One place to manage n8n configuration
 
 ## Step 3: Test Connection
 
