@@ -8,25 +8,18 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { currentNamespace } = storeToRefs(authStore);
 
-onMounted(() => {
-  const namespace = (currentNamespace.value || 'demo').toLowerCase();
+function resolveLandingPath(nsRaw: string | null | undefined): string {
+  const ns = (nsRaw || 'demo').toLowerCase();
+  const compact = ns.replace(/[^a-z0-9]/g, '');
+  if (compact === 'demo') return '/landing';
+  if (compact === 'myorg') return '/my-org';
+  if (ns === 'saas' || ns.startsWith('saas-') || compact.startsWith('saas')) return '/saas';
+  return '/landing';
+}
 
-  // For demo namespace, redirect to landing view
-  if (namespace === 'demo') {
-    router.replace('/landing');
-  } 
-  // For my-org namespace
-  else if (namespace === 'my-org') {
-    router.replace('/my-org');
-  }
-  // For saas-* namespaces
-  else if (namespace.startsWith('saas-')) {
-    router.replace('/saas');
-  }
-  // Default to landing
-  else {
-    router.replace('/landing');
-  }
+onMounted(() => {
+  const target = resolveLandingPath(currentNamespace.value);
+  router.replace(target);
 });
 </script>
 

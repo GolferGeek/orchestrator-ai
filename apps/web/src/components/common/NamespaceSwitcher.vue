@@ -25,17 +25,30 @@ import { computed } from 'vue';
 import { IonSelect, IonSelectOption } from '@ionic/vue';
 import type { SelectCustomEvent } from '@ionic/vue';
 import { useAuthStore } from '@/stores/authStore';
+import { useRouter } from 'vue-router';
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 const availableNamespaces = computed(() => authStore.availableNamespaces);
 const currentNamespace = computed(() => authStore.currentNamespace);
 const hasMultipleNamespaces = computed(() => availableNamespaces.value.length > 1);
 
+function getLandingPathForNamespace(namespace: string): string {
+  const ns = (namespace || '').toLowerCase();
+  const compact = ns.replace(/[^a-z0-9]/g, '');
+  if (compact === 'demo') return '/landing';
+  if (compact === 'myorg') return '/my-org';
+  if (ns === 'saas' || ns.startsWith('saas-') || compact.startsWith('saas')) return '/saas';
+  return '/landing';
+}
+
 function onNamespaceChange(event: SelectCustomEvent) {
   const value = event.detail.value as string | null;
   if (value) {
     authStore.setActiveNamespace(value);
+    const target = getLandingPathForNamespace(value);
+    router.replace(target);
   }
 }
 
