@@ -37,6 +37,11 @@ export interface PlanEditResult {
   version: PlanVersionData;
 }
 
+export interface PlanRerunResult {
+  plan: PlanData;
+  version: PlanVersionData;
+}
+
 export interface PlanDeleteResult {
   deleted: boolean;
   planId: string;
@@ -116,6 +121,14 @@ export const planResponseHandler = {
    */
   handleEdit(response: any): PlanEditResult {
     return validateAndExtract<PlanEditResult>(response, 'edit');
+  },
+
+  /**
+   * Handle rerun plan response
+   * Pure function: validates and returns typed data
+   */
+  handleRerun(response: any): PlanRerunResult {
+    return validateAndExtract<PlanRerunResult>(response, 'rerun');
   },
 
   /**

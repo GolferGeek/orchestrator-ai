@@ -11,6 +11,7 @@ export type PlanAction =
   | 'read'
   | 'list'
   | 'edit'
+  | 'rerun'
   | 'set_current'
   | 'delete_version'
   | 'merge_versions'
@@ -57,6 +58,26 @@ export interface PlanEditPayload {
   editedContent: string;
   /** Optional comment about the edit */
   comment?: string;
+}
+
+/**
+ * Plan Rerun Action Payload
+ */
+export interface PlanRerunPayload {
+  action: 'rerun';
+  /** Version ID to rerun (REQUIRED) */
+  versionId: string;
+  /** LLM configuration for rerun (REQUIRED) */
+  rerunConfig: {
+    /** LLM provider (REQUIRED) */
+    provider: string;
+    /** LLM model (REQUIRED) */
+    model: string;
+    /** Temperature for generation (optional - defaults to model default) */
+    temperature?: number;
+    /** Max tokens for generation (optional - defaults to model default) */
+    maxTokens?: number;
+  };
 }
 
 /**
@@ -112,6 +133,7 @@ export type PlanModePayload =
   | PlanReadPayload
   | PlanListPayload
   | PlanEditPayload
+  | PlanRerunPayload
   | PlanSetCurrentPayload
   | PlanDeleteVersionPayload
   | PlanMergeVersionsPayload
@@ -233,4 +255,34 @@ export interface PlanListResponseContent {
     isCurrentVersion: boolean;
     createdAt: string;
   }>;
+}
+
+/**
+ * Plan Rerun Response Content
+ */
+export interface PlanRerunResponseContent {
+  plan: {
+    id: string;
+    conversationId: string;
+    userId: string;
+    agentName: string;
+    namespace: string;
+    title: string;
+    currentVersionId: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  version: {
+    id: string;
+    planId: string;
+    versionNumber: number;
+    content: string;
+    format: 'markdown' | 'json';
+    createdByType: 'agent' | 'user';
+    createdById: string | null;
+    taskId?: string;
+    metadata?: Record<string, any>;
+    isCurrentVersion: boolean;
+    createdAt: string;
+  };
 }

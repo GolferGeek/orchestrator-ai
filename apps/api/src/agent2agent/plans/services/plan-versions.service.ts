@@ -3,9 +3,13 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PlanVersionsRepository } from '../repositories/plan-versions.repository';
 import { PlansRepository } from '../repositories/plans.repository';
+import { LLMService } from '@/llms/llm.service';
+import { TasksService } from '@/agent2agent/tasks/tasks.service';
 
 export interface PlanVersion {
   id: string;
@@ -37,6 +41,10 @@ export class PlanVersionsService {
   constructor(
     private readonly versionsRepo: PlanVersionsRepository,
     private readonly plansRepo: PlansRepository,
+    @Inject(forwardRef(() => LLMService))
+    private readonly llmService: LLMService,
+    @Inject(forwardRef(() => TasksService))
+    private readonly tasksService: TasksService,
   ) {}
 
   /**
@@ -310,6 +318,147 @@ export class PlanVersionsService {
       metadata: data.metadata || {},
       isCurrentVersion: data.is_current_version,
       createdAt: new Date(data.created_at),
+    };
+  }
+
+  /**
+   * Rerun plan with different LLM
+   */
+  async rerunWithDifferentLLM(
+    versionId: string,
+    rerunConfig: {
+      provider: string;
+      model: string;
+      temperature?: number;
+      maxTokens?: number;
+    },
+    userId: string,
+  ): Promise<{ plan: any; version: PlanVersion }> {
+    try {
+      // 1. Get the source version
+      const sourceVersion = await this.findOne(versionId, userId);
+      if (!sourceVersion) {
+        throw new NotFoundException('Source version not found');
+      }
+
+      // 2. Verify plan ownership
+      const plan = await this.plansRepo.findById(sourceVersion.planId, userId);
+      if (!plan) {
+        throw new NotFoundException('Plan not found');
+      }
+
+      // 3. Get the original task to retrieve the prompt
+      if (!sourceVersion.taskId) {
+        throw new BadRequestException(
+          'Cannot rerun: source version has no associated task',
+        );
+      }
+
+      const originalTask = await this.tasksService.getTaskById(sourceVersion.taskId, userId);
+      if (!originalTask || !originalTask.prompt) {
+        throw new BadRequestException(
+          'Cannot rerun: original task not found or has no prompt',
+        );
+      }
+
+      // 4. Build system prompt for plan generation
+      const systemPrompt = `You are an expert planning assistant. Create a comprehensive, well-structured plan based on the user's request. Format the plan in markdown.`;
+
+      this.logger.debug(
+        `🔄 [PLAN RERUN] Calling LLM with provider=${rerunConfig.provider}, model=${rerunConfig.model}`,
+      );
+
+      // 5. Call LLM service with new model
+      const llmResponse = await this.llmService.generateUnifiedResponse({
+        provider: rerunConfig.provider,
+        model: rerunConfig.model,
+        systemPrompt: systemPrompt,
+        userMessage: originalTask.prompt,
+        options: {
+          temperature: rerunConfig.temperature,
+          maxTokens: rerunConfig.maxTokens,
+          userId: userId,
+          callerType: 'plan_rerun',
+          callerName: `plan_rerun`,
+          conversationId: plan.conversation_id,
+          includeMetadata: true,
+        },
+      });
+
+      this.logger.debug(`🔄 [PLAN RERUN] LLM response received successfully`);
+
+      // 6. Handle string | LLMResponse union type
+      const responseContent =
+        typeof llmResponse === 'string' ? llmResponse : llmResponse.content;
+      const responseMetadata =
+        typeof llmResponse === 'object' ? llmResponse.metadata : undefined;
+
+      // 7. Create new version with LLM response
+      const newVersion = await this.createVersion(plan.id, userId, {
+        content: responseContent,
+        format: sourceVersion.format || 'markdown',
+        createdByType: 'agent',
+        taskId: sourceVersion.taskId,
+        metadata: {
+          ...sourceVersion.metadata,
+          sourceVersionId: versionId,
+          rerunAt: new Date().toISOString(),
+          llmRerunInfo: {
+            provider: rerunConfig.provider,
+            model: rerunConfig.model,
+            temperature: rerunConfig.temperature,
+            maxTokens: rerunConfig.maxTokens,
+          },
+          llmMetadata: responseMetadata
+            ? {
+                runId: responseMetadata.requestId,
+                provider: responseMetadata.provider,
+                model: responseMetadata.model,
+                inputTokens: responseMetadata.usage?.inputTokens,
+                outputTokens: responseMetadata.usage?.outputTokens,
+                cost: responseMetadata.usage?.cost,
+                duration: responseMetadata.timing?.duration,
+              }
+            : undefined,
+        },
+      });
+
+      this.logger.log(
+        `🔄 Plan rerun completed: Version ${newVersion.versionNumber} created with ${rerunConfig.provider}/${rerunConfig.model} for plan ${plan.id}`,
+      );
+
+      return {
+        plan: this.mapPlanFromDb(plan),
+        version: newVersion,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      this.logger.error('Failed to rerun plan with different LLM:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new BadRequestException(
+        `Failed to rerun plan with different LLM: ${errorMessage}`,
+      );
+    }
+  }
+
+  private mapPlanFromDb(data: any): any {
+    return {
+      id: data.id,
+      conversationId: data.conversation_id,
+      userId: data.user_id,
+      agentName: data.agent_name,
+      namespace: data.namespace,
+      title: data.title,
+      currentVersionId: data.current_version_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
     };
   }
 }

@@ -438,6 +438,7 @@ import {
 import { marked } from 'marked';
 import TaskRating from './TaskRating.vue';
 import type { Plan, PlanVersion } from '@/services/agent2agent/types';
+import { usePlanStore } from '@/stores/planStore';
 
 interface Props {
   plan: Plan & { currentVersion?: PlanVersion };
@@ -454,6 +455,9 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+// Store
+const planStore = usePlanStore();
+
 // Reactive state
 const showVersionHistory = ref(false);
 const showDiff = ref(false);
@@ -465,9 +469,13 @@ const editedContent = ref('');
 const editedTitle = ref('');
 const isSaving = ref(false);
 const contentTextarea = ref<any>(null);
-const versions = ref<PlanVersion[]>([]);
 
-// Computed
+// Computed - get versions from store for reactivity
+const versions = computed(() => {
+  // This will trigger whenever the store state changes
+  return planStore.versionsByPlanId(props.plan.id);
+});
+
 const displayTitle = computed(() => props.plan.title || 'Untitled Plan');
 const totalVersions = computed(() => versions.value.length || 1);
 const currentVersion = computed(() => props.plan.currentVersion);
@@ -816,12 +824,8 @@ const getVersionCost = (version: any): string | null => {
   return null;
 };
 
-// Initialize versions from plan if available
-watch(() => props.plan, (newPlan) => {
-  if (newPlan.currentVersion) {
-    versions.value = [newPlan.currentVersion];
-  }
-}, { immediate: true });
+// Versions are now loaded reactively from the store via computed property
+// No need to manually watch for plan changes
 </script>
 
 <style scoped>

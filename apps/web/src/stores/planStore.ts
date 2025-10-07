@@ -61,58 +61,11 @@ export const usePlanStore = defineStore('plan', () => {
     }
   }
 
-  /**
-   * Handle plan create result from handler
-   */
-  function handlePlanCreate(result: PlanCreateResult, conversationId?: string): void {
-    addPlan(result.plan, result.version);
-
-    if (conversationId) {
-      associatePlanWithConversation(result.plan.id, conversationId);
-    }
-
-    // Set this version as current
-    if (result.version) {
-      setCurrentVersion(result.plan.id, result.version.id);
-    }
-  }
-
-  /**
-   * Handle plan read result from handler
-   */
-  function handlePlanRead(result: PlanReadResult): void {
-    addPlan(result.plan, result.version);
-
-    // Set this version as current
-    if (result.version) {
-      setCurrentVersion(result.plan.id, result.version.id);
-    }
-  }
-
-  /**
-   * Handle plan edit result from handler
-   */
-  function handlePlanEdit(result: PlanEditResult): void {
-    addPlan(result.plan, result.version);
-
-    // Set this version as current
-    if (result.version) {
-      setCurrentVersion(result.plan.id, result.version.id);
-    }
-  }
-
-  /**
-   * Handle plan list result from handler
-   */
-  function handlePlanList(plans: PlanData[], conversationId?: string): void {
-    plans.forEach(plan => {
-      addPlan(plan);
-
-      if (conversationId) {
-        associatePlanWithConversation(plan.id, conversationId);
-      }
-    });
-  }
+  // Orchestration methods removed - now handled by plan.actions.ts
+  // - handlePlanCreate → createPlan action
+  // - handlePlanRead → readPlan action
+  // - handlePlanEdit → editPlan action
+  // - handlePlanList → listPlans action
 
   /**
    * Update plan data
@@ -152,19 +105,26 @@ export const usePlanStore = defineStore('plan', () => {
    * Add version to a plan
    */
   function addVersion(planId: string, version: PlanVersionData): void {
+    console.log('📝 [planStore.addVersion] Adding version:', { planId, versionId: version.id, versionNumber: version.versionNumber });
+
     const versions = planVersions.value.get(planId) || [];
+    console.log('📝 [planStore.addVersion] Existing versions:', versions.length);
 
     // Check if version already exists
     const existingIndex = versions.findIndex(v => v.id === version.id);
 
     if (existingIndex >= 0) {
       // Update existing version
+      console.log('📝 [planStore.addVersion] Updating existing version at index', existingIndex);
       versions[existingIndex] = version;
       planVersions.value.set(planId, [...versions]);
     } else {
       // Add new version
+      console.log('📝 [planStore.addVersion] Adding new version (total will be:', versions.length + 1, ')');
       planVersions.value.set(planId, [...versions, version]);
     }
+
+    console.log('📝 [planStore.addVersion] Total versions now:', planVersions.value.get(planId)?.length);
   }
 
   /**
@@ -227,7 +187,7 @@ export const usePlanStore = defineStore('plan', () => {
 
   /**
    * Rerun plan creation with a different LLM
-   * Similar to deliverable rerun but for plans
+   * Uses the plan rerun action via agent2agent API
    */
   async function rerunWithDifferentLLM(
     plan: PlanData,
@@ -239,136 +199,54 @@ export const usePlanStore = defineStore('plan', () => {
       maxTokens?: number;
     }
   ): Promise<PlanVersionData> {
-    const AGENT_TASK_TIMEOUT_SECONDS = 600; // 10 minutes
-    const AGENT_TASK_TIMEOUT_MS = AGENT_TASK_TIMEOUT_SECONDS * 1000;
-
     try {
-      // 1) Use the provided version data
-      const sourceVersion = version;
-      const planId = plan.id;
-      const versionId = version.id;
-
-      const currentNumber = sourceVersion.versionNumber;
-      // Conversation is tracked at the plan level
       const conversationId = plan.conversationId;
-      // Task that produced this version (may be undefined for manual edits)
-      const taskId = (sourceVersion as any).taskId as string | undefined;
+      const versionId = version.id;
 
       if (!conversationId) {
         throw new Error('Cannot rerun: missing conversationId on plan');
       }
 
-      // 2) Load the task to get original prompt
-      const { tasksService } = await import('@/services/tasksService');
-      if (!taskId) {
-        throw new Error('Cannot rerun: version has no originating taskId');
+      // Call the rerun API
+      const { createAgent2AgentApi } = await import('@/services/agent2agent/api/agent2agent.api');
+      const api = createAgent2AgentApi(plan.agentName);
+
+      console.log('🔄 [Plan Rerun] Calling rerun API:', {
+        conversationId,
+        versionId,
+        llmConfig: llmSelection
+      });
+
+      const response = await api.plans.rerun(conversationId, versionId, {
+        provider: llmSelection.providerName!,
+        model: llmSelection.modelName!,
+        temperature: llmSelection.temperature,
+        maxTokens: llmSelection.maxTokens,
+      });
+
+      console.log('✅ [Plan Rerun] Response received:', response);
+
+      // Handle the response
+      if (!response.success || !response.data) {
+        console.error('❌ [Plan Rerun] Failed:', response.error);
+        throw new Error(response.error?.message || 'Failed to rerun plan');
       }
 
-      const originalTask = await tasksService.getTask(taskId);
-      if (!originalTask) {
-        throw new Error(`Original task ${taskId} not found`);
+      // Extract the new version from the response
+      const newVersion = response.data.version;
+
+      if (!newVersion) {
+        console.error('❌ [Plan Rerun] No version in response:', response.data);
+        throw new Error('Rerun succeeded but did not return a version');
       }
 
-      // 3) Extract routing info from the task
-      const agentType = originalTask.metadata?.source === 'database' ? 'database' : 'dynamic';
-      const agentName = originalTask.metadata?.agentName;
-      const namespace = originalTask.metadata?.namespace;
+      // Add the new version to the store
+      console.log('✅ [Plan Rerun] Adding new version to store:', newVersion);
+      addVersion(plan.id, newVersion);
 
-      if (!agentName) {
-        throw new Error('Cannot determine agent name from original task');
-      }
-
-      // 4) Filter conversation history to exclude the plan response
-      let filteredConversationHistory: any[] = [];
-      try {
-        const { agentConversationsService } = await import('@/services/agentConversationsService');
-        const history = await agentConversationsService.getConversationHistory(conversationId);
-        if (history && history.length > 0) {
-          // Find messages after the task but before the plan response
-          const taskIndex = history.findIndex((msg: any) => msg.taskId === taskId);
-
-          filteredConversationHistory = history
-            .slice(0, taskIndex >= 0 ? taskIndex : history.length)
-            .map((msg: any) => ({
-              role: msg.role,
-              content: msg.content,
-              timestamp: msg.timestamp.toISOString(),
-              taskId: msg.taskId,
-              metadata: msg.metadata
-            }));
-
-          console.log(`🔄 Filtered conversation history for plan rerun: ${filteredConversationHistory.length} messages (excluded plan response)`);
-        }
-      } catch (e) {
-        console.warn('Could not load conversation history for filtering, backend will use full history', e);
-      }
-
-      // 5) Create new task with plan mode
-      const taskResp = await tasksService.createAgentTask(
-        agentType,
-        agentName,
-        {
-          method: 'process',
-          prompt: originalTask.prompt,
-          conversationId,
-          llmSelection,
-          executionMode: 'immediate',
-          timeoutSeconds: AGENT_TASK_TIMEOUT_SECONDS,
-          ...(filteredConversationHistory.length > 0 ? { conversationHistory: filteredConversationHistory } : {}),
-          // CRITICAL: Use plan mode not build mode
-          params: {
-            mode: 'plan',
-          },
-        },
-        namespace ? { namespace } : undefined
-      );
-
-      // 6) Poll for new plan version
-      const start = Date.now();
-      const intervalMs = 1000;
-      let latest: PlanVersionData | null = null;
-      const newTaskId = (taskResp && (taskResp as any).taskId) || undefined;
-
-      while (Date.now() - start < AGENT_TASK_TIMEOUT_MS) {
-        if (newTaskId) {
-          console.log(`🔍 [Plan LLM Rerun] Checking for plan version with taskId: ${newTaskId}`);
-
-          // Check if new version exists by looking at versions array
-          const versions = versionsByPlanId(planId);
-          const created = versions.find(v => v.taskId === newTaskId);
-
-          if (created) {
-            console.log(`✅ [Plan LLM Rerun] Found new plan version`);
-            latest = created;
-            break;
-          }
-        } else {
-          // Fallback: detect by version number increment
-          console.log(`🔍 [Plan LLM Rerun] Checking for version number increment (current: ${currentNumber})`);
-          const versions = versionsByPlanId(planId);
-          const maxVersion = versions.reduce(
-            (max, v) => (v.versionNumber > max.versionNumber ? v : max),
-            versions[0] || sourceVersion
-          );
-
-          console.log(`🔍 [Plan LLM Rerun] Max version found: ${maxVersion?.versionNumber}`);
-          if (maxVersion && maxVersion.versionNumber > currentNumber) {
-            latest = maxVersion;
-            break;
-          }
-        }
-
-        await new Promise(res => setTimeout(res, intervalMs));
-      }
-
-      if (!latest) {
-        throw new Error('Timed out waiting for new plan version after rerun');
-      }
-
-      // 7) Return the new version (already in store from conversation handler)
-      return latest;
+      return newVersion;
     } catch (error: any) {
-      console.error('Failed to rerun plan with different LLM via agent tasks:', error);
+      console.error('Failed to rerun plan with different LLM:', error);
       throw error;
     }
   }
@@ -385,12 +263,8 @@ export const usePlanStore = defineStore('plan', () => {
     plansByConversationId,
     allPlans,
 
-    // Actions
+    // Simple mutations only (orchestration moved to plan.actions.ts)
     addPlan,
-    handlePlanCreate,
-    handlePlanRead,
-    handlePlanEdit,
-    handlePlanList,
     updatePlan,
     deletePlan,
     addVersion,
@@ -399,6 +273,6 @@ export const usePlanStore = defineStore('plan', () => {
     associatePlanWithConversation,
     clearPlansByConversation,
     clearAll,
-    rerunWithDifferentLLM,
+    rerunWithDifferentLLM, // TODO: Move to plan.actions.ts
   };
 });

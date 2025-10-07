@@ -130,6 +130,24 @@ export class Agent2AgentApi {
       return this.executeStrictRequest(strictRequest);
     },
 
+    rerun: async (
+      conversationId: string,
+      versionId: string,
+      rerunConfig: {
+        provider: string;
+        model: string;
+        temperature?: number;
+        maxTokens?: number;
+      }
+    ) => {
+      return this.executePlanAction({
+        mode: TaskMode.PLAN,
+        action: 'rerun',
+        conversationId,
+        params: { versionId, rerunConfig },
+      });
+    },
+
     setCurrent: async (conversationId: string, versionId: string) => {
       return this.executePlanAction({
         mode: TaskMode.PLAN,
@@ -387,22 +405,26 @@ export class Agent2AgentApi {
       // Extract message and other params
       const { message, userMessage, ...otherParams } = request.params || {};
 
+      const requestBody = {
+        jsonrpc: '2.0',
+        id: crypto.randomUUID(),
+        method: mode,
+        params: {
+          userMessage: userMessage || message,
+          conversationId: request.conversationId,
+          payload: {
+            action: request.action,
+            ...otherParams,
+          },
+        },
+      };
+
+      console.log('📤 [Agent2Agent API] Request:', JSON.stringify(requestBody, null, 2));
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: this.getAuthHeaders(),
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: crypto.randomUUID(),
-          method: mode,
-          params: {
-            userMessage: userMessage || message,
-            conversationId: request.conversationId,
-            payload: {
-              action: request.action,
-              ...otherParams,
-            },
-          },
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -424,34 +446,22 @@ export class Agent2AgentApi {
 
       // Handle JSON-RPC 2.0 response format
       // Backend returns: { jsonrpc: "2.0", id: "...", result: TaskResponseDto }
-      let taskResponse;
+      // Handlers expect: { jsonrpc: "2.0", id: "...", result: { success, mode, payload } }
 
       if (data.jsonrpc === '2.0') {
-        // JSON-RPC success response
-        if (data.result) {
-          taskResponse = data.result;
-        } else if (data.error) {
-          // JSON-RPC error response (shouldn't reach here if !response.ok worked)
+        // Already in JSON-RPC format - return as is
+        if (data.error) {
           throw new Error(data.error.message || 'JSON-RPC error');
-        } else {
-          throw new Error('Invalid JSON-RPC response');
         }
+        return data as T;
       } else {
-        // Direct TaskResponseDto (legacy format)
-        taskResponse = data;
-      }
-
-      // Transform TaskResponseDto to frontend format
-      // TaskResponseDto: { success, mode, payload: { content: {...} } }
-      // Frontend expects: { success, data: {...} }
-      if (taskResponse.success && taskResponse.payload?.content) {
+        // Direct TaskResponseDto - wrap it in JSON-RPC format for handlers
         return {
-          success: true,
-          data: taskResponse.payload.content,
+          jsonrpc: '2.0',
+          id: crypto.randomUUID(),
+          result: data,
         } as T;
       }
-
-      return taskResponse as T;
     } catch (error) {
       console.error(`Agent2Agent API error (${mode}/${request.action}):`, error);
       throw error;

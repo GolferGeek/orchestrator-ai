@@ -82,6 +82,10 @@ export class PlansService implements IActionHandler {
           result = await this.saveManualEdit(params, context);
           break;
 
+        case 'rerun':
+          result = await this.rerunWithDifferentLLM(params, context);
+          break;
+
         case 'set_current':
           result = await this.setCurrentVersion(params, context);
           break;
@@ -295,6 +299,40 @@ export class PlansService implements IActionHandler {
     );
 
     return { plan: this.mapToPlan(plan), version: newVersion };
+  }
+
+  /**
+   * Action: rerun
+   * Rerun plan generation with different LLM settings
+   */
+  private async rerunWithDifferentLLM(
+    params: {
+      versionId: string;
+      rerunConfig: {
+        provider: string;
+        model: string;
+        temperature?: number;
+        maxTokens?: number;
+      };
+    },
+    context: ActionExecutionContext,
+  ) {
+    const { provider, model, temperature, maxTokens } = params.rerunConfig;
+
+    this.logger.debug(
+      `🔄 [PLAN RERUN] versionId=${params.versionId}, provider=${provider}, model=${model}`,
+    );
+
+    return this.versionsService.rerunWithDifferentLLM(
+      params.versionId,
+      {
+        provider,
+        model,
+        temperature,
+        maxTokens,
+      },
+      context.userId,
+    );
   }
 
   /**

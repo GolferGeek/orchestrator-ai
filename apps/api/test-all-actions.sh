@@ -66,14 +66,14 @@ call_api() {
 }
 
 # ==========================================
-# PLAN ACTIONS (9 total)
+# PLAN ACTIONS (10 total)
 # ==========================================
 echo "========================================="
 echo "TESTING PLAN ACTIONS"
 echo "========================================="
 echo ""
 
-echo "PLAN Action 1/9: CREATE..."
+echo "PLAN Action 1/10: CREATE..."
 PLAN_RESULT=$(call_api "plan" "create" ', "title": "Test Plan", "content": "# Plan\n\n1. Step one", "format": "markdown"')
 PLAN_SUCCESS=$(echo "$PLAN_RESULT" | jq -r '.success')
 if [ "$PLAN_SUCCESS" = "true" ]; then
@@ -86,7 +86,7 @@ else
   exit 1
 fi
 
-echo "PLAN Action 2/9: READ..."
+echo "PLAN Action 2/10: READ..."
 READ_RESULT=$(call_api "plan" "read" '')
 READ_SUCCESS=$(echo "$READ_RESULT" | jq -r '.success')
 if [ "$READ_SUCCESS" = "true" ]; then
@@ -96,7 +96,7 @@ else
   exit 1
 fi
 
-echo "PLAN Action 3/9: CREATE (refine)..."
+echo "PLAN Action 3/10: CREATE (refine)..."
 REFINE_RESULT=$(call_api "plan" "create" ', "title": "Test Plan", "content": "# Plan v2\n\n1. Step one\n2. Step two", "format": "markdown"')
 REFINE_SUCCESS=$(echo "$REFINE_RESULT" | jq -r '.success')
 if [ "$REFINE_SUCCESS" = "true" ]; then
@@ -107,7 +107,7 @@ else
   exit 1
 fi
 
-echo "PLAN Action 4/9: LIST..."
+echo "PLAN Action 4/10: LIST..."
 LIST_RESULT=$(call_api "plan" "list" '')
 LIST_SUCCESS=$(echo "$LIST_RESULT" | jq -r '.success')
 if [ "$LIST_SUCCESS" = "true" ]; then
@@ -118,7 +118,7 @@ else
   exit 1
 fi
 
-echo "PLAN Action 5/9: EDIT..."
+echo "PLAN Action 5/10: EDIT..."
 EDIT_RESULT=$(call_api "plan" "edit" ', "content": "# Edited Plan\n\nUser changes"')
 EDIT_SUCCESS=$(echo "$EDIT_RESULT" | jq -r '.success')
 if [ "$EDIT_SUCCESS" = "true" ]; then
@@ -128,7 +128,20 @@ else
   exit 1
 fi
 
-echo "PLAN Action 6/9: SET_CURRENT..."
+echo "PLAN Action 6/10: RERUN..."
+RERUN_RESULT=$(call_api "plan" "rerun" ", \"versionId\": \"$VERSION_ID\", \"rerunConfig\": {\"provider\": \"ollama\", \"model\": \"mistral:7b\", \"temperature\": 0.7}")
+RERUN_SUCCESS=$(echo "$RERUN_RESULT" | jq -r '.success')
+if [ "$RERUN_SUCCESS" = "true" ]; then
+  RERUN_VERSION_ID=$(echo "$RERUN_RESULT" | jq -r '.payload.content.version.id')
+  RERUN_VERSION_NUM=$(echo "$RERUN_RESULT" | jq -r '.payload.content.version.versionNumber')
+  echo "✅ PLAN RERUN succeeded (New version: $RERUN_VERSION_NUM)"
+else
+  echo "❌ PLAN RERUN failed"
+  echo "$RERUN_RESULT" | jq '.'
+  exit 1
+fi
+
+echo "PLAN Action 7/10: SET_CURRENT..."
 SET_RESULT=$(call_api "plan" "set_current" ", \"versionId\": \"$VERSION_ID\"")
 SET_SUCCESS=$(echo "$SET_RESULT" | jq -r '.success')
 if [ "$SET_SUCCESS" = "true" ]; then
@@ -138,7 +151,7 @@ else
   exit 1
 fi
 
-echo "PLAN Action 7/9: COPY_VERSION..."
+echo "PLAN Action 8/10: COPY_VERSION..."
 COPY_RESULT=$(call_api "plan" "copy_version" ", \"versionId\": \"$VERSION_ID2\"")
 COPY_SUCCESS=$(echo "$COPY_RESULT" | jq -r '.success')
 if [ "$COPY_SUCCESS" = "true" ]; then
@@ -148,7 +161,7 @@ else
   exit 1
 fi
 
-echo "PLAN Action 8/9: DELETE_VERSION..."
+echo "PLAN Action 9/10: DELETE_VERSION..."
 DELETE_V_RESULT=$(call_api "plan" "delete_version" ", \"versionId\": \"$VERSION_ID2\"")
 DELETE_V_SUCCESS=$(echo "$DELETE_V_RESULT" | jq -r '.success')
 if [ "$DELETE_V_SUCCESS" = "true" ]; then
@@ -158,7 +171,7 @@ else
   exit 1
 fi
 
-echo "PLAN Action 9/9: DELETE..."
+echo "PLAN Action 10/10: DELETE..."
 DELETE_RESULT=$(call_api "plan" "delete" '')
 DELETE_SUCCESS=$(echo "$DELETE_RESULT" | jq -r '.success')
 if [ "$DELETE_SUCCESS" = "true" ]; then
@@ -169,7 +182,7 @@ else
 fi
 
 echo ""
-echo "✅ ALL 9 PLAN ACTIONS PASSED!"
+echo "✅ ALL 10 PLAN ACTIONS PASSED!"
 echo ""
 
 # ==========================================
@@ -303,7 +316,7 @@ echo "========================================="
 echo "✅ ALL TESTS PASSED!"
 echo "========================================="
 echo "Summary:"
-echo "  • 9/9 Plan actions working"
+echo "  • 10/10 Plan actions working"
 echo "  • 10/10 Deliverable actions working"
-echo "  • Total: 19/19 actions tested successfully"
+echo "  • Total: 20/20 actions tested successfully"
 echo "========================================="

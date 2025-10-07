@@ -357,6 +357,7 @@ import { useUiStore } from '@/stores/uiStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import type { AgentChatMessage, AgentChatMode } from '@/stores/agentChatStore/types';
 import type { AgentLLMRecommendation } from '@/types/evaluation';
+import { rerunPlan } from '@/services/agent2agent/actions';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
@@ -823,30 +824,26 @@ const canExecuteRerun = computed(() => {
 });
 
 const executeRerunWithConfig = async (
-  capturedRerunData: { deliverable?: any; plan?: any; version: any },
+  capturedRerunData: { plan: any; version: any },
   llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
 ) => {
-  const isPlan = !!capturedRerunData.plan;
-  const workProduct = isPlan ? capturedRerunData.plan : capturedRerunData.deliverable;
-  const workProductType = isPlan ? 'plan' : 'deliverable';
+  console.log('🔍 [executeRerunWithConfig] Plan rerun data:', capturedRerunData);
 
-  // Find the original user message that generated this work product
+  const plan = capturedRerunData.plan;
+
+  // Find the original user message that generated this plan
   let originalUserPrompt = '';
   if (props.conversation && props.conversation.messages) {
-    // Find the last user message in the conversation
-    // This would be the message that triggered the work product creation
     const userMessages = props.conversation.messages.filter(msg => msg.role === 'user');
     if (userMessages.length > 0) {
-      // Get the last user message
       originalUserPrompt = userMessages[userMessages.length - 1].content;
     }
   }
 
   // Use original prompt if found, otherwise create a descriptive message
   const rerunMessage = originalUserPrompt ||
-    `🔄 Regenerating ${workProductType} "${workProduct.title}" with ${llmConfig.provider}/${llmConfig.model}`;
+    `🔄 Regenerating plan "${plan.title}" with ${llmConfig.provider}/${llmConfig.model}`;
 
-  // Log whether we found the original prompt
   if (originalUserPrompt) {
     console.log('✅ Found original user prompt for rerun:', originalUserPrompt);
   } else {
@@ -864,65 +861,57 @@ const executeRerunWithConfig = async (
         isRerunRequest: true,
         originalVersionId: capturedRerunData.version.id,
         rerunLLMConfig: llmConfig,
-        isRegeneratedPrompt: !!originalUserPrompt,  // Track if we found the original
-        workProductType
+        isRegeneratedPrompt: !!originalUserPrompt
       }
     };
 
-    // Add message to conversation
     if (props.conversation) {
       props.conversation.messages.push(userMessage);
     }
 
-    // Set conversation loading state (like normal sendMessage)
+    // Set conversation loading state
     if (props.conversation) {
       props.conversation.isSendingMessage = true;
       props.conversation.error = undefined;
     }
 
-    console.log(`🔄 ${workProductType} LLM Rerun Config:`, llmConfig);
+    console.log('🔄 Plan LLM Rerun Config:', llmConfig);
 
-    // Call the appropriate store method based on work product type
-    let newVersion;
-    if (isPlan) {
-      const planStore = usePlanStore();
-      newVersion = await planStore.rerunWithDifferentLLM(
-        workProduct,
-        capturedRerunData.version,
-        llmConfig
-      );
-    } else {
-      newVersion = await deliverablesStore.rerunWithDifferentLLM(
-        capturedRerunData.version.id,
-        llmConfig
-      );
-    }
+    // Call the rerunPlan action
+    const result = await rerunPlan(
+      plan.agentName,
+      plan.conversationId,
+      capturedRerunData.version.id,
+      {
+        provider: llmConfig.provider,
+        model: llmConfig.model,
+        temperature: llmConfig.temperature,
+        maxTokens: llmConfig.maxTokens,
+      }
+    );
 
-    // Create assistant response message with the new deliverable
+    // Create assistant response message with the new version
     const assistantMessage: AgentChatMessage = {
       id: `rerun-response-${Date.now()}`,
-      role: 'assistant', 
+      role: 'assistant',
       content: `✅ Created new version with ${llmConfig.provider}/${llmConfig.model}`,
       timestamp: new Date(),
-      deliverableId: newVersion.deliverableId,
+      planId: plan.id,
       metadata: {
         isRerunResponse: true,
-        newVersionId: newVersion.id,
+        newVersionId: result.version.id,
         llmUsed: llmConfig,
         sourceVersionId: capturedRerunData.version.id
       }
     };
 
-    // Add response message to conversation
     if (props.conversation) {
       props.conversation.messages.push(assistantMessage);
     }
 
-    // Reload deliverable versions to get the new version
-    await deliverablesStore.loadDeliverableVersions(capturedRerunData.deliverable.id);
-
-    // Trigger deliverable selection to show the new version
-    await handleVersionCreated(newVersion);
+    // For plans, the store is already updated by the rerunPlan action
+    // The PlanDisplay component will automatically show the updated plan via Vue reactivity
+    // No need to set activeWorkProduct - the plan is already displayed
 
   } catch (error) {
     console.error('Failed to rerun with different LLM:', error);
