@@ -19,7 +19,7 @@ First, you need to set up API access for n8n:
 
 ### 2. Update MCP Configuration
 
-Update `.cursor/mcp.json` with your API key:
+The MCP configuration should match your working production setup:
 
 ```json
 {
@@ -30,17 +30,16 @@ Update `.cursor/mcp.json` with your API key:
       "env": {
         "MCP_MODE": "stdio",
         "LOG_LEVEL": "error",
-        "DISABLE_CONSOLE_OUTPUT": "true",
-        "N8N_API_URL": "http://localhost:5678/api/v1",
-        "N8N_API_KEY": "your-actual-api-key-here",
-        "DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
-        "SUPABASE_URL": "http://127.0.0.1:54321",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "DISABLE_CONSOLE_OUTPUT": "false",
+        "N8N_API_URL": "http://localhost:5678",
+        "N8N_API_KEY": "your-n8n-api-key-here"
       }
     }
   }
 }
 ```
+
+**Note:** The n8n MCP server connects to your n8n instance via its API. The Supabase integration happens through n8n workflows that use Supabase nodes, not directly through the MCP server.
 
 ### 3. Test Connection
 

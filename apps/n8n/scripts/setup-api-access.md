@@ -12,7 +12,7 @@ To enable the n8n MCP server to work with your actual n8n instance and Supabase 
 
 ## Step 2: Update MCP Configuration
 
-Once you have the API key, update `.cursor/mcp.json`:
+Once you have the API key, update `.cursor/mcp.json` to match the working production setup:
 
 ```json
 {
@@ -21,12 +21,18 @@ Once you have the API key, update `.cursor/mcp.json`:
       "command": "npx",
       "args": ["n8n-mcp"],
       "env": {
-        "N8N_API_KEY": "your-actual-api-key-here"
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "false",
+        "N8N_API_URL": "http://localhost:5678",
+        "N8N_API_KEY": "your-local-n8n-api-key-here"
       }
     }
   }
 }
 ```
+
+**Important:** Use the API key from your **local** n8n instance (http://localhost:5678), not production.
 
 ## Step 3: Test Connection
 
