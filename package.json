@@ -13,6 +13,7 @@
     "n8n:create-migration": "cd apps/n8n && ./scripts/create-migration.sh",
     "n8n:migrate-up": "cd apps/n8n && ./scripts/migrate-up.sh",
     "n8n:test-api": "cd apps/n8n && ./scripts/test-api-connection.sh",
+    "n8n:sync-from-n8n": "cd apps/n8n && ./scripts/sync-from-n8n.sh",
     "dev:web": "cd apps/web && npm run dev",
     "dev:start": "./start-dev-local.sh",
     "dev:ports": "./dev-ports.sh",
