@@ -7,7 +7,7 @@
       <!-- Page Title -->
       <div class="page-header">
         <div class="container">
-          <h1 class="page-title">Without the Marketing Hype</h1>
+          <h1 class="page-title">Technical Information</h1>
           <p class="page-subtitle">
             Comprehensive details about OrchestratorAI's offerings, technology, and implementation
           </p>
@@ -1561,6 +1561,49 @@ onMounted(() => {
 .myorg-directory-list li:last-child {
   border-bottom: none;
 }
+
+  /* Unified heading styles across all accordion content */
+  .challenge-highlight-title,
+  .info-overload-title,
+  .security-title,
+  .cost-title,
+  .development-title,
+  .offering-summary-title,
+  .piloting-title,
+  .repository-title,
+  .consulting-title,
+  .pricing-structure-title,
+  .team-building-title,
+  .architecture-summary-title,
+  .a2a-title,
+  .mcp-title,
+  .agent-types-title,
+  .file-database-title,
+  .demo-myorg-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--landing-primary);
+    text-align: left;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.3;
+  }
+
+  /* Consistent spacing for intro paragraphs under headings */
+  .info-overload-intro,
+  .security-intro,
+  .cost-intro,
+  .development-intro,
+  .offering-summary-intro,
+  .repository-intro,
+  .consulting-intro,
+  .pricing-structure-intro,
+  .agent-types-intro,
+  .file-database-intro,
+  .demo-myorg-intro,
+  .architecture-summary-intro {
+    margin: 0.5rem 0 0;
+    text-align: left;
+  }
 
 .development-intro {
   font-size: var(--text-base);
