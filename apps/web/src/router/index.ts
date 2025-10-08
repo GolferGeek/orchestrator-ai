@@ -6,7 +6,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Landing',
-    component: () => import('../views/LandingPage.vue'),
+    component: () => import('../views/landing/demo/DemoLandingPage.vue'),
     meta: { requiresAuth: false, public: true }
   },
   {
