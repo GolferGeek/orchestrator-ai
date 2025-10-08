@@ -1,11 +1,15 @@
-import { defineStore } from 'pinia';
+import { defineStore, storeToRefs } from 'pinia';
+import { watch } from 'vue';
 import { AgentInfo } from '../types/chat';
 import { apiService } from '../services/apiService'; // Import the API service
+import { useAuthStore } from './authStore';
+
 export interface AgentsState {
   availableAgents: AgentInfo[];
   agentHierarchy: any | null;
   isLoading: boolean;
   error: string | null;
+  currentNamespace: string;
 }
 export const useAgentsStore = defineStore('agents', {
   state: (): AgentsState => ({
@@ -13,6 +17,7 @@ export const useAgentsStore = defineStore('agents', {
     agentHierarchy: null,
     isLoading: false,
     error: null,
+    currentNamespace: 'demo',
   }),
   actions: {
     // Action to set agents, e.g., after fetching from an API
@@ -58,6 +63,23 @@ export const useAgentsStore = defineStore('agents', {
       } finally {
         this.setLoading(false);
       }
+    },
+    // Initialize namespace reactivity watcher
+    initializeNamespaceReactivity() {
+      const authStore = useAuthStore();
+      const { currentNamespace } = storeToRefs(authStore);
+      
+      // Watch namespace changes and auto-refetch agents
+      watch(currentNamespace, async (newNamespace) => {
+        if (newNamespace && newNamespace !== this.currentNamespace) {
+          this.currentNamespace = newNamespace;
+          // Reactive auto-refetch when namespace changes
+          await Promise.all([
+            this.fetchAvailableAgents(),
+            this.fetchAgentHierarchy()
+          ]);
+        }
+      }, { immediate: false });
     }
   },
   getters: {

@@ -171,8 +171,10 @@ export const useAuthStore = defineStore('auth', () => {
   const availableNamespaces = ref<string[]>(['demo', 'my-org']);
   const currentNamespace = ref<string>(localStorage.getItem('currentNamespace') || 'demo');
   const setActiveNamespace = (namespace: string) => {
-    currentNamespace.value = namespace;
-    localStorage.setItem('currentNamespace', namespace);
+    if (currentNamespace.value !== namespace) {
+      currentNamespace.value = namespace;
+      localStorage.setItem('currentNamespace', namespace);
+    }
   };
 
   // Enhanced access control state

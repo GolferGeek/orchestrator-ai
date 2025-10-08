@@ -25,6 +25,7 @@ import ErrorBoundary from '@/components/common/ErrorBoundary.vue';
 import GlobalErrorNotification from '@/components/common/GlobalErrorNotification.vue';
 import GlobalErrorBoundary from '@/components/ErrorHandling/GlobalErrorBoundary.vue';
 import { useGlobalErrorHandler } from '@/composables/useGlobalErrorHandler';
+import { useAgentsStore } from '@/stores/agentsStore';
 
 // Environment check
 const isDevelopment = import.meta.env.DEV;
@@ -61,6 +62,10 @@ const onErrorReport = (error: Error, errorInfo: any) => {
 
 // Set up global Vue error handler
 onMounted(() => {
+  // Initialize namespace reactivity in agents store
+  const agentsStore = useAgentsStore();
+  agentsStore.initializeNamespaceReactivity();
+  
   // Log initial error summary
   console.log('📊 Initial error summary:', getErrorSummary());
   
