@@ -15,8 +15,8 @@
         "MCP_MODE": "stdio",
         "LOG_LEVEL": "error",
         "DISABLE_CONSOLE_OUTPUT": "true",
-        "N8N_API_URL": "http://localhost:5678",
-        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNTA0YzJkNi03YmIzLTQ5NmEtYjA0MC03NzI4NzhlNWMwZDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU5OTU3NTM2fQ.3lQmiBaA0xZwIa9y2cIQrJ5PNwXkV7I-eEiYOZx6iBk"
+        "N8N_API_URL": "${N8N_API_URL}",
+        "N8N_API_KEY": "${N8N_API_KEY}"
       }
     }
     },
@@ -36,8 +36,8 @@
         "MCP_MODE": "stdio",
         "LOG_LEVEL": "error",
         "DISABLE_CONSOLE_OUTPUT": "true",
-        "N8N_API_URL": "http://localhost:5678",
-        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNTA0YzJkNi03YmIzLTQ5NmEtYjA0MC03NzI4NzhlNWMwZDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU5OTU3NTM2fQ.3lQmiBaA0xZwIa9y2cIQrJ5PNwXkV7I-eEiYOZx6iBk"
+        "N8N_API_URL": "${N8N_API_URL}",
+        "N8N_API_KEY": "${N8N_API_KEY}"
       }
     }
     }
