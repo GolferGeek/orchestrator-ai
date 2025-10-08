@@ -3,13 +3,16 @@
     <div class="header-content">
       <div class="logo">
         <h1>Orchestrator AI</h1>
-        <span class="tagline">Building Together</span>
+        <span class="tagline">AI for Small Business</span>
       </div>
       
       
       
       <!-- Main Navigation -->
       <nav class="header-nav">
+        <NamespaceSwitcher v-if="authStore.isAuthenticated" />
+        <!-- View Toggle - only show in demo namespace -->
+        <ViewToggle v-if="isDemoNamespace" />
         <a href="/videos" class="nav-link">
           <ion-icon :icon="playCircleOutline"></ion-icon>
           All Videos
@@ -28,7 +31,7 @@
   </header>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
 import { 
   playCircleOutline, 
@@ -36,9 +39,18 @@ import {
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import { storeToRefs } from 'pinia';
+import NamespaceSwitcher from '@/components/common/NamespaceSwitcher.vue';
+import ViewToggle from '@/components/landing/ViewToggle.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { currentNamespace } = storeToRefs(authStore);
+
+// Check if we're in the demo namespace
+const isDemoNamespace = computed(() => {
+  return currentNamespace.value === 'demo';
+});
 
 function navigateToApp() {
   if (authStore.isAuthenticated) {
@@ -50,7 +62,7 @@ function navigateToApp() {
 </script>
 <style scoped>
 .landing-header {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
