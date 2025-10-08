@@ -10,6 +10,30 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: false, public: true }
   },
   {
+    path: '/marketing',
+    name: 'MarketingLanding',
+    component: () => import('../views/landing/demo/DemoLandingPage.vue'),
+    meta: { requiresAuth: false, public: true }
+  },
+  {
+    path: '/technical',
+    name: 'TechnicalLanding',
+    component: () => import('../views/landing/demo/TextualLandingPage.vue'),
+    meta: { requiresAuth: false, public: true }
+  },
+  {
+    path: '/my-org',
+    name: 'MyOrgLanding',
+    component: () => import('../views/landing/my-org/MyOrgLandingPage.vue'),
+    meta: { requiresAuth: false, public: true }
+  },
+  {
+    path: '/saas',
+    name: 'SaasLanding',
+    component: () => import('../views/landing/saas/SaasLandingPage.vue'),
+    meta: { requiresAuth: false, public: true }
+  },
+  {
     path: '/app',
     component: () => import('../views/AgentsPage.vue'),
     meta: { requiresAuth: true },
