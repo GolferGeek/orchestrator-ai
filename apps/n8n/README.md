@@ -86,11 +86,48 @@ Once configured (see `.cursor/mcp.json`), you can:
 The AI will generate the complete n8n workflow configuration using the MCP server.
 
 ### Workflow Development Process:
-1. **Design with AI**: Describe your workflow in natural language
-2. **Generate Configuration**: AI creates the n8n workflow JSON
-3. **Save to Database**: Insert workflow into `n8n.n8n_workflows` table
-4. **Export as Migration**: Use `npm run n8n:create-migration "Workflow Name"`
-5. **Share with Team**: Commit migration for team sync
+
+#### Recommended: Build in n8n UI and Export
+1. **Design in n8n**: Open http://localhost:5678 and build your workflow visually
+2. **Test thoroughly**: Run the workflow and verify it works as expected
+3. **Export workflow and create migration**:
+   ```bash
+   # Get API credentials from apps/n8n/.env
+   source apps/n8n/.env
+
+   # Export workflow to temp file
+   WORKFLOW_NAME="Your Workflow Name"
+   curl -s -H "X-N8N-API-KEY: $N8N_API_KEY" "$N8N_API_URL/api/v1/workflows" | \
+     jq ".data[] | select(.name == \"$WORKFLOW_NAME\")" > /tmp/workflow.json
+
+   # Extract workflow data
+   WORKFLOW_ID=$(jq -r '.id' /tmp/workflow.json)
+   WORKFLOW_ACTIVE=$(jq -r '.active' /tmp/workflow.json)
+   WORKFLOW_NODES=$(jq -c '.nodes' /tmp/workflow.json)
+   WORKFLOW_CONNECTIONS=$(jq -c '.connections' /tmp/workflow.json)
+   WORKFLOW_SETTINGS=$(jq -c '.settings // {}' /tmp/workflow.json)
+
+   # Create migration directly in apps/api/supabase/migrations/
+   TIMESTAMP=$(date +%Y%m%d%H%M%S)
+   SLUG=$(echo "$WORKFLOW_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
+   MIGRATION_FILE="apps/api/supabase/migrations/${TIMESTAMP}_add_n8n_${SLUG}.sql"
+
+   # Generate migration SQL (escape single quotes for SQL)
+   # See existing n8n migrations for the complete template
+   ```
+4. **Commit migration**: Commit the migration file in `apps/api/supabase/migrations/` - it will auto-run on next API startup
+
+#### Alternative: Use AI with n8n MCP
+1. **Design with AI**: Describe your workflow to Claude/Cursor (requires MCP setup in `.cursor/mcp.json`)
+2. **Generate & Import**: AI creates the workflow JSON and can help create it in n8n via API
+3. **Export**: Follow the export process above to create a migration
+
+**Important Notes**:
+- Workflows are stored in n8n's internal database (Docker volume `orchestrator-n8n-data`)
+- Migrations sync workflows to the `n8n.n8n_workflows` table in Supabase for version control
+- Your n8n API key is stored in `apps/n8n/.env` as `N8N_API_KEY`
+- **All n8n workflow migrations go directly in `apps/api/supabase/migrations/`** - they run automatically on API startup
+- See existing n8n migrations (files starting with `*_add_n8n_*.sql`) for the SQL template format
 
 ## Troubleshooting
 
