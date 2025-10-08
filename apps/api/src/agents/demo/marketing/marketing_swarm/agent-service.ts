@@ -1,17 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { FunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
-import { FunctionAgentServicesContext } from '@agents/base/services/function-agent-services-context';
+import { ApiAgentBaseService } from '@agents/base/implementations/base-services/api/api-agent-base.service';
+import { ApiAgentServicesContext } from '@agents/base/services/api-agent-services-context';
 
 @Injectable()
-export class MarketingSwarmService extends FunctionAgentBaseService {
+export class MarketingSwarmService extends ApiAgentBaseService {
   constructor(
-    // Pure service container pattern - only accepts FunctionAgentServicesContext
-    services: FunctionAgentServicesContext,
+    // Pure service container pattern - only accepts ApiAgentServicesContext
+    services: ApiAgentServicesContext,
   ) {
     super(services);
-
-    // Set total steps for Marketing Swarm workflow
-    this.setTotalSteps(5);
   }
 
   getAgentName(): string {

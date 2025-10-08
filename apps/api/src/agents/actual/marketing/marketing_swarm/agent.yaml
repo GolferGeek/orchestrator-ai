@@ -13,7 +13,7 @@ hierarchy:
   department: marketing
 
 # Agent type - determines loading strategy
-type: "function"
+type: "api"
 
 capabilities:
   - content_orchestration
@@ -70,6 +70,16 @@ output_modes:
   - "text/markdown"
   - "text/html"
   - "text/plain"
+
+api_configuration:
+  endpoint: "http://localhost:5678/webhook/marketing-swarm"
+  method: "POST"
+  timeout: 60000
+  headers:
+    Content-Type: "application/json"
+  request_transform:
+    format: "n8n"
+  response_transform: "standard"
 
 configuration:
   default_output_format: "json"
