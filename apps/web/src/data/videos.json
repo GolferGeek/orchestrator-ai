@@ -6,6 +6,7 @@
     "evaluations",
     "what-were-working-on-next",
     "agent-architecture",
+    "agent-demos",
     "demos"
   ],
   "categories": {
@@ -131,10 +132,77 @@
         }
       ]
     },
+    "agent-demos": {
+      "title": "Agent Demos & Tutorials",
+      "description": "Watch our AI agents in action with detailed walkthroughs and demonstrations.",
+      "order": 7,
+      "videos": [
+        {
+          "id": "agent-default-overview",
+          "title": "Agent Overview: Understanding AI Agent Capabilities",
+          "description": "Get an overview of how our AI agents work, their capabilities, and how they can help your business.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 1
+        },
+        {
+          "id": "metrics-agent-walkthrough",
+          "title": "Finance Metrics Agent: Business Intelligence at Your Fingertips",
+          "description": "See how the Finance Metrics Agent analyzes financial data, generates reports, and provides actionable business intelligence.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 2
+        },
+        {
+          "id": "marketing-swarm-demo",
+          "title": "Marketing Swarm Agent: Multi-Agent Campaign Creation",
+          "description": "Watch multiple AI agents collaborate to create comprehensive marketing campaigns with blog posts, SEO content, and social media.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 3
+        },
+        {
+          "id": "requirements-writer-tutorial",
+          "title": "Requirements Writer Agent: From Ideas to Professional Documentation",
+          "description": "Learn how the Requirements Writer transforms rough ideas into polished, professional requirement documents.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 4
+        },
+        {
+          "id": "golf-rules-coach-demo",
+          "title": "Golf Rules Expert: Your On-Course Rules Authority",
+          "description": "Discover how the Golf Rules Agent provides instant, accurate rules guidance for any on-course situation.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 5
+        },
+        {
+          "id": "jokes-agent-demo",
+          "title": "Jokes Agent: Productivity with a Smile",
+          "description": "See how AI can bring humor to the workplace with context-aware jokes and team morale boosters.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": false,
+          "order": 6
+        }
+      ]
+    },
     "demos": {
       "title": "Demos & Behind-the-Scenes",
       "description": "Watch our latest demos and behind-the-scenes content.",
-      "order": 7,
+      "order": 8,
       "videos": [
         {
           "id": "demo-1",
@@ -161,7 +229,7 @@
   },
   "metadata": {
     "lastUpdated": "2025-01-22",
-    "totalVideos": 10,
-    "categories": 7
+    "totalVideos": 16,
+    "categories": 8
   }
 }
