@@ -6,19 +6,19 @@
                 "-y",
                 "--package=task-master-ai",
                 "task-master-ai"
-            ],
-            "env": {
-                "ANTHROPIC_API_KEY": "ANTHROPIC_API_KEY_HERE",
-                "PERPLEXITY_API_KEY": "PERPLEXITY_API_KEY_HERE",
-                "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
-                "GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
-                "XAI_API_KEY": "XAI_API_KEY_HERE",
-                "OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
-                "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-                "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
-                "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
-            }
-        }
+            ]
+        },
+        "n8n-mcp": {
+      "command": "npx",
+      "args": ["n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "true",
+        "N8N_API_URL": "http://localhost:5678",
+        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNTA0YzJkNi03YmIzLTQ5NmEtYjA0MC03NzI4NzhlNWMwZDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU5OTU3NTM2fQ.3lQmiBaA0xZwIa9y2cIQrJ5PNwXkV7I-eEiYOZx6iBk"
+      }
+    }
     },
     "mcpServers": {
         "task-master-ai": {
@@ -27,18 +27,18 @@
                 "-y",
                 "--package=task-master-ai",
                 "task-master-ai"
-            ],
-            "env": {
-                "ANTHROPIC_API_KEY": "ANTHROPIC_API_KEY_HERE",
-                "PERPLEXITY_API_KEY": "PERPLEXITY_API_KEY_HERE",
-                "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
-                "GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
-                "XAI_API_KEY": "XAI_API_KEY_HERE",
-                "OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
-                "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-                "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
-                "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
-            }
-        }
+            ]
+        },
+        "n8n-mcp": {
+      "command": "npx",
+      "args": ["n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "true",
+        "N8N_API_URL": "http://localhost:5678",
+        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNTA0YzJkNi03YmIzLTQ5NmEtYjA0MC03NzI4NzhlNWMwZDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU5OTU3NTM2fQ.3lQmiBaA0xZwIa9y2cIQrJ5PNwXkV7I-eEiYOZx6iBk"
+      }
+    }
     }
 }
