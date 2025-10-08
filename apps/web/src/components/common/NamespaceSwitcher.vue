@@ -32,7 +32,7 @@ const authStore = useAuthStore();
 const router = useRouter();
 
 const availableNamespaces = computed(() => authStore.availableNamespaces);
-const currentNamespace = computed(() => authStore.currentNamespace);
+const currentNamespace = computed(() => authStore.currentNamespace || 'demo');
 const hasMultipleNamespaces = computed(() => availableNamespaces.value.length > 1);
 
 function getLandingPathForNamespace(namespace: string): string {

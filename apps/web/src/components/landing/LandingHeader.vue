@@ -49,7 +49,7 @@ const { currentNamespace } = storeToRefs(authStore);
 
 // Check if we're in the demo namespace
 const isDemoNamespace = computed(() => {
-  return currentNamespace.value === 'demo';
+  return (currentNamespace?.value || 'demo') === 'demo';
 });
 
 function navigateToApp() {

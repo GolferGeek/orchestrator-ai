@@ -167,6 +167,14 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null);
   const isAuthenticated = computed(() => !!token.value);
 
+  // Namespace selection for landing/navigation
+  const availableNamespaces = ref<string[]>(['demo', 'my-org']);
+  const currentNamespace = ref<string>(localStorage.getItem('currentNamespace') || 'demo');
+  const setActiveNamespace = (namespace: string) => {
+    currentNamespace.value = namespace;
+    localStorage.setItem('currentNamespace', namespace);
+  };
+
   // Enhanced access control state
   const permissionCache = ref<Map<string, boolean>>(new Map());
   const accessAttempts = ref<AccessAttempt[]>([]);
@@ -532,6 +540,11 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     error,
     isAuthenticated,
+
+    // Namespace state
+    availableNamespaces,
+    currentNamespace,
+    setActiveNamespace,
     
     // Role-based computed properties
     isAdmin,
