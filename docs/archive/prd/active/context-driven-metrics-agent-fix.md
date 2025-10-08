@@ -81,8 +81,8 @@ Fix the existing metrics agent to generate correct SQL queries using context-dri
 - APIs/contracts:
   - No API changes - internal agent function modifications only
 - Services/modules to touch:
-  - `/apps/api/src/agents/demo/finance/metrics/context.md`
-  - `/apps/api/src/agents/demo/finance/metrics/agent-function.ts`
+  - `/apps/api/src/agents/actual/finance/metrics/context.md`
+  - `/apps/api/src/agents/actual/finance/metrics/agent-function.ts`
   - Possible: `/apps/api/src/supabase/utils/supabase-tools.ts` (revert hardcoded schema)
 - Rollout/feature flags:
   - No rollout needed - direct replacement of existing functionality

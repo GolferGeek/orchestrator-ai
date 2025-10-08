@@ -206,39 +206,29 @@ export class AuthService {
 
       const { data: userData, error: queryError } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, namespace_access')
+        .select('id, email, display_name, roles, created_at')
         .eq('id', currentAuthUser.id)
         .single();
 
       if (userData) {
-        const namespaceAccess = Array.isArray(userData.namespace_access)
-          ? (userData.namespace_access as string[])
-          : [];
-
-        if (!namespaceAccess.length) {
-          throw new HttpException(
-            'User has no namespace access configured. Please contact an administrator.',
-            HttpStatus.FORBIDDEN,
-          );
-        }
+        // Combine auth user data with public profile data
+        return {
+          id: currentAuthUser.id,
+          email: currentAuthUser.email, // Email from auth is authoritative
+          displayName: userData.display_name,
+          roles: userData.roles || [UserRole.USER], // Default to 'user' role if none set
+        };
+      } else {
+        // Fallback to auth user data if no public profile found
 
         return {
           id: currentAuthUser.id,
           email: currentAuthUser.email,
-          displayName: userData.display_name,
-          roles: userData.roles || [UserRole.USER],
-          namespaceAccess,
+          displayName: currentAuthUser.userMetadata?.display_name,
+          roles: [UserRole.USER], // Default role for fallback
         };
       }
-
-      throw new HttpException(
-        'User profile not found in namespace directory.',
-        HttpStatus.FORBIDDEN,
-      );
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
 
       throw new HttpException(
         'Could not fetch user profile.',
@@ -293,7 +283,7 @@ export class AuthService {
       const { data, error } = await this.supabaseService
         .getAnonClient()
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, updated_at, namespace_access')
+        .select('id, email, display_name, roles, created_at, updated_at')
         .eq('id', userId)
         .single();
 
@@ -311,9 +301,6 @@ export class AuthService {
         roles: data.roles || [UserRole.USER],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
-        namespaceAccess: Array.isArray(data.namespace_access)
-          ? (data.namespace_access as string[])
-          : [],
       };
     } catch (error) {
 
@@ -322,18 +309,6 @@ export class AuthService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-  }
-
-  async getNamespaceAccessForUser(userId: string): Promise<string[]> {
-    const profile = await this.getUserProfile(userId);
-    if (!profile || !profile.namespaceAccess?.length) {
-      throw new HttpException(
-        'Namespace access is not configured for this user.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    return profile.namespaceAccess;
   }
 
   /**
@@ -588,9 +563,6 @@ export class AuthService {
           status: 'active',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          namespace_access: createUserDto.namespaceAccess?.length
-            ? createUserDto.namespaceAccess
-            : ['my-org'],
         })
         .select()
         .single();
@@ -607,11 +579,7 @@ export class AuthService {
         displayName: createUserDto.displayName,
         roles: roles,
         emailConfirmationRequired: !authUser.user.email_confirmed_at,
-        message: 'User created successfully',
-        namespaceAccess:
-          createUserDto.namespaceAccess?.length
-            ? createUserDto.namespaceAccess
-            : ['my-org'],
+        message: 'User created successfully'
       };
     } catch (error) {
       throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -627,7 +595,7 @@ export class AuthService {
 
       const { data: users, error } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, status, namespace_access')
+        .select('id, email, display_name, roles, created_at, status')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -649,7 +617,7 @@ export class AuthService {
 
       const { data: user, error } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, status, namespace_access')
+        .select('id, email, display_name, roles, created_at, status')
         .eq('id', userId)
         .single();
 

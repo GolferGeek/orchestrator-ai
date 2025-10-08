@@ -9,10 +9,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Request,
   BadRequestException,
-  ForbiddenException,
-  Req,
-  Headers,
 } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { AppService } from '../app.service';
@@ -20,7 +18,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
-import { AuthService } from '../auth/auth.service';
 import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskStatusService } from '../tasks/task-status.service';
@@ -32,7 +29,6 @@ import { ContextOptimizationService } from '../context-optimization/context-opti
 import { CentralizedRoutingService } from '../llms/centralized-routing.service';
 import { PIIService } from '../services/pii.service';
 import { SpeechService } from '../speech/speech.service';
-import { Request as ExpressRequest } from 'express';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -48,7 +44,6 @@ export class DynamicAgentsController {
     private readonly centralizedRoutingService: CentralizedRoutingService,
     private readonly piiService: PIIService,
     private readonly speechService: SpeechService,
-    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -77,38 +72,25 @@ export class DynamicAgentsController {
    */
   @Get('.well-known/hierarchy')
   @Public()
-  async getAgentHierarchy(
-    @Headers('x-agent-namespace') namespaceHeader?: string,
-    @Headers('X-Agent-Namespace') namespaceHeaderCaps?: string,
-  ) {
-    // Handle both lowercase and capitalized header names
-    const effectiveNamespace = namespaceHeader || namespaceHeaderCaps;
-    const namespaces = effectiveNamespace
-      ? effectiveNamespace
-          .split(',')
-          .map((ns) => ns.trim())
-          .filter(Boolean)
-      : undefined;
+  async getAgentHierarchy() {
 
     try {
+      // Ensure agents are discovered and hierarchy is built
       await this.agentDiscovery.discoverAgents();
 
-      const hierarchy = this.agentDiscovery.getAgentHierarchy(namespaces);
-      const totalAgents = namespaces?.length
-        ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces).length
-        : this.agentDiscovery.getDiscoveredAgents().length;
+      const hierarchy = this.agentDiscovery.getAgentHierarchy();
 
       return {
         success: true,
         data: hierarchy,
         metadata: {
-          totalAgents,
+          totalAgents: this.agentDiscovery.getDiscoveredAgents().length,
           rootNodes: hierarchy.length,
-          namespaces: namespaces ?? 'all',
           timestamp: new Date().toISOString(),
         },
       };
     } catch (error) {
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -116,7 +98,6 @@ export class DynamicAgentsController {
         metadata: {
           totalAgents: 0,
           rootNodes: 0,
-          namespaces: namespaces ?? 'all',
           timestamp: new Date().toISOString(),
         },
       };
@@ -135,17 +116,12 @@ export class DynamicAgentsController {
     @Param('agentName') agentName: string,
     @Body() taskRequest: any, // Change from CreateTaskDto to any to handle both formats
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Req() req: ExpressRequest & { activeNamespace?: string },
+    @Request() req: any,
   ) {
     // 🔍 Log minimal info about incoming request
     this.logger.log(`[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`);
 
-    const { activeNamespace } =
-      await this.resolveNamespaceContext(currentUser, req);
 
-    req.activeNamespace = activeNamespace;
-
-    
     // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
     let normalizedTaskRequest: CreateTaskDto;
 
@@ -237,12 +213,6 @@ export class DynamicAgentsController {
         throw new BadRequestException(`Audio transcription failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`);
       }
     }
-
-    // Attach namespace metadata
-    normalizedTaskRequest.metadata = {
-      ...(normalizedTaskRequest.metadata || {}),
-      namespace: activeNamespace,
-    };
 
     // 🔒 PII POLICY CHECK - Block sensitive data before it reaches any agent
     // PII policy check
@@ -352,11 +322,7 @@ export class DynamicAgentsController {
     const token = authHeader?.replace('Bearer ', '');
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(
-      agentType,
-      agentName,
-      [activeNamespace],
-    );
+    const agentInstance = this.findAgentInstance(agentType, agentName);
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -506,18 +472,8 @@ export class DynamicAgentsController {
         }
       } else {
         this.logger.debug(
-          `🎯 [DynamicAgentsController] Task ${task.id} marked as handled – saving initial response without completing`,
+          `🎯 [DynamicAgentsController] Task ${task.id} was already completed by agent instance – skipping duplicate completion call`,
         );
-        // Still save the initial response to DB so webhooks can update it later
-        // Use TasksService instead of TaskStatusService for updates
-        try {
-          await this.tasksService.updateTask(task.id, currentUser.id, {
-            response: result.response || result,
-          });
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          this.logger.error(`Failed to save initial task response: ${errorMessage}`);
-        }
       }
 
       // 🔊 OPTIONAL AUDIO SYNTHESIS - Convert response to speech if original input was audio
@@ -628,25 +584,13 @@ export class DynamicAgentsController {
    * Route: GET /agents/:agentType/:agentName/.well-known/agent.json
    */
   @Get(':agentType/:agentName/.well-known/agent.json')
-  @UseGuards(JwtAuthGuard)
   async getAgentCard(
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
-    @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Req()
-    req: ExpressRequest & { activeNamespace?: string },
   ) {
-    const { activeNamespace } = await this.resolveNamespaceContext(
-      currentUser,
-      req,
-    );
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(
-      agentType,
-      agentName,
-      [activeNamespace],
-    );
+    const agentInstance = this.findAgentInstance(agentType, agentName);
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -660,24 +604,13 @@ export class DynamicAgentsController {
    * Route: GET /agents/:agentType/:agentName/health
    */
   @Get(':agentType/:agentName/health')
-  @UseGuards(JwtAuthGuard)
   async getAgentHealth(
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
-    @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Req() req: ExpressRequest,
   ) {
-    const { activeNamespace } = await this.resolveNamespaceContext(
-      currentUser,
-      req,
-    );
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(
-      agentType,
-      agentName,
-      [activeNamespace],
-    );
+    const agentInstance = this.findAgentInstance(agentType, agentName);
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -693,40 +626,20 @@ export class DynamicAgentsController {
   /**
    * Find an agent instance by type and name
    */
-  private findAgentInstance(
-    agentType: string,
-    agentName: string,
-    namespaces: string[],
-  ): any {
-    const discoveredAgents = namespaces.length
-      ? this.appService.getDiscoveredAgentsByNamespaces(namespaces)
-      : this.appService.getDiscoveredAgents();
-    const agentInstances = namespaces.length
-      ? this.appService.getAgentInstancesByNamespaces(namespaces)
-      : this.appService.getAgentInstances();
+  private findAgentInstance(agentType: string, agentName: string): any {
+    const discoveredAgents = this.appService.getDiscoveredAgents();
+    const agentInstances = this.appService.getAgentInstances();
 
-    const normalizedExpectedRelative = this.normalizeAgentName(
-      `${agentType}/${agentName}`,
-    );
-    const normalizedExpectedNamespaced = new Set(
-      namespaces.map((ns) =>
-        this.normalizeAgentName(`${ns}/${agentType}/${agentName}`),
-      ),
-    );
-
+    // Match the agent by path logic (e.g., "specialists/blog_post" or "orchestrator/orchestrator")
+    const expectedPath = `${agentType}/${agentName}`;
     const agentIndex = discoveredAgents.findIndex((a) => {
-      const relativePath = a.relativePath || a.path;
-      const namespacedPath = a.namespacedPath || a.path;
-
-      const normalizedRelative = this.normalizeAgentName(relativePath);
-      const normalizedNamespaced = this.normalizeAgentName(namespacedPath);
-
-      if (normalizedRelative === normalizedExpectedRelative) return true;
-      if (normalizedNamespaced === normalizedExpectedRelative) return true;
-      if (normalizedExpectedNamespaced.has(normalizedNamespaced)) return true;
-
-      // Fallback for agents missing path metadata
-      return a.type === agentType && a.name === agentName;
+      if (!a.path) {
+        // Fallback for agents with null path - match by type and name
+        return a.type === agentType && a.name === agentName;
+      }
+      const normalizedAgentPath = this.normalizeAgentName(a.path);
+      const normalizedExpectedPath = this.normalizeAgentName(expectedPath);
+      return normalizedAgentPath === normalizedExpectedPath;
     });
 
     if (agentIndex === -1) {
@@ -734,6 +647,7 @@ export class DynamicAgentsController {
       return null;
     }
 
+    // Return the corresponding agent instance
     return agentInstances[agentIndex] || null;
   }
 
@@ -741,62 +655,6 @@ export class DynamicAgentsController {
    * Process task asynchronously - simplified version using TaskStatusService
    */
   // processTaskAsync method removed - all execution modes now use synchronous await pattern
-
-  private async resolveNamespaceContext(
-    currentUser: SupabaseAuthUserDto,
-    req: ExpressRequest,
-  ): Promise<{ activeNamespace: string; allowedNamespaces: string[] }> {
-    const namespaces = await this.authService.getNamespaceAccessForUser(
-      currentUser.id,
-    );
-
-    if (!namespaces.length) {
-      throw new ForbiddenException('User has no namespaces assigned');
-    }
-
-    let requestedNamespace: string | undefined;
-    const headerValue = req.header?.('x-agent-namespace');
-    if (headerValue) {
-      requestedNamespace = headerValue;
-    }
-
-    if (!requestedNamespace) {
-      const queryValue = req.query?.['namespace'];
-      if (typeof queryValue === 'string') {
-        requestedNamespace = queryValue;
-      } else if (Array.isArray(queryValue) && queryValue.length > 0) {
-        const first = queryValue[0];
-        if (typeof first === 'string') {
-          requestedNamespace = first;
-        }
-      }
-    }
-
-    let activeNamespace = this.pickDefaultNamespace(namespaces);
-
-    if (requestedNamespace) {
-      if (!namespaces.includes(requestedNamespace)) {
-        throw new ForbiddenException(
-          `Namespace ${requestedNamespace} is not permitted for this user`,
-        );
-      }
-      activeNamespace = requestedNamespace;
-    }
-
-    return {
-      activeNamespace,
-      allowedNamespaces: namespaces,
-    };
-  }
-
-  private pickDefaultNamespace(namespaces: string[]): string {
-    if (!namespaces.length) {
-      return 'demo';
-    }
-
-    const preferred = namespaces.find((ns) => ns !== 'demo');
-    return preferred || namespaces[0] || 'demo';
-  }
 
   /**
    * Normalize agent name for comparison (handle underscores, spaces, etc.)

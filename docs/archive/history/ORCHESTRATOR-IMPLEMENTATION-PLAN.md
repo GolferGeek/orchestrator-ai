@@ -143,7 +143,7 @@
 
 **Current Directory Structure Mapping:**
 ```
-apps/api/src/agents/demo/
+apps/api/src/agents/actual/
 ├── orchestrator/           # C-Suite + Managers
 │   ├── ceo_orchestrator/
 │   ├── cto_orchestrator/    # NEW

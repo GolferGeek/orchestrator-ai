@@ -1,0 +1,178 @@
+# Task ID: 7
+# Title: Implement SecretRedactionService
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Create a SecretRedactionService at apps/api/src/llms/secret-redaction.service.ts with comprehensive secret redaction, runId correlation for all log entries, and production-specific logging controls.
+# Details:
+1. Implement SecretRedactionService at apps/api/src/llms/secret-redaction.service.ts for:
+   - API keys and tokens
+   - User credentials
+   - Sensitive configuration data
+
+```typescript
+// apps/api/src/llms/secret-redaction.service.ts
+import { Injectable, LoggerService } from '@nestjs/common';
+
+@Injectable()
+export class SecretRedactionService {
+  private patterns: RegExp[] = [
+    // API key patterns
+    /sk-[a-zA-Z0-9]{32,}/g, // OpenAI API keys
+    /sk-ant-[a-zA-Z0-9]{32,}/g, // Anthropic API keys
+    
+    // Auth token patterns
+    /Bearer\s+[a-zA-Z0-9._-]+/gi,
+    /Authorization:\s*['"]?Bearer\s+[a-zA-Z0-9._-]+['"]?/gi,
+    
+    // Password patterns
+    /password['"]?\s*[:=]\s*['"]([^'"]+)['"]?/gi,
+    
+    // Environment variable patterns
+    /([A-Z_]+_KEY|[A-Z_]+_SECRET|[A-Z_]+_PASSWORD)\s*[:=]\s*['"]?([^'"\s]+)['"]?/gi
+  ];
+  
+  private isProduction: boolean;
+  
+  constructor() {
+    this.isProduction = process.env.NODE_ENV === 'production';
+  }
+  
+  redact(text: string): string {
+    if (!text) return text;
+    
+    let redacted = text;
+    for (const pattern of this.patterns) {
+      redacted = redacted.replace(pattern, '[REDACTED]');
+    }
+    
+    return redacted;
+  }
+  
+  redactObject(obj: any): any {
+    if (!obj) return obj;
+    if (typeof obj !== 'object') return obj;
+    
+    const result = Array.isArray(obj) ? [] : {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+      // Skip redaction for safe keys
+      if (['id', 'runId', 'timestamp', 'level'].includes(key)) {
+        result[key] = value;
+        continue;
+      }
+      
+      // Redact sensitive keys entirely
+      if (['password', 'secret', 'token', 'key', 'authorization'].includes(key.toLowerCase())) {
+        result[key] = '[REDACTED]';
+        continue;
+      }
+      
+      // Recursively redact objects
+      if (typeof value === 'object' && value !== null) {
+        result[key] = this.redactObject(value);
+        continue;
+      }
+      
+      // Redact strings
+      if (typeof value === 'string') {
+        result[key] = this.redact(value);
+        continue;
+      }
+      
+      // Pass through other values
+      result[key] = value;
+    }
+    
+    return result;
+  }
+  
+  shouldLogBody(): boolean {
+    return !this.isProduction;
+  }
+  
+  log(level: 'info' | 'warn' | 'error', message: string, context: any): void {
+    const logEntry = {
+      runId: context.runId || 'unknown',
+      timestamp: new Date().toISOString(),
+      level,
+      message: this.redact(message)
+    };
+    
+    // In production, don't log request/response bodies
+    if (this.isProduction && context.body) {
+      delete context.body;
+    }
+    
+    // Redact any remaining context data
+    const safeContext = this.redactObject(context);
+    
+    // Log the entry (implementation depends on logging library)
+    console.log(JSON.stringify({ ...logEntry, context: safeContext }));
+  }
+}
+```
+
+2. Add runId correlation to all log entries
+
+```typescript
+// Example usage in LLMService
+@Injectable()
+export class LLMService {
+  constructor(
+    private readonly secretRedactionService: SecretRedactionService,
+    // other dependencies
+  ) {}
+  
+  async generateResponse(prompt: string, options: any = {}) {
+    // Get routing decision and start metadata tracking
+    const routingDecision = await this.centralizedRoutingService.determineRoute(prompt, options);
+    const metadataContext = this.runMetadataService.startRequest(routingDecision);
+    
+    // Log the request with runId correlation
+    this.secretRedactionService.log('info', 'LLM request initiated', {
+      runId: metadataContext.runId,
+      provider: routingDecision.provider,
+      model: routingDecision.model,
+      isLocal: routingDecision.isLocal,
+      // Only log prompt in non-production
+      ...(this.secretRedactionService.shouldLogBody() ? { prompt } : {})
+    });
+    
+    try {
+      // Process request...
+      
+      // Log the response
+      this.secretRedactionService.log('info', 'LLM request completed', {
+        runId: metadataContext.runId,
+        duration: Date.now() - metadataContext.startTime,
+        // Only log response in non-production
+        ...(this.secretRedactionService.shouldLogBody() ? { response } : {})
+      });
+      
+      return { response, runMetadata };
+    } catch (error) {
+      // Log the error
+      this.secretRedactionService.log('error', 'LLM request failed', {
+        runId: metadataContext.runId,
+        error: error.message,
+        stack: error.stack
+      });
+      
+      throw error;
+    }
+  }
+}
+```
+
+3. Create structured logging format as specified in the PRD
+4. Disable request/response body logging in production environments
+
+# Test Strategy:
+1. Test secret redaction with various patterns of sensitive data
+2. Verify runId correlation is present in all log entries
+3. Test production mode correctly disables request/response body logging
+4. Validate structured logging format matches requirements
+5. Test with real-world examples of sensitive data patterns
+6. Verify object redaction works recursively
+7. Test performance impact of redaction on large objects

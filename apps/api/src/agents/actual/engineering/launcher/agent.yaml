@@ -1,0 +1,55 @@
+# Launcher Agent Configuration
+metadata:
+  name: "Launcher Agent"
+  type: "specialists"
+  category: "project_management"
+  version: "1.0.0"
+  description: "A specialist agent for launching products, features, and initiatives, coordinating cross-functional teams and ensuring successful rollouts."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: engineering_manager_orchestrator
+  department: engineering
+
+type: "context"
+
+capabilities:
+  - launch_planning
+  - rollout_coordination
+  - stakeholder_management
+  - timeline_management
+  - risk_assessment
+  - go_to_market
+  - deployment_orchestration
+  - success_metrics
+
+skills:
+  - id: "launch_coordination"
+    name: "Launch Coordination"
+    description: "Coordinate product and feature launches across teams"
+    tags: ["launch", "coordination", "rollout", "deployment"]
+    examples:
+      - "Plan new product feature rollout"
+      - "Coordinate marketing campaign launch"
+      - "Manage system deployment timeline"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  launch_types:
+    - "product_launch"
+    - "feature_launch"
+    - "campaign_launch"
+    - "system_deployment"
+    - "process_rollout"

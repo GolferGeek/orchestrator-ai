@@ -1,0 +1,136 @@
+# Policy RAG Agent Configuration
+metadata:
+  name: "Policy RAG Agent"
+  type: "specialists"
+  category: "knowledge_management"
+  version: "1.0.0"
+  description: "A specialist agent for retrieving and explaining company policies, procedures, and compliance requirements using retrieval-augmented generation."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: research_manager_orchestrator
+  department: research
+
+type: "context"
+
+capabilities:
+  - policy_retrieval
+  - compliance_guidance
+  - procedure_explanation
+  - policy_search
+  - regulatory_assistance
+  - documentation_access
+  - policy_updates
+  - interpretation_support
+  - policy_document_generation
+  - hr_policy_support
+  - legal_compliance_monitoring
+  - employee_relations_guidance
+  - workplace_conduct_standards
+  - benefits_and_compensation_policies
+  - performance_management_policies
+  - safety_and_security_protocols
+
+skills:
+  - id: "policy_search"
+    name: "Policy Search and Retrieval"
+    description: "Search and retrieve relevant company policies and procedures"
+    tags: ["search", "retrieval", "policies", "procedures"]
+    examples:
+      - "Find remote work policy details"
+      - "Search expense reimbursement procedures"
+      - "Locate data privacy guidelines"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "policy_document_creation"
+    name: "Policy Document Generation"
+    description: "Create comprehensive policy documents based on requirements and best practices"
+    tags: ["document_creation", "policy_writing", "compliance", "templates"]
+    examples:
+      - "Create a remote work policy for our organization"
+      - "Develop an anti-harassment policy that meets legal requirements"
+      - "Write a data privacy policy for customer information"
+      - "Generate a workplace safety policy for our facility"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "hr_policy_support"
+    name: "HR Policy Support"
+    description: "Provide guidance on HR policies, procedures, and employee relations"
+    tags: ["hr", "employee_relations", "benefits", "performance", "compliance"]
+    examples:
+      - "What's our policy on flexible work arrangements?"
+      - "How do I handle a performance issue with an employee?"
+      - "What are the requirements for employee training?"
+      - "How do I conduct a proper disciplinary meeting?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "text/markdown", "application/json"]
+
+  - id: "compliance_monitoring"
+    name: "Compliance Monitoring and Guidance"
+    description: "Monitor compliance requirements and provide regulatory guidance"
+    tags: ["compliance", "regulations", "legal", "monitoring", "audit"]
+    examples:
+      - "What are our obligations under GDPR for employee data?"
+      - "How do we ensure compliance with OSHA safety standards?"
+      - "What documentation is required for FMLA leave requests?"
+      - "How do we handle ADA accommodation requests?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "policy_interpretation"
+    name: "Policy Interpretation and Explanation"
+    description: "Interpret complex policies and explain them in clear, actionable terms"
+    tags: ["interpretation", "explanation", "guidance", "clarification"]
+    examples:
+      - "Explain our code of conduct in practical terms"
+      - "What does our anti-harassment policy mean for daily interactions?"
+      - "How should managers apply our performance review policy?"
+      - "What are the key points of our data security policy?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  policy_categories:
+    - "hr_policies"
+    - "it_security"
+    - "compliance"
+    - "operational"
+    - "financial"
+    - "employment_law"
+    - "workplace_conduct"
+    - "benefits_compensation"
+    - "performance_management"
+    - "safety_security"
+    - "data_privacy"
+    - "business_operations"
+  document_templates:
+    - "policy_template"
+    - "procedure_template"
+    - "compliance_checklist"
+    - "employee_handbook_section"
+  regulatory_frameworks:
+    - "federal_employment_law"
+    - "state_local_regulations"
+    - "industry_specific_compliance"
+    - "international_compliance"
+  conversation_modes:
+    - "employee_questions"
+    - "manager_guidance"
+    - "policy_development"
+    - "compliance_monitoring"
+  response_style: "authoritative_helpful"
+  legal_disclaimer: true
+  escalation_available: true

@@ -13,6 +13,17 @@
     </div>
     <!-- Messages -->
     <div class="messages-container" ref="messagesContainer">
+      
+      <!-- Agent Resources Panel -->
+      <AgentResourcesPanel
+        v-if="shouldShowAgentResources"
+        :agent-video-ids="agentVideoIds"
+        :fallback-video-ids="fallbackVideoIds"
+        :videos="allVideos"
+        :agent-slug="agentSlug"
+        :agent-name="currentAgent?.name"
+      />
+      
       <AgentTaskItem
         v-for="message in messages"
         :key="message.id"
@@ -95,12 +106,14 @@ import {
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
+import { videoService, type Video } from '@/services/videoService';
 // TTS is now handled directly in AgentTaskItem when messages are displayed
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import SpeechButton from './SpeechButton.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
+import AgentResourcesPanel from './AgentResourcesPanel.vue';
 // Define emits
 interface Props {
   conversation?: any; // The conversation object from the store
@@ -147,6 +160,31 @@ const thinkingMessage = computed(() => {
 const conversationId = computed(() => 
   props.conversation?.id || agentChatStore.getActiveConversation()?.id
 );
+
+// Video-related computed properties
+const agentSlug = computed(() => {
+  // Extract agent slug from currentAgent data if available
+  return currentAgent.value?.slug || currentAgent.value?.id || '';
+});
+
+const agentVideoIds = computed(() => {
+  const agentIdentifier = agentSlug.value || currentAgent.value?.name || '';
+  if (!agentIdentifier) return [];
+  return videoService.getAgentVideoIdsByNameOrSlug(agentIdentifier);
+});
+
+const fallbackVideoIds = computed(() => {
+  return videoService.getDefaultVideoIds();
+});
+
+const allVideos = computed(() => {
+  return videoService.getAllVideos();
+});
+
+const shouldShowAgentResources = computed(() => {
+  // Show panel if we have a current agent and at least one video to display
+  return currentAgent.value && (agentVideoIds.value.length > 0 || fallbackVideoIds.value.length > 0);
+});
 // Methods
 const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
   if (!canSend.value) return;

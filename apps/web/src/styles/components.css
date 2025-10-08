@@ -1,18 +1,5 @@
 /* Landing Page Component Styles */
 
-/* Screen reader only class for accessibility */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 /* Agent grid */
 .agent-grid {
   display: grid;
@@ -350,34 +337,5 @@
   .video-placeholder-small {
     background: linear-gradient(135deg, var(--ion-color-step-200), var(--ion-color-step-150));
     border-color: var(--ion-color-medium);
-  }
-}
-
-/* Namespace switcher popover visibility */
-.namespace-popover .popover-content,
-.namespace-popover .ion-popover,
-.namespace-popover {
-  --background: #111; /* dark surface */
-  --color: #fff;      /* readable text */
-}
-
-.namespace-popover .select-interface-option,
-.namespace-popover .alert-radio-label,
-.namespace-popover .sc-ion-select-popover-md,
-.namespace-popover .sc-ion-select-popover-ios {
-  color: #fff !important;
-}
-
-.namespace-popover .select-interface-option:hover {
-  background: rgba(255,255,255,0.08);
-}
-
-/* Light theme override */
-@media (prefers-color-scheme: light) {
-  .namespace-popover .popover-content,
-  .namespace-popover .ion-popover,
-  .namespace-popover {
-    --background: #1f2937; /* slate-800 */
-    --color: #f9fafb;      /* gray-50 */
   }
 }

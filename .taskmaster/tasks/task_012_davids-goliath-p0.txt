@@ -1,0 +1,79 @@
+# Task ID: 12
+# Title: Deploy to Development Environment
+# Status: pending
+# Dependencies: 10, 11
+# Priority: medium
+# Description: Deploy enhanced centralized service to dev environment, configure Ollama with three-tier models, update documentation, and validate service health.
+# Details:
+1. Deploy enhanced centralized service to dev environment:
+   - Package application for deployment
+   - Configure environment variables
+   - Deploy to development servers
+
+2. Configure Ollama with three-tier models:
+```bash
+# Deployment script for Ollama models
+#!/bin/bash
+
+# Tier 1 (Fast Thinking)
+ollama pull gpt-oss-2b
+ollama pull gpt-oss-20b
+
+# Tier 2 (Ultra-Fast)
+ollama pull llama3.2:1b
+ollama pull llama3.2:3b
+
+# Tier 3 (General)
+ollama pull llama3.1:8b
+ollama pull qwen2.5:7b
+
+# Verify models are available
+ollama list
+```
+
+3. Update dev environment documentation:
+```markdown
+# LLM Service Development Environment
+
+## Overview
+This document describes the development environment setup for the centralized LLM service with three-tier local model support.
+
+## Prerequisites
+- Node.js 18+
+- Docker
+- Ollama installed and running
+- Minimum 32GB RAM for local models
+- GPU recommended but not required
+
+## Environment Variables
+```
+OLLAMA_BASE_URL=http://localhost:11434
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## Local Model Setup
+The system uses a three-tier model approach:
+1. **Fast Thinking**: Complex reasoning (gpt-oss-2b, gpt-oss-20b)
+2. **Ultra-Fast**: Simple queries (llama3.2:1b, llama3.2:3b)
+3. **General**: Balanced performance (llama3.1:8b, qwen2.5:7b)
+
+## Deployment Verification
+Run the verification script to ensure all components are working:
+```
+npm run verify-deployment
+```
+```
+
+4. Validate service health and monitoring
+5. Test developer panel in deployed environment
+6. Create deployment verification checklist
+
+# Test Strategy:
+1. Create deployment checklist for dev environment
+2. Test service health endpoints after deployment
+3. Verify all three-tier models are properly loaded
+4. Test developer panel functionality in deployed environment
+5. Validate logging and monitoring are working correctly
+6. Perform end-to-end test with real agents in dev environment
+7. Create verification script for automated deployment checks

@@ -193,13 +193,12 @@ export class MessageFormattingService {
       content,
       timestamp: new Date(),
       taskId,
-    metadata: {
-      isPlaceholder: true,
-      isCompleted: false,
-      completedSteps: [],
-      mode: m || undefined,
-      initialContent: content, // Store initial content for status display
-    },
+      metadata: {
+        isPlaceholder: true,
+        isCompleted: false,
+        completedSteps: [],
+        mode: m || undefined,
+      },
     };
   }
 
@@ -231,25 +230,7 @@ export class MessageFormattingService {
         
         // Extract content from various possible formats
         if (parsedResult) {
-          // Handle n8n workflow responses with multiple content fields (webPost, seoContent, socialMedia)
-          if (parsedResult.webPost || parsedResult.seoContent || parsedResult.socialMedia) {
-            // Format n8n marketing swarm response as markdown sections
-            let sections = [];
-            
-            if (parsedResult.webPost) {
-              sections.push('## 📝 Web Post\n\n' + parsedResult.webPost);
-            }
-            
-            if (parsedResult.seoContent) {
-              sections.push('## 🔍 SEO Content\n\n' + parsedResult.seoContent);
-            }
-            
-            if (parsedResult.socialMedia) {
-              sections.push('## 📱 Social Media\n\n' + parsedResult.socialMedia);
-            }
-            
-            finalContent = sections.join('\n\n---\n\n');
-          } else if (parsedResult.success && parsedResult.message) {
+          if (parsedResult.success && parsedResult.message) {
             // Format: { success: true, message: "content", metadata: {...} } (orchestrator format)
             finalContent = String(parsedResult.message);
           } else if (parsedResult.success && parsedResult.response) {

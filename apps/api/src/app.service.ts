@@ -13,7 +13,6 @@ export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name);
   private discoveredAgents: any[] = [];
   private agentInstances: any[] = [];
-  private agentRecords: Array<{ agent: any; instance: any | null }> = [];
 
   constructor(
     private readonly agentDiscovery: AgentDiscoveryService,
@@ -38,7 +37,10 @@ export class AppService implements OnModuleInit {
 
       // Step 2: Create agent instances using factory
 
-      this.agentRecords = [];
+      this.discoveredAgents.forEach((agent, index) => {
+
+      });
+
       this.agentInstances = [];
 
       for (const discoveredAgent of this.discoveredAgents) {
@@ -47,13 +49,6 @@ export class AppService implements OnModuleInit {
           const serviceInstance =
             await this.agentFactory.createAgent(discoveredAgent);
 
-          discoveredAgent.serviceInstance = serviceInstance;
-
-          this.agentRecords.push({
-            agent: discoveredAgent,
-            instance: serviceInstance,
-          });
-
           // Step 3: Register with agent pool
           await this.registerAgentWithPool(serviceInstance, discoveredAgent);
 
@@ -61,21 +56,15 @@ export class AppService implements OnModuleInit {
 
         } catch (error: any) {
 
-          this.agentRecords.push({
-            agent: discoveredAgent,
-            instance: null,
-          });
-
           // Continue with other agents
-          this.agentInstances.push(null);
         }
       }
 
       // Summary log
       if (this.discoveredAgents.length > 0) {
 
-        this.agentRecords.forEach(({ agent, instance }) => {
-          const status = instance ? '✅' : '❌';
+        this.discoveredAgents.forEach((agent) => {
+          const status = agent.serviceInstance ? '✅' : '❌';
 
         });
       }
@@ -111,15 +100,13 @@ export class AppService implements OnModuleInit {
       const agentRegistration = {
         id: this.agentDiscovery.generateAgentId(
           discoveredAgent.name,
-          discoveredAgent.namespacedPath || discoveredAgent.path,
+          discoveredAgent.path,
         ),
         name: agentCard?.name || discoveredAgent.name,
-        type: this.agentDiscovery.determineAgentType(
-          discoveredAgent.namespacedPath || discoveredAgent.path,
-        ),
-        path: discoveredAgent.namespacedPath || discoveredAgent.path,
+        type: this.agentDiscovery.determineAgentType(discoveredAgent.path),
+        path: discoveredAgent.path,
         url: this.agentDiscovery.buildAgentUrl(
-          discoveredAgent.namespacedPath || discoveredAgent.path,
+          discoveredAgent.path,
           discoveredAgent.name,
         ),
         description:
@@ -134,11 +121,10 @@ export class AppService implements OnModuleInit {
         ],
         metadata: {
           version: '1.0.0',
-          agentPath: discoveredAgent.namespacedPath || discoveredAgent.path,
+          agentPath: discoveredAgent.path,
           servicePath: discoveredAgent.servicePath,
           functionPath: discoveredAgent.functionPath,
           pythonFunctionPath: discoveredAgent.pythonFunctionPath,
-          namespace: discoveredAgent.namespace,
         },
         status: 'online' as const,
         registeredAt: new Date(),
@@ -158,26 +144,23 @@ export class AppService implements OnModuleInit {
     return 'NestJS A2A Agent Framework - Ready!';
   }
 
-  async getAgentStatus(namespaces?: string[]): Promise<any> {
-    const filteredRecords = namespaces?.length
-      ? this.agentRecords.filter((record) =>
-          record.agent?.namespace
-            ? namespaces.includes(record.agent.namespace)
-            : true,
-        )
-      : this.agentRecords;
-
+  async getAgentStatus(): Promise<any> {
+    // Get agent cards with execution modes information
     const agentsWithDetails = await Promise.all(
-      filteredRecords.map(async ({ agent, instance }) => {
+      this.discoveredAgents.map(async (agent) => {
         let agentCard = null;
-        let executionModes = ['immediate'];
+        let executionModes = ['immediate']; // Default execution mode
         let executionProfile = DEFAULT_EXECUTION_PROFILE;
         let executionCapabilities = { ...DEFAULT_EXECUTION_CAPABILITIES };
 
         try {
-          if (instance && typeof instance.getAgentCard === 'function') {
-            agentCard = await instance.getAgentCard();
+          if (
+            agent.serviceInstance &&
+            typeof agent.serviceInstance.getAgentCard === 'function'
+          ) {
+            agentCard = await agent.serviceInstance.getAgentCard();
 
+            // Extract execution modes from agent card configuration
             if (agentCard?.configuration?.execution_modes) {
               executionModes = agentCard.configuration.execution_modes;
             }
@@ -198,31 +181,28 @@ export class AppService implements OnModuleInit {
         }
 
         return {
-          id: this.agentDiscovery.generateAgentId(
-            agent.name,
-            agent.namespacedPath || agent.path,
-          ),
+          id: this.agentDiscovery.generateAgentId(agent.name, agent.path),
+          // Preserve the discovered machine-friendly name so frontend matching works
           name: agent.name,
+          // Expose human-friendly display name separately when available
           displayName: agentCard?.name || agent.name,
           type: agent.type,
-          namespace: agent.namespace,
           description:
             agentCard?.description ||
             `${agent.name} - A specialized agent for handling specific tasks`,
           serviceClass: agent.serviceClass?.name,
-          hasInstance: !!instance,
+          hasInstance: !!agent.serviceInstance,
           execution_modes: executionModes,
           execution_profile: executionProfile,
           execution_capabilities: executionCapabilities,
-          metadata: agent.metadata,
         };
       }),
     );
 
     return {
       status: 'running',
-      discoveredAgents: filteredRecords.length,
-      runningInstances: filteredRecords.filter((record) => !!record.instance).length,
+      discoveredAgents: this.discoveredAgents.length,
+      runningInstances: this.agentInstances.length,
       agents: agentsWithDetails,
     };
   }
@@ -234,38 +214,10 @@ export class AppService implements OnModuleInit {
     return this.discoveredAgents;
   }
 
-  getDiscoveredAgentsByNamespaces(namespaces?: string[]): any[] {
-    if (!namespaces || namespaces.length === 0) {
-      return this.discoveredAgents;
-    }
-
-    const allowed = new Set(namespaces);
-    return this.discoveredAgents.filter((agent) =>
-      allowed.has(agent.namespace),
-    );
-  }
-
   /**
    * Get agent instances (for other services to access)
    */
   getAgentInstances(): any[] {
     return this.agentInstances;
-  }
-
-  getAgentInstancesByNamespaces(namespaces?: string[]): any[] {
-    if (!namespaces || namespaces.length === 0) {
-      return this.agentInstances;
-    }
-
-    const allowed = new Set(namespaces);
-    const filtered: any[] = [];
-
-    this.discoveredAgents.forEach((agent, index) => {
-      if (allowed.has(agent.namespace)) {
-        filtered.push(this.agentInstances[index] || null);
-      }
-    });
-
-    return filtered;
   }
 }

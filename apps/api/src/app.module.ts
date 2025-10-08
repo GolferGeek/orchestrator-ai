@@ -15,18 +15,18 @@ import { DynamicAgentsController } from './agents/dynamic-agents.controller';
 import { HierarchySimpleController } from './hierarchy-simple.controller';
 import { HierarchyController } from './hierarchy/hierarchy.controller';
 import { IntentRecognitionService } from './agents/base/implementations/base-services/orchestrator/intent-recognition.service';
-import { MarketingManagerOrchestratorModule } from './agents/demo/marketing/marketing_manager_orchestrator/agent.module';
-import { CEOOrchestratorModule } from './agents/demo/orchestrator/ceo_orchestrator/agent.module';
-import { EngineeringManagerOrchestratorModule } from './agents/demo/engineering/engineering_manager_orchestrator/agent.module';
-import { OperationsManagerOrchestratorModule } from './agents/demo/operations/operations_manager_orchestrator/agent.module';
-import { FinanceManagerOrchestratorModule } from './agents/demo/finance/finance_manager_orchestrator/agent.module';
-import { HRManagerOrchestratorModule } from './agents/demo/hr/hr_manager_orchestrator/agent.module';
-import { SalesManagerOrchestratorModule } from './agents/demo/sales/sales_manager_orchestrator/agent.module';
-import { ProductManagerOrchestratorModule } from './agents/demo/product/product_manager_orchestrator/agent.module';
-import { ResearchManagerOrchestratorModule } from './agents/demo/research/research_manager_orchestrator/agent.module';
-import { SpecialistsManagerOrchestratorModule } from './agents/demo/specialists/specialists_manager_orchestrator/agent.module';
-import { LegalManagerOrchestratorModule } from './agents/demo/legal/legal_manager_orchestrator/agent.module';
-import { ProductivityManagerOrchestratorModule } from './agents/demo/productivity/productivity_manager_orchestrator/agent.module';
+import { MarketingManagerOrchestratorModule } from './agents/actual/marketing/marketing_manager_orchestrator/agent.module';
+import { CEOOrchestratorModule } from './agents/actual/orchestrator/ceo_orchestrator/agent.module';
+import { EngineeringManagerOrchestratorModule } from './agents/actual/engineering/engineering_manager_orchestrator/agent.module';
+import { OperationsManagerOrchestratorModule } from './agents/actual/operations/operations_manager_orchestrator/agent.module';
+import { FinanceManagerOrchestratorModule } from './agents/actual/finance/finance_manager_orchestrator/agent.module';
+import { HRManagerOrchestratorModule } from './agents/actual/hr/hr_manager_orchestrator/agent.module';
+import { SalesManagerOrchestratorModule } from './agents/actual/sales/sales_manager_orchestrator/agent.module';
+import { ProductManagerOrchestratorModule } from './agents/actual/product/product_manager_orchestrator/agent.module';
+import { ResearchManagerOrchestratorModule } from './agents/actual/research/research_manager_orchestrator/agent.module';
+import { SpecialistsManagerOrchestratorModule } from './agents/actual/specialists/specialists_manager_orchestrator/agent.module';
+import { LegalManagerOrchestratorModule } from './agents/actual/legal/legal_manager_orchestrator/agent.module';
+import { ProductivityManagerOrchestratorModule } from './agents/actual/productivity/productivity_manager_orchestrator/agent.module';
 // Orchestrator service imports removed - services are now provided by their respective modules
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
@@ -35,7 +35,7 @@ import { ProvidersModule } from './providers/providers.module';
 import { CIDAFMModule } from './cidafm/cidafm.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { UsageModule } from './usage/usage.module';
-// import { OrchestratorModule } from './agents/demo/orchestrator/agent.module'; // TODO: Create when orchestrator agents are built
+// import { OrchestratorModule } from './agents/actual/orchestrator/agent.module'; // TODO: Create when orchestrator agents are built
 import { AgentConversationsModule } from './agent-conversations/agent-conversations.module';
 import { TasksModule } from './tasks/tasks.module';
 import { WebSocketModule } from './websocket/websocket.module';
@@ -60,8 +60,8 @@ import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { SpeechModule } from './speech/speech.module';
-import { AgentCreatorModule } from './agents/demo/specialists/agent_creator/agent.module';
-import { WebhooksModule } from './webhooks/webhooks.module';
+import { AgentCreatorModule } from './agents/actual/specialists/agent_creator/agent.module';
+import { VideosModule } from './videos/videos.module';
 
 @Module({
   imports: [
@@ -124,7 +124,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     SystemModule, // System analytics and monitoring
     SpeechModule, // Speech-to-text and text-to-speech functionality
     AgentCreatorModule, // Agent configuration service for discovery
-    WebhooksModule, // Webhook endpoints for external integrations (n8n, etc.)
+    VideosModule, // Video management and admin endpoints
   ],
   controllers: [
     AppController,

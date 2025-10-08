@@ -1,0 +1,79 @@
+# Task ID: 2
+# Title: Extend Database Schema for Three-Tier Local Model Configuration
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Extend the llm_models table with local model columns and create seed data for three-tier model configuration.
+# Details:
+1. Create a database migration script to extend the `llm_models` table with the following columns:
+   - `is_local` (BOOLEAN, default FALSE)
+   - `is_currently_loaded` (BOOLEAN, default FALSE)
+   - `model_tier` (VARCHAR(50))
+   - `loading_priority` (INTEGER, default 0)
+
+2. SQL for table extension:
+```sql
+ALTER TABLE orchestrator.llm_models 
+ADD COLUMN is_local BOOLEAN DEFAULT FALSE,
+ADD COLUMN is_currently_loaded BOOLEAN DEFAULT FALSE,
+ADD COLUMN model_tier VARCHAR(50),
+ADD COLUMN loading_priority INTEGER DEFAULT 0;
+```
+
+3. Create seed data for three-tier model configuration:
+```sql
+-- Tier 1 (Fast Thinking)
+INSERT INTO orchestrator.llm_models (name, provider, is_local, model_tier, loading_priority)
+VALUES 
+('gpt-oss-2b', 'ollama', TRUE, 'fast-thinking', 10),
+('gpt-oss-20b', 'ollama', TRUE, 'fast-thinking', 9);
+
+-- Tier 2 (Ultra-Fast)
+INSERT INTO orchestrator.llm_models (name, provider, is_local, model_tier, loading_priority)
+VALUES 
+('llama3.2:1b', 'ollama', TRUE, 'ultra-fast', 10),
+('llama3.2:3b', 'ollama', TRUE, 'ultra-fast', 9);
+
+-- Tier 3 (General)
+INSERT INTO orchestrator.llm_models (name, provider, is_local, model_tier, loading_priority)
+VALUES 
+('llama3.1:8b', 'ollama', TRUE, 'general', 8),
+('qwen2.5:7b', 'ollama', TRUE, 'general', 7);
+```
+
+4. Update provider service to handle local model metadata
+5. Create migration script for existing Ollama models to preserve data
+
+# Test Strategy:
+1. Verify database migration executes successfully
+2. Confirm all new columns are added with correct data types and defaults
+3. Validate seed data is properly inserted for all three tiers
+4. Test provider service correctly handles the new model metadata
+5. Verify migration script preserves existing Ollama model data
+6. Create database rollback script and test it works correctly
+
+# Subtasks:
+## 1. Create Database Migration Script for Schema Extension [done]
+### Dependencies: None
+### Description: Create a migration script to extend the llm_models table with new columns for local model configuration.
+### Details:
+Create a new migration file in the database migrations directory with the SQL to add the new columns to the llm_models table. The migration should include the ALTER TABLE statement to add is_local, is_currently_loaded, model_tier, and loading_priority columns with appropriate default values and data types. Ensure the migration can be rolled back if needed by creating a down migration that removes these columns.
+
+## 2. Create Seed Data for Three-Tier Model Configuration [done]
+### Dependencies: None
+### Description: Develop seed data scripts for populating the extended llm_models table with the three-tier model configuration.
+### Details:
+Create a seed data script that inserts the specified models into the llm_models table, categorized by their respective tiers (fast-thinking, ultra-fast, and general). Ensure each model has the appropriate is_local flag set to TRUE and the correct loading_priority values. The script should handle potential duplicate entries by either using INSERT IF NOT EXISTS or implementing a check before insertion.
+
+## 3. Create Migration Script for Existing Ollama Models [done]
+### Dependencies: None
+### Description: Develop a migration script to update existing Ollama models in the database to preserve their data while adding the new fields.
+### Details:
+Create a migration script that identifies existing Ollama models in the llm_models table and updates them with appropriate values for the new columns. Set is_local=TRUE for all Ollama models, assign appropriate model_tier values based on model capabilities, and set loading_priority values based on model size or performance characteristics. The script should be idempotent so it can be run multiple times without causing issues.
+
+## 4. Update Provider Service to Handle Local Model Metadata [done]
+### Dependencies: None
+### Description: Modify the existing provider service to work with the new local model metadata fields.
+### Details:
+Update the provider service to handle the new local model metadata fields. Implement functionality to check if a model is local, check if it's currently loaded, and consider its tier and loading priority when making decisions. Add methods to update the is_currently_loaded status when models are loaded or unloaded. Ensure the service can filter models by tier and sort them by loading priority when needed.
+

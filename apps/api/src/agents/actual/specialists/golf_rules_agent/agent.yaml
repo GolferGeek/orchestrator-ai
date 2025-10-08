@@ -1,0 +1,116 @@
+# Rules of Golf Expert Agent Configuration
+metadata:
+  name: "Rules of Golf Expert"
+  type: "specialists"
+  category: "golf_knowledge"
+  version: "1.0.0"
+  description: "A comprehensive Rules of Golf expert powered by an N8N workflow that provides authoritative answers based on official USGA and R&A Rules of Golf, including detailed explanations, rule citations, and penalty assessments."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: specialists_manager_orchestrator
+  department: specialists
+
+# Agent type - API agent that delegates to N8N RAG workflow
+type: "api"
+
+capabilities:
+  - golf_rules_expertise
+  - rule_interpretation
+  - penalty_assessment
+  - equipment_regulations
+  - course_conditions
+  - competition_rules
+
+skills:
+  - id: "rules_interpretation"
+    name: "Golf Rules Interpretation"
+    description: "Provide detailed explanations of complex golf rules situations and their proper application"
+    tags: ["golf-rules", "interpretation", "usga", "r&a"]
+    examples:
+      - "My ball went into a water hazard, what are my options?"
+      - "Can I move my ball if it's behind a tree?"
+      - "What's the penalty for hitting the wrong ball?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "penalty_assessment"
+    name: "Penalty Assessment"
+    description: "Determine correct penalties for various golf infractions and rule violations"
+    tags: ["penalties", "strokes", "assessment", "violations"]
+    examples:
+      - "What's the penalty for an unplayable ball?"
+      - "How many strokes for hitting into a penalty area?"
+      - "What happens if I accidentally move my ball on the green?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "equipment_regulations"
+    name: "Equipment Regulations"
+    description: "Verify equipment conformance and answer questions about legal golf equipment"
+    tags: ["equipment", "conforming", "regulations", "legal"]
+    examples:
+      - "Can I use a rangefinder during competition?"
+      - "Is this driver legal for tournament play?"
+      - "What are the rules about golf ball specifications?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "course_conditions"
+    name: "Course Conditions and Relief"
+    description: "Handle questions about abnormal course conditions and relief procedures"
+    tags: ["course-conditions", "relief", "abnormal", "casual-water"]
+    examples:
+      - "There's casual water in my line of play, can I get relief?"
+      - "Can I get relief from ground under repair?"
+      - "What if an animal moves my ball?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "competition_rules"
+    name: "Competition and Match Play Rules"
+    description: "Provide guidance on tournament regulations and match play procedures"
+    tags: ["competition", "tournament", "match-play", "stroke-play"]
+    examples:
+      - "What are the rules for pace of play in tournaments?"
+      - "How does the concession rule work in match play?"
+      - "What happens if there's a rules dispute during competition?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/plain"
+  - "application/json"
+
+api_configuration:
+  endpoint: "https://golfergeek.app.n8n.cloud/webhook/8218497e-a07f-4516-a2cd-00044c8f9211"
+  method: "POST"
+  timeout: 60000
+  headers:
+    Content-Type: "application/json"
+  authentication: null
+  request_transform:
+    format: "custom"
+    template: '{"sessionId": "{{sessionId}}", "prompt": "{{userMessage}}"}'
+  response_transform:
+    format: "field_extraction"
+    field: "output"
+
+configuration:
+  default_output_format: "text/plain"
+  include_rule_citations: true
+  provide_step_by_step: true
+  distinguish_play_formats: true
+  execution_profile: "conversation_only"
+  execution_capabilities:
+    can_plan: false
+    can_build: false
+    requires_human_gate: false
+  timeout_seconds: 30 

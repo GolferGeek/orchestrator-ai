@@ -39,15 +39,6 @@
                 "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
                 "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
             }
-        },
-        "n8n-mcp": {
-            "command": "./apps/n8n/scripts/run-mcp.sh",
-            "args": [],
-            "env": {
-                "MCP_MODE": "stdio",
-                "LOG_LEVEL": "error",
-                "DISABLE_CONSOLE_OUTPUT": "false"
-            }
         }
     }
 }

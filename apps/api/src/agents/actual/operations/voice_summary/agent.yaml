@@ -1,0 +1,94 @@
+# Voice Summary Agent Configuration
+metadata:
+  name: "Voice Summary Agent"
+  type: "specialists"
+  category: "content_processing"
+  version: "1.0.0"
+  description: "Your expert Voice & Meeting Analysis specialist! I transform audio conversations, meetings, and calls into actionable intelligence. From board meetings to client calls, I extract key decisions, generate comprehensive summaries, identify action items, and analyze sentiment - ensuring nothing important gets lost and every conversation drives results."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: operations_manager_orchestrator
+  department: operations
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - voice_transcription_analysis
+  - meeting_summarization
+  - action_item_extraction
+  - key_insight_identification
+  - speaker_identification
+  - sentiment_analysis
+  - follow_up_generation
+  - compliance_tracking
+
+skills:
+  - id: "meeting_summarization"
+    name: "Meeting Summary Generation"
+    description: "Create comprehensive, executive-ready summaries of voice meetings with key decisions and strategic insights"
+    tags: ["summarization", "meetings", "voice", "documentation"]
+    examples:
+      - "Summarize a 90-minute board meeting with strategic decisions, budget approvals, and executive action items"
+      - "Create executive summary of client presentation including stakeholder feedback and next steps"
+      - "Generate detailed meeting minutes from product planning session with feature prioritization and timeline"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "action_item_extraction"
+    name: "Action Item Extraction"
+    description: "Identify, prioritize, and track actionable items from voice conversations with ownership and deadlines"
+    tags: ["action-items", "tasks", "follow-up", "accountability"]
+    examples:
+      - "Extract and prioritize action items from quarterly business review with C-level executives"
+      - "Identify follow-up tasks from client implementation call with technical and business owners"
+      - "Create accountability matrix from project kickoff meeting with deliverables and milestones"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "sentiment_analysis"
+    name: "Voice Sentiment Analysis"
+    description: "Analyze emotional tone, engagement levels, and stakeholder sentiment from voice conversations"
+    tags: ["sentiment", "emotion", "tone", "analysis"]
+    examples:
+      - "Analyze customer satisfaction and risk indicators from quarterly business review call"
+      - "Assess team morale and engagement levels from all-hands meeting for leadership insights"
+      - "Evaluate client relationship health from project status call including concern areas"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  execution_modes: ["immediate"]
+  summary_levels:
+    - "executive"
+    - "detailed"
+    - "bullet_points"
+    - "action_focused"
+  speaker_tracking: true
+  timestamp_inclusion: true
+  meeting_types:
+    - "board_meeting"
+    - "client_call"
+    - "sales_call"
+    - "support_call"
+    - "team_standup"
+    - "product_review"
+    - "investor_meeting"
+    - "interview"
+  compliance_requirements:
+    - "gdpr_privacy"
+    - "sox_compliance"
+    - "confidentiality"
+  action_item_priority: true

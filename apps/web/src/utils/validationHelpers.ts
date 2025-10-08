@@ -87,8 +87,8 @@ export function isDangerousRegex(pattern: string): boolean {
     /\([^)]*\+[^)]*\)\+/,  // Nested quantifiers like (a+)+
     /\([^)]*\*[^)]*\)\*/,  // Nested star quantifiers like (.*)*
     /\([^)]*\+[^)]*\)\$/, // Nested quantifiers at end
-    /\(\?!\.\*\)\+/,  // Negative lookahead with quantifiers
-    /\(\?:\.\+\)\+/, // Non-capturing group with nested quantifiers
+    /\(\?\!\.\*\)\+/,  // Negative lookahead with quantifiers
+    /\(\?\:\.\+\)\+/, // Non-capturing group with nested quantifiers
   ];
   
   return dangerousPatterns.some(dangerous => dangerous.test(pattern));

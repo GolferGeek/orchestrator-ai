@@ -319,7 +319,7 @@ export class ExternalA2AAgentBaseService
     try {
       const agentDirectory = path.join(
         process.cwd(),
-        'src/agents/demo',
+        'src/agents/actual',
         this.agentPath,
       );
 

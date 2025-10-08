@@ -167,15 +167,12 @@ import { computed, ref } from 'vue';
 import { 
   IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
 } from '@ionic/vue';
-import { menuController } from '@ionic/vue';
 import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter } from 'vue-router';
-import { storeToRefs } from 'pinia';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 const auth = useAuthStore();
-const { currentNamespace } = storeToRefs(auth);
 const agentChatStore = useAgentChatStore();
 const router = useRouter();
 // State for accordion and search
@@ -190,22 +187,8 @@ const handleLogout = async () => {
   await auth.logout();
   router.push('/login');
 };
-function getLandingPathForNamespace(namespace: string | null | undefined): string {
-  const ns = (namespace || 'demo').toLowerCase();
-  const compact = ns.replace(/[^a-z0-9]/g, '');
-  if (compact === 'demo') return '/landing';
-  if (compact === 'myorg') return '/my-org';
-  if (ns === 'saas' || ns.startsWith('saas-') || compact.startsWith('saas')) return '/saas';
-  return '/landing';
-}
-
-const navigateToLanding = async () => {
-  const target = getLandingPathForNamespace(currentNamespace.value as unknown as string | null);
-  router.replace(target);
-  try {
-    await menuController.close();
-  } catch (e) {
-  }
+const navigateToLanding = () => {
+  router.push('/');
 };
 const handleConversationSelected = async (conversation: any) => {
   try {

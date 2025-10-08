@@ -1,13 +1,9 @@
 import { defineStore } from 'pinia';
 
-export type SpeechMode = 'frontend' | 'backend' | 'hybrid';
-
 export interface UiState {
   isAppLoading: boolean;
   isPttRecording: boolean;
   isConversationalMode: boolean;
-  showSpeechDevMode: boolean;
-  speechMode: SpeechMode;
   // Add other UI related states here, e.g., theme, modal visibility
   // isDarkMode: boolean;
   // activeModal: string | null;
@@ -17,8 +13,6 @@ export const useUiStore = defineStore('ui', {
     isAppLoading: false,
     isPttRecording: false,
     isConversationalMode: false,
-    showSpeechDevMode: false,
-    speechMode: 'backend' as SpeechMode,
     // isDarkMode: window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
     // activeModal: null,
   }),
@@ -31,12 +25,6 @@ export const useUiStore = defineStore('ui', {
     },
     setConversationalMode(isConversational: boolean) {
       this.isConversationalMode = isConversational;
-    },
-    toggleSpeechDevMode() {
-      this.showSpeechDevMode = !this.showSpeechDevMode;
-    },
-    setSpeechMode(mode: SpeechMode) {
-      this.speechMode = mode;
     },
     // toggleDarkMode() {
     //   this.isDarkMode = !this.isDarkMode;

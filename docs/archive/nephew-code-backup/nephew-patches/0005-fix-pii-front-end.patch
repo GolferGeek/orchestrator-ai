@@ -286,10 +286,10 @@ index 0000000..568b69a
 +- Frontend supports both metadata formats
 +- Gradual migration of services
 \ No newline at end of file
-diff --git a/apps/api/src/agents/demo/finance/metrics/agent-function.ts b/apps/api/src/agents/demo/finance/metrics/agent-function.ts
+diff --git a/apps/api/src/agents/actual/finance/metrics/agent-function.ts b/apps/api/src/agents/actual/finance/metrics/agent-function.ts
 index d194c2f..c01ea9b 100644
---- a/apps/api/src/agents/demo/finance/metrics/agent-function.ts
-+++ b/apps/api/src/agents/demo/finance/metrics/agent-function.ts
+--- a/apps/api/src/agents/actual/finance/metrics/agent-function.ts
++++ b/apps/api/src/agents/actual/finance/metrics/agent-function.ts
 @@ -108,8 +108,9 @@ Respond with JSON only:
        analysisPrompt,
        {

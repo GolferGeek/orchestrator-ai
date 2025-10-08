@@ -156,7 +156,6 @@ interface UserProfile {
   email?: string;
   displayName?: string;
   roles: UserRole[]; // Array of user roles
-  namespaceAccess: string[];
   // Add other relevant user properties from your /auth/me endpoint
 }
 export const useAuthStore = defineStore('auth', () => {
@@ -174,113 +173,6 @@ export const useAuthStore = defineStore('auth', () => {
   const sessionStartTime = ref<Date | null>(null);
   const lastActivityTime = ref<Date | null>(null);
   const sessionTimeoutMinutes = ref(480); // 8 hours default
-
-  const ACTIVE_NAMESPACE_KEY = 'activeNamespace';
-  const ACTIVE_NAMESPACE_USER_KEY = 'activeNamespaceUser';
-
-  const activeNamespace = ref<string | null>(localStorage.getItem(ACTIVE_NAMESPACE_KEY));
-  const availableNamespaces = computed(() => user.value?.namespaceAccess ?? []);
-  const namespaceError = ref<string | null>(null);
-
-  // Get default from environment variable (defaults to 'demo' if not set)
-  const defaultCodebaseLocation = (import.meta.env.VITE_CODEBASE_LOCATION || 'demo').toLowerCase();
-
-  const resolveDefaultNamespace = (namespaces: string[]): string => {
-    if (!namespaces.length) {
-      const message = 'No namespaces available for the current user.';
-      namespaceError.value = message;
-      console.error('[AuthStore]', message);
-      throw new Error(message);
-    }
-
-    if (!defaultCodebaseLocation) {
-      const message = 'Missing VITE_CODEBASE_LOCATION configuration.';
-      namespaceError.value = message;
-      console.error('[AuthStore]', message);
-      throw new Error(message);
-    }
-
-    if (!namespaces.includes(defaultCodebaseLocation)) {
-      const message = `Default namespace "${defaultCodebaseLocation}" is not available for this user.`;
-      namespaceError.value = message;
-      console.error('[AuthStore]', message, namespaces);
-      throw new Error(message);
-    }
-
-    namespaceError.value = null;
-    return defaultCodebaseLocation;
-  };
-
-  const ensureActiveNamespace = (namespaces: string[], userId?: string | null) => {
-    const storedUserId = localStorage.getItem(ACTIVE_NAMESPACE_USER_KEY);
-
-    if (userId && storedUserId !== userId) {
-      activeNamespace.value = null;
-      localStorage.removeItem(ACTIVE_NAMESPACE_KEY);
-      localStorage.removeItem(ACTIVE_NAMESPACE_USER_KEY);
-      namespaceError.value = null;
-    }
-
-    if (!namespaces.length) {
-      if (!userId) {
-        return;
-      }
-
-      if (activeNamespace.value !== null) {
-        activeNamespace.value = null;
-        localStorage.removeItem(ACTIVE_NAMESPACE_KEY);
-      }
-
-      localStorage.setItem(ACTIVE_NAMESPACE_USER_KEY, userId);
-      apiService.setActiveNamespace(null);
-      const message = 'No namespaces available for the current user.';
-      namespaceError.value = message;
-      console.error('[AuthStore]', message);
-      return;
-    }
-
-    const current = activeNamespace.value;
-    if (current && namespaces.includes(current)) {
-      apiService.setActiveNamespace(current);
-      if (userId) {
-        localStorage.setItem(ACTIVE_NAMESPACE_USER_KEY, userId);
-      }
-      namespaceError.value = null;
-      return;
-    }
-
-    try {
-      const nextNamespace = resolveDefaultNamespace(namespaces);
-      activeNamespace.value = nextNamespace;
-      localStorage.setItem(ACTIVE_NAMESPACE_KEY, nextNamespace);
-      if (userId) {
-        localStorage.setItem(ACTIVE_NAMESPACE_USER_KEY, userId);
-      }
-      apiService.setActiveNamespace(nextNamespace);
-      namespaceError.value = null;
-    } catch (error) {
-      activeNamespace.value = null;
-      apiService.setActiveNamespace(null);
-      console.error('[AuthStore] Unable to resolve active namespace:', error);
-    }
-  };
-
-  const currentNamespace = computed(() => {
-    const namespaces = availableNamespaces.value;
-    if (!namespaces.length) {
-      namespaceError.value = null;
-      return activeNamespace.value || defaultCodebaseLocation;
-    }
-    if (activeNamespace.value && namespaces.includes(activeNamespace.value)) {
-      return activeNamespace.value;
-    }
-    try {
-      return resolveDefaultNamespace(namespaces);
-    } catch (error) {
-      console.error('[AuthStore] Unable to determine current namespace:', error);
-      return null;
-    }
-  });
   
   // Session management
   const isSessionActive = computed(() => {
@@ -306,26 +198,6 @@ export const useAuthStore = defineStore('auth', () => {
       permissionCache.value.clear();
     }
   });
-
-  watch(
-    availableNamespaces,
-    (namespaces) => {
-      ensureActiveNamespace(namespaces, user.value?.id ?? null);
-    },
-    { immediate: true },
-  );
-
-  watch(
-    currentNamespace,
-    (namespace) => {
-      if (namespace) {
-        apiService.setActiveNamespace(namespace);
-      } else {
-        apiService.setActiveNamespace(null);
-      }
-    },
-    { immediate: true },
-  );
 
   // Role-based computed properties
   const isAdmin = computed(() => user.value?.roles?.includes(UserRole.ADMIN) ?? false);
@@ -530,27 +402,6 @@ export const useAuthStore = defineStore('auth', () => {
     const remaining = (sessionTimeoutMinutes.value * 60 * 1000) - elapsed;
     return Math.max(0, remaining);
   };
-
-  const hasNamespaceAccess = (namespace: string): boolean => {
-    return availableNamespaces.value.includes(namespace);
-  };
-
-  const setActiveNamespace = (namespace: string) => {
-    if (!availableNamespaces.value.includes(namespace)) {
-      return;
-    }
-    if (activeNamespace.value === namespace) {
-      return;
-    }
-    activeNamespace.value = namespace;
-    localStorage.setItem(ACTIVE_NAMESPACE_KEY, namespace);
-    if (user.value?.id) {
-      localStorage.setItem(ACTIVE_NAMESPACE_USER_KEY, user.value.id);
-    }
-    apiService.setActiveNamespace(namespace);
-    namespaceError.value = null;
-  };
-
   // This function is primarily for internal state update after successful token acquisition
   function setTokenData(tokenData: TokenData) {
     token.value = tokenData.accessToken;
@@ -570,13 +421,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userData');
-    localStorage.removeItem(ACTIVE_NAMESPACE_KEY);
-    localStorage.removeItem(ACTIVE_NAMESPACE_USER_KEY);
-    activeNamespace.value = null;
     // Clear auth from API service
     apiService.clearAuth();
-    apiService.setActiveNamespace(null);
-    namespaceError.value = null;
   }
   async function login(credentials: { email: string; password: string }) {
     isLoading.value = true;
@@ -657,7 +503,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const userData = await apiService.getCurrentUser(); 
       user.value = userData;
-      ensureActiveNamespace(userData.namespaceAccess || [], userData.id);
       // Store user data in localStorage for router access
       localStorage.setItem('userData', JSON.stringify(userData));
       error.value = null; // Clear previous errors if user fetch is successful
@@ -687,12 +532,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     error,
     isAuthenticated,
-    availableNamespaces,
-    currentNamespace,
-    namespaceError,
-    setActiveNamespace,
-    hasNamespaceAccess,
-
+    
     // Role-based computed properties
     isAdmin,
     isDeveloper,

@@ -132,18 +132,18 @@ export class ApiAgentBaseService
     try {
       // Try multiple path resolution strategies
       const possibleDirectories = [
-        // Strategy 1: Use process.cwd() + src/agents/demo/[agentPath]
-        path.join(process.cwd(), 'src/agents/demo', agentPath),
-        // Strategy 2: Use process.cwd() + dist/agents/demo/[agentPath]
-        path.join(process.cwd(), 'dist/agents/demo', agentPath),
+        // Strategy 1: Use process.cwd() + src/agents/actual/[agentPath]
+        path.join(process.cwd(), 'src/agents/actual', agentPath),
+        // Strategy 2: Use process.cwd() + dist/agents/actual/[agentPath]
+        path.join(process.cwd(), 'dist/agents/actual', agentPath),
         // Strategy 3: Use relative from current file location
-        path.join(process.cwd(), 'apps/api/src/agents/demo', agentPath),
+        path.join(process.cwd(), 'apps/api/src/agents/actual', agentPath),
         // Strategy 4: Use __dirname and navigate up to src
-        path.join(__dirname, '../../../../../agents/demo', agentPath),
+        path.join(__dirname, '../../../../../agents/actual', agentPath),
         // Strategy 5: Use absolute path from workspace root
         path.join(
           process.cwd(),
-          '../../../apps/api/src/agents/demo',
+          '../../../apps/api/src/agents/actual',
           agentPath,
         ),
       ];

@@ -5,7 +5,7 @@ Scope: enforce centralized LLM path, consolidate provider configs, set no-train/
 ---
 
 #### Test harness
-- Use the Metrics/KPI agent as the single end-to-end test path: `apps/api/src/agents/demo/finance/metrics/agent-function.ts`.
+- Use the Metrics/KPI agent as the single end-to-end test path: `apps/api/src/agents/actual/finance/metrics/agent-function.ts`.
 - Standard KPI prompt fixture with synthetic identifiers for safe redaction/pseudonymization tests.
 
 #### Backend changes (API / A2A service)
