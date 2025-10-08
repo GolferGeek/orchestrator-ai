@@ -10,8 +10,8 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: false, public: true }
   },
   {
-    path: '/marketing',
-    name: 'MarketingLanding',
+    path: '/landing',
+    name: 'LandingPage',
     component: () => import('../views/landing/demo/DemoLandingPage.vue'),
     meta: { requiresAuth: false, public: true }
   },
