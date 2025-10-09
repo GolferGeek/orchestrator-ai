@@ -29,12 +29,10 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'n8n') THEN
     -- Placeholder entries to track that these workflows exist
     -- Actual workflow definitions are managed in n8n
-    INSERT INTO n8n.migration_metadata (migration_file, source, workflow_id, notes)
+    INSERT INTO n8n.migration_metadata (migration_file, source, notes)
     VALUES
-      ('20251008120600_add_marketing_swarm_flexible_llm.sql', 'n8n-export', '9jxl03jCcqg17oOy'::uuid,
-       'Helper: LLM Task - Multi-provider LLM helper (Execute Workflow Trigger)'),
-      ('20251008120600_add_marketing_swarm_flexible_llm.sql', 'n8n-export', '1LaQnwqSoTxmnw3Z'::uuid,
-       'Marketing Swarm - Flexible LLM - Main workflow at /webhook/marketing-swarm-flexible')
+      ('20251008120600_add_marketing_swarm_flexible_llm.sql', 'dev',
+       'Helper: LLM Task (9jxl03jCcqg17oOy) and Marketing Swarm - Flexible LLM (1LaQnwqSoTxmnw3Z) workflows at /webhook/marketing-swarm-flexible')
     ON CONFLICT (migration_file) DO NOTHING;
   END IF;
 END $$;
