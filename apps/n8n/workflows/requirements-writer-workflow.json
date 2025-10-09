@@ -1,0 +1,414 @@
+{
+  "name": "Requirements Writer Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "requirements",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Requirements Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "requirements-writer-webhook"
+    },
+    {
+      "parameters": {
+        "instructions": "Analyze the incoming requirements request to understand intent, scope, clarity, urgency, and domain. Extract key information and determine the type of requirements document needed.",
+        "options": {}
+      },
+      "id": "analyze-request",
+      "name": "Analyze Request",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Based on the analysis, determine the most appropriate document type (PRD, TRD, API, User Story, Architecture, or General) and provide reasoning for the choice.",
+        "options": {}
+      },
+      "id": "determine-document-type",
+      "name": "Determine Document Type",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Extract key features, components, and capabilities from the requirements. Identify core features, technical components, user features, integrations, and security requirements.",
+        "options": {}
+      },
+      "id": "extract-features",
+      "name": "Extract Features",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Assess the complexity of the requirements including overall complexity, effort estimate, team size recommendation, risk level, and key challenges.",
+        "options": {}
+      },
+      "id": "assess-complexity",
+      "name": "Assess Complexity",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-prd",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "prd",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-trd",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "trd",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-api",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "api",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-user-story",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "user_story",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-architecture",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "architecture",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "document-type-switch",
+      "name": "Document Type Switch",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive Product Requirements Document (PRD) including executive summary, product overview, user personas, functional requirements, user stories, non-functional requirements, technical considerations, implementation timeline, success metrics, and risk assessment.",
+        "options": {}
+      },
+      "id": "generate-prd",
+      "name": "Generate PRD",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive Technical Requirements Document (TRD) including system overview, technical architecture, database requirements, API specifications, security requirements, performance requirements, infrastructure requirements, integration requirements, development standards, and deployment strategy.",
+        "options": {}
+      },
+      "id": "generate-trd",
+      "name": "Generate TRD",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive API Requirements Document including API overview, authentication & authorization, endpoint specifications, data models, error handling, rate limiting, versioning strategy, integration examples, testing requirements, and documentation standards.",
+        "options": {}
+      },
+      "id": "generate-api",
+      "name": "Generate API Doc",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive User Story Document including project overview, user personas, epic stories, detailed user stories with acceptance criteria, story dependencies, prioritization, definition of done, story estimation, and sprint planning guidance.",
+        "options": {}
+      },
+      "id": "generate-user-story",
+      "name": "Generate User Stories",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1560, 500]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive Architecture Requirements Document including architecture overview, system components, data flow & integrations, technology stack, scalability & performance, security architecture, deployment architecture, monitoring & observability, risk assessment, and roadmap & phasing.",
+        "options": {}
+      },
+      "id": "generate-architecture",
+      "name": "Generate Architecture",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1560, 600]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive general requirements document including executive summary, project objectives & scope, stakeholders & personas, functional requirements, non-functional requirements, technical considerations, risks & assumptions, implementation plan, and success metrics.",
+        "options": {}
+      },
+      "id": "generate-general",
+      "name": "Generate General Doc",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1560, 700]
+    },
+    {
+      "parameters": {
+        "instructions": "Finalize the requirements document by adding metadata, processing time, document type, analysis results, features, complexity assessment, and workflow information. Format the final response with proper structure and formatting.",
+        "options": {}
+      },
+      "id": "finalize-document",
+      "name": "Finalize Document",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"response\": $json.document, \"metadata\": $json.metadata, \"processingTime\": $json.processingTime, \"documentType\": $json.documentType } }}",
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 400]
+    }
+  ],
+  "connections": {
+    "Requirements Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Request": {
+      "main": [
+        [
+          {
+            "node": "Determine Document Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Document Type": {
+      "main": [
+        [
+          {
+            "node": "Extract Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Features": {
+      "main": [
+        [
+          {
+            "node": "Assess Complexity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assess Complexity": {
+      "main": [
+        [
+          {
+            "node": "Document Type Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Type Switch": {
+      "main": [
+        [
+          {
+            "node": "Generate PRD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate TRD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate API Doc",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate User Stories",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Architecture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate General Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PRD": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate TRD": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate API Doc": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate User Stories": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Architecture": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate General Doc": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Document": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "requirements-agent",
+      "name": "Requirements Agent"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+

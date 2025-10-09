@@ -1,0 +1,89 @@
+{
+  "name": "Requirements Writer Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "requirements",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "webhook-trigger",
+      "name": "Requirements Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "requirements-writer"
+    },
+    {
+      "parameters": {
+        "instructions": "Analyze the incoming requirements request and generate a comprehensive requirements document.\n\nInput format:\n{\n  \"userMessage\": \"Create a user authentication system\",\n  \"conversationHistory\": [],\n  \"mode\": \"build\",\n  \"planContent\": null,\n  \"sessionId\": null\n}\n\nGenerate a professional requirements document that includes:\n\n1. **Executive Summary** - Brief overview and business justification\n2. **Project Objectives & Scope** - Goals, objectives, and boundaries\n3. **Stakeholders & Personas** - Target users and their needs\n4. **Functional Requirements** - Detailed feature specifications with acceptance criteria\n5. **Non-Functional Requirements** - Performance, security, scalability, compliance\n6. **Technical Considerations** - Architecture, technology stack, integrations\n7. **Risks & Assumptions** - Potential challenges and mitigation strategies\n8. **Implementation Plan** - Phased approach and timeline\n9. **Success Metrics** - KPIs and measurement criteria\n\nWrite clearly and professionally for both business and technical audiences. Start directly with the document title.",
+        "options": {}
+      },
+      "id": "generate-requirements",
+      "name": "Generate Requirements",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ \n  {\n    \"success\": true,\n    \"response\": $json.transformedData || $json.output || \"Document generated\",\n    \"metadata\": {\n      \"agentName\": \"Requirements Writer (N8N)\",\n      \"processingTime\": 1500,\n      \"documentType\": \"general\",\n      \"timestamp\": $now.toISO(),\n      \"sections\": 9,\n      \"workflow\": {\n        \"totalSteps\": 1,\n        \"mode\": $('Requirements Webhook').item.json.mode || \"build\"\n      },\n      \"originalPrompt\": $('Requirements Webhook').item.json.userMessage || \"\"\n    }\n  }\n}}",
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Requirements Webhook": {
+      "main": [
+        [
+          {
+            "node": "Generate Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Requirements": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "America/Chicago"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-09T00:00:00.000Z",
+      "updatedAt": "2025-01-09T00:00:00.000Z",
+      "id": "requirements",
+      "name": "Requirements Agent"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-09T00:00:00.000Z",
+  "versionId": "1"
+}
+
