@@ -4,13 +4,13 @@
 -- Drops old conversation_plan table and replaces with new versioned architecture
 
 -- Drop old conversation_plan and conversation_plans tables if they exist
-DROP TABLE IF EXISTS conversation_plan CASCADE;
+DROP TABLE IF EXISTS public.conversation_plan CASCADE;
 DROP TABLE IF EXISTS public.conversation_plans CASCADE;
 
 -- Create plans table (mirrors deliverables structure)
-CREATE TABLE IF NOT EXISTS plans (
+CREATE TABLE IF NOT EXISTS public.plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  conversation_id UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   agent_name TEXT NOT NULL,
   namespace TEXT NOT NULL,
@@ -24,9 +24,9 @@ CREATE TABLE IF NOT EXISTS plans (
 );
 
 -- Create plan_versions table (mirrors deliverable_versions structure)
-CREATE TABLE IF NOT EXISTS plan_versions (
+CREATE TABLE IF NOT EXISTS public.plan_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  plan_id UUID NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+  plan_id UUID NOT NULL REFERENCES public.plans(id) ON DELETE CASCADE,
   version_number INTEGER NOT NULL,
   content TEXT NOT NULL,
   format TEXT NOT NULL DEFAULT 'markdown' CHECK (format IN ('markdown', 'json', 'text')),
@@ -49,23 +49,23 @@ BEGIN
     WHERE constraint_name = 'fk_plans_current_version' 
     AND table_name = 'plans'
   ) THEN
-    ALTER TABLE plans
+    ALTER TABLE public.plans
       ADD CONSTRAINT fk_plans_current_version
       FOREIGN KEY (current_version_id)
-      REFERENCES plan_versions(id)
+      REFERENCES public.plan_versions(id)
       ON DELETE SET NULL;
   END IF;
 END $$;
 
 -- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_plans_conversation_id ON plans(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_plans_user_id ON plans(user_id);
-CREATE INDEX IF NOT EXISTS idx_plan_versions_plan_id ON plan_versions(plan_id);
-CREATE INDEX IF NOT EXISTS idx_plan_versions_is_current ON plan_versions(is_current_version) WHERE is_current_version = true;
-CREATE INDEX IF NOT EXISTS idx_plan_versions_task_id ON plan_versions(task_id) WHERE task_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_plans_conversation_id ON public.plans(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_plans_user_id ON public.plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_plan_versions_plan_id ON public.plan_versions(plan_id);
+CREATE INDEX IF NOT EXISTS idx_plan_versions_is_current ON public.plan_versions(is_current_version) WHERE is_current_version = true;
+CREATE INDEX IF NOT EXISTS idx_plan_versions_task_id ON public.plan_versions(task_id) WHERE task_id IS NOT NULL;
 
 -- Create updated_at trigger for plans table
-CREATE OR REPLACE FUNCTION update_plans_updated_at()
+CREATE OR REPLACE FUNCTION public.update_plans_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -73,86 +73,86 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trigger_plans_updated_at ON plans;
+DROP TRIGGER IF EXISTS trigger_plans_updated_at ON public.plans;
 CREATE TRIGGER trigger_plans_updated_at
-  BEFORE UPDATE ON plans
+  BEFORE UPDATE ON public.plans
   FOR EACH ROW
-  EXECUTE FUNCTION update_plans_updated_at();
+  EXECUTE FUNCTION public.update_plans_updated_at();
 
 -- Add RLS policies (mirroring deliverables)
-ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE plan_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plan_versions ENABLE ROW LEVEL SECURITY;
 
 -- Plans policies: users can only access their own plans
-DROP POLICY IF EXISTS plans_select_policy ON plans;
-CREATE POLICY plans_select_policy ON plans
+DROP POLICY IF EXISTS plans_select_policy ON public.plans;
+CREATE POLICY plans_select_policy ON public.plans
   FOR SELECT
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS plans_insert_policy ON plans;
-CREATE POLICY plans_insert_policy ON plans
+DROP POLICY IF EXISTS plans_insert_policy ON public.plans;
+CREATE POLICY plans_insert_policy ON public.plans
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS plans_update_policy ON plans;
-CREATE POLICY plans_update_policy ON plans
+DROP POLICY IF EXISTS plans_update_policy ON public.plans;
+CREATE POLICY plans_update_policy ON public.plans
   FOR UPDATE
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS plans_delete_policy ON plans;
-CREATE POLICY plans_delete_policy ON plans
+DROP POLICY IF EXISTS plans_delete_policy ON public.plans;
+CREATE POLICY plans_delete_policy ON public.plans
   FOR DELETE
   USING (auth.uid() = user_id);
 
 -- Plan versions policies: users can access versions of their plans
-DROP POLICY IF EXISTS plan_versions_select_policy ON plan_versions;
-CREATE POLICY plan_versions_select_policy ON plan_versions
+DROP POLICY IF EXISTS plan_versions_select_policy ON public.plan_versions;
+CREATE POLICY plan_versions_select_policy ON public.plan_versions
   FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM plans
-      WHERE plans.id = plan_versions.plan_id
-      AND plans.user_id = auth.uid()
+      SELECT 1 FROM public.plans
+      WHERE public.plans.id = public.plan_versions.plan_id
+      AND public.plans.user_id = auth.uid()
     )
   );
 
-DROP POLICY IF EXISTS plan_versions_insert_policy ON plan_versions;
-CREATE POLICY plan_versions_insert_policy ON plan_versions
+DROP POLICY IF EXISTS plan_versions_insert_policy ON public.plan_versions;
+CREATE POLICY plan_versions_insert_policy ON public.plan_versions
   FOR INSERT
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM plans
-      WHERE plans.id = plan_versions.plan_id
-      AND plans.user_id = auth.uid()
+      SELECT 1 FROM public.plans
+      WHERE public.plans.id = public.plan_versions.plan_id
+      AND public.plans.user_id = auth.uid()
     )
   );
 
-DROP POLICY IF EXISTS plan_versions_update_policy ON plan_versions;
-CREATE POLICY plan_versions_update_policy ON plan_versions
+DROP POLICY IF EXISTS plan_versions_update_policy ON public.plan_versions;
+CREATE POLICY plan_versions_update_policy ON public.plan_versions
   FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM plans
-      WHERE plans.id = plan_versions.plan_id
-      AND plans.user_id = auth.uid()
+      SELECT 1 FROM public.plans
+      WHERE public.plans.id = public.plan_versions.plan_id
+      AND public.plans.user_id = auth.uid()
     )
   );
 
-DROP POLICY IF EXISTS plan_versions_delete_policy ON plan_versions;
-CREATE POLICY plan_versions_delete_policy ON plan_versions
+DROP POLICY IF EXISTS plan_versions_delete_policy ON public.plan_versions;
+CREATE POLICY plan_versions_delete_policy ON public.plan_versions
   FOR DELETE
   USING (
     EXISTS (
-      SELECT 1 FROM plans
-      WHERE plans.id = plan_versions.plan_id
-      AND plans.user_id = auth.uid()
+      SELECT 1 FROM public.plans
+      WHERE public.plans.id = public.plan_versions.plan_id
+      AND public.plans.user_id = auth.uid()
     )
   );
 
 -- Add comments for documentation
-COMMENT ON TABLE plans IS 'Stores plan metadata for agent2agent conversations. One plan per conversation with versioned content.';
-COMMENT ON TABLE plan_versions IS 'Stores immutable versions of plans. Each edit/refinement creates a new version.';
-COMMENT ON COLUMN plans.current_version_id IS 'Points to the currently active version of this plan';
-COMMENT ON COLUMN plan_versions.created_by_type IS 'Whether this version was created by an agent or manually edited by a user';
-COMMENT ON COLUMN plan_versions.task_id IS 'Reference to the agent task that created this version (if applicable)';
-COMMENT ON COLUMN plan_versions.metadata IS 'Additional metadata like LLM model used, merge source versions, etc.';
+COMMENT ON TABLE public.plans IS 'Stores plan metadata for agent2agent conversations. One plan per conversation with versioned content.';
+COMMENT ON TABLE public.plan_versions IS 'Stores immutable versions of plans. Each edit/refinement creates a new version.';
+COMMENT ON COLUMN public.plans.current_version_id IS 'Points to the currently active version of this plan';
+COMMENT ON COLUMN public.plan_versions.created_by_type IS 'Whether this version was created by an agent or manually edited by a user';
+COMMENT ON COLUMN public.plan_versions.task_id IS 'Reference to the agent task that created this version (if applicable)';
+COMMENT ON COLUMN public.plan_versions.metadata IS 'Additional metadata like LLM model used, merge source versions, etc.';

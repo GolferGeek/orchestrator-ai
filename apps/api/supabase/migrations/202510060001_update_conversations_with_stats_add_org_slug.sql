@@ -2,6 +2,14 @@
 -- Because CREATE OR REPLACE VIEW cannot change the column list/order,
 -- we drop and recreate the view, then re-grant permissions.
 
+-- Ensure required columns exist on conversations
+ALTER TABLE public.conversations
+  ADD COLUMN IF NOT EXISTS ended_at timestamptz,
+  ADD COLUMN IF NOT EXISTS started_at timestamptz,
+  ADD COLUMN IF NOT EXISTS last_active_at timestamptz,
+  ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS organization_slug text;
+
 DROP VIEW IF EXISTS public.conversations_with_stats;
 
 CREATE VIEW public.conversations_with_stats AS
