@@ -918,27 +918,27 @@ END$$;
 BEGIN;
 
 WITH ins_company AS (
-  INSERT INTO public.companies (id, name, industry, founded_year)
+  INSERT INTO company.companies (id, name, industry, founded_year)
   SELECT gen_random_uuid(), 'Acme Analytics Inc.', 'Software', 2018
   WHERE NOT EXISTS (
-    SELECT 1 FROM public.companies WHERE name = 'Acme Analytics Inc.'
+    SELECT 1 FROM company.companies WHERE name = 'Acme Analytics Inc.'
   )
   RETURNING id
 ),
 sel_company AS (
   SELECT id FROM ins_company
   UNION ALL
-  SELECT id FROM public.companies WHERE name = 'Acme Analytics Inc.'
+  SELECT id FROM company.companies WHERE name = 'Acme Analytics Inc.'
 ),
 dept_names AS (
   SELECT unnest(ARRAY['Sales','Professional Services','Enterprise Accounts']) AS name
 ),
 ins_depts AS (
-  INSERT INTO public.departments (id, company_id, name, head_of_department, budget)
+  INSERT INTO company.departments (id, company_id, name, head_of_department, budget)
   SELECT gen_random_uuid(), (SELECT id FROM sel_company), d.name, NULL, 1000000
   FROM dept_names d
   WHERE NOT EXISTS (
-    SELECT 1 FROM public.departments pd
+    SELECT 1 FROM company.departments pd
     WHERE pd.company_id = (SELECT id FROM sel_company) AND pd.name = d.name
   )
   RETURNING id, name
@@ -946,7 +946,7 @@ ins_depts AS (
 sel_depts AS (
   SELECT id, name FROM ins_depts
   UNION ALL
-  SELECT id, name FROM public.departments
+  SELECT id, name FROM company.departments
   WHERE company_id = (SELECT id FROM sel_company) AND name IN ('Sales','Professional Services','Enterprise Accounts')
 ),
 metric_rows AS (
@@ -960,25 +960,25 @@ metric_rows AS (
   ) AS t(name, description, unit, metric_type)
 ),
 ins_metrics AS (
-  INSERT INTO public.kpi_metrics (id, name, description, unit, metric_type)
+  INSERT INTO company.kpi_metrics (id, name, description, unit, metric_type)
   SELECT gen_random_uuid(), m.name, m.description, m.unit, m.metric_type
   FROM metric_rows m
   WHERE NOT EXISTS (
-    SELECT 1 FROM public.kpi_metrics km WHERE km.name = m.name
+    SELECT 1 FROM company.kpi_metrics km WHERE km.name = m.name
   )
   RETURNING id, name
 ),
 sel_metrics AS (
   SELECT id, name FROM ins_metrics
   UNION ALL
-  SELECT id, name FROM public.kpi_metrics
+  SELECT id, name FROM company.kpi_metrics
   WHERE name IN ('Revenue_Total','Revenue_Subscription','Revenue_Services','Revenue_Usage','Revenue_Enterprise')
 ),
 goal_period AS (
   SELECT date_trunc('quarter', CURRENT_DATE)::date AS start_date,
          (date_trunc('quarter', CURRENT_DATE) + INTERVAL '3 months - 1 day')::date AS end_date
 )
-INSERT INTO public.kpi_goals (id, department_id, metric_id, target_value, period_start, period_end)
+INSERT INTO company.kpi_goals (id, department_id, metric_id, target_value, period_start, period_end)
 SELECT gen_random_uuid(), d.id, m.id,
        CASE m.name
          WHEN 'Revenue_Total' THEN 500000
@@ -992,7 +992,7 @@ SELECT gen_random_uuid(), d.id, m.id,
 FROM sel_depts d
 JOIN sel_metrics m ON TRUE
 WHERE NOT EXISTS (
-  SELECT 1 FROM public.kpi_goals kg
+  SELECT 1 FROM company.kpi_goals kg
   WHERE kg.department_id = d.id
     AND kg.metric_id = m.id
     AND kg.period_start = (SELECT start_date FROM goal_period)
@@ -1001,12 +1001,12 @@ WHERE NOT EXISTS (
 
 WITH sel_depts AS (
   SELECT d.id, d.name
-  FROM public.departments d
-  JOIN public.companies c ON c.id = d.company_id
+  FROM company.departments d
+  JOIN company.companies c ON c.id = d.company_id
   WHERE c.name = 'Acme Analytics Inc.' AND d.name IN ('Sales','Professional Services','Enterprise Accounts')
 ),
 sel_metrics AS (
-  SELECT id, name FROM public.kpi_metrics
+  SELECT id, name FROM company.kpi_metrics
   WHERE name IN ('Revenue_Total','Revenue_Subscription','Revenue_Services','Revenue_Usage','Revenue_Enterprise')
 ),
 gen_dates AS (
@@ -1032,11 +1032,11 @@ vals AS (
   JOIN gen_dates gd ON TRUE
   LIMIT 80
 )
-INSERT INTO public.kpi_data (id, department_id, metric_id, value, date_recorded)
+INSERT INTO company.kpi_data (id, department_id, metric_id, value, date_recorded)
 SELECT gen_random_uuid(), v.department_id, v.metric_id, v.value, v.date_recorded
 FROM vals v
 WHERE NOT EXISTS (
-  SELECT 1 FROM public.kpi_data kd
+  SELECT 1 FROM company.kpi_data kd
   WHERE kd.department_id = v.department_id
     AND kd.metric_id = v.metric_id
     AND kd.date_recorded = v.date_recorded
