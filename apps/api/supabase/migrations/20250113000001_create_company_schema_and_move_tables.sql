@@ -16,10 +16,8 @@ BEGIN
     -- Move the table
     ALTER TABLE public.companies SET SCHEMA company;
     
-    -- Update the comment if it exists
-    IF EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'company.companies'::regclass) THEN
-      EXECUTE $$COMMENT ON TABLE company.companies IS 'Company information and metadata'$$;
-    END IF;
+    -- Add comment to the table
+    COMMENT ON TABLE company.companies IS 'Company information and metadata';
   END IF;
 END $$;
 
@@ -29,9 +27,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'departments') THEN
     ALTER TABLE public.departments SET SCHEMA company;
     
-    IF EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'company.departments'::regclass) THEN
-      EXECUTE $$COMMENT ON TABLE company.departments IS 'Company departments and organizational structure'$$;
-    END IF;
+    COMMENT ON TABLE company.departments IS 'Company departments and organizational structure';
   END IF;
 END $$;
 
@@ -41,9 +37,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'kpi_metrics') THEN
     ALTER TABLE public.kpi_metrics SET SCHEMA company;
     
-    IF EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'company.kpi_metrics'::regclass) THEN
-      EXECUTE $$COMMENT ON TABLE company.kpi_metrics IS 'KPI metric definitions and metadata'$$;
-    END IF;
+    COMMENT ON TABLE company.kpi_metrics IS 'KPI metric definitions and metadata';
   END IF;
 END $$;
 
@@ -53,9 +47,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'kpi_goals') THEN
     ALTER TABLE public.kpi_goals SET SCHEMA company;
     
-    IF EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'company.kpi_goals'::regclass) THEN
-      EXECUTE $$COMMENT ON TABLE company.kpi_goals IS 'Department KPI goals and targets'$$;
-    END IF;
+    COMMENT ON TABLE company.kpi_goals IS 'Department KPI goals and targets';
   END IF;
 END $$;
 
@@ -65,9 +57,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'kpi_data') THEN
     ALTER TABLE public.kpi_data SET SCHEMA company;
     
-    IF EXISTS (SELECT 1 FROM pg_description WHERE objoid = 'company.kpi_data'::regclass) THEN
-      EXECUTE $$COMMENT ON TABLE company.kpi_data IS 'Actual KPI data points and measurements'$$;
-    END IF;
+    COMMENT ON TABLE company.kpi_data IS 'Actual KPI data points and measurements';
   END IF;
 END $$;
 
