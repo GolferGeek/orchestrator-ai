@@ -1,0 +1,457 @@
+{
+  "name": "Requirements Writer Agent (Enhanced)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "requirements",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Requirements Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "requirements-writer-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate input data\nconst inputData = $input.all();\nconst userMessage = inputData[0]?.json?.userMessage || inputData[0]?.json?.message || '';\nconst conversationHistory = inputData[0]?.json?.conversationHistory || [];\nconst mode = inputData[0]?.json?.mode || 'converse';\nconst planContent = inputData[0]?.json?.planContent || null;\n\n// Build conversation context\nconst conversationContext = conversationHistory\n  .slice(-20)\n  .map(entry => `${entry.role}: ${entry.content}`)\n  .join('\\n');\n\n// Prepare analysis data\nconst analysisData = {\n  userMessage,\n  conversationContext,\n  mode,\n  planContent,\n  timestamp: new Date().toISOString(),\n  sessionId: inputData[0]?.json?.sessionId || null\n};\n\nreturn [{\n  json: analysisData,\n  binary: {}\n}];"
+      },
+      "id": "prepare-input",
+      "name": "Prepare Input Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Analyze the requirements request to understand intent, scope, clarity, urgency, and domain. Return JSON with: intent, scope (small/medium/large/enterprise), clarity (low/medium/high), urgency (low/normal/high/urgent), domain (technical/business/product/operational/other), confidence (0-1), key_indicators (array), missing_info (array), summary (string).",
+        "options": {}
+      },
+      "id": "analyze-request",
+      "name": "Analyze Request",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Based on the analysis, determine the most appropriate document type. Return JSON with: document_type (prd/trd/api/user_story/architecture/general), confidence (0-1), reasoning (string), alternative_types (array), suggested_sections (array).",
+        "options": {}
+      },
+      "id": "determine-document-type",
+      "name": "Determine Document Type",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Extract key features and components from the requirements. Return JSON with: core_features (array), technical_components (array), user_features (array), integrations (array), security_features (array), all_features (array), feature_categories (object), estimated_complexity (low/medium/high), priority_features (array).",
+        "options": {}
+      },
+      "id": "extract-features",
+      "name": "Extract Features",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Assess the complexity of the requirements. Return JSON with: overall_complexity (low/medium/high/enterprise), complexity_score (number), effort_estimate (string), team_size_recommendation (string), complexity_factors (object), risk_level (low/medium/high/critical), key_challenges (array), recommended_approach (string), technology_recommendations (array), phases (array).",
+        "options": {}
+      },
+      "id": "assess-complexity",
+      "name": "Assess Complexity",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine all analysis results\nconst inputData = $input.all();\nconst analysis = JSON.parse(inputData[0]?.json?.transformedData || '{}');\nconst documentType = JSON.parse(inputData[1]?.json?.transformedData || '{}');\nconst features = JSON.parse(inputData[2]?.json?.transformedData || '{}');\nconst complexity = JSON.parse(inputData[3]?.json?.transformedData || '{}');\n\n// Build feature list\nconst featureLists = [\n  features.all_features,\n  features.core_features,\n  features.user_features,\n  features.technical_components,\n  features.integrations,\n  features.security_features,\n  features.priority_features\n].filter(Array.isArray);\n\nconst featureSet = Array.from(new Set(featureLists.flat().map(f => f?.trim()).filter(Boolean)));\n\n// Prepare context for document generation\nconst context = {\n  userMessage: inputData[0]?.json?.userMessage || '',\n  conversationContext: inputData[0]?.json?.conversationContext || '',\n  planContent: inputData[0]?.json?.planContent || null,\n  analysis,\n  documentType: documentType.document_type || 'prd',\n  features: featureSet,\n  complexity: complexity.overall_complexity || 'medium',\n  mode: inputData[0]?.json?.mode || 'converse',\n  timestamp: new Date().toISOString()\n};\n\nreturn [{\n  json: context,\n  binary: {}\n}];"
+      },
+      "id": "combine-analysis",
+      "name": "Combine Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-prd",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "prd",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-trd",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "trd",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-api",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "api",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-user-story",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "user_story",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-architecture",
+              "leftValue": "={{ $json.documentType }}",
+              "rightValue": "architecture",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "document-type-switch",
+      "name": "Document Type Switch",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive Product Requirements Document (PRD) with: 1) Executive Summary - Brief overview and business justification, 2) Product Overview - Goals, objectives, success metrics, 3) User Personas & Use Cases - Target users and their needs, 4) Functional Requirements - Detailed feature specifications, 5) User Stories - Acceptance criteria and user workflows, 6) Non-Functional Requirements - Performance, security, scalability, 7) Technical Considerations - High-level technical requirements, 8) Implementation Timeline - Phases and milestones, 9) Success Metrics - KPIs and measurement criteria, 10) Risk Assessment - Potential challenges and mitigation. Write professionally for stakeholders, developers, and designers.",
+        "options": {}
+      },
+      "id": "generate-prd",
+      "name": "Generate PRD",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive Technical Requirements Document (TRD) with: 1) System Overview - High-level architecture and technical approach, 2) Technical Architecture - System components, services, and interactions, 3) Database Requirements - Data models, storage requirements, performance needs, 4) API Specifications - Service interfaces, protocols, and data formats, 5) Security Requirements - Authentication, authorization, encryption, compliance, 6) Performance Requirements - Scalability, throughput, response times, load handling, 7) Infrastructure Requirements - Deployment, hosting, monitoring, backup, 8) Integration Requirements - External systems, third-party services, data flows, 9) Development Standards - Coding practices, testing requirements, documentation, 10) Deployment Strategy - CI/CD, environments, rollback procedures. Write for architects, senior developers, and DevOps engineers.",
+        "options": {}
+      },
+      "id": "generate-trd",
+      "name": "Generate TRD",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive API Requirements Document with: 1) API Overview - Purpose, scope, and design principles, 2) Authentication & Authorization - Security model and access control, 3) Endpoint Specifications - REST/GraphQL endpoints with parameters, 4) Data Models - Request/response schemas and data structures, 5) Error Handling - Error codes, messages, and handling strategies, 6) Rate Limiting & Throttling - Usage limits and policies, 7) Versioning Strategy - API evolution and backward compatibility, 8) Integration Examples - Sample requests, responses, and SDKs, 9) Testing Requirements - API testing strategies and tools, 10) Documentation Standards - OpenAPI/Swagger specifications. Focus on RESTful design principles and industry best practices.",
+        "options": {}
+      },
+      "id": "generate-api",
+      "name": "Generate API Doc",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [2000, 400]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive User Story Document with: 1) Project Overview - Goals and user-centered approach, 2) User Personas - Detailed user types and their characteristics, 3) Epic Stories - High-level user journeys and major features, 4) Detailed User Stories - Specific features with 'As a...I want...So that...' format, 5) Acceptance Criteria - Clear, testable conditions for story completion, 6) Story Dependencies - Prerequisites and sequential relationships, 7) Story Prioritization - Prioritization framework (e.g., MoSCoW), 8) Definition of Done - Quality standards and completion criteria, 9) Story Estimation - Relative sizing guidance, 10) Sprint Planning Guidance - Recommended grouping and sequencing. Focus on user value and clear, actionable stories for agile development.",
+        "options": {}
+      },
+      "id": "generate-user-story",
+      "name": "Generate User Stories",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [2000, 500]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive Architecture Requirements Document with: 1) Architecture Overview - System vision and guiding principles, 2) System Components - Services, modules, and responsibilities, 3) Data Flow & Integrations - Internal and external data movement, 4) Technology Stack - Recommended technologies and rationale, 5) Scalability & Performance - Capacity planning and scaling strategies, 6) Security Architecture - Threat model, controls, compliance, 7) Deployment Architecture - Environments, networking, DevOps practices, 8) Monitoring & Observability - Logging, metrics, alerting strategy, 9) Risk Assessment - Technical risks and mitigation plans, 10) Roadmap & Phasing - Implementation phases and dependencies. Write for technical leadership and engineering teams responsible for implementation.",
+        "options": {}
+      },
+      "id": "generate-architecture",
+      "name": "Generate Architecture",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [2000, 600]
+    },
+    {
+      "parameters": {
+        "instructions": "Generate a comprehensive general requirements document with: 1) Executive Summary, 2) Project Objectives & Scope, 3) Stakeholders & Personas, 4) Functional Requirements, 5) Non-Functional Requirements, 6) Technical Considerations, 7) Risks & Assumptions, 8) Implementation Plan, 9) Success Metrics. Write clearly and concisely for both business and technical audiences.",
+        "options": {}
+      },
+      "id": "generate-general",
+      "name": "Generate General Doc",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [2000, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Finalize the document with metadata\nconst inputData = $input.all();\nconst documentContent = inputData[0]?.json?.transformedData || '';\nconst context = inputData[0]?.json || {};\n\n// Count document sections\nconst sectionCount = (documentContent.match(/^#+\\s+/gm) || []).length;\n\n// Build final metadata\nconst metadata = {\n  agentName: 'Requirements Writer (N8N)',\n  processingTime: Date.now() - new Date(context.timestamp).getTime(),\n  responseType: context.documentType,\n  analysis: context.analysis,\n  documentType: {\n    value: context.documentType,\n    confidence: null,\n    reasoning: null,\n    alternatives: null\n  },\n  features: {\n    list: context.features || [],\n    categories: {},\n    estimatedComplexity: context.complexity\n  },\n  complexity: context.analysis,\n  sections: sectionCount,\n  workflow: {\n    totalSteps: 6,\n    mode: context.mode,\n    isBuilding: context.mode === 'build'\n  },\n  originalPrompt: context.userMessage,\n  planIncluded: Boolean(context.planContent),\n  conversationSummaries: context.conversationContext ? context.conversationContext.slice(0, 1000) : undefined,\n  timestamp: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    success: true,\n    response: documentContent,\n    metadata: metadata,\n    document: documentContent,\n    documentType: context.documentType,\n    processingTime: metadata.processingTime\n  },\n  binary: {}\n}];"
+      },
+      "id": "finalize-document",
+      "name": "Finalize Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2440, 400]
+    }
+  ],
+  "connections": {
+    "Requirements Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input Data": {
+      "main": [
+        [
+          {
+            "node": "Analyze Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Request": {
+      "main": [
+        [
+          {
+            "node": "Determine Document Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Document Type": {
+      "main": [
+        [
+          {
+            "node": "Extract Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Features": {
+      "main": [
+        [
+          {
+            "node": "Assess Complexity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assess Complexity": {
+      "main": [
+        [
+          {
+            "node": "Combine Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Analysis": {
+      "main": [
+        [
+          {
+            "node": "Document Type Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Type Switch": {
+      "main": [
+        [
+          {
+            "node": "Generate PRD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate TRD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate API Doc",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate User Stories",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Architecture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate General Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PRD": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate TRD": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate API Doc": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate User Stories": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Architecture": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate General Doc": {
+      "main": [
+        [
+          {
+            "node": "Finalize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Document": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "requirements-agent",
+      "name": "Requirements Agent"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
