@@ -1,6 +1,7 @@
 /**
  * Plan Response Handler
  * Validates and processes plan-specific responses
+ * Updates the store directly after extracting data
  */
 
 import type {
@@ -14,6 +15,7 @@ import {
   extractSuccessPayload,
   StrictResponseValidationError,
 } from './response-validation';
+import { usePlanStore } from '@/stores/planStore';
 
 /**
  * Plan response types for different actions
@@ -45,6 +47,27 @@ export interface PlanRerunResult {
 export interface PlanDeleteResult {
   deleted: boolean;
   planId: string;
+}
+
+export interface PlanSetCurrentResult {
+  plan: PlanData;
+  version: PlanVersionData;
+}
+
+export interface PlanDeleteVersionResult {
+  deleted: boolean;
+  planId: string;
+  versionId: string;
+}
+
+export interface PlanMergeVersionsResult {
+  plan: PlanData;
+  version: PlanVersionData;
+}
+
+export interface PlanCopyVersionResult {
+  plan: PlanData;
+  version: PlanVersionData;
 }
 
 /**
@@ -87,61 +110,177 @@ function validateAndExtract<T>(response: any, action: string): T {
 
 /**
  * Plan response handler
- * All methods are pure validators/transformers with no side effects
- * Caller (typically a store action) is responsible for state mutations
+ * Validates responses and updates the store directly
  */
 export const planResponseHandler = {
   /**
    * Handle create plan response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
-  handleCreate(response: any): PlanCreateResult {
-    return validateAndExtract<PlanCreateResult>(response, 'create');
+  handleCreate(response: any, conversationId: string): PlanCreateResult {
+    const result = validateAndExtract<PlanCreateResult>(response, 'create');
+    const store = usePlanStore();
+
+    // Update store
+    store.addPlan(result.plan, result.version);
+    store.associatePlanWithConversation(result.plan.id, conversationId);
+    if (result.version) {
+      store.setCurrentVersion(result.plan.id, result.version.id);
+    }
+
+    return result;
   },
 
   /**
    * Handle read plan response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleRead(response: any): PlanReadResult {
-    return validateAndExtract<PlanReadResult>(response, 'read');
+    const result = validateAndExtract<PlanReadResult>(response, 'read');
+    const store = usePlanStore();
+
+    // Update store
+    store.addPlan(result.plan, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.plan.id, result.version.id);
+    }
+
+    return result;
   },
 
   /**
    * Handle list plans response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
-  handleList(response: any): PlanListResult {
-    return validateAndExtract<PlanListResult>(response, 'list');
+  handleList(response: any, conversationId?: string): PlanListResult {
+    const result = validateAndExtract<PlanListResult>(response, 'list');
+    const store = usePlanStore();
+
+    // Update store with all plans
+    result.plans.forEach(plan => {
+      store.addPlan(plan);
+      if (conversationId) {
+        store.associatePlanWithConversation(plan.id, conversationId);
+      }
+    });
+
+    return result;
   },
 
   /**
    * Handle edit plan response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleEdit(response: any): PlanEditResult {
-    return validateAndExtract<PlanEditResult>(response, 'edit');
+    const result = validateAndExtract<PlanEditResult>(response, 'edit');
+    const store = usePlanStore();
+
+    // Update store
+    store.addPlan(result.plan, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.plan.id, result.version.id);
+    }
+
+    return result;
   },
 
   /**
    * Handle rerun plan response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleRerun(response: any): PlanRerunResult {
-    return validateAndExtract<PlanRerunResult>(response, 'rerun');
+    const result = validateAndExtract<PlanRerunResult>(response, 'rerun');
+    const store = usePlanStore();
+
+    // Update store with new version
+    store.addPlan(result.plan, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.plan.id, result.version.id);
+    }
+
+    return result;
+  },
+
+  /**
+   * Handle set current version response
+   * Validates, extracts data, and updates store
+   */
+  handleSetCurrent(response: any): PlanSetCurrentResult {
+    const result = validateAndExtract<PlanSetCurrentResult>(response, 'set_current');
+    const store = usePlanStore();
+
+    // Update store
+    store.setCurrentVersion(result.plan.id, result.version.id);
+
+    return result;
+  },
+
+  /**
+   * Handle delete version response
+   * Validates, extracts data, and updates store
+   */
+  handleDeleteVersion(response: any): PlanDeleteVersionResult {
+    const result = validateAndExtract<PlanDeleteVersionResult>(response, 'delete_version');
+    const store = usePlanStore();
+
+    // Update store
+    if (result.deleted) {
+      store.deleteVersion(result.planId, result.versionId);
+    }
+
+    return result;
+  },
+
+  /**
+   * Handle merge versions response
+   * Validates, extracts data, and updates store
+   */
+  handleMergeVersions(response: any): PlanMergeVersionsResult {
+    const result = validateAndExtract<PlanMergeVersionsResult>(response, 'merge_versions');
+    const store = usePlanStore();
+
+    // Update store with merged version
+    store.addPlan(result.plan, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.plan.id, result.version.id);
+    }
+
+    return result;
+  },
+
+  /**
+   * Handle copy version response
+   * Validates, extracts data, and updates store
+   */
+  handleCopyVersion(response: any): PlanCopyVersionResult {
+    const result = validateAndExtract<PlanCopyVersionResult>(response, 'copy_version');
+    const store = usePlanStore();
+
+    // Update store with copied version
+    store.addVersion(result.plan.id, result.version);
+
+    return result;
   },
 
   /**
    * Handle delete plan response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleDelete(response: any): PlanDeleteResult {
-    return validateAndExtract<PlanDeleteResult>(response, 'delete');
+    const result = validateAndExtract<PlanDeleteResult>(response, 'delete');
+    const store = usePlanStore();
+
+    // Update store
+    if (result.deleted) {
+      store.deletePlan(result.planId);
+    }
+
+    return result;
   },
 
   /**
    * Generic handler that auto-detects action
-   * Pure function: validates and returns typed data
+   * Validates and returns typed data
    */
   handle(response: any): any {
     return validateAndExtract(response, 'unknown');

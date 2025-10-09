@@ -82,5 +82,5 @@ This gives you the full power of AI-assisted workflow creation connected to your
 
 ### Connection Issues  
 - Ensure n8n is running on port 5678
-- Check that Supabase is accessible on port 54322
+- Check that Supabase is accessible on port 7012
 - Verify no firewall blocking local connections

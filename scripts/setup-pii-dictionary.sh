@@ -9,7 +9,7 @@ source .env
 # Connect to database and insert dictionary entries
 echo "📝 Adding pseudonym dictionary entries to database..."
 
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres << EOF
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 7012 -U postgres -d postgres << EOF
 
 -- First, check if entries already exist
 SELECT COUNT(*) as existing_count FROM pseudonym_dictionaries 

@@ -306,7 +306,7 @@ Generated: ${exportSummary.generatedAt}
 
 2. Run the migration:
    \`\`\`bash
-   psql "postgresql://postgres:postgres@localhost:54322/postgres" -f ${timestamp}_clean_database_migration.sql
+   psql "postgresql://postgres:postgres@localhost:7012/postgres" -f ${timestamp}_clean_database_migration.sql
    \`\`\`
 
 3. Update your environment:

@@ -1,5 +1,5 @@
 // Test script to validate videos.json schema changes
-const videosData = require('./videos.json');
+import videosData from './videos.json';
 
 console.log('Testing videos.json schema...');
 

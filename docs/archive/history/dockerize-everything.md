@@ -44,8 +44,8 @@ supabase:
   image: supabase/supabase:latest
   container_name: ai-agent-database
   ports:
-    - "54321:8000"   # Supabase Studio UI
-    - "54322:5432"   # PostgreSQL direct access
+    - "7011:8000"   # Supabase Studio UI
+    - "7012:5432"   # PostgreSQL direct access
   volumes:
     - supabase_data:/var/lib/supabase
     - ./_supabase/migrations:/docker-entrypoint-initdb.d
@@ -226,8 +226,8 @@ services:
     image: supabase/supabase:latest
     container_name: ai-agent-database
     ports:
-      - "54321:8000"
-      - "54322:5432"
+      - "7011"
+      - "7012"
     volumes:
       - supabase_data:/var/lib/supabase
       - ./_supabase/migrations:/docker-entrypoint-initdb.d

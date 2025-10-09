@@ -28,7 +28,7 @@ echo -e "${BLUE}🔍 Searching for workflow: ${WORKFLOW_NAME}${NC}"
 if [ -f "../../.env" ]; then
   source ../../.env
 fi
-DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:7012/postgres}"
 
 # Query workflow from database
 WORKFLOW_JSON=$(psql "$DB_URL" -t -c "

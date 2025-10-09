@@ -52,8 +52,8 @@ fi
 # Test Supabase connection
 echo -e "${BLUE}🗄️  Testing Supabase connection...${NC}"
 
-if ! curl -s http://127.0.0.1:54321/health > /dev/null; then
-  echo -e "${RED}❌ Supabase is not running on port 54321${NC}"
+if ! curl -s http://127.0.0.1:7010/health > /dev/null; then
+  echo -e "${RED}❌ Supabase is not running on port 7010${NC}"
   echo -e "${YELLOW}Start Supabase with: npm run dev:supabase:start${NC}"
   exit 1
 fi
@@ -61,7 +61,7 @@ fi
 echo -e "${GREEN}✅ Supabase is running${NC}"
 
 # Test database connection
-DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+DB_URL="postgresql://postgres:postgres@127.0.0.1:7012/postgres"
 if psql "$DB_URL" -c "SELECT 1;" > /dev/null 2>&1; then
   echo -e "${GREEN}✅ Database connection successful${NC}"
 else

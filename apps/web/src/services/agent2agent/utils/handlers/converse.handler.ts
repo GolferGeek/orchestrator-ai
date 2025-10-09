@@ -10,6 +10,7 @@ import {
   extractSuccessPayload,
   StrictResponseValidationError,
 } from './response-validation';
+import { useConversationStore } from '@/stores/conversationStore';
 
 /**
  * Converse response types
@@ -63,21 +64,26 @@ function validateAndExtract(response: any, action: string): ConverseResult {
 
 /**
  * Converse response handler
- * All methods are pure validators/transformers with no side effects
- * Caller (typically a store action) is responsible for state mutations
+ * Validates responses and updates the store directly
  */
 export const converseResponseHandler = {
   /**
    * Handle converse send response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
-  handleSend(response: any): ConverseResult {
-    return validateAndExtract(response, 'send');
+  handleSend(response: any, conversationId: string): ConverseResult {
+    const result = validateAndExtract(response, 'send');
+    const store = useConversationStore();
+
+    // Update store with assistant message
+    store.addAssistantMessage(conversationId, result);
+
+    return result;
   },
 
   /**
-   * Generic handler
-   * Pure function: validates and returns typed data
+   * Generic handler that auto-detects action
+   * Validates and returns typed data
    */
   handle(response: any): ConverseResult {
     return validateAndExtract(response, 'unknown');

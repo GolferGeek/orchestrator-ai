@@ -1,6 +1,7 @@
 /**
  * Build Response Handler
  * Validates and processes build/deliverable-specific responses
+ * Updates the store directly after extracting data
  */
 
 import type {
@@ -14,6 +15,7 @@ import {
   extractSuccessPayload,
   StrictResponseValidationError,
 } from './response-validation';
+import { useDeliverableStore } from '@/stores/deliverableStore';
 
 /**
  * Build response types for different actions
@@ -45,6 +47,27 @@ export interface BuildEditResult {
 export interface BuildDeleteResult {
   deleted: boolean;
   deliverableId: string;
+}
+
+export interface BuildSetCurrentResult {
+  deliverable: DeliverableData;
+  version: DeliverableVersionData;
+}
+
+export interface BuildDeleteVersionResult {
+  deleted: boolean;
+  deliverableId: string;
+  versionId: string;
+}
+
+export interface BuildMergeVersionsResult {
+  deliverable: DeliverableData;
+  version: DeliverableVersionData;
+}
+
+export interface BuildCopyVersionResult {
+  deliverable: DeliverableData;
+  version: DeliverableVersionData;
 }
 
 /**
@@ -87,61 +110,179 @@ function validateAndExtract<T>(response: any, action: string): T {
 
 /**
  * Build response handler
- * All methods are pure validators/transformers with no side effects
- * Caller (typically a store action) is responsible for state mutations
+ * Validates responses and updates the store directly
  */
 export const buildResponseHandler = {
   /**
-   * Handle execute build response
-   * Pure function: validates and returns typed data
+   * Handle execute build response (create action in build mode)
+   * Validates, extracts data, and updates store
    */
-  handleExecute(response: any): BuildExecuteResult {
-    return validateAndExtract<BuildExecuteResult>(response, 'execute');
+  handleExecute(response: any, planId?: string): BuildExecuteResult {
+    const result = validateAndExtract<BuildExecuteResult>(response, 'create');
+    const store = useDeliverableStore();
+
+    // Update store
+    store.addDeliverable(result.deliverable, result.version);
+    if (planId) {
+      store.associateDeliverableWithPlan(result.deliverable.id, planId);
+    }
+    if (result.version) {
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
+    }
+
+    return result;
   },
 
   /**
    * Handle read deliverable response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleRead(response: any): BuildReadResult {
-    return validateAndExtract<BuildReadResult>(response, 'read');
+    const result = validateAndExtract<BuildReadResult>(response, 'read');
+    const store = useDeliverableStore();
+
+    // Update store
+    store.addDeliverable(result.deliverable, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
+    }
+
+    return result;
   },
 
   /**
    * Handle list deliverables response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
-  handleList(response: any): BuildListResult {
-    return validateAndExtract<BuildListResult>(response, 'list');
+  handleList(response: any, planId?: string): BuildListResult {
+    const result = validateAndExtract<BuildListResult>(response, 'list');
+    const store = useDeliverableStore();
+
+    // Update store with all deliverables
+    result.deliverables.forEach(deliverable => {
+      store.addDeliverable(deliverable);
+      if (planId) {
+        store.associateDeliverableWithPlan(deliverable.id, planId);
+      }
+    });
+
+    return result;
   },
 
   /**
    * Handle rerun build response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleRerun(response: any): BuildRerunResult {
-    return validateAndExtract<BuildRerunResult>(response, 'rerun');
+    const result = validateAndExtract<BuildRerunResult>(response, 'rerun');
+    const store = useDeliverableStore();
+
+    // Update store with new version
+    store.addDeliverable(result.deliverable, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
+    }
+
+    return result;
   },
 
   /**
    * Handle edit deliverable response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleEdit(response: any): BuildEditResult {
-    return validateAndExtract<BuildEditResult>(response, 'edit');
+    const result = validateAndExtract<BuildEditResult>(response, 'edit');
+    const store = useDeliverableStore();
+
+    // Update store
+    store.addDeliverable(result.deliverable, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
+    }
+
+    return result;
+  },
+
+  /**
+   * Handle set current version response
+   * Validates, extracts data, and updates store
+   */
+  handleSetCurrent(response: any): BuildSetCurrentResult {
+    const result = validateAndExtract<BuildSetCurrentResult>(response, 'set_current');
+    const store = useDeliverableStore();
+
+    // Update store
+    store.setCurrentVersion(result.deliverable.id, result.version.id);
+
+    return result;
+  },
+
+  /**
+   * Handle delete version response
+   * Validates, extracts data, and updates store
+   */
+  handleDeleteVersion(response: any): BuildDeleteVersionResult {
+    const result = validateAndExtract<BuildDeleteVersionResult>(response, 'delete_version');
+    const store = useDeliverableStore();
+
+    // Update store
+    if (result.deleted) {
+      store.deleteVersion(result.deliverableId, result.versionId);
+    }
+
+    return result;
+  },
+
+  /**
+   * Handle merge versions response
+   * Validates, extracts data, and updates store
+   */
+  handleMergeVersions(response: any): BuildMergeVersionsResult {
+    const result = validateAndExtract<BuildMergeVersionsResult>(response, 'merge_versions');
+    const store = useDeliverableStore();
+
+    // Update store with merged version
+    store.addDeliverable(result.deliverable, result.version);
+    if (result.version) {
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
+    }
+
+    return result;
+  },
+
+  /**
+   * Handle copy version response
+   * Validates, extracts data, and updates store
+   */
+  handleCopyVersion(response: any): BuildCopyVersionResult {
+    const result = validateAndExtract<BuildCopyVersionResult>(response, 'copy_version');
+    const store = useDeliverableStore();
+
+    // Update store with copied version
+    store.addVersion(result.deliverable.id, result.version);
+
+    return result;
   },
 
   /**
    * Handle delete deliverable response
-   * Pure function: validates and returns typed data
+   * Validates, extracts data, and updates store
    */
   handleDelete(response: any): BuildDeleteResult {
-    return validateAndExtract<BuildDeleteResult>(response, 'delete');
+    const result = validateAndExtract<BuildDeleteResult>(response, 'delete');
+    const store = useDeliverableStore();
+
+    // Update store
+    if (result.deleted) {
+      store.deleteDeliverable(result.deliverableId);
+    }
+
+    return result;
   },
 
   /**
    * Generic handler that auto-detects action
-   * Pure function: validates and returns typed data
+   * Validates and returns typed data
    */
   handle(response: any): any {
     return validateAndExtract(response, 'unknown');

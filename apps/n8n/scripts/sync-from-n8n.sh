@@ -16,7 +16,7 @@ if [ -f ".env" ]; then
 fi
 
 # Database connection
-DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:7012/postgres}"
 
 # Check if jq is available
 if ! command -v jq &> /dev/null; then

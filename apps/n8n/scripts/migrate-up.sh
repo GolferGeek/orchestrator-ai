@@ -17,7 +17,7 @@ fi
 # Determine Supabase connection
 if [ -z "$DATABASE_URL" ]; then
   # Default to local Supabase
-  DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+  DB_URL="postgresql://postgres:postgres@127.0.0.1:7012/postgres"
   echo -e "${BLUE}📍 Using local Supabase${NC}"
 else
   DB_URL="$DATABASE_URL"

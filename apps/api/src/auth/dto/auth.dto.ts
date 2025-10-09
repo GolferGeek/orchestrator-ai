@@ -78,6 +78,15 @@ export class AuthenticatedUserResponseDto {
   @IsEnum(UserRole, { each: true })
   @IsOptional()
   roles?: UserRole[];
+
+  @ApiPropertyOptional({
+    example: ['my-org'],
+    description: 'Array of namespace access',
+    isArray: true,
+  })
+  @IsArray()
+  @IsOptional()
+  namespaceAccess?: string[];
 }
 
 export class SupabaseAuthUserDto {
@@ -153,6 +162,15 @@ export class UserProfileDto {
   @IsArray()
   @IsEnum(UserRole, { each: true })
   roles!: UserRole[];
+
+  @ApiPropertyOptional({
+    example: ['my-org'],
+    description: 'Array of namespace access',
+    isArray: true,
+  })
+  @IsArray()
+  @IsOptional()
+  namespaceAccess?: string[];
 
   @ApiProperty()
   createdAt!: Date;

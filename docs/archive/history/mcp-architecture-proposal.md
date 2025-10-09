@@ -500,8 +500,8 @@ OLLAMA_MODELS_PATH=/data/ollama
 OLLAMA_MAX_MEMORY=32G
 
 # Database Configuration
-DATABASE_URL=postgresql://postgres:dev@localhost:5432/metrics
-SUPABASE_URL=postgresql://postgres:password@localhost:54322/postgres
+DATABASE_URL=postgresql://postgres:dev@localhost:7012/metrics
+SUPABASE_URL=postgresql://postgres:password@localhost:7012/postgres
 
 # MCP Configuration
 MCP_SERVICES_PATH=/app/mcp-services

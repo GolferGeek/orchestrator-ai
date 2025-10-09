@@ -40,10 +40,10 @@ The `clean-migrations` branch contains:
 
 After running `supabase start`, you'll have access to:
 
-- **API URL**: `http://127.0.0.1:54321`
-- **Database URL**: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
-- **Studio URL**: `http://127.0.0.1:54323` (Database management UI)
-- **GraphQL URL**: `http://127.0.0.1:54321/graphql/v1`
+- **API URL**: `http://127.0.0.1:7011`
+- **Database URL**: `postgresql://postgres:postgres@127.0.0.1:7012/postgres`
+- **Studio URL**: `http://127.0.0.1:7013` (Database management UI)
+- **GraphQL URL**: `http://127.0.0.1:7011/graphql/v1`
 
 ## 📊 Database Schema Overview
 

@@ -14,10 +14,10 @@ echo -e "   API Server:     http://localhost:9000"
 echo -e "   Web App:        http://localhost:9001"
 echo ""
 echo -e "${GREEN}🗄️  Supabase Local Ports:${NC}"
-echo -e "   API/REST:       http://127.0.0.1:54321"
-echo -e "   Database:       postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-echo -e "   Studio:         http://127.0.0.1:54323"
-echo -e "   Email Testing:  http://127.0.0.1:54324"
+echo -e "   API/REST:       http://127.0.0.1:7010"
+echo -e "   Database:       postgresql://postgres:postgres@127.0.0.1:7012/postgres"
+echo -e "   Studio:         http://127.0.0.1:7015"
+echo -e "   Email Testing:  http://127.0.0.1:7016"
 echo ""
 echo -e "${YELLOW}💡 Quick Commands:${NC}"
 echo -e "   Check Supabase:  cd apps/api && supabase status"
@@ -43,7 +43,7 @@ else
 fi
 
 # Check Supabase
-if curl -s http://127.0.0.1:54321/health > /dev/null 2>&1; then
+if curl -s http://127.0.0.1:7010/health > /dev/null 2>&1; then
     echo -e "   Supabase:       ${GREEN}✅ Running${NC}"
 else
     echo -e "   Supabase:       ${YELLOW}❌ Not Running${NC}"

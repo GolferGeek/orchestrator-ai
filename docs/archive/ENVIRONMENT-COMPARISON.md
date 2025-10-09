@@ -7,7 +7,7 @@
 | **API Port** | 7100 | 9000 |
 | **Web Port** | 7101 | 9001 |
 | **Supabase Type** | Local Docker | Cloud/Remote |
-| **Supabase URL** | http://127.0.0.1:54321 | Your production URL |
+| **Supabase URL** | http://127.0.0.1:7010 | Your production URL |
 | **Database** | Local PostgreSQL | Production database |
 | **Data** | Test/dev data | Real production data |
 | **Environment File** | `.env` (local) | Production env vars |
@@ -16,10 +16,10 @@
 
 ### **Supabase Local Instance**
 - **Type**: Docker containers running locally
-- **API**: http://127.0.0.1:54321
-- **Database**: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-- **Studio**: http://127.0.0.1:54323
-- **Email Testing**: http://127.0.0.1:54324
+- **API**: http://127.0.0.1:7010
+- **Database**: postgresql://postgres:postgres@127.0.0.1:7012/postgres
+- **Studio**: http://127.0.0.1:7015
+- **Email Testing**: http://127.0.0.1:7016
 - **Data**: Completely isolated test data
 - **Reset**: Can be reset anytime with `npm run dev:supabase:reset`
 

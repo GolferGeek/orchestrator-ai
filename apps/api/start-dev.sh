@@ -242,6 +242,11 @@ else
     fi
 fi
 
+# Build transport-types if needed
+echo -e "${BLUE}📦 Building transport-types...${NC}"
+cd ../transport-types && npm run build && cd ../api
+echo -e "${GREEN}✅ Transport-types built${NC}"
+
 # Start NestJS development server in background
 echo -e "${BLUE}🔥 Starting NestJS development server...${NC}"
 npm run start:dev &

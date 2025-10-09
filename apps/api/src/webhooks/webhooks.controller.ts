@@ -1,9 +1,9 @@
 import { Controller, Post, Body, Logger, HttpCode, Inject, forwardRef } from '@nestjs/common';
-import { TaskProgressGateway } from '../websocket/task-progress.gateway';
+import { TaskProgressGateway } from '../agent-platform/websocket/task-progress.gateway';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { TasksService } from '../tasks/tasks.service';
-import { DeliverablesService } from '../deliverables/deliverables.service';
-import { DeliverableFormat, DeliverableVersionCreationType } from '../deliverables/dto';
+import { TasksService } from '../agent2agent/tasks/tasks.service';
+import { DeliverablesService } from '../agent2agent/deliverables/deliverables.service';
+import { DeliverableFormat, DeliverableVersionCreationType } from '../agent2agent/deliverables/dto';
 
 /**
  * Workflow Status Update

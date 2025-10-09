@@ -39,14 +39,14 @@ Once everything is running, you can access:
 
 - **Web Application**: http://localhost:7101
 - **API Server**: http://localhost:7100
-- **Supabase Studio**: http://127.0.0.1:54323
-- **Email Testing (Inbucket)**: http://127.0.0.1:54324
+- **Supabase Studio**: http://127.0.0.1:7015
+- **Email Testing (Inbucket)**: http://127.0.0.1:7016
 
 ## 🗄️ Database Setup
 
 The local Supabase instance includes:
-- **Database**: PostgreSQL on port 54322
-- **API**: REST and GraphQL APIs on port 54321
+- **Database**: PostgreSQL on port 7012
+- **API**: REST and GraphQL APIs on port 7010
 - **Auth**: Built-in authentication system
 - **Storage**: File storage system
 - **Realtime**: WebSocket connections
@@ -54,7 +54,7 @@ The local Supabase instance includes:
 ### Database Connection Details
 ```
 Host: 127.0.0.1
-Port: 54322
+Port: 7012
 Database: postgres
 Username: postgres
 Password: postgres
