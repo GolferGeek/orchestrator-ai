@@ -1,0 +1,82 @@
+name: "Notion Agent"
+type: "productivity"
+description: "AI agent for Notion workspace operations using LangChain.js tools"
+version: "1.0.0"
+category: "productivity"
+subcategory: "notion"
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: productivity_manager_orchestrator
+  department: productivity
+
+capabilities:
+  - "Create new Notion pages with titles and content"
+  - "Query Notion databases for specific information"
+  - "Update existing Notion pages"
+  - "Organize and structure Notion content"
+  - "Natural language processing for Notion operations"
+
+tools:
+  - name: "notion-create-page"
+    description: "Create new pages in Notion"
+  - name: "notion-query-database" 
+    description: "Search and query Notion databases"
+  - name: "notion-update-page"
+    description: "Update existing Notion pages"
+
+configuration:
+  timeout: 120
+  max_retries: 3
+  execution_mode: "function"
+  
+features:
+  langchain_integration: true
+  notion_api_integration: true
+  natural_language_processing: true
+  mock_api_for_development: true
+
+input_schema:
+  type: "object"
+  properties:
+    userMessage:
+      type: "string"
+      description: "Natural language request for Notion operations"
+      examples:
+        - "Create a new page called 'Project Planning' with meeting notes"
+        - "Find all pages in my project database"
+        - "Update my todo page with new tasks"
+    
+output_schema:
+  type: "object"
+  properties:
+    content:
+      type: "string"
+      description: "Formatted response with Notion operation results"
+    metadata:
+      type: "object"
+      properties:
+        action:
+          type: "string"
+          description: "The Notion action that was performed"
+        intent:
+          type: "string"
+          description: "The understood intent from the user message"
+
+examples:
+  - input: "Create a new page for my meeting notes"
+    output: "✅ Page Created Successfully - 'Meeting Notes' has been created in your Notion workspace"
+  - input: "Show me all pages in my project database"
+    output: "📊 Found 5 pages in your project database: Project A, Project B, etc."
+  - input: "Update my daily log with today's accomplishments"
+    output: "📝 Page Updated Successfully - Your daily log has been updated with new content"
+
+requirements:
+  - "OpenAI API key for LangChain.js LLM operations"
+  - "Notion API integration (currently mocked for development)"
+  
+notes:
+  - "Currently uses mock Notion API responses for development"
+  - "Real Notion API integration can be added via Zapier MCP or direct API"
+  - "Supports natural language understanding for complex Notion operations"

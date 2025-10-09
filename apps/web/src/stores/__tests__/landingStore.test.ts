@@ -107,8 +107,8 @@ describe('LandingStore', () => {
   });
 
   describe('View Mode Management', () => {
-    it('should initialize with marketing view mode', () => {
-      expect(store.viewMode.mode).toBe('marketing');
+    it('should initialize with landing view mode', () => {
+      expect(store.viewMode.mode).toBe('landing');
       expect(store.isMarketingView).toBe(true);
       expect(store.isTechnicalView).toBe(false);
     });
@@ -121,16 +121,16 @@ describe('LandingStore', () => {
     });
 
     it('should toggle view mode', () => {
-      // Initially marketing
-      expect(store.viewMode.mode).toBe('marketing');
+      // Initially landing
+      expect(store.viewMode.mode).toBe('landing');
       
       // Toggle to technical
       store.toggleViewMode();
       expect(store.viewMode.mode).toBe('technical');
       
-      // Toggle back to marketing
+      // Toggle back to landing
       store.toggleViewMode();
-      expect(store.viewMode.mode).toBe('marketing');
+      expect(store.viewMode.mode).toBe('landing');
     });
   });
 
@@ -217,7 +217,7 @@ describe('LandingStore', () => {
       
       expect(mockRouter.replace).toHaveBeenCalledWith({
         query: {
-          view: 'marketing',
+          view: 'landing',
           accordions: 'section-1,section-2',
         },
       });
@@ -261,7 +261,7 @@ describe('LandingStore', () => {
       newStore.parseURLParams();
       
       // Should remain at default
-      expect(newStore.viewMode.mode).toBe('marketing');
+      expect(newStore.viewMode.mode).toBe('landing');
     });
 
     it('should handle empty accordions parameter gracefully', () => {

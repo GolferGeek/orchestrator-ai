@@ -1,0 +1,231 @@
+# Task ID: 8
+# Title: Create Developer Panel UI Components
+# Status: pending
+# Dependencies: 4, 6
+# Priority: low
+# Description: Create RunMetadataPanel Vue component and LocalModelStatus dashboard to display run metadata, model tier status, and routing decision visualization.
+# Details:
+1. Create `RunMetadataPanel` Vue component:
+
+```vue
+<!-- apps/client/src/components/RunMetadataPanel.vue -->
+<template>
+  <div class="run-metadata-panel" v-if="hasMetadata">
+    <div class="panel-header">
+      <h3>Run Metadata</h3>
+      <button @click="toggleExpanded" class="toggle-button">
+        {{ expanded ? 'Collapse' : 'Expand' }}
+      </button>
+    </div>
+    
+    <div class="panel-content" v-if="expanded">
+      <div class="metadata-item">
+        <span class="label">Run ID:</span>
+        <span class="value">{{ metadata.runId }}</span>
+      </div>
+      
+      <div class="metadata-item">
+        <span class="label">Provider:</span>
+        <span class="value">{{ metadata.provider }}</span>
+      </div>
+      
+      <div class="metadata-item">
+        <span class="label">Model:</span>
+        <span class="value">{{ metadata.model }}</span>
+      </div>
+      
+      <div class="metadata-item">
+        <span class="label">Tier:</span>
+        <span class="value">{{ metadata.tier }}</span>
+      </div>
+      
+      <div class="metadata-item">
+        <span class="label">Duration:</span>
+        <span class="value">{{ formatDuration(metadata.duration) }}</span>
+      </div>
+      
+      <div class="metadata-item">
+        <span class="label">Cost:</span>
+        <span class="value">${{ formatCost(metadata.cost) }}</span>
+      </div>
+      
+      <div class="metadata-item">
+        <span class="label">Timestamp:</span>
+        <span class="value">{{ formatTimestamp(metadata.timestamp) }}</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'RunMetadataPanel',
+  props: {
+    metadata: {
+      type: Object,
+      default: () => ({})
+    }
+  },
+  data() {
+    return {
+      expanded: false
+    };
+  },
+  computed: {
+    hasMetadata() {
+      return this.metadata && this.metadata.runId;
+    }
+  },
+  methods: {
+    toggleExpanded() {
+      this.expanded = !this.expanded;
+    },
+    formatDuration(duration) {
+      return `${duration}ms`;
+    },
+    formatCost(cost) {
+      return cost.toFixed(6);
+    },
+    formatTimestamp(timestamp) {
+      return new Date(timestamp).toLocaleString();
+    }
+  }
+};
+</script>
+```
+
+2. Build `LocalModelStatus` dashboard:
+
+```vue
+<!-- apps/client/src/components/LocalModelStatus.vue -->
+<template>
+  <div class="local-model-status">
+    <h2>Local Model Status</h2>
+    
+    <div class="tier-container" v-for="tier in tiers" :key="tier.name">
+      <h3>{{ formatTierName(tier.name) }}</h3>
+      
+      <div class="models-grid">
+        <div 
+          v-for="model in tier.models" 
+          :key="model.name"
+          class="model-card"
+          :class="getStatusClass(model.status)"
+        >
+          <div class="model-name">{{ model.name }}</div>
+          <div class="model-status">{{ model.status }}</div>
+          <div class="model-metrics" v-if="model.status === 'loaded'">
+            <div>Response: {{ formatResponseTime(model.responseTime) }}</div>
+            <div>Memory: {{ formatMemory(model.memoryUsage) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="connection-status">
+      <div class="status-indicator" :class="ollamaConnected ? 'connected' : 'disconnected'"></div>
+      <span>Ollama Connection: {{ ollamaConnected ? 'Connected' : 'Disconnected' }}</span>
+    </div>
+    
+    <div class="last-check">
+      Last Updated: {{ lastChecked }}
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'LocalModelStatus',
+  data() {
+    return {
+      tiers: [],
+      ollamaConnected: false,
+      lastChecked: ''
+    };
+  },
+  created() {
+    this.fetchModelStatus();
+    // Set up polling every 10 seconds
+    this.pollingInterval = setInterval(this.fetchModelStatus, 10000);
+  },
+  beforeDestroy() {
+    clearInterval(this.pollingInterval);
+  },
+  methods: {
+    async fetchModelStatus() {
+      try {
+        const response = await fetch('/api/llm/local-models/status');
+        const data = await response.json();
+        
+        this.tiers = data.tiers;
+        this.ollamaConnected = data.ollamaConnected;
+        this.lastChecked = new Date().toLocaleString();
+      } catch (error) {
+        console.error('Failed to fetch model status:', error);
+        this.ollamaConnected = false;
+      }
+    },
+    formatTierName(name) {
+      return name.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+    },
+    getStatusClass(status) {
+      return {
+        'status-loaded': status === 'loaded',
+        'status-loading': status === 'loading',
+        'status-error': status === 'error',
+        'status-unavailable': status === 'unavailable'
+      };
+    },
+    formatResponseTime(time) {
+      return `${time}ms`;
+    },
+    formatMemory(bytes) {
+      const gb = bytes / (1024 * 1024 * 1024);
+      return `${gb.toFixed(1)} GB`;
+    }
+  }
+};
+</script>
+```
+
+3. Add routing decision visualization component
+4. Integrate with existing developer tools
+5. Implement responsive design for all components
+
+# Test Strategy:
+1. Test RunMetadataPanel component renders correctly with sample metadata
+2. Verify expand/collapse functionality works
+3. Test LocalModelStatus dashboard correctly displays model status
+4. Verify real-time updates work with polling
+5. Test responsive design on different screen sizes
+6. Validate integration with existing developer tools
+7. Test edge cases like missing data or connection errors
+8. Perform accessibility testing on all UI components
+
+# Subtasks:
+## 1. Implement RunMetadataPanel Vue Component [pending]
+### Dependencies: None
+### Description: Create the RunMetadataPanel Vue component to display metadata about LLM runs including run ID, provider, model, tier, duration, cost, and timestamp.
+### Details:
+Create the RunMetadataPanel.vue component in apps/client/src/components/ directory. Implement the component with expand/collapse functionality, proper formatting for duration, cost and timestamp values. Ensure the component only renders when metadata is available. Style the component to match the application's design system.
+
+## 2. Implement LocalModelStatus Dashboard [pending]
+### Dependencies: None
+### Description: Create the LocalModelStatus Vue component to display the status of local models organized by tiers, with connection status to Ollama and auto-refresh functionality.
+### Details:
+Create the LocalModelStatus.vue component in apps/client/src/components/ directory. Implement the polling mechanism to fetch model status every 10 seconds. Display models grouped by tiers with appropriate status indicators. Show connection status to Ollama and last updated timestamp. Style the component with appropriate visual indicators for different model statuses.
+
+## 3. Create Routing Decision Visualization Component [pending]
+### Dependencies: 8.1, 8.2
+### Description: Develop a component to visualize the routing decision process, showing how requests are routed to different model tiers based on the routing logic.
+### Details:
+Create a RoutingVisualization.vue component that displays a flowchart-like visualization of how requests are routed through the system. Show the decision points and criteria used for routing. Include visual indicators for the current active path based on the latest request. Implement tooltips to explain routing decisions in detail.
+
+## 4. Integrate Components into Developer Tools Panel [pending]
+### Dependencies: 8.1, 8.2, 8.3
+### Description: Create a parent DevToolsPanel component that integrates all the developer UI components and implement responsive design for all components.
+### Details:
+Create a DevToolsPanel.vue component that serves as a container for all developer tools components. Implement a tabbed interface to switch between different tools (RunMetadata, LocalModelStatus, RoutingVisualization). Add a toggle to show/hide the entire panel. Ensure all components are responsive and work well on different screen sizes. Connect the panel to the existing API endpoints to fetch real data.
+

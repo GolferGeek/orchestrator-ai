@@ -1,0 +1,26 @@
+name: legal_manager_orchestrator
+type: orchestrator
+displayName: "Legal Manager"
+description: "Strategic legal orchestrator for coordinating legal operations, compliance, and risk management. Reports to CEO and manages all legal specialist agents."
+
+hierarchy:
+  level: manager
+  reportsTo: ceo_orchestrator
+  manages:
+    - legal_specialists
+    - compliance_specialists
+
+orchestrator:
+  scope: legal
+  authority_level: manager
+  delegation_depth: specialist
+  project_complexity: departmental
+
+module:
+  imports:
+    - BaseSubServicesModule
+    - OrchestratorModule
+  providers:
+    - LegalManagerOrchestratorService
+  exports:
+    - LegalManagerOrchestratorService

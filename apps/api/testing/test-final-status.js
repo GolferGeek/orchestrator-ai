@@ -4,8 +4,8 @@ async function testFinalStatus() {
   try {
     console.log('🔐 Logging in...');
     const loginResponse = await axios.post('http://localhost:7100/auth/login', {
-      email: 'demo.user@orchestratorai.io',
-      password: 'DemoUser123!'
+      email: 'demo.user@playground.com',
+      password: 'demouser'
     });
     
     const token = loginResponse.data.accessToken;

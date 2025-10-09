@@ -51,8 +51,6 @@ export interface AgentInfo {
   id: string;
   name: string;
   description: string;
-  namespace?: string;
-  metadata?: Record<string, any>;
   type?: string;
   execution_modes?: ('immediate' | 'polling' | 'real-time')[];
   execution_profile?: 'conversation_only' | 'autonomous_build' | 'human_gate' | 'conversation_with_gate';

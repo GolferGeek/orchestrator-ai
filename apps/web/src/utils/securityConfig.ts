@@ -137,20 +137,18 @@ export function validateUrlProtocol(url: string): boolean {
  * Get secure base URL for API endpoints
  */
 export function getSecureApiBaseUrl(): string {
-  const explicitBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL;
-  if (explicitBase) {
-    return enforceHttpsUrl(explicitBase);
-  }
-
-  const defaultPort = import.meta.env.VITE_API_PORT || '7100';
-
-  if (typeof window !== 'undefined') {
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    const derived = `${protocol}//${window.location.hostname}:${defaultPort}`;
-    return enforceHttpsUrl(derived);
-  }
-
-  return enforceHttpsUrl(`http://localhost:${defaultPort}`);
+  // Priority order for API base URL
+  const candidates = [
+    import.meta.env.VITE_API_BASE_URL,
+    import.meta.env.VITE_API_NESTJS_BASE_URL,
+    import.meta.env.VITE_BASE_URL ? `${import.meta.env.VITE_BASE_URL}:7100` : null,
+    'http://localhost:7100' // Final fallback
+  ].filter(Boolean);
+  
+  const baseUrl = candidates[0];
+  
+  // Enforce HTTPS if required
+  return enforceHttpsUrl(baseUrl);
 }
 
 /**

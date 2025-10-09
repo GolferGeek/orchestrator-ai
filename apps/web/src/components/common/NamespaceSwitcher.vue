@@ -3,6 +3,7 @@
     <ion-select
       :value="currentNamespace"
       interface="popover"
+      :interface-options="{ cssClass: 'namespace-popover' }"
       aria-label="Select active namespace"
       placeholder="Namespace"
       @ionChange="onNamespaceChange"
@@ -25,17 +26,30 @@ import { computed } from 'vue';
 import { IonSelect, IonSelectOption } from '@ionic/vue';
 import type { SelectCustomEvent } from '@ionic/vue';
 import { useAuthStore } from '@/stores/authStore';
+import { useRouter } from 'vue-router';
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 const availableNamespaces = computed(() => authStore.availableNamespaces);
-const currentNamespace = computed(() => authStore.currentNamespace);
+const currentNamespace = computed(() => authStore.currentNamespace || 'demo');
 const hasMultipleNamespaces = computed(() => availableNamespaces.value.length > 1);
+
+function getLandingPathForNamespace(namespace: string): string {
+  const ns = (namespace || '').toLowerCase();
+  const compact = ns.replace(/[^a-z0-9]/g, '');
+  if (compact === 'demo') return '/landing';
+  if (compact === 'myorg') return '/my-org';
+  if (ns === 'saas' || ns.startsWith('saas-') || compact.startsWith('saas')) return '/saas';
+  return '/landing';
+}
 
 function onNamespaceChange(event: SelectCustomEvent) {
   const value = event.detail.value as string | null;
   if (value) {
     authStore.setActiveNamespace(value);
+    const target = getLandingPathForNamespace(value);
+    router.replace(target);
   }
 }
 
@@ -69,6 +83,14 @@ ion-select {
   --padding-top: 0.25rem;
   --padding-bottom: 0.25rem;
   --min-height: 36px;
+  /* Ensure trigger text is visible on light header */
+  --color: var(--ion-color-dark, #222);
+  --placeholder-color: var(--ion-color-medium, #6b7280);
   font-size: 0.85rem;
+}
+
+/* Fallback for browsers needing part selector */
+ion-select::part(text) {
+  color: var(--ion-color-dark, #222);
 }
 </style>

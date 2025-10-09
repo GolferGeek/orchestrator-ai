@@ -34,10 +34,10 @@ describe('useViewToggle', () => {
     resetViewMode();
   });
 
-  it('should initialize with default marketing view when no stored value exists', () => {
+  it('should initialize with default landing view when no stored value exists', () => {
     const { viewMode, isMarketingView, isTechnicalView } = useViewToggle();
     
-    expect(viewMode.value).toBe('marketing');
+    expect(viewMode.value).toBe('landing');
     expect(isMarketingView.value).toBe(true);
     expect(isTechnicalView.value).toBe(false);
   });
@@ -63,10 +63,10 @@ describe('useViewToggle', () => {
     expect(localStorageMock.setItem).toHaveBeenCalledWith('demoViewMode', 'technical');
   });
 
-  it('should toggle between marketing and technical views', () => {
+  it('should toggle between landing and technical views', () => {
     const { viewMode, toggleView, isMarketingView, isTechnicalView } = useViewToggle();
     
-    expect(viewMode.value).toBe('marketing');
+    expect(viewMode.value).toBe('landing');
     
     toggleView();
     
@@ -77,10 +77,10 @@ describe('useViewToggle', () => {
     
     toggleView();
     
-    expect(viewMode.value).toBe('marketing');
+    expect(viewMode.value).toBe('landing');
     expect(isMarketingView.value).toBe(true);
     expect(isTechnicalView.value).toBe(false);
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('demoViewMode', 'marketing');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('demoViewMode', 'landing');
   });
 
   it('should set specific view mode', () => {
@@ -98,8 +98,8 @@ describe('useViewToggle', () => {
     
     const { viewMode } = useViewToggle();
     
-    expect(viewMode.value).toBe('marketing');
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('demoViewMode', 'marketing');
+    expect(viewMode.value).toBe('landing');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('demoViewMode', 'landing');
   });
 
   it('should handle invalid URL parameters gracefully', () => {
@@ -107,8 +107,8 @@ describe('useViewToggle', () => {
     
     const { viewMode } = useViewToggle();
     
-    expect(viewMode.value).toBe('marketing');
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('demoViewMode', 'marketing');
+    expect(viewMode.value).toBe('landing');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('demoViewMode', 'landing');
   });
 
   it('should update URL when view mode changes', () => {

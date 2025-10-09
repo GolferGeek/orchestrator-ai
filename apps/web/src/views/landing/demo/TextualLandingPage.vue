@@ -7,33 +7,11 @@
       <!-- Page Title -->
       <div class="page-header">
         <div class="container">
-          <h1 class="page-title">Without the Marketing Hype</h1>
+          <h1 class="page-title">Technical Information</h1>
           <p class="page-subtitle">
             Comprehensive details about OrchestratorAI's offerings, technology, and implementation
           </p>
           
-          <!-- Demo Highlight Card -->
-          <ion-card class="demo-highlight-box">
-            <ion-card-header>
-              <ion-card-title class="demo-highlight-title">
-                🚀 Try the Full Demo Now!
-              </ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-              <p class="demo-highlight-text">
-                <strong>Jump right in:</strong> The demo environment is a <span class="highlight">fully functional system</span>—everything you see here (and in the videos) is live and ready for you to explore.
-              </p>
-              <ul class="demo-highlight-list">
-                <li>Log in instantly with the provided demo credentials.</li>
-                <li>All agents are active and ready—ask what they do, then try them out!</li>
-                <li>Switch between LLM models to see real-time differences in performance.</li>
-                <li>This is the exact system we deploy for you, inside your own infrastructure.</li>
-              </ul>
-              <p class="demo-highlight-text">
-                <em>Experience OrchestratorAI hands-on—no waiting, no limitations.</em>
-              </p>
-            </ion-card-content>
-          </ion-card>
         </div>
       </div>
       <!-- Accordion Content -->
@@ -47,13 +25,10 @@
           >
             <template #content>
               <!-- Small Business Challenge Card -->
-              <ion-card class="challenge-highlight-box">
-                <ion-card-header>
-                  <ion-card-title class="challenge-highlight-title">
-                    🎯 The Small Business AI Challenge
-                  </ion-card-title>
-                </ion-card-header>
-                <ion-card-content>
+              
+                <h3 class="challenge-highlight-title">
+                  🎯 The Small Business AI Challenge
+                </h3>
                   <p class="challenge-highlight-text">
                     <strong>Small businesses face overwhelming choices when adopting AI.</strong> From information overload and decision fatigue 
                     to technical complexity and security concerns, the path to AI implementation is fraught with obstacles.
@@ -100,13 +75,10 @@
                       </div>
                     </div>
                   </div>
-                </ion-card-content>
-              </ion-card>
+              
 
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
                 
-                <ion-card class="information-overload-card">
-                  <ion-card-content>
                     <h3 class="info-overload-title">🌊 Information Overload Challenge</h3>
                     
                     <p class="info-overload-intro">
@@ -135,13 +107,11 @@
                     </ul>
                   </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="security-privacy" title="Security and Privacy">
-                <ion-card class="security-privacy-card">
-                  <ion-card-content>
+                
                     <h3 class="security-title">🔒 LLM Security & Privacy Concerns</h3>
                     
                     <p class="security-intro">
@@ -173,13 +143,11 @@
                     </ul>
                   </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="cost-roi" title="Cost and ROI">
-                <ion-card class="cost-roi-card">
-                  <ion-card-content>
+                
                     <h3 class="cost-title">💰 Financial Uncertainty & Hidden Costs</h3>
                     
                     <p class="cost-intro">
@@ -215,13 +183,11 @@
                     <div class="cost-footnote">
                       <p>* Growing local LLM usage may require multiple servers or a more traditional server</p>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="development-challenges" title="Development Challenges">
-                <ion-card class="development-challenges-card">
-                  <ion-card-content>
+                
                     <h3 class="development-title">⚙️ Development Barriers & Complexity</h3>
                     
                     <p class="development-intro">
@@ -253,8 +219,7 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -266,8 +231,7 @@
             :default-expanded="true"
           >
             <template #content>
-              <ion-card class="offering-summary-card">
-                <ion-card-content>
+              
                   <h3 class="offering-summary-title">🚀 Complete AI Implementation Package</h3>
                   
                   <p class="offering-summary-intro">
@@ -306,12 +270,10 @@
                     <p><strong>Forked code: $15k</strong> - consulting fees additional at $120/hr senior, $50/hr interns<br>
                     <small>*You provide: hardware and LLM API keys (we help with setup)</small></p>
                   </div>
-                </ion-card-content>
-              </ion-card>
+              
               
               <SubAccordion id="piloting-server" title="Piloting Server">
-                <ion-card class="piloting-server-card">
-                  <ion-card-content>
+                
                     <h3 class="piloting-title">🖥️ Your Local AI Hardware Setup*</h3>
                     
                     <p class="piloting-intro">
@@ -347,13 +309,11 @@
                     <div class="piloting-footnote">
                       <p>* You provide the server hardware. We recommend Mac Studio 128GB, but any equivalent hardware is fine.</p>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="forked-repository" title="Forked Repository">
-                <ion-card class="forked-repository-card">
-                  <ion-card-content>
+                
                     <h3 class="repository-title">📦 Pre-Built Agent Ecosystem</h3>
                     
                     <p class="repository-intro">
@@ -388,13 +348,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="consulting-services" title="Consulting Services">
-                <ion-card class="consulting-services-card">
-                  <ion-card-content>
+                
                     <h3 class="consulting-title">🤝 Expert Guidance & Support</h3>
                     
                     <p class="consulting-intro">
@@ -426,13 +384,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="pricing-structure" title="Pricing Structure">
-                <ion-card class="pricing-structure-card">
-                  <ion-card-content>
+                
                     <h3 class="pricing-structure-title">💎 Transparent Value Proposition</h3>
                     
                     <p class="pricing-structure-intro">
@@ -465,13 +421,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="team-building" title="Team Building">
-                <ion-card class="team-building-card">
-                  <ion-card-content>
+                
                     <h3 class="team-building-title">👥 AI Competency Development</h3>
                     
                     <p class="team-building-intro">
@@ -515,8 +469,7 @@
                 />
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -528,8 +481,7 @@
             :default-expanded="true"
           >
             <template #content>
-              <ion-card class="architecture-summary-card">
-                <ion-card-content>
+              
                   <h3 class="architecture-summary-title">🏗️ Advanced Agent Architecture</h3>
                   
                   <p class="architecture-summary-intro">
@@ -576,12 +528,10 @@
                   <div class="architecture-summary-footer">
                     <p><strong>File-based storage now</strong> - database-based agents coming soon for rapid creation</p>
                   </div>
-                </ion-card-content>
-              </ion-card>
+              
               
               <SubAccordion id="a2a-protocol" title="A2A Protocol">
-                <ion-card class="a2a-protocol-card">
-                  <ion-card-content>
+                
                     <h3 class="a2a-title">🔗 Industry-Standard Communication</h3>
                     
                     <p class="a2a-intro">
@@ -613,13 +563,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="mcp-integration" title="MCP Integration">
-                <ion-card class="mcp-integration-card">
-                  <ion-card-content>
+                
                     <h3 class="mcp-title">🔌 Connect to Any Tool or Service</h3>
                     
                     <p class="mcp-intro">
@@ -651,13 +599,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="agent-types" title="Agent Types">
-                <ion-card class="agent-types-card">
-                  <ion-card-content>
+                
                     <h3 class="agent-types-title">🤖 Five Specialized AI Agent Types</h3>
                     
                     <p class="agent-types-intro">
@@ -687,13 +633,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="file-vs-database-agents" title="File vs Database Agents">
-                <ion-card class="file-database-agents-card">
-                  <ion-card-content>
+                
                     <h3 class="file-database-title">📁 Current System + Future Upgrades</h3>
                     
                     <p class="file-database-intro">
@@ -725,13 +669,11 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
               
               <SubAccordion id="demo-vs-myorg" title="Demo vs MyOrg">
-                <ion-card class="demo-myorg-card">
-                  <ion-card-content>
+                
                     <h3 class="demo-myorg-title">🏢 Organized Agent Directories</h3>
                     
                     <p class="demo-myorg-intro">
@@ -763,8 +705,7 @@
                         </ul>
                       </div>
                     </div>
-                  </ion-card-content>
-                </ion-card>
+                  
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -791,11 +732,17 @@
               />
               
               <SubAccordion id="project-orchestration" title="Project Orchestration">
-                <p>This section explores our advanced project orchestration capabilities for managing large-scale agent activities. We'll explain how multiple agents can work together on complex projects, detail our coordination algorithms, and show how this system scales from simple tasks to enterprise-level operations.</p>
+                <p><strong>Coordinate many specialized agents to deliver predictable outcomes.</strong> Our orchestrator agents plan multi-step initiatives using A2A standards—assigning tasks, handling dependencies, tracking progress, and retrying failures with clear metrics. Start with a single workflow and scale to dozens of agents collaborating across content, data, and integration tasks.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Deterministic workflows</strong> - consistent plans, explicit steps, observable state</li>
+                  <li><strong>Dependency management</strong> - ordered execution, guardrails, graceful retries</li>
+                  <li><strong>Metrics & logs</strong> - measure throughput, quality, and time-to-complete</li>
+                  <li><strong>Composable patterns</strong> - reuse flows across teams and clients</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="human-in-the-loop" title="Human-in-the-Loop">
-                <p>This section covers our human-in-the-loop evaluation system that ensures AI decisions meet your standards. We'll explain how approval workflows work, detail the evaluation criteria, and show how this system maintains human oversight while maximizing AI efficiency.</p>
+                <p><strong>Keep humans in control where it matters.</strong> We add approval checkpoints, evaluation rubrics, and audit trails to critical steps. Review diffs, score outputs, and approve or request changes—backed by privacy-first design and compliance-friendly records.</p>
                 
                 <!-- Evaluations Video -->
                 <VideoTrigger 
@@ -803,22 +750,52 @@
                   :video="evaluationsVideo"
                   @play="(video) => openVideoModal(video)"
                 />
+                <ul class="mcp-benefits-list">
+                  <li><strong>Approval gates</strong> - block release until stakeholders sign off</li>
+                  <li><strong>Standardized rubrics</strong> - objective quality checks by use case</li>
+                  <li><strong>Auditability</strong> - full history of decisions and rationale</li>
+                  <li><strong>Rollback</strong> - revert to prior versions when needed</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="ai-versioning" title="AI Versioning">
-                <p>This section details our AI versioning system for content comparison and merging. We'll explain how different AI outputs can be compared, detail our merging algorithms, and show how this system helps you track and improve AI performance over time.</p>
+                <p><strong>Run variants, compare results, and merge the best.</strong> Generate multiple candidate outputs, view side-by-side diffs, and accept, cherry-pick, or merge changes with provenance preserved. Version history helps teams learn what prompts, agents, or tools produce the strongest outcomes.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Multi-variant runs</strong> - explore quality vs. cost tradeoffs</li>
+                  <li><strong>Structured comparison</strong> - highlight factual and stylistic differences</li>
+                  <li><strong>Provenance</strong> - track model, prompt, and toolchain per output</li>
+                  <li><strong>Continuous improvement</strong> - iterate intentionally over time</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="multi-modal-inputs" title="Multi-Modal Inputs">
-                <p>This section covers our multi-modal input processing capabilities for images, files, and other data types. We'll explain how agents can process different input formats, detail our file handling capabilities, and show how this makes our system more versatile for real-world business applications.</p>
+                <p><strong>Handle real files and images safely.</strong> Using MCP resources, agents ingest PDFs, images, and office docs for OCR, summarization, and structured extraction. Our PII pseudonymization workflow (see project scripts) protects sensitive data end-to-end.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>File ingestion</strong> - MCP file system and storage integration</li>
+                  <li><strong>Structured extraction</strong> - turn documents into actionable data</li>
+                  <li><strong>PII controls</strong> - pseudonymize on intake; reversible with policy</li>
+                  <li><strong>Business-ready</strong> - route outputs to agents, APIs, or databases</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="database-based-agents" title="Database-Based Agents">
-                <p>This section explains our upcoming database-based agent system for rapid creation and deployment. We'll detail how this system will streamline agent development, explain the benefits over file-based agents, and show how it will enable faster customization and deployment of new agents.</p>
+                <p><strong>From files to a managed registry.</strong> We’re introducing a Supabase/Postgres-backed catalog for agents and capabilities. Create agents in minutes, manage per-tenant configuration, and roll out updates safely—while keeping today’s file-based agents fully supported.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Rapid creation</strong> - scaffold, configure, and publish quickly</li>
+                  <li><strong>Central management</strong> - visibility across environments and tenants</li>
+                  <li><strong>Safer updates</strong> - staged releases with rollback</li>
+                  <li><strong>Scale</strong> - operate hundreds of agents consistently</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="mcp-tool-integration" title="MCP Tool Integration">
-                <p>This section covers our MCP tool integration capabilities that enable agents to use external tools for complex projects. We'll explain how agents can access external APIs and services, detail our tool management system, and show how this integration expands the capabilities of individual agents.</p>
+                <p><strong>Connect to the tools you already use.</strong> MCP provides a standard way for agents to access databases, file systems, web APIs, and developer tools with least-privilege credentials and auditable access—future-proofing your integrations.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Standards-first</strong> - portable across vendors and models</li>
+                  <li><strong>Security-minded</strong> - scoped keys, explicit permissions</li>
+                  <li><strong>Extensible</strong> - add new tools without re-architecting</li>
+                  <li><strong>Operational clarity</strong> - observable calls and outcomes</li>
+                </ul>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -838,27 +815,63 @@
               </p>
               
               <SubAccordion id="frontend-technology" title="Frontend Technology">
-                <p>This section details our frontend technology stack and its benefits for small businesses. We'll explain why we chose Vue.js with Ionic, detail our TypeScript implementation, and show how this modern stack provides a responsive, maintainable user interface that works across all devices.</p>
+                <p><strong>Vue 3 + Ionic + TypeScript for fast, mobile-ready UI.</strong> We use componentized SFCs, Pinia for state where needed, and Vite for rapid builds. The result is a responsive, maintainable interface that adapts across devices.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Reusable components</strong> - consistent UX and faster delivery</li>
+                  <li><strong>Type safety</strong> - clearer contracts and fewer runtime bugs</li>
+                  <li><strong>Great performance</strong> - modern tooling and tree-shaking</li>
+                  <li><strong>Testing support</strong> - aligned with repo test patterns</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="backend-architecture" title="Backend Architecture">
-                <p>This section covers our backend architecture built on NestJS and Node.js. We'll explain our API design patterns, detail how our modular architecture supports agent communication, and show how this robust backend ensures reliable performance and easy maintenance.</p>
+                <p><strong>NestJS + Node.js with clear module boundaries.</strong> Our backend supports A2A/MCP workflows, structured APIs, Supabase auth, and streaming where applicable. Modules stay small, typed, and testable.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Reliability</strong> - predictable services with explicit contracts</li>
+                  <li><strong>Maintainability</strong> - modular design and shared utilities</li>
+                  <li><strong>Scalability</strong> - horizontal growth with simple patterns</li>
+                  <li><strong>Security</strong> - explicit config validation; no silent defaults</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="database-storage" title="Database & Storage">
-                <p>This section explains our database and storage solution using Supabase and PostgreSQL. We'll detail how this setup provides reliable data management, explain our data security measures, and show how this foundation supports all agent operations and user data.</p>
+                <p><strong>Supabase/Postgres for durable data and assets.</strong> We model tasks, evaluations, and agent metadata in relational tables, and use storage for files. Backups, migrations, and access policies are standard practice.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Durability</strong> - ACID guarantees and automated backups</li>
+                  <li><strong>Query power</strong> - analytics and reporting without exports</li>
+                  <li><strong>Access control</strong> - role-based rules for safer operations</li>
+                  <li><strong>Operational clarity</strong> - schema you can reason about</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="development-tools" title="Development Tools">
-                <p>This section covers our modern development tools and workflow that we help clients set up. We'll explain our Cursor and GitHub integration, detail our AI-assisted development approach, and show how these tools accelerate development while maintaining code quality.</p>
+                <p><strong>Cursor + GitHub with pnpm/Turborepo.</strong> We follow strict linting/formatting, leverage AI-assisted workflows, and provide PM2 and deployment scripts for smooth releases.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Faster iteration</strong> - tight inner loop and code reviews</li>
+                  <li><strong>Consistency</strong> - enforced standards and rules files</li>
+                  <li><strong>Observability</strong> - scripts for testing and diagnostics</li>
+                  <li><strong>Repeatable deploys</strong> - proven production runbooks</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="fork-management" title="Fork Management">
-                <p>This section explains our fork management strategy and why agents are organized in safe my-org/ directories. We'll detail how fork updates work, explain our safe development practices, and show how this approach protects your custom agents while keeping you updated with improvements.</p>
+                <p><strong>Safe customization without losing upstream improvements.</strong> Keep your business-specific agents in `my-org/` while `demo/` provides patterns and updates. Pull new features without overwriting your custom work.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Isolation</strong> - protect proprietary logic and prompts</li>
+                  <li><strong>Upgradability</strong> - adopt upstream changes on your schedule</li>
+                  <li><strong>Clarity</strong> - clear boundaries between templates and custom code</li>
+                  <li><strong>Team velocity</strong> - experiment safely without regressions</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="ai-development-environment" title="AI Development Environment">
-                <p>This section covers our AI development environment setup and configuration. We'll explain how to configure local LLM environments, detail our MCP integration for testing, and show how this setup enables rapid agent development and deployment in your own secure environment.</p>
+                <p><strong>Local LLMs with MCP for privacy-first development.</strong> Use the provided Ollama scripts, `.env` patterns, and Supabase setup to run agents entirely on your hardware—keeping sensitive data in-house.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Data control</strong> - keep conversations and files local</li>
+                  <li><strong>Lower cost</strong> - reduce cloud inference spend</li>
+                  <li><strong>Better testing</strong> - deterministic environments for QA</li>
+                  <li><strong>Compliance</strong> - align with security requirements by default</li>
+                </ul>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -879,11 +892,23 @@
               </p>
               
               <SubAccordion id="what-are-agents" title="What Are Agents?">
-                <p>This section provides a comprehensive introduction to AI agents and their capabilities. We'll explain what makes an agent different from simple AI tools, detail how agents work autonomously, and show how specialized agents can transform your business operations.</p>
+                <p><strong>Single-responsibility programs that collaborate.</strong> Agents specialize—Context, Function, API, External, and Orchestrator—and communicate through A2A. Clear roles and typed interfaces make systems more reliable and adaptable.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Composability</strong> - assemble complex workflows from small parts</li>
+                  <li><strong>Clarity</strong> - explicit responsibilities and contracts</li>
+                  <li><strong>Reliability</strong> - fewer side effects and easier testing</li>
+                  <li><strong>Evolution</strong> - upgrade one agent without breaking others</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="context-agent-builder" title="Context Agent Builder">
-                <p>This section covers our Context Agent Builder for creating knowledge-based agents. We'll explain how to use our standardized rules files, detail the knowledge management capabilities, and show how these agents can become your business's AI-powered knowledge base.</p>
+                <p><strong>Turn your knowledge into a reliable agent.</strong> Use `markdown_context/` with persona, key facts, capabilities/limits, and examples. Follow our size and structure guidelines for predictable answers.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Fast capture</strong> - add domain expertise in markdown</li>
+                  <li><strong>Consistency</strong> - standardized format yields stable outputs</li>
+                  <li><strong>Safety</strong> - scope capabilities and disclose limitations</li>
+                  <li><strong>Maintainability</strong> - update docs, not code, to improve answers</li>
+                </ul>
                 
                 <!-- Context Agent Architecture Video -->
                 <VideoTrigger 
@@ -894,28 +919,64 @@
               </SubAccordion>
               
               <SubAccordion id="function-agent-builder" title="Function Agent Builder">
-                <p>This section details our Function Agent Builder for creating custom logic agents in TypeScript and Python. We'll explain how to build agents that execute specific functions, detail our development rules and patterns, and show how these agents can automate complex business processes.</p>
+                <p><strong>TypeScript/Python logic with explicit contracts.</strong> Define clear inputs/outputs and validate configuration up-front. Follow our “No Fallbacks & Hardcoded Defaults” rule: fail fast with actionable errors.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Correctness</strong> - typed interfaces and early validation</li>
+                  <li><strong>Testability</strong> - unit tests around pure functions</li>
+                  <li><strong>Safety</strong> - meaningful error messages instead of silent defaults</li>
+                  <li><strong>Reusability</strong> - small, focused modules</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="api-agent-builder" title="API Agent Builder">
-                <p>This section covers our API Agent Builder for wrapping external APIs and services. We'll explain how to create agents that integrate with third-party services, detail our API management patterns, and show how these agents can extend your system's capabilities with external tools and data.</p>
+                <p><strong>Safe adapters for third-party services.</strong> Store secrets in `.env`, set explicit timeouts/retries, and expose a minimal surface area. Design for MCP so tools remain portable.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Predictable integrations</strong> - graceful failures and retries</li>
+                  <li><strong>Credential hygiene</strong> - no hardcoded keys; scoped access</li>
+                  <li><strong>Observability</strong> - structured logs around requests</li>
+                  <li><strong>Portability</strong> - standards-first tool interfaces</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="orchestrator-agent-builder" title="Orchestrator Agent Builder">
-                <p>This section details our Orchestrator Agent Builder for creating coordination and workflow agents. We'll explain how to build agents that manage complex workflows, detail our coordination patterns, and show how these agents can orchestrate multiple other agents to accomplish sophisticated business processes.</p>
+                <p><strong>Design workflows, not monoliths.</strong> Model steps, dependencies, and evaluation gates. Route work to specialized agents, gather results, and move forward only when checks pass.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Manage complexity</strong> - break work into verifiable stages</li>
+                  <li><strong>Quality gates</strong> - human or automated evaluations</li>
+                  <li><strong>Scalable patterns</strong> - reuse flows across projects</li>
+                  <li><strong>Operational control</strong> - pause, resume, or rollback</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="rules-file-system" title="Rules File System">
-                <p>This section explains our rules file system for consistent agent development. We'll detail how our standardized rules files work with Cursor, Claude, and Codex, explain the development patterns we follow, and show how this system ensures consistent, high-quality agent development across all types.</p>
+                <p><strong>Shared rules that encode best practices.</strong> Use the provided rules (Cursor profile and internal standards) to drive consistent prompts, configs, and code patterns—including explicit configuration validation and security notes.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Consistency</strong> - same patterns across teams and agents</li>
+                  <li><strong>Fewer regressions</strong> - guardrails for common mistakes</li>
+                  <li><strong>Faster onboarding</strong> - new contributors ship safely</li>
+                  <li><strong>Traceability</strong> - decisions documented beside code</li>
+                </ul>
               </SubAccordion>
               
               <SubAccordion id="ai-assisted-development" title="AI-Assisted Development">
-                <p>This section covers our AI-assisted development approach using Cursor, Claude, and other AI tools. We'll explain how these tools accelerate agent development, detail our development workflow, and show how AI assistance makes agent creation accessible to non-technical team members while maintaining high code quality.</p>
+                <p><strong>Plan → expand → implement → verify.</strong> Use Taskmaster to turn PRDs into tasks/subtasks, research when needed, log findings, and mark work done. Cursor and Claude speed implementation while our rules maintain quality.</p>
+                <ul class="mcp-benefits-list">
+                  <li><strong>Structured progress</strong> - clear next actions and status</li>
+                  <li><strong>Higher quality</strong> - checklists and tests by default</li>
+                  <li><strong>Team transparency</strong> - shared context and histories</li>
+                  <li><strong>Faster delivery</strong> - AI accelerates routine work</li>
+                </ul>
               </SubAccordion>
             </template>
           </AccordionSection>
         </div>
       </div>
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <div class="footer-content">
+        <p>2025 – Orchestrator AI</p>
+      </div>
+    </footer>
     </ion-content>
     
     <!-- Video Modal -->
@@ -931,7 +992,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue';
+import { IonPage, IonContent } from '@ionic/vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 import AccordionSection from '@/components/landing/AccordionSection.vue';
 import SubAccordion from '@/components/landing/SubAccordion.vue';
@@ -940,8 +1001,10 @@ import VideoModal from '@/components/landing/VideoModal.vue';
 import VideoTrigger from '@/components/landing/VideoTrigger.vue';
 import { useViewToggle } from '@/composables/useViewToggle';
 import { videoService, type Video } from '@/services/videoService';
+import { useRouter } from 'vue-router';
 
 const { initializeViewMode } = useViewToggle();
+const router = useRouter();
 
 // Video modal state
 const isVideoModalOpen = ref(false);
@@ -972,6 +1035,7 @@ onMounted(() => {
   // Initialize the view mode when the component mounts
   initializeViewMode();
 });
+
 </script>
 
 <style scoped>
@@ -982,7 +1046,7 @@ onMounted(() => {
 
 .textual-content {
   --background: var(--landing-light);
-  padding-top: 180px; /* Account for fixed header - increased to handle layout issues */
+  padding-top: 24px; /* Small breathing room under sticky header */
 }
 
 .page-header {
@@ -1013,6 +1077,7 @@ onMounted(() => {
   max-width: 600px;
 }
 
+
 .accordion-container {
   padding: 2rem 0;
 }
@@ -1028,14 +1093,6 @@ onMounted(() => {
   border-left: 4px solid var(--landing-primary);
 }
 
-.demo-highlight-box {
-  margin: 1rem 0;
-  --background: rgba(255, 255, 255, 0.95);
-  --color: var(--landing-dark);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(139, 90, 60, 0.2);
-}
 
 .challenge-highlight-box {
   margin: 1rem 0;
@@ -1082,13 +1139,6 @@ onMounted(() => {
   border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-.demo-highlight-title {
-  font-size: 1.75rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--landing-primary);
-  text-align: center;
-  margin: 0;
-}
 
 .challenge-highlight-title {
   font-size: 1.75rem;
@@ -1632,6 +1682,49 @@ onMounted(() => {
   border-bottom: none;
 }
 
+  /* Unified heading styles across all accordion content */
+  .challenge-highlight-title,
+  .info-overload-title,
+  .security-title,
+  .cost-title,
+  .development-title,
+  .offering-summary-title,
+  .piloting-title,
+  .repository-title,
+  .consulting-title,
+  .pricing-structure-title,
+  .team-building-title,
+  .architecture-summary-title,
+  .a2a-title,
+  .mcp-title,
+  .agent-types-title,
+  .file-database-title,
+  .demo-myorg-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--landing-primary);
+    text-align: left;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.3;
+  }
+
+  /* Consistent spacing for intro paragraphs under headings */
+  .info-overload-intro,
+  .security-intro,
+  .cost-intro,
+  .development-intro,
+  .offering-summary-intro,
+  .repository-intro,
+  .consulting-intro,
+  .pricing-structure-intro,
+  .agent-types-intro,
+  .file-database-intro,
+  .demo-myorg-intro,
+  .architecture-summary-intro {
+    margin: 0.5rem 0 0;
+    text-align: left;
+  }
+
 .development-intro {
   font-size: var(--text-base);
   line-height: 1.5;
@@ -1671,13 +1764,6 @@ onMounted(() => {
   border-bottom: none;
 }
 
-.demo-highlight-text {
-  font-size: var(--text-base);
-  line-height: 1.5;
-  color: var(--landing-dark);
-  margin: 0.75rem 0;
-  text-align: center;
-}
 
 .challenge-highlight-text {
   font-size: var(--text-base);
@@ -1687,28 +1773,6 @@ onMounted(() => {
   text-align: center;
 }
 
-.demo-highlight-list {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0;
-  text-align: left;
-  display: inline-block;
-}
-
-.demo-highlight-list li {
-  padding: 0.25rem 0;
-  position: relative;
-  padding-left: 1.5rem;
-  color: var(--landing-dark);
-}
-
-.demo-highlight-list li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--landing-primary);
-  font-weight: bold;
-}
 
 .challenge-highlight-list {
   list-style: none;
@@ -1779,10 +1843,32 @@ onMounted(() => {
   font-weight: 600;
 }
 
+  /* Footer */
+  .landing-footer {
+    background: var(--landing-gradient);
+    color: var(--landing-white);
+    padding: var(--space-8) 0;
+    text-align: center;
+    margin-top: var(--space-16);
+  }
+
+  .footer-content {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-8);
+  }
+
+  .footer-content p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--landing-white);
+    font-weight: var(--font-weight-medium);
+  }
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .textual-content {
-    padding-top: 160px; /* Adjust for smaller mobile header - increased to handle layout issues */
+    padding-top: 16px; /* Mobile spacing under sticky header */
   }
   
   .container {
@@ -1805,17 +1891,7 @@ onMounted(() => {
     padding: 1rem 0;
   }
   
-  .demo-highlight-box {
-    margin: 0.5rem 0;
-  }
   
-  .demo-highlight-title {
-    font-size: 1.5rem;
-  }
-  
-  .demo-highlight-list {
-    text-align: center;
-  }
   
   .challenge-highlight-box {
     margin: 0.5rem 0;
@@ -1934,5 +2010,14 @@ onMounted(() => {
   .demo-directory-column, .myorg-directory-column {
     flex: none;
   }
+
+    .landing-footer {
+      padding: var(--space-6) 0;
+      margin-top: var(--space-12);
+    }
+
+    .footer-content {
+      padding: 0 var(--space-4);
+    }
 }
 </style>

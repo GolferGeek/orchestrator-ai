@@ -32,7 +32,10 @@ echo -e "${BLUE}🐳 Checking Docker daemon status...${NC}"
 
 # Function to check if Docker daemon is running
 check_docker() {
-    if docker info >/dev/null 2>&1; then
+    # Try docker command first, then fall back to full path on macOS
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+        return 0
+    elif /Applications/Docker.app/Contents/Resources/bin/docker info >/dev/null 2>&1; then
         return 0
     else
         return 1

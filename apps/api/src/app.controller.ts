@@ -1,4 +1,4 @@
-import { Controller, Get, Headers } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 
 @Controller()
@@ -11,16 +11,7 @@ export class AppController {
   }
 
   @Get('agents')
-  async getAgentStatus(
-    @Headers('x-agent-namespace') namespaceHeader?: string,
-  ): Promise<any> {
-    const namespaces = namespaceHeader
-      ? namespaceHeader
-          .split(',')
-          .map((ns) => ns.trim())
-          .filter(Boolean)
-      : undefined;
-
-    return await this.appService.getAgentStatus(namespaces);
+  async getAgentStatus(): Promise<any> {
+    return await this.appService.getAgentStatus();
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import { ContextLoaderService } from '../context-loader/context-loader.service';
 
 /**
  * Agent Metadata Interfaces
@@ -82,6 +83,7 @@ export interface AgentMetadata {
   uptime?: number;
   pid?: number;
   nodeVersion?: string;
+  videos?: string[]; // Video IDs from context.md
   [key: string]: any;
 }
 
@@ -122,7 +124,9 @@ export class AgentMetadataService {
   private readonly structureCache: Map<string, AgentStructure>;
   private readonly startTime = Date.now();
 
-  constructor() {
+  constructor(
+    private readonly contextLoaderService: ContextLoaderService
+  ) {
     const options = {
       maxSize: 100,
       ttl: 5 * 60 * 1000, // 5 minutes default
@@ -379,6 +383,19 @@ export class AgentMetadataService {
   }
 
   /**
+   * Get video IDs for an agent by analyzing its context.md file
+   */
+  async getAgentVideoIds(agentDirectory: string): Promise<string[] | undefined> {
+    try {
+      const contextContent = await this.contextLoaderService.loadContextFile(agentDirectory);
+      return contextContent?.videos;
+    } catch (error) {
+      this.logger.error(`Error loading video IDs for agent ${agentDirectory}:`, error);
+      return undefined;
+    }
+  }
+
+  /**
    * Clear all caches
    */
   clearCaches(): void {
@@ -475,6 +492,10 @@ export class AgentMetadataService {
   ): Promise<AgentMetadata> {
     const content = await fs.readFile(contextPath, 'utf-8');
 
+    // Use ContextLoaderService to parse the full context including videos
+    const agentDirectory = path.dirname(contextPath);
+    const contextContent = await this.contextLoaderService.loadContextFile(agentDirectory);
+
     // Basic metadata extraction from markdown content
     const metadata: AgentMetadata = {
       name: this.extractFromContent(content, /^#\s+(.+)$/m) || 'Unknown Agent',
@@ -485,6 +506,7 @@ export class AgentMetadataService {
         this.extractFromContent(content, /Version:\s*(.+)$/im) || '1.0.0',
       capabilities: this.extractCapabilitiesFromContent(content),
       skills: await this.extractSkillsFromContent(content),
+      videos: contextContent?.videos, // Add video IDs from ContextLoaderService
     };
 
     return metadata;

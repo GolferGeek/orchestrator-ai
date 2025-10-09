@@ -27,6 +27,8 @@ export interface AgentExecutionCapabilities {
 export interface Agent {
   name: string;
   type: string;
+  slug?: string;
+  id?: string;
   description?: string;
   namespace?: string | null;
   execution_modes?: string[];

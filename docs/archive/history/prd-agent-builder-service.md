@@ -1045,7 +1045,7 @@ export class AgentBuilderController {
       properties: {
         success: { type: 'boolean', example: true },
         agentId: { type: 'string', example: 'marketing_social_media_specialist_1640995200000' },
-        agentPath: { type: 'string', example: 'src/agents/demo/marketing/social_media_specialist' },
+        agentPath: { type: 'string', example: 'src/agents/actual/marketing/social_media_specialist' },
         message: { type: 'string', example: 'Agent "social_media_specialist" created successfully in marketing department' },
         deploymentStatus: { type: 'string', example: 'deployed' },
         discoveryUpdated: { type: 'boolean', example: true },

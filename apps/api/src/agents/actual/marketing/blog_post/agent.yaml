@@ -1,0 +1,92 @@
+# Blog Post Writer Agent Configuration
+metadata:
+  name: "Blog Post Writer"
+  type: "specialist"
+  category: "content_creation"
+  version: "1.0.0"
+  description: "Create compelling blog content that drives traffic and engagement! I specialize in writing SEO-optimized blog posts, articles, and web content for any industry or audience. From technical tutorials to lifestyle articles, I deliver publication-ready content with compelling headlines, structured formatting, and strategic keyword optimization."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: marketing_manager_orchestrator
+  department: marketing
+
+# Agent type - determines loading strategy
+type: "specialist"
+
+capabilities:
+  - content_creation
+  - blog_writing
+  - seo_optimization
+  - content_strategy
+  - copywriting
+  - research_synthesis
+  - audience_adaptation
+  - content_formatting
+
+skills:
+  - id: "blog_post_creation"
+    name: "Blog Post Creation"
+    description: "Generate complete, publication-ready blog posts with compelling headlines, structured content, and SEO optimization"
+    tags: ["content-creation", "blog-writing", "seo", "copywriting"]
+    examples:
+      - "Write a blog post about sustainable gardening for beginners"
+      - "Create a technical blog post about microservices architecture for developers"
+      - "Generate a lifestyle blog post about work-life balance for professionals"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "text/html", "application/json"]
+
+  - id: "seo_content_optimization"
+    name: "SEO Content Optimization"
+    description: "Optimize content for search engines while maintaining readability and engagement"
+    tags: ["seo", "keyword-optimization", "meta-descriptions", "content-strategy"]
+    examples:
+      - "Optimize this blog post for the keyword 'digital marketing trends'"
+      - "Create SEO-friendly content about artificial intelligence"
+      - "Generate meta descriptions and title tags for blog content"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "content_strategy_consultation"
+    name: "Content Strategy Consultation"
+    description: "Provide strategic guidance on content planning, audience targeting, and content marketing objectives"
+    tags: ["content-strategy", "audience-targeting", "marketing", "planning"]
+    examples:
+      - "Suggest blog topics for a B2B software company"
+      - "Recommend content strategy for increasing organic traffic"
+      - "Provide guidance on content calendar planning"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/html"
+  - "application/json"
+  - "text/plain"
+
+configuration:
+  default_output_format: "markdown"
+  seo_features_enabled: true
+  execution_modes: ["immediate"]
+  content_length_options:
+    short: "300-600 words"
+    medium: "600-1200 words"
+    long: "1200+ words"
+  tone_options:
+    - "professional"
+    - "casual"
+    - "technical"
+    - "conversational"
+    - "formal"
+    - "creative"
+  audience_targeting:
+    - "B2B"
+    - "B2C"
+    - "technical"
+    - "general"
+    - "industry-specific" 

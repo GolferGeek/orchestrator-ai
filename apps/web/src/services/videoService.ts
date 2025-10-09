@@ -30,6 +30,21 @@ export interface VideosData {
 
 class VideoService {
   private data: VideosData = videosData;
+  // Map agent slugs/names to video IDs (restored from intern work)
+  private readonly agentVideoMap: Record<string, string[]> = {
+    // Slug-based keys
+    'finance/metrics': ['metrics-agent-walkthrough'],
+    'marketing/marketing_swarm': ['marketing-swarm-demo'],
+    'engineering/requirements_writer': ['requirements-writer-tutorial'],
+    'specialists/golf_rules_agent': ['golf-rules-coach-demo'],
+    'productivity/jokes_agent': ['jokes-agent-demo'],
+    // Name-based keys (normalized to lowercase, spaces to underscore, slashes retained)
+    'finance metrics': ['metrics-agent-walkthrough'],
+    'marketing swarm': ['marketing-swarm-demo'],
+    'requirements writer': ['requirements-writer-tutorial'],
+    'golf rules coach': ['golf-rules-coach-demo'],
+    'jokes agent': ['jokes-agent-demo'],
+  };
 
   /**
    * Get all video categories in order
@@ -67,6 +82,20 @@ class VideoService {
   }
 
   /**
+   * Get videos by a list of IDs, preserving the order of IDs when possible
+   */
+  getVideosByIds(ids: string[]): Video[] {
+    if (!ids || !ids.length) return [];
+    const byId: Record<string, Video> = {};
+    Object.values(this.data.categories).forEach(category => {
+      category.videos.forEach(v => {
+        byId[v.id] = v;
+      });
+    });
+    return ids.map(id => byId[id]).filter(Boolean) as Video[];
+  }
+
+  /**
    * Get featured videos (used for landing page buttons)
    */
   getFeaturedVideos(): Array<{ categoryKey: string; video: Video; category: VideoCategory }> {
@@ -84,6 +113,13 @@ class VideoService {
     });
     
     return featured;
+  }
+
+  /**
+   * Return default/fallback video IDs for agents without explicit mapping
+   */
+  getDefaultVideoIds(): string[] {
+    return ['agent-default-overview'];
   }
 
   /**
@@ -117,6 +153,41 @@ class VideoService {
     return allVideos
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, limit);
+  }
+
+  /**
+   * Map agent identifier (slug or name) to video IDs
+   */
+  getAgentVideoIdsByNameOrSlug(identifier: string): string[] {
+    return this.getAgentVideoIds(identifier);
+  }
+
+  /**
+   * Map agent slug to video IDs (canonical function referenced by tests)
+   */
+  getAgentVideoIds(agentSlugOrName: string): string[] {
+    if (!agentSlugOrName) return [];
+    const norm = this.normalizeIdentifier(agentSlugOrName);
+    // Exact match
+    if (this.agentVideoMap[norm]) {
+      return this.agentVideoMap[norm];
+    }
+    // Try replacing spaces with underscores
+    const alt = norm.replace(/\s+/g, '_');
+    if (this.agentVideoMap[alt]) {
+      return this.agentVideoMap[alt];
+    }
+    // No mapping
+    return [];
+  }
+
+  /**
+   * Return full video objects for an agent
+   */
+  getAgentVideos(agentSlugOrName: string): Video[] {
+    const ids = this.getAgentVideoIds(agentSlugOrName);
+    if (ids.length === 0) return [];
+    return this.getVideosByIds(ids);
   }
 
   /**
@@ -178,6 +249,13 @@ class VideoService {
     } else {
       return `${remainingSeconds}s`;
     }
+  }
+
+  private normalizeIdentifier(value: string): string {
+    return (value || '')
+      .toString()
+      .trim()
+      .toLowerCase();
   }
 }
 

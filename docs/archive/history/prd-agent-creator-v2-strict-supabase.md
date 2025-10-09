@@ -257,7 +257,7 @@ See rollback/rollback_v{X}_to_v{X-1}.sql
 **❌ REMOVE: File System Operations (`agent-service.ts:138-175`)**
 ```typescript
 // DELETE ENTIRELY: Direct filesystem writes
-const AGENTS_BASE_DIR = '/path/to/agents/demo';
+const AGENTS_BASE_DIR = '/path/to/agents/actual';
 await fs.mkdir(agentDir, { recursive: true });
 await fs.writeFile(yamlPath, yamlContent);
 await fs.writeFile(mdPath, mdContent);  
@@ -343,7 +343,7 @@ You are the Agent Creator - a specialized agent factory that CREATES ACTUAL WORK
 
 ### 6.1 Enhanced Agent Discovery Service
 
-**Current Discovery:** Only scans filesystem (`/src/agents/demo/`)  
+**Current Discovery:** Only scans filesystem (`/src/agents/actual/`)  
 **Required Change:** Hybrid discovery from both filesystem AND Supabase
 
 ```typescript

@@ -5,6 +5,7 @@ import { AgentRegistrationService } from './agent-registration/agent-registratio
 import { JsonRpcProtocolService } from './json-rpc-protocol/json-rpc-protocol.service';
 import { TaskLifecycleService } from './task-lifecycle/task-lifecycle.service';
 import { AgentMetadataService } from './agent-metadata/agent-metadata.service';
+import { ContextLoaderService } from './context-loader/context-loader.service';
 import { EvaluationWrapperService } from './evaluation-wrapper/evaluation-wrapper.service';
 import { HealthService } from './health/health.service';
 import { LoggingService } from './logging/logging.service';
@@ -25,6 +26,7 @@ import { LLMModule } from '../../../llms/llm.module';
     AgentRegistrationService,
     JsonRpcProtocolService,
     TaskLifecycleService,
+    ContextLoaderService,
     AgentMetadataService,
     EvaluationWrapperService,
     HealthService,
@@ -36,6 +38,7 @@ import { LLMModule } from '../../../llms/llm.module';
     AgentRegistrationService,
     JsonRpcProtocolService,
     TaskLifecycleService,
+    ContextLoaderService,
     AgentMetadataService,
     EvaluationWrapperService,
     HealthService,

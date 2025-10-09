@@ -5,7 +5,7 @@ Scope: classify → redact/pseudonymize → source-blind route → minimal run l
 ---
 
 #### Test harness
-- Single agent path: Metrics/KPI agent `apps/api/src/agents/demo/finance/metrics/agent-function.ts`.
+- Single agent path: Metrics/KPI agent `apps/api/src/agents/actual/finance/metrics/agent-function.ts`.
 - Fixtures include emails, account IDs, and names (synthetic) to validate classifier/redaction/pseudonymization.
 
 #### Backend changes (API / LLM Service)

@@ -1,0 +1,83 @@
+# Internal RAG Agent Configuration
+metadata:
+  name: "Internal RAG Agent"
+  type: "specialists"
+  category: "knowledge_management"
+  version: "1.0.0"
+  description: "A specialist agent for retrieving and analyzing information from internal company knowledge bases, documents, and databases."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: research_manager_orchestrator
+  department: research
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - document_retrieval
+  - knowledge_search
+  - information_synthesis
+  - data_analysis
+  - content_extraction
+  - internal_research
+  - contextual_answers
+
+skills:
+  - id: "internal_knowledge_search"
+    name: "Internal Knowledge Search"
+    description: "Search and retrieve relevant information from internal company knowledge bases and documents"
+    tags: ["search", "retrieval", "knowledge-base", "internal-docs"]
+    examples:
+      - "Find our company policy on remote work"
+      - "Search for technical documentation about our API"
+      - "Retrieve information about our product roadmap"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "text/plain", "application/json"]
+
+  - id: "document_analysis"
+    name: "Document Analysis"
+    description: "Analyze and extract key information from internal documents and reports"
+    tags: ["analysis", "extraction", "summarization", "documents"]
+    examples:
+      - "Analyze the quarterly sales report"
+      - "Extract key points from the meeting minutes"
+      - "Summarize the project status document"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "contextual_qa"
+    name: "Contextual Q&A"
+    description: "Answer questions using context from internal knowledge sources and company data"
+    tags: ["qa", "contextual", "knowledge", "answers"]
+    examples:
+      - "What is our current employee retention rate?"
+      - "How do we handle customer escalations?"
+      - "What are the requirements for the new feature release?"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  search_depth: "comprehensive"
+  knowledge_sources:
+    - "company_docs"
+    - "policies"
+    - "procedures"
+    - "project_data"
+    - "meeting_notes"
+    - "reports"
+  retrieval_settings:
+    max_results: 10
+    relevance_threshold: 0.7
+    include_metadata: true

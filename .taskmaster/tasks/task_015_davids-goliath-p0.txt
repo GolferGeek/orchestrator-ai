@@ -1,0 +1,254 @@
+# Task ID: 15
+# Title: Optimize Local Model Production Configuration
+# Status: pending
+# Dependencies: 11, 14
+# Priority: medium
+# Description: Optimize model loading and memory management, implement production monitoring and alerting, and create operational runbooks.
+# Details:
+1. Optimize model loading and memory management:
+   - Implement efficient model caching
+   - Optimize GPU/CPU resource allocation
+   - Handle memory pressure
+
+```typescript
+// apps/api/src/llms/memory-manager.service.ts
+import { Injectable } from '@nestjs/common';
+import { LocalModelStatusService } from './local-model-status.service';
+
+interface ModelInfo {
+  size: number;
+  lastUsed: number;
+}
+
+@Injectable()
+export class MemoryManagerService {
+  private maxMemoryUsage: number; // In bytes
+  private currentMemoryUsage: number = 0;
+  private loadedModels: Map<string, ModelInfo> = new Map();
+  
+  constructor(
+    private localModelService: LocalModelStatusService,
+    private databaseService: any // Inject your database service
+  ) {
+    this.maxMemoryUsage = (process.env.MAX_MODEL_MEMORY_GB || 24) * 1024 * 1024 * 1024;
+  }
+  
+  async loadModel(modelName: string, modelSize: number): Promise<boolean> {
+    // Check if we have enough memory
+    if (this.currentMemoryUsage + modelSize > this.maxMemoryUsage) {
+      // Need to free up memory
+      const freed = await this.freeUpMemory(modelSize);
+      if (!freed) {
+        return false; // Couldn't free enough memory
+      }
+    }
+    
+    // Load the model
+    try {
+      await this.localModelService.ensureModelLoaded(modelName);
+      
+      // Update memory tracking
+      this.loadedModels.set(modelName, {
+        size: modelSize,
+        lastUsed: Date.now()
+      });
+      this.currentMemoryUsage += modelSize;
+      
+      // Update database
+      await this.databaseService.query(`
+        UPDATE llm_models
+        SET is_currently_loaded = TRUE
+        WHERE name = $1
+      `, [modelName]);
+      
+      return true;
+    } catch (error) {
+      console.error(`Failed to load model ${modelName}:`, error);
+      return false;
+    }
+  }
+  
+  async modelUsed(modelName: string): Promise<void> {
+    const model = this.loadedModels.get(modelName);
+    if (model) {
+      model.lastUsed = Date.now();
+      this.loadedModels.set(modelName, model);
+    }
+  }
+  
+  private async freeUpMemory(requiredSize: number): Promise<boolean> {
+    // Sort models by last used time (oldest first)
+    const sortedModels = [...this.loadedModels.entries()]
+      .sort((a, b) => a[1].lastUsed - b[1].lastUsed);
+    
+    let freedMemory = 0;
+    
+    for (const [modelName, info] of sortedModels) {
+      // Skip three-tier models if possible
+      if (await this.isThreeTierModel(modelName) && this.hasOtherUnloadableModels()) {
+        continue;
+      }
+      
+      // Unload this model
+      try {
+        // Call Ollama to unload
+        // This is a placeholder as Ollama doesn't have a direct unload API
+        // In practice, we might need to restart Ollama or use a different approach
+        
+        freedMemory += info.size;
+        this.currentMemoryUsage -= info.size;
+        this.loadedModels.delete(modelName);
+        
+        // Update database
+        await this.databaseService.query(`
+          UPDATE llm_models
+          SET is_currently_loaded = FALSE
+          WHERE name = $1
+        `, [modelName]);
+        
+        if (freedMemory >= requiredSize) {
+          return true;
+        }
+      } catch (error) {
+        console.error(`Failed to unload model ${modelName}:`, error);
+      }
+    }
+    
+    return freedMemory >= requiredSize;
+  }
+  
+  private async isThreeTierModel(modelName: string): Promise<boolean> {
+    // Check if model is part of the three-tier system
+    const result = await this.databaseService.query(`
+      SELECT model_tier FROM llm_models
+      WHERE name = $1 AND model_tier IS NOT NULL
+    `, [modelName]);
+    
+    return result.length > 0;
+  }
+  
+  private hasOtherUnloadableModels(): boolean {
+    // Check if we have non-three-tier models that can be unloaded
+    for (const [modelName, _] of this.loadedModels) {
+      if (!this.isThreeTierModel(modelName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+```
+
+2. Production monitoring and alerting:
+   - Model health monitoring
+   - Performance degradation alerts
+   - Resource usage tracking
+
+```typescript
+// apps/api/src/llms/model-monitor.service.ts
+import { Injectable } from '@nestjs/common';
+import { LocalModelStatusService } from './local-model-status.service';
+
+@Injectable()
+export class ModelMonitorService {
+  private healthCheckInterval: NodeJS.Timeout;
+  private alertThresholds = {
+    responseTime: 5000, // 5 seconds
+    errorRate: 0.05, // 5%
+    memoryUsage: 0.9 // 90% of allocated memory
+  };
+  
+  constructor(
+    private localModelService: LocalModelStatusService,
+    private databaseService: any, // Inject your database service
+    private alertService: any // Inject your alert service
+  ) {
+    // Start health checks
+    this.healthCheckInterval = setInterval(
+      this.runHealthChecks.bind(this),
+      60000 // Every minute
+    );
+  }
+  
+  async runHealthChecks() {
+    try {
+      // Check all three tiers
+      await this.checkTier('fast-thinking');
+      await this.checkTier('ultra-fast');
+      await this.checkTier('general');
+      
+      // Check overall system health
+      await this.checkSystemResources();
+    } catch (error) {
+      console.error('Health check failed:', error);
+      this.alertService.sendAlert('monitoring-error', {
+        message: 'Model health check failed',
+        error: error.message
+      });
+    }
+  }
+  
+  private async checkTier(tier: string) {
+    const models = await this.databaseService.query(`
+      SELECT * FROM llm_models
+      WHERE is_local = TRUE AND model_tier = $1
+    `, [tier]);
+    
+    for (const model of models) {
+      const health = await this.localModelService.checkModelHealth(model.name);
+      
+      // Check for issues
+      if (!health.available) {
+        this.alertService.sendAlert('model-unavailable', {
+          model: model.name,
+          tier,
+          error: health.error
+        });
+      } else if (health.responseTime > this.alertThresholds.responseTime) {
+        this.alertService.sendAlert('slow-response', {
+          model: model.name,
+          tier,
+          responseTime: health.responseTime
+        });
+      }
+    }
+  }
+  
+  private async checkSystemResources() {
+    // Get system resource usage
+    const resources = await this.getSystemResourceUsage();
+    
+    if (resources.memoryUsage > this.alertThresholds.memoryUsage) {
+      this.alertService.sendAlert('high-memory-usage', {
+        usage: resources.memoryUsage,
+        threshold: this.alertThresholds.memoryUsage
+      });
+    }
+    
+    // Check other resources...
+  }
+  
+  private async getSystemResourceUsage() {
+    // Implementation to get system resource usage
+    // This could use OS-level metrics or container metrics
+    return {
+      memoryUsage: 0.5, // Example value
+      cpuUsage: 0.3 // Example value
+    };
+  }
+}
+```
+
+3. Create operational runbooks:
+   - Model restart procedures
+   - Troubleshooting guides
+   - Performance tuning guidelines
+
+# Test Strategy:
+1. Test memory management under various load conditions
+2. Verify model caching efficiency with different usage patterns
+3. Test resource allocation optimization for CPU and GPU
+4. Validate monitoring alerts trigger correctly for different conditions
+5. Test model restart procedures for effectiveness
+6. Verify troubleshooting guides with simulated failure scenarios
+7. Test performance tuning guidelines for actual improvement

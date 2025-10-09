@@ -1,0 +1,95 @@
+# Leads Agent Configuration
+metadata:
+  name: "Leads Agent"
+  type: "specialists"
+  category: "sales_management"
+  version: "1.0.0"
+  description: "A specialist agent for managing, qualifying, and nurturing sales leads through the customer acquisition pipeline."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: sales_manager_orchestrator
+  department: sales
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - lead_qualification
+  - lead_scoring
+  - pipeline_management
+  - lead_nurturing
+  - crm_integration
+  - follow_up_automation
+  - conversion_tracking
+  - lead_analytics
+
+skills:
+  - id: "lead_qualification"
+    name: "Lead Qualification"
+    description: "Assess and qualify leads based on BANT criteria and company standards"
+    tags: ["qualification", "bant", "scoring", "assessment"]
+    examples:
+      - "Qualify inbound leads from website forms"
+      - "Score leads based on engagement metrics"
+      - "Assess lead fit for enterprise solutions"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "pipeline_management"
+    name: "Pipeline Management"
+    description: "Manage leads through sales pipeline stages and track progress"
+    tags: ["pipeline", "stages", "tracking", "management"]
+    examples:
+      - "Move qualified leads to next pipeline stage"
+      - "Track lead progress through sales funnel"
+      - "Identify bottlenecks in the pipeline"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "lead_nurturing"
+    name: "Lead Nurturing"
+    description: "Develop and execute lead nurturing campaigns and follow-up sequences"
+    tags: ["nurturing", "campaigns", "follow-up", "engagement"]
+    examples:
+      - "Create personalized nurturing sequences"
+      - "Schedule follow-up touchpoints"
+      - "Design educational content campaigns"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/plain"
+  - "text/markdown"
+  - "application/json"
+
+configuration:
+  default_output_format: "plain"
+  qualification_criteria:
+    - "budget_confirmed"
+    - "authority_identified"
+    - "need_established"
+    - "timeline_defined"
+  lead_sources:
+    - "website_forms"
+    - "social_media"
+    - "referrals"
+    - "trade_shows"
+    - "cold_outreach"
+  scoring_factors:
+    - "company_size"
+    - "industry_fit"
+    - "engagement_level"
+    - "buying_signals"
+  pipeline_stages:
+    - "new_lead"
+    - "qualified"
+    - "proposal"
+    - "negotiation"
+    - "closed_won"
+    - "closed_lost"

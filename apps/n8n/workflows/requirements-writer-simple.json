@@ -1,0 +1,75 @@
+{
+  "name": "Requirements Writer (Simple)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "requirements",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Requirements Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "instructions": "Analyze the requirements request and generate a comprehensive requirements document. Include: 1) Executive Summary, 2) Project Objectives & Scope, 3) Stakeholders & Personas, 4) Functional Requirements, 5) Non-Functional Requirements, 6) Technical Considerations, 7) Risks & Assumptions, 8) Implementation Plan, 9) Success Metrics. Write clearly and concisely for both business and technical audiences.",
+        "options": {}
+      },
+      "id": "generate-requirements",
+      "name": "Generate Requirements",
+      "type": "n8n-nodes-base.aiTransform",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"response\": $json.transformedData, \"metadata\": { \"agentName\": \"Requirements Writer (N8N)\", \"processingTime\": 1500, \"documentType\": \"general\", \"timestamp\": new Date().toISOString() } } }}",
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Requirements Webhook": {
+      "main": [
+        [
+          {
+            "node": "Generate Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Requirements": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+

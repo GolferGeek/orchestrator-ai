@@ -4,7 +4,7 @@
 Reorganize the codebase and runtime so that demo, customer-owned ("my-org"), and future SaaS agent collections coexist cleanly. The API loads all namespaces on boot, while the UI/API session context determines which namespace a user can access. Add frontend toggles and landing page scaffolds for demo vs. my-org, preserve current demo behavior, and lay the groundwork for a later SaaS offering without breaking existing flows.
 
 ## Problem
-- The current repository intermingles demo-only agents (`agents/demo`) with production intent, making it hard for customers to understand what is theirs versus ours.
+- The current repository intermingles demo-only agents (`agents/actual`) with production intent, making it hard for customers to understand what is theirs versus ours.
 - The web UI always serves the demo experience. There is no clear way to preview a customer’s own org structure or swap between demo assets and their forked instance.
 - Scaling to a hosted/SaaS tier will require tenant isolation, but the groundwork (namespaces, config, permissions) is not in place.
 
@@ -28,7 +28,7 @@ Reorganize the codebase and runtime so that demo, customer-owned ("my-org"), and
 ## Requirements
 
 ### Repository Restructure
-1. Rename `apps/api/src/agents/demo` → `apps/api/src/agents/demo`; update imports/tests to match.
+1. Rename `apps/api/src/agents/actual` → `apps/api/src/agents/demo`; update imports/tests to match.
 2. Create empty directories (with README placeholders) for `apps/api/src/agents/my-org` and `apps/api/src/agents/saas`.
 3. Under `agents/saas/`, support per-tenant subfolders (e.g., `agents/saas/ifm`) so each hosted customer keeps an isolated agent tree.
 4. Mirror the same structure on the frontend for static content (e.g., `apps/web/src/data/agents/demo`, `.../my-org`).
@@ -82,7 +82,7 @@ Reorganize the codebase and runtime so that demo, customer-owned ("my-org"), and
 ## Delivery Plan
 
 ### Phase 0 – Planning
-- Audit all references to `agents/demo` in API/frontend/tests.
+- Audit all references to `agents/actual` in API/frontend/tests.
 - Align on naming conventions for env vars and namespace identifiers.
 
 ### Phase 1 – Repo Restructure
@@ -124,6 +124,6 @@ Reorganize the codebase and runtime so that demo, customer-owned ("my-org"), and
 3. How do we package/open-source the repo so internal `my-org`/`saas` agents never leak into customer forks?
 
 ## Appendix
-- Current agent path: `apps/api/src/agents/demo` (to be renamed)
+- Current agent path: `apps/api/src/agents/actual` (to be renamed)
 - Frontend landing view: `apps/web/src/views/LandingPage.vue`
 - Related services: `apps/api/src/agent-factory.service.ts`, `ContextLoaderService`

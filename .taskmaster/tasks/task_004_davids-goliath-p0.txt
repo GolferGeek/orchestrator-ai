@@ -1,0 +1,124 @@
+# Task ID: 4
+# Title: Implement RunMetadataService
+# Status: done
+# Dependencies: 1
+# Priority: medium
+# Description: Create a RunMetadataService at apps/api/src/llms/run-metadata.service.ts that implements unique runId generation (UUID v4) and metadata collection with timing and cost estimation.
+# Details:
+1. Implement RunMetadataService at apps/api/src/llms/run-metadata.service.ts
+2. Create unique runId generation using UUID v4
+3. Add basic timing and cost estimation functionality
+4. Implement correlation logging with runId
+5. Update response format to include metadata
+
+```typescript
+// apps/api/src/llms/run-metadata.service.ts
+import { Injectable } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface RunMetadata {
+  runId: string;
+  provider: string;
+  model: string;
+  tier: 'local' | 'centralized' | 'external';
+  cost: number;
+  duration: number;
+  timestamp: string;
+}
+
+export interface RequestContext {
+  runId: string;
+  startTime: number;
+  provider: string;
+  model: string;
+  tier: 'local' | 'centralized' | 'external';
+}
+
+@Injectable()
+export class RunMetadataService {
+  generateRunId(): string {
+    return uuidv4();
+  }
+  
+  startRequest(routingDecision: any): RequestContext {
+    const runId = this.generateRunId();
+    const startTime = Date.now();
+    
+    return {
+      runId,
+      startTime,
+      provider: routingDecision.provider,
+      model: routingDecision.model,
+      tier: this.determineTier(routingDecision)
+    };
+  }
+  
+  completeRequest(context: RequestContext, response: any): RunMetadata {
+    const duration = Date.now() - context.startTime;
+    const cost = this.estimateCost(context.provider, context.model, duration);
+    
+    return {
+      runId: context.runId,
+      provider: context.provider,
+      model: context.model,
+      tier: context.tier,
+      duration,
+      cost,
+      timestamp: new Date().toISOString()
+    };
+  }
+  
+  completeRequestWithError(context: RequestContext, error: any): RunMetadata {
+    const duration = Date.now() - context.startTime;
+    
+    return {
+      runId: context.runId,
+      provider: context.provider,
+      model: context.model,
+      tier: context.tier,
+      duration,
+      cost: 0, // No cost for failed requests
+      timestamp: new Date().toISOString()
+    };
+  }
+  
+  private determineTier(routingDecision: any): 'local' | 'centralized' | 'external' {
+    if (routingDecision.isLocal) {
+      return 'local';
+    } else if (routingDecision.provider === 'internal') {
+      return 'centralized';
+    } else {
+      return 'external';
+    }
+  }
+  
+  private estimateCost(provider: string, model: string, durationMs: number): number {
+    // Implement cost estimation logic based on provider and model
+    // Return approximate cost in USD
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        if (model.includes('gpt-4')) {
+          return (durationMs / 1000) * 0.03; // Simplified cost estimate
+        } else {
+          return (durationMs / 1000) * 0.002;
+        }
+      case 'anthropic':
+        return (durationMs / 1000) * 0.025;
+      case 'ollama':
+      case 'local':
+        return 0.0001; // Nominal cost for tracking
+      default:
+        return 0.01; // Default cost
+    }
+  }
+}
+```
+
+# Test Strategy:
+1. Test runId generation for uniqueness and proper UUID v4 format
+2. Verify metadata collection captures all required fields
+3. Test timing accuracy for latency measurements
+4. Validate cost estimation for different providers and models
+5. Test correlation logging to ensure runId is included in all log entries
+6. Verify response format includes all required metadata fields
+7. Test edge cases like errors during processing

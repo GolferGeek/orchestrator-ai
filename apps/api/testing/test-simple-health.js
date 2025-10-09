@@ -6,8 +6,8 @@ async function testHealth() {
   try {
     console.log('🔐 Testing login...');
     const loginResponse = await axios.post(`${API_BASE}/auth/login`, {
-      email: 'demo.user@orchestratorai.io',
-      password: 'DemoUser123!'
+      email: 'demo.user@playground.com',
+      password: 'demouser'
     });
     
     console.log('✅ Login successful');

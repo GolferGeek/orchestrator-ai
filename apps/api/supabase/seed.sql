@@ -17,47 +17,13 @@ INSERT INTO auth.users (
     email_change,
     email_change_token_new,
     recovery_token
-) VALUES 
--- Demo User
-(
+) VALUES (
     '00000000-0000-0000-0000-000000000000',
     'b29a590e-b07f-49df-a25b-574c956b5035',
     'authenticated',
     'authenticated',
-    'demo.user@orchestratorai.io',
-    extensions.crypt('DemoUser123!', extensions.gen_salt('bf')),
-    NOW(),
-    NOW(),
-    NOW(),
-    '',
-    '',
-    '',
-    ''
-),
--- Admin User
-(
-    '00000000-0000-0000-0000-000000000000',
-    'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    'authenticated',
-    'authenticated',
-    'admin@orchestratorai.io',
-    extensions.crypt('Admin123!', extensions.gen_salt('bf')),
-    NOW(),
-    NOW(),
-    NOW(),
-    '',
-    '',
-    '',
-    ''
-),
--- GolferGeek User
-(
-    '00000000-0000-0000-0000-000000000000',
-    'c4d5e6f7-8901-2345-6789-abcdef012345',
-    'authenticated',
-    'authenticated',
-    'golfergeek@orchestratorai.io',
-    extensions.crypt('GolferGeek123!', extensions.gen_salt('bf')),
+    'demo.user@playground.com',
+    extensions.crypt('demouser', extensions.gen_salt('bf')),
     NOW(),
     NOW(),
     NOW(),
@@ -67,7 +33,7 @@ INSERT INTO auth.users (
     ''
 ) ON CONFLICT (id) DO NOTHING;
 
--- Create corresponding identity records
+-- Create corresponding identity record
 INSERT INTO auth.identities (
     id,
     user_id,
@@ -77,62 +43,29 @@ INSERT INTO auth.identities (
     last_sign_in_at,
     created_at,
     updated_at
-) VALUES 
--- Demo User Identity
-(
+) VALUES (
     '2f1ee5e9-cae2-4f66-a1e0-bd2c02a11321',
     'b29a590e-b07f-49df-a25b-574c956b5035',
-    '{"sub": "b29a590e-b07f-49df-a25b-574c956b5035", "email": "demo.user@orchestratorai.io", "email_verified": true, "phone_verified": false}'::jsonb,
+    '{"sub": "b29a590e-b07f-49df-a25b-574c956b5035", "email": "demo.user@playground.com", "email_verified": true, "phone_verified": false}'::jsonb,
     'email',
     'b29a590e-b07f-49df-a25b-574c956b5035',
-    NOW(),
-    NOW(),
-    NOW()
-),
--- Admin User Identity
-(
-    '3f2ee5e9-cae2-4f66-a1e0-bd2c02a11322',
-    'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    '{"sub": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "email": "admin@orchestratorai.io", "email_verified": true, "phone_verified": false}'::jsonb,
-    'email',
-    'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    NOW(),
-    NOW(),
-    NOW()
-),
--- GolferGeek User Identity
-(
-    '4f3ee5e9-cae2-4f66-a1e0-bd2c02a11323',
-    'c4d5e6f7-8901-2345-6789-abcdef012345',
-    '{"sub": "c4d5e6f7-8901-2345-6789-abcdef012345", "email": "golfergeek@orchestratorai.io", "email_verified": true, "phone_verified": false}'::jsonb,
-    'email',
-    'c4d5e6f7-8901-2345-6789-abcdef012345',
     NOW(),
     NOW(),
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
 
--- Create users in public.users table with namespace access
-INSERT INTO public.users (id, email, display_name, roles, namespace_access)
-VALUES 
--- Demo User - access to "demo" namespace only
-('b29a590e-b07f-49df-a25b-574c956b5035', 'demo.user@orchestratorai.io', 'Demo User', '["user"]'::jsonb, '["demo"]'::jsonb),
--- Admin User - access to both "demo" and "my-org" namespaces
-('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'admin@orchestratorai.io', 'Admin User', '["user", "admin"]'::jsonb, '["demo", "my-org"]'::jsonb),
--- GolferGeek User - access to "my-org" namespace only
-('c4d5e6f7-8901-2345-6789-abcdef012345', 'golfergeek@orchestratorai.io', 'GolferGeek', '["user", "admin"]'::jsonb, '["my-org"]'::jsonb)
+-- Create the demo user in public.users table
+INSERT INTO public.users (id, email, display_name, roles)
+VALUES ('b29a590e-b07f-49df-a25b-574c956b5035', 'demo.user@playground.com', 'Demo User', '["user", "admin"]'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     display_name = EXCLUDED.display_name,
-    roles = EXCLUDED.roles,
-    namespace_access = EXCLUDED.namespace_access;
+    roles = EXCLUDED.roles;
 
 -- Verify the setup and create sample data
 DO $$
 DECLARE
     demo_user_id UUID := 'b29a590e-b07f-49df-a25b-574c956b5035';
-    admin_user_id UUID := 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-    golfergeek_user_id UUID := 'c4d5e6f7-8901-2345-6789-abcdef012345';
     conv_id UUID;
     deliverable_id UUID;
     task_id UUID;
@@ -141,19 +74,12 @@ DECLARE
     j INTEGER;
     d INTEGER;
 BEGIN
-    -- Verify all users exist
-    IF EXISTS (SELECT 1 FROM auth.users WHERE email = 'demo.user@orchestratorai.io') AND
-       EXISTS (SELECT 1 FROM public.users WHERE email = 'demo.user@orchestratorai.io') AND
-       EXISTS (SELECT 1 FROM auth.users WHERE email = 'admin@orchestratorai.io') AND
-       EXISTS (SELECT 1 FROM public.users WHERE email = 'admin@orchestratorai.io') AND
-       EXISTS (SELECT 1 FROM auth.users WHERE email = 'golfergeek@orchestratorai.io') AND
-       EXISTS (SELECT 1 FROM public.users WHERE email = 'golfergeek@orchestratorai.io') THEN
-        RAISE NOTICE 'All users successfully created in both auth.users and public.users:';
-        RAISE NOTICE '  - demo.user@orchestratorai.io (namespace: demo)';
-        RAISE NOTICE '  - admin@orchestratorai.io (namespaces: demo, my-org)';
-        RAISE NOTICE '  - golfergeek@orchestratorai.io (namespace: my-org)';
+    -- Verify demo user exists
+    IF EXISTS (SELECT 1 FROM auth.users WHERE email = 'demo.user@playground.com') AND
+       EXISTS (SELECT 1 FROM public.users WHERE email = 'demo.user@playground.com') THEN
+        RAISE NOTICE 'Demo user successfully created in both auth.users and public.users';
     ELSE
-        RAISE WARNING 'User creation may have failed - check both auth.users and public.users tables';
+        RAISE WARNING 'Demo user creation may have failed - check both tables';
         RETURN;
     END IF;
 

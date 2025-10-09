@@ -1,0 +1,92 @@
+# Onboarding Agent Configuration
+metadata:
+  name: "Onboarding Agent"
+  type: "specialists"
+  category: "human_resources"
+  version: "1.0.0"
+  description: "Your dedicated new hire onboarding specialist! I guide employees through their entire onboarding journey - from pre-boarding preparation to 90-day integration. I provide personalized onboarding checklists, coordinate training schedules, facilitate team introductions, ensure system access setup, and track progress milestones to guarantee every new hire feels welcomed, prepared, and productive from day one."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: hr_manager_orchestrator  
+  department: hr
+
+type: "context"
+
+capabilities:
+  - employee_onboarding
+  - training_coordination
+  - documentation_guidance
+  - system_access_setup
+  - cultural_integration
+  - progress_tracking
+  - feedback_collection
+  - compliance_verification
+
+skills:
+  - id: "onboarding_coordination"
+    name: "Onboarding Coordination"
+    description: "Coordinate comprehensive onboarding experience for new hires across all stages"
+    tags: ["onboarding", "coordination", "new-hire", "process"]
+    examples:
+      - "Guide new employee through first week"
+      - "Coordinate department introductions"
+      - "Schedule required training sessions"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "onboarding_checklist_creation"
+    name: "Onboarding Checklist Creation"
+    description: "Generate personalized onboarding checklists based on role, department, and individual needs"
+    tags: ["checklist", "personalization", "planning", "organization"]
+    examples:
+      - "Create onboarding checklist for software developer"
+      - "Generate first-day checklist for remote employee"
+      - "Build 90-day integration plan for manager role"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "training_scheduling"
+    name: "Training & Development Scheduling"
+    description: "Coordinate and schedule required training sessions, certifications, and skill development programs"
+    tags: ["training", "scheduling", "development", "compliance"]
+    examples:
+      - "Schedule mandatory compliance training for new hire"
+      - "Coordinate department-specific skill training"
+      - "Plan leadership development program for manager"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  execution_modes: ["immediate"]
+  onboarding_stages:
+    - "pre_boarding"
+    - "first_day"
+    - "first_week"
+    - "first_month"
+    - "90_day_review"
+  role_types:
+    - "individual_contributor"
+    - "team_lead"
+    - "manager"
+    - "executive"
+    - "remote_employee"
+    - "intern"
+  department_integrations:
+    - "engineering"
+    - "marketing"
+    - "sales"
+    - "finance"
+    - "operations"
+    - "hr"

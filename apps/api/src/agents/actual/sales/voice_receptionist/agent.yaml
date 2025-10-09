@@ -1,0 +1,90 @@
+# Voice Receptionist Agent Configuration
+metadata:
+  name: "Voice Receptionist Agent"
+  type: "specialists"
+  category: "communication"
+  version: "1.0.0"
+  description: "A specialist agent for handling incoming voice calls with professional greeting, call routing, and message taking capabilities."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: sales_manager_orchestrator
+  department: sales
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - call_greeting
+  - call_routing
+  - message_taking
+  - appointment_scheduling
+  - caller_identification
+  - hold_management
+  - transfer_assistance
+  - emergency_handling
+
+skills:
+  - id: "call_greeting"
+    name: "Professional Call Greeting"
+    description: "Provide professional and warm greetings for incoming calls"
+    tags: ["greeting", "professional", "first-impression", "voice"]
+    examples:
+      - "Answer incoming calls with company greeting"
+      - "Provide personalized welcome for returning customers"
+      - "Handle after-hours call greetings"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "call_routing"
+    name: "Intelligent Call Routing"
+    description: "Route calls to appropriate departments or personnel based on caller needs"
+    tags: ["routing", "transfer", "departments", "efficiency"]
+    examples:
+      - "Route sales inquiries to sales team"
+      - "Transfer technical support calls to IT department"
+      - "Direct billing questions to accounting"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "message_taking"
+    name: "Message Taking Service"
+    description: "Take detailed messages when personnel are unavailable"
+    tags: ["messages", "voicemail", "communication", "follow-up"]
+    examples:
+      - "Take detailed message for unavailable executive"
+      - "Record callback requests with priority levels"
+      - "Capture urgent messages for immediate delivery"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "plain"
+  greeting_personalization: true
+  hold_time_management: true
+  departments:
+    - "sales"
+    - "support"
+    - "billing"
+    - "technical"
+    - "management"
+    - "hr"
+  priority_levels:
+    - "urgent"
+    - "high"
+    - "normal"
+    - "low"
+  business_hours:
+    start: "08:00"
+    end: "18:00"
+    timezone: "local"
+  emergency_protocols: true

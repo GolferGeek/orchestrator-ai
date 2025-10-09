@@ -1,0 +1,104 @@
+# Task ID: 13
+# Title: Migrate Remaining Agents to Centralized Service
+# Status: pending
+# Dependencies: 9, 12
+# Priority: high
+# Description: Identify all agents with direct provider usage, create migration checklist, migrate agents in priority order, update documentation, and remove deprecated code.
+# Details:
+1. Identify all agents with direct provider usage:
+   - Scan codebase for direct imports of provider clients
+   - Create inventory of agents requiring migration
+   - Prioritize based on usage frequency and importance
+
+2. Create migration checklist and process:
+```markdown
+# Agent Migration Checklist
+
+## Pre-Migration
+- [ ] Identify all provider client imports
+- [ ] Document current functionality and expected behavior
+- [ ] Create unit tests to verify current behavior
+- [ ] Identify any custom provider configurations
+
+## Migration Steps
+- [ ] Replace provider imports with LLMService
+- [ ] Update constructor to use LLMService via dependency injection
+- [ ] Replace direct client calls with LLMService methods
+- [ ] Update any provider-specific options
+- [ ] Add appropriate data classification headers
+
+## Post-Migration Verification
+- [ ] Run unit tests to verify behavior matches pre-migration
+- [ ] Verify runId and metadata are generated
+- [ ] Check logs for proper correlation
+- [ ] Test with both local and external routing
+- [ ] Verify error handling works correctly
+```
+
+3. Migrate agents in priority order:
+   - High-usage agents first
+   - Test each agent with LLMService
+   - Validate functionality and performance
+
+4. Example migration pattern:
+```typescript
+// Before migration
+import { OpenAI } from 'openai';
+
+class SomeAgent {
+  private openai: OpenAI;
+  
+  constructor() {
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: 60000
+    });
+  }
+  
+  async processData(data: any) {
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: `Process this data: ${JSON.stringify(data)}` }
+      ],
+      temperature: 0.7
+    });
+    
+    return response.choices[0].message.content;
+  }
+}
+
+// After migration
+import { LLMService } from '../../llms/llm.service';
+
+class SomeAgent {
+  constructor(private llmService: LLMService) {}
+  
+  async processData(data: any) {
+    const result = await this.llmService.generateResponse(
+      `Process this data: ${JSON.stringify(data)}`,
+      {
+        systemPrompt: 'You are a helpful assistant.',
+        temperature: 0.7,
+        dataClass: 'public',
+        policyProfile: 'standard'
+      }
+    );
+    
+    return result.response;
+  }
+}
+```
+
+5. Update documentation and examples
+6. Remove deprecated provider client code
+
+# Test Strategy:
+1. Create automated tests to verify each agent's functionality before migration
+2. Test each agent after migration to ensure identical behavior
+3. Verify all direct provider client usage is removed
+4. Test with both local and external routing scenarios
+5. Validate metadata generation and runId correlation
+6. Test error handling and fallback behavior
+7. Measure performance before and after migration to ensure no degradation

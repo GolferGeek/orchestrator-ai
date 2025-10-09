@@ -78,15 +78,6 @@ export class AuthenticatedUserResponseDto {
   @IsEnum(UserRole, { each: true })
   @IsOptional()
   roles?: UserRole[];
-
-  @ApiPropertyOptional({
-    example: ['demo', 'my-org'],
-    description: 'List of agent namespaces the user can access',
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  namespaceAccess?: string[];
 }
 
 export class SupabaseAuthUserDto {
@@ -168,14 +159,6 @@ export class UserProfileDto {
 
   @ApiProperty()
   updatedAt!: Date;
-
-  @ApiProperty({
-    example: ['my-org'],
-    description: 'List of agent namespaces the user can access',
-  })
-  @IsArray()
-  @IsString({ each: true })
-  namespaceAccess!: string[];
 }
 
 export class AssignRoleDto {

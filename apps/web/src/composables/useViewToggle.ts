@@ -1,10 +1,10 @@
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-export type ViewMode = 'marketing' | 'technical';
+export type ViewMode = 'landing' | 'technical';
 
 const VIEW_MODE_KEY = 'demoViewMode';
-const DEFAULT_VIEW_MODE: ViewMode = 'marketing';
+const DEFAULT_VIEW_MODE: ViewMode = 'landing';
 
 // Global state for the view mode
 const viewMode = ref<ViewMode>(DEFAULT_VIEW_MODE);
@@ -22,7 +22,7 @@ export function useViewToggle() {
   const initializeViewMode = () => {
     // Check URL params first
     const urlViewMode = route.query.view as ViewMode;
-    if (urlViewMode && ['marketing', 'technical'].includes(urlViewMode)) {
+    if (urlViewMode && ['landing', 'technical'].includes(urlViewMode)) {
       viewMode.value = urlViewMode;
       localStorage.setItem(VIEW_MODE_KEY, urlViewMode);
       return;
@@ -30,7 +30,7 @@ export function useViewToggle() {
 
     // Fall back to localStorage
     const storedViewMode = localStorage.getItem(VIEW_MODE_KEY) as ViewMode;
-    if (storedViewMode && ['marketing', 'technical'].includes(storedViewMode)) {
+    if (storedViewMode && ['landing', 'technical'].includes(storedViewMode)) {
       viewMode.value = storedViewMode;
     } else {
       viewMode.value = DEFAULT_VIEW_MODE;
@@ -38,9 +38,9 @@ export function useViewToggle() {
     }
   };
 
-  // Toggle between marketing and technical views
+  // Toggle between landing and technical views
   const toggleView = () => {
-    const newViewMode: ViewMode = viewMode.value === 'marketing' ? 'technical' : 'marketing';
+    const newViewMode: ViewMode = viewMode.value === 'landing' ? 'technical' : 'landing';
     setViewMode(newViewMode);
   };
 
@@ -55,14 +55,14 @@ export function useViewToggle() {
   };
 
   // Computed properties
-  const isMarketingView = computed(() => viewMode.value === 'marketing');
+  const isMarketingView = computed(() => viewMode.value === 'landing');
   const isTechnicalView = computed(() => viewMode.value === 'technical');
 
   // Watch for URL changes to sync state
   watch(
     () => route.query.view,
     (newView) => {
-      if (newView && ['marketing', 'technical'].includes(newView as string)) {
+      if (newView && ['landing', 'technical'].includes(newView as string)) {
         const newViewMode = newView as ViewMode;
         if (viewMode.value !== newViewMode) {
           viewMode.value = newViewMode;

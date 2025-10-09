@@ -1,0 +1,70 @@
+# Task ID: 9
+# Title: Migrate Metrics/KPI Agent to Centralized Service
+# Status: done
+# Dependencies: 1, 5, 6, 7
+# Priority: high
+# Description: Update Metrics/KPI agent to use the enhanced LLMService, replace direct provider clients, and test functionality with the centralized service.
+# Details:
+1. Update Metrics/KPI agent located at `apps/api/src/agents/actual/finance/metrics/`
+2. Replace direct provider clients with enhanced LLMService
+3. Update import statements and remove provider dependencies
+
+```typescript
+// Before migration
+import { OpenAI } from 'openai';
+
+class MetricsAgent {
+  private openai: OpenAI;
+  
+  constructor() {
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+  }
+  
+  async analyzeMetrics(data: any) {
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: 'You are a financial metrics analyst.' },
+        { role: 'user', content: `Analyze these metrics: ${JSON.stringify(data)}` }
+      ]
+    });
+    
+    return response.choices[0].message.content;
+  }
+}
+
+// After migration
+import { LLMService } from '../../../llms/llm.service';
+
+class MetricsAgent {
+  constructor(private llmService: LLMService) {}
+  
+  async analyzeMetrics(data: any) {
+    const result = await this.llmService.generateResponse(
+      `Analyze these metrics: ${JSON.stringify(data)}`,
+      {
+        systemPrompt: 'You are a financial metrics analyst.',
+        dataClass: 'financial', // Set appropriate data classification
+        policyProfile: 'standard'
+      }
+    );
+    
+    return result.response;
+  }
+}
+```
+
+4. Test agent functionality with centralized service
+5. Verify metadata collection and logging
+6. Validate three-tier routing with agent requests
+
+# Test Strategy:
+1. Test agent functionality before and after migration to ensure identical results
+2. Verify all direct provider client usage is removed
+3. Test that agent requests generate proper metadata
+4. Validate logging includes runId correlation
+5. Test three-tier routing works correctly with agent requests
+6. Verify error handling and fallback behavior
+7. Test performance impact of centralized routing

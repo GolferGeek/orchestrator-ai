@@ -1,7 +1,5 @@
 <template>
   <div class="enhanced-chat-input">
-    <!-- Speech Dev Mode Panel -->
-    <SpeechDevModePanel />
     <!-- LLM Preferences Panel (collapsible) -->
     <div v-if="showLLMPanel" class="llm-panel">
       <div class="panel-tabs">
@@ -69,7 +67,7 @@
         <div v-if="showCostEstimate && estimatedCost" class="cost-estimate">
           ~${{ estimatedCost }}
         </div>
-        <!-- Conversational Speech Button -->
+        <!-- Conversational Speech Button (moved to middle position) -->
         <ConversationalSpeechButton
           v-if="currentConversationId"
           :conversation-id="currentConversationId"
@@ -80,16 +78,6 @@
           @conversation-end="handleConversationEnd"
           @error="handleSpeechError"
         />
-        <!-- Toggle Speech Dev Mode -->
-        <ion-button
-          fill="clear"
-          color="medium"
-          @click="uiStore.toggleSpeechDevMode()"
-          class="custom-button-padding"
-          title="Toggle Speech Dev Mode"
-        >
-          <ion-icon slot="icon-only" :icon="settingsOutline"></ion-icon>
-        </ion-button>
         <!-- Mode-aware Send Button -->
         <ChatModeSendButton
           :disabled="!inputText.trim()"
@@ -102,7 +90,7 @@
 <script setup lang="ts">
 import { ref, computed, defineEmits, defineProps, onUnmounted, watch, onMounted } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
-import { chevronUpOutline, checkmarkOutline, settingsOutline } from 'ionicons/icons';
+import { chevronUpOutline, checkmarkOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
 import { useAgentChatStore } from '../stores/agentChatStore';
@@ -110,7 +98,6 @@ import { Capacitor } from '@capacitor/core';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
 import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
-import SpeechDevModePanel from './SpeechDevModePanel.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
 import { useValidation, ValidationRules } from '@/composables/useValidation';
 import type { AgentChatMode } from '@/stores/agentChatStore/types';
@@ -357,7 +344,7 @@ watch(() => uiStore.isConversationalMode, (isConversational) => {
 .input-buttons {
   display: flex;
   align-items: center;
-  gap: 0.5rem; /* Better spacing between touch targets */
+  gap: 0.25rem; /* Tighter spacing between remaining buttons */
 }
 .cost-estimate {
   font-size: 0.7rem;
@@ -380,7 +367,7 @@ watch(() => uiStore.isConversationalMode, (isConversational) => {
   }
   
   .input-buttons {
-    gap: 0.75rem; /* More spacing on mobile for easier tapping */
+    gap: 0.5rem; /* Adjusted spacing on mobile for remaining buttons */
   }
   
   .chat-input-toolbar {

@@ -1,0 +1,92 @@
+# Chat Support Agent Configuration
+metadata:
+  name: "Chat Support Agent"
+  type: "specialists"
+  category: "customer_service"
+  version: "1.0.0"
+  description: "Your dedicated Orchestrator AI customer support specialist! I provide real-time assistance with our AI agent platform, troubleshoot technical issues, guide users through agent creation and management, handle billing inquiries, and ensure exceptional customer experience. From onboarding new users to resolving complex integration challenges - I'm here to help you succeed with Orchestrator AI."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: sales_manager_orchestrator
+  department: sales
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - live_chat_support
+  - customer_assistance
+  - issue_resolution
+  - escalation_management
+  - knowledge_base_search
+  - ticket_creation
+  - customer_satisfaction_tracking
+
+skills:
+  - id: "live_chat_support"
+    name: "Live Chat Support"
+    description: "Provide real-time customer support through chat interactions for Orchestrator AI platform"
+    tags: ["chat", "support", "real-time", "customer-service"]
+    examples:
+      - "Help a customer with agent deployment issues"
+      - "Assist with Orchestrator AI platform navigation"
+      - "Provide guidance on agent configuration and setup"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "text/markdown"]
+
+  - id: "issue_resolution"
+    name: "Issue Resolution"
+    description: "Diagnose and resolve Orchestrator AI platform issues efficiently"
+    tags: ["troubleshooting", "resolution", "diagnosis", "problem-solving"]
+    examples:
+      - "Troubleshoot agent creation problems"
+      - "Resolve API integration issues"
+      - "Fix authentication and access problems"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "escalation_management"
+    name: "Escalation Management"
+    description: "Manage issue escalation and routing to appropriate specialists"
+    tags: ["escalation", "routing", "management", "specialists"]
+    examples:
+      - "Escalate complex technical issues to engineering"
+      - "Route billing disputes to finance team"
+      - "Transfer urgent issues to senior support"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/plain"
+  - "text/markdown"
+  - "application/json"
+
+configuration:
+  default_output_format: "plain"
+  execution_modes: ["immediate"]
+  execution_profile: "conversation_only"
+  execution_capabilities:
+    can_plan: false
+    can_build: false
+    requires_human_gate: false
+  response_time_target: "30_seconds"
+  escalation_triggers:
+    - "technical_complexity"
+    - "billing_dispute"
+    - "account_security"
+    - "urgent_priority"
+  knowledge_base_categories:
+    - "platform_setup"
+    - "agent_creation"
+    - "billing"
+    - "technical"
+    - "account_management"
+    - "api_integration"
+    - "troubleshooting"
+  satisfaction_tracking: true

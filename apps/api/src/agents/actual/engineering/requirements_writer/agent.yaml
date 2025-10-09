@@ -1,0 +1,93 @@
+# Requirements Writer Agent Configuration
+metadata:
+  name: "Requirements Writer"
+  type: "specialists"
+  category: "development"
+  version: "1.0.0"
+  description: "Transform your ideas into professional requirements documents! I create comprehensive PRDs, technical specs, user stories, and API documentation using advanced AI workflows. Perfect for product managers, developers, and business analysts who need clear, actionable requirements."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: engineering_manager_orchestrator
+  department: engineering
+
+# Agent Type: TypeScript function-based agent
+type: "function"
+
+capabilities:
+  - requirements_writing
+  - technical_documentation
+  - user_story_creation
+  - api_specification
+  - system_architecture
+  - document_generation
+  - complexity_analysis
+  - feature_extraction
+
+skills:
+  - id: "prd_generation"
+    name: "Product Requirements Document Generation"
+    description: "Create comprehensive PRDs with functional and non-functional requirements, user stories, and technical specifications"
+    tags: ["prd", "product-requirements", "documentation", "planning"]
+    examples:
+      - "Create a PRD for a user authentication system"
+      - "Generate product requirements for a blog posting platform"
+      - "Document requirements for an e-commerce checkout flow"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "trd_generation"
+    name: "Technical Requirements Document Generation"
+    description: "Generate detailed technical specifications including system architecture, database design, and API schemas"
+    tags: ["trd", "technical-requirements", "architecture", "api-design"]
+    examples:
+      - "Create technical requirements for a microservices architecture"
+      - "Generate database schema requirements for user management"
+      - "Document API specifications for a REST service"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "user_story_creation"
+    name: "User Story Creation"
+    description: "Transform features into detailed user stories with acceptance criteria and dependency mapping"
+    tags: ["user-stories", "agile", "acceptance-criteria", "planning"]
+    examples:
+      - "Convert feature list into user stories with acceptance criteria"
+      - "Create user stories for a mobile app registration flow"
+      - "Generate epic breakdown with user story dependencies"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "api_documentation"
+    name: "API Documentation Generation"
+    description: "Create comprehensive API documentation with endpoints, schemas, and integration examples"
+    tags: ["api", "documentation", "openapi", "swagger", "integration"]
+    examples:
+      - "Document REST API for blog management system"
+      - "Create API specification for user authentication endpoints"
+      - "Generate OpenAPI schema for e-commerce platform"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  complexity_assessment: true
+  feature_extraction: true
+  template_based_generation: true
+  execution_modes: ["immediate", "polling", "real-time"]
+  document_types:
+    - "prd"
+    - "trd"
+    - "api"
+    - "user_story"
+    - "architecture"
+  workflow_engine: "langgraph"

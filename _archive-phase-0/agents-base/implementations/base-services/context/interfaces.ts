@@ -53,6 +53,7 @@ export interface AgentContextContent {
     response: string;
   }>;
   knowledgeBase?: string;
+  videos?: string[]; // Array of video IDs from ## Videos section
   rawContent: string; // Full markdown content
 }
 

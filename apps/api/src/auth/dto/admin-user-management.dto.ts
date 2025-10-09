@@ -139,16 +139,6 @@ export class CreateUserDto {
   })
   @IsOptional()
   emailConfirm?: boolean;
-
-  @ApiProperty({
-    description: 'List of namespaces the user can access',
-    example: ['my-org'],
-    required: false,
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  namespaceAccess?: string[];
 }
 
 export class CreateUserResponseDto {
@@ -173,10 +163,4 @@ export class CreateUserResponseDto {
 
   @ApiProperty({ description: 'Success message' })
   message!: string;
-
-  @ApiProperty({
-    description: 'Namespaces granted to the user',
-    example: ['my-org'],
-  })
-  namespaceAccess!: string[];
 }

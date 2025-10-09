@@ -3,7 +3,7 @@
     <div class="header-content">
       <div class="logo">
         <h1>Orchestrator AI</h1>
-        <span class="tagline">Building Together</span>
+        <span class="tagline">AI for Small Business</span>
       </div>
       
       
@@ -49,7 +49,7 @@ const { currentNamespace } = storeToRefs(authStore);
 
 // Check if we're in the demo namespace
 const isDemoNamespace = computed(() => {
-  return currentNamespace.value === 'demo';
+  return (currentNamespace?.value || 'demo') === 'demo';
 });
 
 function navigateToApp() {
@@ -62,7 +62,7 @@ function navigateToApp() {
 </script>
 <style scoped>
 .landing-header {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;

@@ -203,7 +203,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       process.cwd(),
       'src',
       'agents',
-      'demo',
+      'actual',
       agentPath,
       'delegation.context.md',
     );

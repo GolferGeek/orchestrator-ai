@@ -9,8 +9,6 @@ dev-debug.log
 # Database dumps and temporary files
 data_dump.sql
 *.dump.sql
-*.backup
-_supabase/db_cluster-*.backup
 
 # Supabase CLI working directories
 /supabase/
@@ -53,35 +51,19 @@ apps/web/dist/
 # Environment variables
 .env
 
-# TaskMaster files - exclude from Git (personal task management)
-.taskmaster/
-.taskmaster/tasks/
-.taskmaster/reports/
-.taskmaster/state.json 
-
-# Private agent namespaces (keep internal agents out of public forks)
-apps/api/src/agents/my-org/*
-!apps/api/src/agents/my-org/README.md
-apps/api/src/agents/saas/*
-!apps/api/src/agents/saas/README.md
-
-# Private landing variants corresponding to internal namespaces
-apps/web/src/views/landing/my-org/*
-!apps/web/src/views/landing/my-org/README.md
-apps/web/src/views/landing/saas/*
-!apps/web/src/views/landing/saas/README.md
-apps/web/src/components/landing/my-org/*
-!apps/web/src/components/landing/my-org/README.md
-apps/web/src/components/landing/saas/*
-!apps/web/src/components/landing/saas/README.md
+# TaskMaster files - exclude from Git
+.taskmaster/ 
 
 # Task files
 # tasks.json
-# tasks/
+# tasks/ 
 
-# Large presentation files
-docs/keynote/*.key
-docs/*.key
+# Private agent namespaces (keep internal agents out of public forks)
+apps/api/src/agents/my-org/
+apps/api/src/agents/saas/
 
-# Large export files
-exports/clean-data/*.json 
+# Private landing variants corresponding to internal namespaces
+apps/web/src/views/landing/my-org/
+apps/web/src/views/landing/saas/
+apps/web/src/components/landing/my-org/
+apps/web/src/components/landing/saas/

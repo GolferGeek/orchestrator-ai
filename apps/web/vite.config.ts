@@ -42,9 +42,8 @@ function getHttpsConfig(env: Record<string, string>) {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Ensure all Vite-prefixed env vars come from the repo root .env files
-  const rootEnvDir = path.resolve(__dirname, '../../')
-  const env = loadEnv(mode, rootEnvDir, 'VITE_')
+  // Load env file from project root (two levels up from apps/web)
+  const env = loadEnv(mode, '../../', 'VITE_')
   
   // Debug: Log environment variables during build
   console.log('🔧 Vite Environment Variables:')
@@ -65,7 +64,6 @@ export default defineConfig(({ mode }) => {
   }
   
   return {
-    envDir: rootEnvDir,
     plugins: [
       vue(),
       legacy(),

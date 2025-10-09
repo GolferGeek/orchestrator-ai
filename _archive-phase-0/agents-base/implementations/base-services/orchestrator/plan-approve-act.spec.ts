@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { MarketingManagerOrchestratorService } from '../../../../demo/marketing/marketing_manager_orchestrator/agent-service';
+import { MarketingManagerOrchestratorService } from '../../../../actual/marketing/marketing_manager_orchestrator/agent-service';
 import { SupabaseModule } from '../../../../../supabase/supabase.module';
 import { LLMModule } from '../../../../../llms/llm.module';
 import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';

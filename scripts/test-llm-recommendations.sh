@@ -53,7 +53,7 @@ if [ "$ACCESS_TOKEN" = "null" ] || [ -z "$ACCESS_TOKEN" ]; then
     LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/auth/login" \
       -H "Content-Type: application/json" \
       -d '{
-        "email": "demo.user@orchestratorai.io",
+        "email": "demo.user@playground.com",
         "password": "demo123"
       }')
 
