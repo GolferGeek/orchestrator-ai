@@ -64,7 +64,7 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 
 - [x] Add SSE event interfaces under `apps/transport-types/streaming/sse-events.types.ts`
 - [x] Export new SSE types from `apps/transport-types/index.ts`
-- [ ] Bump workspace consumers and run `npm run build` (root) to validate
+- [x] Bump workspace consumers and run `npm run build` (root) to validate
 - [ ] Remove Socket.IO dependencies  
   - [ ] API: remove `@nestjs/websockets`, `socket.io` from `apps/api/package.json`  
   - [ ] Web: remove `socket.io-client` from `apps/web/package.json`
@@ -72,7 +72,8 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 - [ ] Ensure type generation / lint pipelines succeed post-removal
 
 **Notes:**  
--  |
+- _2025-02-10:_ Root `npm run build` succeeded (Turbo build for `apps/api` & `apps/web`) after introducing streaming types; no compile regressions detected.  
+- _2025-02-10:_ Socket.IO removal deferred until SSE endpoint + client wiring (Phase 2/3) are ready; removing now would break TaskProgressGateway and websocketService dependencies.  
 
 ---
 
