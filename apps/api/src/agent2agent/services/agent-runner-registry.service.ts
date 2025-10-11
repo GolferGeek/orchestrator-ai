@@ -1,6 +1,7 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { IAgentRunner } from '../interfaces/agent-runner.interface';
 import { ContextAgentRunnerService } from './context-agent-runner.service';
+import { ToolAgentRunnerService } from './tool-agent-runner.service';
 
 /**
  * Registry service for agent runners.
@@ -23,12 +24,15 @@ export class AgentRunnerRegistryService {
   constructor(
     @Inject(forwardRef(() => ContextAgentRunnerService))
     private readonly contextAgentRunner: ContextAgentRunnerService,
+    @Inject(forwardRef(() => ToolAgentRunnerService))
+    private readonly toolAgentRunner: ToolAgentRunnerService,
   ) {
     this.runners = new Map();
     this.logger.log('AgentRunnerRegistry initialized');
 
     // Register runners
     this.registerRunner('context', this.contextAgentRunner);
+    this.registerRunner('tool', this.toolAgentRunner);
   }
 
   /**

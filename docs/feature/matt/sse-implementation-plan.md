@@ -103,7 +103,7 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 
 ### 2.3 Testing & Verification
 
-- [ ] Test SSE endpoint manually (curl/Postman)
+- [ ] Test SSE endpoint manually (curl/Postman) *(or run Jest spec `apps/api/testing/test/sse-stream.e2e-spec.ts` with `SUPABASE_TEST_USER` / `SUPABASE_TEST_PASSWORD`)*
 - [ ] Validate webhook → in-memory → DB → SSE pipeline
 - [ ] Confirm polling endpoint still returns recent messages
 - [ ] Execute regression suite (`npm test`, targeted integration tests)

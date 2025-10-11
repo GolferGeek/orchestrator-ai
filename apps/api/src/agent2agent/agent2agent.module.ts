@@ -7,6 +7,7 @@ import { AgentExecutionGateway } from './services/agent-execution-gateway.servic
 import { AgentModeRouterService } from './services/agent-mode-router.service';
 import { AgentRunnerRegistryService } from './services/agent-runner-registry.service';
 import { ContextAgentRunnerService } from './services/context-agent-runner.service';
+import { ToolAgentRunnerService } from './services/tool-agent-runner.service';
 import { RoutingPolicyAdapterService } from './services/routing-policy-adapter.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { LLMModule } from '../llms/llm.module';
@@ -22,6 +23,7 @@ import { DeliverablesModule } from './deliverables/deliverables.module';
 import { PlansModule } from './plans/plans.module';
 import { ProjectsModule } from './projects/projects.module';
 import { ContextOptimizationModule } from './context-optimization/context-optimization.module';
+import { MCPModule } from '../mcp/mcp.module';
 
 @Module({
   imports: [
@@ -29,6 +31,7 @@ import { ContextOptimizationModule } from './context-optimization/context-optimi
     LLMModule,
     AuthModule,
     SupabaseModule,
+    MCPModule,
     // Agent2Agent Sub-modules
     AgentConversationsModule,
     TasksModule,
@@ -44,6 +47,7 @@ import { ContextOptimizationModule } from './context-optimization/context-optimi
     AgentModeRouterService,
     AgentRunnerRegistryService,
     ContextAgentRunnerService,
+    ToolAgentRunnerService,
     RoutingPolicyAdapterService,
     ApiKeyGuard,
     Agent2AgentDeliverablesService,
