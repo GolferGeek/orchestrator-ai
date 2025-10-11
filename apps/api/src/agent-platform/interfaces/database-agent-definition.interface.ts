@@ -68,46 +68,11 @@ export interface AgentTransportExternalDefinition {
   healthCheck?: Record<string, any> | null;
 }
 
-export interface AgentTransportContextDefinition {
-  sources: ('plans' | 'deliverables' | 'conversations' | 'projects')[];
-  systemPromptTemplate: string;
-  tokenBudget?: number;
-  optimization?: {
-    strategy?: 'relevance-scoring' | 'recency' | 'hybrid';
-  };
-}
-
-export interface AgentTransportToolDefinition {
-  tools: string[];
-  namespace?: string;
-  timeout?: number;
-  retries?: number;
-  mode?: 'sequential' | 'parallel';
-  argumentMapping?: {
-    llmParse?: boolean;
-    schema?: Record<string, any>;
-  };
-}
-
-export interface AgentTransportOrchestratorDefinition {
-  defaultGraph?: string;
-  availableAgents: string[];
-  executionMode: 'sequential' | 'graph' | 'adaptive';
-  maxDepth?: number;
-  humanGates?: {
-    enabled: boolean;
-    checkpoints?: string[];
-  };
-}
-
 export interface AgentTransportDefinition {
-  kind: 'context' | 'tool' | 'api' | 'external' | 'function' | 'orchestrator' | 'none';
-  context?: AgentTransportContextDefinition;
-  tool?: AgentTransportToolDefinition;
+  kind: 'api' | 'external' | 'function' | 'none';
   api?: AgentTransportApiDefinition;
   external?: AgentTransportExternalDefinition;
   function?: Record<string, any>;
-  orchestrator?: AgentTransportOrchestratorDefinition;
   raw?: Record<string, any> | null;
 }
 

@@ -94,12 +94,12 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 ### 2.2 Storage & Persistence Updates
 
 - [ ] Implement in-memory active task cache updates for live streams
-- [ ] Ensure TaskMessageService stores messages with TTL metadata
+- [x] Ensure TaskMessageService stores messages with TTL metadata
 - [x] Create migration adding `expires_at` to `task_messages` (file: `202502090001_task_messages_ttl.sql`)
 - [x] Create migrations for orchestrations persistence (`orchestration_steps`, `orchestration_checkpoints`) (file: `202502090002_orchestration_persistence.sql`)
 - [ ] Run new migrations in staging / dev environments
-- [ ] Update task message creation flow to set default expiry (1 hour, adjustable)
-- [ ] Add cron/worker job to prune expired `task_messages`
+- [x] Update task message creation flow to set default expiry (1 hour, adjustable)
+- [x] Add cron/worker job to prune expired `task_messages`
 
 ### 2.3 Testing & Verification
 
@@ -108,12 +108,16 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 - [ ] Confirm polling endpoint still returns recent messages
 - [ ] Execute regression suite (`npm test`, targeted integration tests)
 - [ ] Force stream token expiration to verify reconnect flow obtains fresh token
+- [ ] Document manual verification steps (token issuance curl, SSE stream check, log sanitization)
 
 **Notes:**  
 - _2025-02-09:_ Migrations created; awaiting execution and review.  
 - Pending decision on configurable TTL (ENV vs. constant).
 - _2025-02-09:_ `202502090001_task_messages_ttl.sql` now seeds schema to match `TaskMessageService` (content/message_type/progress_percentage) and sets default expiry.
 - _2025-02-10:_ SSE streaming endpoint + stream-token guard flow implemented; keep-alive pings enabled and logging sanitizes query tokens. Task response still needs `streamEndpoint` attachment.
+- _2025-02-10:_ TaskMessageService now sets per-message expiry (`TASK_MESSAGE_TTL_MINUTES`, default 60) and prunes expired rows every 15 minutes via cron.
+- _2025-02-10:_ Manual verification checklist drafted (curl stream-token, curl SSE with `--header "Accept:text/event-stream"`, confirm `/logs` omit query tokens, POST webhook to ensure task_messages TTL + cron pruning).
+- _2025-02-10:_ `blog-post-with-messages.e2e-spec.ts` currently fails to compile — imports still reference `src/tasks/*`; update to new `agent2agent/tasks/*` paths before re-running SSE message tests.
 
 ---
 

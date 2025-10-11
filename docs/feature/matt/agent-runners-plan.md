@@ -2,704 +2,506 @@
 
 ## Overview
 
-This document outlines the phased implementation plan for the Agent Runners architecture. Each phase contains tasks with sub-tasks that can be tracked and checked off as completed.
+Implementation plan for the Agent Runners architecture - an OOP class hierarchy where 5 agent types (Context, Tool, API, External, Function) extend a base runner class. All agents inherit orchestration capabilities.
+
+**Key Principles:**
+- Each agent type in its own file (150-300 lines)
+- Orchestration is a capability, not a separate type
+- Transport definitions unchanged (A2A protocol)
+- Base class provides shared CONVERSE/PLAN, agents implement BUILD
 
 ---
 
-## Phase 1: Foundation & Interfaces
+## Phase 1: Foundation
 
-**Goal**: Establish base interfaces, abstract classes, and type definitions
+**Goal**: Create base interfaces, abstract class, and registry
 
-### Task 1.1: Create Base Agent Runner Interface
-- [ ] Create `apps/api/src/agent2agent/services/base-agent-runner.interface.ts`
-  - [ ] Define `IAgentRunner` interface with `execute()` method signature
-  - [ ] Add JSDoc documentation
-  - [ ] Export interface
-- [ ] Create unit tests for interface (validation only)
-- [ ] **Notes:**
+**Duration**: 3-5 days
 
-### Task 1.2: Create Base Agent Runner Abstract Class
-- [ ] Create `apps/api/src/agent2agent/services/base-agent-runner.service.ts`
-  - [ ] Implement `BaseAgentRunner` abstract class
-  - [ ] Add `execute()` method with mode routing logic
-  - [ ] Add abstract methods: `handleConverse()`, `handlePlan()`, `handleBuild()`
-  - [ ] Add utility methods: `canExecuteMode()`, `resolveUserId()`, `buildMetadata()`
-  - [ ] Add error handling for unsupported modes
-- [ ] Write unit tests for base class utilities
-  - [ ] Test mode capability validation
-  - [ ] Test userId resolution from multiple sources
-  - [ ] Test metadata merging
-- [ ] **Notes:**
+### Task 1.1: Create Base Interface
+- [x] Create `apps/api/src/agent2agent/interfaces/agent-runner.interface.ts`
+- [x] Define `IAgentRunner` interface with `execute()` method
+- [x] Add JSDoc documentation
+- **Notes:**
 
-### Task 1.3: Update Transport Type Definitions
-- [ ] Update `apps/api/src/agent-platform/interfaces/database-agent-definition.interface.ts`
-  - [ ] Add `AgentTransportContextDefinition` interface
-  - [ ] Add `AgentTransportToolDefinition` interface
-  - [ ] Add `AgentTransportOrchestratorDefinition` interface
-  - [ ] Update `AgentTransportDefinition.kind` to include new types: `'context' | 'tool' | 'orchestrator'`
-  - [ ] Add optional fields to `AgentTransportDefinition`
-- [ ] Update schema validation if applicable
-- [ ] **Notes:**
+### Task 1.2: Create Base Abstract Class
+- [x] Create `apps/api/src/agent2agent/services/base-agent-runner.service.ts`
+- [x] Implement `BaseAgentRunner` abstract class
+- [x] Add `execute()` method with mode routing
+- [x] Add `handleConverse()` default implementation
+- [x] Add `handlePlan()` default implementation
+- [x] Add abstract `handleBuild()` method
+- [ ] Add `handleOrchestration()` with orchestration actions (defer to Phase 6)
+- [x] Add utility methods: `canExecuteMode()`, `resolveUserId()`, `buildMetadata()`
+- [ ] Write unit tests for base class
+- **Notes:**
 
-### Task 1.4: Update Agent Config Schema Definitions
-- [ ] Update `apps/api/src/agent-platform/interfaces/database-agent-definition.interface.ts`
-  - [ ] Add `AgentConfigPlanDefinition` interface
-  - [ ] Add `AgentConfigDeliverableDefinition` interface
-  - [ ] Update `AgentRuntimeDefinition.config` type to support plan/deliverable schemas
-- [ ] **Notes:**
-
-### Task 1.5: Create Runner Registry/Factory
+### Task 1.3: Create Runner Registry
 - [ ] Create `apps/api/src/agent2agent/services/agent-runner-registry.service.ts`
-  - [ ] Implement registry to map transport.kind → runner instance
-  - [ ] Add `registerRunner()` method
-  - [ ] Add `getRunner(kind: string)` method
-  - [ ] Initialize with all runner types
-- [ ] Add unit tests for registry
-- [ ] **Notes:**
+- [ ] Implement registry to map agentType → runner instance
+- [ ] Add `getRunner(agentType: string)` method
+- [ ] Add to Agent2AgentModule providers
+- [ ] Write unit tests
+- **Notes:**
+
+### Task 1.4: Update Config Schema (if needed)
+- [x] Config schema extensions already in place (AgentConfigPlanDefinition, etc.)
+- [ ] Verify config can store orchestration metadata
+- **Notes:**
 
 ---
 
 ## Phase 2: Context Agent Runner
 
-**Goal**: Implement Context Agent Runner (replaces pure LLM agents)
+**Goal**: Implement Context Agent (most common type)
+
+**Duration**: 5-7 days
 
 ### Task 2.1: Create Context Agent Runner Service
 - [ ] Create `apps/api/src/agent2agent/services/context-agent-runner.service.ts`
-  - [ ] Extend `BaseAgentRunner`
-  - [ ] Inject dependencies: `ContextOptimizationService`, `LLMService`, `PlansService`, `DeliverablesService`
-  - [ ] Add constructor with dependency injection
-- [ ] **Notes:**
+- [ ] Extend `BaseAgentRunner`
+- [ ] Inject: `ContextOptimizationService`, `LLMService`, `PlansService`, `DeliverablesService`
+- [ ] Add constructor with DI
+- **Notes:**
 
 ### Task 2.2: Implement Context Fetching
-- [ ] Add `fetchContext()` private method
+- [ ] Add `fetchContextFromSources()` method
   - [ ] Support 'plans' source: fetch current plan for conversation
-  - [ ] Support 'deliverables' source: fetch deliverables for conversation
+  - [ ] Support 'deliverables' source: fetch deliverables
   - [ ] Support 'conversations' source: fetch conversation history
-  - [ ] Support 'projects' source: fetch project context (if applicable)
-  - [ ] Return structured context object
-- [ ] Add `fetchPlanContext()` helper method
-- [ ] Add `fetchDeliverableContext()` helper method
-- [ ] Add `fetchConversationHistory()` helper method
-- [ ] **Notes:**
+  - [ ] Support 'projects' source (if applicable)
+- [ ] Read markdown from `context` column (via `definition.context`)
+- [ ] Return structured context object
+- **Notes:**
 
 ### Task 2.3: Implement System Prompt Building
 - [ ] Add `buildSystemPrompt()` method
-  - [ ] Parse `systemPromptTemplate` from transport config
-  - [ ] Interpolate context variables using template engine (e.g., Handlebars or simple replace)
-  - [ ] Support nested context access (e.g., `{{plan.content}}`)
-  - [ ] Return interpolated system prompt
-- [ ] Add unit tests for prompt interpolation
-- [ ] **Notes:**
+- [ ] Combine markdown from `context` column with fetched context
+- [ ] Apply simple template interpolation (e.g., replace {{plan.content}})
+- [ ] Return complete system prompt
+- **Notes:**
 
-### Task 2.4: Implement CONVERSE Mode
-- [ ] Implement `handleConverse()` method
-  - [ ] Fetch context using `fetchContext()`
-  - [ ] Optimize context using `ContextOptimizationService`
-  - [ ] Build system prompt using `buildSystemPrompt()`
-  - [ ] Call LLM via `LLMService.generateResponse()`
-  - [ ] Return `TaskResponseDto.success()` with response
-- [ ] Handle errors and return appropriate failures
-- [ ] **Notes:**
-
-### Task 2.5: Implement PLAN Mode
-- [ ] Implement `handlePlan()` method
-  - [ ] Check if action is 'create' (requires LLM)
-  - [ ] If 'create': fetch context, build plan-specific prompt, call LLM
-  - [ ] Extract plan content from LLM response
-  - [ ] Save plan using `PlansService.executeAction('create', ...)`
-  - [ ] Support agent-specific plan schemas from `definition.config.plan.schema`
-  - [ ] If not 'create': route directly to PlansService without LLM
-  - [ ] Return `TaskResponseDto.success()` with plan data
-- [ ] Handle errors
-- [ ] **Notes:**
-
-### Task 2.6: Implement BUILD Mode
+### Task 2.4: Implement BUILD Mode
 - [ ] Implement `handleBuild()` method
-  - [ ] Check if action is 'create' (requires LLM)
-  - [ ] If 'create': fetch context (including current plan if available)
-  - [ ] Build deliverable-specific prompt
-  - [ ] Call LLM
-  - [ ] Extract deliverable content from LLM response
-  - [ ] Save deliverable using `DeliverablesService.executeAction('create', ...)`
-  - [ ] Support agent-specific deliverable schemas from `definition.config.deliverable.schema`
-  - [ ] If not 'create': route directly to DeliverablesService without LLM
-  - [ ] Return `TaskResponseDto.success()` with deliverable data
-- [ ] Handle errors
-- [ ] **Notes:**
+  - [ ] Fetch context using `fetchContextFromSources()`
+  - [ ] Optimize context using `ContextOptimizationService`
+  - [ ] Build system prompt
+  - [ ] Call LLM via `LLMService.generateResponse()`
+  - [ ] Check if action is 'create' (requires LLM) vs other actions
+  - [ ] Save deliverable via `DeliverablesService.executeAction('create', ...)`
+  - [ ] Support custom deliverable schemas from `definition.config.deliverable`
+  - [ ] Return `TaskResponseDto.success()` with deliverable
+- [ ] Handle errors gracefully
+- **Notes:**
 
-### Task 2.7: Add Unit Tests for Context Agent Runner
-- [ ] Test context fetching from each source
-- [ ] Test system prompt interpolation with various templates
-- [ ] Test CONVERSE mode execution
-- [ ] Test PLAN mode with 'create' action
-- [ ] Test BUILD mode with 'create' action
-- [ ] Test error handling
-- [ ] **Notes:**
-
-### Task 2.8: Add Integration Tests
-- [ ] Create test context agent definition
-- [ ] Test end-to-end CONVERSE flow
-- [ ] Test end-to-end PLAN flow
+### Task 2.5: Test Context Agent
+- [ ] Write unit tests
+  - [ ] Test context fetching from each source
+  - [ ] Test system prompt building
+  - [ ] Test BUILD mode execution
+  - [ ] Test error handling
+- [ ] Write integration test with real agent definition
 - [ ] Test end-to-end BUILD flow
-- [ ] **Notes:**
+- **Notes:**
 
 ---
 
 ## Phase 3: Tool Agent Runner
 
-**Goal**: Implement Tool Agent Runner for MCP tool execution
+**Goal**: Implement Tool Agent for MCP execution
+
+**Duration**: 4-6 days
 
 ### Task 3.1: Create Tool Agent Runner Service
 - [ ] Create `apps/api/src/agent2agent/services/tool-agent-runner.service.ts`
-  - [ ] Extend `BaseAgentRunner`
-  - [ ] Inject `MCPService`
-  - [ ] Add constructor
-- [ ] **Notes:**
+- [ ] Extend `BaseAgentRunner`
+- [ ] Inject `MCPService`
+- **Notes:**
 
 ### Task 3.2: Implement Tool Request Parsing
 - [ ] Add `parseToolRequest()` method
-  - [ ] Extract tool name from request (explicit or inferred)
-  - [ ] Extract tool arguments from `request.payload`
-  - [ ] If `transport.tool.argumentMapping.llmParse` is true, use LLM to parse natural language into tool arguments
-  - [ ] Validate required arguments against tool schema
+  - [ ] Read tools from `definition.config` (parsed from yaml)
+  - [ ] Extract tool name from request (explicit or first in list)
+  - [ ] Extract arguments from `request.payload`
+  - [ ] If `config.tool.argumentMapping.llmParse` is true, use LLM to parse
   - [ ] Return `{ toolName, args }`
-- [ ] Add unit tests for parsing logic
-- [ ] **Notes:**
+- [ ] Write unit tests for parsing
+- **Notes:**
 
-### Task 3.3: Implement CONVERSE Mode
-- [ ] Implement `handleConverse()` method
-  - [ ] Parse tool request
-  - [ ] Call `MCPService.callTool({ name, arguments })`
-  - [ ] Normalize `MCPToolResponse` to `TaskResponseDto`
-  - [ ] Return response
-- [ ] Handle MCP errors
-- [ ] **Notes:**
-
-### Task 3.4: Implement PLAN Mode
-- [ ] Implement `handlePlan()` method
-  - [ ] Tool agents can create plans (e.g., "plan to query these 3 tables")
-  - [ ] Parse request to determine plan structure
-  - [ ] Optionally invoke tool to gather planning data
-  - [ ] Save plan via PlansService
-  - [ ] Return plan
-- [ ] **Notes:**
-
-### Task 3.5: Implement BUILD Mode
+### Task 3.3: Implement BUILD Mode
 - [ ] Implement `handleBuild()` method
   - [ ] Parse tool request
-  - [ ] Execute tool(s) via MCP
-  - [ ] Format tool results as deliverable content
-  - [ ] Save deliverable via DeliverablesService
-  - [ ] Return deliverable
-- [ ] Support sequential and parallel tool execution modes
-- [ ] **Notes:**
+  - [ ] Call `MCPService.callTool({ name, arguments })`
+  - [ ] Normalize `MCPToolResponse` to deliverable format
+  - [ ] Save deliverable via `DeliverablesService.executeAction('create', ...)`
+  - [ ] Return `TaskResponseDto.success()` with deliverable
+- [ ] Handle MCP errors
+- **Notes:**
 
-### Task 3.6: Add Multi-Tool Support
+### Task 3.4: Add Multi-Tool Support (if needed)
 - [ ] Implement sequential tool execution
-  - [ ] Execute tools in order specified in `transport.tool.tools`
+  - [ ] Execute tools in order
   - [ ] Pass output of tool N as input to tool N+1
 - [ ] Implement parallel tool execution
   - [ ] Execute all tools concurrently
   - [ ] Aggregate results
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 3.7: Add Unit Tests
-- [ ] Test tool request parsing
-- [ ] Test MCP service integration
-- [ ] Test CONVERSE mode
-- [ ] Test PLAN mode
-- [ ] Test BUILD mode
-- [ ] Test multi-tool sequential execution
-- [ ] Test multi-tool parallel execution
-- [ ] **Notes:**
-
-### Task 3.8: Add Integration Tests
-- [ ] Create test tool agent definition
-- [ ] Test with real MCP tools (supabase/query-db, etc.)
+### Task 3.5: Test Tool Agent
+- [ ] Unit tests for tool parsing and execution
+- [ ] Integration tests with real MCP tools (supabase/query-db)
 - [ ] Test error scenarios
-- [ ] **Notes:**
+- **Notes:**
 
 ---
 
 ## Phase 4: API Agent Runner
 
-**Goal**: Implement API Agent Runner for HTTP calls with custom transforms
+**Goal**: Implement API Agent for HTTP calls
+
+**Duration**: 4-6 days
 
 ### Task 4.1: Create API Agent Runner Service
 - [ ] Create `apps/api/src/agent2agent/services/api-agent-runner.service.ts`
-  - [ ] Extend `BaseAgentRunner`
-  - [ ] Inject HTTP client service
-  - [ ] Add constructor
-- [ ] **Notes:**
+- [ ] Extend `BaseAgentRunner`
+- [ ] Inject HTTP client service (or use built-in fetch/axios)
+- **Notes:**
 
-### Task 4.2: Implement Request Transformation
+### Task 4.2: Implement Request/Response Transforms
 - [ ] Add `transformRequest()` method
-  - [ ] Parse `transport.api.requestTransform`
-  - [ ] Apply template/mapping to transform TaskRequestDto → API format
-  - [ ] Support JSONata or simple template strings
-  - [ ] Return transformed request body
-- [ ] Add unit tests
-- [ ] **Notes:**
-
-### Task 4.3: Implement Response Transformation
+  - [ ] Read transform config from `definition.config.requestTransform`
+  - [ ] Apply mapping (JSONata or template)
+  - [ ] Transform TaskRequestDto → API format
 - [ ] Add `transformResponse()` method
-  - [ ] Parse `transport.api.responseTransform`
-  - [ ] Apply template/mapping to transform API response → TaskResponseDto format
-  - [ ] Support JSONata or simple template strings
-  - [ ] Return normalized response
-- [ ] Add unit tests
-- [ ] **Notes:**
+  - [ ] Read transform config from `definition.config.responseTransform`
+  - [ ] Apply mapping
+  - [ ] Transform API response → deliverable format
+- [ ] Unit tests for transforms
+- **Notes:**
 
-### Task 4.4: Implement HTTP Call Logic
+### Task 4.3: Implement HTTP Call Logic
 - [ ] Add `executeHttpCall()` method
-  - [ ] Build HTTP request from transport config (endpoint, method, headers)
-  - [ ] Apply authentication (bearer, API key, OAuth)
-  - [ ] Set timeout from config
+  - [ ] Build request from `definition.transport.api` config
+  - [ ] Apply authentication (bearer, API key, etc.)
+  - [ ] Set timeout
   - [ ] Execute HTTP call
   - [ ] Handle HTTP errors (4xx, 5xx)
   - [ ] Return raw response
-- [ ] Add retry logic if specified in config
-- [ ] **Notes:**
+- [ ] Add retry logic if specified
+- **Notes:**
 
-### Task 4.5: Implement CONVERSE Mode
-- [ ] Implement `handleConverse()` method
+### Task 4.4: Implement BUILD Mode
+- [ ] Implement `handleBuild()` method
   - [ ] Transform request
   - [ ] Execute HTTP call
   - [ ] Transform response
-  - [ ] Return TaskResponseDto
-- [ ] **Notes:**
+  - [ ] Save deliverable
+  - [ ] Return `TaskResponseDto.success()`
+- **Notes:**
 
-### Task 4.6: Implement PLAN Mode
-- [ ] Implement `handlePlan()` method
-  - [ ] API call to generate plan data
-  - [ ] Transform response to plan structure
-  - [ ] Save via PlansService
-  - [ ] Return plan
-- [ ] **Notes:**
-
-### Task 4.7: Implement BUILD Mode
-- [ ] Implement `handleBuild()` method
-  - [ ] API call to generate deliverable
-  - [ ] Transform response to deliverable structure
-  - [ ] Save via DeliverablesService
-  - [ ] Return deliverable
-- [ ] **Notes:**
-
-### Task 4.8: Add Unit Tests
-- [ ] Test request transformation
-- [ ] Test response transformation
-- [ ] Test authentication injection
-- [ ] Test HTTP error handling
-- [ ] Test retry logic
-- [ ] **Notes:**
-
-### Task 4.9: Add Integration Tests
-- [ ] Create test API agent definition
-- [ ] Test with mock HTTP server
+### Task 4.5: Test API Agent
+- [ ] Unit tests for transforms and HTTP logic
+- [ ] Integration tests with mock HTTP server
 - [ ] Test authentication flows
-- [ ] **Notes:**
+- **Notes:**
 
 ---
 
 ## Phase 5: External Agent Runner
 
-**Goal**: Implement External Agent Runner for A2A protocol-compliant agents
+**Goal**: Implement External Agent for A2A calls
+
+**Duration**: 3-5 days
 
 ### Task 5.1: Create External Agent Runner Service
 - [ ] Create `apps/api/src/agent2agent/services/external-agent-runner.service.ts`
-  - [ ] Extend `BaseAgentRunner`
-  - [ ] Inject HTTP client
-  - [ ] Add constructor
-- [ ] **Notes:**
+- [ ] Extend `BaseAgentRunner`
+- [ ] Inject HTTP client
+- **Notes:**
 
 ### Task 5.2: Implement A2A Protocol Validation
 - [ ] Add `validateA2ARequest()` method
   - [ ] Ensure request conforms to TaskRequestDto schema
-  - [ ] Validate required fields
 - [ ] Add `validateA2AResponse()` method
   - [ ] Ensure response conforms to TaskResponseDto schema
-  - [ ] Validate required fields
-- [ ] Add unit tests
-- [ ] **Notes:**
+- [ ] Unit tests for validation
+- **Notes:**
 
-### Task 5.3: Implement Health Check
+### Task 5.3: Implement Health Check & Circuit Breaker
 - [ ] Add `performHealthCheck()` method
-  - [ ] Call health check endpoint if configured
-  - [ ] Validate agent capabilities
+  - [ ] Call health endpoint if configured in `definition.transport.external.healthCheck`
   - [ ] Return health status
 - [ ] Add circuit breaker logic (open/closed/half-open states)
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 5.4: Implement A2A HTTP Call
-- [ ] Add `executeA2ACall()` method
-  - [ ] Build HTTP POST to `/agent-to-agent/tasks` endpoint
-  - [ ] Include authentication headers
-  - [ ] Set timeout
-  - [ ] Execute call
-  - [ ] Validate response conforms to A2A protocol
-  - [ ] Return TaskResponseDto
+### Task 5.4: Implement BUILD Mode
+- [ ] Implement `handleBuild()` method
+  - [ ] Validate request conforms to A2A
+  - [ ] Make HTTP POST to `/agent-to-agent/tasks` using `definition.transport.external`
+  - [ ] Include authentication
+  - [ ] Validate response conforms to A2A
+  - [ ] Extract deliverable from response
+  - [ ] Return `TaskResponseDto`
 - [ ] Add retry logic with backoff
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 5.5: Implement All Modes (CONVERSE, PLAN, BUILD)
-- [ ] Implement `handleConverse()` - forward request to external agent
-- [ ] Implement `handlePlan()` - forward request to external agent
-- [ ] Implement `handleBuild()` - forward request to external agent
-- [ ] All modes just proxy to external agent with protocol validation
-- [ ] **Notes:**
-
-### Task 5.6: Add Unit Tests
-- [ ] Test A2A request validation
-- [ ] Test A2A response validation
-- [ ] Test health check logic
-- [ ] Test circuit breaker
-- [ ] Test retry with backoff
-- [ ] **Notes:**
-
-### Task 5.7: Add Integration Tests
-- [ ] Create test external agent definition
-- [ ] Set up mock A2A-compliant server
-- [ ] Test end-to-end A2A calls
+### Task 5.5: Test External Agent
+- [ ] Unit tests for A2A validation
+- [ ] Integration tests with mock A2A-compliant server
 - [ ] Test protocol violations (should fail gracefully)
-- [ ] **Notes:**
+- **Notes:**
 
 ---
 
-## Phase 6: Update Function Agent Runner
+## Phase 6: Function Agent Migration
 
-**Goal**: Migrate existing Function Agent Runner to extend BaseAgentRunner
+**Goal**: Refactor existing Function Agent to extend BaseAgentRunner
+
+**Duration**: 2-3 days
 
 ### Task 6.1: Refactor Function Agent Runner
 - [ ] Update `apps/api/src/agent2agent/services/function-agent-runner.service.ts`
-  - [ ] Change to extend `BaseAgentRunner`
-  - [ ] Keep existing `execute()` logic but wrap in base class pattern
-  - [ ] Extract current logic into `handleConverse()`, `handlePlan()`, `handleBuild()`
-  - [ ] Use base class utilities where applicable
-- [ ] **Notes:**
+- [ ] Change to extend `BaseAgentRunner`
+- [ ] Move existing `execute()` logic into `handleBuild()`
+- [ ] Remove duplicate mode routing (use base class)
+- [ ] Use base class utility methods where applicable
+- **Notes:**
 
-### Task 6.2: Update Tests
+### Task 6.2: Test Function Agent
 - [ ] Ensure existing function agent tests still pass
 - [ ] Add tests for base class integration
-- [ ] **Notes:**
+- [ ] No behavior changes expected
+- **Notes:**
 
 ---
 
-## Phase 7: Orchestrator Agent Runner
+## Phase 7: Orchestration Implementation
 
-**Goal**: Implement Orchestrator Agent Runner for graph-based workflow execution
+**Goal**: Add orchestration capability to BaseAgentRunner
 
-### Task 7.1: Create Orchestrator Agent Runner Service
-- [ ] Create `apps/api/src/agent2agent/services/orchestrator-agent-runner.service.ts`
-  - [ ] Extend `BaseAgentRunner`
-  - [ ] Inject `OrchestrationRunnerService`, `AgentExecutionGateway`, `AgentRegistry`
-  - [ ] Add constructor
-- [ ] **Notes:**
+**Duration**: 7-10 days
 
-### Task 7.2: Implement Graph Parsing
-- [ ] Add `parseOrchestrationGraph()` method
-  - [ ] Parse orchestration definition from agent config or saved orchestration
-  - [ ] Build DAG (Directed Acyclic Graph) from nodes and dependencies
-  - [ ] Validate graph (no cycles, valid agent references)
-  - [ ] Return graph structure
-- [ ] Add unit tests for graph parsing and validation
-- [ ] **Notes:**
+### Task 7.1: Add Orchestration Method to Base Class
+- [ ] In `BaseAgentRunner`, implement `handleOrchestration()` method
+- [ ] Support orchestration actions:
+  - [ ] `execute`: Start new orchestration
+  - [ ] `continue`: Continue paused orchestration
+  - [ ] `pause`: Pause orchestration
+  - [ ] `resume`: Resume from pause
+  - [ ] `human-response`: Handle human approval
+  - [ ] `rollback`: Roll back to previous step
+- **Notes:**
 
-### Task 7.3: Implement DAG Execution Engine
-- [ ] Add `executeGraph()` method
-  - [ ] Topologically sort nodes
-  - [ ] Execute nodes in dependency order
-  - [ ] For each node:
-    - [ ] Resolve agent by slug
-    - [ ] Gather inputs from completed dependency nodes
-    - [ ] Call `AgentExecutionGateway.execute()` for sub-agent
-    - [ ] Store node output
-  - [ ] Handle node failures (continue, stop, retry)
-  - [ ] Return aggregated results
-- [ ] Support parallel execution of independent nodes
-- [ ] **Notes:**
+### Task 7.2: Implement Sub-Agent Calling
+- [ ] Add `callSubAgent()` method in BaseAgentRunner
+  - [ ] Resolve agent by slug via `AgentRegistryService`
+  - [ ] Build TaskRequestDto for sub-agent
+  - [ ] Call `AgentExecutionGateway.execute()`
+  - [ ] Return sub-agent response
+- [ ] Add `executeSequentialAgents()` method
+  - [ ] Call agents in order
+  - [ ] Pass output of agent N as input to agent N+1
+- [ ] Add `executeParallelAgents()` method
+  - [ ] Call agents concurrently
+  - [ ] Aggregate results
+- **Notes:**
 
-### Task 7.4: Implement Human Checkpoint Handling
-- [ ] Add `handleHumanCheckpoint()` method
-  - [ ] Pause execution at checkpoint
-  - [ ] Create approval record in `HumanApprovalsRepository`
-  - [ ] Return pending state
-- [ ] Add `resumeFromCheckpoint()` method
-  - [ ] Validate approval
-  - [ ] Resume graph execution from checkpoint node
-- [ ] **Notes:**
+### Task 7.3: Implement Orchestration Execution
+- [ ] Add `executeOrchestration()` method
+  - [ ] Parse orchestration definition from `definition.config.orchestration`
+  - [ ] Determine sub-agents needed
+  - [ ] Call sub-agents (sequential or parallel based on config)
+  - [ ] Aggregate results
+  - [ ] Return final TaskResponseDto
+- [ ] Start orchestration run via `OrchestrationRunnerService.startRun()`
+- [ ] Update run progress via `OrchestrationRunnerService.updateRun()`
+- **Notes:**
 
-### Task 7.5: Implement CONVERSE Mode
-- [ ] Implement `handleConverse()` method
-  - [ ] Orchestrators cannot converse directly
-  - [ ] Return `TaskResponseDto.failure()` with clear message
-- [ ] **Notes:**
+### Task 7.4: Implement Pause/Resume/Continue
+- [ ] Add `pauseOrchestration()` method
+  - [ ] Save current state
+  - [ ] Return pause token in TaskResponseDto
+- [ ] Add `continueOrchestration()` method
+  - [ ] Load saved state from run ID
+  - [ ] Resume execution from last step
+- [ ] Add `resumeOrchestration()` method (alias for continue)
+- **Notes:**
 
-### Task 7.6: Implement PLAN Mode
-- [ ] Implement `handlePlan()` method
-  - [ ] Analyze user request to determine required sub-agents
-  - [ ] Build orchestration graph (DAG)
-  - [ ] Save orchestration plan via PlansService or OrchestrationRunnerService
-  - [ ] Return plan with graph structure
-- [ ] **Notes:**
+### Task 7.5: Implement Human Checkpoint Handling
+- [ ] Add `handleHumanResponse()` method
+  - [ ] Extract approval decision from request
+  - [ ] Validate approval via `HumanApprovalsRepository`
+  - [ ] If approved: continue orchestration
+  - [ ] If rejected: fail orchestration
+- [ ] Create approval records when checkpoint reached
+- **Notes:**
 
-### Task 7.7: Implement BUILD Mode
-- [ ] Implement `handleBuild()` method
-  - [ ] Start orchestration run via `OrchestrationRunnerService.startRun()`
-  - [ ] Execute graph using `executeGraph()`
-  - [ ] Handle checkpoints
-  - [ ] Update run progress via `OrchestrationRunnerService.updateRun()`
-  - [ ] Mark run complete
-  - [ ] Return final deliverable aggregating sub-agent outputs
-- [ ] **Notes:**
+### Task 7.6: Implement Rollback
+- [ ] Add `rollbackOrchestration()` method
+  - [ ] Load orchestration run state
+  - [ ] Undo last step (if possible)
+  - [ ] Restart from previous checkpoint
+- **Notes:**
 
-### Task 7.8: Add Recursion Prevention
-- [ ] Add `maxDepth` tracking to prevent infinite orchestrator → orchestrator loops
-- [ ] Add execution depth to metadata
-- [ ] Fail if depth exceeds `transport.orchestrator.maxDepth`
-- [ ] **Notes:**
+### Task 7.7: Add Recursion Prevention
+- [ ] Track orchestration depth in metadata
+- [ ] Fail if depth exceeds `config.orchestration.maxDepth` (default 3)
+- **Notes:**
 
-### Task 7.9: Add Unit Tests
-- [ ] Test graph parsing
-- [ ] Test DAG validation (cycle detection)
-- [ ] Test topological sort
-- [ ] Test sequential execution
-- [ ] Test parallel execution
+### Task 7.8: Test Orchestration
+- [ ] Unit tests for each orchestration action
+- [ ] Integration tests with 3+ sub-agents
+- [ ] Test sequential and parallel execution
+- [ ] Test pause/resume/continue flows
 - [ ] Test human checkpoint handling
+- [ ] Test rollback
 - [ ] Test recursion prevention
-- [ ] **Notes:**
-
-### Task 7.10: Add Integration Tests
-- [ ] Create test orchestrator agent with 3+ sub-agents
-- [ ] Test PLAN mode
-- [ ] Test BUILD mode with full graph execution
-- [ ] Test checkpoint flow
-- [ ] **Notes:**
+- **Notes:**
 
 ---
 
 ## Phase 8: Router Integration
 
-**Goal**: Update AgentModeRouterService to route to appropriate runners
+**Goal**: Update AgentModeRouterService to route to runners
 
-### Task 8.1: Update AgentModeRouterService Routing Logic
+**Duration**: 2-3 days
+
+### Task 8.1: Update Router for BUILD Mode
 - [ ] Update `apps/api/src/agent2agent/services/agent-mode-router.service.ts`
-  - [ ] Inject `AgentRunnerRegistryService`
-  - [ ] Update `handleConverse()`, `handlePlan()`, `handleBuild()` methods
-  - [ ] Check `transport.kind` and route to appropriate runner
-  - [ ] Use runner registry to get runner instance
+- [ ] Inject `AgentRunnerRegistryService`
+- [ ] In `handleBuild()` method:
+  - [ ] Check if orchestration requested (`request.payload?.orchestrate`)
+  - [ ] If orchestration: route to runner's `handleOrchestration()`
+  - [ ] Otherwise: route by `definition.agentType` to appropriate runner
+  - [ ] Use registry to get runner instance
   - [ ] Call `runner.execute(definition, request, organizationSlug)`
-  - [ ] Return result
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 8.2: Update Routing for Each Mode
-- [ ] Update CONVERSE mode routing
-  - [ ] Check for function agent (legacy check)
-  - [ ] Check transport.kind
-  - [ ] Route to runner or fall through to existing LLM logic
-- [ ] Update PLAN mode routing
-  - [ ] Check transport.kind
-  - [ ] Route to runner or fall through
-- [ ] Update BUILD mode routing
-  - [ ] Check transport.kind
-  - [ ] Route to runner or fall through
-- [ ] **Notes:**
-
-### Task 8.3: Handle Backward Compatibility
-- [ ] Ensure agents without `transport.kind` still work
-- [ ] Default to context runner for agents with LLM config but no transport
+### Task 8.2: Handle Backward Compatibility
+- [ ] Ensure agents without `agentType` still work (fall back to existing logic)
 - [ ] Log warnings for deprecated patterns
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 8.4: Add Tests
-- [ ] Test routing for each transport.kind
+### Task 8.3: Test Router Integration
+- [ ] Test routing for each agentType
+- [ ] Test orchestration routing
 - [ ] Test fallback behavior
 - [ ] Test backward compatibility
-- [ ] **Notes:**
+- **Notes:**
 
 ---
 
-## Phase 9: Example Agents & Documentation
+## Phase 9: Example Agents & Testing
 
-**Goal**: Create example agents for each type and document usage
+**Goal**: Create example agents and comprehensive tests
+
+**Duration**: 3-4 days
 
 ### Task 9.1: Create Example Context Agent
-- [ ] Create agent definition for "Plan Analyzer" context agent
+- [ ] Create "Plan Analyzer" context agent
   - [ ] Sources: plans, deliverables
-  - [ ] System prompt template analyzing plan quality
-  - [ ] Save to fixtures or seed data
-- [ ] Test agent via API
-- [ ] Document usage in PRD or README
-- [ ] **Notes:**
+  - [ ] Context: markdown instructions
+  - [ ] Test BUILD mode
+- [ ] Save to fixtures or seed data
+- **Notes:**
 
 ### Task 9.2: Create Example Tool Agent
-- [ ] Create agent definition for "Database Query Agent"
+- [ ] Create "Database Query Agent"
   - [ ] Tools: supabase/query-db
   - [ ] Test with sample queries
-- [ ] Create agent definition for "Multi-Tool Agent" (sequential)
-  - [ ] Tools: supabase/query-db → slack/send-message
-- [ ] Document usage
-- [ ] **Notes:**
+- **Notes:**
 
 ### Task 9.3: Create Example API Agent
-- [ ] Create agent definition for third-party API integration (e.g., Stripe, Twilio)
+- [ ] Create API agent with mock endpoint
   - [ ] Configure request/response transforms
-  - [ ] Test with mock API
-- [ ] Document usage
-- [ ] **Notes:**
+  - [ ] Test BUILD mode
+- **Notes:**
 
 ### Task 9.4: Create Example External Agent
-- [ ] Set up mock external A2A-compliant agent
-- [ ] Create agent definition pointing to mock
+- [ ] Set up mock A2A-compliant agent
+- [ ] Create external agent pointing to mock
 - [ ] Test end-to-end
-- [ ] Document usage
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 9.5: Create Example Orchestrator Agent
-- [ ] Create "Marketing Workflow Orchestrator"
-  - [ ] Sub-agents: plan-context-agent, db-query-agent, report-generator-agent, slack-notifier
-  - [ ] Define graph with dependencies
-  - [ ] Test PLAN mode
-  - [ ] Test BUILD mode
-- [ ] Document usage
-- [ ] **Notes:**
+### Task 9.5: Create Orchestration Example
+- [ ] Create context agent that orchestrates sub-agents
+  - [ ] Define 3+ sub-agents
+  - [ ] Test sequential execution
+  - [ ] Test with human checkpoint
+- **Notes:**
 
-### Task 9.6: Create Developer Documentation
-- [ ] Write "Creating a New Agent Type" guide
-- [ ] Write "Extending BaseAgentRunner" guide
-- [ ] Write "Agent Transport Configuration" reference
-- [ ] Write "Agent Output Schemas" guide
-- [ ] Add API documentation for each runner
-- [ ] **Notes:**
-
----
-
-## Phase 10: Migration & Testing
-
-**Goal**: Migrate existing agents and ensure no regressions
-
-### Task 10.1: Identify Existing LLM Agents
-- [ ] Audit database for agents with no transport.kind or transport.kind = 'none'
-- [ ] List agents that need migration to context agents
-- [ ] **Notes:**
-
-### Task 10.2: Migrate LLM Agents to Context Agents
-- [ ] For each agent:
-  - [ ] Determine if context sources are needed
-  - [ ] Set transport.kind = 'context'
-  - [ ] Define transport.context with appropriate config
-  - [ ] Update agent record in database
-  - [ ] Test agent still works
-- [ ] **Notes:**
-
-### Task 10.3: Update Agent Builder Service
-- [ ] Update `AgentBuilderService` to generate correct transport config
-- [ ] Support UI selections for transport type
-- [ ] Generate appropriate config based on agent type
-- [ ] **Notes:**
-
-### Task 10.4: Comprehensive Integration Testing
-- [ ] Test all agent types (context, tool, api, external, function, orchestrator)
+### Task 9.6: Comprehensive Integration Testing
+- [ ] Test all 5 agent types
 - [ ] Test all modes (CONVERSE, PLAN, BUILD)
+- [ ] Test orchestration across agent types
 - [ ] Test error scenarios
-- [ ] Test concurrent execution
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 10.5: Performance Testing
-- [ ] Measure overhead of base class routing
-- [ ] Profile context fetching performance
-- [ ] Profile orchestrator graph execution
+---
+
+## Phase 10: Performance & Polish
+
+**Goal**: Optimize and polish
+
+**Duration**: 3-5 days
+
+### Task 10.1: Performance Testing
+- [ ] Measure overhead of base class routing (<100ms target)
+- [ ] Profile context fetching
+- [ ] Profile orchestration execution
 - [ ] Optimize bottlenecks
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 10.6: Regression Testing
-- [ ] Run existing agent test suite
-- [ ] Ensure no functionality broken
-- [ ] Fix any regressions
-- [ ] **Notes:**
+### Task 10.2: Error Handling Improvements
+- [ ] Standardize error responses across runners
+- [ ] Add detailed error logging
+- [ ] Add error recovery where possible
+- **Notes:**
 
----
-
-## Phase 11: Advanced Features & Polish
-
-**Goal**: Add advanced features and polish
-
-### Task 11.1: Add Streaming Support
+### Task 10.3: Add Streaming Support (if needed)
 - [ ] Define streaming interface for runners
-- [ ] Implement streaming in Context Agent Runner
-- [ ] Implement streaming in Tool Agent Runner (if applicable)
-- [ ] Update router to handle streaming requests
-- [ ] **Notes:**
+- [ ] Implement in ContextAgentRunner
+- [ ] Update router to handle streaming
+- **Notes:**
 
-### Task 11.2: Add Caching for Context Agents
-- [ ] Implement context cache (in-memory or Redis)
-- [ ] Cache fetched plans/deliverables with TTL
-- [ ] Add cache invalidation logic
-- [ ] **Notes:**
-
-### Task 11.3: Add Rate Limiting per Transport Type
-- [ ] Define rate limit config per transport
-- [ ] Implement rate limiter middleware
-- [ ] Apply limits before runner execution
-- [ ] **Notes:**
-
-### Task 11.4: Add Runner Metrics
-- [ ] Track execution time per runner type
-- [ ] Track success/failure rates
-- [ ] Track token usage for context agents
-- [ ] Track tool invocation counts
-- [ ] Emit metrics to monitoring system
-- [ ] **Notes:**
-
-### Task 11.5: Add Agent Analytics Dashboard
-- [ ] Create endpoint for agent usage stats
-- [ ] Create endpoint for runner performance metrics
-- [ ] (Optional) Build simple UI to visualize metrics
-- [ ] **Notes:**
-
-### Task 11.6: Error Handling Standardization
-- [ ] Define standard error codes for each transport type
-- [ ] Ensure consistent error response format
-- [ ] Add error logging and alerting
-- [ ] **Notes:**
-
-### Task 11.7: Add Agent Versioning Support
-- [ ] Define versioning strategy for agent definitions
-- [ ] Support multiple versions of same agent
-- [ ] Allow pinning to specific version in orchestrations
-- [ ] **Notes:**
+### Task 10.4: Add Caching (if needed)
+- [ ] Implement context cache for plans/deliverables
+- [ ] Add TTL and invalidation logic
+- **Notes:**
 
 ---
 
-## Phase 12: Documentation & Launch
+## Phase 11: Documentation & Launch
 
-**Goal**: Finalize documentation and launch
+**Goal**: Finalize docs and launch
 
-### Task 12.1: Update API Documentation
-- [ ] Document all new endpoints (if any)
+**Duration**: 2-3 days
+
+### Task 11.1: Developer Documentation
+- [ ] Write "Extending BaseAgentRunner" guide
+- [ ] Write "Creating a New Agent Type" guide
+- [ ] Write "Orchestration API" reference
+- [ ] Document config schema for each agent type
+- **Notes:**
+
+### Task 11.2: User Documentation
+- [ ] Write "Agent Types Overview"
+- [ ] Write "Using Context Agents" guide
+- [ ] Write "Orchestrating Agents" guide
+- **Notes:**
+
+### Task 11.3: API Documentation
 - [ ] Update OpenAPI/Swagger specs
 - [ ] Document TaskRequestDto/TaskResponseDto changes
-- [ ] **Notes:**
+- **Notes:**
 
-### Task 12.2: Write User-Facing Documentation
-- [ ] Write "Agent Types Overview" for users
-- [ ] Write "Creating Your First Context Agent" tutorial
-- [ ] Write "Creating Your First Tool Agent" tutorial
-- [ ] Write "Building Orchestrations" guide
-- [ ] **Notes:**
-
-### Task 12.3: Create Video Tutorials (Optional)
-- [ ] Record demo of creating context agent
-- [ ] Record demo of creating tool agent
-- [ ] Record demo of creating orchestrator agent
-- [ ] **Notes:**
-
-### Task 12.4: Prepare Release Notes
-- [ ] Document new features
+### Task 11.4: Release Preparation
+- [ ] Prepare release notes
 - [ ] Document breaking changes (if any)
-- [ ] Document migration steps for existing agents
-- [ ] **Notes:**
+- [ ] Create migration guide for existing agents
+- **Notes:**
 
-### Task 12.5: Launch Checklist
+### Task 11.5: Launch Checklist
 - [ ] All tests passing (unit + integration)
 - [ ] Performance benchmarks met
 - [ ] Documentation complete
@@ -707,23 +509,23 @@ This document outlines the phased implementation plan for the Agent Runners arch
 - [ ] Monitoring/alerting configured
 - [ ] Feature flag enabled (if applicable)
 - [ ] Announce to team
-- [ ] **Notes:**
+- **Notes:**
 
 ---
 
 ## Dependencies & Blockers
 
 ### External Dependencies
-- [ ] MCP service must be stable and reliable
+- [ ] MCP service must be stable
 - [ ] PlansService and DeliverablesService APIs must be finalized
-- [ ] OrchestrationRunnerService must support graph execution
+- [ ] OrchestrationRunnerService must be functional
 
 ### Internal Dependencies
-- [ ] Phase 1 must complete before Phase 2-7
-- [ ] Phase 2-7 can be parallelized (independent runners)
-- [ ] Phase 8 depends on Phase 2-7
-- [ ] Phase 9-10 depend on Phase 8
-- [ ] Phase 11-12 can run in parallel with Phase 10
+- Phase 1 must complete before Phases 2-6
+- Phases 2-6 can be parallelized (different agent types)
+- Phase 7 depends on Phases 2-6 (orchestration needs runners)
+- Phase 8 depends on Phases 2-7
+- Phases 9-11 depend on Phase 8
 
 ### Known Blockers
 - None identified yet
@@ -733,48 +535,42 @@ This document outlines the phased implementation plan for the Agent Runners arch
 ## Risk Assessment
 
 ### High Risk
-- **Orchestrator graph execution complexity**: DAG execution with error handling is complex
-  - *Mitigation*: Start with sequential execution, add parallelization later
-- **Backward compatibility**: Existing agents must continue working
-  - *Mitigation*: Thorough testing, feature flags, gradual rollout
+- **Orchestration complexity**: Sub-agent calling, state management, pause/resume
+  - *Mitigation*: Start with simple sequential orchestration, add features incrementally
 
 ### Medium Risk
-- **Performance overhead**: Base class routing adds small overhead
-  - *Mitigation*: Profile and optimize, acceptable if <200ms
-- **Context fetching latency**: Fetching plans/deliverables adds latency
-  - *Mitigation*: Implement caching, optimize queries
+- **Backward compatibility**: Existing agents must continue working
+  - *Mitigation*: Thorough testing, feature flags, gradual rollout
+- **Performance overhead**: Base class routing adds latency
+  - *Mitigation*: Profile and optimize, acceptable if <100ms
 
 ### Low Risk
-- **Tool agent parsing accuracy**: LLM-based argument parsing may be unreliable
-  - *Mitigation*: Allow explicit argument specification as fallback
+- **Context fetching latency**: Multiple source fetches may be slow
+  - *Mitigation*: Implement caching, parallelize fetching
 
 ---
 
 ## Success Criteria
 
-### Phase 1-2 (Foundation + Context Agent)
+### Phase 1-2 Complete (Foundation + Context Agent)
 - [ ] Base class and interface defined
 - [ ] Context agent can fetch context and call LLM
 - [ ] All tests passing
 
-### Phase 3-6 (Atomic Agents)
-- [ ] All 5 atomic agent types implemented
-- [ ] Each agent type has example and tests
+### Phases 2-6 Complete (All Agent Types)
+- [ ] All 5 agent types implemented
+- [ ] Each type has unit + integration tests
 - [ ] Router can route to correct runner
 
-### Phase 7 (Orchestrator)
-- [ ] Orchestrator agent can compose sub-agents
-- [ ] Graph execution works for 3+ node DAG
-- [ ] Human checkpoints functional
+### Phase 7 Complete (Orchestration)
+- [ ] Any agent can orchestrate sub-agents
+- [ ] Sequential and parallel execution working
+- [ ] Pause/resume/human checkpoints functional
 
-### Phase 8-10 (Integration & Migration)
-- [ ] All existing agents migrated
-- [ ] No regressions detected
-- [ ] Performance acceptable
-
-### Phase 11-12 (Polish & Launch)
+### Phases 8-11 Complete (Integration & Launch)
+- [ ] Router integrated with all runners
+- [ ] Example agents created
 - [ ] Documentation complete
-- [ ] Monitoring in place
 - [ ] Feature launched
 
 ---
@@ -787,43 +583,64 @@ This document outlines the phased implementation plan for the Agent Runners arch
 - **Phase 4 (API Agent)**: 4-6 days
 - **Phase 5 (External Agent)**: 3-5 days
 - **Phase 6 (Function Agent)**: 2-3 days
-- **Phase 7 (Orchestrator)**: 7-10 days
+- **Phase 7 (Orchestration)**: 7-10 days
 - **Phase 8 (Router)**: 2-3 days
-- **Phase 9 (Examples)**: 3-4 days
-- **Phase 10 (Migration)**: 5-7 days
-- **Phase 11 (Polish)**: 5-7 days
-- **Phase 12 (Launch)**: 2-3 days
+- **Phase 9 (Examples/Testing)**: 3-4 days
+- **Phase 10 (Performance/Polish)**: 3-5 days
+- **Phase 11 (Documentation/Launch)**: 2-3 days
 
-**Total Estimate**: 45-66 days (9-13 weeks)
+**Total Estimate**: 38-57 days (7-11 weeks)
 
-**Note**: Phases 2-6 can be parallelized if multiple engineers work on different agent types.
+**Note**: Phases 2-6 can be parallelized if multiple engineers work on different agent types, potentially reducing total time to 5-7 weeks.
 
 ---
 
-## Notes & Open Items
+## Current Status
 
-- [ ] Decide on template engine for system prompt interpolation (Handlebars vs simple string replace)
+### Completed
+- [x] Phase 1.1: Create IAgentRunner interface
+- [x] Phase 1.2: Create BaseAgentRunner abstract class (partial - needs orchestration)
+
+### In Progress
+- [ ] Phase 1.3: Create runner registry
+
+### Next Steps
+1. Complete Phase 1 (runner registry, tests)
+2. Start Phase 2 (Context Agent)
+3. Parallel work on Phases 3-6 if resources available
+
+---
+
+## Notes & Decisions
+
+### Architectural Decisions
+- **OOP over functional**: Class hierarchy for clarity and separation of concerns
+- **5 agent types**: context, tool, api, external, function (no separate orchestrator type)
+- **Orchestration as capability**: Built into BaseAgentRunner, available to all
+- **Transport unchanged**: A2A protocol definitions remain as-is
+- **Data from columns**: context (markdown), yaml (parsed config), function_code (JS)
+
+### Open Items
+- [ ] Decide on template engine for system prompt interpolation
 - [ ] Decide on JSONata vs alternative for API transforms
-- [ ] Finalize streaming support architecture
-- [ ] Determine caching strategy (in-memory vs Redis vs none)
-- [ ] Set performance SLAs for each agent type
-- [ ] Define monitoring/alerting strategy
+- [ ] Define streaming interface
+- [ ] Determine caching strategy
+- [ ] Set performance SLAs
 
 ---
 
 ## Team Assignments
 
-- **Phase 1-2**: [Assign engineer]
-- **Phase 3**: [Assign engineer]
-- **Phase 4**: [Assign engineer]
-- **Phase 5**: [Assign engineer]
-- **Phase 6**: [Assign engineer]
-- **Phase 7**: [Assign engineer]
-- **Phase 8**: [Assign engineer]
-- **Phase 9-12**: [Assign engineer or team]
+- **Phase 1-2**: [Claude/Assigned Engineer]
+- **Phase 3**: [Assigned Engineer]
+- **Phase 4**: [Assigned Engineer]
+- **Phase 5**: [Assigned Engineer]
+- **Phase 6**: [Assigned Engineer]
+- **Phase 7**: [Assigned Engineer/Team]
+- **Phase 8-11**: [Team]
 
 ---
 
 ## Changelog
 
-- **2025-01-XX**: Initial plan created
+- **2025-01-11**: Initial v2 plan created with correct architecture (5 types + orchestration capability)

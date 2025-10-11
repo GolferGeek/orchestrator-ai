@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { snakeToCamel } from '@/utils/case-converter';
+import { Cron } from '@nestjs/schedule';
 
 export interface TaskMessage {
   id: string;
@@ -12,6 +13,7 @@ export interface TaskMessage {
   progressPercentage?: number;
   metadata: Record<string, any>;
   createdAt: Date;
+  expiresAt: Date;
 }
 
 export interface CreateTaskMessageDto {
@@ -34,6 +36,9 @@ export interface TaskMessageQueryParams {
 @Injectable()
 export class TaskMessageService {
   private readonly logger = new Logger(TaskMessageService.name);
+  private readonly ttlMinutes = Number(
+    process.env.TASK_MESSAGE_TTL_MINUTES ?? 60,
+  );
 
   constructor(
     private readonly supabaseService: SupabaseService,
@@ -44,6 +49,8 @@ export class TaskMessageService {
    * Create a new task message
    */
   async createTaskMessage(dto: CreateTaskMessageDto): Promise<TaskMessage> {
+    const expiresAt = this.computeExpiry();
+
     const taskMessageData = {
       task_id: dto.taskId,
       user_id: dto.userId,
@@ -51,6 +58,7 @@ export class TaskMessageService {
       message_type: dto.messageType,
       progress_percentage: dto.progressPercentage,
       metadata: dto.metadata || {},
+      expires_at: expiresAt.toISOString(),
     };
 
     const { data, error } = await this.supabaseService
@@ -86,6 +94,28 @@ export class TaskMessageService {
     }
 
     return taskMessage;
+  }
+
+  @Cron('0 */15 * * * *')
+  async cleanupExpiredMessages(): Promise<void> {
+    try {
+      const cutoff = new Date().toISOString();
+      const { error, count } = await this.supabaseService
+        .getServiceClient()
+        .from('task_messages')
+        .delete({ count: 'exact' })
+        .lte('expires_at', cutoff);
+
+      if (error) {
+        throw error;
+      }
+
+      if ((count ?? 0) > 0) {
+        this.logger.log(`Pruned ${count} expired task_messages records`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to prune expired task messages', error);
+    }
   }
 
   /**
@@ -315,6 +345,15 @@ export class TaskMessageService {
       progressPercentage: converted.progressPercentage,
       metadata: converted.metadata || {},
       createdAt: new Date(converted.createdAt),
+      expiresAt: converted.expiresAt
+        ? new Date(converted.expiresAt)
+        : this.computeExpiry(),
     };
+  }
+
+  private computeExpiry(): Date {
+    const now = Date.now();
+    const ttlMs = Math.max(this.ttlMinutes, 1) * 60 * 1000;
+    return new Date(now + ttlMs);
   }
 }

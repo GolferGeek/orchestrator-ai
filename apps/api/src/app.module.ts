@@ -10,6 +10,7 @@ import { HealthModule } from './health/health.module';
 import { LLMModule } from '@/llms/llm.module';
 import { WebSocketModule } from './agent-platform/websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { MCPModule } from './mcp/mcp.module';
 import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
@@ -40,6 +41,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     WebSocketModule,
     MCPModule,
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
 
     // Main Modules (consolidated)
     LLMModule,              // Includes: providers, models, evaluation, cidafm, usage, langchain, pii

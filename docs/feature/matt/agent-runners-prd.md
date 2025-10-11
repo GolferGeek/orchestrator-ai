@@ -1,215 +1,199 @@
-# Agent Runners Architecture - PRD
+# Agent Runners Architecture - PRD v2
 
 ## Overview
 
-This PRD defines a unified agent execution architecture for the Orchestrator AI platform. The system establishes a base class hierarchy where all agent types (Context, Tool, API, External, Function, Orchestrator) inherit common execution patterns (CONVERSE, PLAN, BUILD modes) but differ in their transport mechanisms and output schemas.
+This PRD defines a unified agent execution architecture based on an object-oriented class hierarchy. All agents inherit from a base runner class that provides shared functionality (CONVERSE, PLAN modes and orchestration capabilities), while each agent type implements its own BUILD mode behavior. This architecture enables any agent to orchestrate sub-agents, creating a flexible composition model.
 
 ## Problem Statement
 
 Currently, the agent execution layer has:
-- Inconsistent execution patterns across agent types
-- No unified interface for agent runners
-- Limited composability for orchestration workflows
-- Function agents are the only non-LLM execution path
-- No clear separation between atomic agents (primitives) and composite agents (orchestrators)
+- Function agents with VM execution
+- LLM-based agents with direct dispatch
+- No clear separation between agent types (context, tool, API, external)
+- No unified pattern for agent orchestration
+- Inconsistent handling of BUILD mode across different agent capabilities
 
 This makes it difficult to:
-- Build complex workflows using agents as building blocks
-- Add new agent types consistently
-- Create orchestrator agents that compose sub-agents into graphs
-- Provide a clear alternative to n8n/Langraph using agents as primitives
+- Add new agent types with different BUILD behaviors
+- Enable agents to orchestrate other agents
+- Maintain and test agent-specific logic
+- Understand how different agents handle CONVERSE/PLAN/BUILD modes
 
 ## Goals
 
 ### Primary Goals
-1. **Unified Agent Interface**: All agents implement the same base execution interface
-2. **Mode Inheritance**: All agents support CONVERSE, PLAN, BUILD modes consistently
-3. **Transport Abstraction**: Agent types differ only in transport implementation
-4. **Composability**: Enable orchestrator agents to compose atomic agents into workflows
-5. **Extensibility**: Easy to add new agent types by extending base class
+1. **Unified Base Class**: All agent types extend `BaseAgentRunner` with shared mode handling
+2. **Type-Specific BUILD**: Each agent type implements BUILD differently based on its capabilities
+3. **Universal Orchestration**: All agents can orchestrate sub-agents through inherited `handleOrchestration()`
+4. **Clean Separation**: Each agent type in its own class file (150-300 lines, not monolithic)
+5. **OOP Architecture**: Clear inheritance hierarchy following NestJS patterns
 
 ### Secondary Goals
 1. Support agent-specific output schemas (plans, deliverables)
-2. Maintain backward compatibility with existing agents
-3. Enable context optimization across all agent types
-4. Provide clear migration path from LLM agents to Context agents
+2. Maintain backward compatibility with existing function agents
+3. Enable future overrides of CONVERSE/PLAN if needed per agent type
+4. Provide clear extension points for new agent types
 
 ## Non-Goals
 
+- Changing A2A transport protocol definitions (transport stays as-is)
 - Replacing the existing task/conversation infrastructure
-- Changing the agent2agent protocol (TaskRequestDto/TaskResponseDto)
+- Modifying the agent registry or core database schema
 - Implementing new orchestration UI
-- Modifying the agent registry or database schema (beyond adding transport definitions)
+- Changing how agents are discovered/hydrated
 
 ## Agent Type Taxonomy
 
-### Atomic Agents (Execution Primitives)
+### The 5 Agent Types
 
-#### 1. Context Agent
-**Purpose**: Retrieve/curate context, then make ONE LLM call
+Agents differ in **how they implement BUILD mode**. CONVERSE and PLAN are shared (with ability to override if needed).
 
-**Capabilities**:
-- Fetches context from sources (plans, deliverables, conversation history)
-- Optimizes context to token budget
-- Interpolates context into system prompt template
-- Makes single LLM call with curated context
-- Returns response
+#### 1. Context Agent (`type='context'`)
+**Purpose**: Use contextual information + LLM to generate responses
 
-**Transport Definition**:
+**Data Source**: `context` column (markdown)
+
+**BUILD Implementation**:
+1. Fetch context from sources (plans, deliverables, conversation history)
+2. Optimize context to token budget
+3. Combine with markdown from `context` column
+4. Interpolate into system prompt
+5. Make ONE LLM call
+6. Return deliverable
+
+**Use Cases**:
+- Chat agents (golf rules agent, Q&A agent)
+- Plan analyzers (review current plan quality)
+- Report generators (analyze data + generate report)
+- Any agent that needs LLM reasoning with context
+
+**Example**:
 ```typescript
 {
-  kind: 'context',
-  context: {
-    sources: ['plans', 'deliverables', 'conversations'],
-    systemPromptTemplate: 'You are analyzing: {{plan.content}}...',
-    tokenBudget: 8000,
-    optimization: {
-      strategy: 'relevance-scoring' | 'recency' | 'hybrid'
+  type: 'context',
+  context: '# Golf Rules Expert\nYou are an expert in golf rules...',
+  yaml: {
+    agent_card: {
+      modes: ['converse', 'plan', 'build']
     }
   }
 }
 ```
 
+#### 2. Tool Agent (`type='tool'`)
+**Purpose**: Execute MCP tools (database queries, API calls, etc.)
+
+**Data Source**: `yaml` column (defines which MCP tools)
+
+**BUILD Implementation**:
+1. Parse request to determine tool + arguments
+2. Optionally use LLM to extract arguments from natural language
+3. Call MCP service with tool name + arguments
+4. Normalize MCPToolResponse to deliverable format
+5. Return deliverable
+
 **Use Cases**:
-- Plan analyzer: Fetches current plan, analyzes against user question
-- Deliverable reviewer: Retrieves deliverables, provides feedback
-- Conversation summarizer: Prunes history, generates summary
-- Pure chat agent: No context sources, just LLM reasoning
+- Database query agent (supabase/query-db)
+- Slack notifier (slack/send-message)
+- Calculator agent
+- File processor
 
-**Note**: Context agents replace the concept of "LLM agents" - a pure LLM agent is just a context agent with `sources: []`.
-
-#### 2. Tool Agent
-**Purpose**: Execute discrete MCP tools
-
-**Capabilities**:
-- Invokes MCP tools via unified MCP service
-- Supports single or multiple tool invocation
-- Handles tool parameter mapping from user input
-- Can optionally use LLM to parse tool arguments from natural language
-
-**Transport Definition**:
+**Example**:
 ```typescript
 {
-  kind: 'tool',
-  tool: {
-    tools: ['supabase/query-db', 'slack/send-message'],
-    namespace?: string,
-    timeout?: number,
-    retries?: number,
-    mode: 'sequential' | 'parallel',
-    argumentMapping?: {
-      llmParse: boolean,  // Use LLM to extract arguments
-      schema: Record<string, any>
+  type: 'tool',
+  yaml: {
+    tools: ['supabase/query-db', 'supabase/execute-sql'],
+    tool_mode: 'sequential',
+    agent_card: {
+      modes: ['build'] // Usually no converse/plan - used by other agents
     }
   }
 }
 ```
 
-**Use Cases**:
-- Database query agent: Executes SQL via supabase/query-db
-- Slack notifier: Sends messages via slack/send-message
-- Multi-step tool agent: Query DB → analyze → send notification
-- Calculator agent: Math operations via tool
+#### 3. API Agent (`type='api'`)
+**Purpose**: Call external HTTP APIs with custom request/response transforms
 
-#### 3. API Agent
-**Purpose**: Call HTTP endpoints with custom request/response transforms
+**Data Source**: `yaml` column + `transport.api` config
 
-**Capabilities**:
-- Makes HTTP calls to arbitrary endpoints
-- Applies request transforms (map A2A format → API format)
-- Applies response transforms (map API format → A2A format)
-- Handles authentication (bearer, API key, OAuth)
-- Supports custom headers, timeouts, retries
-
-**Transport Definition**:
-```typescript
-{
-  kind: 'api',
-  api: {
-    endpoint: string,
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    timeout?: number,
-    headers?: Record<string, string>,
-    authentication?: {
-      type: 'bearer' | 'api-key' | 'oauth',
-      credentials: Record<string, any>
-    },
-    requestTransform?: {
-      template: string,  // JSONata or template string
-      mapping: Record<string, any>
-    },
-    responseTransform?: {
-      template: string,
-      mapping: Record<string, any>
-    }
-  }
-}
-```
+**BUILD Implementation**:
+1. Apply request transform (map A2A format → API format)
+2. Make HTTP call to external endpoint
+3. Apply response transform (map API format → deliverable format)
+4. Handle authentication, retries, timeouts
+5. Return deliverable
 
 **Use Cases**:
-- Third-party API integration (Stripe, Twilio, etc.)
+- Stripe integration agent
+- Twilio SMS agent
+- Third-party API wrapper
 - Legacy system integration
-- Custom webhook caller
-- External service wrapper
 
-#### 4. External Agent
-**Purpose**: Call external agents that strictly follow A2A protocol
-
-**Capabilities**:
-- Makes HTTP calls to A2A-compliant endpoints
-- Expects TaskRequestDto → TaskResponseDto contract
-- Validates protocol compliance
-- Supports health checks and capability discovery
-- Handles retries and circuit breaking
-
-**Transport Definition**:
+**Example**:
 ```typescript
 {
-  kind: 'external',
-  external: {
-    endpoint: string,
-    protocol: 'a2a',  // Strict A2A protocol
-    timeout?: number,
-    authentication?: Record<string, any>,
-    retry?: {
-      maxAttempts: number,
-      backoff: 'linear' | 'exponential'
-    },
-    expectedCapabilities?: string[],
-    healthCheck?: {
-      endpoint: string,
-      interval: number
+  type: 'api',
+  transport: {
+    kind: 'api',
+    api: {
+      endpoint: 'https://api.stripe.com/v1/charges',
+      method: 'POST',
+      authentication: { type: 'bearer' }
     }
+  },
+  yaml: {
+    request_transform: { /* mapping */ },
+    response_transform: { /* mapping */ }
   }
 }
 ```
+
+#### 4. External Agent (`type='external'`)
+**Purpose**: Call external A2A-compliant agents
+
+**Data Source**: `yaml` column + `transport.external` config
+
+**BUILD Implementation**:
+1. Validate request conforms to A2A protocol (TaskRequestDto)
+2. Make HTTP POST to external `/agent-to-agent/tasks` endpoint
+3. Validate response conforms to A2A protocol (TaskResponseDto)
+4. Handle retries, health checks, circuit breaking
+5. Return deliverable
 
 **Use Cases**:
 - Distributed agent networks
-- External A2A-compliant agents
-- Microservice agents
 - Partner organization agents
+- External microservice agents
+- A2A ecosystem agents
 
-#### 5. Function Agent
-**Purpose**: Execute sandboxed JavaScript code in VM
-
-**Capabilities**:
-- Runs user-defined JavaScript in isolated VM context
-- Access to service APIs (agent builder, etc.)
-- Timeout enforcement
-- Console logging
-
-**Transport Definition**:
+**Example**:
 ```typescript
 {
-  kind: 'function',
-  function: {
-    code: string,  // Stored in function_code column
-    timeout_ms: number,
-    allowedServices: string[]
+  type: 'external',
+  transport: {
+    kind: 'external',
+    external: {
+      endpoint: 'https://partner.com/agent-to-agent/tasks',
+      protocol: 'a2a',
+      healthCheck: { endpoint: '/health' }
+    }
   }
 }
 ```
+
+#### 5. Function Agent (`type='function'`)
+**Purpose**: Execute custom JavaScript code in sandboxed VM
+
+**Data Source**: `function_code` column
+
+**BUILD Implementation**:
+1. Read JavaScript code from `function_code` column
+2. Create VM sandbox context
+3. Execute code with timeout enforcement
+4. Provide access to service APIs (agent builder, etc.)
+5. Normalize result to deliverable format
+6. Return deliverable
 
 **Use Cases**:
 - Custom business logic
@@ -217,211 +201,467 @@ This makes it difficult to:
 - Complex calculations
 - Prototype agents
 
-### Composite Agents
-
-#### 6. Orchestrator Agent
-**Purpose**: Compose atomic agents into workflow graphs
-
-**Capabilities**:
-- Creates orchestration plans (PLAN mode)
-- Executes orchestration runs (BUILD mode)
-- Cannot respond directly to conversations (canConverse: false)
-- Manages DAG execution with dependency resolution
-- Passes outputs between agent nodes
-- Handles human checkpoints and approval gates
-
-**Transport Definition**:
+**Example**:
 ```typescript
 {
-  kind: 'orchestrator',
-  orchestrator: {
-    defaultGraph?: string,  // Reference to saved orchestration
-    availableAgents: string[],  // Sub-agent slugs
-    executionMode: 'sequential' | 'graph' | 'adaptive',
-    maxDepth?: number,  // Prevent infinite recursion
-    humanGates?: {
-      enabled: boolean,
-      checkpoints: string[]
+  type: 'function',
+  function_code: `
+    async function handler(input, ctx) {
+      // Custom logic
+      return { result: ... };
+    }
+  `,
+  transport: {
+    kind: 'function',
+    function: {
+      timeout_ms: 20000
     }
   }
 }
 ```
 
-**Use Cases**:
-- CEO orchestrator: Coordinates multiple domain agents
-- Marketing workflow: Plan → content generation → review → publish
-- Data pipeline: Extract → transform → analyze → report
-- Multi-step automation
-
 ## Architecture
 
-### Base Class Hierarchy
+### Class Hierarchy
+
+```
+BaseAgentRunner (abstract)
+├── handleConverse() - shared implementation
+├── handlePlan() - shared implementation
+├── handleBuild() - abstract (each type implements)
+├── handleOrchestration() - shared orchestration capability
+└── utility methods
+
+ContextAgentRunnerService extends BaseAgentRunner
+├── handleBuild() - context + LLM implementation
+
+ToolAgentRunnerService extends BaseAgentRunner
+├── handleBuild() - MCP tool execution
+
+ApiAgentRunnerService extends BaseAgentRunner
+├── handleBuild() - HTTP + transforms
+
+ExternalAgentRunnerService extends BaseAgentRunner
+├── handleBuild() - A2A protocol call
+
+FunctionAgentRunnerService extends BaseAgentRunner (existing)
+├── handleBuild() - VM execution (already implemented)
+```
+
+### Base Class Design
 
 ```typescript
-interface IAgentRunner {
-  execute(
+// apps/api/src/agent2agent/services/base-agent-runner.service.ts
+
+export abstract class BaseAgentRunner implements IAgentRunner {
+  protected readonly logger: Logger;
+
+  /**
+   * Main entry point - routes to mode handlers
+   */
+  async execute(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null
+  ): Promise<TaskResponseDto> {
+    // Validate mode support
+    // Route to handleConverse/handlePlan/handleBuild
+  }
+
+  /**
+   * CONVERSE mode - shared implementation
+   * Can be overridden by subclasses if needed
+   */
+  protected async handleConverse(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null
+  ): Promise<TaskResponseDto> {
+    // Default: conversational interaction
+    // Most agents use this as-is
+  }
+
+  /**
+   * PLAN mode - shared implementation
+   * Can be overridden by subclasses if needed
+   */
+  protected async handlePlan(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null
+  ): Promise<TaskResponseDto> {
+    // Default: generate/manipulate plans
+    // Most agents use this as-is
+  }
+
+  /**
+   * BUILD mode - must be implemented by each agent type
+   * This is where agent types differ
+   */
+  protected abstract handleBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null
   ): Promise<TaskResponseDto>;
+
+  /**
+   * ORCHESTRATION - shared capability for all agents
+   * Any agent can orchestrate sub-agents
+   */
+  protected async handleOrchestration(
+    action: 'execute' | 'continue' | 'pause' | 'resume' | 'human-response' | 'rollback',
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null
+  ): Promise<TaskResponseDto> {
+    switch (action) {
+      case 'execute':
+        return this.executeOrchestration(definition, request, organizationSlug);
+      case 'continue':
+        return this.continueOrchestration(definition, request, organizationSlug);
+      case 'pause':
+        return this.pauseOrchestration(definition, request, organizationSlug);
+      case 'human-response':
+        return this.handleHumanResponse(definition, request, organizationSlug);
+      case 'rollback':
+        return this.rollbackOrchestration(definition, request, organizationSlug);
+      default:
+        return TaskResponseDto.failure(request.mode!, `Unknown orchestration action: ${action}`);
+    }
+  }
+
+  // Orchestration helper methods
+  private async executeOrchestration(...) { }
+  private async continueOrchestration(...) { }
+  private async pauseOrchestration(...) { }
+  private async handleHumanResponse(...) { }
+  private async rollbackOrchestration(...) { }
+  private async callSubAgent(agentSlug: string, ...) { }
+  private async executeSequentialAgents(...) { }
+  private async executeParallelAgents(...) { }
+
+  // Utility methods
+  protected canExecuteMode(...) { }
+  protected resolveUserId(...) { }
+  protected buildMetadata(...) { }
+  protected shouldStream(...) { }
 }
-
-abstract class BaseAgentRunner implements IAgentRunner {
-  // Common mode routing
-  async execute(...): Promise<TaskResponseDto>
-
-  // Abstract methods - implemented by each runner
-  protected abstract handleConverse(...): Promise<TaskResponseDto>
-  protected abstract handlePlan(...): Promise<TaskResponseDto>
-  protected abstract handleBuild(...): Promise<TaskResponseDto>
-
-  // Shared utilities
-  protected canExecuteMode(definition, mode): boolean
-  protected resolveUserId(request): string | null
-  protected buildMetadata(request): Record<string, any>
-}
 ```
 
-### Runner Implementations
+### Routing Strategy
 
-```
-BaseAgentRunner (abstract)
-├── ContextAgentRunnerService (fetch context → LLM call)
-├── ToolAgentRunnerService (MCP tool execution)
-├── ApiAgentRunnerService (HTTP with transforms)
-├── ExternalAgentRunnerService (A2A protocol)
-├── FunctionAgentRunnerService (VM execution)
-└── OrchestratorAgentRunnerService (graph execution)
-```
-
-### Mode Handling (Consistent Across All Agents)
-
-#### CONVERSE Mode
-- Processes user message
-- Returns conversational response
-- Saves to conversation history
-- Metadata includes provider/model/usage
-
-#### PLAN Mode
-- Generates structured plan based on agent's plan schema
-- Saves to plans table via PlansService
-- Returns plan record with version
-- Supports both 'create' action (LLM generation) and other actions (read, list, edit)
-
-#### BUILD Mode
-- Creates deliverable based on agent's deliverable schema
-- Saves to deliverables table via DeliverablesService
-- Returns deliverable record with version
-- Can reference current plan if available
-- Supports both 'create' action (LLM generation) and other actions (read, list, edit)
-
-### Agent-Specific Schemas
-
-Agents can define custom output schemas in their config:
+`AgentModeRouterService` routes by `definition.agentType`:
 
 ```typescript
-{
-  agentType: 'context',
-  slug: 'marketing-planner',
-  config: {
-    plan: {
-      format: 'json' | 'markdown' | 'yaml',
-      schema?: {
-        type: 'object',
-        properties: { /* JSON Schema */ }
-      },
-      template?: string  // Optional template for structure
-    },
-    deliverable: {
-      format: 'json' | 'markdown' | 'html',
-      type: string,  // e.g., 'marketing-report', 'code', 'document'
-      schema?: { /* JSON Schema */ },
-      sections?: string[]  // Expected sections in output
+// In AgentModeRouterService.handleBuild()
+
+// Check if orchestration is requested
+if (request.payload?.orchestrate || request.payload?.orchestrationAction) {
+  // Any agent can orchestrate
+  const runner = this.getRunnerForType(definition.agentType);
+  return runner.handleOrchestration(
+    request.payload.orchestrationAction || 'execute',
+    definition,
+    request,
+    organizationSlug
+  );
+}
+
+// Otherwise, standard BUILD routing by type
+switch (definition.agentType) {
+  case 'context':
+    return this.contextRunner.execute(definition, request, organizationSlug);
+  case 'tool':
+    return this.toolRunner.execute(definition, request, organizationSlug);
+  case 'api':
+    return this.apiRunner.execute(definition, request, organizationSlug);
+  case 'external':
+    return this.externalRunner.execute(definition, request, organizationSlug);
+  case 'function':
+    return this.functionRunner.execute(definition, request, organizationSlug);
+  default:
+    return TaskResponseDto.failure(request.mode!, `Unknown agent type: ${definition.agentType}`);
+}
+```
+
+## Orchestration Capability
+
+### Universal Orchestration
+
+**Key Insight**: Orchestration is not an agent type, it's a capability available to all agents.
+
+Any agent can:
+- Call sub-agents in sequence or parallel
+- Pass data between agents
+- Handle human checkpoints
+- Pause/resume/rollback orchestrations
+
+### Orchestration Actions
+
+All agents inherit these orchestration transport types:
+
+1. **execute**: Start a new orchestration
+   - Define sequence/graph of sub-agents
+   - Execute and return final result
+
+2. **continue**: Continue a paused orchestration
+   - Resume from last checkpoint
+   - Execute remaining steps
+
+3. **pause**: Pause an orchestration
+   - Save current state
+   - Return pause token
+
+4. **resume**: Resume from pause
+   - Load saved state
+   - Continue execution
+
+5. **human-response**: Provide human input to orchestration
+   - Submit approval/rejection
+   - Provide additional input
+   - Continue execution
+
+6. **rollback**: Roll back orchestration to previous step
+   - Undo last step
+   - Restart from checkpoint
+
+### Example: Context Agent with Orchestration
+
+```typescript
+class ContextAgentRunnerService extends BaseAgentRunner {
+  protected async handleBuild(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null
+  ): Promise<TaskResponseDto> {
+    // Check if orchestration is requested
+    if (request.payload?.orchestrate) {
+      return this.handleOrchestration(
+        request.payload.orchestrationAction || 'execute',
+        definition,
+        request,
+        organizationSlug
+      );
     }
+
+    // Standard context agent build
+    // 1. Fetch context
+    const contextData = await this.fetchContextFromSources(definition);
+
+    // 2. Check if we need data from other agents
+    if (definition.config?.requiresSubAgents) {
+      const subAgentData = await this.callSubAgent(
+        definition.config.subAgentSlug,
+        request,
+        organizationSlug
+      );
+      contextData.subAgentResults = subAgentData;
+    }
+
+    // 3. Optimize context
+    const optimized = await this.contextOptimization.optimizeContext(contextData);
+
+    // 4. Build system prompt
+    const systemPrompt = this.buildSystemPrompt(definition, optimized);
+
+    // 5. Call LLM
+    const response = await this.llm.generateResponse({
+      systemPrompt,
+      userMessage: request.userMessage,
+      provider: definition.llm.provider,
+      model: definition.llm.model
+    });
+
+    // 6. Save deliverable
+    const deliverable = await this.deliverablesService.executeAction(
+      'create',
+      {
+        title: request.payload?.title || 'Context Agent Output',
+        content: response.content,
+        format: 'markdown'
+      },
+      { conversationId: request.conversationId, userId: this.resolveUserId(request) }
+    );
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: deliverable.data,
+      metadata: response.metadata
+    });
   }
 }
 ```
 
-### Routing
+## Data Model
 
-AgentModeRouterService routes by `transport.kind`:
+### Agent Table Columns
+
+Agents have the following key columns that determine behavior:
+
+- **`type`**: String identifying agent type
+  - Values: `'context'`, `'tool'`, `'api'`, `'external'`, `'function'`
+
+- **`context`**: Markdown text
+  - Contains context/instructions for the agent
+  - Used by context agents in system prompt
+
+- **`yaml`**: YAML text
+  - Parsed into agent card (A2A protocol)
+  - Contains metadata: modes, tools, endpoints, capabilities
+  - Used by tool/api/external agents for configuration
+
+- **`function_code`**: JavaScript code
+  - Used by function agents
+  - Executed in VM sandbox
+
+### Agent Runtime Definition
 
 ```typescript
-private async handleBuild(context: HydratedExecutionContext) {
-  const transport = context.definition.transport;
+export interface AgentRuntimeDefinition {
+  id: string;
+  slug: string;
+  organizationSlug: string | null;
+  agentType: string; // 'context' | 'tool' | 'api' | 'external' | 'function'
 
-  switch (transport?.kind) {
-    case 'context':
-      return this.contextRunner.execute(...);
-    case 'tool':
-      return this.toolRunner.execute(...);
-    case 'api':
-      return this.apiRunner.execute(...);
-    case 'external':
-      return this.externalRunner.execute(...);
-    case 'function':
-      return this.functionRunner.execute(...);
-    case 'orchestrator':
-      return this.orchestratorRunner.execute(...);
-    default:
-      return TaskResponseDto.failure(...);
+  // Existing fields
+  transport?: AgentTransportDefinition; // A2A transport (api, external, function, none)
+  llm?: AgentLLMDefinition;
+  execution: AgentExecutionDefinition;
+  context: Record<string, any> | null; // Parsed from context column
+  config: Record<string, any> | null; // Parsed from yaml column
+
+  // Agent card
+  agentCard?: Record<string, any> | null; // Parsed from yaml
+
+  // ... other fields
+}
+```
+
+### Config Schema Extensions
+
+Agents can define custom schemas in config for plans/deliverables:
+
+```typescript
+// In agent's config (from yaml)
+{
+  plan: {
+    format: 'json' | 'markdown' | 'yaml',
+    schema?: { /* JSON Schema */ },
+    template?: string
+  },
+  deliverable: {
+    format: 'json' | 'markdown' | 'html',
+    type: string,
+    schema?: { /* JSON Schema */ },
+    sections?: string[]
+  },
+  orchestration?: {
+    availableAgents: string[],
+    defaultMode: 'sequential' | 'parallel',
+    maxDepth: number
   }
 }
 ```
 
 ## User Flows
 
-### Flow 1: Context Agent Execution
-1. User sends message to context agent
-2. ContextAgentRunner.execute() called
-3. Runner fetches context from sources (plans, deliverables, history)
-4. Context optimized to token budget
-5. System prompt interpolated with context
-6. ONE LLM call made
-7. Response returned as TaskResponseDto
+### Flow 1: Context Agent BUILD
+1. User sends BUILD request to context agent
+2. Router calls `ContextAgentRunner.execute()`
+3. Runner calls `handleBuild()`
+4. Fetches context from sources (plans, deliverables, history)
+5. Reads markdown from `context` column
+6. Optimizes context to token budget
+7. Interpolates into system prompt
+8. Calls LLM
+9. Saves deliverable via DeliverablesService
+10. Returns TaskResponseDto with deliverable
 
-### Flow 2: Tool Agent Execution
-1. User sends message to tool agent
-2. ToolAgentRunner.execute() called
-3. Runner parses user message to extract tool + arguments (or uses LLM to parse)
-4. MCP tool invoked via MCPService
-5. Tool response normalized to TaskResponseDto
-6. Response returned
+### Flow 2: Tool Agent BUILD (Called by Another Agent)
+1. Context agent needs data, calls tool agent via `callSubAgent()`
+2. Tool agent receives BUILD request
+3. Router calls `ToolAgentRunner.execute()`
+4. Runner calls `handleBuild()`
+5. Parses request to extract tool name + arguments
+6. Calls MCPService.callTool()
+7. Normalizes MCPToolResponse to deliverable format
+8. Returns TaskResponseDto to calling agent
 
-### Flow 3: Orchestrator Agent Execution (PLAN mode)
-1. User requests orchestration plan
-2. OrchestratorRunner.execute() with mode=PLAN
-3. Runner analyzes request to determine sub-agents needed
-4. Builds DAG of agent nodes with dependencies
-5. Saves orchestration plan
-6. Returns plan as TaskResponseDto
+### Flow 3: Context Agent with Orchestration
+1. User sends BUILD request with `payload.orchestrate = true`
+2. Router calls `ContextAgentRunner.execute()`
+3. Runner detects orchestration request
+4. Calls `handleOrchestration('execute', ...)`
+5. Orchestration logic:
+   - Determines sub-agents needed (from config or LLM planning)
+   - Calls product agent via `callSubAgent()`
+   - Calls data agent via `callSubAgent()`
+   - Aggregates results
+6. Uses aggregated data as context for LLM
+7. Generates final deliverable
+8. Returns TaskResponseDto
 
-### Flow 4: Orchestrator Agent Execution (BUILD mode)
-1. User triggers orchestration execution
-2. OrchestratorRunner.execute() with mode=BUILD
-3. Runner starts OrchestrationRun
-4. Executes graph nodes in dependency order:
-   - Calls sub-agent (context/tool/api/external/function)
-   - Waits for response
-   - Passes output to dependent nodes
-5. Handles human checkpoints if configured
-6. Returns final aggregated result
+### Flow 4: API Agent BUILD
+1. User sends BUILD request to API agent
+2. Router calls `ApiAgentRunner.execute()`
+3. Runner calls `handleBuild()`
+4. Reads request transform from `yaml` config
+5. Transforms TaskRequestDto → API format
+6. Makes HTTP call using `transport.api` config
+7. Reads response transform from `yaml` config
+8. Transforms API response → deliverable format
+9. Saves deliverable via DeliverablesService
+10. Returns TaskResponseDto
 
-### Flow 5: API Agent Execution
-1. User sends message to API agent
-2. ApiAgentRunner.execute() called
-3. Request transformed using requestTransform
-4. HTTP call made to external endpoint
-5. Response transformed using responseTransform
-6. Normalized to TaskResponseDto
-7. Response returned
+### Flow 5: External Agent BUILD
+1. User sends BUILD request to external agent
+2. Router calls `ExternalAgentRunner.execute()`
+3. Runner calls `handleBuild()`
+4. Validates request conforms to A2A protocol
+5. Makes HTTP POST to external endpoint using `transport.external` config
+6. Validates response conforms to A2A protocol
+7. Extracts deliverable from response
+8. Returns TaskResponseDto
+
+### Flow 6: Orchestration with Human Checkpoint
+1. Context agent starts orchestration
+2. Executes step 1 (calls product agent)
+3. Executes step 2 (calls data agent)
+4. Reaches human checkpoint (defined in config)
+5. Calls `handleOrchestration('pause', ...)`
+6. Creates human approval record
+7. Returns TaskResponseDto with approval ID
+8. User approves via separate request
+9. User sends `orchestrationAction: 'human-response'` with approval
+10. Calls `handleOrchestration('human-response', ...)`
+11. Validates approval
+12. Calls `continueOrchestration()`
+13. Executes remaining steps
+14. Returns final TaskResponseDto
 
 ## Technical Specifications
 
-### Interface Definitions
+### File Structure
+
+```
+apps/api/src/agent2agent/
+├── interfaces/
+│   └── agent-runner.interface.ts (IAgentRunner)
+├── services/
+│   ├── base-agent-runner.service.ts (BaseAgentRunner abstract class)
+│   ├── context-agent-runner.service.ts (ContextAgentRunnerService)
+│   ├── tool-agent-runner.service.ts (ToolAgentRunnerService)
+│   ├── api-agent-runner.service.ts (ApiAgentRunnerService)
+│   ├── external-agent-runner.service.ts (ExternalAgentRunnerService)
+│   ├── function-agent-runner.service.ts (FunctionAgentRunnerService - refactored)
+│   ├── agent-runner-registry.service.ts (Registry/factory)
+│   └── agent-mode-router.service.ts (Updated routing)
+```
+
+### Interface Definition
 
 ```typescript
-// apps/api/src/agent2agent/services/base-agent-runner.interface.ts
+// apps/api/src/agent2agent/interfaces/agent-runner.interface.ts
+
 export interface IAgentRunner {
   execute(
     definition: AgentRuntimeDefinition,
@@ -429,226 +669,129 @@ export interface IAgentRunner {
     organizationSlug: string | null
   ): Promise<TaskResponseDto>;
 }
-
-// apps/api/src/agent2agent/services/base-agent-runner.service.ts
-export abstract class BaseAgentRunner implements IAgentRunner {
-  async execute(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null
-  ): Promise<TaskResponseDto> {
-    // Validate mode support
-    if (!this.canExecuteMode(definition, request.mode)) {
-      return TaskResponseDto.failure(
-        request.mode,
-        `Agent does not support ${request.mode} mode`
-      );
-    }
-
-    // Route to mode handler
-    switch (request.mode) {
-      case AgentTaskMode.CONVERSE:
-        return this.handleConverse(definition, request, organizationSlug);
-      case AgentTaskMode.PLAN:
-        return this.handlePlan(definition, request, organizationSlug);
-      case AgentTaskMode.BUILD:
-        return this.handleBuild(definition, request, organizationSlug);
-      default:
-        return TaskResponseDto.failure(request.mode, 'Unsupported mode');
-    }
-  }
-
-  protected abstract handleConverse(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null
-  ): Promise<TaskResponseDto>;
-
-  protected abstract handlePlan(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null
-  ): Promise<TaskResponseDto>;
-
-  protected abstract handleBuild(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null
-  ): Promise<TaskResponseDto>;
-
-  protected canExecuteMode(
-    definition: AgentRuntimeDefinition,
-    mode: AgentTaskMode
-  ): boolean {
-    const exec = definition.execution;
-    switch (mode) {
-      case AgentTaskMode.CONVERSE: return exec.canConverse;
-      case AgentTaskMode.PLAN: return exec.canPlan;
-      case AgentTaskMode.BUILD: return exec.canBuild;
-      default: return false;
-    }
-  }
-
-  protected resolveUserId(request: TaskRequestDto): string | null {
-    return request.metadata?.userId ||
-           request.payload?.metadata?.userId ||
-           null;
-  }
-
-  protected buildMetadata(
-    request: TaskRequestDto,
-    additional?: Record<string, any>
-  ): Record<string, any> {
-    return {
-      ...(request.metadata ?? {}),
-      ...(request.payload?.metadata ?? {}),
-      ...(additional ?? {}),
-    };
-  }
-}
 ```
 
-### Transport Definition Updates
+### Runner Registry
 
 ```typescript
-// apps/api/src/agent-platform/interfaces/database-agent-definition.interface.ts
+// apps/api/src/agent2agent/services/agent-runner-registry.service.ts
 
-export interface AgentTransportContextDefinition {
-  sources: ('plans' | 'deliverables' | 'conversations' | 'projects')[];
-  systemPromptTemplate: string;
-  tokenBudget?: number;
-  optimization?: {
-    strategy: 'relevance-scoring' | 'recency' | 'hybrid';
-  };
-}
+@Injectable()
+export class AgentRunnerRegistryService {
+  private runners: Map<string, IAgentRunner>;
 
-export interface AgentTransportToolDefinition {
-  tools: string[];  // MCP tool names with namespace
-  namespace?: string;
-  timeout?: number;
-  retries?: number;
-  mode?: 'sequential' | 'parallel';
-  argumentMapping?: {
-    llmParse?: boolean;
-    schema?: Record<string, any>;
-  };
-}
+  constructor(
+    private readonly contextRunner: ContextAgentRunnerService,
+    private readonly toolRunner: ToolAgentRunnerService,
+    private readonly apiRunner: ApiAgentRunnerService,
+    private readonly externalRunner: ExternalAgentRunnerService,
+    private readonly functionRunner: FunctionAgentRunnerService,
+  ) {
+    this.runners = new Map([
+      ['context', this.contextRunner],
+      ['tool', this.toolRunner],
+      ['api', this.apiRunner],
+      ['external', this.externalRunner],
+      ['function', this.functionRunner],
+    ]);
+  }
 
-export interface AgentTransportOrchestratorDefinition {
-  defaultGraph?: string;
-  availableAgents: string[];
-  executionMode: 'sequential' | 'graph' | 'adaptive';
-  maxDepth?: number;
-  humanGates?: {
-    enabled: boolean;
-    checkpoints: string[];
-  };
-}
-
-export interface AgentTransportDefinition {
-  kind: 'context' | 'tool' | 'api' | 'external' | 'function' | 'orchestrator';
-  context?: AgentTransportContextDefinition;
-  tool?: AgentTransportToolDefinition;
-  api?: AgentTransportApiDefinition;
-  external?: AgentTransportExternalDefinition;
-  function?: Record<string, any>;
-  orchestrator?: AgentTransportOrchestratorDefinition;
-  raw?: Record<string, any> | null;
-}
-```
-
-### Agent Config Schema
-
-```typescript
-export interface AgentConfigPlanDefinition {
-  format: 'json' | 'markdown' | 'yaml';
-  schema?: Record<string, any>;  // JSON Schema
-  template?: string;
-}
-
-export interface AgentConfigDeliverableDefinition {
-  format: 'json' | 'markdown' | 'html';
-  type: string;
-  schema?: Record<string, any>;  // JSON Schema
-  sections?: string[];
-}
-
-// Extend existing AgentRuntimeDefinition.config
-export interface AgentConfig {
-  plan?: AgentConfigPlanDefinition;
-  deliverable?: AgentConfigDeliverableDefinition;
-  [key: string]: any;
+  getRunner(agentType: string): IAgentRunner | null {
+    return this.runners.get(agentType) || null;
+  }
 }
 ```
 
 ## Migration Path
 
-### Phase 1: Foundation
+### Phase 1: Foundation (Week 1)
 1. Create base interface and abstract class
-2. Update transport definitions
-3. Update config schema definitions
+2. Create runner registry
+3. Update config schema definitions (keep transport unchanged)
 
-### Phase 2: Atomic Agents
+### Phase 2: Context Agent (Week 2)
 1. Implement ContextAgentRunnerService
-2. Implement ToolAgentRunnerService
-3. Implement ApiAgentRunnerService
-4. Implement ExternalAgentRunnerService
-5. Migrate FunctionAgentRunnerService to extend BaseAgentRunner
+2. Integrate with ContextOptimizationService
+3. Add context fetching from sources
+4. Test with existing agents
 
-### Phase 3: Routing
-1. Update AgentModeRouterService to route by transport.kind
-2. Add runner registry/factory pattern
-3. Update dependency injection
+### Phase 3: Tool Agent (Week 2-3)
+1. Implement ToolAgentRunnerService
+2. Integrate with MCPService
+3. Add tool request parsing
+4. Test with MCP tools
 
-### Phase 4: Orchestrator
-1. Implement OrchestratorAgentRunnerService
-2. Integrate with existing OrchestrationRunnerService
-3. Add DAG execution engine
+### Phase 4: API & External Agents (Week 3-4)
+1. Implement ApiAgentRunnerService
+2. Implement ExternalAgentRunnerService
+3. Use existing transport configurations
+4. Test with mock endpoints
+
+### Phase 5: Function Agent Migration (Week 4)
+1. Refactor FunctionAgentRunnerService to extend BaseAgentRunner
+2. Ensure existing tests pass
+3. No behavior changes
+
+### Phase 6: Orchestration (Week 5-6)
+1. Implement orchestration methods in BaseAgentRunner
+2. Add sub-agent calling logic
+3. Implement pause/resume/rollback
 4. Add human checkpoint handling
+5. Test orchestration flows
 
-### Phase 5: Testing & Migration
-1. Create example agents of each type
-2. Write integration tests
-3. Migrate existing LLM agents to context agents
-4. Performance testing
+### Phase 7: Router Integration (Week 6)
+1. Update AgentModeRouterService
+2. Add routing by agentType
+3. Integrate runner registry
+4. Test all agent types
+
+### Phase 8: Testing & Polish (Week 7-8)
+1. Comprehensive integration tests
+2. Performance testing
+3. Documentation
+4. Example agents
 
 ## Success Metrics
 
 ### Engineering Metrics
-- All 6 agent types implemented and tested
-- 100% of existing agents migrated successfully
+- All 5 agent types implemented with <300 lines each
+- 100% backward compatibility with existing function agents
 - No regression in existing functionality
-- <200ms overhead for base class routing
+- <100ms overhead for base class routing
 
 ### Product Metrics
-- Orchestrator agents can compose 3+ sub-agents
+- Agents can orchestrate 3+ sub-agents
 - Context agents support 4+ context sources
 - Tool agents support 10+ MCP tools
-- API/External agents support 5+ real-world integrations
+- API/External agents support 5+ real integrations
 
 ### Developer Experience
-- New agent type can be added in <1 day
-- Agent creation via builder generates correct transport config
-- Clear documentation with examples for each agent type
+- New agent type can be added by extending BaseAgentRunner (<1 day)
+- Clear separation of concerns (each type in own file)
+- Easy to test each agent type independently
 
 ## Open Questions
 
-1. **Streaming support**: How do we handle streaming responses consistently across all agent types?
-2. **Caching**: Should context agents cache fetched context? For how long?
-3. **Tool selection**: Should tool agents use LLM to select which tool to use, or require explicit tool specification?
-4. **Orchestrator recursion**: What's the max depth for orchestrators calling orchestrators?
-5. **Error handling**: How do we standardize error responses across transport types?
-6. **Rate limiting**: Should each transport type have its own rate limiting strategy?
+1. **Streaming**: How should streaming work across all agent types? Context agents stream LLM, but what about tool/api/external agents?
+
+2. **Context caching**: Should context agents cache fetched plans/deliverables? For how long?
+
+3. **Tool selection**: Should tool agents use LLM to select which tool, or require explicit specification?
+
+4. **Orchestration depth**: What's the max depth for orchestrations calling orchestrations? Default to 3?
+
+5. **Error handling**: How do we standardize error responses when sub-agents fail during orchestration?
+
+6. **Performance**: Should we parallelize context fetching from multiple sources?
 
 ## Future Enhancements
 
-- **Agent composition UI**: Visual graph builder for orchestrator agents
+- **Multi-modal context agents**: Support for image/audio/video context
+- **Agent composition UI**: Visual builder for orchestration definitions
 - **Agent marketplace**: Share and discover pre-built agents
-- **Multi-modal agents**: Support for image/audio/video in context agents
-- **Streaming orchestrations**: Real-time progress updates during graph execution
 - **Agent analytics**: Usage tracking, performance metrics per agent type
 - **Agent versioning**: Semantic versioning for agent definitions
-- **Agent testing framework**: Unit/integration test harness for agent builders
+- **Agent testing framework**: Unit/integration test harness
 
 ## References
 
@@ -658,3 +801,4 @@ export interface AgentConfig {
 - [Context Optimization Service](apps/api/src/agent2agent/context-optimization/context-optimization.service.ts)
 - [MCP Service](apps/api/src/mcp/mcp.service.ts)
 - [Agent Runtime Definition](apps/api/src/agent-platform/interfaces/database-agent-definition.interface.ts)
+- [Orchestration Runner Service](apps/api/src/agent-platform/services/orchestration-runner.service.ts)
