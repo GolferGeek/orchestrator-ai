@@ -10,6 +10,10 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { Request } from 'express';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { SupabaseAuthUserDto } from '../dto/auth.dto';
+import {
+  StreamTokenClaims,
+  StreamTokenService,
+} from '../services/stream-token.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -17,7 +21,8 @@ export class JwtAuthGuard implements CanActivate {
 
   constructor(
     private readonly supabaseService: SupabaseService,
-    private reflector: Reflector,
+    private readonly streamTokenService: StreamTokenService,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -57,54 +62,113 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    // Only proceed with JWT validation if no valid test API key was provided
-    // Extract JWT token from Authorization header
-    const authHeader = request.headers.authorization;
-    const token = authHeader?.replace('Bearer ', '');
+    const bearerToken = this.extractBearerToken(request);
+    if (bearerToken) {
+      try {
+        const supabaseClient = this.supabaseService.getAnonClient();
+        const {
+          data: { user },
+          error,
+        } = await supabaseClient.auth.getUser(bearerToken);
 
-    if (!token) {
-      throw new UnauthorizedException('No token provided');
-    }
+        if (error || !user) {
+          throw new UnauthorizedException('Invalid token');
+        }
 
-    try {
-      // Verify the token with Supabase
-      const supabaseClient = this.supabaseService.getAnonClient();
-      const {
-        data: { user },
-        error,
-      } = await supabaseClient.auth.getUser(token);
+        const validatedUser: SupabaseAuthUserDto = {
+          id: user.id,
+          email: user.email,
+          aud: user.aud,
+          role: user.role,
+          appMetadata: user.app_metadata || {},
+          userMetadata: user.user_metadata || {},
+          phone: user.phone,
+          emailConfirmedAt: user.email_confirmed_at
+            ? new Date(user.email_confirmed_at)
+            : undefined,
+          confirmedAt: user.confirmed_at
+            ? new Date(user.confirmed_at)
+            : undefined,
+          lastSignInAt: user.last_sign_in_at
+            ? new Date(user.last_sign_in_at)
+            : undefined,
+          createdAt: user.created_at ? new Date(user.created_at) : undefined,
+          updatedAt: user.updated_at ? new Date(user.updated_at) : undefined,
+          identities: user.identities || [],
+        };
 
-      if (error || !user) {
+        (request as any).user = validatedUser;
+        return true;
+      } catch (error) {
+        this.logger.warn('Bearer token validation failed', {
+          reason: (error as Error)?.message,
+        });
         throw new UnauthorizedException('Invalid token');
       }
+    }
 
-      // Attach user to request object
-      const validatedUser: SupabaseAuthUserDto = {
-        id: user.id,
-        email: user.email,
-        aud: user.aud,
-        role: user.role,
-        appMetadata: user.app_metadata || {},
-        userMetadata: user.user_metadata || {},
-        phone: user.phone,
-        emailConfirmedAt: user.email_confirmed_at
-          ? new Date(user.email_confirmed_at)
-          : undefined,
-        confirmedAt: user.confirmed_at
-          ? new Date(user.confirmed_at)
-          : undefined,
-        lastSignInAt: user.last_sign_in_at
-          ? new Date(user.last_sign_in_at)
-          : undefined,
-        createdAt: user.created_at ? new Date(user.created_at) : undefined,
-        updatedAt: user.updated_at ? new Date(user.updated_at) : undefined,
-        identities: user.identities || [],
-      };
+    const queryToken = this.extractQueryToken(request);
+    if (queryToken) {
+      const claims = this.streamTokenService.verifyToken(queryToken);
+      const validatedUser = this.buildUserFromClaims(claims);
 
       (request as any).user = validatedUser;
+      (request as any).streamTokenClaims = claims;
+      (request as any).sanitizedUrl = this.streamTokenService.stripTokenFromUrl(
+        (request as any).originalUrl ?? request.url,
+      );
+
+      if (request.query && typeof request.query === 'object') {
+        if ('token' in request.query) {
+          delete (request.query as any).token;
+        }
+      }
+
       return true;
-    } catch (_error) {
-      throw new UnauthorizedException('Invalid token');
     }
+
+    throw new UnauthorizedException('No token provided');
+  }
+
+  private extractBearerToken(request: Request): string | null {
+    const authHeader = request.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return null;
+    }
+    const token = authHeader.slice('Bearer '.length).trim();
+    return token || null;
+  }
+
+  private extractQueryToken(request: Request): string | null {
+    const query: Record<string, unknown> | undefined = request.query as any;
+    if (!query) {
+      return null;
+    }
+    const raw = query.token ?? query.streamToken;
+    if (!raw) {
+      return null;
+    }
+    if (Array.isArray(raw)) {
+      return raw.length ? String(raw[0]) : null;
+    }
+    if (typeof raw === 'string') {
+      return raw.trim() ? raw : null;
+    }
+    return null;
+  }
+
+  private buildUserFromClaims(claims: StreamTokenClaims): SupabaseAuthUserDto {
+    return {
+      id: claims.sub,
+      email: claims.email,
+      aud: claims.aud ?? 'authenticated',
+      role: claims.role ?? 'authenticated',
+      appMetadata: {
+        provider: 'stream_token',
+        providers: ['stream_token'],
+      },
+      userMetadata: {},
+      identities: [],
+    };
   }
 }

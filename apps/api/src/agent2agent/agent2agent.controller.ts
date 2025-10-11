@@ -10,6 +10,10 @@ import {
   Post,
   Query,
   UseGuards,
+  Res,
+  Req,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AgentCardBuilderService } from './services/agent-card-builder.service';
 import { AgentExecutionGateway } from './services/agent-execution-gateway.service';
@@ -35,6 +39,24 @@ import {
   A2ATaskErrorResponse,
   JsonRpcErrorCode,
 } from '@orchestrator-ai/transport-types';
+import { Response, Request } from 'express';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  AgentStreamChunkEvent,
+  AgentStreamCompleteEvent,
+  AgentStreamErrorEvent,
+} from '../agent-platform/services/agent-runtime-stream.service';
+import {
+  AgentStreamChunkSSEEvent,
+  AgentStreamCompleteSSEEvent,
+  AgentStreamErrorSSEEvent,
+  SSEEvent,
+} from '@orchestrator-ai/transport-types';
+import { CreateStreamTokenDto } from './dto/create-stream-token.dto';
+import {
+  StreamTokenClaims,
+  StreamTokenService,
+} from '../auth/services/stream-token.service';
 
 interface NormalizedTaskRequest {
   dto: NormalizedTaskRequestDto;
@@ -48,6 +70,10 @@ interface NormalizedTaskRequest {
 type JsonRpcSuccessEnvelope = A2ATaskSuccessResponse;
 type JsonRpcErrorEnvelope = A2ATaskErrorResponse;
 
+type AgentTaskRecord = NonNullable<
+  Awaited<ReturnType<Agent2AgentTasksService['getTaskById']>>
+>;
+
 @Controller()
 export class Agent2AgentController {
   constructor(
@@ -59,6 +85,8 @@ export class Agent2AgentController {
     private readonly agentRegistry: AgentRegistryService,
     private readonly agentDeliverablesService: Agent2AgentDeliverablesService,
     private readonly supabaseService: SupabaseService,
+    private readonly streamTokenService: StreamTokenService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private readonly logger = new Logger(Agent2AgentController.name);
@@ -350,11 +378,349 @@ export class Agent2AgentController {
     }
   }
 
+  @Post('agent-to-agent/:orgSlug/:agentSlug/tasks/:taskId/stream-token')
+  @UseGuards(JwtAuthGuard)
+  async createStreamToken(
+    @Param('orgSlug') orgSlug: string,
+    @Param('agentSlug') agentSlug: string,
+    @Param('taskId') taskId: string,
+    @Body() body: CreateStreamTokenDto,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Req() request: Request,
+  ) {
+    const organizationSlug = this.normalizeOrgSlug(orgSlug);
+    const sanitizedUrl =
+      (request as any).sanitizedUrl ??
+      this.streamTokenService.stripTokenFromUrl(
+        request.originalUrl || request.url,
+      );
+
+    const task = await this.ensureTaskOwnership(taskId, currentUser.id);
+    this.assertTaskContext(task, agentSlug, organizationSlug);
+
+    const { token, expiresAt } = this.streamTokenService.issueToken({
+      user: currentUser,
+      taskId,
+      agentSlug,
+      organizationSlug,
+      streamId: body.streamId,
+      conversationId: task.agentConversationId ?? null,
+    });
+
+    this.logger.debug('Issued stream token', {
+      userId: currentUser.id,
+      taskId,
+      agentSlug,
+      organizationSlug: organizationSlug ?? 'global',
+      streamId: body.streamId ?? null,
+      url: sanitizedUrl,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    return {
+      success: true,
+      token,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
+  @Get('agent-to-agent/:orgSlug/:agentSlug/tasks/:taskId/stream')
+  @UseGuards(JwtAuthGuard)
+  async streamAgentTask(
+    @Param('orgSlug') orgSlug: string,
+    @Param('agentSlug') agentSlug: string,
+    @Param('taskId') taskId: string,
+    @Query('streamId') streamIdParam: string | undefined,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Req() request: Request,
+    @Res() response: Response,
+  ): Promise<void> {
+    const organizationSlug = this.normalizeOrgSlug(orgSlug);
+    const claims = (request as any).streamTokenClaims as
+      | StreamTokenClaims
+      | undefined;
+
+    if (claims) {
+      if (
+        claims.taskId !== taskId ||
+        claims.agentSlug !== agentSlug ||
+        (claims.organizationSlug ?? null) !== organizationSlug
+      ) {
+        throw new UnauthorizedException('Stream token does not match request');
+      }
+    }
+
+    const task = await this.ensureTaskOwnership(taskId, currentUser.id);
+    this.assertTaskContext(task, agentSlug, organizationSlug);
+
+    const streamId = streamIdParam || claims?.streamId;
+    const allowedStreamId = claims?.streamId;
+    const expectedConversationId = task.agentConversationId ?? null;
+
+    const sanitizedUrl =
+      (request as any).sanitizedUrl ??
+      this.streamTokenService.stripTokenFromUrl(
+        request.originalUrl || request.url,
+      );
+
+    this.logger.debug('Opening SSE stream', {
+      userId: currentUser.id,
+      taskId,
+      agentSlug,
+      organizationSlug: organizationSlug ?? 'global',
+      streamId: streamId ?? null,
+      url: sanitizedUrl,
+    });
+
+    response.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    response.flushHeaders?.();
+    response.write(': connected\n\n');
+
+    const keepAlive = setInterval(() => {
+      response.write(': keepalive\n\n');
+    }, 15000);
+
+    let streamActive = true;
+
+    const cleanup = () => {
+      if (!streamActive) {
+        return;
+      }
+      streamActive = false;
+      clearInterval(keepAlive);
+      this.eventEmitter.off('agent.stream.chunk', chunkListener);
+      this.eventEmitter.off('agent.stream.complete', completeListener);
+      this.eventEmitter.off('agent.stream.error', errorListener);
+    };
+
+    const endStream = (reason: string) => {
+      if (streamActive) {
+        this.logger.debug('Closing SSE stream', {
+          userId: currentUser.id,
+          taskId,
+          reason,
+        });
+      }
+      cleanup();
+      if (!response.writableEnded) {
+        response.end();
+      }
+    };
+
+    const chunkListener = (event: AgentStreamChunkEvent) => {
+      if (
+        !this.matchesStreamEvent(event, {
+          agentSlug,
+          organizationSlug,
+          streamId,
+          allowedStreamId,
+          conversationId: expectedConversationId,
+        })
+      ) {
+        return;
+      }
+      this.writeSseEvent(response, this.toChunkSseEvent(event));
+    };
+
+    const completeListener = (event: AgentStreamCompleteEvent) => {
+      if (
+        !this.matchesStreamEvent(event, {
+          agentSlug,
+          organizationSlug,
+          streamId,
+          allowedStreamId,
+          conversationId: expectedConversationId,
+        })
+      ) {
+        return;
+      }
+      this.writeSseEvent(response, this.toCompleteSseEvent(event));
+      endStream('complete');
+    };
+
+    const errorListener = (event: AgentStreamErrorEvent) => {
+      if (
+        !this.matchesStreamEvent(event, {
+          agentSlug,
+          organizationSlug,
+          streamId,
+          allowedStreamId,
+          conversationId: expectedConversationId,
+        })
+      ) {
+        return;
+      }
+      this.writeSseEvent(response, this.toErrorSseEvent(event));
+      endStream('error');
+    };
+
+    this.eventEmitter.on('agent.stream.chunk', chunkListener);
+    this.eventEmitter.on('agent.stream.complete', completeListener);
+    this.eventEmitter.on('agent.stream.error', errorListener);
+
+    request.on('close', () => endStream('client_closed'));
+    request.on('error', () => endStream('client_error'));
+    response.on('close', () => endStream('response_closed'));
+    response.on('error', () => endStream('response_error'));
+  }
+
   /**
    * Minimal health endpoint for A2A agents
    * Route: GET /agent-to-agent/:orgSlug/:agentSlug/health
    * Public: returns a simple status payload without secrets
    */
+  private normalizeOrgSlug(orgSlug: string): string | null {
+    if (!orgSlug || orgSlug === 'global') {
+      return null;
+    }
+    return orgSlug;
+  }
+
+  private async ensureTaskOwnership(
+    taskId: string,
+    userId: string,
+  ): Promise<AgentTaskRecord> {
+    const task = await this.tasksService.getTaskById(taskId, userId);
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    return task;
+  }
+
+  private assertTaskContext(
+    task: AgentTaskRecord,
+    agentSlug: string,
+    organizationSlug: string | null,
+  ): void {
+    if (task.agentName !== agentSlug) {
+      throw new UnauthorizedException(
+        'Task does not belong to the requested agent',
+      );
+    }
+
+    const taskNamespace =
+      typeof task.namespace === 'string' && task.namespace.length
+        ? task.namespace
+        : null;
+    const taskOrg =
+      taskNamespace === 'global' || taskNamespace === null
+        ? null
+        : taskNamespace;
+
+    if (taskOrg !== organizationSlug) {
+      throw new UnauthorizedException(
+        'Task does not belong to the requested organization',
+      );
+    }
+  }
+
+  private matchesStreamEvent(
+    event:
+      | AgentStreamChunkEvent
+      | AgentStreamCompleteEvent
+      | AgentStreamErrorEvent,
+    filters: {
+      agentSlug: string;
+      organizationSlug: string | null;
+      streamId?: string;
+      allowedStreamId?: string;
+      conversationId?: string | null;
+    },
+  ): boolean {
+    if (event.agentSlug !== filters.agentSlug) {
+      return false;
+    }
+    if ((event.organizationSlug ?? null) !== filters.organizationSlug) {
+      return false;
+    }
+
+    const candidateStreamIds = [
+      filters.streamId,
+      filters.allowedStreamId,
+    ].filter((id): id is string => Boolean(id));
+
+    if (candidateStreamIds.length > 0) {
+      return candidateStreamIds.includes(event.streamId);
+    }
+
+    if (filters.conversationId) {
+      return event.conversationId === filters.conversationId;
+    }
+
+    return true;
+  }
+
+  private toChunkSseEvent(
+    event: AgentStreamChunkEvent,
+  ): AgentStreamChunkSSEEvent {
+    return {
+      event: 'agent_stream_chunk',
+      data: {
+        streamId: event.streamId,
+        conversationId: event.conversationId,
+        orchestrationRunId: event.orchestrationRunId,
+        organizationSlug: event.organizationSlug ?? null,
+        agentSlug: event.agentSlug,
+        mode: event.mode,
+        timestamp: new Date().toISOString(),
+        chunk: {
+          type: event.chunk.type,
+          content: event.chunk.content,
+          metadata: event.chunk.metadata,
+        },
+      },
+    };
+  }
+
+  private toCompleteSseEvent(
+    event: AgentStreamCompleteEvent,
+  ): AgentStreamCompleteSSEEvent {
+    return {
+      event: 'agent_stream_complete',
+      data: {
+        streamId: event.streamId,
+        conversationId: event.conversationId,
+        orchestrationRunId: event.orchestrationRunId,
+        organizationSlug: event.organizationSlug ?? null,
+        agentSlug: event.agentSlug,
+        mode: event.mode,
+        timestamp: new Date().toISOString(),
+        type: 'complete',
+      },
+    };
+  }
+
+  private toErrorSseEvent(
+    event: AgentStreamErrorEvent,
+  ): AgentStreamErrorSSEEvent {
+    return {
+      event: 'agent_stream_error',
+      data: {
+        streamId: event.streamId,
+        conversationId: event.conversationId,
+        orchestrationRunId: event.orchestrationRunId,
+        organizationSlug: event.organizationSlug ?? null,
+        agentSlug: event.agentSlug,
+        mode: event.mode,
+        timestamp: new Date().toISOString(),
+        type: 'error',
+        error: event.error,
+      },
+    };
+  }
+
+  private writeSseEvent(response: Response, event: SSEEvent): void {
+    response.write(`event: ${event.event}\n`);
+    response.write(`data: ${JSON.stringify(event.data)}\n\n`);
+  }
+
   @Get('agent-to-agent/:orgSlug/:agentSlug/health')
   async getHealth(
     @Param('orgSlug') orgSlug: string,

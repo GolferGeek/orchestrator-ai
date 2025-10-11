@@ -68,11 +68,46 @@ export interface AgentTransportExternalDefinition {
   healthCheck?: Record<string, any> | null;
 }
 
+export interface AgentTransportContextDefinition {
+  sources: ('plans' | 'deliverables' | 'conversations' | 'projects')[];
+  systemPromptTemplate: string;
+  tokenBudget?: number;
+  optimization?: {
+    strategy?: 'relevance-scoring' | 'recency' | 'hybrid';
+  };
+}
+
+export interface AgentTransportToolDefinition {
+  tools: string[];
+  namespace?: string;
+  timeout?: number;
+  retries?: number;
+  mode?: 'sequential' | 'parallel';
+  argumentMapping?: {
+    llmParse?: boolean;
+    schema?: Record<string, any>;
+  };
+}
+
+export interface AgentTransportOrchestratorDefinition {
+  defaultGraph?: string;
+  availableAgents: string[];
+  executionMode: 'sequential' | 'graph' | 'adaptive';
+  maxDepth?: number;
+  humanGates?: {
+    enabled: boolean;
+    checkpoints?: string[];
+  };
+}
+
 export interface AgentTransportDefinition {
-  kind: 'api' | 'external' | 'function' | 'none';
+  kind: 'context' | 'tool' | 'api' | 'external' | 'function' | 'orchestrator' | 'none';
+  context?: AgentTransportContextDefinition;
+  tool?: AgentTransportToolDefinition;
   api?: AgentTransportApiDefinition;
   external?: AgentTransportExternalDefinition;
   function?: Record<string, any>;
+  orchestrator?: AgentTransportOrchestratorDefinition;
   raw?: Record<string, any> | null;
 }
 
@@ -91,6 +126,19 @@ export interface AgentPromptDefinition {
   build?: string;
   human?: string;
   additional?: Record<string, any> | null;
+}
+
+export interface AgentConfigPlanDefinition {
+  format: 'json' | 'markdown' | 'yaml';
+  schema?: Record<string, any>;
+  template?: string;
+}
+
+export interface AgentConfigDeliverableDefinition {
+  format: 'json' | 'markdown' | 'html';
+  type: string;
+  schema?: Record<string, any>;
+  sections?: string[];
 }
 
 export interface AgentRuntimeDefinition {

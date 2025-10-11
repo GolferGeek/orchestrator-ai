@@ -81,15 +81,15 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 
 ### 2.1 Morning: SSE Endpoint & Event Flow
 
-- [ ] Implement `GET /agent-to-agent/:org/:agent/tasks/:taskId/stream` SSE endpoint
-- [ ] Add helper to format typed SSE payloads (`formatSSEEvent`)
+- [x] Implement `GET /agent-to-agent/:org/:agent/tasks/:taskId/stream` SSE endpoint
+- [x] Add helper to format typed SSE payloads (`formatSSEEvent`)
 - [ ] Attach SSE stream URL to task response metadata (`streamEndpoint`)
-- [ ] Wire EventEmitter2 events to SSE writer (chunk/complete/error)
-- [ ] Introduce keep-alive ping + disconnect cleanup
-- [ ] Implement `StreamTokenService` + `POST /agent-to-agent/:org/:agent/tasks/:taskId/stream-token` (task-bound, 5–10 min TTL JWT)
-- [ ] Extend `JwtAuthGuard` to accept query-token fallback with task binding + TTL validation
-- [ ] Add rate limiting per user/task for stream-token issuance
-- [ ] Sanitize logs/metrics to strip `token` query params before emit
+- [x] Wire EventEmitter2 events to SSE writer (chunk/complete/error)
+- [x] Introduce keep-alive ping + disconnect cleanup
+- [x] Implement `StreamTokenService` + `POST /agent-to-agent/:org/:agent/tasks/:taskId/stream-token` (task-bound, 5–10 min TTL JWT)
+- [x] Extend `JwtAuthGuard` to accept query-token fallback with task binding + TTL validation
+- [x] Add rate limiting per user/task for stream-token issuance
+- [x] Sanitize logs/metrics to strip `token` query params before emit
 
 ### 2.2 Storage & Persistence Updates
 
@@ -113,6 +113,7 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 - _2025-02-09:_ Migrations created; awaiting execution and review.  
 - Pending decision on configurable TTL (ENV vs. constant).
 - _2025-02-09:_ `202502090001_task_messages_ttl.sql` now seeds schema to match `TaskMessageService` (content/message_type/progress_percentage) and sets default expiry.
+- _2025-02-10:_ SSE streaming endpoint + stream-token guard flow implemented; keep-alive pings enabled and logging sanitizes query tokens. Task response still needs `streamEndpoint` attachment.
 
 ---
 
