@@ -5,6 +5,7 @@ import { AgentPlatformModule } from '../agent-platform/agent-platform.module';
 import { AgentCardBuilderService } from './services/agent-card-builder.service';
 import { AgentExecutionGateway } from './services/agent-execution-gateway.service';
 import { AgentModeRouterService } from './services/agent-mode-router.service';
+import { AgentRunnerRegistryService } from './services/agent-runner-registry.service';
 import { RoutingPolicyAdapterService } from './services/routing-policy-adapter.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { LLMModule } from '../llms/llm.module';
@@ -40,6 +41,7 @@ import { ContextOptimizationModule } from './context-optimization/context-optimi
     AgentCardBuilderService,
     AgentExecutionGateway,
     AgentModeRouterService,
+    AgentRunnerRegistryService,
     RoutingPolicyAdapterService,
     ApiKeyGuard,
     Agent2AgentDeliverablesService,

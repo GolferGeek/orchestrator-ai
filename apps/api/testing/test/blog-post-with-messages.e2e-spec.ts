@@ -2,13 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { TasksService } from '../../src/tasks/tasks.service';
-import { TaskMessageService } from '../../src/tasks/task-message.service';
+import { TasksService } from '../../src/agent2agent/tasks/tasks.service';
+import {
+  TaskMessage,
+  TaskMessageService,
+} from '../../src/agent2agent/tasks/task-message.service';
 import { SupabaseService } from '../../src/supabase/supabase.service';
-import { MessageEmitter } from '../../src/tasks/message-emitter.interface';
-import { TasksModule } from '../../src/tasks/tasks.module';
+import { MessageEmitter } from '../../src/agent2agent/tasks/message-emitter.interface';
+import { TasksModule } from '../../src/agent2agent/tasks/tasks.module';
 import { SupabaseModule } from '../../src/supabase/supabase.module';
-import { AgentConversationsModule } from '../../src/agent-conversations/agent-conversations.module';
+import { AgentConversationsModule } from '../../src/agent2agent/conversations/agent-conversations.module';
 import { HttpModule } from '@nestjs/axios';
 import * as request from 'supertest';
 import { JwtService } from '@nestjs/jwt';
@@ -189,18 +192,20 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
 
       // Verify message types
       const progressMessages = messages.filter(
-        (m) => m.messageType === 'progress',
+        (message: TaskMessage) => message.messageType === 'progress',
       );
-      const statusMessages = messages.filter((m) => m.messageType === 'status');
+      const statusMessages = messages.filter(
+        (message: TaskMessage) => message.messageType === 'status',
+      );
 
       expect(progressMessages.length).toBe(4); // 25%, 50%, 75%, 90%
       expect(statusMessages.length).toBe(2); // Initial analysis + completion
 
       // Verify progress percentages
       const progressPercentages = progressMessages
-        .map((m) => m.progressPercentage)
-        .filter((p) => p !== undefined)
-        .sort((a, b) => (a || 0) - (b || 0));
+        .map((message: TaskMessage) => message.progressPercentage)
+        .filter((percentage): percentage is number => percentage !== undefined)
+        .sort((a, b) => a - b);
       expect(progressPercentages).toEqual([25, 50, 75, 90]);
 
       // Verify deliverable structure
@@ -255,7 +260,9 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
         task.id,
         testUserId,
       );
-      const errorMessages = messages.filter((m) => m.messageType === 'error');
+      const errorMessages = messages.filter(
+        (message: TaskMessage) => message.messageType === 'error',
+      );
       expect(errorMessages.length).toBe(1);
 
       console.log('✅ Test 1.2 completed successfully!');
