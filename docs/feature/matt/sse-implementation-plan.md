@@ -117,6 +117,7 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 - _2025-02-10:_ SSE streaming endpoint + stream-token guard flow implemented; keep-alive pings enabled and logging sanitizes query tokens. Task response still needs `streamEndpoint` attachment.
 - _2025-02-10:_ TaskMessageService now sets per-message expiry (`TASK_MESSAGE_TTL_MINUTES`, default 60) and prunes expired rows every 15 minutes via cron.
 - _2025-02-10:_ Manual verification checklist drafted (curl stream-token, curl SSE with `--header "Accept:text/event-stream"`, confirm `/logs` omit query tokens, POST webhook to ensure task_messages TTL + cron pruning).
+- _2025-02-10:_ `agentChatStore` now prefers SSE-based stream subscriptions via `A2AStreamHandler`, falling back to Socket.IO only when metadata lacks endpoints.
 - _2025-02-10:_ `blog-post-with-messages.e2e-spec.ts` currently fails to compile — imports still reference `src/tasks/*`; update to new `agent2agent/tasks/*` paths before re-running SSE message tests.
 
 ---
@@ -125,9 +126,9 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 
 ### 3.1 SSE Client & Handler
 
-- [ ] Implement `SSEClient` wrapper (EventSource + reconnection/backoff)
-- [ ] Add stream-token fetch/refresh helper that runs before initial connect and on reconnect attempts
-- [ ] Implement `A2AStreamHandler` bridging SSE events to store callbacks
+- [x] Implement `SSEClient` wrapper (EventSource + reconnection/backoff)
+- [x] Add stream-token fetch/refresh helper that runs before initial connect and on reconnect attempts
+- [x] Implement `A2AStreamHandler` bridging SSE events to store callbacks
 - [ ] Add typed unit tests for handler (mock EventSource scenarios)
 - [ ] Expose connection state changes for UI feedback
 

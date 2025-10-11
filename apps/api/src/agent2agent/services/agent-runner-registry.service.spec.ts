@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AgentRunnerRegistryService } from './agent-runner-registry.service';
+import { ContextAgentRunnerService } from './context-agent-runner.service';
+import { ToolAgentRunnerService } from './tool-agent-runner.service';
+import { ApiAgentRunnerService } from './api-agent-runner.service';
+import { ExternalAgentRunnerService } from './external-agent-runner.service';
+import { FunctionAgentRunnerService } from './function-agent-runner.service';
 import { IAgentRunner } from '../interfaces/agent-runner.interface';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentTaskMode } from '../dto/task-request.dto';
@@ -21,7 +26,29 @@ describe('AgentRunnerRegistryService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AgentRunnerRegistryService],
+      providers: [
+        AgentRunnerRegistryService,
+        {
+          provide: ContextAgentRunnerService,
+          useValue: new MockAgentRunner('context'),
+        },
+        {
+          provide: ToolAgentRunnerService,
+          useValue: new MockAgentRunner('tool'),
+        },
+        {
+          provide: ApiAgentRunnerService,
+          useValue: new MockAgentRunner('api'),
+        },
+        {
+          provide: ExternalAgentRunnerService,
+          useValue: new MockAgentRunner('external'),
+        },
+        {
+          provide: FunctionAgentRunnerService,
+          useValue: new MockAgentRunner('function'),
+        },
+      ],
     }).compile();
 
     service = module.get<AgentRunnerRegistryService>(
@@ -34,13 +61,13 @@ describe('AgentRunnerRegistryService', () => {
   });
 
   describe('registerRunner', () => {
-    it('should register a runner for an agent type', () => {
-      const mockRunner = new MockAgentRunner('context');
+    it('should register a runner for a new agent type', () => {
+      const mockRunner = new MockAgentRunner('custom');
 
-      service.registerRunner('context', mockRunner);
+      service.registerRunner('custom', mockRunner);
 
-      expect(service.hasRunner('context')).toBe(true);
-      expect(service.getRunner('context')).toBe(mockRunner);
+      expect(service.hasRunner('custom')).toBe(true);
+      expect(service.getRunner('custom')).toBe(mockRunner);
     });
 
     it('should allow overwriting an existing runner', () => {
@@ -55,27 +82,35 @@ describe('AgentRunnerRegistryService', () => {
     });
 
     it('should register multiple runners for different types', () => {
-      const contextRunner = new MockAgentRunner('context');
-      const toolRunner = new MockAgentRunner('tool');
-      const apiRunner = new MockAgentRunner('api');
+      const custom1Runner = new MockAgentRunner('custom1');
+      const custom2Runner = new MockAgentRunner('custom2');
+      const custom3Runner = new MockAgentRunner('custom3');
 
-      service.registerRunner('context', contextRunner);
-      service.registerRunner('tool', toolRunner);
-      service.registerRunner('api', apiRunner);
+      service.registerRunner('custom1', custom1Runner);
+      service.registerRunner('custom2', custom2Runner);
+      service.registerRunner('custom3', custom3Runner);
 
-      expect(service.getRunnerCount()).toBe(3);
-      expect(service.getRunner('context')).toBe(contextRunner);
-      expect(service.getRunner('tool')).toBe(toolRunner);
-      expect(service.getRunner('api')).toBe(apiRunner);
+      // 5 auto-registered + 3 custom = 8
+      expect(service.getRunnerCount()).toBe(8);
+      expect(service.getRunner('custom1')).toBe(custom1Runner);
+      expect(service.getRunner('custom2')).toBe(custom2Runner);
+      expect(service.getRunner('custom3')).toBe(custom3Runner);
     });
   });
 
   describe('getRunner', () => {
-    it('should return the runner for a registered type', () => {
-      const mockRunner = new MockAgentRunner('context');
-      service.registerRunner('context', mockRunner);
-
+    it('should return the runner for an auto-registered type', () => {
       const runner = service.getRunner('context');
+
+      expect(runner).toBeDefined();
+      expect(runner).not.toBeNull();
+    });
+
+    it('should return the runner for a newly registered type', () => {
+      const mockRunner = new MockAgentRunner('custom');
+      service.registerRunner('custom', mockRunner);
+
+      const runner = service.getRunner('custom');
 
       expect(runner).toBe(mockRunner);
     });
@@ -88,11 +123,19 @@ describe('AgentRunnerRegistryService', () => {
   });
 
   describe('hasRunner', () => {
-    it('should return true for a registered type', () => {
-      const mockRunner = new MockAgentRunner('context');
-      service.registerRunner('context', mockRunner);
-
+    it('should return true for auto-registered types', () => {
       expect(service.hasRunner('context')).toBe(true);
+      expect(service.hasRunner('tool')).toBe(true);
+      expect(service.hasRunner('api')).toBe(true);
+      expect(service.hasRunner('external')).toBe(true);
+      expect(service.hasRunner('function')).toBe(true);
+    });
+
+    it('should return true for a newly registered type', () => {
+      const mockRunner = new MockAgentRunner('custom');
+      service.registerRunner('custom', mockRunner);
+
+      expect(service.hasRunner('custom')).toBe(true);
     });
 
     it('should return false for an unregistered type', () => {
@@ -101,40 +144,47 @@ describe('AgentRunnerRegistryService', () => {
   });
 
   describe('getRegisteredTypes', () => {
-    it('should return an empty array when no runners are registered', () => {
+    it('should return all auto-registered agent types', () => {
       const types = service.getRegisteredTypes();
 
-      expect(types).toEqual([]);
+      // Registry auto-registers 5 types in constructor
+      expect(types).toContain('context');
+      expect(types).toContain('tool');
+      expect(types).toContain('api');
+      expect(types).toContain('external');
+      expect(types).toContain('function');
+      expect(types.length).toBe(5);
     });
 
-    it('should return all registered agent types', () => {
-      service.registerRunner('context', new MockAgentRunner('context'));
-      service.registerRunner('tool', new MockAgentRunner('tool'));
-      service.registerRunner('api', new MockAgentRunner('api'));
+    it('should return additional manually registered types', () => {
+      service.registerRunner('custom', new MockAgentRunner('custom'));
 
       const types = service.getRegisteredTypes();
 
       expect(types).toContain('context');
       expect(types).toContain('tool');
       expect(types).toContain('api');
-      expect(types.length).toBe(3);
+      expect(types).toContain('external');
+      expect(types).toContain('function');
+      expect(types).toContain('custom');
+      expect(types.length).toBe(6);
     });
   });
 
   describe('getRunnerCount', () => {
-    it('should return 0 when no runners are registered', () => {
-      expect(service.getRunnerCount()).toBe(0);
+    it('should return 5 for auto-registered runners', () => {
+      // Registry auto-registers 5 runners in constructor
+      expect(service.getRunnerCount()).toBe(5);
     });
 
-    it('should return the correct count of registered runners', () => {
-      service.registerRunner('context', new MockAgentRunner('context'));
-      expect(service.getRunnerCount()).toBe(1);
+    it('should return the correct count after adding more runners', () => {
+      expect(service.getRunnerCount()).toBe(5);
 
-      service.registerRunner('tool', new MockAgentRunner('tool'));
-      expect(service.getRunnerCount()).toBe(2);
+      service.registerRunner('custom1', new MockAgentRunner('custom1'));
+      expect(service.getRunnerCount()).toBe(6);
 
-      service.registerRunner('api', new MockAgentRunner('api'));
-      expect(service.getRunnerCount()).toBe(3);
+      service.registerRunner('custom2', new MockAgentRunner('custom2'));
+      expect(service.getRunnerCount()).toBe(7);
     });
   });
 });

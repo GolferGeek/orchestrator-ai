@@ -1,0 +1,508 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { ExternalAgentRunnerService } from './external-agent-runner.service';
+import { HttpService } from '@nestjs/axios';
+import { DeliverablesService } from '../deliverables/deliverables.service';
+import { AgentRuntimeDefinition } from '../../agent-platform/interfaces/database-agent-definition.interface';
+import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
+import { TaskResponseDto } from '../dto/task-response.dto';
+import { of, throwError } from 'rxjs';
+
+describe('ExternalAgentRunnerService', () => {
+  let service: ExternalAgentRunnerService;
+  let httpService: jest.Mocked<HttpService>;
+  let deliverablesService: jest.Mocked<DeliverablesService>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ExternalAgentRunnerService,
+        {
+          provide: HttpService,
+          useValue: {
+            request: jest.fn(),
+          },
+        },
+        {
+          provide: DeliverablesService,
+          useValue: {
+            executeAction: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<ExternalAgentRunnerService>(ExternalAgentRunnerService);
+    httpService = module.get(HttpService);
+    deliverablesService = module.get(DeliverablesService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('execute - BUILD mode with external agent', () => {
+    it('should forward BUILD request and save deliverable', async () => {
+      const definition = {
+        slug: 'test-external-agent',
+        displayName: 'Test External Agent',
+        agentType: 'external',
+        config: {
+          external: {
+            url: 'https://external-agent.example.com/task',
+            apiKey: 'secret-key',
+            timeout: 60000,
+          },
+          deliverable: {
+            format: 'json',
+            type: 'external-response',
+          },
+        },
+        execution: {
+          canBuild: true,
+        },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Execute external task',
+        payload: {
+          title: 'External Task Result',
+          data: 'test-data',
+        },
+        metadata: {
+          userId: 'user-123',
+        },
+      };
+
+      // Mock external agent A2A response
+      const externalResponse = TaskResponseDto.success(AgentTaskMode.BUILD, {
+        content: { result: 'External agent completed successfully' },
+        metadata: { externalMetric: 42 },
+      });
+
+      httpService.request.mockReturnValue(
+        of({
+          status: 200,
+          data: externalResponse,
+        }) as any,
+      );
+
+      // Mock deliverable creation
+      deliverablesService.executeAction.mockResolvedValue({
+        success: true,
+        data: {
+          deliverable: { id: 'del-new', title: 'External Task Result' },
+          version: { id: 'ver-1', version: 1 },
+        },
+      });
+
+      const result = await service.execute(definition, request, 'test-org');
+
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe(AgentTaskMode.BUILD);
+
+      // Verify external agent HTTP call
+      expect(httpService.request).toHaveBeenCalledWith({
+        url: 'https://external-agent.example.com/task',
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'X-API-Key': 'secret-key',
+        }),
+        data: expect.objectContaining({
+          mode: AgentTaskMode.BUILD,
+          conversationId: 'conv-123',
+          userMessage: 'Execute external task',
+          metadata: expect.objectContaining({
+            userId: 'user-123',
+            forwardedFrom: 'test-external-agent',
+          }),
+        }),
+        timeout: 60000,
+        validateStatus: expect.any(Function),
+      });
+
+      // Verify deliverable creation
+      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
+        'create',
+        expect.objectContaining({
+          title: 'External Task Result',
+          format: 'json',
+          type: 'external-response',
+          agentName: 'test-external-agent',
+          namespace: 'test-org',
+        }),
+        expect.objectContaining({
+          conversationId: 'conv-123',
+          userId: 'user-123',
+        }),
+      );
+    });
+
+    it('should handle external agent without API key', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {
+          external: {
+            url: 'https://external-agent.example.com/task',
+          },
+          deliverable: { format: 'json', type: 'external-response' },
+        },
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Test',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      httpService.request.mockReturnValue(
+        of({
+          status: 200,
+          data: TaskResponseDto.success(AgentTaskMode.BUILD, {
+            content: {},
+            metadata: {},
+          }),
+        }) as any,
+      );
+
+      deliverablesService.executeAction.mockResolvedValue({
+        success: true,
+        data: { deliverable: {}, version: {} },
+      });
+
+      await service.execute(definition, request, null);
+
+      // Verify no API key in headers
+      expect(httpService.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.not.objectContaining({
+            'X-API-Key': expect.anything(),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('execute - CONVERSE mode', () => {
+    it('should forward CONVERSE request to external agent', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {
+          external: {
+            url: 'https://external-agent.example.com/task',
+          },
+        },
+        execution: { canConverse: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.CONVERSE,
+        conversationId: 'conv-123',
+        userMessage: 'Hello external agent',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      const externalResponse = TaskResponseDto.success(AgentTaskMode.CONVERSE, {
+        content: { message: 'Hello from external agent' },
+        metadata: {},
+      });
+
+      httpService.request.mockReturnValue(
+        of({
+          status: 200,
+          data: externalResponse,
+        }) as any,
+      );
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe(AgentTaskMode.CONVERSE);
+      expect(result.payload?.content?.message).toBe('Hello from external agent');
+
+      // Should not create deliverable for CONVERSE
+      expect(deliverablesService.executeAction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('execute - PLAN mode', () => {
+    it('should forward PLAN request to external agent', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {
+          external: {
+            url: 'https://external-agent.example.com/task',
+          },
+        },
+        execution: { canPlan: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.PLAN,
+        conversationId: 'conv-123',
+        userMessage: 'Create a plan',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      const externalResponse = TaskResponseDto.success(AgentTaskMode.PLAN, {
+        content: { plan: 'External agent plan' },
+        metadata: {},
+      });
+
+      httpService.request.mockReturnValue(
+        of({
+          status: 200,
+          data: externalResponse,
+        }) as any,
+      );
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe(AgentTaskMode.PLAN);
+
+      // Should not create deliverable for PLAN
+      expect(deliverablesService.executeAction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('execute - error handling', () => {
+    it('should handle missing userId or conversationId', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: { external: { url: 'https://example.com' } },
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        userMessage: 'Test',
+        payload: {},
+      };
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(false);
+      expect(result.payload?.metadata?.reason).toContain(
+        'Missing required userId or conversationId',
+      );
+    });
+
+    it('should handle missing external configuration', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {},
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Test',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(false);
+      expect(result.payload?.metadata?.reason).toContain(
+        'No external agent configuration found',
+      );
+    });
+
+    it('should handle HTTP request failure', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {
+          external: { url: 'https://external-agent.example.com/task' },
+        },
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Test',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      httpService.request.mockReturnValue(
+        throwError(() => new Error('Network error')) as any,
+      );
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(false);
+      expect(result.payload?.metadata?.reason).toContain('External agent call failed');
+    });
+
+    it('should handle non-200 status from external agent', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {
+          external: { url: 'https://external-agent.example.com/task' },
+        },
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Test',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      httpService.request.mockReturnValue(
+        of({
+          status: 500,
+          data: { error: 'Internal server error' },
+        }) as any,
+      );
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(false);
+      expect(result.payload?.metadata?.reason).toContain(
+        'External agent returned error status 500',
+      );
+    });
+
+    it('should handle invalid A2A response format', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {
+          external: { url: 'https://external-agent.example.com/task' },
+        },
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Test',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      httpService.request.mockReturnValue(
+        of({
+          status: 200,
+          data: { invalidResponse: true }, // Not a valid A2A response
+        }) as any,
+      );
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(false);
+      expect(result.payload?.metadata?.reason).toContain(
+        'Invalid A2A response format',
+      );
+    });
+
+    it('should handle deliverable creation failure', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: {
+          external: { url: 'https://external-agent.example.com/task' },
+          deliverable: { format: 'json', type: 'external-response' },
+        },
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Test',
+        payload: {},
+        metadata: { userId: 'user-123' },
+      };
+
+      httpService.request.mockReturnValue(
+        of({
+          status: 200,
+          data: TaskResponseDto.success(AgentTaskMode.BUILD, {
+            content: {},
+            metadata: {},
+          }),
+        }) as any,
+      );
+
+      deliverablesService.executeAction.mockResolvedValue({
+        success: false,
+        error: {
+          code: 'CREATE_FAILED',
+          message: 'Failed to create deliverable',
+        },
+      });
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(false);
+      expect(result.payload?.metadata?.reason).toBe('Failed to create deliverable');
+    });
+  });
+
+  describe('execute - non-create actions', () => {
+    it('should route read action to DeliverablesService', async () => {
+      const definition = {
+        slug: 'test-agent',
+        displayName: 'Test Agent',
+        agentType: 'external',
+        config: { external: { url: 'https://example.com' } },
+        execution: { canBuild: true },
+      } as unknown as AgentRuntimeDefinition;
+
+      const request: TaskRequestDto = {
+        mode: AgentTaskMode.BUILD,
+        conversationId: 'conv-123',
+        userMessage: 'Read deliverable',
+        payload: {
+          action: 'read',
+          deliverableId: 'del-123',
+        },
+        metadata: { userId: 'user-123' },
+      };
+
+      deliverablesService.executeAction.mockResolvedValue({
+        success: true,
+        data: { id: 'del-123', title: 'Test', content: 'Content' },
+      });
+
+      const result = await service.execute(definition, request, null);
+
+      expect(result.success).toBe(true);
+      expect(result.payload?.content?.id).toBe('del-123');
+
+      // Should not call external agent for non-create actions
+      expect(httpService.request).not.toHaveBeenCalled();
+    });
+  });
+});

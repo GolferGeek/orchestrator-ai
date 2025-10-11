@@ -1,21 +1,67 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import * as vm from 'vm';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 // ImageAgentsService archived - image functionality to be implemented via agent-platform
 import { AgentBuilderService } from '@agent-platform/services/agent-builder.service';
+import { BaseAgentRunner } from './base-agent-runner.service';
 
+/**
+ * Function Agent Runner
+ *
+ * Executes JavaScript function code in a sandboxed VM environment.
+ * Function agents only support BUILD mode.
+ *
+ * Configuration:
+ * - function_code: JavaScript code with a 'handler' function export
+ * - config.function.timeout_ms: Execution timeout (default: 20000ms)
+ *
+ * The handler function receives:
+ * - input: { prompt, ...payload } - User input
+ * - ctx: { services, organizationSlug, conversationId, userId, agent, config }
+ */
 @Injectable()
-export class FunctionAgentRunnerService {
-  private readonly logger = new Logger(FunctionAgentRunnerService.name);
-
+export class FunctionAgentRunnerService extends BaseAgentRunner {
   constructor(
     @Inject(forwardRef(() => AgentBuilderService))
     private readonly agentBuilder: AgentBuilderService,
-  ) {}
+  ) {
+    super();
+  }
 
-  async execute(
+  /**
+   * Function agents only support BUILD mode
+   */
+  protected async handleConverse(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return TaskResponseDto.failure(
+      request.mode!,
+      'Function agents only support BUILD mode',
+    );
+  }
+
+  /**
+   * Function agents only support BUILD mode
+   */
+  protected async handlePlan(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return TaskResponseDto.failure(
+      request.mode!,
+      'Function agents only support BUILD mode',
+    );
+  }
+
+  /**
+   * Execute function agent code in sandboxed VM
+   */
+  protected async handleBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,

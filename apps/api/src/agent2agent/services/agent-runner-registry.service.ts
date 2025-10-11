@@ -3,6 +3,8 @@ import { IAgentRunner } from '../interfaces/agent-runner.interface';
 import { ContextAgentRunnerService } from './context-agent-runner.service';
 import { ToolAgentRunnerService } from './tool-agent-runner.service';
 import { ApiAgentRunnerService } from './api-agent-runner.service';
+import { ExternalAgentRunnerService } from './external-agent-runner.service';
+import { FunctionAgentRunnerService } from './function-agent-runner.service';
 
 /**
  * Registry service for agent runners.
@@ -29,6 +31,10 @@ export class AgentRunnerRegistryService {
     private readonly toolAgentRunner: ToolAgentRunnerService,
     @Inject(forwardRef(() => ApiAgentRunnerService))
     private readonly apiAgentRunner: ApiAgentRunnerService,
+    @Inject(forwardRef(() => ExternalAgentRunnerService))
+    private readonly externalAgentRunner: ExternalAgentRunnerService,
+    @Inject(forwardRef(() => FunctionAgentRunnerService))
+    private readonly functionAgentRunner: FunctionAgentRunnerService,
   ) {
     this.runners = new Map();
     this.logger.log('AgentRunnerRegistry initialized');
@@ -37,6 +43,8 @@ export class AgentRunnerRegistryService {
     this.registerRunner('context', this.contextAgentRunner);
     this.registerRunner('tool', this.toolAgentRunner);
     this.registerRunner('api', this.apiAgentRunner);
+    this.registerRunner('external', this.externalAgentRunner);
+    this.registerRunner('function', this.functionAgentRunner);
   }
 
   /**

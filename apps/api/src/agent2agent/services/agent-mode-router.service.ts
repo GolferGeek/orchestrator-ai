@@ -14,6 +14,7 @@ import { AgentRuntimeDispatchResult } from '@agent-platform/services/agent-runti
 import { AgentRuntimeNormalizationService } from '@agent-platform/services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from '@agent-platform/services/agent-runtime-redaction.service';
 import { FunctionAgentRunnerService } from './function-agent-runner.service';
+import { AgentRunnerRegistryService } from './agent-runner-registry.service';
 import { AgentRuntimeDeliverablesAdapter } from '@agent-platform/services/agent-runtime-deliverables.adapter';
 import { AgentRuntimePlansAdapter } from '@agent-platform/services/agent-runtime-plans.adapter';
 import { PlansService } from '@/agent2agent/plans/services/plans.service';
@@ -53,6 +54,7 @@ export class AgentModeRouterService {
     private readonly normalization: AgentRuntimeNormalizationService,
     private readonly redaction: AgentRuntimeRedactionService,
     private readonly functionRunner: FunctionAgentRunnerService,
+    private readonly runnerRegistry: AgentRunnerRegistryService,
   ) {}
 
   async execute(context: AgentExecutionContext): Promise<TaskResponseDto> {
@@ -64,6 +66,26 @@ export class AgentModeRouterService {
         'Agent record unavailable for execution',
       );
     }
+
+    // Route to the appropriate runner based on agent type
+    const agentType = hydrated.definition.agentType;
+    const runner = this.runnerRegistry.getRunner(agentType);
+
+    if (runner) {
+      this.logger.log(
+        `Routing ${hydrated.request.mode} request to ${agentType} runner for agent ${hydrated.agentSlug}`,
+      );
+      return await runner.execute(
+        hydrated.definition,
+        hydrated.request,
+        hydrated.organizationSlug,
+      );
+    }
+
+    // Fall back to legacy routing if no runner registered
+    this.logger.warn(
+      `No runner found for agent type ${agentType}, using legacy routing. Agent: ${hydrated.agentSlug}`,
+    );
 
     switch (hydrated.request.mode!) {
       case AgentTaskMode.CONVERSE:

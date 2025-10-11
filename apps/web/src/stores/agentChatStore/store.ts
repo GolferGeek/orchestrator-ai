@@ -29,6 +29,12 @@ import { createPlansService } from './plans';
 import analyticsService from '@/services/analyticsService';
 import approvalsService from '@/services/approvalsService';
 import { useAuthStore } from '@/stores/authStore';
+import { A2AStreamHandler } from '@/services/agent2agent/sse';
+import type {
+  AgentStreamChunkData,
+  AgentStreamCompleteData,
+  AgentStreamErrorData,
+} from '@orchestrator-ai/transport-types';
 import type {
   AgentStreamChunkEvent,
   AgentStreamCompleteEvent,
@@ -56,6 +62,8 @@ let preGeneratedTaskId: string | undefined;
 
 // Agent task timeout configuration (in seconds)
 const AGENT_TASK_TIMEOUT_SECONDS = parseInt(import.meta.env.VITE_API_TIMEOUT_MS || '120000', 10) / 1000;
+
+const activeSseHandlers = new Map<string, A2AStreamHandler>();
 
 interface AgentChatState {
   conversations: AgentConversation[];
@@ -122,27 +130,124 @@ export const useAgentChatStore = defineStore('agentChat', {
 
     async startStreamSubscription(
       conversation: AgentConversation,
-      streamId: string,
+      streamInfo: string | Record<string, any>,
       label: string,
     ): Promise<void> {
       this.initializeWebSocketHandler();
+
+      const metadata: Record<string, any> =
+        typeof streamInfo === 'string' ? { streamId: streamInfo } : { ...streamInfo };
+      const streamId =
+        this.extractStreamId(metadata) ??
+        (typeof streamInfo === 'string' ? streamInfo : generateUUID());
+      metadata.streamId = streamId;
+
       if (!conversation.streamSubscriptions) {
         conversation.streamSubscriptions = {};
       }
+
+      const existingSub = conversation.streamSubscriptions[streamId];
+      if (existingSub) {
+        try {
+          existingSub.unsubscribe?.();
+        } catch (error) {
+          console.warn('⚠️ Failed to unsubscribe existing stream', error);
+        }
+      }
+
       const streamMessage = messageFormatting.createStreamMessage(streamId, label);
       conversation.messages.push(streamMessage);
-      const unsubscribe = await websocketHandler.subscribeToStream(streamId, {
-        onChunk: (event: AgentStreamChunkEvent) => this.handleStreamChunk(event),
-        onComplete: (event: AgentStreamCompleteEvent) => this.handleStreamComplete(event),
-        onError: (event: AgentStreamErrorEvent) => this.handleStreamError(event),
-      });
-      conversation.streamSubscriptions[streamId] = {
-        messageId: streamMessage.id,
-        unsubscribe,
+
+      const registerSubscription = (unsubscribe: () => void) => {
+        conversation.streamSubscriptions![streamId] = {
+          messageId: streamMessage.id,
+          unsubscribe,
+        };
       };
+
+      if (this.hasSseMetadata(metadata)) {
+        const handler = new A2AStreamHandler({
+          debug: import.meta.env.DEV,
+        });
+        activeSseHandlers.set(streamId, handler);
+
+        registerSubscription(() => {
+          try {
+            handler.disconnect();
+          } finally {
+            activeSseHandlers.delete(streamId);
+          }
+        });
+
+        try {
+          await handler.connect({
+            metadata,
+            onChunk: (event) => this.handleStreamChunk(event),
+            onComplete: (event) => this.handleStreamComplete(event),
+            onError: (event) => this.handleStreamError(event),
+          });
+          return;
+        } catch (error) {
+          console.warn('⚠️ SSE stream connection failed, attempting WebSocket fallback', error);
+          const active = conversation.streamSubscriptions?.[streamId];
+          if (active) {
+            try {
+              active.unsubscribe?.();
+            } catch {}
+          }
+          activeSseHandlers.delete(streamId);
+        }
+      }
+
+      try {
+        const unsubscribe = await websocketHandler.subscribeToStream(streamId, {
+          onChunk: (event: AgentStreamChunkEvent) => this.handleStreamChunk(event),
+          onComplete: (event: AgentStreamCompleteEvent) => this.handleStreamComplete(event),
+          onError: (event: AgentStreamErrorEvent) => this.handleStreamError(event),
+        });
+        registerSubscription(() => {
+          try {
+            unsubscribe?.();
+          } catch {}
+        });
+      } catch (error) {
+        console.error('❌ Failed to subscribe to stream via WebSocket', error);
+        messageFormatting.markStreamError(streamMessage, 'Unable to subscribe to stream');
+      }
     },
 
-    handleStreamChunk(event: AgentStreamChunkEvent) {
+    extractStreamId(metadata: Record<string, any>): string | undefined {
+      if (!metadata) {
+        return undefined;
+      }
+      const streamId =
+        metadata.streamId ??
+        metadata.stream_id ??
+        metadata.streaming?.streamId ??
+        metadata.streaming?.stream_id ??
+        metadata.streaming?.id;
+      return streamId ? String(streamId) : undefined;
+    },
+
+    hasSseMetadata(metadata: Record<string, any>): boolean {
+      if (!metadata) {
+        return false;
+      }
+      const streaming = metadata.streaming ?? {};
+      const streamEndpoint =
+        metadata.streamEndpoint ||
+        metadata.streamUrl ||
+        streaming.streamEndpoint ||
+        streaming.streamUrl;
+      const tokenEndpoint =
+        metadata.streamTokenEndpoint ||
+        metadata.streamTokenUrl ||
+        streaming.streamTokenEndpoint ||
+        streaming.streamTokenUrl;
+      return Boolean(streamEndpoint && tokenEndpoint);
+    },
+
+    handleStreamChunk(event: AgentStreamChunkEvent | AgentStreamChunkData) {
       const conversation = this.getConversationForStream(
         event.streamId,
         event.conversationId ?? null,
@@ -187,7 +292,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
     },
 
-    handleStreamComplete(event: AgentStreamCompleteEvent) {
+    handleStreamComplete(event: AgentStreamCompleteEvent | AgentStreamCompleteData) {
       const conversation = this.getConversationForStream(
         event.streamId,
         event.conversationId ?? null,
@@ -204,7 +309,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       this.cleanupStreamSubscription(conversation, event.streamId);
     },
 
-    handleStreamError(event: AgentStreamErrorEvent) {
+    handleStreamError(event: AgentStreamErrorEvent | AgentStreamErrorData) {
       const conversation = this.getConversationForStream(
         event.streamId,
         event.conversationId ?? null,
@@ -249,6 +354,15 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Ignore unsubscribe errors
       }
       delete subs[streamId];
+      const handler = activeSseHandlers.get(streamId);
+      if (handler) {
+        try {
+          handler.disconnect();
+        } catch {
+          // ignore disconnect errors
+        }
+        activeSseHandlers.delete(streamId);
+      }
     },
 
     finalizeStreamMessage(
@@ -786,7 +900,6 @@ export const useAgentChatStore = defineStore('agentChat', {
             const orgSlug = auth.currentNamespace || null;
             const agentSlug = activeConversation.agent.name;
             // Attempt to approve and continue with streaming enabled
-            // Pre-supply a streamId so we can subscribe before backend starts streaming
             const preStreamId = generateUUID();
             const response = await approvalsService.approveAndContinue(
               orgSlug,
@@ -794,9 +907,24 @@ export const useAgentChatStore = defineStore('agentChat', {
               approvalId,
               { options: { stream: true }, metadata: { stream: true, streamId: preStreamId } }
             );
-            const streamId = response?.payload?.metadata?.streamId;
-            if (streamId || preStreamId) {
-              await this.startStreamSubscription(activeConversation, streamId || preStreamId, 'Continuing build…');
+            const streamingMetadata = response?.payload?.metadata;
+            if (streamingMetadata) {
+              const mergedMetadata = { ...streamingMetadata };
+              if (!mergedMetadata.streamId) {
+                mergedMetadata.streamId =
+                  mergedMetadata.streaming?.streamId ?? preStreamId;
+              }
+              await this.startStreamSubscription(
+                activeConversation,
+                mergedMetadata,
+                'Continuing build…',
+              );
+            } else if (preStreamId) {
+              await this.startStreamSubscription(
+                activeConversation,
+                preStreamId,
+                'Continuing build…',
+              );
             } else if (response?.payload?.content) {
               // Fallback: append a simple assistant message with returned content
               const content = typeof response.payload.content === 'string'
@@ -1234,74 +1362,83 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
 
       const conversationId = await this.ensureBackendConversation(activeConversation);
-      const streamId = generateUUID();
-
-      try {
-        await this.startStreamSubscription(
-          activeConversation,
-          streamId,
-          'Launching orchestration run…',
-        );
-      } catch (error) {
-        console.warn('⚠️ Unable to subscribe to orchestration stream', error);
-      }
 
       const authStore = useAuthStore();
       let response: AgentTaskResponse;
+      let streamId: string | undefined;
+
       try {
         response = await agentExecutionService.executeAgentTask(
-        authStore.currentNamespace ?? null,
-        activeConversation.agent.name,
-        {
-          mode: 'orchestrate_execute',
-          conversationId,
-          planId: input.planId ?? undefined,
-          orchestrationSlug: input.orchestrationSlug ?? undefined,
-          promptParameters: input.promptParameters,
-          payload: {
-            metadata: { ...(input.metadata ?? {}), streamId },
-            options: { stream: true },
+          authStore.currentNamespace ?? null,
+          activeConversation.agent.name,
+          {
+            mode: 'orchestrate_execute',
+            conversationId,
+            planId: input.planId ?? undefined,
+            orchestrationSlug: input.orchestrationSlug ?? undefined,
+            promptParameters: input.promptParameters,
+            payload: {
+              metadata: { ...(input.metadata ?? {}) },
+              options: { stream: true },
+            },
+            metadata: {
+              stream: true,
+              ...(input.metadata ?? {}),
+            },
           },
-          metadata: {
-            stream: true,
+        );
+
+        if (!response.success) {
+          throw new Error(
+            response.humanResponse?.message ?? 'Failed to execute orchestration',
+          );
+        }
+
+        const streamingMetadata = response.payload?.metadata as Record<string, any> | undefined;
+        if (streamingMetadata) {
+          streamId = this.extractStreamId(streamingMetadata);
+          if (streamId) {
+            const mergedMetadata = { ...streamingMetadata, streamId };
+            try {
+              await this.startStreamSubscription(
+                activeConversation,
+                mergedMetadata,
+                'Launching orchestration run…',
+              );
+            } catch (error) {
+              console.warn('⚠️ Unable to subscribe to orchestration stream', error);
+            }
+          }
+        }
+
+        const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
+        if (runRecord) {
+          this.updateOrchestrationRunRecord(activeConversation, runRecord);
+          if (streamId) {
+            this.finalizeStreamMessage(activeConversation, streamId, runRecord);
+            this.cleanupStreamSubscription(activeConversation, streamId);
+          }
+          return runRecord;
+        }
+
+        if (streamId) {
+          this.markStreamError(
+            activeConversation,
             streamId,
-          },
-        },
-      );
-
-      if (!response.success) {
-        this.markStreamError(
-          activeConversation,
-          streamId,
-          response.humanResponse?.message ?? 'Failed to execute orchestration',
-        );
-        throw new Error(
-          response.humanResponse?.message ?? 'Failed to execute orchestration',
-        );
+            'No orchestration run returned from server',
+          );
+        }
+        return null;
+      } catch (error) {
+        if (streamId) {
+          if (error instanceof Error) {
+            this.markStreamError(activeConversation, streamId, error.message);
+          } else {
+            this.markStreamError(activeConversation, streamId, 'Unknown error');
+          }
+        }
+        throw error;
       }
-
-      const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
-      if (runRecord) {
-        this.updateOrchestrationRunRecord(activeConversation, runRecord);
-        this.finalizeStreamMessage(activeConversation, streamId, runRecord);
-        this.cleanupStreamSubscription(activeConversation, streamId);
-        return runRecord;
-      }
-
-      this.markStreamError(
-        activeConversation,
-        streamId,
-        'No orchestration run returned from server',
-      );
-      return null;
-    } catch (error) {
-      if (error instanceof Error) {
-        this.markStreamError(activeConversation, streamId, error.message);
-      } else {
-        this.markStreamError(activeConversation, streamId, 'Unknown error');
-      }
-      throw error;
-    }
     },
 
     async continueOrchestrationRun(input: {
@@ -1314,72 +1451,80 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
 
       const conversationId = await this.ensureBackendConversation(activeConversation);
-      const streamId = generateUUID();
-
-      try {
-        await this.startStreamSubscription(
-          activeConversation,
-          streamId,
-          'Updating orchestration run…',
-        );
-      } catch (error) {
-        console.warn('⚠️ Unable to subscribe to orchestration stream', error);
-      }
 
       const authStore = useAuthStore();
       let response: AgentTaskResponse;
+      let streamId: string | undefined;
+
       try {
         response = await agentExecutionService.executeAgentTask(
-        authStore.currentNamespace ?? null,
-        activeConversation.agent.name,
-        {
-          mode: 'orchestrate_continue',
-          conversationId,
-          orchestrationRunId: input.runId,
-          payload: {
-            update: input.update ?? {},
-            options: { stream: true },
+          authStore.currentNamespace ?? null,
+          activeConversation.agent.name,
+          {
+            mode: 'orchestrate_continue',
+            conversationId,
+            orchestrationRunId: input.runId,
+            payload: {
+              update: input.update ?? {},
+              options: { stream: true },
+            },
+            metadata: {
+              stream: true,
+            },
           },
-          metadata: {
-            stream: true,
+        );
+
+        if (!response.success) {
+          throw new Error(
+            response.humanResponse?.message ?? 'Failed to continue orchestration run',
+          );
+        }
+
+        const streamingMetadata = response.payload?.metadata as Record<string, any> | undefined;
+        if (streamingMetadata) {
+          streamId = this.extractStreamId(streamingMetadata);
+          if (streamId) {
+            const mergedMetadata = { ...streamingMetadata, streamId };
+            try {
+              await this.startStreamSubscription(
+                activeConversation,
+                mergedMetadata,
+                'Updating orchestration run…',
+              );
+            } catch (error) {
+              console.warn('⚠️ Unable to subscribe to orchestration stream', error);
+            }
+          }
+        }
+
+        const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
+        if (runRecord) {
+          this.updateOrchestrationRunRecord(activeConversation, runRecord);
+          if (streamId) {
+            this.finalizeStreamMessage(activeConversation, streamId, runRecord);
+            this.cleanupStreamSubscription(activeConversation, streamId);
+          }
+          return runRecord;
+        }
+
+        if (streamId) {
+          this.markStreamError(
+            activeConversation,
             streamId,
-          },
-        },
-      );
-
-      if (!response.success) {
-        this.markStreamError(
-          activeConversation,
-          streamId,
-          response.humanResponse?.message ?? 'Failed to continue orchestration run',
-        );
-        throw new Error(
-          response.humanResponse?.message ?? 'Failed to continue orchestration run',
-        );
+            'No orchestration run returned from server',
+          );
+        }
+        return null;
+      } catch (error) {
+        if (streamId) {
+          if (error instanceof Error) {
+            this.markStreamError(activeConversation, streamId, error.message);
+          } else {
+            this.markStreamError(activeConversation, streamId, 'Unknown error');
+          }
+        }
+        throw error;
       }
-
-      const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
-      if (runRecord) {
-        this.updateOrchestrationRunRecord(activeConversation, runRecord);
-        this.finalizeStreamMessage(activeConversation, streamId, runRecord);
-        this.cleanupStreamSubscription(activeConversation, streamId);
-        return runRecord;
-      }
-
-      this.markStreamError(
-        activeConversation,
-        streamId,
-        'No orchestration run returned from server',
-      );
-      return null;
-    } catch (error) {
-      if (error instanceof Error) {
-        this.markStreamError(activeConversation, streamId, error.message);
-      } else {
-        this.markStreamError(activeConversation, streamId, 'Unknown error');
-      }
-      throw error;
-    }
     },
 
     async saveOrchestrationRecipe(input: {

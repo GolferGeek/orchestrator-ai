@@ -284,4 +284,97 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       request.payload?.options?.stream || request.metadata?.stream,
     );
   }
+
+  /**
+   * Handle orchestration - call sub-agents.
+   *
+   * This is a basic implementation that allows any agent to orchestrate
+   * calls to other agents. More sophisticated orchestration (with pause/
+   * resume, human checkpoints, etc.) will be implemented in future phases.
+   *
+   * @param subAgents - Array of sub-agent configurations to call
+   * @param request - Parent request context
+   * @param organizationSlug - Organization context
+   * @returns Array of sub-agent responses
+   *
+   * @example
+   * ```typescript
+   * const subAgents = [
+   *   { slug: 'context-agent-1', mode: AgentTaskMode.BUILD, userMessage: 'Analyze data' },
+   *   { slug: 'tool-agent-1', mode: AgentTaskMode.BUILD, userMessage: 'Execute tools' }
+   * ];
+   * const results = await this.handleOrchestration(subAgents, request, organizationSlug);
+   * ```
+   */
+  protected async handleOrchestration(
+    subAgents: Array<{
+      slug: string;
+      mode: AgentTaskMode;
+      userMessage: string;
+      payload?: any;
+    }>,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto[]> {
+    const results: TaskResponseDto[] = [];
+
+    this.logger.log(
+      `Orchestrating ${subAgents.length} sub-agent(s) for conversation ${request.conversationId}`,
+    );
+
+    for (const subAgent of subAgents) {
+      try {
+        // Build sub-agent request
+        const subRequest: TaskRequestDto = {
+          mode: subAgent.mode,
+          conversationId: request.conversationId,
+          sessionId: request.sessionId,
+          userMessage: subAgent.userMessage,
+          payload: subAgent.payload || {},
+          metadata: {
+            ...request.metadata,
+            parentRequest: true,
+            orchestratedBy: request.payload?.agentSlug || 'unknown',
+          },
+        };
+
+        // NOTE: In a full implementation, this would call the AgentExecutionGateway
+        // or AgentModeRouterService to execute the sub-agent. For now, this is
+        // a placeholder that returns a success response.
+        // TODO: Implement actual sub-agent calling via dependency injection
+
+        this.logger.log(
+          `Calling sub-agent ${subAgent.slug} in ${subAgent.mode} mode`,
+        );
+
+        // Placeholder response - will be replaced with actual sub-agent call
+        const response = TaskResponseDto.success(subAgent.mode, {
+          content: {
+            message: `Placeholder: Sub-agent ${subAgent.slug} would be called here`,
+          },
+          metadata: {
+            subAgentSlug: subAgent.slug,
+            orchestrated: true,
+          },
+        });
+
+        results.push(response);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `Failed to orchestrate sub-agent ${subAgent.slug}: ${errorMessage}`,
+        );
+
+        results.push(
+          TaskResponseDto.failure(
+            subAgent.mode,
+            `Sub-agent execution failed: ${errorMessage}`,
+          ),
+        );
+      }
+    }
+
+    return results;
+  }
 }
