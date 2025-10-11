@@ -74,8 +74,7 @@ export class StreamTokenService {
       conversationId: params.conversationId,
       email: params.user.email,
       role: params.user.role ?? 'authenticated',
-      aud: 'sse',
-      iss: 'orchestrator-ai',
+      // aud and iss are set via sign options below
     };
 
     const token = sign(payload, this.secret, {

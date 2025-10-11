@@ -5,7 +5,6 @@ export { messageFormatting } from './messageFormatting';
 export { deliverable } from './deliverable';
 export { createPlansService } from './plans';
 export { createBuildsService } from './builds';
-export { websocketHandler } from './websocketHandler';
 export { taskExecution } from './taskExecution';
 export { conversation } from './conversation';
 // Export types

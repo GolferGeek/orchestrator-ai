@@ -35,7 +35,7 @@ export class Agent2AgentTasksService {
     id: string;
     userId: string;
     agentName: string;
-    namespace: string; // Database namespace
+    namespace: string | null; // Organization slug from conversation (null for global agents)
     agentConversationId: string | null;
     status: string;
     params: any;
@@ -147,7 +147,7 @@ export class Agent2AgentTasksService {
         id: task.id,
         userId: task.user_id,
         agentName: agentName, // Use the parameter since it's not in the task record
-        namespace: agentType, // Use the parameter since it's not in the task record  
+        namespace: null, // Conversation was created without organization_slug, so it's null
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
@@ -170,7 +170,7 @@ export class Agent2AgentTasksService {
     id: string;
     userId: string;
     agentName: string;
-    namespace: string; // Database namespace
+    namespace: string | null; // Organization slug from conversation (null for global agents)
     agentConversationId: string | null;
     status: string;
     params: any;
@@ -199,7 +199,7 @@ export class Agent2AgentTasksService {
         id: task.id,
         userId: task.user_id,
         agentName: (task as any).conversations?.agent_name || 'unknown',
-        namespace: (task as any).conversations?.agent_type || 'unknown',
+        namespace: (task as any).conversations?.organization_slug || null,
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,

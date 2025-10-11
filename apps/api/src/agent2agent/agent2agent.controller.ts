@@ -471,6 +471,17 @@ export class Agent2AgentController {
         request.originalUrl || request.url,
       );
 
+    console.log('📡 Opening SSE stream', {
+      userId: currentUser.id,
+      taskId,
+      agentSlug,
+      organizationSlug: organizationSlug ?? 'global',
+      streamId: streamId ?? null,
+      allowedStreamId: allowedStreamId ?? null,
+      conversationId: expectedConversationId ?? null,
+      url: sanitizedUrl,
+    });
+
     this.logger.debug('Opening SSE stream', {
       userId: currentUser.id,
       taskId,
@@ -523,6 +534,15 @@ export class Agent2AgentController {
     };
 
     const chunkListener = (event: AgentStreamChunkEvent) => {
+      console.log('🎵 SSE chunk event received', { 
+        eventAgentSlug: event.agentSlug,
+        eventOrgSlug: event.organizationSlug,
+        eventStreamId: event.streamId,
+        filterAgentSlug: agentSlug,
+        filterOrgSlug: organizationSlug,
+        filterStreamId: streamId,
+        allowedStreamId,
+      });
       if (
         !this.matchesStreamEvent(event, {
           agentSlug,
@@ -532,12 +552,19 @@ export class Agent2AgentController {
           conversationId: expectedConversationId,
         })
       ) {
+        console.log('❌ Event did not match filters');
         return;
       }
+      console.log('✅ Event matched, writing to stream');
       this.writeSseEvent(response, this.toChunkSseEvent(event));
     };
 
     const completeListener = (event: AgentStreamCompleteEvent) => {
+      console.log('🏁 SSE complete event received', { 
+        eventAgentSlug: event.agentSlug,
+        eventOrgSlug: event.organizationSlug,
+        eventStreamId: event.streamId,
+      });
       if (
         !this.matchesStreamEvent(event, {
           agentSlug,
@@ -547,8 +574,10 @@ export class Agent2AgentController {
           conversationId: expectedConversationId,
         })
       ) {
+        console.log('❌ Complete event did not match filters');
         return;
       }
+      console.log('✅ Complete event matched, writing to stream and ending');
       this.writeSseEvent(response, this.toCompleteSseEvent(event));
       endStream('complete');
     };

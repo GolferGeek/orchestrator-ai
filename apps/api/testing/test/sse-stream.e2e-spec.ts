@@ -29,20 +29,12 @@ describe('SSE Streaming (Agent2AgentController)', () => {
     tasksService = moduleFixture.get(TasksService);
     eventEmitter = moduleFixture.get(EventEmitter2);
 
-    const loginResponse = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: process.env.SUPABASE_TEST_USER,
-        password: process.env.SUPABASE_TEST_PASSWORD,
-      })
-      .expect(200);
-
-    authToken = loginResponse.body.accessToken;
-    const decoded: any = jwt.decode(authToken);
-    testUserId = decoded?.sub;
+    // Use API key authentication for E2E tests (more reliable in test environment)
+    authToken = process.env.TEST_API_SECRET_KEY || 'test-secret-key';
+    testUserId = process.env.SUPABASE_TEST_USERID || 'b29a590e-b07f-49df-a25b-574c956b5035';
 
     if (!authToken || !testUserId) {
-      throw new Error('Failed to authenticate test user. Ensure SUPABASE_TEST_USER and SUPABASE_TEST_PASSWORD are set.');
+      throw new Error('Failed to set up test authentication. Ensure TEST_API_SECRET_KEY and SUPABASE_TEST_USERID are set.');
     }
   }, 30000);
 
@@ -59,7 +51,7 @@ describe('SSE Streaming (Agent2AgentController)', () => {
 
       const response = await request(app.getHttpServer())
         .post(`/agent-to-agent/${organizationSlug}/${agentSlug}/tasks/${task.id}/stream-token`)
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Test-Api-Key', authToken)
         .send({ streamId: 'token-test-stream' })
         .expect(201);
 
@@ -84,7 +76,7 @@ describe('SSE Streaming (Agent2AgentController)', () => {
 
       const tokenResponse = await request(app.getHttpServer())
         .post(`/agent-to-agent/${organizationSlug}/${agentSlug}/tasks/${task.id}/stream-token`)
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Test-Api-Key', authToken)
         .send({ streamId })
         .expect(201);
 
@@ -92,26 +84,26 @@ describe('SSE Streaming (Agent2AgentController)', () => {
       expect(token).toBeDefined();
 
       const streamPromise = new Promise<string>((resolve, reject) => {
+        let streamData = '';
         request(app.getHttpServer())
           .get(
             `/agent-to-agent/${organizationSlug}/${agentSlug}/tasks/${task.id}/stream?streamId=${streamId}&token=${token}`,
           )
           .set('Accept', 'text/event-stream')
-          .buffer(true)
-          .parse((res, callback) => {
-            res.setEncoding('utf8');
-            let data = '';
-            res.on('data', (chunk: string) => {
-              data += chunk;
-              if (data.includes('event: agent_stream_complete')) {
-                callback(null, data);
-              }
-            });
-            res.on('error', (err: Error) => callback(err, data));
-            res.on('end', () => callback(null, data));
+          .buffer(false)
+          .on('data', (chunk: Buffer) => {
+            streamData += chunk.toString('utf8');
+            if (streamData.includes('event: agent_stream_complete')) {
+              resolve(streamData);
+            }
           })
-          .then((response) => resolve(response.text))
-          .catch((err) => reject(err));
+          .on('error', (err: Error) => reject(err))
+          .on('end', () => {
+            // If we haven't resolved yet, resolve now
+            if (!streamData.includes('event: agent_stream_complete')) {
+              resolve(streamData);
+            }
+          });
       });
 
       const eventPayload = {
@@ -124,6 +116,7 @@ describe('SSE Streaming (Agent2AgentController)', () => {
       };
 
       setTimeout(() => {
+        console.log('🎬 Test emitting chunk event', eventPayload);
         eventEmitter.emit('agent.stream.chunk', {
           ...eventPayload,
           chunk: {
@@ -133,6 +126,7 @@ describe('SSE Streaming (Agent2AgentController)', () => {
           },
         });
 
+        console.log('🎬 Test emitting complete event', eventPayload);
         eventEmitter.emit('agent.stream.complete', {
           ...eventPayload,
         });

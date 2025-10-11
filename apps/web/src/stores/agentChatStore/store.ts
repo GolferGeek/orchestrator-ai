@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { reactive } from 'vue';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
@@ -21,7 +20,6 @@ function generateUUID(): string {
 // Import services
 import { conversation } from './conversation';
 import { taskExecution } from './taskExecution';
-import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
 import { planActions } from './planActions';
 import { deliverableActions } from './deliverableActions';
@@ -35,11 +33,6 @@ import type {
   AgentStreamCompleteData,
   AgentStreamErrorData,
 } from '@orchestrator-ai/transport-types';
-import type {
-  AgentStreamChunkEvent,
-  AgentStreamCompleteEvent,
-  AgentStreamErrorEvent,
-} from '@/services/websocketService';
 
 
 // Import types
@@ -121,25 +114,15 @@ export const useAgentChatStore = defineStore('agentChat', {
   },
 
   actions: {
-    /**
-     * Initialize WebSocket handler with store instance
-     */
-    initializeWebSocketHandler() {
-      websocketHandler.setStore(this);
-    },
-
     async startStreamSubscription(
       conversation: AgentConversation,
       streamInfo: string | Record<string, any>,
       label: string,
     ): Promise<void> {
-      this.initializeWebSocketHandler();
-
       const metadata: Record<string, any> =
         typeof streamInfo === 'string' ? { streamId: streamInfo } : { ...streamInfo };
-      const streamId =
-        this.extractStreamId(metadata) ??
-        (typeof streamInfo === 'string' ? streamInfo : generateUUID());
+
+      const streamId = this.extractStreamId(metadata) ?? generateUUID();
       metadata.streamId = streamId;
 
       if (!conversation.streamSubscriptions) {
@@ -158,61 +141,40 @@ export const useAgentChatStore = defineStore('agentChat', {
       const streamMessage = messageFormatting.createStreamMessage(streamId, label);
       conversation.messages.push(streamMessage);
 
-      const registerSubscription = (unsubscribe: () => void) => {
-        conversation.streamSubscriptions![streamId] = {
-          messageId: streamMessage.id,
-          unsubscribe,
-        };
+      const handler = new A2AStreamHandler({
+        debug: import.meta.env.DEV,
+      });
+      activeSseHandlers.set(streamId, handler);
+
+      const unsubscribe = () => {
+        try {
+          handler.disconnect();
+        } catch {
+          // ignore disconnect errors
+        }
+        activeSseHandlers.delete(streamId);
       };
 
-      if (this.hasSseMetadata(metadata)) {
-        const handler = new A2AStreamHandler({
-          debug: import.meta.env.DEV,
-        });
-        activeSseHandlers.set(streamId, handler);
-
-        registerSubscription(() => {
-          try {
-            handler.disconnect();
-          } finally {
-            activeSseHandlers.delete(streamId);
-          }
-        });
-
-        try {
-          await handler.connect({
-            metadata,
-            onChunk: (event) => this.handleStreamChunk(event),
-            onComplete: (event) => this.handleStreamComplete(event),
-            onError: (event) => this.handleStreamError(event),
-          });
-          return;
-        } catch (error) {
-          console.warn('⚠️ SSE stream connection failed, attempting WebSocket fallback', error);
-          const active = conversation.streamSubscriptions?.[streamId];
-          if (active) {
-            try {
-              active.unsubscribe?.();
-            } catch {}
-          }
-          activeSseHandlers.delete(streamId);
-        }
-      }
+      conversation.streamSubscriptions[streamId] = {
+        messageId: streamMessage.id,
+        unsubscribe,
+      };
 
       try {
-        const unsubscribe = await websocketHandler.subscribeToStream(streamId, {
-          onChunk: (event: AgentStreamChunkEvent) => this.handleStreamChunk(event),
-          onComplete: (event: AgentStreamCompleteEvent) => this.handleStreamComplete(event),
-          onError: (event: AgentStreamErrorEvent) => this.handleStreamError(event),
-        });
-        registerSubscription(() => {
-          try {
-            unsubscribe?.();
-          } catch {}
+        await handler.connect({
+          metadata,
+          onChunk: (event) => this.handleStreamChunk(event),
+          onComplete: (event) => this.handleStreamComplete(event),
+          onError: (event) => this.handleStreamError(event),
         });
       } catch (error) {
-        console.error('❌ Failed to subscribe to stream via WebSocket', error);
-        messageFormatting.markStreamError(streamMessage, 'Unable to subscribe to stream');
+        unsubscribe();
+        delete conversation.streamSubscriptions[streamId];
+        messageFormatting.markStreamError(
+          streamMessage,
+          error instanceof Error ? error.message : 'Unable to subscribe to stream',
+        );
+        throw error;
       }
     },
 
@@ -229,25 +191,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       return streamId ? String(streamId) : undefined;
     },
 
-    hasSseMetadata(metadata: Record<string, any>): boolean {
-      if (!metadata) {
-        return false;
-      }
-      const streaming = metadata.streaming ?? {};
-      const streamEndpoint =
-        metadata.streamEndpoint ||
-        metadata.streamUrl ||
-        streaming.streamEndpoint ||
-        streaming.streamUrl;
-      const tokenEndpoint =
-        metadata.streamTokenEndpoint ||
-        metadata.streamTokenUrl ||
-        streaming.streamTokenEndpoint ||
-        streaming.streamTokenUrl;
-      return Boolean(streamEndpoint && tokenEndpoint);
-    },
-
-    handleStreamChunk(event: AgentStreamChunkEvent | AgentStreamChunkData) {
+    handleStreamChunk(event: AgentStreamChunkData) {
       const conversation = this.getConversationForStream(
         event.streamId,
         event.conversationId ?? null,
@@ -292,7 +236,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
     },
 
-    handleStreamComplete(event: AgentStreamCompleteEvent | AgentStreamCompleteData) {
+    handleStreamComplete(event: AgentStreamCompleteData) {
       const conversation = this.getConversationForStream(
         event.streamId,
         event.conversationId ?? null,
@@ -309,7 +253,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       this.cleanupStreamSubscription(conversation, event.streamId);
     },
 
-    handleStreamError(event: AgentStreamErrorEvent | AgentStreamErrorData) {
+    handleStreamError(event: AgentStreamErrorData) {
       const conversation = this.getConversationForStream(
         event.streamId,
         event.conversationId ?? null,
@@ -662,7 +606,6 @@ export const useAgentChatStore = defineStore('agentChat', {
       await taskExecution.createAndExecuteTask(taskOptions, {
         onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
         onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
-        onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
       });
 
       // Clear sending state on completion path (safety)
@@ -850,11 +793,6 @@ export const useAgentChatStore = defineStore('agentChat', {
           // Don't let deliverable loading failure block conversation opening
         }
         
-        // Restore WebSocket subscriptions for active tasks
-        await this.restoreActiveTaskSubscriptions(newConversation);
-        
-
-        
       } catch (error) {
         this.globalError = error instanceof Error ? error.message : 'Failed to load conversation';
         console.error('Failed to open existing conversation:', error);
@@ -867,9 +805,6 @@ export const useAgentChatStore = defineStore('agentChat', {
     async sendMessage(content: string) {
       // Don't clear speech flag here - let TTS handle clearing it after playback
       // The flag should only be cleared after TTS completes or if user types a new message
-      
-      // Initialize WebSocket handler with store instance
-      this.initializeWebSocketHandler();
       
       const activeConversation = this.getActiveConversation();
       if (!activeConversation) {
@@ -1170,11 +1105,10 @@ export const useAgentChatStore = defineStore('agentChat', {
         }
 
       // Execute task using service
-        await taskExecution.createAndExecuteTask(taskOptions, {
-          onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
-          onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
-          onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
-        });
+      await taskExecution.createAndExecuteTask(taskOptions, {
+        onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
+        onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
+      });
 
       } catch (error) {
         const conversation = this.getActiveConversation();
@@ -1281,7 +1215,6 @@ export const useAgentChatStore = defineStore('agentChat', {
         await taskExecution.createAndExecuteTask(taskOptions, {
           onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
           onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
-          onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
         });
 
       } catch (error) {
@@ -1943,10 +1876,6 @@ export const useAgentChatStore = defineStore('agentChat', {
           conv.latestPlanId = planId;
         }
 
-        // Cleanup WebSocket subscriptions
-        websocketHandler.unsubscribeFromTask(effectiveTaskId);
-
-
       } catch (error) {
         console.error(`🏁 DEBUG: Failed to handle task completion for ${taskId}:`, error);
         conv.error = error instanceof Error ? error.message : 'Failed to load task result';
@@ -2010,71 +1939,6 @@ export const useAgentChatStore = defineStore('agentChat', {
     },
 
 
-
-    /**
-     * Handle task status updates
-     */
-    handleTaskStatusUpdate(conversationId: string, taskId: string, statusUpdate: any) {
-      const conv = this.getConversationById(conversationId);
-      if (!conv) return;
-      
-      // Handle PII policy violations specifically
-      if (statusUpdate.metadata?.type === 'pii_violation') {
-        // Remove any existing placeholder message for this task
-        const placeholderIndex = conv.messages.findIndex(msg => 
-          msg.taskId === taskId && msg.role === 'assistant'
-        );
-        if (placeholderIndex >= 0) {
-          conv.messages.splice(placeholderIndex, 1);
-        }
-        
-        // Add PII violation system message with reactive metadata
-        const piiMessageId = `pii-${taskId}-${Date.now()}`;
-        const piiMessage = reactive({
-          id: piiMessageId,
-          role: 'system',
-          content: statusUpdate.error || 'I cannot process your request because it contains sensitive personal information. Please rephrase your request without including any personal identifiable information.',
-          timestamp: new Date(),
-          metadata: {
-            type: 'pii_violation',
-            error: false, // Not an error, just a policy decision
-            blocked: true,
-            detectedTypes: statusUpdate.metadata.detectedTypes || [],
-            suggestion: statusUpdate.metadata.suggestion || 'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.',
-            // Add sanitization metadata for the banner
-            sanitizationMetadata: {
-              status: 'blocked',
-              piiDetected: true,
-              piiTypes: statusUpdate.metadata.detectedTypes || [],
-              dataSanitizationApplied: true,
-              sanitizationLevel: 'strict',
-              blockReason: 'PII policy violation'
-            }
-          }
-        });
-        
-        conv.messages.push(piiMessage);
-        
-        // Clear loading state
-        conv.isSendingMessage = false;
-        return;
-      }
-      
-      // Handle regular status updates
-      const messageIndex = conv.messages.findIndex(msg => 
-        msg.taskId === taskId && msg.role === 'assistant'
-      );
-      
-      if (messageIndex >= 0) {
-        const message = conv.messages[messageIndex];
-        const result = websocketHandler.processTaskStatusUpdate(message, statusUpdate);
-        
-        if (result.contentUpdated && result.newContent) {
-          message.content = result.newContent;
-          conv.messages[messageIndex] = { ...message }; // Trigger reactivity
-        }
-      }
-    },
 
     /**
      * Set execution mode for active conversation
@@ -2181,53 +2045,6 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (activeConversation) {
         activeConversation.isExecutionModeOverride = false;
 
-      }
-    },
-
-    /**
-     * Restore WebSocket subscriptions for active tasks in a conversation
-     */
-    async restoreActiveTaskSubscriptions(conv: AgentConversation) {
-      try {
-
-        
-        // Get active tasks for this conversation
-        const activeTasks = await conversation.getActiveTasksForConversation(conv.id);
-        
-        if (activeTasks.length === 0) {
-
-          return;
-        }
-        
-
-        
-        // Restore WebSocket subscriptions for each active task
-        for (const task of activeTasks) {
-          try {
-            // Check if we have websocket mode enabled for this conversation
-            if (conv.supportedExecutionModes.includes('websocket')) {
-
-              
-              // Use the websocket handler to subscribe to this task
-              await websocketHandler.subscribeToTaskEvents(conv.id, task.taskId, {
-                onTaskStatus: (update) => this.handleTaskStatusUpdate(conv.id, task.taskId, update),
-                onCompletion: (taskId) => this.handleTaskCompletion(conv.id, taskId),
-                onWorkflowStep: (stepEvent) => websocketHandler.updateMessageWorkflowStep(conv.id, task.taskId, stepEvent)
-              });
-              
-
-            } else {
-              // Task is not running, no action needed
-            }
-          } catch (error) {
-            console.error(`❌ Failed to restore WebSocket subscription for task ${task.taskId}:`, error);
-          }
-        }
-        
-
-        
-      } catch (error) {
-        console.error(`❌ Failed to restore active task subscriptions for conversation ${conv.id}:`, error);
       }
     },
 
