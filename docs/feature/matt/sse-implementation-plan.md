@@ -83,7 +83,7 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 
 - [x] Implement `GET /agent-to-agent/:org/:agent/tasks/:taskId/stream` SSE endpoint
 - [x] Add helper to format typed SSE payloads (`formatSSEEvent`)
-- [ ] Attach SSE stream URL to task response metadata (`streamEndpoint`)
+- [x] Attach SSE stream URL to task response metadata (`streamEndpoint`)
 - [x] Wire EventEmitter2 events to SSE writer (chunk/complete/error)
 - [x] Introduce keep-alive ping + disconnect cleanup
 - [x] Implement `StreamTokenService` + `POST /agent-to-agent/:org/:agent/tasks/:taskId/stream-token` (task-bound, 5–10 min TTL JWT)

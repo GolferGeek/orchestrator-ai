@@ -194,6 +194,7 @@ export class Agent2AgentController {
     @Param('agentSlug') agentSlug: string,
     @Body() body: any,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Req() request: Request,
   ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope | JsonRpcErrorEnvelope> {
     // CRITICAL: Log that this controller method was called
     console.log(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
@@ -298,6 +299,13 @@ export class Agent2AgentController {
 
       // Execute the agent with the persisted task ID
       const result = await this.gateway.execute(org, agentSlug, dto);
+      this.attachStreamMetadata(result, {
+        request,
+        organizationSlug: org,
+        agentSlug,
+        taskId: task.id,
+        conversationId: task.agentConversationId ?? null,
+      });
 
       // Check if task completion was already handled by the agent (to avoid duplicate completion)
       const taskAlreadyHandled = result && (
@@ -581,6 +589,105 @@ export class Agent2AgentController {
       return null;
     }
     return orgSlug;
+  }
+
+  private attachStreamMetadata(
+    result: TaskResponseDto,
+    params: {
+      request: Request;
+      organizationSlug: string | null;
+      agentSlug: string;
+      taskId: string;
+      conversationId: string | null;
+    },
+  ): void {
+    if (!result || typeof result !== 'object' || !result.payload) {
+      return;
+    }
+
+    const payload = result.payload;
+    const metadata =
+      (payload.metadata as Record<string, any> | undefined) ?? {};
+
+    payload.metadata = metadata;
+
+    const streamId = this.extractStreamId(result);
+    const orgSegment = params.organizationSlug ?? 'global';
+    const basePath = `/agent-to-agent/${orgSegment}/${params.agentSlug}/tasks/${params.taskId}`;
+    const streamPath = `${basePath}/stream`;
+    const tokenPath = `${basePath}/stream-token`;
+    const baseUrl = this.buildBaseUrl(params.request);
+    const streamUrl = baseUrl ? `${baseUrl}${streamPath}` : streamPath;
+    const tokenUrl = baseUrl ? `${baseUrl}${tokenPath}` : tokenPath;
+
+    metadata.streamEndpoint = streamPath;
+    metadata.streamTokenEndpoint = tokenPath;
+
+    const existingStreaming =
+      (metadata.streaming as Record<string, any> | undefined) ?? {};
+
+    const streamingMetadata: Record<string, any> = {
+      ...existingStreaming,
+      streamEndpoint: streamPath,
+      streamTokenEndpoint: tokenPath,
+      streamUrl,
+      streamTokenUrl: tokenUrl,
+    };
+
+    if (streamId) {
+      streamingMetadata.streamId = streamId;
+    }
+    if (params.conversationId) {
+      streamingMetadata.conversationId = params.conversationId;
+    }
+
+    metadata.streaming = streamingMetadata;
+  }
+
+  private extractStreamId(result: TaskResponseDto): string | undefined {
+    const metadata = result.payload?.metadata as Record<string, any> | undefined;
+    if (!metadata) {
+      return undefined;
+    }
+
+    const candidates: Array<unknown> = [
+      metadata.streamId,
+      metadata.streaming?.streamId,
+    ];
+
+    for (const candidate of candidates) {
+      const value = this.asString(candidate);
+      if (value) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
+  private asString(value: unknown): string | undefined {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+    return undefined;
+  }
+
+  private buildBaseUrl(request: Request): string | null {
+    const host =
+      request.get('x-forwarded-host') ??
+      request.get('host') ??
+      request.headers['host'];
+
+    if (!host || typeof host !== 'string') {
+      return null;
+    }
+
+    const proto =
+      request.get('x-forwarded-proto') ??
+      request.protocol ??
+      (request.secure ? 'https' : 'http');
+
+    return `${proto}://${host}`;
   }
 
   private async ensureTaskOwnership(
