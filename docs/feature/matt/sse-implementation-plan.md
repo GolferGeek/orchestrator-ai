@@ -32,15 +32,29 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 
 ## Phase 0 – Preparation & Alignment
 
-- [ ] Confirm versioning + publishing flow for `@orchestrator-ai/transport-types`
-- [ ] Decide on SSE authentication mechanism (query param vs. cookie) and document
-- [ ] Verify Supabase migrations ordering (task messages table precedes TTL update)
-- [ ] Communicate downtime expectations & change window to stakeholders
+- [x] Confirm versioning + publishing flow for `@orchestrator-ai/transport-types`
+- [x] Decide on SSE authentication mechanism (query param vs. cookie) and document
+- [x] Verify Supabase migrations ordering (task messages table precedes TTL update)
+- [x] Communicate downtime expectations & change window to stakeholders
 
 **Notes:**  
-- _2025-02-09:_ Need confirmation from security on auth token transport.  
+- _2025-02-10:_ Draft stakeholder comms for SSE switchover: target maintenance window **2025-02-13 18:00–18:30 PT** (low-traffic). Notify platform users 24h prior via in-app banner + email; call out that live WebSocket streams will disconnect once, advise refresh, highlight new SSE benefits, and provide fallback instructions.
+- _2025-02-10:_ Supabase migration order verified: `202502090001_task_messages_ttl.sql` (creates/augments `task_messages` with TTL + indexes) runs before `202502090002_orchestration_persistence.sql`; both executed successfully on dev Supabase instance.  
+- _2025-02-10:_ Stream tokens chosen: short-lived (5–10 min) JWTs bound to `userId` + `taskId`, minted via new `StreamTokenService`, rate limited per user/task, sanitized from logs. Reconnection flow re-fetches a token before reopening EventSource.  
 - _2025-02-09:_ `@orchestrator-ai/transport-types` is consumed via `file:../transport-types` links from API/Web workspaces; run `npm install` (workspace) after updates to refresh symlink and `npm run build` inside package to emit `dist`.  
-- _2025-02-09:_ Existing SSE (`GET /tasks/:id/progress`) still relies on Bearer headers; EventSource adoption will require JwtAuthGuard to accept a `token` query param (or cookie). Proposal: issue short-lived access tokens via query string until session-cookie approach is vetted.
+
+---
+
+### Downtime Communication Plan
+- **Audience:** internal teams, beta customers using live task streaming.
+- **Notice cadence:** 
+  1. T-24h email + in-app banner announcing the upgrade window and SSE benefits.
+  2. T-1h reminder in Slack `#launch` + status page update.
+  3. Live status page update when deployment starts and completes.
+- **Window:** 2025-02-13 18:00–18:30 PT (expected <10 min interruption; 30 min reserved).
+- **Impact messaging:** Existing WebSocket streams will drop once; reconnect/refresh to resume. New SSE endpoint provides native browser support and automatic retries.
+- **Fallback instructions:** Remind users they can poll task status via REST if SSE fails. Provide help link for reporting regressions.
+- **Owner:** Matt (comms), Core Eng (status page), Support (monitor inbound tickets).
 
 ---
 
@@ -71,6 +85,10 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 - [ ] Attach SSE stream URL to task response metadata (`streamEndpoint`)
 - [ ] Wire EventEmitter2 events to SSE writer (chunk/complete/error)
 - [ ] Introduce keep-alive ping + disconnect cleanup
+- [ ] Implement `StreamTokenService` + `POST /agent-to-agent/:org/:agent/tasks/:taskId/stream-token` (task-bound, 5–10 min TTL JWT)
+- [ ] Extend `JwtAuthGuard` to accept query-token fallback with task binding + TTL validation
+- [ ] Add rate limiting per user/task for stream-token issuance
+- [ ] Sanitize logs/metrics to strip `token` query params before emit
 
 ### 2.2 Storage & Persistence Updates
 
@@ -88,6 +106,7 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 - [ ] Validate webhook → in-memory → DB → SSE pipeline
 - [ ] Confirm polling endpoint still returns recent messages
 - [ ] Execute regression suite (`npm test`, targeted integration tests)
+- [ ] Force stream token expiration to verify reconnect flow obtains fresh token
 
 **Notes:**  
 - _2025-02-09:_ Migrations created; awaiting execution and review.  
@@ -101,6 +120,7 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 ### 3.1 SSE Client & Handler
 
 - [ ] Implement `SSEClient` wrapper (EventSource + reconnection/backoff)
+- [ ] Add stream-token fetch/refresh helper that runs before initial connect and on reconnect attempts
 - [ ] Implement `A2AStreamHandler` bridging SSE events to store callbacks
 - [ ] Add typed unit tests for handler (mock EventSource scenarios)
 - [ ] Expose connection state changes for UI feedback

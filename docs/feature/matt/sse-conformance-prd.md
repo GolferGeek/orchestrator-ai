@@ -517,6 +517,12 @@ private formatSSEEvent(
 }
 ```
 
+**Authentication Handshake (Query Token)**
+1. **Mint stream token:** `POST /agent-to-agent/:orgSlug/:agentSlug/tasks/:taskId/stream-token` issues a signed JWT (5–10 minute TTL) that embeds `userId`, `taskId`, and optional `streamId`. Tokens are single-use and rate-limited (per user/task) via Nest rate limiter or Redis counter.
+2. **Guard fallback:** `JwtAuthGuard` accepts `?token=...` when the `Authorization` header is absent. The guard verifies signature, TTL, and task binding before attaching the Supabase user context. Standard Bearer auth continues to work for non-SSE flows.
+3. **Client flow:** Frontend fetches the stream token over the authenticated REST channel, then opens `EventSource(\`${streamUrl}?token=${encodeURIComponent(token)}\`)`. Reconnect logic re-requests a token whenever EventSource retries to avoid TTL expiry mid-stream.
+4. **Observability hygiene:** Remove query tokens from access logs/error traces. Middleware strips `token` query params before logging. SSE endpoint honours existing CORS configuration and responds to `OPTIONS`.
+
 #### **R4: Task Response Includes Stream Endpoint**
 **Priority:** High  
 **Implementation:** When streaming is requested, include SSE endpoint URL in response metadata
@@ -1019,6 +1025,7 @@ task_messages: [] // All cleaned up after completion + 10 minutes
 - [ ] **Test external webhook → stored messages → available via SSE + polling**
 - [ ] Test error scenarios and error events
 - [ ] Test reconnection after network interruption (updates resume)
+- [ ] Test stream token expiration (force reconnect + fresh token fetch)
 - [ ] Test with long-running streams (5+ minutes)
 - [ ] Test with multiple concurrent conversations streaming simultaneously
 - [ ] **Test client switches from SSE to polling mid-stream**
@@ -1066,9 +1073,9 @@ task_messages: [] // All cleaned up after completion + 10 minutes
 **Probability:** Medium | **Impact:** High  
 **Issue:** EventSource doesn't support custom headers (auth must be in URL or cookies)  
 **Mitigation:**
-- Use query parameter for auth token (temporary, secure over HTTPS)
-- Implement cookie-based auth as alternative
-- Consider creating proxy endpoint that adds headers server-side
+- Issue short-lived, task-bound stream tokens via `StreamTokenService` and validate through `JwtAuthGuard` query-token fallback.
+- Frontend re-fetches stream tokens on reconnect to avoid TTL expiry mid-session.
+- Strip `token` query params from structured logs/metrics; revisit cookie-based auth later if requirements change.
 
 #### **Risk: SSE Connection Limits**
 **Probability:** Low | **Impact:** Medium  
