@@ -64,6 +64,40 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
   }
 
   /**
+   * CONVERSE mode - conversational interaction
+   * Context agents use default implementation from BaseAgentRunner
+   */
+  protected async handleConverse(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    // Context agents don't have special CONVERSE logic yet
+    // Return a simple response indicating this mode isn't fully implemented
+    return TaskResponseDto.failure(
+      AgentTaskMode.CONVERSE,
+      'CONVERSE mode not yet implemented for context agents',
+    );
+  }
+
+  /**
+   * PLAN mode - planning
+   * Context agents use default implementation from BaseAgentRunner
+   */
+  protected async handlePlan(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    // Context agents don't have special PLAN logic yet
+    // Return a simple response indicating this mode isn't fully implemented
+    return TaskResponseDto.failure(
+      AgentTaskMode.PLAN,
+      'PLAN mode not yet implemented for context agents',
+    );
+  }
+
+  /**
    * BUILD mode - fetch context and generate deliverable with LLM
    */
   protected async handleBuild(
@@ -114,21 +148,22 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       // 4. Call LLM
       const llmConfig = definition.llm || {};
-      const response = await this.llmService.generateResponse({
+      const response = await this.llmService.generateResponse(
         systemPrompt,
-        userMessage: request.userMessage || '',
-        provider: llmConfig.provider || 'anthropic',
-        model: llmConfig.model || 'claude-3-5-sonnet',
-        options: {
+        request.userMessage || '',
+        {
           temperature: llmConfig.temperature,
           maxTokens: llmConfig.maxTokens,
+          provider: (llmConfig.provider || 'anthropic') as
+            | 'openai'
+            | 'anthropic'
+            | 'ollama'
+            | 'google',
           conversationId: request.conversationId,
           sessionId: request.sessionId,
-          userId: this.resolveUserId(request),
-          organizationSlug,
-          agentSlug: definition.slug,
-        },
-      });
+          userId: this.resolveUserId(request) || undefined,
+        } as any,
+      );
 
       // 5. Save deliverable
       const userId = this.resolveUserId(request);
@@ -151,7 +186,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           type: definition.config?.deliverable?.type || 'document',
           agentName: definition.slug,
           namespace: organizationSlug || 'default',
-          taskId,
+          taskId: taskId || undefined,
           metadata: {
             llmProvider: response.metadata?.provider,
             llmModel: response.metadata?.model,
@@ -162,7 +197,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           conversationId,
           userId,
           agentSlug: definition.slug,
-          taskId,
+          taskId: taskId || undefined,
         },
       );
 
@@ -348,7 +383,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
     // Replace variables
     const variableRegex = /\{\{([^}]+)\}\}/g;
-    prompt = prompt.replace(variableRegex, (match, path) => {
+    prompt = prompt.replace(variableRegex, (match: string, path: string) => {
       const keys = path.trim().split('.');
       let value: any = contextData;
 

@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { IAgentRunner } from '../interfaces/agent-runner.interface';
+import { ContextAgentRunnerService } from './context-agent-runner.service';
 
 /**
  * Registry service for agent runners.
@@ -20,11 +21,14 @@ export class AgentRunnerRegistryService {
   private readonly runners: Map<string, IAgentRunner>;
 
   constructor(
-    // Runners will be injected as they're implemented
-    // For now, registry is set up but empty
+    @Inject(forwardRef(() => ContextAgentRunnerService))
+    private readonly contextAgentRunner: ContextAgentRunnerService,
   ) {
     this.runners = new Map();
     this.logger.log('AgentRunnerRegistry initialized');
+
+    // Register runners
+    this.registerRunner('context', this.contextAgentRunner);
   }
 
   /**
