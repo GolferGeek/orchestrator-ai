@@ -22,18 +22,19 @@ BACKUP_FILE="$BACKUP_DIR/golfergeek_n8n_backup_$TIMESTAMP.sql"
 
 echo "Creating n8n backup: $BACKUP_FILE"
 
-# Create the backup
-PGPASSWORD="$N8N_DB_PASSWORD" pg_dump \
-  --host="$N8N_DB_HOST" \
-  --port="$N8N_DB_PORT" \
+# Create the backup using Docker container to avoid version mismatch
+docker exec supabase_db_api-dev pg_dump \
+  --host=localhost \
+  --port=5432 \
   --username="$N8N_DB_USER" \
   --dbname="$N8N_DB_NAME" \
+  --schema=n8n \
   --verbose \
   --clean \
   --if-exists \
   --create \
   --format=plain \
-  --file="$BACKUP_FILE"
+  > "$BACKUP_FILE"
 
 # Compress the backup
 gzip "$BACKUP_FILE"

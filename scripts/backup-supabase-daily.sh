@@ -8,7 +8,7 @@ set -e
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-./storage/backups}"
 SUPABASE_DB_HOST="${SUPABASE_DB_HOST:-127.0.0.1}"
-SUPABASE_DB_PORT="${SUPABASE_DB_PORT:-54322}"
+SUPABASE_DB_PORT="${SUPABASE_DB_PORT:-7012}"
 SUPABASE_DB_NAME="${SUPABASE_DB_NAME:-postgres}"
 SUPABASE_DB_USER="${SUPABASE_DB_USER:-postgres}"
 SUPABASE_DB_PASSWORD="${SUPABASE_DB_PASSWORD:-postgres}"
@@ -22,10 +22,10 @@ BACKUP_FILE="$BACKUP_DIR/golfergeek_supabase_backup_$TIMESTAMP.sql"
 
 echo "Creating Supabase backup: $BACKUP_FILE"
 
-# Create the backup
-PGPASSWORD="$SUPABASE_DB_PASSWORD" pg_dump \
-  --host="$SUPABASE_DB_HOST" \
-  --port="$SUPABASE_DB_PORT" \
+# Create the backup using Docker container to avoid version mismatch
+docker exec supabase_db_api-dev pg_dump \
+  --host=localhost \
+  --port=5432 \
   --username="$SUPABASE_DB_USER" \
   --dbname="$SUPABASE_DB_NAME" \
   --verbose \
@@ -33,7 +33,7 @@ PGPASSWORD="$SUPABASE_DB_PASSWORD" pg_dump \
   --if-exists \
   --create \
   --format=plain \
-  --file="$BACKUP_FILE"
+  > "$BACKUP_FILE"
 
 # Compress the backup
 gzip "$BACKUP_FILE"

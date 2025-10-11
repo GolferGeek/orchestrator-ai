@@ -18,6 +18,7 @@ import { Agent2AgentModule } from './agent2agent/agent2agent.module';
 import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
 import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { AgentRegistryService } from './agent-platform/services/agent-registry.s
     SovereignPolicyModule,
     SystemModule,
     AssetsModule,
+    WebhooksModule,
   ],
   controllers: [
     AppController,
