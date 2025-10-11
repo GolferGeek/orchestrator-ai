@@ -69,6 +69,14 @@ echo -e "${BLUE}   API Port: ${API_PORT}${NC}"
 echo -e "${BLUE}   Web Port: ${WEB_PORT}${NC}"
 echo -e "${BLUE}   Supabase: Local instance${NC}"
 
+# Build shared transport types once for both services
+echo -e "${BLUE}📦 Building shared transport types...${NC}"
+if ! npm run build:transport-types; then
+    echo -e "${RED}❌ Failed to build transport types${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ Transport types ready${NC}"
+
 # Check if Supabase is running
 echo -e "${BLUE}🗄️  Checking Supabase status...${NC}"
 cd apps/api

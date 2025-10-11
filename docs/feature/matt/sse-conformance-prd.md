@@ -355,6 +355,10 @@ export type SSEEvent =
   | AgentStreamErrorSSEEvent
   | TaskProgressSSEEvent;
 
+> **Stream Identifier vs Task Identifier**  
+> `streamId` tracks the live streaming session (one stream per execution/request, allowing retries or multi-step orchestration streams under the same `taskId`).  
+> `taskId` refers to the persisted task record exposed through the REST API and database. The same `taskId` may spawn new `streamId` values when work is retried or resumed, while polling and history endpoints continue to key off `taskId`.
+
 /**
  * SSE Event Handler Type
  */
@@ -532,6 +536,10 @@ if (streamId) {
 **Decision Required:** Do external API agents (n8n workflows) need SSE streaming support, or is the existing polling/webhook pattern sufficient for their use case?
 
 ### Phase 3: Frontend SSE Client Implementation
+
+Frontend responsibilities split into two layers:
+- `SSEClient` offers a thin typed wrapper around `EventSource`.
+- `A2AStreamHandler` consumes SSE events, interprets them per A2A contract, and invokes store mutations. The Pinia store remains transport-agnostic and only reacts to state updates.
 
 #### **R6: SSE Client Service**
 **Priority:** Critical  
@@ -719,9 +727,9 @@ export class SSEClient {
 }
 ```
 
-#### **R7: Update Agent Chat Store**
+#### **R7: A2A Stream Handler (Store Integration Layer)**
 **Priority:** Critical  
-**Location:** `apps/web/src/stores/agentChatStore/store.ts`
+**Location:** `apps/web/src/services/agent2agent/sse/a2aStreamHandler.ts`
 
 ```typescript
 import { SSEClient } from '@/services/agent2agent/sse/sseClient';
@@ -729,135 +737,75 @@ import {
   AgentStreamChunkSSEEvent,
   AgentStreamCompleteSSEEvent,
   AgentStreamErrorSSEEvent,
+  SSEConnectionState,
 } from '@orchestrator-ai/transport-types';
 
-// Add to store state
-interface AgentChatStoreState {
-  // ... existing state
-  sseClient: SSEClient | null;
-  activeStreams: Map<string, { taskId: string; conversationId: string }>;
+export interface AgentStreamCallbacks {
+  onChunk(event: AgentStreamChunkSSEEvent['data']): void;
+  onComplete(event: AgentStreamCompleteSSEEvent['data']): void;
+  onError(event: AgentStreamErrorSSEEvent['data']): void;
+  onState?(state: SSEConnectionState): void;
 }
 
-// Replace WebSocket connection logic
-export const useAgentChatStore = defineStore('agentChat', {
-  state: (): AgentChatStoreState => ({
-    // ... existing state
-    sseClient: null,
-    activeStreams: new Map(),
-  }),
+/**
+ * Encapsulates SSE transport details so the Pinia store stays focused on state mutations.
+ */
+export class A2AStreamHandler {
+  private client: SSEClient | null = null;
+  private currentStreamId: string | null = null;
 
-  actions: {
-    /**
-     * Initialize SSE client (replaces WebSocket init)
-     */
-    initializeSSE() {
-      if (this.sseClient) return;
+  constructor(private readonly callbacks: AgentStreamCallbacks) {}
 
-      this.sseClient = new SSEClient({
-        maxReconnectAttempts: 5,
-        reconnectDelay: 1000,
-        debug: import.meta.env.DEV,
-      });
+  connect(streamUrl: string, authToken: string, streamId: string): void {
+    if (this.client) {
+      this.disconnect();
+    }
 
-      // Set up event handlers with strong typing
-      this.sseClient.on<AgentStreamChunkSSEEvent>('agent_stream_chunk', (event) => {
-        this.handleStreamChunk(event.data);
-      });
+    this.currentStreamId = streamId;
+    this.client = new SSEClient({
+      maxReconnectAttempts: 5,
+      reconnectDelay: 1000,
+      debug: import.meta.env.DEV,
+    });
 
-      this.sseClient.on<AgentStreamCompleteSSEEvent>('agent_stream_complete', (event) => {
-        this.handleStreamComplete(event.data);
-      });
+    this.registerHandlers(this.client);
+    this.callbacks.onState?.('connecting');
+    this.client.connect(streamUrl, authToken);
+  }
 
-      this.sseClient.on<AgentStreamErrorSSEEvent>('agent_stream_error', (event) => {
-        this.handleStreamError(event.data);
-      });
-    },
+  disconnect(): void {
+    if (!this.client) return;
 
-    /**
-     * Subscribe to agent stream (replaces WebSocket subscription)
-     */
-    async subscribeToStream(streamId: string, streamEndpoint: string) {
-      if (!this.sseClient) {
-        this.initializeSSE();
-      }
+    this.callbacks.onState?.('disconnecting');
+    this.client.disconnect();
+    this.client = null;
+    this.currentStreamId = null;
+    this.callbacks.onState?.('disconnected');
+  }
 
-      const authStore = useAuthStore();
-      const token = authStore.accessToken;
+  private registerHandlers(client: SSEClient): void {
+    client.on<AgentStreamChunkSSEEvent>('agent_stream_chunk', (event) => {
+      if (this.currentStreamId && event.data.streamId !== this.currentStreamId) return;
+      this.callbacks.onChunk(event.data);
+    });
 
-      if (!token) {
-        throw new Error('No auth token available for SSE connection');
-      }
+    client.on<AgentStreamCompleteSSEEvent>('agent_stream_complete', (event) => {
+      if (this.currentStreamId && event.data.streamId !== this.currentStreamId) return;
+      this.callbacks.onComplete(event.data);
+    });
 
-      // Connect to SSE endpoint
-      this.sseClient!.connect(streamEndpoint, token);
-      
-      // Track active stream
-      this.activeStreams.set(streamId, {
-        taskId: streamId,
-        conversationId: this.activeConversationId,
-      });
-    },
-
-    /**
-     * Handle stream chunk (strongly typed)
-     */
-    handleStreamChunk(data: AgentStreamChunkSSEEvent['data']) {
-      const conversation = this.conversations.get(data.conversationId!);
-      if (!conversation) return;
-
-      // Update streaming message
-      if (data.chunk.type === 'partial') {
-        this.updateStreamingMessage(conversation.id, data.chunk.content);
-      } else if (data.chunk.type === 'final') {
-        this.finalizeStreamingMessage(conversation.id, data.chunk.content);
-      }
-    },
-
-    /**
-     * Handle stream complete (strongly typed)
-     */
-    handleStreamComplete(data: AgentStreamCompleteSSEEvent['data']) {
-      console.log('Stream completed:', data.streamId);
-      
-      // Clean up stream tracking
-      this.activeStreams.delete(data.streamId);
-      
-      // Disconnect if no more active streams
-      if (this.activeStreams.size === 0 && this.sseClient) {
-        this.sseClient.disconnect();
-        this.sseClient = null;
-      }
-    },
-
-    /**
-     * Handle stream error (strongly typed)
-     */
-    handleStreamError(data: AgentStreamErrorSSEEvent['data']) {
-      console.error('Stream error:', data.error);
-      
-      // Show error to user
-      const conversation = this.conversations.get(data.conversationId!);
-      if (conversation) {
-        this.addErrorMessage(conversation.id, data.error);
-      }
-      
-      // Clean up
-      this.activeStreams.delete(data.streamId);
-    },
-
-    /**
-     * Cleanup on destroy
-     */
-    cleanup() {
-      if (this.sseClient) {
-        this.sseClient.disconnect();
-        this.sseClient = null;
-      }
-      this.activeStreams.clear();
-    },
-  },
-});
+    client.on<AgentStreamErrorSSEEvent>('agent_stream_error', (event) => {
+      if (this.currentStreamId && event.data.streamId !== this.currentStreamId) return;
+      this.callbacks.onError(event.data);
+    });
+  }
+}
 ```
+
+**Store Responsibilities:**
+- Instantiate `A2AStreamHandler` (via factory/composable) and provide callbacks that dispatch existing mutations (`handleStreamChunk`, `handleStreamComplete`, `handleStreamError`).
+- Track only high-level orchestration state (`activeStreams`, conversation context) and expose `startStream`, `stopStream`, `resetStreams` actions that delegate to the handler.
+- Remove all direct EventSource logic, reconnection management, and parsing from the store while preserving Vue reactivity for downstream components.
 
 ### Phase 4: WebSocket Removal
 
@@ -1047,21 +995,19 @@ task_messages: [] // All cleaned up after completion + 10 minutes
 
 ### Day 3: Frontend Implementation
 
-#### **Morning: SSE Client Service (3-4 hours)**
-- [ ] Remove WebSocket code from agent chat store
+#### **Morning: SSE Client & Stream Handler (3-4 hours)**
 - [ ] Remove `socket.io-client` from package.json
-- [ ] Create `apps/web/src/services/agent2agent/sse/sseClient.ts`
-- [ ] Implement SSEClient class with EventSource
-- [ ] Add reconnection logic with exponential backoff
-- [ ] Add typed event handlers using transport-types
+- [ ] Create `apps/web/src/services/agent2agent/sse/sseClient.ts` (transport wrapper)
+- [ ] Implement `A2AStreamHandler` with typed callbacks that bridge SSEClient to store mutations
+- [ ] Cover reconnection/backoff logic inside the handler and surface connection-state events
+- [ ] Unit test handler in isolation with mocked EventSource
 
 #### **Afternoon: Store Integration (3-4 hours)**
-- [ ] Replace WebSocket state with SSE client in store
-- [ ] Implement `initializeSSE()` action
-- [ ] Implement `subscribeToStream()` action
-- [ ] Update stream event handlers to use SSE types
-- [ ] Add cleanup logic
-- [ ] Test in development environment
+- [ ] Strip WebSocket-specific state/actions from `agentChatStore`
+- [ ] Inject `A2AStreamHandler` via factory/composable and wire callbacks to existing mutations
+- [ ] Keep store API surface (`startStream`, `stopStream`, message handlers) unchanged for consumers
+- [ ] Validate Vue reactivity updates through the handler-driven callbacks
+- [ ] Test in development environment (multiple concurrent streams, reconnect flows)
 
 ### Day 4: Testing & Polish
 
@@ -1262,4 +1208,3 @@ The implementation plan provides a structured **4-day development cycle**. Succe
 2. Create transport-types SSE event definitions
 3. Begin backend SSE endpoint implementation
 4. Schedule weekly progress reviews
-

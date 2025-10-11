@@ -222,7 +222,16 @@ if check_port 9001; then
     fi
 fi
 
-# Step 4: Build API and web app with latest environment variables
+# Step 4: Build shared transport types
+echo -e "\n${BLUE}📦 Building shared transport types...${NC}"
+if npm run build:transport-types; then
+    echo -e "${GREEN}✅ Transport types built${NC}"
+else
+    echo -e "${RED}❌ Failed to build transport types${NC}"
+    exit 1
+fi
+
+# Step 5: Build API and web app with latest environment variables
 echo -e "\n${BLUE}🔨 Building applications...${NC}"
 
 # Build API from root (to pick up .env properly)
@@ -249,7 +258,7 @@ else
     echo -e "${RED}❌ Web app package.json not found${NC}"
 fi
 
-# Step 5: Check and start PM2 processes
+# Step 6: Check and start PM2 processes
 echo -e "\n${BLUE}📦 Checking PM2 processes...${NC}"
 if command -v pm2 &> /dev/null; then
     # Select the appropriate ecosystem config
@@ -282,7 +291,7 @@ else
     exit 1
 fi
 
-# Step 6: Verify services are accessible locally
+# Step 7: Verify services are accessible locally
 echo -e "\n${BLUE}🔍 Verifying local services...${NC}"
 
 # Check API on port 9000
@@ -309,7 +318,7 @@ else
     sleep 5
 fi
 
-# Step 7: Check and start CloudFlare Tunnel
+# Step 8: Check and start CloudFlare Tunnel
 echo -e "\n${BLUE}🌐 Checking CloudFlare Tunnel...${NC}"
 
 if command -v cloudflared &> /dev/null; then
@@ -353,7 +362,7 @@ else
     echo "Install with: brew install cloudflared (macOS) or see deployment/setup-cloudflare-tunnel.sh"
 fi
 
-# Step 7: Final status check
+# Step 9: Final status check
 echo -e "\n${BLUE}📊 Final Status Check${NC}"
 echo "======================================"
 
