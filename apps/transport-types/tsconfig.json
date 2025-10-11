@@ -20,7 +20,8 @@
     "shared/**/*.ts",
     "request/**/*.ts",
     "response/**/*.ts",
-    "modes/**/*.ts"
+    "modes/**/*.ts",
+    "streaming/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -108,6 +108,27 @@ export {
 } from './modes/converse.types';
 
 // ============================================================================
+// STREAMING (SSE) TYPES
+// ============================================================================
+export {
+  BaseSSEEvent,
+  AgentStreamContext,
+  AgentStreamChunkMetadata,
+  AgentStreamChunkData,
+  AgentStreamCompleteData,
+  AgentStreamErrorData,
+  AgentStreamChunkSSEEvent,
+  AgentStreamCompleteSSEEvent,
+  AgentStreamErrorSSEEvent,
+  TaskProgressData,
+  TaskProgressSSEEvent,
+  SSEEvent,
+  SSEEventHandler,
+  SSEConnectionOptions,
+  SSEConnectionState,
+} from './streaming/sse-events.types';
+
+// ============================================================================
 // STRICT TYPE ALIASES (for web compatibility)
 // ============================================================================
 export * from './shared/strict-aliases';

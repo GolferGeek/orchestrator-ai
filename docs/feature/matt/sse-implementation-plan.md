@@ -62,8 +62,8 @@ Use the adjacent **Notes** sections to log context, decisions, blockers, or foll
 
 ### Tasks
 
-- [ ] Add SSE event interfaces under `apps/transport-types/streaming/sse-events.types.ts`
-- [ ] Export new SSE types from `apps/transport-types/index.ts`
+- [x] Add SSE event interfaces under `apps/transport-types/streaming/sse-events.types.ts`
+- [x] Export new SSE types from `apps/transport-types/index.ts`
 - [ ] Bump workspace consumers and run `npm run build` (root) to validate
 - [ ] Remove Socket.IO dependencies  
   - [ ] API: remove `@nestjs/websockets`, `socket.io` from `apps/api/package.json`  
