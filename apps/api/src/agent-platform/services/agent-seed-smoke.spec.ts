@@ -10,10 +10,19 @@ describe('Seed payloads (local smoke without HTTP)', () => {
   const policy = new AgentPolicyService();
 
   const root = resolve(__dirname, '../../../../../');
-  const blogPath = resolve(root, 'docs/feature/matt/payloads/blog_post_writer.json');
+  const blogPath = resolve(
+    root,
+    'docs/feature/matt/payloads/blog_post_writer.json',
+  );
   const hrPath = resolve(root, 'docs/feature/matt/payloads/hr_assistant.json');
-  const builderPath = resolve(root, 'docs/feature/matt/payloads/agent_builder_orchestrator.json');
-  const chatBuilderPath = resolve(root, 'docs/feature/matt/payloads/agent_builder_chat.json');
+  const builderPath = resolve(
+    root,
+    'docs/feature/matt/payloads/agent_builder_orchestrator.json',
+  );
+  const chatBuilderPath = resolve(
+    root,
+    'docs/feature/matt/payloads/agent_builder_chat.json',
+  );
 
   it('validates Blog Post Writer (context agent)', async () => {
     const blog = JSON.parse(readFileSync(blogPath, 'utf8'));
@@ -46,8 +55,11 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     const code = builder?.config?.configuration?.function?.code as string;
     const res = await dry.runFunction(
       code,
-      { step: 'intent', data: { agentType: 'function', purpose: 'Test agent' } },
-      10000
+      {
+        step: 'intent',
+        data: { agentType: 'function', purpose: 'Test agent' },
+      },
+      10000,
     );
     expect(res.ok).toBe(true);
     expect(res.result?.state?.step).toBe('basic_info');
@@ -67,4 +79,3 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     expect(chatBuilder.config?.configuration?.function?.timeout_ms).toBe(15000);
   });
 });
-

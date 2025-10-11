@@ -125,7 +125,9 @@ export class AgentsRepository {
       .from(AGENTS_TABLE)
       .select('*')
       .order('organization_slug', { ascending: true, nullsFirst: true })
-      .order('slug', { ascending: true })) as SupabaseSelectListResponse<AgentRecord>;
+      .order('slug', {
+        ascending: true,
+      })) as SupabaseSelectListResponse<AgentRecord>;
 
     if (error) {
       this.logger.error(`Failed to list all agents: ${error.message}`);
@@ -152,7 +154,9 @@ export class AgentsRepository {
       this.logger.error(
         `Failed to query latest agent updated_at: ${error.message}`,
       );
-      throw new Error(`Failed to query latest agent updated_at: ${error.message}`);
+      throw new Error(
+        `Failed to query latest agent updated_at: ${error.message}`,
+      );
     }
 
     return data?.updated_at ?? null;
@@ -185,7 +189,7 @@ export class AgentsRepository {
 
   async updateStatus(id: string, status: string): Promise<AgentRecord> {
     const client = this.getClient();
-    const { data, error} = (await client
+    const { data, error } = (await client
       .from(AGENTS_TABLE)
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -193,7 +197,9 @@ export class AgentsRepository {
       .single()) as SupabaseSelectResponse<AgentRecord>;
 
     if (error) {
-      this.logger.error(`Failed to update agent ${id} status: ${error.message}`);
+      this.logger.error(
+        `Failed to update agent ${id} status: ${error.message}`,
+      );
       throw new Error(`Failed to update agent status: ${error.message}`);
     }
 

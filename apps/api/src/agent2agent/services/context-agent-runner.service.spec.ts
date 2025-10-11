@@ -111,7 +111,11 @@ describe('ContextAgentRunnerService', () => {
       const deliverablesData = [{ id: 'del-1', title: 'First deliverable' }];
 
       const optimizedContext = [
-        { role: 'user', content: 'Previous message', timestamp: '2025-01-01T00:00:00Z' },
+        {
+          role: 'user',
+          content: 'Previous message',
+          timestamp: '2025-01-01T00:00:00Z',
+        },
       ];
 
       const llmResponse = {
@@ -167,7 +171,9 @@ describe('ContextAgentRunnerService', () => {
       expect(result.payload?.content?.deliverable).toEqual(
         deliverableResult.data.deliverable,
       );
-      expect(result.payload?.content?.version).toEqual(deliverableResult.data.version);
+      expect(result.payload?.content?.version).toEqual(
+        deliverableResult.data.version,
+      );
       expect(result.payload?.metadata?.provider).toBe('anthropic');
 
       // Verify service calls
@@ -328,7 +334,9 @@ describe('ContextAgentRunnerService', () => {
       const result = await service.execute(definition, request, 'test-org');
 
       expect(result.success).toBe(false);
-      expect(result.payload?.metadata?.reason).toBe('Failed to create deliverable');
+      expect(result.payload?.metadata?.reason).toBe(
+        'Failed to create deliverable',
+      );
     });
   });
 

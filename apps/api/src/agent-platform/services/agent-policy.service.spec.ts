@@ -41,7 +41,9 @@ describe('AgentPolicyService', () => {
       const issues = service.check(payload);
 
       const inputIssue = issues.find((i) => i.message.includes('input_modes'));
-      const outputIssue = issues.find((i) => i.message.includes('output_modes'));
+      const outputIssue = issues.find((i) =>
+        i.message.includes('output_modes'),
+      );
 
       expect(inputIssue).toBeUndefined();
       expect(outputIssue).toBeUndefined();
@@ -59,7 +61,9 @@ describe('AgentPolicyService', () => {
       const issues = service.check(payload);
 
       const inputIssue = issues.find((i) => i.message.includes('input_modes'));
-      const outputIssue = issues.find((i) => i.message.includes('output_modes'));
+      const outputIssue = issues.find((i) =>
+        i.message.includes('output_modes'),
+      );
 
       expect(inputIssue).toBeUndefined();
       expect(outputIssue).toBeUndefined();
@@ -76,7 +80,9 @@ describe('AgentPolicyService', () => {
 
       const issues = service.check(payload);
 
-      expect(issues.some((i) => i.message.includes('system prompt'))).toBe(true);
+      expect(issues.some((i) => i.message.includes('system prompt'))).toBe(
+        true,
+      );
     });
 
     it('should accept system prompt in context.system', () => {
@@ -91,7 +97,9 @@ describe('AgentPolicyService', () => {
 
       const issues = service.check(payload);
 
-      expect(issues.some((i) => i.message.includes('system prompt'))).toBe(false);
+      expect(issues.some((i) => i.message.includes('system prompt'))).toBe(
+        false,
+      );
     });
 
     it('should accept system_prompt in YAML', () => {
@@ -104,7 +112,9 @@ describe('AgentPolicyService', () => {
 
       const issues = service.check(payload);
 
-      expect(issues.some((i) => i.message.includes('system prompt'))).toBe(false);
+      expect(issues.some((i) => i.message.includes('system prompt'))).toBe(
+        false,
+      );
     });
   });
 
@@ -179,7 +189,9 @@ describe('AgentPolicyService', () => {
 
       const issues = service.check(payload);
 
-      expect(issues.some((i) => i.message.includes('api_configuration'))).toBe(true);
+      expect(issues.some((i) => i.message.includes('api_configuration'))).toBe(
+        true,
+      );
     });
 
     it('should accept valid api_configuration', () => {
@@ -201,7 +213,9 @@ describe('AgentPolicyService', () => {
 
       const issues = service.check(payload);
 
-      expect(issues.some((i) => i.message.includes('api_configuration'))).toBe(false);
+      expect(issues.some((i) => i.message.includes('api_configuration'))).toBe(
+        false,
+      );
     });
   });
 

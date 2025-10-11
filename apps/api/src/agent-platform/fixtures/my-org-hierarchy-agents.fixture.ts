@@ -87,7 +87,8 @@ const orchestratorDescriptor: Descriptor = {
     {
       id: 'delegation',
       name: 'Delegate specialists',
-      description: 'Assigns specialist agents appropriate tasks and tracks completion.',
+      description:
+        'Assigns specialist agents appropriate tasks and tracks completion.',
       tags: ['coordination'],
       input_modes: ['text/plain'],
       output_modes: ['application/json'],
@@ -95,7 +96,8 @@ const orchestratorDescriptor: Descriptor = {
     {
       id: 'status-tracking',
       name: 'Track Hiverarchy status',
-      description: 'Maintains a summary of Hiverarchy publishing progress across agents.',
+      description:
+        'Maintains a summary of Hiverarchy publishing progress across agents.',
       tags: ['status'],
       input_modes: ['text/plain'],
       output_modes: ['text/markdown'],
@@ -104,8 +106,7 @@ const orchestratorDescriptor: Descriptor = {
   prompts: {
     system:
       'You are the Hiverarchy orchestrator for my-org. Coordinate specialist agents to transform a content idea into a published blog post. Maintain a checklist, capture deliverables, and surface blockers for human review.',
-    plan:
-      'Draft a phase-by-phase plan covering research, topic hierarchy, outlining, drafting, editing, imagery, human review, and Supabase updates. Each phase must list owner, inputs, and outputs.',
+    plan: 'Draft a phase-by-phase plan covering research, topic hierarchy, outlining, drafting, editing, imagery, human review, and Supabase updates. Each phase must list owner, inputs, and outputs.',
     build:
       'Summarize current progress across the publishing pipeline (what is done, in progress, and pending human action).',
     human:
@@ -168,8 +169,7 @@ const researcherDescriptor: Descriptor = {
   prompts: {
     system:
       'You produce structured research packets for Hiverarchy publishing. Include source URLs and key takeaways.',
-    plan:
-      'List the research steps you will take (queries, sources, validation).',
+    plan: 'List the research steps you will take (queries, sources, validation).',
     build:
       'Return a research packet in JSON with sections for facts, quotes, statistics, source links, and suggested supporting media.',
   },
@@ -390,8 +390,7 @@ const supabaseChildDescriptor: Descriptor = {
   prompts: {
     system:
       'Create stub records for each child topic. Each should contain title, parent references, and idea notes.',
-    build:
-      'Return JSON `{ "created": [postId, ...] }`.',
+    build: 'Return JSON `{ "created": [postId, ...] }`.',
   },
   context: supabaseEnvContext,
 };
@@ -400,8 +399,7 @@ const supabaseListDescriptor: Descriptor = {
   metadata: {
     name: 'my-org-supabase-idea-list',
     displayName: 'Supabase Idea List',
-    description:
-      'Lists idea-only posts awaiting orchestration.',
+    description: 'Lists idea-only posts awaiting orchestration.',
     version: '0.1.0',
     type: 'specialist',
     tags: ['supabase', 'list'],

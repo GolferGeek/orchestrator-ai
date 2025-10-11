@@ -272,7 +272,8 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       // 7. For CONVERSE/PLAN or failed BUILD, return external response directly
       return a2aResponse;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(
         `External agent ${definition.slug} ${mode} failed: ${errorMessage}`,
       );

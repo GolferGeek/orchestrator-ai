@@ -285,26 +285,28 @@ export class CentralizedRoutingService {
 
       // Step 2: CRITICAL DECISION POINT - Check for showstoppers
       if (piiResult.metadata.showstopperDetected) {
-        this.logger.warn(
-          `🛑 [CENTRALIZED-ROUTING] SHOWSTOPPER DETECTED`,
-        );
+        this.logger.warn(`🛑 [CENTRALIZED-ROUTING] SHOWSTOPPER DETECTED`);
 
         // If sovereign mode forces local or explicit provider is local, bypass blocking
         const explicitProvider = options.provider || options.providerName;
         const explicitLocal =
-          explicitProvider && String(explicitProvider).toLowerCase() === 'ollama';
+          explicitProvider &&
+          String(explicitProvider).toLowerCase() === 'ollama';
 
         // Analyze complexity/tier to check local availability when not explicitly local
         const complexity = this.analyzeComplexity({ prompt, options });
         const tier = this.selectTierForComplexity(complexity);
-        const localModelAvailable = await this.checkLocalModelAvailability(tier);
+        const localModelAvailable =
+          await this.checkLocalModelAvailability(tier);
 
         if (explicitLocal || sovereignModeActive || localModelAvailable) {
           reasoningPath.push(
             'Showstopper detected, but routing to local model (bypass enforcement)',
           );
           const localModel = explicitLocal
-            ? options.model || options.modelName || (await this.selectBestLocalModel(tier, sovereignPolicy))
+            ? options.model ||
+              options.modelName ||
+              (await this.selectBestLocalModel(tier, sovereignPolicy))
             : await this.selectBestLocalModel(tier, sovereignPolicy);
 
           // Create minimal local PII metadata (no-op) for consistency

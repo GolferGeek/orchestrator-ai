@@ -119,7 +119,12 @@ export class PlansService implements IActionHandler {
       return {
         success: false,
         error: {
-          code: error instanceof BadRequestException ? 'BAD_REQUEST' : error instanceof NotFoundException ? 'NOT_FOUND' : 'INTERNAL_ERROR',
+          code:
+            error instanceof BadRequestException
+              ? 'BAD_REQUEST'
+              : error instanceof NotFoundException
+                ? 'NOT_FOUND'
+                : 'INTERNAL_ERROR',
           message: error instanceof Error ? error.message : 'Unknown error',
           details: { action, context },
         },
@@ -372,7 +377,10 @@ export class PlansService implements IActionHandler {
       context.userId,
     );
 
-    const planData = await this.plansRepo.findById(version.planId, context.userId);
+    const planData = await this.plansRepo.findById(
+      version.planId,
+      context.userId,
+    );
     const remainingVersions = await this.versionsService.getVersionHistory(
       version.planId,
       context.userId,
@@ -417,7 +425,9 @@ export class PlansService implements IActionHandler {
 
     // Get source versions
     const sourceVersions = await Promise.all(
-      params.versionIds.map(id => this.versionsService.findOne(id, context.userId))
+      params.versionIds.map((id) =>
+        this.versionsService.findOne(id, context.userId),
+      ),
     );
 
     // Return in strict A2A protocol format for PlanMergeVersionsResponse
@@ -446,7 +456,10 @@ export class PlansService implements IActionHandler {
       context.userId,
     );
 
-    const planData = await this.plansRepo.findById(copiedVersion.planId, context.userId);
+    const planData = await this.plansRepo.findById(
+      copiedVersion.planId,
+      context.userId,
+    );
 
     // Return in strict A2A protocol format for PlanCopyVersionResponse
     return {
@@ -474,7 +487,10 @@ export class PlansService implements IActionHandler {
     }
 
     // Get version count before deletion
-    const versions = await this.versionsService.getVersionHistory(plan.id, context.userId);
+    const versions = await this.versionsService.getVersionHistory(
+      plan.id,
+      context.userId,
+    );
     const versionCount = versions.length;
 
     await this.plansRepo.delete(plan.id, context.userId);

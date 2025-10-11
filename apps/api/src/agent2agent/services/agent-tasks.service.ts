@@ -41,8 +41,10 @@ export class Agent2AgentTasksService {
     params: any;
     createdAt: Date;
   }> {
-    this.logger.debug(`🚨 [Agent2AgentTasksService.createTask] Received agentType: "${agentType}" for agent: ${agentName}`);
-    
+    this.logger.debug(
+      `🚨 [Agent2AgentTasksService.createTask] Received agentType: "${agentType}" for agent: ${agentName}`,
+    );
+
     try {
       // If conversationId provided, validate it exists
       let conversationId = params.conversationId || null;
@@ -65,8 +67,10 @@ export class Agent2AgentTasksService {
 
       // Create conversation if needed
       if (!conversationId) {
-        this.logger.log(`🚨 [Agent2AgentTasksService] Creating conversation with agentType: "${agentType}"`);
-        
+        this.logger.log(
+          `🚨 [Agent2AgentTasksService] Creating conversation with agentType: "${agentType}"`,
+        );
+
         const now = new Date().toISOString();
         const conversationData = {
           user_id: userId,
@@ -81,9 +85,12 @@ export class Agent2AgentTasksService {
             title: `${agentName} - ${new Date().toLocaleDateString()}`, // Store title in metadata
           },
         };
-        
-        this.logger.log(`🚨 [Agent2AgentTasksService] Conversation data:`, JSON.stringify(conversationData));
-        
+
+        this.logger.log(
+          `🚨 [Agent2AgentTasksService] Conversation data:`,
+          JSON.stringify(conversationData),
+        );
+
         const { data: newConv, error: convError } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('conversations'))
@@ -183,10 +190,12 @@ export class Agent2AgentTasksService {
       const { data: task, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
-        .select(`
+        .select(
+          `
           *,
           conversations!inner(agent_name, agent_type)
-        `)
+        `,
+        )
         .eq('id', taskId)
         .eq('user_id', userId)
         .single();
@@ -198,8 +207,8 @@ export class Agent2AgentTasksService {
       return {
         id: task.id,
         userId: task.user_id,
-        agentName: (task as any).conversations?.agent_name || 'unknown',
-        namespace: (task as any).conversations?.organization_slug || null,
+        agentName: task.conversations?.agent_name || 'unknown',
+        namespace: task.conversations?.organization_slug || null,
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
@@ -232,9 +241,7 @@ export class Agent2AgentTasksService {
         .order('created_at', { ascending: true });
 
       if (error) {
-        throw new Error(
-          `Failed to get conversation tasks: ${error.message}`,
-        );
+        throw new Error(`Failed to get conversation tasks: ${error.message}`);
       }
 
       return tasks || [];

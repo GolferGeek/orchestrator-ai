@@ -6,9 +6,17 @@ import { AgentsRepository } from '../repositories/agents.repository';
 import { LLMService } from '@/llms/llm.service';
 
 export interface AgentBuilderContext {
-  validate: (config: any) => Promise<{ ok: boolean; issues: any[]; dryRun?: any }>;
-  create: (config: any) => Promise<{ success: boolean; data?: any; error?: string }>;
-  generateFunctionCode: (description: string, inputModes: string[], outputModes: string[]) => Promise<{ code: string; error?: string }>;
+  validate: (
+    config: any,
+  ) => Promise<{ ok: boolean; issues: any[]; dryRun?: any }>;
+  create: (
+    config: any,
+  ) => Promise<{ success: boolean; data?: any; error?: string }>;
+  generateFunctionCode: (
+    description: string,
+    inputModes: string[],
+    outputModes: string[],
+  ) => Promise<{ code: string; error?: string }>;
 }
 
 @Injectable()
@@ -25,7 +33,9 @@ export class AgentBuilderService {
   /**
    * Validate an agent configuration
    */
-  async validateAgent(payload: any): Promise<{ ok: boolean; issues: any[]; dryRun?: any }> {
+  async validateAgent(
+    payload: any,
+  ): Promise<{ ok: boolean; issues: any[]; dryRun?: any }> {
     const type = payload.agent_type;
     const validation = this.validator.validateByType(type, payload);
     const policyIssues = this.policy.check(payload);
@@ -38,7 +48,8 @@ export class AgentBuilderService {
     // Run dry-run for function agents
     if (validation.ok && type === 'function') {
       const code = payload?.config?.configuration?.function?.code;
-      const timeout = Number(payload?.config?.configuration?.function?.timeout_ms) || 2000;
+      const timeout =
+        Number(payload?.config?.configuration?.function?.timeout_ms) || 2000;
       if (code && code.length < 50000) {
         response.dryRun = await this.dryRun.runFunction(code, {}, timeout);
       }
@@ -48,9 +59,15 @@ export class AgentBuilderService {
     if (validation.ok && type === 'api') {
       const apiCfg = payload?.config?.configuration?.api?.api_configuration;
       if (apiCfg) {
-        const sampleInput = payload?.config?.configuration?.api?.sample_input || { test: 'input' };
-        const sampleResp = payload?.config?.configuration?.api?.sample_response || { test: 'output' };
-        response.dryRun = await this.dryRun.runApiTransform(apiCfg, sampleInput, sampleResp);
+        const sampleInput = payload?.config?.configuration?.api
+          ?.sample_input || { test: 'input' };
+        const sampleResp = payload?.config?.configuration?.api
+          ?.sample_response || { test: 'output' };
+        response.dryRun = await this.dryRun.runApiTransform(
+          apiCfg,
+          sampleInput,
+          sampleResp,
+        );
       }
     }
 
@@ -60,14 +77,16 @@ export class AgentBuilderService {
   /**
    * Create an agent after validation
    */
-  async createAgent(payload: any): Promise<{ success: boolean; data?: any; error?: string }> {
+  async createAgent(
+    payload: any,
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       // Validate first
       const validation = await this.validateAgent(payload);
       if (!validation.ok) {
         return {
           success: false,
-          error: `Validation failed: ${validation.issues.map(i => i.message).join(', ')}`,
+          error: `Validation failed: ${validation.issues.map((i) => i.message).join(', ')}`,
         };
       }
 
@@ -140,14 +159,18 @@ The function must return output in these modes: ${outputModes.join(', ')}
 
 Generate the complete handler function. Return ONLY the code, nothing else.`;
 
-      const response = await this.llm.generateResponse(systemPrompt, userPrompt, {
-        providerName: 'openai',
-        modelName: 'gpt-4o-mini',
-        temperature: 0.3,
-        maxTokens: 2000,
-        callerType: 'service',
-        callerName: 'agent-builder-code-gen',
-      });
+      const response = await this.llm.generateResponse(
+        systemPrompt,
+        userPrompt,
+        {
+          providerName: 'openai',
+          modelName: 'gpt-4o-mini',
+          temperature: 0.3,
+          maxTokens: 2000,
+          callerType: 'service',
+          callerName: 'agent-builder-code-gen',
+        },
+      );
 
       // Extract code if it's wrapped in markdown
       let code = typeof response === 'string' ? response : response.content;
@@ -155,7 +178,9 @@ Generate the complete handler function. Return ONLY the code, nothing else.`;
 
       // Remove markdown code fences if present
       if (code.startsWith('```')) {
-        code = code.replace(/^```(?:javascript|js)?\n/, '').replace(/\n```$/, '');
+        code = code
+          .replace(/^```(?:javascript|js)?\n/, '')
+          .replace(/\n```$/, '');
       }
 
       return { code };

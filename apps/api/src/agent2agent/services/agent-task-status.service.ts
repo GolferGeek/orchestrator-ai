@@ -38,7 +38,11 @@ export class Agent2AgentTaskStatusService {
       }
 
       // Store custom fields in params.status_data for A2A protocol
-      if (updates.progress !== undefined || updates.progressMessage || updates.metadata) {
+      if (
+        updates.progress !== undefined ||
+        updates.progressMessage ||
+        updates.metadata
+      ) {
         // Fetch current params to merge status data
         const { data: currentTask } = await this.supabaseService
           .getServiceClient()
@@ -55,8 +59,12 @@ export class Agent2AgentTaskStatusService {
           ...currentParams,
           status_data: {
             ...currentStatusData,
-            ...(updates.progress !== undefined && { progress: updates.progress }),
-            ...(updates.progressMessage && { progressMessage: updates.progressMessage }),
+            ...(updates.progress !== undefined && {
+              progress: updates.progress,
+            }),
+            ...(updates.progressMessage && {
+              progressMessage: updates.progressMessage,
+            }),
             ...(updates.metadata && { metadata: updates.metadata }),
             protocol: 'a2a-google',
             lastUpdate: new Date().toISOString(),
@@ -75,7 +83,9 @@ export class Agent2AgentTaskStatusService {
         throw new Error(`Failed to update task status: ${error.message}`);
       }
 
-      this.logger.debug(`✅ Updated A2A task ${taskId} status: ${updates.status || 'progress update'}`);
+      this.logger.debug(
+        `✅ Updated A2A task ${taskId} status: ${updates.status || 'progress update'}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to update A2A task ${taskId} status:`, error);
       throw error;
@@ -131,7 +141,9 @@ export class Agent2AgentTaskStatusService {
       const updateData = {
         status: 'failed',
         error: errorMessage,
-        response: errorDetails ? { error: errorMessage, details: errorDetails } : { error: errorMessage },
+        response: errorDetails
+          ? { error: errorMessage, details: errorDetails }
+          : { error: errorMessage },
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

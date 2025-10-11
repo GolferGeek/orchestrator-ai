@@ -373,9 +373,10 @@ export abstract class BaseLLMService {
                   (m: any) => m.dataType,
                 ) || [],
             }
-          : {
+          : ({
               dataSanitizationApplied: false,
-              sanitizationLevel: (provider === 'ollama' ? 'local-bypass' : 'none'),
+              sanitizationLevel:
+                provider === 'ollama' ? 'local-bypass' : 'none',
               piiDetected: false,
               piiTypes: {},
               pseudonymsUsed: 0,
@@ -383,7 +384,7 @@ export abstract class BaseLLMService {
               pseudonymMappings: [],
               redactionsApplied: 0,
               redactionTypes: [],
-            } as any;
+            } as any);
 
         this.logger.debug(
           `🔍 [PII-METADATA-DEBUG] trackUsage - enhancedMetrics:`,

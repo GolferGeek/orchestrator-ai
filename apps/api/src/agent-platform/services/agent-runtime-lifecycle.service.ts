@@ -22,15 +22,24 @@ export class AgentRuntimeLifecycleService {
   constructor(private readonly emitter: EventEmitter2) {}
 
   start(ctx: LifecycleContext, metadata?: Record<string, any>) {
-    this.emitter.emit('agent.lifecycle.start', this.envelope(ctx, { metadata }));
+    this.emitter.emit(
+      'agent.lifecycle.start',
+      this.envelope(ctx, { metadata }),
+    );
   }
 
   progress(ctx: LifecycleContext, progress: LifecycleProgress) {
-    this.emitter.emit('agent.lifecycle.progress', this.envelope(ctx, { progress }));
+    this.emitter.emit(
+      'agent.lifecycle.progress',
+      this.envelope(ctx, { progress }),
+    );
   }
 
   complete(ctx: LifecycleContext, result?: any) {
-    this.emitter.emit('agent.lifecycle.complete', this.envelope(ctx, { result }));
+    this.emitter.emit(
+      'agent.lifecycle.complete',
+      this.envelope(ctx, { result }),
+    );
   }
 
   fail(ctx: LifecycleContext, reason: string, metadata?: Record<string, any>) {
@@ -48,4 +57,3 @@ export class AgentRuntimeLifecycleService {
     };
   }
 }
-

@@ -1,9 +1,19 @@
-import { Controller, Post, Body, Logger, HttpCode, Inject, forwardRef } from '@nestjs/common';
-import { TaskProgressGateway } from '../agent-platform/websocket/task-progress.gateway';
+import {
+  Controller,
+  Post,
+  Body,
+  Logger,
+  HttpCode,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TasksService } from '../agent2agent/tasks/tasks.service';
 import { DeliverablesService } from '../agent2agent/deliverables/deliverables.service';
-import { DeliverableFormat, DeliverableVersionCreationType } from '../agent2agent/deliverables/dto';
+import {
+  DeliverableFormat,
+  DeliverableVersionCreationType,
+} from '../agent2agent/deliverables/dto';
 
 /**
  * Workflow Status Update
@@ -48,12 +58,11 @@ interface WorkflowStatusUpdate {
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
-  
+
   // Store status history per task
   private taskStatusHistory: Map<string, any[]> = new Map();
 
   constructor(
-    private readonly taskProgressGateway: TaskProgressGateway,
     private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => TasksService))
     private readonly tasksService: TasksService,
@@ -67,15 +76,24 @@ export class WebhooksController {
    */
   @Post('status')
   @HttpCode(204)
-  async handleStatusUpdate(@Body() update: WorkflowStatusUpdate): Promise<void> {
+  async handleStatusUpdate(
+    @Body() update: WorkflowStatusUpdate,
+  ): Promise<void> {
     this.logger.debug('=== WEBHOOK ENDPOINT HIT ===');
     this.logger.debug(`Request body: ${JSON.stringify(update)}`);
-    this.logger.log(`Received workflow status update for task ${update.taskId}: ${update.status}`);
-    this.logger.debug(`Sequence info - top level: ${update.sequence}, in data: ${update.data?.sequence}`);
+    this.logger.log(
+      `Received workflow status update for task ${update.taskId}: ${update.status}`,
+    );
+    this.logger.debug(
+      `Sequence info - top level: ${update.sequence}, in data: ${update.data?.sequence}`,
+    );
 
     // Validate required fields
     if (!update.taskId) {
-      this.logger.warn('Missing required taskId in workflow status update', update);
+      this.logger.warn(
+        'Missing required taskId in workflow status update',
+        update,
+      );
       return;
     }
 
@@ -84,14 +102,15 @@ export class WebhooksController {
       if (!this.taskStatusHistory.has(update.taskId)) {
         this.taskStatusHistory.set(update.taskId, []);
       }
-      
+
       const history = this.taskStatusHistory.get(update.taskId)!;
-      
+
       // Add this status update to history
       // Check for sequence at top level first (from n8n), then in data
-      const sequence = update.sequence || update.data?.sequence || history.length + 1;
+      const sequence =
+        update.sequence || update.data?.sequence || history.length + 1;
       const totalStepsFromUpdate = update.totalSteps || update.data?.totalSteps;
-      
+
       const statusEntry = {
         timestamp: update.timestamp || new Date().toISOString(),
         status: update.status,
@@ -101,26 +120,28 @@ export class WebhooksController {
         totalSteps: totalStepsFromUpdate,
         data: update,
       };
-      
+
       history.push(statusEntry);
-      
+
       // Map workflow status update to our WorkflowStepProgressEvent format
-      const stepName = update.step || update.stage || update.node || update.status;
+      const stepName =
+        update.step || update.stage || update.node || update.status;
       const stepIndex = this.calculateStepIndex(update.status, update.step);
       const totalStepsEstimated = this.estimateTotalSteps(update.status);
       const progress = update.percent ?? this.calculateProgress(update.status);
 
-      // Emit workflow step progress via WebSocket
-      this.taskProgressGateway.broadcastWorkflowStepProgress(
-        update.taskId,
-        stepName,
+      // Emit workflow step progress event
+      this.eventEmitter.emit('workflow.step.progress', {
+        taskId: update.taskId,
+        step: stepName,
         stepIndex,
-        totalStepsEstimated,
-        update.status,
-        update.message,
-      );
+        totalSteps: totalStepsEstimated,
+        status: update.status,
+        message: update.message,
+        progress,
+      });
 
-      // Send the COMPLETE status history each time
+      // Send the COMPLETE status history via event
       const eventData = {
         executionId: update.executionId,
         workflowId: update.workflowId,
@@ -133,9 +154,15 @@ export class WebhooksController {
         statusHistory: history, // Send complete history
         data: update,
       };
-      
-      this.logger.debug(`📤 Sending to WebSocket - History length: ${history.length}`);
-      this.taskProgressGateway.sendToTask(update.taskId, 'workflow_status_update', eventData);
+
+      this.logger.debug(
+        `📤 Emitting workflow status update - History length: ${history.length}`,
+      );
+      this.eventEmitter.emit('workflow.status.update', {
+        taskId: update.taskId,
+        event: 'workflow_status_update',
+        data: eventData,
+      });
 
       // Emit event for other services that might care
       this.eventEmitter.emit('workflow.status_update', {
@@ -155,31 +182,46 @@ export class WebhooksController {
         if (this.tasksService && update.userId) {
           try {
             // Extract the actual content fields (webPost, seoContent, socialMedia, etc.)
-            const finalResults = update.results || update.webPost || update.seoContent || update.socialMedia ? {
-              webPost: update.webPost,
-              seoContent: update.seoContent,
-              socialMedia: update.socialMedia,
-              ...update.results
-            } : null;
+            const finalResults =
+              update.results ||
+              update.webPost ||
+              update.seoContent ||
+              update.socialMedia
+                ? {
+                    webPost: update.webPost,
+                    seoContent: update.seoContent,
+                    socialMedia: update.socialMedia,
+                    ...update.results,
+                  }
+                : null;
 
-            this.logger.log(`Updating task ${update.taskId} with final results:`, finalResults ? Object.keys(finalResults) : 'none');
+            this.logger.log(
+              `Updating task ${update.taskId} with final results:`,
+              finalResults ? Object.keys(finalResults) : 'none',
+            );
 
             await this.tasksService.updateTask(update.taskId, update.userId, {
               status: 'completed',
               progress: 100,
-              progressMessage: update.message || 'Workflow completed successfully',
+              progressMessage:
+                update.message || 'Workflow completed successfully',
               response: finalResults,
             });
 
-            this.logger.log(`✅ Task ${update.taskId} updated in database with final results`);
+            this.logger.log(
+              `✅ Task ${update.taskId} updated in database with final results`,
+            );
 
             // Create deliverable with the n8n workflow results
             if (update.conversationId && finalResults) {
               try {
-                this.logger.log(`Creating deliverable for task ${update.taskId}`);
+                this.logger.log(
+                  `Creating deliverable for task ${update.taskId}`,
+                );
 
                 // Format the content from the n8n response
-                const formattedContent = this.formatMarketingContent(finalResults);
+                const formattedContent =
+                  this.formatMarketingContent(finalResults);
 
                 await this.deliverablesService.create(
                   {
@@ -188,7 +230,8 @@ export class WebhooksController {
                     agentName: 'marketing-swarm',
                     initialContent: formattedContent,
                     initialFormat: DeliverableFormat.MARKDOWN,
-                    initialCreationType: DeliverableVersionCreationType.CONVERSATION_TASK,
+                    initialCreationType:
+                      DeliverableVersionCreationType.CONVERSATION_TASK,
                     initialTaskId: update.taskId,
                     initialMetadata: {
                       status: update.status,
@@ -200,51 +243,64 @@ export class WebhooksController {
                   update.userId,
                 );
 
-                this.logger.log(`✅ Deliverable created for task ${update.taskId}`);
+                this.logger.log(
+                  `✅ Deliverable created for task ${update.taskId}`,
+                );
               } catch (error) {
-                this.logger.error(`Failed to create deliverable for task ${update.taskId}:`, error);
+                this.logger.error(
+                  `Failed to create deliverable for task ${update.taskId}:`,
+                  error,
+                );
               }
             }
           } catch (error) {
-            this.logger.error(`Failed to update task ${update.taskId} in database:`, error);
+            this.logger.error(
+              `Failed to update task ${update.taskId} in database:`,
+              error,
+            );
           }
         } else {
-          this.logger.warn(`Cannot update task ${update.taskId}: missing tasksService or userId`);
+          this.logger.warn(
+            `Cannot update task ${update.taskId}: missing tasksService or userId`,
+          );
         }
 
-        // Broadcast completion via WebSocket
+        // Emit completion event
         const resultsToSend = update.results || {
           webPost: update.webPost,
           seoContent: update.seoContent,
-          socialMedia: update.socialMedia
+          socialMedia: update.socialMedia,
         };
 
         // Clean up status history after completion
         this.taskStatusHistory.delete(update.taskId);
-        
-        this.taskProgressGateway.broadcastTaskCompletionWithResponse(
-          update.taskId,
-          'completed',
-          update.message || 'Workflow completed successfully',
-          typeof resultsToSend === 'string' ? resultsToSend : JSON.stringify(resultsToSend),
-          {
+
+        this.eventEmitter.emit('workflow.task.completion', {
+          taskId: update.taskId,
+          status: 'completed',
+          message: update.message || 'Workflow completed successfully',
+          response:
+            typeof resultsToSend === 'string'
+              ? resultsToSend
+              : JSON.stringify(resultsToSend),
+          metadata: {
             executionId: update.executionId,
             conversationId: update.conversationId,
             workflowId: update.workflowId,
             workflowName: update.workflowName,
           },
-        );
+        });
       }
 
-      // If workflow failed, broadcast failure
+      // If workflow failed, emit failure event
       if (update.status === 'failed' || update.status === 'error') {
         this.logger.error(`Workflow failed for task ${update.taskId}`, update);
 
-        this.taskProgressGateway.broadcastTaskCompletion(
-          update.taskId,
-          'failed',
-          update.message || 'Workflow execution failed',
-        );
+        this.eventEmitter.emit('workflow.task.completion', {
+          taskId: update.taskId,
+          status: 'failed',
+          message: update.message || 'Workflow execution failed',
+        });
       }
     } catch (error) {
       this.logger.error('Error processing workflow status update', error);

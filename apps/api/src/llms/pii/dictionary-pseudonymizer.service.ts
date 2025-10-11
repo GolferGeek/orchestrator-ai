@@ -111,13 +111,16 @@ export class DictionaryPseudonymizerService {
 
       // Merge with priority: agent > org > global, detect overrides/conflicts
       const merged = ([] as any[]).concat(...resultSets);
-      const byOriginal: Record<string, { pseudonym: string; src: 'agent' | 'org' | 'global'; row: any }> = {};
+      const byOriginal: Record<
+        string,
+        { pseudonym: string; src: 'agent' | 'org' | 'global'; row: any }
+      > = {};
       for (const row of merged) {
         const src: 'agent' | 'org' | 'global' = row.agent_slug
           ? 'agent'
           : row.organization_slug
-          ? 'org'
-          : 'global';
+            ? 'org'
+            : 'global';
         const key = `${(row.original_value || '').toLowerCase()}::${row.data_type || 'unknown'}`;
         if (!key.trim()) continue;
         const existing = byOriginal[key];
@@ -126,7 +129,8 @@ export class DictionaryPseudonymizerService {
           continue;
         }
         // Only override when new source has higher priority
-        const rank = (s: 'agent' | 'org' | 'global') => (s === 'agent' ? 3 : s === 'org' ? 2 : 1);
+        const rank = (s: 'agent' | 'org' | 'global') =>
+          s === 'agent' ? 3 : s === 'org' ? 2 : 1;
         if (rank(src) > rank(existing.src)) {
           if (existing.pseudonym !== row.pseudonym) {
             this.logger.warn(

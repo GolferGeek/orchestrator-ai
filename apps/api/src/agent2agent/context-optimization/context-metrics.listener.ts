@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { TaskProgressGateway } from '@/agent-platform/websocket/task-progress.gateway';
 
 export interface ContextMetricsEvent {
   originalCount: number;
@@ -24,26 +23,18 @@ export class ContextMetricsListener {
   private readonly bufferSize = 1000;
   private readonly events: ContextMetricsEvent[] = [];
 
-  constructor(private readonly wsGateway: TaskProgressGateway) {}
+  constructor() {}
 
   @OnEvent('context_optimization.metrics')
   handleMetrics(event: ContextMetricsEvent) {
     this.events.push(event);
     if (this.events.length > this.bufferSize) this.events.shift();
 
-    const broadcast =
-      (process.env.CONTEXT_METRICS_BROADCAST || 'true') === 'true';
-    if (broadcast) {
-      const rollup = this.getRollup();
-      try {
-        // Global broadcast
-        this.wsGateway.server.emit('context_metrics_updated', {
-          event,
-          rollup,
-          timestamp: new Date().toISOString(),
-        });
-      } catch (_e) {}
-    }
+    // WebSocket broadcast is deprecated - we now use SSE streaming
+    // This metric tracking is kept but not broadcast
+    this.logger.debug(
+      `Context optimization metrics: ${event.originalCount} → ${event.optimizedCount}`,
+    );
   }
 
   getRollup(): RollupMetrics {

@@ -44,7 +44,9 @@ export class TasksController {
    */
   private validateTaskId(taskId: string, userId: string): void {
     if (!taskId || taskId === 'undefined' || taskId === 'null') {
-      this.logger.warn(`Invalid task ID received: "${taskId}" from user ${userId}`);
+      this.logger.warn(
+        `Invalid task ID received: "${taskId}" from user ${userId}`,
+      );
       throw new BadRequestException('Invalid task ID provided');
     }
   }
@@ -150,11 +152,8 @@ export class TasksController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
     this.validateTaskId(taskId, currentUser.id);
-    
-    const status = this.taskStatusService.getTaskStatus(
-      taskId,
-      currentUser.id,
-    );
+
+    const status = this.taskStatusService.getTaskStatus(taskId, currentUser.id);
 
     if (!status) {
       throw new NotFoundException('Task not found or not accessible');
@@ -174,7 +173,7 @@ export class TasksController {
     @Res() response: Response,
   ) {
     this.validateTaskId(taskId, currentUser.id);
-    
+
     // Set SSE headers
     response.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -224,7 +223,7 @@ export class TasksController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
     this.validateTaskId(taskId, currentUser.id);
-    
+
     // Use TaskStatusService for live messages first
     const liveMessages = this.taskStatusService.getTaskMessages(
       taskId,
@@ -251,7 +250,7 @@ export class TasksController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
     this.validateTaskId(taskId, currentUser.id);
-    
+
     await this.tasksService.updateTaskProgress(
       taskId,
       body.progress,

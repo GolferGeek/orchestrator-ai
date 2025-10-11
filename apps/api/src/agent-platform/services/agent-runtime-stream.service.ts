@@ -41,7 +41,10 @@ export interface AgentStreamSession {
 export class AgentRuntimeStreamService {
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
-  start(context: AgentStreamContext, streamId: string = randomUUID()): AgentStreamSession {
+  start(
+    context: AgentStreamContext,
+    streamId: string = randomUUID(),
+  ): AgentStreamSession {
     const normalizedContext: AgentStreamContext = {
       ...context,
       organizationSlug: context.organizationSlug ?? null,

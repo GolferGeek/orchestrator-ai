@@ -18,8 +18,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { websocketService } from '@/services/websocketService';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { tasksService } from '@/services/tasksService';
 // Props
 const props = withDefaults(defineProps<{
   taskId: string;
@@ -67,40 +67,78 @@ const handleProgressUpdate = (event: any) => {
   }
 };
 // Timer for elapsed time
-let timeInterval: number | null = null;
+let autoUpdateInterval: number | null = null;
+let elapsedTimer: number | null = null;
 // Lifecycle
-onMounted(() => {
-  if (props.autoUpdate) {
-    // Subscribe to WebSocket updates
-    websocketService.subscribeToTask(props.taskId, handleProgressUpdate);
-    // Start timer for elapsed time
-    if (props.showDetails) {
-      startTime.value = new Date();
-      timeInterval = window.setInterval(updateTimeElapsed, 1000);
+const startAutoUpdate = () => {
+  if (!props.autoUpdate) {
+    return;
+  }
+
+  if (props.showDetails && !startTime.value) {
+    startTime.value = new Date();
+    elapsedTimer = window.setInterval(updateTimeElapsed, 1000);
+  }
+
+  const tick = async () => {
+    try {
+      const status = await tasksService.getTaskStatus(props.taskId);
+      handleProgressUpdate({
+        taskId: props.taskId,
+        progress: status.progress,
+        message: status.progressMessage,
+        status: status.status,
+      });
+    } catch (error) {
+      console.warn('Failed to refresh task progress', error);
     }
+  };
+
+  void tick();
+  autoUpdateInterval = window.setInterval(tick, 2000);
+};
+
+const stopAutoUpdate = () => {
+  if (autoUpdateInterval) {
+    clearInterval(autoUpdateInterval);
+    autoUpdateInterval = null;
   }
+  if (elapsedTimer) {
+    clearInterval(elapsedTimer);
+    elapsedTimer = null;
+  }
+};
+
+onMounted(() => {
+  startAutoUpdate();
 });
-onUnmounted(() => {
-  if (props.autoUpdate) {
-    websocketService.unsubscribeFromTask(props.taskId);
-  }
-  if (timeInterval) {
-    clearInterval(timeInterval);
-  }
+
+onBeforeUnmount(() => {
+  stopAutoUpdate();
 });
 // Watch for progress changes
-watch(() => props.initialProgress, (newProgress) => {
-  currentProgress.value = newProgress;
-});
+watch(
+  () => props.initialProgress,
+  (newProgress) => {
+    currentProgress.value = newProgress;
+  },
+);
 // Watch for task completion
 watch(taskStatus, (newStatus) => {
   if (newStatus === 'completed' || newStatus === 'failed' || newStatus === 'cancelled') {
-    if (timeInterval) {
-      clearInterval(timeInterval);
-      timeInterval = null;
-    }
+    stopAutoUpdate();
   }
 });
+
+watch(
+  () => props.autoUpdate,
+  (enabled) => {
+    stopAutoUpdate();
+    if (enabled) {
+      startAutoUpdate();
+    }
+  },
+);
 </script>
 <style scoped>
 .task-progress-bar {

@@ -1,4 +1,11 @@
-import { Body, Controller, NotFoundException, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { AgentExecutionGateway } from '../services/agent-execution-gateway.service';
 import { HumanApprovalsRepository } from '@/agent-platform/repositories/human-approvals.repository';
 
@@ -19,7 +26,12 @@ export class AgentApprovalsActionsController {
     @Param('agentSlug') agentSlug: string,
     @Param('id') id: string,
     @Req() req: any,
-    @Body() body?: { options?: Record<string, any>; payload?: Record<string, any>; metadata?: Record<string, any> },
+    @Body()
+    body?: {
+      options?: Record<string, any>;
+      payload?: Record<string, any>;
+      metadata?: Record<string, any>;
+    },
   ) {
     const record = await this.approvals.get(id);
     if (!record) {
@@ -29,7 +41,9 @@ export class AgentApprovalsActionsController {
       throw new NotFoundException('Approval does not belong to this agent');
     }
     if (record.organization_slug && record.organization_slug !== orgSlug) {
-      throw new NotFoundException('Approval does not belong to this organization');
+      throw new NotFoundException(
+        'Approval does not belong to this organization',
+      );
     }
 
     const userId = req.user?.sub || req.user?.id || req.user?.userId || null;
@@ -39,7 +53,8 @@ export class AgentApprovalsActionsController {
     const stored: any = (record.metadata as any)?.request || {};
     const request: any = {
       mode: 'build',
-      conversationId: record.conversation_id ?? stored.conversationId ?? undefined,
+      conversationId:
+        record.conversation_id ?? stored.conversationId ?? undefined,
       userMessage: stored.userMessage ?? undefined,
       payload: {
         ...(stored.payload || {}),
@@ -54,13 +69,21 @@ export class AgentApprovalsActionsController {
     }
     if (body?.options) {
       request.payload = request.payload || {};
-      request.payload.options = { ...(request.payload.options || {}), ...body.options };
+      request.payload.options = {
+        ...(request.payload.options || {}),
+        ...body.options,
+      };
     }
     // If caller provided a pre-supplied streamId in metadata, mirror it into payload.metadata for downstream consumers
     if (request.metadata?.streamId) {
-      request.metadata.stream = Boolean(request.metadata.stream || body?.options?.stream);
+      request.metadata.stream = Boolean(
+        request.metadata.stream || body?.options?.stream,
+      );
       request.payload = request.payload || {};
-      request.payload.metadata = { ...(request.payload.metadata || {}), streamId: request.metadata.streamId };
+      request.payload.metadata = {
+        ...(request.payload.metadata || {}),
+        streamId: request.metadata.streamId,
+      };
     }
 
     const response = await this.gateway.execute(

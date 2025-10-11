@@ -5,7 +5,10 @@ import { AgentDryRunService } from './agent-dry-run.service';
 describe('Agent Builder Orchestrator (Full Flow)', () => {
   const dry = new AgentDryRunService();
   const root = resolve(__dirname, '../../../../../');
-  const builderPath = resolve(root, 'docs/feature/matt/payloads/agent_builder_orchestrator.json');
+  const builderPath = resolve(
+    root,
+    'docs/feature/matt/payloads/agent_builder_orchestrator.json',
+  );
   const builder = JSON.parse(readFileSync(builderPath, 'utf8'));
   const code = builder?.config?.configuration?.function?.code as string;
 
@@ -22,8 +25,11 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
     it('should collect intent and move to basic_info', async () => {
       const res = await dry.runFunction(
         code,
-        { step: 'intent', data: { agentType: 'function', purpose: 'Process documents' } },
-        10000
+        {
+          step: 'intent',
+          data: { agentType: 'function', purpose: 'Process documents' },
+        },
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -41,10 +47,10 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
           step: 'basic_info',
           conversationState: {
             step: 'basic_info',
-            agentConfig: { agent_type: 'function' }
-          }
+            agentConfig: { agent_type: 'function' },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -60,14 +66,14 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
           data: {
             slug: 'doc_processor',
             displayName: 'Document Processor',
-            description: 'Processes PDF documents'
+            description: 'Processes PDF documents',
           },
           conversationState: {
             step: 'basic_info',
-            agentConfig: { agent_type: 'function' }
-          }
+            agentConfig: { agent_type: 'function' },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -86,10 +92,10 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
           data: { inputModes: ['application/json'] },
           conversationState: {
             step: 'io_contract',
-            agentConfig: { agent_type: 'function', slug: 'test_agent' }
-          }
+            agentConfig: { agent_type: 'function', slug: 'test_agent' },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -103,14 +109,14 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
           step: 'io_contract',
           data: {
             inputModes: ['application/json'],
-            outputModes: ['text/markdown']
+            outputModes: ['text/markdown'],
           },
           conversationState: {
             step: 'io_contract',
-            agentConfig: { agent_type: 'function', slug: 'test_agent' }
-          }
+            agentConfig: { agent_type: 'function', slug: 'test_agent' },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -126,14 +132,14 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
           step: 'io_contract',
           data: {
             inputModes: ['text/plain'],
-            outputModes: ['text/markdown']
+            outputModes: ['text/markdown'],
           },
           conversationState: {
             step: 'io_contract',
-            agentConfig: { agent_type: 'context', slug: 'test_context' }
-          }
+            agentConfig: { agent_type: 'context', slug: 'test_context' },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -154,11 +160,11 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
             agentConfig: {
               agent_type: 'function',
               slug: 'test_agent',
-              yaml: 'input_modes: ["application/json"]'
-            }
-          }
+              yaml: 'input_modes: ["application/json"]',
+            },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -172,23 +178,26 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
           step: 'agent_config',
           data: {
             code: 'module.exports = async (input) => ({ ok: true });',
-            timeoutMs: 5000
+            timeoutMs: 5000,
           },
           conversationState: {
             step: 'agent_config',
             agentConfig: {
               agent_type: 'function',
               slug: 'test_agent',
-              yaml: 'input_modes: ["application/json"]'
-            }
-          }
+              yaml: 'input_modes: ["application/json"]',
+            },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
       expect(res.result?.state?.step).toBe('validate');
-      expect(res.result?.state?.agentConfig?.config?.configuration?.function?.timeout_ms).toBe(5000);
+      expect(
+        res.result?.state?.agentConfig?.config?.configuration?.function
+          ?.timeout_ms,
+      ).toBe(5000);
       expect(res.result?.content).toContain('Validation');
     });
 
@@ -198,23 +207,25 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         {
           step: 'agent_config',
           data: {
-            systemPrompt: 'You are a helpful assistant'
+            systemPrompt: 'You are a helpful assistant',
           },
           conversationState: {
             step: 'agent_config',
             agentConfig: {
               agent_type: 'context',
               slug: 'test_context',
-              yaml: 'input_modes: ["text/plain"]'
-            }
-          }
+              yaml: 'input_modes: ["text/plain"]',
+            },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
       expect(res.result?.state?.step).toBe('validate');
-      expect(res.result?.state?.agentConfig?.context?.system).toBe('You are a helpful assistant');
+      expect(res.result?.state?.agentConfig?.context?.system).toBe(
+        'You are a helpful assistant',
+      );
     });
   });
 
@@ -234,14 +245,14 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
                 configuration: {
                   function: {
                     timeout_ms: 5000,
-                    code: 'module.exports = async () => ({ ok: true });'
-                  }
-                }
-              }
-            }
-          }
+                    code: 'module.exports = async () => ({ ok: true });',
+                  },
+                },
+              },
+            },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -264,12 +275,12 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
             agentConfig: {
               agent_type: 'function',
               slug: 'test_agent',
-              display_name: 'Test Agent'
+              display_name: 'Test Agent',
             },
-            validationResults: { schemaValid: true, policyValid: true }
-          }
+            validationResults: { schemaValid: true, policyValid: true },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -287,12 +298,12 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
             agentConfig: {
               agent_type: 'function',
               slug: 'test_agent',
-              display_name: 'Test Agent'
+              display_name: 'Test Agent',
             },
-            validationResults: { schemaValid: true, policyValid: true }
-          }
+            validationResults: { schemaValid: true, policyValid: true },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -317,14 +328,14 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
                 configuration: {
                   function: {
                     timeout_ms: 5000,
-                    code: 'module.exports = async () => ({ ok: true });'
-                  }
-                }
-              }
-            }
-          }
+                    code: 'module.exports = async () => ({ ok: true });',
+                  },
+                },
+              },
+            },
+          },
         },
-        10000
+        10000,
       );
 
       expect(res.ok).toBe(true);
@@ -341,7 +352,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
       let res = await dry.runFunction(
         code,
         { step: 'intent', data: { agentType: 'function', purpose: 'Test' } },
-        10000
+        10000,
       );
       expect(res.result?.state?.step).toBe('basic_info');
       let state = res.result?.state;
@@ -352,9 +363,9 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         {
           step: 'basic_info',
           data: { slug: 'test_flow', displayName: 'Test Flow Agent' },
-          conversationState: state
+          conversationState: state,
         },
-        10000
+        10000,
       );
       expect(res.result?.state?.step).toBe('io_contract');
       state = res.result?.state;
@@ -364,10 +375,13 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         code,
         {
           step: 'io_contract',
-          data: { inputModes: ['application/json'], outputModes: ['text/markdown'] },
-          conversationState: state
+          data: {
+            inputModes: ['application/json'],
+            outputModes: ['text/markdown'],
+          },
+          conversationState: state,
         },
-        10000
+        10000,
       );
       expect(res.result?.state?.step).toBe('agent_config');
       state = res.result?.state;
@@ -377,16 +391,23 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         code,
         {
           step: 'agent_config',
-          data: { code: 'module.exports = async () => ({ ok: true });', timeoutMs: 5000 },
-          conversationState: state
+          data: {
+            code: 'module.exports = async () => ({ ok: true });',
+            timeoutMs: 5000,
+          },
+          conversationState: state,
         },
-        10000
+        10000,
       );
       expect(res.result?.state?.step).toBe('validate');
       state = res.result?.state;
 
       // Step 5: Validate
-      res = await dry.runFunction(code, { step: 'validate', conversationState: state }, 10000);
+      res = await dry.runFunction(
+        code,
+        { step: 'validate', conversationState: state },
+        10000,
+      );
       expect(res.result?.state?.step).toBe('review');
       state = res.result?.state;
 
@@ -394,13 +415,17 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
       res = await dry.runFunction(
         code,
         { step: 'review', data: { approved: true }, conversationState: state },
-        10000
+        10000,
       );
       expect(res.result?.state?.step).toBe('create');
       state = res.result?.state;
 
       // Step 7: Create
-      res = await dry.runFunction(code, { step: 'create', conversationState: state }, 10000);
+      res = await dry.runFunction(
+        code,
+        { step: 'create', conversationState: state },
+        10000,
+      );
       expect(res.result?.state?.step).toBe('complete');
       expect(res.result?.content?.success).toBe(true);
       expect(res.result?.content?.agentId).toBeDefined();

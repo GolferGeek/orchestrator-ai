@@ -6,7 +6,9 @@ export class EnhanceVersionDto {
   @IsString()
   instruction!: string;
 
-  @ApiPropertyOptional({ description: 'Preferred provider (e.g., openai, anthropic, google, ollama)' })
+  @ApiPropertyOptional({
+    description: 'Preferred provider (e.g., openai, anthropic, google, ollama)',
+  })
   @IsOptional()
   @IsString()
   providerName?: string;
@@ -29,4 +31,3 @@ export class EnhanceVersionDto {
   @Min(1)
   maxTokens?: number;
 }
-

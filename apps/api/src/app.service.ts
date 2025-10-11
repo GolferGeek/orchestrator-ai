@@ -27,7 +27,6 @@ export class AppService implements OnModuleInit {
     this.agentInstances = [];
   }
 
-
   getHello(): string {
     return 'NestJS A2A Agent Framework - Ready!';
   }
@@ -127,8 +126,9 @@ export class AppService implements OnModuleInit {
     }
 
     const totalDiscovered = mergedAgents.length;
-    const runningInstances = mergedAgents.filter((agent) => agent.hasInstance)
-      .length;
+    const runningInstances = mergedAgents.filter(
+      (agent) => agent.hasInstance,
+    ).length;
 
     return {
       status: 'running',
@@ -194,20 +194,18 @@ export class AppService implements OnModuleInit {
   }
 
   private mapDatabaseAgent(record: AgentRecord) {
-    const agentCategory = record.config?.agent_category as
-      | string
-      | undefined;
+    const agentCategory = record.config?.agent_category as string | undefined;
     const isTool = agentCategory === 'tool';
 
     const supportedModesRaw = Array.isArray(record.config?.supported_modes)
-      ? (record.config!.supported_modes as string[])
+      ? (record.config.supported_modes as string[])
       : [];
 
     const supportedModes = supportedModesRaw.length
       ? supportedModesRaw
       : record.agent_type === 'orchestrator'
-      ? ['converse', 'plan', 'build']
-      : ['converse', 'build'];
+        ? ['converse', 'plan', 'build']
+        : ['converse', 'build'];
 
     const executionCapabilities = {
       can_converse: supportedModes.includes('converse'),
@@ -256,15 +254,17 @@ export class AppService implements OnModuleInit {
     const normalizedNamespace = namespace?.trim().length
       ? namespace.trim().toLowerCase()
       : 'global';
-    const normalizedName = (name ?? '')
-      .toLowerCase()
-      .replace(/[\s_-]+/g, '_');
+    const normalizedName = (name ?? '').toLowerCase().replace(/[\s_-]+/g, '_');
     return `${normalizedNamespace}::${normalizedName}`;
   }
 
   private deriveExecutionProfile(
     modeProfile: string | null,
-  ): 'conversation_only' | 'autonomous_build' | 'human_gate' | 'conversation_with_gate' {
+  ):
+    | 'conversation_only'
+    | 'autonomous_build'
+    | 'human_gate'
+    | 'conversation_with_gate' {
     if (!modeProfile) {
       return 'conversation_only';
     }

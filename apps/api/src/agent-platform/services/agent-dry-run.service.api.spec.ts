@@ -7,12 +7,12 @@ describe('AgentDryRunService (API transforms)', () => {
     const apiConfig = {
       request_transform: {
         format: 'custom',
-        template: '{"sessionId": "{{sessionId}}", "prompt": "{{userMessage}}"}'
+        template: '{"sessionId": "{{sessionId}}", "prompt": "{{userMessage}}"}',
       },
       response_transform: {
         format: 'field_extraction',
-        field: 'output'
-      }
+        field: 'output',
+      },
     };
     const input = { sessionId: 'abc', userMessage: 'hi there' };
     const mockResponse = { output: 'ok' };
@@ -23,4 +23,3 @@ describe('AgentDryRunService (API transforms)', () => {
     expect(res.response?.extracted).toBe('ok');
   });
 });
-

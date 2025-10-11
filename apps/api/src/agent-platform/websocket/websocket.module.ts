@@ -1,11 +1,11 @@
 import { Module, Global } from '@nestjs/common';
-import { TaskProgressGateway } from './task-progress.gateway';
-import { SupabaseModule } from '@/supabase/supabase.module';
 
+// WebSocket module is deprecated - we now use SSE streaming via Agent2AgentController
+// This module is kept as an empty stub to avoid breaking existing imports
 @Global()
 @Module({
-  imports: [SupabaseModule],
-  providers: [TaskProgressGateway],
-  exports: [TaskProgressGateway],
+  imports: [],
+  providers: [],
+  exports: [],
 })
 export class WebSocketModule {}

@@ -15,11 +15,7 @@ import {
 } from '@orchestrator-ai/transport-types';
 
 // Re-export shared types
-export {
-  AgentTaskMode,
-  TaskMessage,
-  TaskRequestParams,
-};
+export { AgentTaskMode, TaskMessage, TaskRequestParams };
 
 // Extended mode enum for internal orchestration modes
 export enum InternalAgentTaskMode {

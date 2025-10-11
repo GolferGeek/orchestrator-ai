@@ -4,7 +4,9 @@ import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.
 import { TaskRequestDto } from '@agent2agent/dto/task-request.dto';
 
 describe('AgentRuntimeRedactionService', () => {
-  const makeService = (patterns: Array<{ pattern: string; flags?: string; replacement?: string }>) => {
+  const makeService = (
+    patterns: Array<{ pattern: string; flags?: string; replacement?: string }>,
+  ) => {
     const repo: jest.Mocked<RedactionPatternsRepository> = {
       listByOrganization: jest.fn().mockResolvedValue(
         patterns.map((p) => ({
@@ -31,7 +33,13 @@ describe('AgentRuntimeRedactionService', () => {
     capabilities: [],
     skills: [],
     communication: { inputModes: ['text'], outputModes: ['text'] },
-    execution: { modeProfile: 'converse_only', canConverse: true, canPlan: false, canBuild: false, requiresHumanGate: false },
+    execution: {
+      modeProfile: 'converse_only',
+      canConverse: true,
+      canPlan: false,
+      canBuild: false,
+      requiresHumanGate: false,
+    },
     prompts: { system: '', plan: '', build: '', human: '' },
     context: null,
     config: { transforms: { redaction: { fields: [] } } } as any,
@@ -47,15 +55,20 @@ describe('AgentRuntimeRedactionService', () => {
     } as any;
 
     // Local route: DB redaction skipped, secret token masked
-    const localRedacted = await service.redact(definition, request, { isLocal: true, organizationSlug: 'demo' });
+    const localRedacted = await service.redact(definition, request, {
+      isLocal: true,
+      organizationSlug: 'demo',
+    });
     expect(localRedacted.userMessage).toContain('secret');
     expect(localRedacted.userMessage).toContain('sk-REDACTED');
 
     // Remote route: DB redaction applied, secret token masked
-    const remoteRedacted = await service.redact(definition, request, { isLocal: false, organizationSlug: 'demo' });
+    const remoteRedacted = await service.redact(definition, request, {
+      isLocal: false,
+      organizationSlug: 'demo',
+    });
     expect(remoteRedacted.userMessage).toContain('[DB]');
     expect(remoteRedacted.userMessage).not.toContain('secret');
     expect(remoteRedacted.userMessage).toContain('sk-REDACTED');
   });
 });
-

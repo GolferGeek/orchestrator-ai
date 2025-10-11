@@ -26,9 +26,10 @@ export class AgentRuntimeExecutionService {
     };
   }
 
-  collectRequestMetadata(
-    request: { payload?: { metadata?: Record<string, any> }; metadata?: Record<string, any> },
-  ): Record<string, any> {
+  collectRequestMetadata(request: {
+    payload?: { metadata?: Record<string, any> };
+    metadata?: Record<string, any>;
+  }): Record<string, any> {
     return {
       ...(request.payload?.metadata ?? {}),
       ...(request.metadata ?? {}),

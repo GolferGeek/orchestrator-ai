@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { SupabaseService } from '@/supabase/supabase.service';
+import {
+  AgentStreamChunkEvent,
+  AgentStreamCompleteEvent,
+  AgentStreamErrorEvent,
+} from '@/agent-platform/services/agent-runtime-stream.service';
+import { randomUUID } from 'crypto';
 
 export interface TaskStatus {
   taskId: string;
@@ -26,6 +32,19 @@ export interface TaskStatusUpdate {
   [key: string]: any;
 }
 
+interface TaskStreamSession {
+  sessionId: string;
+  taskId: string;
+  userId: string;
+  agentSlug: string;
+  organizationSlug: string;
+  conversationId: string | null;
+  streamId: string | null;
+  registeredAt: number;
+  lastEventAt: number;
+  conversationKey: string;
+}
+
 /**
  * Single source of truth for task status management
  * Handles both ephemeral and persistent tasks based on agent card taskType
@@ -33,6 +52,12 @@ export interface TaskStatusUpdate {
 @Injectable()
 export class TaskStatusService {
   private readonly logger = new Logger(TaskStatusService.name);
+  private readonly messageTtlMs =
+    Math.max(Number(process.env.TASK_MESSAGE_TTL_MINUTES ?? 60), 1) * 60 * 1000;
+  private readonly streamInactivityMs = Math.max(
+    Number(process.env.TASK_STREAM_INACTIVITY_MS ?? 60_000),
+    5_000,
+  );
 
   // Hot cache for all active tasks (both ephemeral and persistent)
   private activeTaskStatuses = new Map<string, TaskStatus>();
@@ -48,16 +73,379 @@ export class TaskStatusService {
       progressPercentage?: number;
       metadata?: Record<string, any>;
       createdAt: string;
+      expiresAt: string;
     }>
   >();
 
   // Cleanup timers for completed tasks
   private cleanupTimers = new Map<string, NodeJS.Timeout>();
+  private streamSessionsById = new Map<string, TaskStreamSession>();
+  private activeStreamSessionsByStreamId = new Map<string, TaskStreamSession>();
+  private activeStreamSessionsByConversation = new Map<
+    string,
+    TaskStreamSession
+  >();
+  private streamCleanupTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly supabaseService: SupabaseService,
   ) {}
+
+  registerStreamSession(params: {
+    taskId: string;
+    userId: string;
+    agentSlug: string;
+    organizationSlug: string;
+    streamId?: string | null;
+    conversationId?: string | null;
+  }): string {
+    const sessionId = randomUUID();
+    const normalizedOrg =
+      params.organizationSlug && params.organizationSlug.trim().length > 0
+        ? params.organizationSlug
+        : 'global';
+    const session: TaskStreamSession = {
+      sessionId,
+      taskId: params.taskId,
+      userId: params.userId,
+      agentSlug: params.agentSlug,
+      organizationSlug: normalizedOrg,
+      conversationId: params.conversationId ?? null,
+      streamId: params.streamId ?? null,
+      registeredAt: Date.now(),
+      lastEventAt: Date.now(),
+      conversationKey: this.buildConversationKey(
+        normalizedOrg,
+        params.agentSlug,
+        params.conversationId ?? null,
+      ),
+    };
+
+    this.streamSessionsById.set(session.sessionId, session);
+    if (session.streamId) {
+      this.activeStreamSessionsByStreamId.set(session.streamId, session);
+    }
+    this.activeStreamSessionsByConversation.set(
+      session.conversationKey,
+      session,
+    );
+
+    this.scheduleStreamCleanup(session);
+
+    this.logger.debug('Registered stream session', {
+      taskId: session.taskId,
+      streamId: session.streamId,
+      sessionId: session.sessionId,
+      agentSlug: session.agentSlug,
+      organizationSlug: session.organizationSlug,
+      conversationId: session.conversationId,
+    });
+
+    return session.sessionId;
+  }
+
+  unregisterStreamSession(sessionId: string, reason: string = 'cleanup'): void {
+    const session = this.streamSessionsById.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    if (session.streamId) {
+      this.activeStreamSessionsByStreamId.delete(session.streamId);
+    }
+    this.activeStreamSessionsByConversation.delete(session.conversationKey);
+    this.streamSessionsById.delete(session.sessionId);
+    this.clearStreamCleanup(session);
+
+    this.logger.debug('Unregistered stream session', {
+      taskId: session.taskId,
+      streamId: session.streamId,
+      sessionId: session.sessionId,
+      reason,
+    });
+  }
+
+  private resolveStreamSession(filters: {
+    streamId?: string;
+    agentSlug: string;
+    organizationSlug?: string | null;
+    conversationId?: string | null;
+  }): TaskStreamSession | undefined {
+    if (filters.streamId) {
+      const match = this.activeStreamSessionsByStreamId.get(filters.streamId);
+      if (match) {
+        return match;
+      }
+    }
+
+    const conversationKey = this.buildConversationKey(
+      filters.organizationSlug ?? 'global',
+      filters.agentSlug,
+      filters.conversationId ?? null,
+    );
+
+    return this.activeStreamSessionsByConversation.get(conversationKey);
+  }
+
+  private buildConversationKey(
+    organizationSlug: string | null,
+    agentSlug: string,
+    conversationId: string | null,
+  ): string {
+    const normalizedOrg =
+      organizationSlug && organizationSlug.trim().length > 0
+        ? organizationSlug
+        : 'global';
+    const normalizedConversation =
+      conversationId && conversationId.trim().length > 0
+        ? conversationId
+        : 'none';
+
+    return `${normalizedOrg}::${agentSlug}::${normalizedConversation}`;
+  }
+
+  private touchStreamSession(session: TaskStreamSession): void {
+    session.lastEventAt = Date.now();
+    this.scheduleStreamCleanup(session);
+  }
+
+  private scheduleStreamCleanup(session: TaskStreamSession): void {
+    this.clearStreamCleanup(session);
+
+    const timer = setTimeout(() => {
+      this.logger.debug('Stream session expired due to inactivity', {
+        taskId: session.taskId,
+        streamId: session.streamId,
+        sessionId: session.sessionId,
+      });
+      this.unregisterStreamSession(session.sessionId, 'inactivity_timeout');
+    }, this.streamInactivityMs);
+
+    this.streamCleanupTimers.set(session.sessionId, timer);
+  }
+
+  private clearStreamCleanup(session: TaskStreamSession): void {
+    const timer = this.streamCleanupTimers.get(session.sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      this.streamCleanupTimers.delete(session.sessionId);
+    }
+  }
+
+  private pruneExpiredMessages(taskId: string): void {
+    const messages = this.activeTaskMessages.get(taskId);
+    if (!messages || messages.length === 0) {
+      return;
+    }
+
+    const now = Date.now();
+    const filtered = messages.filter(
+      (message) => new Date(message.expiresAt).getTime() > now,
+    );
+
+    if (filtered.length === messages.length) {
+      return;
+    }
+
+    this.activeTaskMessages.set(taskId, filtered);
+  }
+
+  private removeStreamSessionsForTask(taskId: string): void {
+    const sessionIds = Array.from(this.streamSessionsById.values())
+      .filter((session) => session.taskId === taskId)
+      .map((session) => session.sessionId);
+
+    for (const sessionId of sessionIds) {
+      this.unregisterStreamSession(sessionId, 'task_cleanup');
+    }
+  }
+
+  private extractProgress(
+    metadata: Record<string, any> | undefined,
+  ): number | undefined {
+    if (!metadata) {
+      return undefined;
+    }
+
+    const candidates: Array<unknown> = [
+      metadata.progress,
+      metadata.progressPercentage,
+      metadata.percentage,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+        return candidate;
+      }
+      if (typeof candidate === 'string') {
+        const parsed = Number(candidate);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  @OnEvent('agent.stream.chunk')
+  handleAgentStreamChunkEvent(event: AgentStreamChunkEvent): void {
+    const session = this.resolveStreamSession({
+      streamId: event.streamId,
+      agentSlug: event.agentSlug,
+      organizationSlug: event.organizationSlug ?? 'global',
+      conversationId: event.conversationId ?? null,
+    });
+
+    if (!session) {
+      this.logger.debug(
+        `No active stream session found for chunk event ${event.streamId}`,
+      );
+      return;
+    }
+
+    this.touchStreamSession(session);
+
+    const metadata = {
+      streamId: event.streamId,
+      conversationId: event.conversationId,
+      orchestrationRunId: event.orchestrationRunId,
+      organizationSlug: event.organizationSlug ?? null,
+      agentSlug: event.agentSlug,
+      mode: event.mode,
+      chunkType: event.chunk.type,
+      chunkMetadata: event.chunk.metadata ?? {},
+      receivedAt: new Date().toISOString(),
+    };
+
+    const content =
+      typeof event.chunk.content === 'string'
+        ? event.chunk.content
+        : JSON.stringify(event.chunk.content);
+
+    this.addTaskMessage(session.taskId, content, 'progress', metadata);
+
+    const progress = this.extractProgress(event.chunk.metadata);
+    const currentStatus = this.activeTaskStatuses.get(session.taskId);
+
+    const update: TaskStatusUpdate = {
+      status: 'running',
+    };
+
+    if (progress !== undefined) {
+      update.progress = progress;
+    }
+
+    if (content && content.trim().length > 0) {
+      update.progressMessage = content;
+    }
+
+    if (!currentStatus || currentStatus.status !== 'completed') {
+      this.updateTaskStatus(session.taskId, session.userId, update).catch(
+        (error) => {
+          this.logger.debug(
+            `Failed to apply stream chunk status update for task ${session.taskId}`,
+            error,
+          );
+        },
+      );
+    }
+  }
+
+  @OnEvent('agent.stream.complete')
+  handleAgentStreamCompleteEvent(event: AgentStreamCompleteEvent): void {
+    const session = this.resolveStreamSession({
+      streamId: event.streamId,
+      agentSlug: event.agentSlug,
+      organizationSlug: event.organizationSlug ?? 'global',
+      conversationId: event.conversationId ?? null,
+    });
+
+    if (!session) {
+      return;
+    }
+
+    this.touchStreamSession(session);
+
+    const metadata = {
+      streamId: event.streamId,
+      conversationId: event.conversationId,
+      orchestrationRunId: event.orchestrationRunId,
+      organizationSlug: event.organizationSlug ?? null,
+      agentSlug: event.agentSlug,
+      mode: event.mode,
+      type: 'complete',
+      receivedAt: new Date().toISOString(),
+    };
+
+    this.addTaskMessage(session.taskId, 'Stream completed', 'status', metadata);
+
+    const currentStatus = this.activeTaskStatuses.get(session.taskId);
+    if (!currentStatus || currentStatus.status !== 'completed') {
+      this.updateTaskStatus(session.taskId, session.userId, {
+        status: 'completed',
+        progress: 100,
+        progressMessage: 'Stream completed',
+      }).catch((error) => {
+        this.logger.debug(
+          `Failed to apply stream completion status update for task ${session.taskId}`,
+          error,
+        );
+      });
+    }
+
+    this.unregisterStreamSession(session.sessionId, 'complete_event');
+  }
+
+  @OnEvent('agent.stream.error')
+  handleAgentStreamErrorEvent(event: AgentStreamErrorEvent): void {
+    const session = this.resolveStreamSession({
+      streamId: event.streamId,
+      agentSlug: event.agentSlug,
+      organizationSlug: event.organizationSlug ?? 'global',
+      conversationId: event.conversationId ?? null,
+    });
+
+    if (!session) {
+      return;
+    }
+
+    this.touchStreamSession(session);
+
+    const errorMessage =
+      typeof event.error === 'string'
+        ? event.error
+        : JSON.stringify(event.error);
+
+    const metadata = {
+      streamId: event.streamId,
+      conversationId: event.conversationId,
+      orchestrationRunId: event.orchestrationRunId,
+      organizationSlug: event.organizationSlug ?? null,
+      agentSlug: event.agentSlug,
+      mode: event.mode,
+      type: 'error',
+      receivedAt: new Date().toISOString(),
+    };
+
+    this.addTaskMessage(session.taskId, errorMessage, 'error', metadata);
+
+    const currentStatus = this.activeTaskStatuses.get(session.taskId);
+    if (!currentStatus || currentStatus.status !== 'failed') {
+      this.updateTaskStatus(session.taskId, session.userId, {
+        status: 'failed',
+        error: errorMessage,
+      }).catch((error) => {
+        this.logger.debug(
+          `Failed to apply stream error status update for task ${session.taskId}`,
+          error,
+        );
+      });
+    }
+
+    this.unregisterStreamSession(session.sessionId, 'error_event');
+  }
 
   /**
    * Create a new task with initial status
@@ -243,18 +631,32 @@ export class TaskStatusService {
       this.activeTaskMessages.set(taskId, []);
     }
 
+    const now = Date.now();
+    const createdAt = new Date(now).toISOString();
+    const expiresAt = new Date(now + this.messageTtlMs).toISOString();
     const messages = this.activeTaskMessages.get(taskId)!;
+    const filtered = messages.filter(
+      (message) => new Date(message.expiresAt).getTime() > now,
+    );
+
+    const normalizedMetadata =
+      metadata !== undefined ? { ...metadata } : undefined;
+    const progressPercentage =
+      this.extractProgress(normalizedMetadata) ?? undefined;
+
     const newMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `msg-${now}-${Math.random().toString(36).slice(2, 11)}`,
       taskId,
       content: messageContent,
       messageType,
-      progressPercentage: metadata?.progress,
-      metadata,
-      createdAt: new Date().toISOString(),
+      progressPercentage,
+      metadata: normalizedMetadata,
+      createdAt,
+      expiresAt,
     };
 
-    messages.push(newMessage);
+    filtered.push(newMessage);
+    this.activeTaskMessages.set(taskId, filtered);
   }
 
   /**
@@ -271,6 +673,7 @@ export class TaskStatusService {
     progressPercentage?: number;
     metadata?: Record<string, any>;
     createdAt: string;
+    expiresAt: string;
   }> {
     // Check if user owns this task
     const taskStatus = this.getTaskStatus(taskId, userId);
@@ -279,6 +682,7 @@ export class TaskStatusService {
     }
 
     // Return live messages from cache
+    this.pruneExpiredMessages(taskId);
     const messages = this.activeTaskMessages.get(taskId) || [];
 
     return [...messages]; // Return copy to prevent mutations
@@ -382,6 +786,7 @@ export class TaskStatusService {
    * Remove task from active cache
    */
   private cleanupTask(taskId: string): void {
+    this.removeStreamSessionsForTask(taskId);
     this.activeTaskStatuses.delete(taskId);
     this.activeTaskMessages.delete(taskId); // Clean up live messages too
     this.cleanupTimers.delete(taskId);

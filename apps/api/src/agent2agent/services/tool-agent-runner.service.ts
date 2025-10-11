@@ -124,7 +124,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
 
       // 2. Execute tools sequentially (or in parallel if configured)
       const toolResults = [];
-      const executionMode = definition.config?.toolExecutionMode || 'sequential';
+      const executionMode =
+        definition.config?.toolExecutionMode || 'sequential';
 
       if (executionMode === 'parallel') {
         // Execute all tools in parallel
@@ -238,7 +239,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         }),
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(
         `Tool agent ${definition.slug} BUILD failed: ${errorMessage}`,
       );
@@ -326,9 +328,9 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           } else if (item.type === 'resource') {
             return {
               type: 'resource',
-              uri: (item as any).uri,
-              text: (item as any).text,
-              mimeType: (item as any).mimeType,
+              uri: item.uri,
+              text: item.text,
+              mimeType: item.mimeType,
             };
           }
           return item;

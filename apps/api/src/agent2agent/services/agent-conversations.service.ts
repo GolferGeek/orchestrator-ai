@@ -46,7 +46,9 @@ export class Agent2AgentConversationsService {
         last_active_at: now,
         metadata: {
           ...options?.metadata,
-          title: options?.title || `${agentName} - ${new Date().toLocaleDateString()}`,
+          title:
+            options?.title ||
+            `${agentName} - ${new Date().toLocaleDateString()}`,
           protocol: 'a2a-google',
           source: 'agent2agent',
         },
@@ -68,7 +70,9 @@ export class Agent2AgentConversationsService {
         throw new Error(`Failed to create conversation: ${error.message}`);
       }
 
-      this.logger.debug(`✅ Created A2A conversation ${conversation.id} for agent ${agentName}`);
+      this.logger.debug(
+        `✅ Created A2A conversation ${conversation.id} for agent ${agentName}`,
+      );
 
       return {
         id: conversation.id,
@@ -126,7 +130,10 @@ export class Agent2AgentConversationsService {
         updatedAt: new Date(conversation.updated_at),
       };
     } catch (error) {
-      this.logger.error(`Failed to get A2A conversation ${conversationId}:`, error);
+      this.logger.error(
+        `Failed to get A2A conversation ${conversationId}:`,
+        error,
+      );
       return null;
     }
   }
@@ -164,7 +171,9 @@ export class Agent2AgentConversationsService {
         };
       }
 
-      this.logger.warn(`Conversation ${conversationId} not found, creating new one`);
+      this.logger.warn(
+        `Conversation ${conversationId} not found, creating new one`,
+      );
     }
 
     // Create new conversation
@@ -222,7 +231,10 @@ export class Agent2AgentConversationsService {
 
       this.logger.debug(`✅ Updated A2A conversation ${conversationId}`);
     } catch (error) {
-      this.logger.error(`Failed to update A2A conversation ${conversationId}:`, error);
+      this.logger.error(
+        `Failed to update A2A conversation ${conversationId}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -288,7 +300,10 @@ export class Agent2AgentConversationsService {
 
       this.logger.log(`🗑️ Deleted A2A conversation ${conversationId}`);
     } catch (error) {
-      this.logger.error(`Failed to delete A2A conversation ${conversationId}:`, error);
+      this.logger.error(
+        `Failed to delete A2A conversation ${conversationId}:`,
+        error,
+      );
       throw error;
     }
   }

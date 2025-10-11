@@ -257,9 +257,7 @@ describe('ApiAgentRunnerService', () => {
         metadata: { userId: 'user-123' },
       };
 
-      httpService.request.mockReturnValue(
-        of({ status: 200, data: [] }) as any,
-      );
+      httpService.request.mockReturnValue(of({ status: 200, data: [] }) as any);
 
       deliverablesService.executeAction.mockResolvedValue({
         success: true,
@@ -392,7 +390,9 @@ describe('ApiAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(false);
-      expect(result.payload?.metadata?.reason).toContain('API returned error status 404');
+      expect(result.payload?.metadata?.reason).toContain(
+        'API returned error status 404',
+      );
     });
 
     it('should succeed with non-2xx when failOnError is false', async () => {
@@ -469,7 +469,9 @@ describe('ApiAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(false);
-      expect(result.payload?.metadata?.reason).toBe('Failed to create deliverable');
+      expect(result.payload?.metadata?.reason).toBe(
+        'Failed to create deliverable',
+      );
     });
   });
 
@@ -499,13 +501,15 @@ describe('ApiAgentRunnerService', () => {
       );
 
       let capturedContent: string = '';
-      deliverablesService.executeAction.mockImplementation(async (action, params) => {
-        capturedContent = params.content;
-        return {
-          success: true,
-          data: { deliverable: {}, version: {} },
-        };
-      });
+      deliverablesService.executeAction.mockImplementation(
+        async (action, params) => {
+          capturedContent = params.content;
+          return {
+            success: true,
+            data: { deliverable: {}, version: {} },
+          };
+        },
+      );
 
       await service.execute(definition, request, null);
 

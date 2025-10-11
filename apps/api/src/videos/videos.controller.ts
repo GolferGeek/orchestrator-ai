@@ -27,9 +27,9 @@ export class VideosController {
   constructor(private readonly videosService: VideosService) {}
 
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all videos',
-    description: 'Retrieve all video data from videos.json' 
+    description: 'Retrieve all video data from videos.json',
   })
   @ApiResponse({
     status: 200,
@@ -40,9 +40,9 @@ export class VideosController {
   }
 
   @Get('categories')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get video categories',
-    description: 'Get list of available video categories for admin dropdown' 
+    description: 'Get list of available video categories for admin dropdown',
   })
   @ApiResponse({
     status: 200,
@@ -54,24 +54,24 @@ export class VideosController {
         properties: {
           key: { type: 'string' },
           title: { type: 'string' },
-          description: { type: 'string' }
-        }
-      }
-    }
+          description: { type: 'string' },
+        },
+      },
+    },
   })
   async getCategories() {
     return this.videosService.getCategories();
   }
 
   @Get('transcripts/:id')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get video transcript',
-    description: 'Retrieve transcript content for a specific video' 
+    description: 'Retrieve transcript content for a specific video',
   })
   @ApiParam({
     name: 'id',
     description: 'Video ID',
-    example: 'agent-default-overview'
+    example: 'agent-default-overview',
   })
   @ApiResponse({
     status: 200,
@@ -90,9 +90,10 @@ export class VideosController {
   @AdminOnly()
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create new video (Admin only)',
-    description: 'Add a new video to the videos.json file. Requires admin authentication.' 
+    description:
+      'Add a new video to the videos.json file. Requires admin authentication.',
   })
   @ApiResponse({
     status: 201,

@@ -44,9 +44,9 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     ScheduleModule.forRoot(),
 
     // Main Modules (consolidated)
-    LLMModule,              // Includes: providers, models, evaluation, cidafm, usage, langchain, pii
-    Agent2AgentModule,      // Includes: conversations, tasks, deliverables, projects, context-optimization, orchestration
-    AgentPlatformModule,    // Includes: database agents, registry, hierarchy
+    LLMModule, // Includes: providers, models, evaluation, cidafm, usage, langchain, pii
+    Agent2AgentModule, // Includes: conversations, tasks, deliverables, projects, context-optimization, orchestration
+    AgentPlatformModule, // Includes: database agents, registry, hierarchy
 
     // Standalone Features
     SovereignPolicyModule,
@@ -54,13 +54,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     AssetsModule,
     WebhooksModule,
   ],
-  controllers: [
-    AppController,
-    AnalyticsController,
-  ],
-  providers: [
-    AppService,
-    AgentRegistryService,
-  ],
+  controllers: [AppController, AnalyticsController],
+  providers: [AppService, AgentRegistryService],
 })
 export class AppModule {}

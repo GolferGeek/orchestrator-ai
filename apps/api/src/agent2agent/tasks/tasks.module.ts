@@ -8,11 +8,7 @@ import { AgentConversationsModule } from '@/agent2agent/conversations/agent-conv
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
-  imports: [
-    SupabaseModule,
-    AgentConversationsModule,
-    EventEmitterModule,
-  ],
+  imports: [SupabaseModule, AgentConversationsModule, EventEmitterModule],
   providers: [TasksService, TaskStatusService, TaskMessageService],
   controllers: [TasksController],
   exports: [TasksService, TaskStatusService, TaskMessageService],

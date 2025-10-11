@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
-import { TaskProgressGateway } from '@/agent-platform/websocket/task-progress.gateway';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   Project,
   ProjectStep,
@@ -50,7 +50,7 @@ export class ProjectsService {
 
   constructor(
     private readonly supabaseService: SupabaseService,
-    private readonly taskProgressGateway: TaskProgressGateway,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -821,19 +821,11 @@ export class ProjectsService {
    * Emit project WebSocket event
    */
   private emitProjectEvent(message: ProjectWebSocketMessage): void {
-    try {
-      // Emit to project-specific room
-      this.taskProgressGateway.server
-        .to(`project:${message.projectId}`)
-        .emit('project_event', message);
-
-      // Also emit to general project updates room
-      this.taskProgressGateway.server
-        .to('projects')
-        .emit('project_event', message);
-    } catch {
-      // Silently ignore errors in websocket emission
-    }
+    // WebSocket event emission is deprecated - we now use SSE streaming
+    // This method is kept as a no-op to avoid breaking existing code
+    this.logger.debug(
+      `Project event (no-op): ${message.type} for project ${message.projectId}`,
+    );
   }
 
   /**

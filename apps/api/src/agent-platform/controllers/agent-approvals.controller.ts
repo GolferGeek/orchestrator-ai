@@ -38,18 +38,19 @@ export class AgentApprovalsController {
     // If this is an agent_promotion approval, complete the promotion
     if (record.mode === 'agent_promotion') {
       try {
-        const promotionResult = await this.promotion.completePromotionAfterApproval(id);
+        const promotionResult =
+          await this.promotion.completePromotionAfterApproval(id);
         return {
           success: true,
           data: record,
-          promotion: promotionResult
+          promotion: promotionResult,
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return {
           success: false,
           data: record,
-          error: `Approval succeeded but promotion failed: ${message}`
+          error: `Approval succeeded but promotion failed: ${message}`,
         };
       }
     }

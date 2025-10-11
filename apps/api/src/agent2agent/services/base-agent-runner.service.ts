@@ -91,7 +91,11 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     try {
       switch (mode) {
         case AgentTaskMode.CONVERSE:
-          return await this.handleConverse(definition, request, organizationSlug);
+          return await this.handleConverse(
+            definition,
+            request,
+            organizationSlug,
+          );
 
         case AgentTaskMode.PLAN:
           return await this.handlePlan(definition, request, organizationSlug);
@@ -211,7 +215,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    */
   protected resolveUserId(request: TaskRequestDto): string | null {
     // Check top-level metadata
-    const fromMetadata = request.metadata?.userId || request.metadata?.createdBy;
+    const fromMetadata =
+      request.metadata?.userId || request.metadata?.createdBy;
     if (fromMetadata) {
       return String(fromMetadata);
     }
@@ -266,11 +271,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * @returns taskId if found, null otherwise
    */
   protected resolveTaskId(request: TaskRequestDto): string | null {
-    return (
-      request.metadata?.taskId ||
-      (request.payload as any)?.taskId ||
-      null
-    );
+    return request.metadata?.taskId || (request.payload as any)?.taskId || null;
   }
 
   /**

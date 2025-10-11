@@ -7,11 +7,20 @@ import axios from 'axios';
 @Injectable()
 export class AssetsService {
   private readonly logger = new Logger(AssetsService.name);
-  private readonly backend = (process.env.ASSET_STORAGE_BACKEND || 'local') as 'local' | 'supabase';
-  private readonly baseDir = resolve(process.env.IMAGE_STORAGE_DIR || './storage/images');
-  private readonly fetchExternal = (process.env.ASSET_FETCH_EXTERNAL || 'false') === 'true';
-  private readonly fetchMaxBytes = parseInt(process.env.ASSET_FETCH_MAX_BYTES || `${10 * 1024 * 1024}`, 10); // 10MB default
-  private readonly externalStrategy = (process.env.ASSET_EXTERNAL_STRATEGY || 'redirect') as 'redirect' | 'proxy';
+  private readonly backend = (process.env.ASSET_STORAGE_BACKEND || 'local') as
+    | 'local'
+    | 'supabase';
+  private readonly baseDir = resolve(
+    process.env.IMAGE_STORAGE_DIR || './storage/images',
+  );
+  private readonly fetchExternal =
+    (process.env.ASSET_FETCH_EXTERNAL || 'false') === 'true';
+  private readonly fetchMaxBytes = parseInt(
+    process.env.ASSET_FETCH_MAX_BYTES || `${10 * 1024 * 1024}`,
+    10,
+  ); // 10MB default
+  private readonly externalStrategy = (process.env.ASSET_EXTERNAL_STRATEGY ||
+    'redirect') as 'redirect' | 'proxy';
 
   constructor(private readonly repo: AssetsRepository) {}
 
@@ -20,7 +29,9 @@ export class AssetsService {
     try {
       await fs.mkdir(this.baseDir, { recursive: true });
     } catch (e) {
-      this.logger.warn(`Failed to ensure image base dir: ${this.baseDir}: ${String(e)}`);
+      this.logger.warn(
+        `Failed to ensure image base dir: ${this.baseDir}: ${String(e)}`,
+      );
     }
   }
 
@@ -110,19 +121,28 @@ export class AssetsService {
     subpath?: string;
   }): Promise<AssetRecord> {
     if (!this.fetchExternal) {
-      throw new Error('External fetching disabled (set ASSET_FETCH_EXTERNAL=true)');
+      throw new Error(
+        'External fetching disabled (set ASSET_FETCH_EXTERNAL=true)',
+      );
     }
     if (this.backend !== 'local') {
       throw new Error('Only local storage is implemented');
     }
     await this.ensureBaseDir();
-    const resp = await axios.get(params.url, { responseType: 'arraybuffer', maxContentLength: this.fetchMaxBytes });
-    const mime = (resp.headers['content-type'] as string) || 'application/octet-stream';
+    const resp = await axios.get(params.url, {
+      responseType: 'arraybuffer',
+      maxContentLength: this.fetchMaxBytes,
+    });
+    const mime =
+      (resp.headers['content-type'] as string) || 'application/octet-stream';
     const buffer = Buffer.from(resp.data);
     if (buffer.length > this.fetchMaxBytes) {
-      throw new Error(`Asset exceeds max size (${buffer.length} > ${this.fetchMaxBytes})`);
+      throw new Error(
+        `Asset exceeds max size (${buffer.length} > ${this.fetchMaxBytes})`,
+      );
     }
-    const filename = params.filename || this.deriveFilenameFromUrl(params.url, mime);
+    const filename =
+      params.filename || this.deriveFilenameFromUrl(params.url, mime);
     return this.saveBuffer({
       organizationSlug: params.organizationSlug ?? null,
       conversationId: params.conversationId ?? null,
@@ -181,7 +201,8 @@ export class AssetsService {
       }
       // proxy
       const prox = await axios.get(url, { responseType: 'stream' });
-      const mime = (prox.headers['content-type'] as string) || 'application/octet-stream';
+      const mime =
+        (prox.headers['content-type'] as string) || 'application/octet-stream';
       res.setHeader('Content-Type', mime);
       prox.data.pipe(res);
       return;

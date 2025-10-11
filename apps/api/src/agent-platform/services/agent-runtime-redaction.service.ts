@@ -12,9 +12,7 @@ interface RedactionOptions {
 
 @Injectable()
 export class AgentRuntimeRedactionService {
-  constructor(
-    private readonly redactionRepo: RedactionPatternsRepository,
-  ) {}
+  constructor(private readonly redactionRepo: RedactionPatternsRepository) {}
 
   async redact(
     definition: AgentRuntimeDefinition,
@@ -22,8 +20,9 @@ export class AgentRuntimeRedactionService {
     options: RedactionOptions = {},
   ): Promise<TaskRequestDto> {
     const cfg = (definition.config as any) || {};
-    const fields: string[] = ((cfg.transforms?.redaction?.fields as any) || [])
-      .filter((f: any) => typeof f === 'string');
+    const fields: string[] = (cfg.transforms?.redaction?.fields || []).filter(
+      (f: any) => typeof f === 'string',
+    );
 
     let next: TaskRequestDto = request;
 
@@ -48,12 +47,19 @@ export class AgentRuntimeRedactionService {
     }
 
     // Redact specific fields from payload.normalized if configured
-    if (fields.length && next.payload?.normalized && typeof next.payload.normalized === 'object') {
+    if (
+      fields.length &&
+      next.payload?.normalized &&
+      typeof next.payload.normalized === 'object'
+    ) {
       const copy = JSON.parse(JSON.stringify(next.payload.normalized));
       for (const path of fields) {
         this.maskPath(copy, path, 'REDACTED');
       }
-      next = { ...next, payload: { ...(next.payload || {}), normalized: copy } };
+      next = {
+        ...next,
+        payload: { ...(next.payload || {}), normalized: copy },
+      };
     }
 
     return next;
@@ -75,9 +81,8 @@ export class AgentRuntimeRedactionService {
     text: string,
   ): Promise<string> {
     try {
-      const records = await this.redactionRepo.listByOrganization(
-        organizationSlug,
-      );
+      const records =
+        await this.redactionRepo.listByOrganization(organizationSlug);
       if (!records || records.length === 0) return text;
 
       let s = text;
@@ -117,7 +122,7 @@ export class AgentRuntimeRedactionService {
       const p = parts[i];
       if (cur == null) return;
       const key: any = p as any;
-      cur = (cur as any)[key];
+      cur = cur[key];
       if (cur == null) return;
     }
     const last = parts[parts.length - 1] as string | number;
@@ -125,7 +130,7 @@ export class AgentRuntimeRedactionService {
       if (typeof last === 'number') {
         if (Array.isArray(cur) && last < cur.length) cur[last] = value;
       } else if (Object.prototype.hasOwnProperty.call(cur, last as any)) {
-        (cur as any)[last as any] = value;
+        cur[last as any] = value;
       }
     }
   }

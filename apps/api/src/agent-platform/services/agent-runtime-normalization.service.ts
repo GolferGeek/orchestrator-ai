@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { load as yamlLoad } from 'js-yaml';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
-import { AgentTaskMode, TaskRequestDto } from '@agent2agent/dto/task-request.dto';
+import {
+  AgentTaskMode,
+  TaskRequestDto,
+} from '@agent2agent/dto/task-request.dto';
 
 export interface NormalizationResult {
   ok: boolean;
@@ -52,13 +55,14 @@ export class AgentRuntimeNormalizationService {
     mode: AgentTaskMode,
   ): { input?: string; output?: string; strict?: boolean } | null {
     const cfg = (definition.config as any) || {};
-    const transforms = (cfg.transforms as any) || {};
-    const expected = (transforms.expected as any) || {};
-    const byMode = (transforms.by_mode as any) || {};
-    const forMode = (byMode[this.modeKey(mode)] as any) || {};
+    const transforms = cfg.transforms || {};
+    const expected = transforms.expected || {};
+    const byMode = transforms.by_mode || {};
+    const forMode = byMode[this.modeKey(mode)] || {};
 
     const input = forMode.input?.content_type || expected.input?.content_type;
-    const output = forMode.output?.content_type || expected.output?.content_type;
+    const output =
+      forMode.output?.content_type || expected.output?.content_type;
     const strict = Boolean(forMode.input?.strict ?? expected.input?.strict);
     if (!input && !output && !strict) return null;
     return { input, output, strict };
@@ -91,14 +95,19 @@ export class AgentRuntimeNormalizationService {
   ): TaskRequestDto | null {
     // JSON -> Markdown
     if (provided === 'application/json' && expected.startsWith('text/')) {
-      const template = this.resolveAdapterTemplate(definition, 'json_to_markdown');
+      const template = this.resolveAdapterTemplate(
+        definition,
+        'json_to_markdown',
+      );
       const json = this.safeStringify((request.payload as any) ?? {});
       const rendered = template
         ? template.replace('{{ json }}', json)
         : `\n\n\u003c!-- structured input --\u003e\n\n\u0060\u0060\u0060json\n${json}\n\u0060\u0060\u0060\n`;
       const clone: TaskRequestDto = {
         ...request,
-        userMessage: [request.userMessage, rendered].filter(Boolean).join('\n\n'),
+        userMessage: [request.userMessage, rendered]
+          .filter(Boolean)
+          .join('\n\n'),
       };
       return clone;
     }
@@ -132,7 +141,7 @@ export class AgentRuntimeNormalizationService {
     adapterKey: string,
   ): string | null {
     const cfg = (definition.config as any) || {};
-    const adapters = (cfg.transforms as any)?.adapters || {};
+    const adapters = cfg.transforms?.adapters || {};
     const candidate = adapters?.[adapterKey]?.template;
     return typeof candidate === 'string' && candidate.trim() ? candidate : null;
   }
@@ -205,7 +214,10 @@ export class AgentRuntimeNormalizationService {
     return out.map((s) => s.trim());
   }
 
-  private attachNormalizedJson(request: TaskRequestDto, obj: any): TaskRequestDto {
+  private attachNormalizedJson(
+    request: TaskRequestDto,
+    obj: any,
+  ): TaskRequestDto {
     const clone: TaskRequestDto = {
       ...request,
       payload: { ...(request.payload || {}), normalized: obj },

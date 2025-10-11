@@ -48,7 +48,12 @@ export class OrchestrationRunnerService {
     const metadata: Record<string, any> = {
       ...(input.metadata ?? {}),
     };
-    if (input.agentId || input.agentSlug || input.agentType || input.agentDisplayName) {
+    if (
+      input.agentId ||
+      input.agentSlug ||
+      input.agentType ||
+      input.agentDisplayName
+    ) {
       metadata.agent = {
         id: input.agentId ?? null,
         slug: input.agentSlug ?? null,

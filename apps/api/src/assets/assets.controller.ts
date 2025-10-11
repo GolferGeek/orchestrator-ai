@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Res, NotFoundException, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Res,
+  NotFoundException,
+  Post,
+  Body,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { AssetsService } from './assets.service';
 
@@ -17,12 +25,18 @@ export class AssetsController {
 
   // Test/helper endpoint: register an existing local file (relative to IMAGE_STORAGE_DIR)
   @Post('register-local')
-  async registerLocal(@Body() body: { path: string; mime?: string; size?: number }) {
+  async registerLocal(
+    @Body() body: { path: string; mime?: string; size?: number },
+  ) {
     if (!body?.path) {
       throw new NotFoundException('path is required');
     }
     const mime = body.mime || this.inferMime(body.path);
-    const rec = await this.assets.registerLocalPath({ path: body.path, mime, size: body.size });
+    const rec = await this.assets.registerLocalPath({
+      path: body.path,
+      mime,
+      size: body.size,
+    });
     return { success: true, id: rec.id, url: `/assets/${rec.id}` };
   }
 
@@ -32,7 +46,10 @@ export class AssetsController {
     if (!body?.url) {
       throw new NotFoundException('url is required');
     }
-    const rec = await this.assets.registerExternal({ url: body.url, mime: body.mime });
+    const rec = await this.assets.registerExternal({
+      url: body.url,
+      mime: body.mime,
+    });
     return { success: true, id: rec.id, url: `/assets/${rec.id}` };
   }
 

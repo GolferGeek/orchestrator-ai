@@ -35,23 +35,28 @@ export class AgentConversationsService {
       'context', // Add context for database agents
       'function',
       'tool',
+      'global', // Global shared agents across all organizations
     ];
     // Allow file-based types
-    if (validTypes.includes(agentType as AgentType)) {
-      return agentType as AgentType;
+    if (validTypes.includes(agentType)) {
+      return agentType;
     }
 
     // Allow database namespaces (contain hyphens, underscores, or end with -org)
-    if (agentType.includes('-') || agentType.includes('_') || agentType.endsWith('org')) {
-      return agentType as AgentType;
+    if (
+      agentType.includes('-') ||
+      agentType.includes('_') ||
+      agentType.endsWith('org')
+    ) {
+      return agentType;
     }
 
     // NO FALLBACKS - fail fast with clear error instead of defaulting
     throw new Error(
       `Invalid agentType '${agentType}'. ` +
-      `Must be a valid file-based type (${validTypes.join(', ')}) ` +
-      `or a database namespace (e.g., 'my-org', 'company-name'). ` +
-      `No default agentType is provided - explicit configuration required.`
+        `Must be a valid file-based type (${validTypes.join(', ')}) ` +
+        `or a database namespace (e.g., 'my-org', 'company-name'). ` +
+        `No default agentType is provided - explicit configuration required.`,
     );
   }
 

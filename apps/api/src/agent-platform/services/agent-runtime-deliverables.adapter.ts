@@ -7,7 +7,10 @@ import {
   DeliverableType,
   DeliverableVersionCreationType,
 } from '@/agent2agent/deliverables/dto';
-import { AgentTaskMode, TaskRequestDto } from '@agent2agent/dto/task-request.dto';
+import {
+  AgentTaskMode,
+  TaskRequestDto,
+} from '@agent2agent/dto/task-request.dto';
 import { AssetsService } from '@/assets/assets.service';
 
 export interface BuildDeliverableInput {
@@ -69,7 +72,8 @@ export class AgentRuntimeDeliverablesAdapter {
             format:
               storedImages.length > 0
                 ? DeliverableFormat.JSON
-                : this.coerceDeliverableFormat(ctx.deliverableFormat) ?? DeliverableFormat.TEXT,
+                : (this.coerceDeliverableFormat(ctx.deliverableFormat) ??
+                  DeliverableFormat.TEXT),
             createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
             taskId: (request as any).taskId,
             metadata: {
@@ -78,9 +82,7 @@ export class AgentRuntimeDeliverablesAdapter {
               mode: ctx.mode,
             },
             fileAttachments:
-              storedImages.length > 0
-                ? { images: storedImages }
-                : {},
+              storedImages.length > 0 ? { images: storedImages } : {},
           },
           userId,
         );
@@ -88,11 +90,15 @@ export class AgentRuntimeDeliverablesAdapter {
       }
       const dto: CreateDeliverableDto = {
         title,
-        type: this.coerceDeliverableType(ctx.deliverableType) ?? DeliverableType.DOCUMENT,
+        type:
+          this.coerceDeliverableType(ctx.deliverableType) ??
+          DeliverableType.DOCUMENT,
         conversationId,
         agentName: ctx.agentSlug,
         initialContent: content || undefined,
-        initialFormat: this.coerceDeliverableFormat(ctx.deliverableFormat) ?? DeliverableFormat.TEXT,
+        initialFormat:
+          this.coerceDeliverableFormat(ctx.deliverableFormat) ??
+          DeliverableFormat.TEXT,
         initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
         initialTaskId: (request as any).taskId,
         initialMetadata: {
@@ -136,11 +142,15 @@ export class AgentRuntimeDeliverablesAdapter {
   private resolveUserId(request: TaskRequestDto): string | null {
     // prefer top-level metadata, then payload.metadata
     const fromTop = request.metadata?.userId || request.metadata?.createdBy;
-    const fromPayload = request.payload?.metadata?.userId || request.payload?.metadata?.createdBy;
+    const fromPayload =
+      request.payload?.metadata?.userId || request.payload?.metadata?.createdBy;
     return (fromTop as string) || (fromPayload as string) || null;
   }
 
-  private computeTitle(defaultTitle: string, ctx: BuildDeliverableInput): string {
+  private computeTitle(
+    defaultTitle: string,
+    ctx: BuildDeliverableInput,
+  ): string {
     const template = ctx.titleTemplate?.trim();
     if (!template) {
       return defaultTitle;
@@ -153,9 +163,12 @@ export class AgentRuntimeDeliverablesAdapter {
       .replaceAll('{title}', defaultTitle);
   }
 
-  private coerceDeliverableType(value?: DeliverableType | string | null): DeliverableType | undefined {
+  private coerceDeliverableType(
+    value?: DeliverableType | string | null,
+  ): DeliverableType | undefined {
     if (!value) return undefined;
-    if (Object.values(DeliverableType).includes(value as DeliverableType)) return value as DeliverableType;
+    if (Object.values(DeliverableType).includes(value as DeliverableType))
+      return value as DeliverableType;
     const s = String(value).toLowerCase();
     switch (s) {
       case 'document':
@@ -173,9 +186,12 @@ export class AgentRuntimeDeliverablesAdapter {
     }
   }
 
-  private coerceDeliverableFormat(value?: DeliverableFormat | string | null): DeliverableFormat | undefined {
+  private coerceDeliverableFormat(
+    value?: DeliverableFormat | string | null,
+  ): DeliverableFormat | undefined {
     if (!value) return undefined;
-    if (Object.values(DeliverableFormat).includes(value as DeliverableFormat)) return value as DeliverableFormat;
+    if (Object.values(DeliverableFormat).includes(value as DeliverableFormat))
+      return value as DeliverableFormat;
     const s = String(value).toLowerCase();
     switch (s) {
       case 'markdown':
@@ -207,7 +223,11 @@ export class AgentRuntimeDeliverablesAdapter {
 
   private async maybePersistImages(
     images: any[],
-    ctx: { organizationSlug: string | null; conversationId: string | null; userId: string | null },
+    ctx: {
+      organizationSlug: string | null;
+      conversationId: string | null;
+      userId: string | null;
+    },
   ): Promise<any[]> {
     if (!images || images.length === 0) return [];
     const results: any[] = [];
@@ -224,7 +244,9 @@ export class AgentRuntimeDeliverablesAdapter {
             base64 = match[2] || '';
           }
           const buffer = Buffer.from(base64, 'base64');
-          const filename = img.filename || `image-${Date.now()}-${i}.${this.extFromMime(mime)}`;
+          const filename =
+            img.filename ||
+            `image-${Date.now()}-${i}.${this.extFromMime(mime)}`;
           const rec = await this.assets.saveBuffer({
             organizationSlug: ctx.organizationSlug,
             conversationId: ctx.conversationId,
@@ -251,7 +273,8 @@ export class AgentRuntimeDeliverablesAdapter {
         }
       }
       // Optionally fetch-and-store external URLs
-      const hasUrl = typeof img.url === 'string' && /^https?:\/\//i.test(img.url);
+      const hasUrl =
+        typeof img.url === 'string' && /^https?:\/\//i.test(img.url);
       if (hasUrl && this.assets) {
         try {
           const rec = await this.assets.saveFromUrl({
@@ -275,9 +298,14 @@ export class AgentRuntimeDeliverablesAdapter {
           });
           continue;
         } catch (e) {
-          this.logger.warn(`Fetch-and-store disabled or failed, registering external: ${String(e)}`);
+          this.logger.warn(
+            `Fetch-and-store disabled or failed, registering external: ${String(e)}`,
+          );
           try {
-            const rec = await this.assets.registerExternal({ url: img.url, mime: img.mime || img.contentType });
+            const rec = await this.assets.registerExternal({
+              url: img.url,
+              mime: img.mime || img.contentType,
+            });
             results.push({
               assetId: rec.id,
               url: `/assets/${rec.id}`,
@@ -291,7 +319,9 @@ export class AgentRuntimeDeliverablesAdapter {
             });
             continue;
           } catch (e2) {
-            this.logger.warn(`Failed to register external reference: ${String(e2)}`);
+            this.logger.warn(
+              `Failed to register external reference: ${String(e2)}`,
+            );
           }
         }
       }

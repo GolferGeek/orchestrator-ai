@@ -146,7 +146,9 @@ export class LLMError extends Error {
    * Generate a unique error code based on type and provider
    */
   private generateErrorCode(type: LLMErrorType, provider: string): string {
-    const providerPrefix = provider ? provider.toUpperCase().substring(0, 3) : 'UNK';
+    const providerPrefix = provider
+      ? provider.toUpperCase().substring(0, 3)
+      : 'UNK';
     const typeCode = type.toUpperCase().replace(/_/g, '');
     return `${providerPrefix}_${typeCode}`;
   }

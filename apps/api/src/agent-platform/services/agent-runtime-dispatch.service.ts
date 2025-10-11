@@ -9,7 +9,10 @@ import {
 import { RoutingDecision } from '@llm/centralized-routing.service';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
 import { PromptPayload } from './agent-runtime-prompt.service';
-import { TaskRequestDto, AgentTaskMode } from '@agent2agent/dto/task-request.dto';
+import {
+  TaskRequestDto,
+  AgentTaskMode,
+} from '@agent2agent/dto/task-request.dto';
 import { AgentRuntimeMetricsService } from './agent-runtime-metrics.service';
 
 export interface AgentRuntimeDispatchOptions {
@@ -97,7 +100,9 @@ export class AgentRuntimeDispatchService {
     };
   }
 
-  dispatchStream(options: AgentRuntimeDispatchOptions): AgentRuntimeStreamingResult {
+  dispatchStream(
+    options: AgentRuntimeDispatchOptions,
+  ): AgentRuntimeStreamingResult {
     const controller = this.createStreamController();
     const transport = options.definition.transport?.kind;
     if (transport === 'api' || transport === 'external') {
@@ -174,7 +179,8 @@ export class AgentRuntimeDispatchService {
         overrides?.maxTokens ??
         (decisionExtras.maxTokens as number | undefined) ??
         definition.llm?.maxTokens,
-      apiKey: overrides?.apiKey ?? (decisionExtras.apiKey as string | undefined),
+      apiKey:
+        overrides?.apiKey ?? (decisionExtras.apiKey as string | undefined),
       baseUrl:
         overrides?.baseUrl ?? (decisionExtras.baseUrl as string | undefined),
       timeout:
@@ -316,7 +322,8 @@ export class AgentRuntimeDispatchService {
     const mergedHeaders: Record<string, any> = {
       'content-type': 'application/json',
       ...(api.headers ?? {}),
-      ...((options.request.payload?.options?.headers as Record<string, any>) || {}),
+      ...((options.request.payload?.options?.headers as Record<string, any>) ||
+        {}),
     };
     const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
@@ -334,13 +341,19 @@ export class AgentRuntimeDispatchService {
           timeout: api.timeout ?? defaultTimeout,
           data: body,
           validateStatus: () => true,
-        })
+        }),
       );
     } catch (err: any) {
       const end = Date.now();
       const status = err?.response?.status ?? -1;
       this.safeLog('api', url, status, end - start);
-      this.metrics.record('api', options.definition.slug, false, end - start, status);
+      this.metrics.record(
+        'api',
+        options.definition.slug,
+        false,
+        end - start,
+        status,
+      );
       throw err;
     }
 
@@ -368,10 +381,20 @@ export class AgentRuntimeDispatchService {
 
     // Observability: log sanitized outcome
     this.safeLog('api', url, res.status, end - start);
-    this.metrics.record('api', options.definition.slug, isOk, end - start, res.status);
+    this.metrics.record(
+      'api',
+      options.definition.slug,
+      isOk,
+      end - start,
+      res.status,
+    );
 
     if (options.onStreamChunk) {
-      options.onStreamChunk({ type: 'final', content: response.content, metadata: response.metadata });
+      options.onStreamChunk({
+        type: 'final',
+        content: response.content,
+        metadata: response.metadata,
+      });
     }
 
     return {
@@ -400,7 +423,8 @@ export class AgentRuntimeDispatchService {
     const mergedHeaders: Record<string, any> = {
       'content-type': 'application/json',
       ...(external.authentication?.headers ?? {}),
-      ...((options.request.payload?.options?.headers as Record<string, any>) || {}),
+      ...((options.request.payload?.options?.headers as Record<string, any>) ||
+        {}),
     };
     const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
@@ -432,18 +456,28 @@ export class AgentRuntimeDispatchService {
           headers,
           timeout: external.timeout ?? defaultTimeout,
           validateStatus: () => true,
-        })
+        }),
       );
     } catch (err: any) {
       const end = Date.now();
       const status = err?.response?.status ?? -1;
       this.safeLog('external', url, status, end - start);
-      this.metrics.record('external', options.definition.slug, false, end - start, status);
+      this.metrics.record(
+        'external',
+        options.definition.slug,
+        false,
+        end - start,
+        status,
+      );
       throw err;
     }
     const end = Date.now();
 
-    const hasRpcError = res.data && typeof res.data === 'object' && 'error' in res.data && res.data.error;
+    const hasRpcError =
+      res.data &&
+      typeof res.data === 'object' &&
+      'error' in res.data &&
+      res.data.error;
     const envelope = hasRpcError
       ? res.data.error
       : res.data && res.data.result
@@ -466,21 +500,41 @@ export class AgentRuntimeDispatchService {
         providerSpecific: { status: res.status },
         ...(isOk
           ? {}
-          : { errorMessage: this.buildRpcErrorMessage(res.data?.error, res.status) }),
+          : {
+              errorMessage: this.buildRpcErrorMessage(
+                res.data?.error,
+                res.status,
+              ),
+            }),
       },
     } as const;
 
     // Observability: log sanitized outcome
     this.safeLog('external', url, res.status, end - start);
-    this.metrics.record('external', options.definition.slug, isOk, end - start, res.status);
+    this.metrics.record(
+      'external',
+      options.definition.slug,
+      isOk,
+      end - start,
+      res.status,
+    );
 
     if (options.onStreamChunk) {
-      options.onStreamChunk({ type: 'final', content: response.content, metadata: response.metadata });
+      options.onStreamChunk({
+        type: 'final',
+        content: response.content,
+        metadata: response.metadata,
+      });
     }
 
     return {
       response,
-      config: { provider: 'external_a2a', model: 'a2a', timeout: external.timeout ?? 30_000, baseUrl: url },
+      config: {
+        provider: 'external_a2a',
+        model: 'a2a',
+        timeout: external.timeout ?? 30_000,
+        baseUrl: url,
+      },
       params: {
         systemPrompt: options.prompt.systemPrompt,
         userMessage: options.prompt.userMessage,
@@ -519,7 +573,9 @@ export class AgentRuntimeDispatchService {
     return String(value);
   }
 
-  private sanitizeForwardHeaders(source: Record<string, any>): Record<string, any> {
+  private sanitizeForwardHeaders(
+    source: Record<string, any>,
+  ): Record<string, any> {
     const allow = this.resolveHeaderAllowlist();
     const out: Record<string, any> = {};
     for (const [k, v] of Object.entries(source)) {
@@ -556,7 +612,10 @@ export class AgentRuntimeDispatchService {
     return 30_000;
   }
 
-  private async performWithRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  private async performWithRetry<T>(
+    fn: () => Promise<T>,
+    retries = 2,
+  ): Promise<T> {
     let attempt = 0;
     let lastError: any;
     while (attempt <= retries) {
@@ -583,7 +642,8 @@ export class AgentRuntimeDispatchService {
     try {
       const text = typeof data === 'string' ? data : JSON.stringify(data);
       const redacted = this.redactString(text);
-      const snippet = redacted.length > 160 ? redacted.slice(0, 160) + '…' : redacted;
+      const snippet =
+        redacted.length > 160 ? redacted.slice(0, 160) + '…' : redacted;
       return `${base}: ${snippet}`;
     } catch {
       return base;
@@ -594,13 +654,21 @@ export class AgentRuntimeDispatchService {
     const statusText = status ? ` (HTTP ${status})` : '';
     if (!error) return `External A2A error${statusText}`;
     const code = error.code !== undefined ? ` [code ${error.code}]` : '';
-    const raw = typeof error.message === 'string' ? error.message : this.stringifyContent(error);
+    const raw =
+      typeof error.message === 'string'
+        ? error.message
+        : this.stringifyContent(error);
     const msg = this.redactString(raw);
     const snippet = msg.length > 160 ? msg.slice(0, 160) + '…' : msg;
     return `External A2A error${statusText}${code}: ${snippet}`;
   }
 
-  private safeLog(kind: 'api' | 'external', url: string, status: number, durationMs: number) {
+  private safeLog(
+    kind: 'api' | 'external',
+    url: string,
+    status: number,
+    durationMs: number,
+  ) {
     try {
       const target = new URL(url);
       const host = target.host;
@@ -645,7 +713,8 @@ export class AgentRuntimeDispatchService {
     options: AgentRuntimeDispatchOptions,
   ): any {
     const t = api?.requestTransform;
-    const sessionId = options.request.sessionId ?? options.request.conversationId ?? null;
+    const sessionId =
+      options.request.sessionId ?? options.request.conversationId ?? null;
     const userMessage = options.prompt.userMessage ?? '';
     const conversationId = options.request.conversationId ?? null;
     const agentSlug = options.definition.slug;
@@ -653,26 +722,32 @@ export class AgentRuntimeDispatchService {
 
     if (t && t.format === 'custom' && typeof t.template === 'string') {
       try {
-        const rendered = t.template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key) => {
-          switch (String(key)) {
-            case 'userMessage':
-            case 'prompt':
-              return userMessage;
-            case 'sessionId':
-              return String(sessionId ?? '');
-            case 'conversationId':
-              return String(conversationId ?? '');
-            case 'agentSlug':
-              return String(agentSlug ?? '');
-            case 'organizationSlug':
-              return String(organizationSlug ?? '');
-            default:
-              return '';
-          }
-        });
+        const rendered = t.template.replace(
+          /\{\{\s*(\w+)\s*\}\}/g,
+          (_m, key) => {
+            switch (String(key)) {
+              case 'userMessage':
+              case 'prompt':
+                return userMessage;
+              case 'sessionId':
+                return String(sessionId ?? '');
+              case 'conversationId':
+                return String(conversationId ?? '');
+              case 'agentSlug':
+                return String(agentSlug ?? '');
+              case 'organizationSlug':
+                return String(organizationSlug ?? '');
+              default:
+                return '';
+            }
+          },
+        );
         // If the template is JSON-like, parse it; otherwise send as string
         const maybeJson = rendered.trim();
-        if ((maybeJson.startsWith('{') && maybeJson.endsWith('}')) || (maybeJson.startsWith('[') && maybeJson.endsWith(']'))) {
+        if (
+          (maybeJson.startsWith('{') && maybeJson.endsWith('}')) ||
+          (maybeJson.startsWith('[') && maybeJson.endsWith(']'))
+        ) {
           return JSON.parse(maybeJson);
         }
         return rendered;
@@ -700,7 +775,7 @@ export class AgentRuntimeDispatchService {
             return obj[path];
           }
           // dotted/bracket notation
-          const parts: Array<string|number> = [];
+          const parts: Array<string | number> = [];
           const re = /([^\.\[\]]+)|(\[(\d+)\])/g;
           let m: RegExpExecArray | null;
           while ((m = re.exec(path))) {
@@ -717,12 +792,16 @@ export class AgentRuntimeDispatchService {
 
         const fromRoot = tryExtract(data, rt.field);
         if (fromRoot !== undefined) {
-          return typeof fromRoot === 'string' ? fromRoot : this.stringifyContent(fromRoot);
+          return typeof fromRoot === 'string'
+            ? fromRoot
+            : this.stringifyContent(fromRoot);
         }
         if (data && typeof data === 'object' && data.result) {
           const fromResult = tryExtract(data.result, rt.field);
           if (fromResult !== undefined) {
-            return typeof fromResult === 'string' ? fromResult : this.stringifyContent(fromResult);
+            return typeof fromResult === 'string'
+              ? fromResult
+              : this.stringifyContent(fromResult);
           }
         }
       } catch {

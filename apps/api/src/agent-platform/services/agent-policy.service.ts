@@ -22,33 +22,60 @@ export class AgentPolicyService {
       payload?.context?.output_modes ||
       payload?.yaml?.includes('output_modes')
     );
-    if (!hasInputModes) issues.push({ message: 'Missing input_modes declaration (policy)', path: 'input_modes' });
-    if (!hasOutputModes) issues.push({ message: 'Missing output_modes declaration (policy)', path: 'output_modes' });
+    if (!hasInputModes)
+      issues.push({
+        message: 'Missing input_modes declaration (policy)',
+        path: 'input_modes',
+      });
+    if (!hasOutputModes)
+      issues.push({
+        message: 'Missing output_modes declaration (policy)',
+        path: 'output_modes',
+      });
 
     // For context agents, require either context.system or YAML system_prompt
     if (payload?.agent_type === 'context') {
       const hasSystem = !!(
         payload?.context?.system ||
         payload?.context?.system_prompt ||
-        (typeof payload?.yaml === 'string' && payload.yaml.includes('system_prompt'))
+        (typeof payload?.yaml === 'string' &&
+          payload.yaml.includes('system_prompt'))
       );
-      if (!hasSystem) issues.push({ message: 'Context agents should define a system prompt', path: 'context.system' });
+      if (!hasSystem)
+        issues.push({
+          message: 'Context agents should define a system prompt',
+          path: 'context.system',
+        });
     }
 
     // For function agents, recommend timeout <= 30s
     if (payload?.agent_type === 'function') {
-      const timeout = Number(payload?.config?.configuration?.function?.timeout_ms || 0);
-      if (!timeout) issues.push({ message: 'Function agents should set timeout_ms', path: 'config.configuration.function.timeout_ms' });
-      if (timeout > 30000) issues.push({ message: 'timeout_ms should be <= 30000ms per policy', path: 'config.configuration.function.timeout_ms' });
+      const timeout = Number(
+        payload?.config?.configuration?.function?.timeout_ms || 0,
+      );
+      if (!timeout)
+        issues.push({
+          message: 'Function agents should set timeout_ms',
+          path: 'config.configuration.function.timeout_ms',
+        });
+      if (timeout > 30000)
+        issues.push({
+          message: 'timeout_ms should be <= 30000ms per policy',
+          path: 'config.configuration.function.timeout_ms',
+        });
     }
 
     // For API agents, ensure api_configuration presence hint (detailed validation is in type checks)
     if (payload?.agent_type === 'api') {
       const api = payload?.config?.configuration?.api?.api_configuration;
-      if (!api) issues.push({ message: 'API agents must include configuration.api.api_configuration', path: 'config.configuration.api.api_configuration' });
+      if (!api)
+        issues.push({
+          message:
+            'API agents must include configuration.api.api_configuration',
+          path: 'config.configuration.api.api_configuration',
+        });
     }
 
     return issues;
   }
 }
-

@@ -35,11 +35,15 @@ describe('VideosController', () => {
 
   describe('getVideos', () => {
     it('should return videos data', async () => {
-      const mockVideosData = { categories: {}, agentDefaults: {}, metadata: {} };
+      const mockVideosData = {
+        categories: {},
+        agentDefaults: {},
+        metadata: {},
+      };
       mockVideosService.getVideos.mockResolvedValue(mockVideosData);
 
       const result = await controller.getVideos();
-      
+
       expect(result).toBe(mockVideosData);
       expect(service.getVideos).toHaveBeenCalled();
     });
@@ -48,12 +52,16 @@ describe('VideosController', () => {
   describe('getCategories', () => {
     it('should return video categories', async () => {
       const mockCategories = [
-        { key: 'agents', title: 'Agent Tutorials', description: 'Learn about agents' }
+        {
+          key: 'agents',
+          title: 'Agent Tutorials',
+          description: 'Learn about agents',
+        },
       ];
       mockVideosService.getCategories.mockResolvedValue(mockCategories);
 
       const result = await controller.getCategories();
-      
+
       expect(result).toBe(mockCategories);
       expect(service.getCategories).toHaveBeenCalled();
     });
@@ -63,12 +71,12 @@ describe('VideosController', () => {
     it('should return transcript for valid video ID', async () => {
       const mockTranscript = {
         title: 'Test Transcript',
-        content: 'Transcript content here...'
+        content: 'Transcript content here...',
       };
       mockVideosService.getTranscript.mockResolvedValue(mockTranscript);
 
       const result = await controller.getTranscript('test-video-id');
-      
+
       expect(result).toBe(mockTranscript);
       expect(service.getTranscript).toHaveBeenCalledWith('test-video-id');
     });
@@ -84,14 +92,14 @@ describe('VideosController', () => {
         duration: '5:00',
         createdAt: '2025-01-24',
         order: 1,
-        categoryKey: 'agents'
+        categoryKey: 'agents',
       };
-      
+
       const mockCreatedVideo = { ...createVideoDto, featured: false };
       mockVideosService.createVideo.mockResolvedValue(mockCreatedVideo);
 
       const result = await controller.createVideo(createVideoDto);
-      
+
       expect(result).toBe(mockCreatedVideo);
       expect(service.createVideo).toHaveBeenCalledWith(createVideoDto);
     });

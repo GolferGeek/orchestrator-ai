@@ -41,7 +41,9 @@ export class AssetsRepository {
     return (data as AssetRecord) || null;
   }
 
-  async create(input: Omit<AssetRecord, 'id' | 'created_at' | 'updated_at'>): Promise<AssetRecord> {
+  async create(
+    input: Omit<AssetRecord, 'id' | 'created_at' | 'updated_at'>,
+  ): Promise<AssetRecord> {
     const { data, error } = await this.client()
       .from(this.table)
       .insert(input)

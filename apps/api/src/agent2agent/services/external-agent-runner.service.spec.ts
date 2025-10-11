@@ -31,7 +31,9 @@ describe('ExternalAgentRunnerService', () => {
       ],
     }).compile();
 
-    service = module.get<ExternalAgentRunnerService>(ExternalAgentRunnerService);
+    service = module.get<ExternalAgentRunnerService>(
+      ExternalAgentRunnerService,
+    );
     httpService = module.get(HttpService);
     deliverablesService = module.get(DeliverablesService);
   });
@@ -228,7 +230,9 @@ describe('ExternalAgentRunnerService', () => {
 
       expect(result.success).toBe(true);
       expect(result.mode).toBe(AgentTaskMode.CONVERSE);
-      expect(result.payload?.content?.message).toBe('Hello from external agent');
+      expect(result.payload?.content?.message).toBe(
+        'Hello from external agent',
+      );
 
       // Should not create deliverable for CONVERSE
       expect(deliverablesService.executeAction).not.toHaveBeenCalled();
@@ -354,7 +358,9 @@ describe('ExternalAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(false);
-      expect(result.payload?.metadata?.reason).toContain('External agent call failed');
+      expect(result.payload?.metadata?.reason).toContain(
+        'External agent call failed',
+      );
     });
 
     it('should handle non-200 status from external agent', async () => {
@@ -466,7 +472,9 @@ describe('ExternalAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(false);
-      expect(result.payload?.metadata?.reason).toBe('Failed to create deliverable');
+      expect(result.payload?.metadata?.reason).toBe(
+        'Failed to create deliverable',
+      );
     });
   });
 

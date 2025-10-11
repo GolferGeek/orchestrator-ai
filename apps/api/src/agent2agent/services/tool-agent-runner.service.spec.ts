@@ -79,7 +79,9 @@ describe('ToolAgentRunnerService', () => {
       mcpService.callTool
         .mockResolvedValueOnce({
           isError: false,
-          content: [{ type: 'text', text: JSON.stringify([{ id: 1, name: 'User 1' }]) }],
+          content: [
+            { type: 'text', text: JSON.stringify([{ id: 1, name: 'User 1' }]) },
+          ],
         })
         .mockResolvedValueOnce({
           isError: false,
@@ -404,13 +406,15 @@ describe('ToolAgentRunnerService', () => {
       });
 
       let capturedContent: string = '';
-      deliverablesService.executeAction.mockImplementation(async (action, params) => {
-        capturedContent = params.content;
-        return {
-          success: true,
-          data: { deliverable: {}, version: {} },
-        };
-      });
+      deliverablesService.executeAction.mockImplementation(
+        async (action, params) => {
+          capturedContent = params.content;
+          return {
+            success: true,
+            data: { deliverable: {}, version: {} },
+          };
+        },
+      );
 
       await service.execute(definition, request, null);
 
@@ -504,7 +508,9 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(false);
-      expect(result.payload?.metadata?.reason).toBe('Failed to create deliverable');
+      expect(result.payload?.metadata?.reason).toBe(
+        'Failed to create deliverable',
+      );
     });
   });
 

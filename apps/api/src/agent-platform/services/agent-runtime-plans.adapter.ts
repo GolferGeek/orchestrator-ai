@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PlansService } from '@/agent2agent/plans/services/plans.service';
 import { PlanVersionsService } from '@/agent2agent/plans/services/plan-versions.service';
-import { AgentTaskMode, TaskRequestDto } from '@agent2agent/dto/task-request.dto';
+import {
+  AgentTaskMode,
+  TaskRequestDto,
+} from '@agent2agent/dto/task-request.dto';
 
 export interface CreatePlanInput {
   organizationSlug: string | null;
@@ -182,11 +185,9 @@ export class AgentRuntimePlansAdapter {
 
   private resolveUserId(request: TaskRequestDto): string | null {
     // Prefer top-level metadata, then payload.metadata
-    const fromTop =
-      request.metadata?.userId || request.metadata?.createdBy;
+    const fromTop = request.metadata?.userId || request.metadata?.createdBy;
     const fromPayload =
-      request.payload?.metadata?.userId ||
-      request.payload?.metadata?.createdBy;
+      request.payload?.metadata?.userId || request.payload?.metadata?.createdBy;
     return (fromTop as string) || (fromPayload as string) || null;
   }
 }

@@ -1,139 +1,139 @@
-import { 
-  IsString, 
-  IsNotEmpty, 
-  IsOptional, 
-  IsNumber, 
-  IsBoolean, 
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
   IsDateString,
   IsIn,
   IsArray,
-  ArrayMinSize 
+  ArrayMinSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateVideoDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Unique identifier for the video',
-    example: 'agent-default-overview' 
+    example: 'agent-default-overview',
   })
   @IsString()
   @IsNotEmpty()
   id!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Video title',
-    example: 'Working with Orchestrator AI Agents' 
+    example: 'Working with Orchestrator AI Agents',
   })
   @IsString()
   @IsNotEmpty()
   title!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Video description',
-    example: 'Learn essential workflows for engaging with agents' 
+    example: 'Learn essential workflows for engaging with agents',
   })
   @IsString()
   @IsNotEmpty()
   description!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Video URL (Loom embed or TBD_RECORDING_NEEDED)',
-    example: 'https://www.loom.com/embed/example123' 
+    example: 'https://www.loom.com/embed/example123',
   })
   @IsString()
   @IsNotEmpty()
   url!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Video duration in MM:SS format',
-    example: '6:00' 
+    example: '6:00',
   })
   @IsString()
   @IsNotEmpty()
   duration!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Video creation date in YYYY-MM-DD format',
-    example: '2025-01-24' 
+    example: '2025-01-24',
   })
   @IsDateString()
   createdAt!: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Whether this video is featured',
     example: true,
-    default: false 
+    default: false,
   })
   @IsOptional()
   @IsBoolean()
   featured?: boolean = false;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Display order within category',
-    example: 1 
+    example: 1,
   })
   @IsNumber()
   order!: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Category key where video should be placed',
     example: 'agents',
     enum: [
       'introduction',
-      'agent-architecture', 
+      'agent-architecture',
       'privacy-security',
       'how-we-work',
       'evaluations',
       'what-were-working-on-next',
       'demos',
-      'agents'
-    ]
+      'agents',
+    ],
   })
   @IsString()
   @IsIn([
     'introduction',
-    'agent-architecture', 
+    'agent-architecture',
     'privacy-security',
     'how-we-work',
     'evaluations',
     'what-were-working-on-next',
     'demos',
-    'agents'
+    'agents',
   ])
   categoryKey!: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Recording status for tracking video production',
     example: 'ready_for_recording',
-    enum: ['ready_for_recording', 'in_production', 'completed']
+    enum: ['ready_for_recording', 'in_production', 'completed'],
   })
   @IsOptional()
   @IsString()
   @IsIn(['ready_for_recording', 'in_production', 'completed'])
   recordingStatus?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Transcript ID if transcript is available',
-    example: 'agent-default-overview' 
+    example: 'agent-default-overview',
   })
   @IsOptional()
   @IsString()
   transcriptId?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Tags for video categorization',
     example: ['agents', 'overview', 'workflow'],
-    type: [String] 
+    type: [String],
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Agent default mappings to update',
     example: ['finance/metrics', 'marketing/marketing_swarm'],
-    type: [String] 
+    type: [String],
   })
   @IsOptional()
   @IsArray()

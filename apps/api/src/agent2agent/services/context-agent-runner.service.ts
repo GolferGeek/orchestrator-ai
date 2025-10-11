@@ -129,8 +129,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       );
 
       // 2. Optimize context to token budget
-      const tokenBudget =
-        definition.config?.context?.tokenBudget || 8000;
+      const tokenBudget = definition.config?.context?.tokenBudget || 8000;
       const optimizedContext = await this.contextOptimization.optimizeContext({
         fullHistory: contextData.history || [],
         conversationId: request.conversationId,
@@ -138,13 +137,10 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       });
 
       // 3. Build system prompt
-      const systemPrompt = this.buildSystemPrompt(
-        definition,
-        {
-          ...contextData,
-          history: optimizedContext,
-        },
-      );
+      const systemPrompt = this.buildSystemPrompt(definition, {
+        ...contextData,
+        history: optimizedContext,
+      });
 
       // 4. Call LLM
       const llmConfig = definition.llm || {};
@@ -251,8 +247,12 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     }
 
     // Extract params from payload (excluding action)
-    const { action: _, taskId: __, llmSelection: ___, ...params } =
-      (request.payload as any) || {};
+    const {
+      action: _,
+      taskId: __,
+      llmSelection: ___,
+      ...params
+    } = (request.payload as any) || {};
 
     // Route to DeliverablesService
     const result = await this.deliverablesService.executeAction(

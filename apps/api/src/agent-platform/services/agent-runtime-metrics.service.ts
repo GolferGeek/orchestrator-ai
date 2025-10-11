@@ -45,7 +45,10 @@ export class AgentRuntimeMetricsService {
     this.store.set(k, arr);
   }
 
-  snapshot(kind?: TransportKind, agentSlug?: string): Record<string, AgentMetricSummary> {
+  snapshot(
+    kind?: TransportKind,
+    agentSlug?: string,
+  ): Record<string, AgentMetricSummary> {
     const out: Record<string, AgentMetricSummary> = {};
     for (const [k, samples] of this.store.entries()) {
       if (kind || agentSlug) {
@@ -56,7 +59,8 @@ export class AgentRuntimeMetricsService {
       const total = samples.length;
       const failures = samples.filter((s) => !s.success).length;
       const durations = samples.map((s) => s.durationMs).sort((a, b) => a - b);
-      const avgMs = durations.reduce((a, b) => a + b, 0) / (durations.length || 1);
+      const avgMs =
+        durations.reduce((a, b) => a + b, 0) / (durations.length || 1);
       const p95Index = Math.max(0, Math.floor(durations.length * 0.95) - 1);
       const p95Ms = durations.length ? (durations[p95Index] ?? 0) : 0;
       const lastStatus = samples[samples.length - 1]?.status;

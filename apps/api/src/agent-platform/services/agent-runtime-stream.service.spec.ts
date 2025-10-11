@@ -27,14 +27,17 @@ describe('AgentRuntimeStreamService', () => {
       payloads.push(payload);
     });
 
-    const session = service.start({
-      conversationId: 'conv-1',
-      sessionId: 'sess-1',
-      orchestrationRunId: 'run-1',
-      organizationSlug: 'acme',
-      agentSlug: 'agent-1',
-      mode: 'converse',
-    }, 'stream-123');
+    const session = service.start(
+      {
+        conversationId: 'conv-1',
+        sessionId: 'sess-1',
+        orchestrationRunId: 'run-1',
+        organizationSlug: 'acme',
+        agentSlug: 'agent-1',
+        mode: 'converse',
+      },
+      'stream-123',
+    );
 
     session.publishChunk({ type: 'partial', content: 'hello' });
     session.complete();
@@ -61,10 +64,13 @@ describe('AgentRuntimeStreamService', () => {
       errors.push(payload);
     });
 
-    const session = service.start({
-      agentSlug: 'agent-1',
-      mode: 'converse',
-    }, 'stream-error');
+    const session = service.start(
+      {
+        agentSlug: 'agent-1',
+        mode: 'converse',
+      },
+      'stream-error',
+    );
 
     session.error(new Error('boom'));
 

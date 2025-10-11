@@ -6,9 +6,7 @@ import { getTableName } from '../../supabase/supabase.config';
 export class Agent2AgentDeliverablesService {
   private readonly logger = new Logger(Agent2AgentDeliverablesService.name);
 
-  constructor(
-    private readonly supabaseService: SupabaseService,
-  ) {}
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   /**
    * Create deliverable from Agent2Agent task result
@@ -33,12 +31,18 @@ export class Agent2AgentDeliverablesService {
       }
 
       const content = result.payload.content.output;
-      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      if (
+        !content ||
+        typeof content !== 'string' ||
+        content.trim().length === 0
+      ) {
         return null;
       }
 
       // Extract title from content (simple heuristic)
-      const title = this.extractTitleFromContent(content) || `${agentSlug} Output - ${new Date().toLocaleDateString()}`;
+      const title =
+        this.extractTitleFromContent(content) ||
+        `${agentSlug} Output - ${new Date().toLocaleDateString()}`;
 
       // Create the deliverable record directly
       const deliverableId = await this.createDeliverable({
@@ -67,11 +71,15 @@ export class Agent2AgentDeliverablesService {
         },
       });
 
-      this.logger.log(`📄 Created deliverable ${deliverableId} with first version from Agent2Agent task ${taskId}`);
+      this.logger.log(
+        `📄 Created deliverable ${deliverableId} with first version from Agent2Agent task ${taskId}`,
+      );
       return deliverableId;
-
     } catch (error) {
-      this.logger.error(`Failed to create deliverable from task result:`, error);
+      this.logger.error(
+        `Failed to create deliverable from task result:`,
+        error,
+      );
       return null;
     }
   }
@@ -93,7 +101,7 @@ export class Agent2AgentDeliverablesService {
     }
 
     // Use first line if it looks like a title (short and not starting with lowercase)
-    const lines = content.split('\n').filter(line => line.trim());
+    const lines = content.split('\n').filter((line) => line.trim());
     if (lines.length > 0 && lines[0]) {
       const firstLine = lines[0].trim();
       if (firstLine.length < 100 && !firstLine.match(/^[a-z]/)) {
@@ -130,7 +138,9 @@ export class Agent2AgentDeliverablesService {
       .single();
 
     if (error) {
-      throw new BadRequestException(`Failed to create deliverable: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to create deliverable: ${error.message}`,
+      );
     }
 
     return data.id;
@@ -167,7 +177,9 @@ export class Agent2AgentDeliverablesService {
       .single();
 
     if (error) {
-      throw new BadRequestException(`Failed to create deliverable version: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to create deliverable version: ${error.message}`,
+      );
     }
 
     return data.id;

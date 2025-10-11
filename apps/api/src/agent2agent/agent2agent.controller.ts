@@ -27,7 +27,10 @@ import { Agent2AgentTaskStatusService } from './services/agent-task-status.servi
 import { Agent2AgentConversationsService } from './services/agent-conversations.service';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { AgentTaskMode, NormalizedTaskRequestDto } from './dto/task-request.dto';
+import {
+  AgentTaskMode,
+  NormalizedTaskRequestDto,
+} from './dto/task-request.dto';
 import { AgentType } from '@/agent2agent/types/agent-conversations.types';
 import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
 import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
@@ -57,6 +60,7 @@ import {
   StreamTokenClaims,
   StreamTokenService,
 } from '../auth/services/stream-token.service';
+import { TaskStatusService } from './tasks/task-status.service';
 
 interface NormalizedTaskRequest {
   dto: NormalizedTaskRequestDto;
@@ -80,7 +84,8 @@ export class Agent2AgentController {
     private readonly cardBuilder: AgentCardBuilderService,
     private readonly gateway: AgentExecutionGateway,
     private readonly tasksService: Agent2AgentTasksService,
-    private readonly taskStatusService: Agent2AgentTaskStatusService,
+    private readonly agentTaskStatusService: Agent2AgentTaskStatusService,
+    private readonly taskStatusCache: TaskStatusService,
     private readonly agentConversationsService: Agent2AgentConversationsService,
     private readonly agentRegistry: AgentRegistryService,
     private readonly agentDeliverablesService: Agent2AgentDeliverablesService,
@@ -98,19 +103,26 @@ export class Agent2AgentController {
   @Post('agent-to-agent/conversations')
   @UseGuards(JwtAuthGuard)
   async createConversation(
-    @Body() body: { agentName: string; namespace: string; conversationId?: string; metadata?: Record<string, any> },
+    @Body()
+    body: {
+      agentName: string;
+      namespace: string;
+      conversationId?: string;
+      metadata?: Record<string, any>;
+    },
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    const conversation = await this.agentConversationsService.createConversation(
-      currentUser.id,
-      body.agentName,
-      body.namespace, // No AgentType casting needed - just a string
-      {
-        conversationId: body.conversationId,
-        metadata: body.metadata,
-      },
-    );
-    
+    const conversation =
+      await this.agentConversationsService.createConversation(
+        currentUser.id,
+        body.agentName,
+        body.namespace, // No AgentType casting needed - just a string
+        {
+          conversationId: body.conversationId,
+          metadata: body.metadata,
+        },
+      );
+
     return conversation;
   }
 
@@ -197,10 +209,14 @@ export class Agent2AgentController {
     @Req() request: Request,
   ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope | JsonRpcErrorEnvelope> {
     // CRITICAL: Log that this controller method was called
-    console.log(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
-    this.logger.log(`🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`);
-    
-    let org = orgSlug === 'global' ? null : orgSlug;
+    console.log(
+      `🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`,
+    );
+    this.logger.log(
+      `🚨🚨🚨 [Agent2AgentController.executeTask] METHOD CALLED - orgSlug: ${orgSlug}, agentSlug: ${agentSlug}`,
+    );
+
+    let org = this.normalizeOrgSlug(orgSlug);
 
     // ADAPTER: Transform frontend CreateTaskDto format to Agent2Agent TaskRequestDto format
     const adaptedBody = this.adaptFrontendRequest(body);
@@ -219,12 +235,16 @@ export class Agent2AgentController {
           .single();
 
         if (conversation?.organization_slug) {
-          this.logger.debug(`🔍 Using organization_slug from conversation: ${conversation.organization_slug}`);
+          this.logger.debug(
+            `🔍 Using organization_slug from conversation: ${conversation.organization_slug}`,
+          );
           org = conversation.organization_slug;
         }
       } catch (error) {
         // Conversation doesn't exist yet, will be created with org from URL
-        this.logger.debug(`Conversation ${dto.conversationId} not found, will create with org: ${org}`);
+        this.logger.debug(
+          `Conversation ${dto.conversationId} not found, will create with org: ${org}`,
+        );
       }
     }
 
@@ -232,25 +252,34 @@ export class Agent2AgentController {
       // Get the agent record to use the correct agent_type
       const agentRecord = await this.agentRegistry.getAgent(org, agentSlug);
       if (!agentRecord) {
-        throw new Error(`Agent ${agentSlug} not found in organization ${org || 'global'}`);
+        throw new Error(
+          `Agent ${agentSlug} not found in organization ${org || 'global'}`,
+        );
       }
 
-      this.logger.debug(`🔍 [Agent2AgentController] Creating task for user ${currentUser.id}, agent ${agentSlug}`);
-      this.logger.debug(`🔍 Normalized DTO: ${JSON.stringify({ mode: dto.mode, conversationId: dto.conversationId })}`);
-      this.logger.debug(`🔍 Agent record: ${JSON.stringify({ agentType: agentRecord.agent_type, slug: agentRecord.slug })}`);
-      
+      this.logger.debug(
+        `🔍 [Agent2AgentController] Creating task for user ${currentUser.id}, agent ${agentSlug}`,
+      );
+      this.logger.debug(
+        `🔍 Normalized DTO: ${JSON.stringify({ mode: dto.mode, conversationId: dto.conversationId })}`,
+      );
+      this.logger.debug(
+        `🔍 Agent record: ${JSON.stringify({ agentType: agentRecord.agent_type, slug: agentRecord.slug })}`,
+      );
+
       // Extract data from normalized DTO (which came from adaptedBody)
       const taskIdFromPayload = dto.payload?.taskId || body.id; // JSON-RPC id or payload.taskId
       const llmSelectionFromPayload = dto.payload?.llmSelection;
-      const conversationHistoryFromMessages = dto.messages?.map(msg => ({
-        role: msg.role,
-        content: String(msg.content || ''),
-        timestamp: new Date().toISOString(),
-      })) || [];
-      
+      const conversationHistoryFromMessages =
+        dto.messages?.map((msg) => ({
+          role: msg.role,
+          content: String(msg.content || ''),
+          timestamp: new Date().toISOString(),
+        })) || [];
+
       // Use namespace as agentType for database agents (clean architecture separation)
-      const effectiveAgentType = (org || 'global') as AgentType;
-      
+      const effectiveAgentType = org || 'global';
+
       // CRITICAL: Persist task AND conversation to database BEFORE execution
       // (like DynamicAgentsController does)
       // TasksService.createTask automatically handles conversation creation/retrieval
@@ -264,9 +293,11 @@ export class Agent2AgentController {
         conversationId: dto.conversationId,
         taskId: taskIdFromPayload,
       });
-      
-      this.logger.debug(`🚨 [Agent2AgentController] CALLING tasksService.createTask with effectiveAgentType: "${effectiveAgentType}"`);
-      
+
+      this.logger.debug(
+        `🚨 [Agent2AgentController] CALLING tasksService.createTask with effectiveAgentType: "${effectiveAgentType}"`,
+      );
+
       const task = await this.tasksService.createTask(
         currentUser.id,
         agentSlug, // agentName
@@ -282,7 +313,9 @@ export class Agent2AgentController {
         },
       );
 
-      this.logger.debug(`✅ Task ${task.id} and conversation ${task.agentConversationId} persisted to database`);
+      this.logger.debug(
+        `✅ Task ${task.id} and conversation ${task.agentConversationId} persisted to database`,
+      );
 
       // Add userId and taskId to metadata for mode router (needed for plans/deliverables services)
       dto.metadata = {
@@ -308,21 +341,23 @@ export class Agent2AgentController {
       });
 
       // Check if task completion was already handled by the agent (to avoid duplicate completion)
-      const taskAlreadyHandled = result && (
-        ((result as any).taskCompletionHandled === true) ||
-        ((result as any).metadata && (result as any).metadata.taskCompletionHandled === true)
-      );
+      const taskAlreadyHandled =
+        result &&
+        ((result as any).taskCompletionHandled === true ||
+          ((result as any).metadata &&
+            (result as any).metadata.taskCompletionHandled === true));
 
       if (!taskAlreadyHandled) {
         // Create deliverable using Agent2Agent deliverable service
-        const deliverableId = await this.agentDeliverablesService.createFromTaskResult(
-          result,
-          currentUser.id,
-          task.id,
-          agentSlug,
-          dto.conversationId || '',
-          dto.mode,
-        );
+        const deliverableId =
+          await this.agentDeliverablesService.createFromTaskResult(
+            result,
+            currentUser.id,
+            task.id,
+            agentSlug,
+            dto.conversationId || '',
+            dto.mode,
+          );
 
         // Attach deliverable ID to result if created
         if (deliverableId && typeof result === 'object' && result !== null) {
@@ -330,13 +365,15 @@ export class Agent2AgentController {
         }
 
         // Update task with result
-        await this.taskStatusService.completeTask(
+        await this.agentTaskStatusService.completeTask(
           task.id,
           currentUser.id,
           result,
         );
       } else {
-        this.logger.debug(`🎯 [Agent2AgentController] Task ${task.id} was already completed by agent instance – skipping duplicate completion call`);
+        this.logger.debug(
+          `🎯 [Agent2AgentController] Task ${task.id} was already completed by agent instance – skipping duplicate completion call`,
+        );
       }
 
       this.logRequest({
@@ -359,8 +396,11 @@ export class Agent2AgentController {
 
       return result;
     } catch (error) {
-      this.logger.error(`❌ [Agent2AgentController] Error executing task:`, error);
-      
+      this.logger.error(
+        `❌ [Agent2AgentController] Error executing task:`,
+        error,
+      );
+
       if (!jsonrpc) {
         this.logRequest({
           org,
@@ -419,7 +459,7 @@ export class Agent2AgentController {
       userId: currentUser.id,
       taskId,
       agentSlug,
-      organizationSlug: organizationSlug ?? 'global',
+      organizationSlug,
       streamId: body.streamId ?? null,
       url: sanitizedUrl,
       expiresAt: expiresAt.toISOString(),
@@ -452,7 +492,7 @@ export class Agent2AgentController {
       if (
         claims.taskId !== taskId ||
         claims.agentSlug !== agentSlug ||
-        (claims.organizationSlug ?? null) !== organizationSlug
+        claims.organizationSlug !== organizationSlug
       ) {
         throw new UnauthorizedException('Stream token does not match request');
       }
@@ -471,25 +511,32 @@ export class Agent2AgentController {
         request.originalUrl || request.url,
       );
 
-    console.log('📡 Opening SSE stream', {
-      userId: currentUser.id,
-      taskId,
-      agentSlug,
-      organizationSlug: organizationSlug ?? 'global',
-      streamId: streamId ?? null,
-      allowedStreamId: allowedStreamId ?? null,
-      conversationId: expectedConversationId ?? null,
-      url: sanitizedUrl,
-    });
-
     this.logger.debug('Opening SSE stream', {
       userId: currentUser.id,
       taskId,
       agentSlug,
-      organizationSlug: organizationSlug ?? 'global',
+      organizationSlug,
       streamId: streamId ?? null,
       url: sanitizedUrl,
     });
+
+    let streamSessionId: string | null = null;
+    try {
+      streamSessionId = this.taskStatusCache.registerStreamSession({
+        taskId,
+        userId: currentUser.id,
+        agentSlug,
+        organizationSlug,
+        streamId: streamId ?? null,
+        conversationId: expectedConversationId,
+      });
+    } catch (error) {
+      this.logger.warn('Failed to register stream session', {
+        taskId,
+        streamId: streamId ?? null,
+        error: (error as Error)?.message,
+      });
+    }
 
     response.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -508,7 +555,7 @@ export class Agent2AgentController {
 
     let streamActive = true;
 
-    const cleanup = () => {
+    const cleanup = (cleanupReason?: string) => {
       if (!streamActive) {
         return;
       }
@@ -517,6 +564,13 @@ export class Agent2AgentController {
       this.eventEmitter.off('agent.stream.chunk', chunkListener);
       this.eventEmitter.off('agent.stream.complete', completeListener);
       this.eventEmitter.off('agent.stream.error', errorListener);
+      if (streamSessionId) {
+        this.taskStatusCache.unregisterStreamSession(
+          streamSessionId,
+          cleanupReason ?? 'connection_cleanup',
+        );
+        streamSessionId = null;
+      }
     };
 
     const endStream = (reason: string) => {
@@ -527,22 +581,13 @@ export class Agent2AgentController {
           reason,
         });
       }
-      cleanup();
+      cleanup(reason);
       if (!response.writableEnded) {
         response.end();
       }
     };
 
     const chunkListener = (event: AgentStreamChunkEvent) => {
-      console.log('🎵 SSE chunk event received', { 
-        eventAgentSlug: event.agentSlug,
-        eventOrgSlug: event.organizationSlug,
-        eventStreamId: event.streamId,
-        filterAgentSlug: agentSlug,
-        filterOrgSlug: organizationSlug,
-        filterStreamId: streamId,
-        allowedStreamId,
-      });
       if (
         !this.matchesStreamEvent(event, {
           agentSlug,
@@ -552,19 +597,12 @@ export class Agent2AgentController {
           conversationId: expectedConversationId,
         })
       ) {
-        console.log('❌ Event did not match filters');
         return;
       }
-      console.log('✅ Event matched, writing to stream');
       this.writeSseEvent(response, this.toChunkSseEvent(event));
     };
 
     const completeListener = (event: AgentStreamCompleteEvent) => {
-      console.log('🏁 SSE complete event received', { 
-        eventAgentSlug: event.agentSlug,
-        eventOrgSlug: event.organizationSlug,
-        eventStreamId: event.streamId,
-      });
       if (
         !this.matchesStreamEvent(event, {
           agentSlug,
@@ -574,10 +612,8 @@ export class Agent2AgentController {
           conversationId: expectedConversationId,
         })
       ) {
-        console.log('❌ Complete event did not match filters');
         return;
       }
-      console.log('✅ Complete event matched, writing to stream and ending');
       this.writeSseEvent(response, this.toCompleteSseEvent(event));
       endStream('complete');
     };
@@ -613,18 +649,17 @@ export class Agent2AgentController {
    * Route: GET /agent-to-agent/:orgSlug/:agentSlug/health
    * Public: returns a simple status payload without secrets
    */
-  private normalizeOrgSlug(orgSlug: string): string | null {
-    if (!orgSlug || orgSlug === 'global') {
-      return null;
-    }
-    return orgSlug;
+  private normalizeOrgSlug(orgSlug: string): string {
+    // 'global' is now an explicit organization slug for shared agents
+    // No longer converting to null
+    return orgSlug || 'global';
   }
 
   private attachStreamMetadata(
     result: TaskResponseDto,
     params: {
       request: Request;
-      organizationSlug: string | null;
+      organizationSlug: string;
       agentSlug: string;
       taskId: string;
       conversationId: string | null;
@@ -641,8 +676,7 @@ export class Agent2AgentController {
     payload.metadata = metadata;
 
     const streamId = this.extractStreamId(result);
-    const orgSegment = params.organizationSlug ?? 'global';
-    const basePath = `/agent-to-agent/${orgSegment}/${params.agentSlug}/tasks/${params.taskId}`;
+    const basePath = `/agent-to-agent/${params.organizationSlug}/${params.agentSlug}/tasks/${params.taskId}`;
     const streamPath = `${basePath}/stream`;
     const tokenPath = `${basePath}/stream-token`;
     const baseUrl = this.buildBaseUrl(params.request);
@@ -674,7 +708,9 @@ export class Agent2AgentController {
   }
 
   private extractStreamId(result: TaskResponseDto): string | undefined {
-    const metadata = result.payload?.metadata as Record<string, any> | undefined;
+    const metadata = result.payload?.metadata as
+      | Record<string, any>
+      | undefined;
     if (!metadata) {
       return undefined;
     }
@@ -733,7 +769,7 @@ export class Agent2AgentController {
   private assertTaskContext(
     task: AgentTaskRecord,
     agentSlug: string,
-    organizationSlug: string | null,
+    organizationSlug: string,
   ): void {
     if (task.agentName !== agentSlug) {
       throw new UnauthorizedException(
@@ -741,14 +777,9 @@ export class Agent2AgentController {
       );
     }
 
-    const taskNamespace =
-      typeof task.namespace === 'string' && task.namespace.length
-        ? task.namespace
-        : null;
+    // Normalize task namespace: null → 'global', empty → 'global'
     const taskOrg =
-      taskNamespace === 'global' || taskNamespace === null
-        ? null
-        : taskNamespace;
+      !task.namespace || task.namespace === '' ? 'global' : task.namespace;
 
     if (taskOrg !== organizationSlug) {
       throw new UnauthorizedException(
@@ -764,7 +795,7 @@ export class Agent2AgentController {
       | AgentStreamErrorEvent,
     filters: {
       agentSlug: string;
-      organizationSlug: string | null;
+      organizationSlug: string;
       streamId?: string;
       allowedStreamId?: string;
       conversationId?: string | null;
@@ -773,7 +804,9 @@ export class Agent2AgentController {
     if (event.agentSlug !== filters.agentSlug) {
       return false;
     }
-    if ((event.organizationSlug ?? null) !== filters.organizationSlug) {
+    // Normalize: null or undefined → 'global'
+    const eventOrg = event.organizationSlug || 'global';
+    if (eventOrg !== filters.organizationSlug) {
       return false;
     }
 
@@ -873,7 +906,6 @@ export class Agent2AgentController {
     };
   }
 
-
   /**
    * Adapt frontend CreateTaskDto format to Agent2Agent TaskRequestDto format
    * Frontend sends: { method, prompt, conversationHistory, llmSelection, ... }
@@ -882,35 +914,39 @@ export class Agent2AgentController {
   private adaptFrontendRequest(body: any): any {
     // Check if it's JSON-RPC format (frontend now sends this for database agents)
     if (body.jsonrpc === '2.0') {
-      this.logger.debug('📥 Request is JSON-RPC 2.0 format - passing through to normalizeTaskRequest');
+      this.logger.debug(
+        '📥 Request is JSON-RPC 2.0 format - passing through to normalizeTaskRequest',
+      );
       return body; // Let normalizeTaskRequest handle JSON-RPC
     }
-    
+
     // If it already has 'mode' field, assume it's already in correct format
     if (body.mode) {
       this.logger.debug('📥 Request already in Agent2Agent format');
       return body;
     }
 
-    this.logger.debug(`📥 Adapting frontend CreateTaskDto to Agent2Agent format: method=${body.method}`);
-    
+    this.logger.debug(
+      `📥 Adapting frontend CreateTaskDto to Agent2Agent format: method=${body.method}`,
+    );
+
     // Transform frontend format to backend format
     const adapted: any = {
       // Map 'method' to 'mode' enum
       mode: body.method || 'converse',
-      
+
       // Map 'prompt' to 'userMessage'
       userMessage: body.prompt,
-      
+
       // Map 'conversationHistory' to 'messages'
       messages: body.conversationHistory?.map((msg: any) => ({
         role: msg.role,
         content: msg.content,
       })),
-      
+
       // Pass through standard fields
       conversationId: body.conversationId,
-      
+
       // Pack additional data into payload
       payload: {
         ...(body.params || {}),
@@ -919,13 +955,15 @@ export class Agent2AgentController {
         taskId: body.taskId,
         timeoutSeconds: body.timeoutSeconds,
       },
-      
+
       // Preserve metadata
       metadata: body.metadata,
     };
 
-    this.logger.debug(`✅ Adapted request: mode=${adapted.mode}, conversationId=${adapted.conversationId}`);
-    
+    this.logger.debug(
+      `✅ Adapted request: mode=${adapted.mode}, conversationId=${adapted.conversationId}`,
+    );
+
     return adapted;
   }
 
@@ -1222,24 +1260,21 @@ export class Agent2AgentController {
       grouped.get(key)!.push(record);
     }
 
-    const createNode = (
-      record: AgentRecord,
-      children: any[] = [],
-    ): any => {
+    const createNode = (record: AgentRecord, children: any[] = []): any => {
       const isTool = record.config?.agent_category === 'tool';
       const isOrchestrator =
         record.agent_type === 'orchestrator' || record.config?.orchestrator;
       const category = isTool
         ? 'tool'
         : isOrchestrator
-        ? 'orchestrator'
-        : record.agent_type ?? 'specialist';
+          ? 'orchestrator'
+          : (record.agent_type ?? 'specialist');
 
       return {
         id: record.id,
         name: record.slug,
         displayName: record.display_name,
-        type: isTool ? 'tool' : record.agent_type ?? 'specialist',
+        type: isTool ? 'tool' : (record.agent_type ?? 'specialist'),
         path: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
         relativePath: record.slug,
         namespace: record.organization_slug ?? undefined,
@@ -1255,7 +1290,8 @@ export class Agent2AgentController {
           isOrchestrator: isOrchestrator || undefined,
           // Expose execution fields from config for frontend
           execution_profile: record.config?.execution_profile ?? undefined,
-          execution_capabilities: record.config?.execution_capabilities ?? undefined,
+          execution_capabilities:
+            record.config?.execution_capabilities ?? undefined,
         },
         children,
       };
@@ -1275,11 +1311,16 @@ export class Agent2AgentController {
       // Create orchestrator nodes with their related children
       orchestrators.forEach((orc) => {
         // Find children that belong to this orchestrator based on naming pattern
-        const orcPrefix = orc.slug.replace('-orchestrator', '').replace('_orchestrator', '');
+        const orcPrefix = orc.slug
+          .replace('-orchestrator', '')
+          .replace('_orchestrator', '');
         const children = nonOrchestrators
           .filter((agent) => {
             // Match agents with same prefix (e.g., "hiverarchy-*" for "hiverarchy-orchestrator")
-            return agent.slug.startsWith(orcPrefix + '-') || agent.slug.startsWith(orcPrefix + '_');
+            return (
+              agent.slug.startsWith(orcPrefix + '-') ||
+              agent.slug.startsWith(orcPrefix + '_')
+            );
           })
           .map((child) => createNode(child));
 
@@ -1290,8 +1331,13 @@ export class Agent2AgentController {
       const standaloneAgents = nonOrchestrators.filter((agent) => {
         // Check if this agent belongs to any orchestrator
         return !orchestrators.some((orc) => {
-          const orcPrefix = orc.slug.replace('-orchestrator', '').replace('_orchestrator', '');
-          return agent.slug.startsWith(orcPrefix + '-') || agent.slug.startsWith(orcPrefix + '_');
+          const orcPrefix = orc.slug
+            .replace('-orchestrator', '')
+            .replace('_orchestrator', '');
+          return (
+            agent.slug.startsWith(orcPrefix + '-') ||
+            agent.slug.startsWith(orcPrefix + '_')
+          );
         });
       });
 

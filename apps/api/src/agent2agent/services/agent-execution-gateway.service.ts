@@ -71,17 +71,13 @@ export class AgentExecutionGateway {
       return unsupported;
     }
 
-    const gated = await this.checkHumanGate(
-      definition,
-      request.mode!,
-      {
-        organizationSlug,
-        agentSlug: agent.slug,
-        conversationId: request.conversationId ?? null,
-        taskId: undefined,
-        request,
-      },
-    );
+    const gated = await this.checkHumanGate(definition, request.mode!, {
+      organizationSlug,
+      agentSlug: agent.slug,
+      conversationId: request.conversationId ?? null,
+      taskId: undefined,
+      request,
+    });
     if (gated) {
       return gated;
     }
@@ -179,10 +175,7 @@ export class AgentExecutionGateway {
           request,
         );
       case AgentTaskMode.ORCHESTRATOR_RECIPE_LIST:
-        return this.handleOrchestratorRecipeList(
-          organizationSlug,
-          agent,
-        );
+        return this.handleOrchestratorRecipeList(organizationSlug, agent);
       case AgentTaskMode.ORCHESTRATOR_RECIPE_LOAD:
         return this.handleOrchestratorRecipeLoad(
           organizationSlug,
@@ -208,9 +201,11 @@ export class AgentExecutionGateway {
       case AgentTaskMode.ORCHESTRATOR_RUN_EVALUATE:
       case AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE:
       case AgentTaskMode.ORCHESTRATOR_RECIPE_DELETE:
-        return this.notImplemented(request.mode!);
+        return this.notImplemented(request.mode);
       case AgentTaskMode.HUMAN_RESPONSE: {
-        const decision = (request.payload as any)?.decision || (request.payload as any)?.approved;
+        const decision =
+          (request.payload as any)?.decision ||
+          (request.payload as any)?.approved;
         if (decision === true || decision === 'approve') {
           return TaskResponseDto.success(AgentTaskMode.HUMAN_RESPONSE, {
             content: { status: 'approved' },
@@ -237,11 +232,17 @@ export class AgentExecutionGateway {
     const exec = definition.execution;
     switch (mode) {
       case AgentTaskMode.CONVERSE:
-        return exec.canConverse ? null : TaskResponseDto.failure(mode, 'Mode not supported by agent');
+        return exec.canConverse
+          ? null
+          : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       case AgentTaskMode.PLAN:
-        return exec.canPlan ? null : TaskResponseDto.failure(mode, 'Mode not supported by agent');
+        return exec.canPlan
+          ? null
+          : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       case AgentTaskMode.BUILD:
-        return exec.canBuild ? null : TaskResponseDto.failure(mode, 'Mode not supported by agent');
+        return exec.canBuild
+          ? null
+          : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       default:
         return null;
     }
@@ -250,7 +251,13 @@ export class AgentExecutionGateway {
   private async checkHumanGate(
     definition: AgentRuntimeDefinition,
     mode: AgentTaskMode,
-    context?: { organizationSlug: string | null; agentSlug: string; conversationId: string | null; taskId?: string | null; request?: TaskRequestDto },
+    context?: {
+      organizationSlug: string | null;
+      agentSlug: string;
+      conversationId: string | null;
+      taskId?: string | null;
+      request?: TaskRequestDto;
+    },
   ): Promise<TaskResponseDto | null> {
     const exec = definition.execution;
     if (!exec.requiresHumanGate) {
@@ -266,7 +273,9 @@ export class AgentExecutionGateway {
             ? (() => {
                 const base: any = {
                   userMessage: context.request.userMessage,
-                  payload: context.request.payload ? { ...context.request.payload } : undefined,
+                  payload: context.request.payload
+                    ? { ...context.request.payload }
+                    : undefined,
                 };
                 // Remove potentially sensitive per-request headers before persisting
                 if (base.payload?.options?.headers) {
@@ -282,7 +291,10 @@ export class AgentExecutionGateway {
             conversationId: context.conversationId ?? null,
             taskId: context.taskId ?? null,
             mode: 'build',
-            metadata: { reason: 'requires_human_gate', request: minimalRequest },
+            metadata: {
+              reason: 'requires_human_gate',
+              request: minimalRequest,
+            },
           });
           approvalId = rec.id;
         }
@@ -322,10 +334,9 @@ export class AgentExecutionGateway {
       );
     }
 
-    const draftPlan =
-      request.payload?.planDraft ?? {
-        summary: request.userMessage ?? 'Plan draft not provided',
-      };
+    const draftPlan = request.payload?.planDraft ?? {
+      summary: request.userMessage ?? 'Plan draft not provided',
+    };
 
     const metadata = this.runtimeExecution.collectRequestMetadata(request);
 
@@ -394,10 +405,9 @@ export class AgentExecutionGateway {
       );
     }
 
-    const draftPlan =
-      request.payload?.planDraft ?? {
-        summary: request.userMessage ?? 'Orchestration draft not provided',
-      };
+    const draftPlan = request.payload?.planDraft ?? {
+      summary: request.userMessage ?? 'Orchestration draft not provided',
+    };
 
     const metadata = this.runtimeExecution.collectRequestMetadata(request);
 
@@ -574,26 +584,26 @@ export class AgentExecutionGateway {
           agent,
           request,
         );
-      const runMetadata = this.runtimeExecution.buildRunMetadata(
-        metadata,
-        agentMetadata,
-        {
-          conversationId: plan.conversation_id,
-          planVersion: plan.version,
-        },
-      );
-      const run = await this.orchestrationRunner.startRun({
-        planId: plan.id,
-        originType: 'plan',
-        originId: plan.id,
-        organizationSlug: plan.organization_slug ?? null,
-        agentId: agentMetadata.id,
-        agentSlug: agentMetadata.slug,
-        agentType: agentMetadata.type,
-        agentDisplayName: agentMetadata.displayName,
-        promptInputs,
-        metadata: runMetadata,
-      });
+        const runMetadata = this.runtimeExecution.buildRunMetadata(
+          metadata,
+          agentMetadata,
+          {
+            conversationId: plan.conversation_id,
+            planVersion: plan.version,
+          },
+        );
+        const run = await this.orchestrationRunner.startRun({
+          planId: plan.id,
+          originType: 'plan',
+          originId: plan.id,
+          organizationSlug: plan.organization_slug ?? null,
+          agentId: agentMetadata.id,
+          agentSlug: agentMetadata.slug,
+          agentType: agentMetadata.type,
+          agentDisplayName: agentMetadata.displayName,
+          promptInputs,
+          metadata: runMetadata,
+        });
 
         this.publishStreamChunk(streamSession, {
           type: 'partial',
@@ -807,20 +817,17 @@ export class AgentExecutionGateway {
       request.promptParameters ?? request.payload?.promptParameters ?? {};
     const resolved = this.validatePromptInputs(record, provided);
 
-    return TaskResponseDto.success(
-      AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE,
-      {
-        content: {
-          valid: true,
-          resolvedParameters: resolved,
-        },
-        metadata: {
-          organizationSlug,
-          agentSlug: agent.slug,
-          slug,
-        },
+    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATOR_RECIPE_VALIDATE, {
+      content: {
+        valid: true,
+        resolvedParameters: resolved,
       },
-    );
+      metadata: {
+        organizationSlug,
+        agentSlug: agent.slug,
+        slug,
+      },
+    });
   }
 
   private async resolvePlanForExecution(
@@ -902,16 +909,20 @@ export class AgentExecutionGateway {
     }
 
     const providedStreamId =
-      request.metadata?.streamId || request.payload?.metadata?.streamId ||
+      request.metadata?.streamId ||
+      request.payload?.metadata?.streamId ||
       undefined;
-    return this.streamService.start({
-      conversationId: request.conversationId,
-      sessionId: request.sessionId,
-      orchestrationRunId: request.orchestrationRunId,
-      organizationSlug,
-      agentSlug: agent.slug,
-      mode,
-    }, providedStreamId);
+    return this.streamService.start(
+      {
+        conversationId: request.conversationId,
+        sessionId: request.sessionId,
+        orchestrationRunId: request.orchestrationRunId,
+        organizationSlug,
+        agentSlug: agent.slug,
+        mode,
+      },
+      providedStreamId,
+    );
   }
 
   private publishStreamChunk(

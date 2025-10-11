@@ -56,9 +56,7 @@ export class StreamTokenService {
     this.rateLimitWindowMs = Number(
       process.env.STREAM_TOKEN_RATE_WINDOW_MS ?? 30_000,
     );
-    this.maxTokensPerWindow = Number(
-      process.env.STREAM_TOKEN_RATE_MAX ?? 5,
-    );
+    this.maxTokensPerWindow = Number(process.env.STREAM_TOKEN_RATE_MAX ?? 5);
   }
 
   issueToken(params: IssueTokenParams): { token: string; expiresAt: Date } {

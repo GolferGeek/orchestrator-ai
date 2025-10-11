@@ -85,38 +85,46 @@ describe('SSE Streaming (Agent2AgentController)', () => {
 
       const streamPromise = new Promise<string>((resolve, reject) => {
         let streamData = '';
-        request(app.getHttpServer())
+        const req = request(app.getHttpServer())
           .get(
             `/agent-to-agent/${organizationSlug}/${agentSlug}/tasks/${task.id}/stream?streamId=${streamId}&token=${token}`,
           )
           .set('Accept', 'text/event-stream')
-          .buffer(false)
-          .on('data', (chunk: Buffer) => {
+          .buffer(false);
+        
+        req.on('response', (res) => {
+          // Listen directly on the response object to capture SSE data
+          res.on('data', (chunk: Buffer) => {
             streamData += chunk.toString('utf8');
             if (streamData.includes('event: agent_stream_complete')) {
               resolve(streamData);
             }
-          })
-          .on('error', (err: Error) => reject(err))
-          .on('end', () => {
-            // If we haven't resolved yet, resolve now
+          });
+          
+          res.on('end', () => {
+            // Resolve with whatever data we have if complete event wasn't detected
             if (!streamData.includes('event: agent_stream_complete')) {
               resolve(streamData);
             }
           });
+        });
+        
+        req.on('error', (err: Error) => reject(err));
+        
+        // Send the request
+        req.end();
       });
 
       const eventPayload = {
         streamId,
         conversationId: task.agentConversationId,
         orchestrationRunId: null,
-        organizationSlug: organizationSlug === 'global' ? null : organizationSlug,
+        organizationSlug,
         agentSlug,
         mode: AgentTaskMode.CONVERSE,
       };
 
       setTimeout(() => {
-        console.log('🎬 Test emitting chunk event', eventPayload);
         eventEmitter.emit('agent.stream.chunk', {
           ...eventPayload,
           chunk: {
@@ -126,7 +134,6 @@ describe('SSE Streaming (Agent2AgentController)', () => {
           },
         });
 
-        console.log('🎬 Test emitting complete event', eventPayload);
         eventEmitter.emit('agent.stream.complete', {
           ...eventPayload,
         });
@@ -137,6 +144,6 @@ describe('SSE Streaming (Agent2AgentController)', () => {
       expect(streamedData).toContain('event: agent_stream_chunk');
       expect(streamedData).toContain('Hello from SSE test');
       expect(streamedData).toContain('event: agent_stream_complete');
-    }, 20000);
+    }, 5000);
   });
 });

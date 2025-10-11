@@ -52,7 +52,11 @@ export class HumanApprovalsRepository {
     return data as HumanApprovalRecord;
   }
 
-  async setStatus(id: string, status: 'approved' | 'rejected', approvedBy?: string | null): Promise<HumanApprovalRecord> {
+  async setStatus(
+    id: string,
+    status: 'approved' | 'rejected',
+    approvedBy?: string | null,
+  ): Promise<HumanApprovalRecord> {
     const { data, error } = await this.client()
       .from(this.table)
       .update({
@@ -77,4 +81,3 @@ export class HumanApprovalsRepository {
     return (data as HumanApprovalRecord) || null;
   }
 }
-

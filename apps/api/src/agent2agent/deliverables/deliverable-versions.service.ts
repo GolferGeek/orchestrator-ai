@@ -316,7 +316,10 @@ export class DeliverableVersionsService {
   /**
    * Copy an existing version to a new version (same content/format/metadata)
    */
-  async copyVersion(versionId: string, userId: string): Promise<DeliverableVersion> {
+  async copyVersion(
+    versionId: string,
+    userId: string,
+  ): Promise<DeliverableVersion> {
     const source = await this.getVersion(versionId, userId);
     const createVersionDto: CreateVersionDto = {
       content: source.content || '',
@@ -336,13 +339,20 @@ export class DeliverableVersionsService {
    */
   async enhanceVersion(
     versionId: string,
-    dto: { instruction: string; providerName?: string; modelName?: string; temperature?: number; maxTokens?: number },
+    dto: {
+      instruction: string;
+      providerName?: string;
+      modelName?: string;
+      temperature?: number;
+      maxTokens?: number;
+    },
     userId: string,
   ): Promise<DeliverableVersion> {
     const source = await this.getVersion(versionId, userId);
 
     // Build prompts
-    const systemPrompt = 'You are a concise, high-quality editor. Improve the given content according to the user instruction without changing factual meaning. Maintain original format.';
+    const systemPrompt =
+      'You are a concise, high-quality editor. Improve the given content according to the user instruction without changing factual meaning. Maintain original format.';
     const userMessage = `Instruction:\n${dto.instruction}\n\n---\n\nOriginal Content (${source.format}):\n\n${source.content}`;
 
     // Choose provider/model or fall back to defaults (let LLMService route if not provided)
@@ -364,8 +374,10 @@ export class DeliverableVersionsService {
     });
 
     const content = typeof response === 'string' ? response : response.content;
-    const metadata = typeof response === 'string' ? undefined : (response as any).metadata;
-    const piiMetadata = typeof response === 'string' ? undefined : (response as any).piiMetadata;
+    const metadata =
+      typeof response === 'string' ? undefined : (response as any).metadata;
+    const piiMetadata =
+      typeof response === 'string' ? undefined : (response as any).piiMetadata;
 
     const createVersionDto: CreateVersionDto = {
       content,
@@ -821,7 +833,10 @@ export class DeliverableVersionsService {
   ): Promise<{ content: string; conflictSummary?: string; metadata?: any }> {
     // Build version contents for LLM
     const versionContents = versions
-      .map((v, i) => `=== VERSION ${v.versionNumber} (Created: ${v.createdAt}) ===\n${v.content || ''}`)
+      .map(
+        (v, i) =>
+          `=== VERSION ${v.versionNumber} (Created: ${v.createdAt}) ===\n${v.content || ''}`,
+      )
       .join('\n\n---\n\n');
 
     // Build prompts for LLM
@@ -863,7 +878,8 @@ Please output ONLY the merged content, maintaining the same format as the origin
     });
 
     const content = typeof response === 'string' ? response : response.content;
-    const metadata = typeof response === 'string' ? undefined : (response as any).metadata;
+    const metadata =
+      typeof response === 'string' ? undefined : (response as any).metadata;
 
     return {
       content,

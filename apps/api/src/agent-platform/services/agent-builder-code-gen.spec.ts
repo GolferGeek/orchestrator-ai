@@ -13,7 +13,8 @@ describe('AgentBuilderService - Code Generation', () => {
   beforeEach(async () => {
     // Mock LLM service
     const mockLLMService = {
-      generateResponse: jest.fn().mockResolvedValue(`async function handler(input, ctx) {
+      generateResponse: jest.fn()
+        .mockResolvedValue(`async function handler(input, ctx) {
   if (!input || !input.text) {
     throw new Error('Missing required input.text');
   }
@@ -84,7 +85,8 @@ describe('AgentBuilderService - Code Generation', () => {
 
   it('should remove markdown code fences from generated code', async () => {
     // Mock response with code fences
-    (llmService.generateResponse as jest.Mock).mockResolvedValueOnce(`\`\`\`javascript
+    (llmService.generateResponse as jest.Mock)
+      .mockResolvedValueOnce(`\`\`\`javascript
 async function handler(input, ctx) {
   return { ok: true };
 }
@@ -122,7 +124,8 @@ async function handler(input, ctx) {
       ['text/markdown'],
     );
 
-    const systemPromptCall = (llmService.generateResponse as jest.Mock).mock.calls[0][0];
+    const systemPromptCall = (llmService.generateResponse as jest.Mock).mock
+      .calls[0][0];
     expect(systemPromptCall).toContain('application/json, text/plain');
     expect(systemPromptCall).toContain('text/markdown');
   });
@@ -134,7 +137,8 @@ async function handler(input, ctx) {
       ['application/json'],
     );
 
-    const systemPromptCall = (llmService.generateResponse as jest.Mock).mock.calls[0][0];
+    const systemPromptCall = (llmService.generateResponse as jest.Mock).mock
+      .calls[0][0];
     expect(systemPromptCall).toContain('ctx.services.images.generate()');
   });
 });

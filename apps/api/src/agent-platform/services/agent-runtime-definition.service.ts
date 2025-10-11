@@ -189,7 +189,7 @@ export class AgentRuntimeDefinitionService {
     descriptor: UnknownRecord,
   ): AgentExecutionDefinition {
     const configuration = this.asRecord(descriptor?.configuration);
-    
+
     // Check both descriptor.configuration (YAML) and record.config (JSON column)
     const executionCaps = this.asRecord(
       configuration?.execution_capabilities ??
@@ -198,7 +198,7 @@ export class AgentRuntimeDefinitionService {
     );
 
     // execution_profile can come from descriptor YAML or record.config JSON
-    const executionProfile = 
+    const executionProfile =
       this.asString(configuration?.execution_profile) ??
       this.asString(record.config?.execution_profile);
 
@@ -206,9 +206,7 @@ export class AgentRuntimeDefinitionService {
 
     return {
       modeProfile,
-      canConverse: 
-        this.asBoolean(executionCaps?.can_converse) ?? 
-        true,
+      canConverse: this.asBoolean(executionCaps?.can_converse) ?? true,
       canPlan:
         this.asBoolean(executionCaps?.can_plan) ??
         this.guessCanPlan(modeProfile),

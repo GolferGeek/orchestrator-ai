@@ -12,7 +12,9 @@ describe('AgentValidationService', () => {
       config: { configuration: { function: {} } },
     } as any);
     expect(res.ok).toBe(false);
-    expect(res.issues.some((i) => i.message.includes('function_code'))).toBe(true);
+    expect(res.issues.some((i) => i.message.includes('function_code'))).toBe(
+      true,
+    );
   });
 
   it('accepts valid function agent payload', () => {
@@ -21,9 +23,12 @@ describe('AgentValidationService', () => {
       display_name: 'OK Fn',
       agent_type: 'function',
       mode_profile: 'draft',
-      config: { configuration: { function: { code: 'module.exports=async()=>({ok:true})' } } },
+      config: {
+        configuration: {
+          function: { code: 'module.exports=async()=>({ok:true})' },
+        },
+      },
     } as any);
     expect(res.ok).toBe(true);
   });
 });
-

@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
 import { AgentValidationService } from './agent-validation.service';
@@ -70,16 +75,19 @@ export class AgentPromotionService {
 
       // 3. Validate agent (unless explicitly skipped)
       if (!options?.skipValidation) {
-        const validation = await this.validator.validateByType(agent.agent_type as any, {
-          agent_type: agent.agent_type as any,
-          slug: agent.slug,
-          display_name: agent.display_name,
-          mode_profile: agent.mode_profile,
-          description: agent.description,
-          yaml: agent.yaml,
-          context: agent.context,
-          config: agent.config,
-        } as any);
+        const validation = await this.validator.validateByType(
+          agent.agent_type as any,
+          {
+            agent_type: agent.agent_type as any,
+            slug: agent.slug,
+            display_name: agent.display_name,
+            mode_profile: agent.mode_profile,
+            description: agent.description,
+            yaml: agent.yaml,
+            context: agent.context,
+            config: agent.config,
+          } as any,
+        );
 
         const policyIssues = this.policy.check({
           agent_type: agent.agent_type,
@@ -104,7 +112,8 @@ export class AgentPromotionService {
       }
 
       // 4. Determine if approval is required
-      const requiresApproval = options?.requireApproval ?? this.requiresApproval(agent);
+      const requiresApproval =
+        options?.requireApproval ?? this.requiresApproval(agent);
 
       if (requiresApproval) {
         // Create approval request
@@ -158,7 +167,9 @@ export class AgentPromotionService {
   /**
    * Complete promotion after HITL approval
    */
-  async completePromotionAfterApproval(approvalId: string): Promise<PromotionResult> {
+  async completePromotionAfterApproval(
+    approvalId: string,
+  ): Promise<PromotionResult> {
     try {
       // 1. Fetch approval
       const approval = await this.approvals.get(approvalId);
@@ -237,7 +248,9 @@ export class AgentPromotionService {
 
       await this.agents.updateStatus(agentId, 'draft');
 
-      this.logger.log(`Agent ${agent.slug} demoted to draft. Reason: ${reason || 'N/A'}`);
+      this.logger.log(
+        `Agent ${agent.slug} demoted to draft. Reason: ${reason || 'N/A'}`,
+      );
 
       return {
         success: true,
@@ -275,7 +288,9 @@ export class AgentPromotionService {
       const previousStatus = agent.status || 'unknown';
       await this.agents.updateStatus(agentId, 'archived');
 
-      this.logger.log(`Agent ${agent.slug} archived. Reason: ${reason || 'N/A'}`);
+      this.logger.log(
+        `Agent ${agent.slug} archived. Reason: ${reason || 'N/A'}`,
+      );
 
       return {
         success: true,
@@ -300,7 +315,11 @@ export class AgentPromotionService {
       // Require approval for long/complex functions
       if (code.length > 5000) return true;
       // Require approval if uses external services
-      if (code.includes('fetch(') || code.includes('axios') || code.includes('http')) {
+      if (
+        code.includes('fetch(') ||
+        code.includes('axios') ||
+        code.includes('http')
+      ) {
         return true;
       }
     }
@@ -322,7 +341,9 @@ export class AgentPromotionService {
   /**
    * Get promotion requirements for an agent
    */
-  async getPromotionRequirements(agentId: string): Promise<PromotionRequirements> {
+  async getPromotionRequirements(
+    agentId: string,
+  ): Promise<PromotionRequirements> {
     const agent = await this.agents.getById(agentId);
     if (!agent) {
       throw new BadRequestException(`Agent ${agentId} not found`);
@@ -330,7 +351,8 @@ export class AgentPromotionService {
 
     const requiresApproval = this.requiresApproval(agent);
     const requiresValidation = true; // Always validate
-    const requiresDryRun = agent.agent_type === 'function' || agent.agent_type === 'api';
+    const requiresDryRun =
+      agent.agent_type === 'function' || agent.agent_type === 'api';
 
     return {
       requiresApproval,

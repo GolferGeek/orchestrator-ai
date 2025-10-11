@@ -208,7 +208,7 @@
   </ion-modal>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -239,7 +239,6 @@ import {
   listOutline,
 } from 'ionicons/icons';
 import { tasksService } from '@/services/tasksService';
-import { websocketService } from '@/services/websocketService';
 import TaskProgressBar from './TaskProgressBar.vue';
 import CreateTaskModal from './CreateTaskModal.vue';
 interface Task {
@@ -309,11 +308,6 @@ const refreshTasks = async () => {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     // Subscribe to progress updates for running tasks
-    tasks.value
-      .filter(task => task.status === 'running')
-      .forEach(task => {
-        websocketService.subscribeToTask(task.id);
-      });
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load tasks';
   } finally {
@@ -376,22 +370,15 @@ watch(() => props.conversation, (newConversation) => {
   }
 }, { immediate: true });
 // Watch for modal open/close
-watch(() => props.isOpen, (isOpen) => {
-  if (isOpen && props.conversation) {
-    refreshTasks();
-  } else if (!isOpen) {
-    // Unsubscribe from all task updates when modal closes
-    tasks.value.forEach(task => {
-      websocketService.unsubscribeFromTask(task.id);
-    });
-  }
-});
-// Cleanup on unmount
-onUnmounted(() => {
-  tasks.value.forEach(task => {
-    websocketService.unsubscribeFromTask(task.id);
-  });
-});
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen && props.conversation) {
+      refreshTasks();
+    }
+  },
+  { immediate: true },
+);
 </script>
 <style scoped>
 .task-details-content {

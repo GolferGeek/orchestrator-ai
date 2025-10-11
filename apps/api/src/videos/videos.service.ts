@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CreateVideoDto } from './dto/create-video.dto';
@@ -7,12 +12,12 @@ import { CreateVideoDto } from './dto/create-video.dto';
 export class VideosService {
   private readonly logger = new Logger(VideosService.name);
   private readonly videosJsonPath = path.join(
-    __dirname, 
-    '../../../web/src/data/videos.json'
+    __dirname,
+    '../../../web/src/data/videos.json',
   );
   private readonly videoTextsJsonPath = path.join(
-    __dirname, 
-    '../../../web/src/data/videoTexts.json'
+    __dirname,
+    '../../../web/src/data/videoTexts.json',
   );
 
   /**
@@ -23,7 +28,9 @@ export class VideosService {
       const data = await fs.readFile(this.videosJsonPath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
-      this.logger.error(`Failed to read videos.json: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to read videos.json: ${(error as Error).message}`,
+      );
       throw new NotFoundException('Videos data not found');
     }
   }
@@ -36,7 +43,7 @@ export class VideosService {
     return videosData.categoryOrder.map((categoryKey: string) => ({
       key: categoryKey,
       title: videosData.categories[categoryKey]?.title || categoryKey,
-      description: videosData.categories[categoryKey]?.description || ''
+      description: videosData.categories[categoryKey]?.description || '',
     }));
   }
 
@@ -48,7 +55,9 @@ export class VideosService {
       const data = await fs.readFile(this.videoTextsJsonPath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
-      this.logger.error(`Failed to read videoTexts.json: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to read videoTexts.json: ${(error as Error).message}`,
+      );
       // Return empty structure if file doesn't exist
       return {
         transcripts: {},
@@ -57,8 +66,8 @@ export class VideosService {
           totalTranscripts: 0,
           languages: ['en'],
           statuses: ['pending', 'available', 'needs_review'],
-          version: '1.0.0'
-        }
+          version: '1.0.0',
+        },
       };
     }
   }
@@ -69,26 +78,30 @@ export class VideosService {
   async getTranscript(videoId: string) {
     const videoTexts = await this.getVideoTexts();
     const transcript = videoTexts.transcripts[videoId];
-    
+
     if (!transcript) {
       throw new NotFoundException(`Transcript not found for video: ${videoId}`);
     }
 
     try {
       const transcriptPath = path.join(
-        __dirname, 
+        __dirname,
         '../../../web/src/data',
-        transcript.filePath
+        transcript.filePath,
       );
       const content = await fs.readFile(transcriptPath, 'utf-8');
-      
+
       return {
         ...transcript,
-        content
+        content,
       };
     } catch (error) {
-      this.logger.error(`Failed to read transcript file: ${(error as Error).message}`);
-      throw new NotFoundException(`Transcript content not available for video: ${videoId}`);
+      this.logger.error(
+        `Failed to read transcript file: ${(error as Error).message}`,
+      );
+      throw new NotFoundException(
+        `Transcript content not available for video: ${videoId}`,
+      );
     }
   }
 
@@ -97,16 +110,20 @@ export class VideosService {
    */
   async createVideo(createVideoDto: CreateVideoDto) {
     const videosData = await this.getVideos();
-    
+
     // Validate category exists
     if (!videosData.categories[createVideoDto.categoryKey]) {
-      throw new BadRequestException(`Invalid category: ${createVideoDto.categoryKey}`);
+      throw new BadRequestException(
+        `Invalid category: ${createVideoDto.categoryKey}`,
+      );
     }
 
     // Check if video ID already exists
     const existingVideo = this.findVideoById(videosData, createVideoDto.id);
     if (existingVideo) {
-      throw new BadRequestException(`Video with ID '${createVideoDto.id}' already exists`);
+      throw new BadRequestException(
+        `Video with ID '${createVideoDto.id}' already exists`,
+      );
     }
 
     // Create video object
@@ -119,8 +136,12 @@ export class VideosService {
       createdAt: createVideoDto.createdAt,
       featured: createVideoDto.featured || false,
       order: createVideoDto.order,
-      ...(createVideoDto.recordingStatus && { recordingStatus: createVideoDto.recordingStatus }),
-      ...(createVideoDto.transcriptId && { transcriptId: createVideoDto.transcriptId })
+      ...(createVideoDto.recordingStatus && {
+        recordingStatus: createVideoDto.recordingStatus,
+      }),
+      ...(createVideoDto.transcriptId && {
+        transcriptId: createVideoDto.transcriptId,
+      }),
     };
 
     // Add video to category
@@ -128,16 +149,19 @@ export class VideosService {
 
     // Sort videos by order within category
     videosData.categories[createVideoDto.categoryKey].videos.sort(
-      (a: any, b: any) => a.order - b.order
+      (a: any, b: any) => a.order - b.order,
     );
 
     // Update agent defaults if provided
-    if (createVideoDto.agentDefaults && createVideoDto.agentDefaults.length > 0) {
+    if (
+      createVideoDto.agentDefaults &&
+      createVideoDto.agentDefaults.length > 0
+    ) {
       if (!videosData.agentDefaults) {
         videosData.agentDefaults = {};
       }
-      
-      createVideoDto.agentDefaults.forEach(agentSlug => {
+
+      createVideoDto.agentDefaults.forEach((agentSlug) => {
         if (!videosData.agentDefaults[agentSlug]) {
           videosData.agentDefaults[agentSlug] = [];
         }
@@ -159,8 +183,10 @@ export class VideosService {
       await this.createTranscriptEntry(createVideoDto);
     }
 
-    this.logger.log(`Created video: ${createVideoDto.id} in category: ${createVideoDto.categoryKey}`);
-    
+    this.logger.log(
+      `Created video: ${createVideoDto.id} in category: ${createVideoDto.categoryKey}`,
+    );
+
     return newVideo;
   }
 
@@ -183,9 +209,9 @@ export class VideosService {
    */
   private countTotalVideos(videosData: any): number {
     return Object.values(videosData.categories).reduce(
-      (total: number, category: any) => total + category.videos.length, 
-      0
-    ) as number;
+      (total: number, category: any) => total + category.videos.length,
+      0,
+    );
   }
 
   /**
@@ -196,7 +222,9 @@ export class VideosService {
       const jsonString = JSON.stringify(videosData, null, 2);
       await fs.writeFile(this.videosJsonPath, jsonString, 'utf-8');
     } catch (error) {
-      this.logger.error(`Failed to write videos.json: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to write videos.json: ${(error as Error).message}`,
+      );
       throw new BadRequestException('Failed to save video data');
     }
   }
@@ -207,7 +235,7 @@ export class VideosService {
   private async createTranscriptEntry(videoData: CreateVideoDto) {
     try {
       const videoTexts = await this.getVideoTexts();
-      
+
       videoTexts.transcripts[videoData.transcriptId!] = {
         title: `${videoData.title} - Transcript`,
         description: `Full transcript of the ${videoData.title.toLowerCase()} video.`,
@@ -216,15 +244,23 @@ export class VideosService {
         lastUpdated: videoData.createdAt,
         status: 'pending',
         language: 'en',
-        tags: videoData.tags || []
+        tags: videoData.tags || [],
       };
 
       videoTexts.metadata.lastUpdated = new Date().toISOString().split('T')[0];
-      videoTexts.metadata.totalTranscripts = Object.keys(videoTexts.transcripts).length;
+      videoTexts.metadata.totalTranscripts = Object.keys(
+        videoTexts.transcripts,
+      ).length;
 
-      await fs.writeFile(this.videoTextsJsonPath, JSON.stringify(videoTexts, null, 2), 'utf-8');
+      await fs.writeFile(
+        this.videoTextsJsonPath,
+        JSON.stringify(videoTexts, null, 2),
+        'utf-8',
+      );
     } catch (error) {
-      this.logger.warn(`Failed to create transcript entry: ${(error as Error).message}`);
+      this.logger.warn(
+        `Failed to create transcript entry: ${(error as Error).message}`,
+      );
       // Don't fail the video creation if transcript entry fails
     }
   }

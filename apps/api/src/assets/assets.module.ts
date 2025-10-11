@@ -11,4 +11,3 @@ import { SupabaseModule } from '@/supabase/supabase.module';
   exports: [AssetsService, AssetsRepository],
 })
 export class AssetsModule {}
-

@@ -8,7 +8,9 @@ describe('AppController', () => {
 
   beforeEach(async () => {
     const mockAppService = {
-      getHello: jest.fn().mockReturnValue('NestJS A2A Agent Framework - Ready!'),
+      getHello: jest
+        .fn()
+        .mockReturnValue('NestJS A2A Agent Framework - Ready!'),
       getAgentStatus: jest.fn().mockResolvedValue({
         status: 'running',
         discoveredAgents: 0,
@@ -33,7 +35,9 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return hello message', () => {
-      expect(appController.getHello()).toBe('NestJS A2A Agent Framework - Ready!');
+      expect(appController.getHello()).toBe(
+        'NestJS A2A Agent Framework - Ready!',
+      );
     });
   });
 

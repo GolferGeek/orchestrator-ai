@@ -62,7 +62,10 @@ describe('AgentPromotionService', () => {
       };
 
       agentsRepo.getById.mockResolvedValue(agent as any);
-      agentsRepo.updateStatus.mockResolvedValue({ ...agent, status: 'active' } as any);
+      agentsRepo.updateStatus.mockResolvedValue({
+        ...agent,
+        status: 'active',
+      } as any);
 
       const result = await service.requestPromotion('agent-1');
 
@@ -177,7 +180,10 @@ describe('AgentPromotionService', () => {
       };
 
       agentsRepo.getById.mockResolvedValue(agent as any);
-      agentsRepo.updateStatus.mockResolvedValue({ ...agent, status: 'active' } as any);
+      agentsRepo.updateStatus.mockResolvedValue({
+        ...agent,
+        status: 'active',
+      } as any);
 
       await service.requestPromotion('agent-6', { skipValidation: true });
 
@@ -204,7 +210,10 @@ describe('AgentPromotionService', () => {
 
       approvalsRepo.get.mockResolvedValue(approval as any);
       agentsRepo.getById.mockResolvedValue(agent as any);
-      agentsRepo.updateStatus.mockResolvedValue({ ...agent, status: 'active' } as any);
+      agentsRepo.updateStatus.mockResolvedValue({
+        ...agent,
+        status: 'active',
+      } as any);
 
       const result = await service.completePromotionAfterApproval('approval-1');
 
@@ -238,7 +247,10 @@ describe('AgentPromotionService', () => {
       };
 
       agentsRepo.getById.mockResolvedValue(agent as any);
-      agentsRepo.updateStatus.mockResolvedValue({ ...agent, status: 'draft' } as any);
+      agentsRepo.updateStatus.mockResolvedValue({
+        ...agent,
+        status: 'draft',
+      } as any);
 
       const result = await service.demote('agent-7', 'Needs fixes');
 
@@ -273,7 +285,10 @@ describe('AgentPromotionService', () => {
       };
 
       agentsRepo.getById.mockResolvedValue(agent as any);
-      agentsRepo.updateStatus.mockResolvedValue({ ...agent, status: 'archived' } as any);
+      agentsRepo.updateStatus.mockResolvedValue({
+        ...agent,
+        status: 'archived',
+      } as any);
 
       const result = await service.archive('agent-9', 'No longer needed');
 

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Patch, Query, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Query,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { AdminOnly } from '@/auth/decorators/roles.decorator';
 import { CreateAgentDto, UpdateAgentDto } from '../dto/agent-admin.dto';
@@ -66,30 +75,53 @@ export class AgentsAdminController {
 
   @Post('validate')
   @AdminOnly()
-  async validate(@Body() dto: CreateAgentDto, @Query('dryRun') dryRun?: string) {
+  async validate(
+    @Body() dto: CreateAgentDto,
+    @Query('dryRun') dryRun?: string,
+  ) {
     const type = dto.agent_type as any;
     const validation = this.validator.validateByType(type, dto as any);
     const policyIssues = this.policy.check(dto);
 
-    const response: any = { success: validation.ok && policyIssues.length === 0, issues: [...validation.issues, ...policyIssues] };
+    const response: any = {
+      success: validation.ok && policyIssues.length === 0,
+      issues: [...validation.issues, ...policyIssues],
+    };
     const wantsDryRun = (dryRun || '').toString().toLowerCase() === 'true';
     if (validation.ok && wantsDryRun && type === 'function') {
-      const code = (dto as any)?.config?.configuration?.function?.code as string | undefined;
-      const timeout = Number((dto as any)?.config?.configuration?.function?.timeout_ms) || 2000;
+      const code = (dto as any)?.config?.configuration?.function?.code as
+        | string
+        | undefined;
+      const timeout =
+        Number((dto as any)?.config?.configuration?.function?.timeout_ms) ||
+        2000;
       if (code && code.length < 50000) {
         response.dryRun = await this.dryRun.runFunction(code, {}, timeout);
       } else {
-        response.dryRun = { ok: false, error: 'No code provided or code too large for dry-run' };
+        response.dryRun = {
+          ok: false,
+          error: 'No code provided or code too large for dry-run',
+        };
       }
     }
     if (validation.ok && wantsDryRun && type === 'api') {
-      const apiCfg = (dto as any)?.config?.configuration?.api?.api_configuration;
+      const apiCfg = (dto as any)?.config?.configuration?.api
+        ?.api_configuration;
       if (apiCfg) {
-        const sampleInput = (dto as any)?.config?.configuration?.api?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' };
-        const sampleResp = (dto as any)?.config?.configuration?.api?.sample_response || { output: 'dry-run-ok' };
-        response.dryRun = await this.dryRun.runApiTransform(apiCfg, sampleInput, sampleResp);
+        const sampleInput = (dto as any)?.config?.configuration?.api
+          ?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' };
+        const sampleResp = (dto as any)?.config?.configuration?.api
+          ?.sample_response || { output: 'dry-run-ok' };
+        response.dryRun = await this.dryRun.runApiTransform(
+          apiCfg,
+          sampleInput,
+          sampleResp,
+        );
       } else {
-        response.dryRun = { ok: false, error: 'No api_configuration provided for dry-run' };
+        response.dryRun = {
+          ok: false,
+          error: 'No api_configuration provided for dry-run',
+        };
       }
     }
     return response;
@@ -132,10 +164,16 @@ export class AgentsAdminController {
       config: next.config,
     } as CreateAgentDto;
 
-    const validation = this.validator.validateByType(current.agent_type, createLike as any);
+    const validation = this.validator.validateByType(
+      current.agent_type,
+      createLike as any,
+    );
     const policyIssues = this.policy.check(createLike);
     if (!validation.ok || policyIssues.length) {
-      return { success: false, issues: [...validation.issues, ...policyIssues] };
+      return {
+        success: false,
+        issues: [...validation.issues, ...policyIssues],
+      };
     }
 
     const { data: updated, error: uerr } = await this.supabase
@@ -156,7 +194,10 @@ export class AgentsAdminController {
     const files = [
       resolve(root, 'docs/feature/matt/payloads/blog_post_writer.json'),
       resolve(root, 'docs/feature/matt/payloads/hr_assistant.json'),
-      resolve(root, 'docs/feature/matt/payloads/agent_builder_orchestrator.json'),
+      resolve(
+        root,
+        'docs/feature/matt/payloads/agent_builder_orchestrator.json',
+      ),
     ];
 
     const results: any[] = [];
@@ -164,8 +205,8 @@ export class AgentsAdminController {
       try {
         const raw = await readFile(f, 'utf8');
         const dto = JSON.parse(raw);
-        const type = dto.agent_type as any;
-        const validation = this.validator.validateByType(type, dto as any);
+        const type = dto.agent_type;
+        const validation = this.validator.validateByType(type, dto);
         const policyIssues = this.policy.check(dto);
         const item: any = {
           file: f,
@@ -174,12 +215,18 @@ export class AgentsAdminController {
         };
         if (item.success) {
           if (type === 'function') {
-            const code = dto?.config?.configuration?.function?.code as string | undefined;
+            const code = dto?.config?.configuration?.function?.code as
+              | string
+              | undefined;
             if (code) {
               item.dryRun = await this.dryRun.runFunction(
                 code,
-                { title: 'Smoke Test', outline: ['Intro', 'Body', 'Conclusion'] },
-                Number(dto?.config?.configuration?.function?.timeout_ms) || 1000,
+                {
+                  title: 'Smoke Test',
+                  outline: ['Intro', 'Body', 'Conclusion'],
+                },
+                Number(dto?.config?.configuration?.function?.timeout_ms) ||
+                  1000,
               );
             }
           } else if (type === 'api') {
@@ -187,19 +234,30 @@ export class AgentsAdminController {
             if (apiCfg) {
               item.dryRun = await this.dryRun.runApiTransform(
                 apiCfg,
-                dto?.config?.configuration?.api?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' },
-                dto?.config?.configuration?.api?.sample_response || { output: 'ok' },
+                dto?.config?.configuration?.api?.sample_input || {
+                  sessionId: 'dryrun',
+                  userMessage: 'hello',
+                },
+                dto?.config?.configuration?.api?.sample_response || {
+                  output: 'ok',
+                },
               );
             }
           }
         }
         results.push(item);
       } catch (e: any) {
-        results.push({ file: f, success: false, issues: [{ message: e?.message || String(e) }] });
+        results.push({
+          file: f,
+          success: false,
+          issues: [{ message: e?.message || String(e) }],
+        });
       }
     }
 
-    const allOk = results.every((r) => r.success && (!r.dryRun || r.dryRun.ok !== false));
+    const allOk = results.every(
+      (r) => r.success && (!r.dryRun || r.dryRun.ok !== false),
+    );
     return { success: allOk, results };
   }
 
@@ -223,20 +281,14 @@ export class AgentsAdminController {
 
   @Post(':id/demote')
   @AdminOnly()
-  async demote(
-    @Param('id') id: string,
-    @Body() body: { reason?: string },
-  ) {
+  async demote(@Param('id') id: string, @Body() body: { reason?: string }) {
     const result = await this.promotion.demote(id, body.reason);
     return result;
   }
 
   @Post(':id/archive')
   @AdminOnly()
-  async archive(
-    @Param('id') id: string,
-    @Body() body: { reason?: string },
-  ) {
+  async archive(@Param('id') id: string, @Body() body: { reason?: string }) {
     const result = await this.promotion.archive(id, body.reason);
     return result;
   }

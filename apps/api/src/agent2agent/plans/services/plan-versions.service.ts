@@ -182,11 +182,7 @@ export class PlanVersionsService {
     const versionData = await this.versionsRepo.markAsCurrent(versionId);
 
     // Update plan's current_version_id
-    await this.plansRepo.setCurrentVersion(
-      version.planId,
-      userId,
-      versionId,
-    );
+    await this.plansRepo.setCurrentVersion(version.planId, userId, versionId);
 
     return this.mapToVersion(versionData);
   }
@@ -194,10 +190,7 @@ export class PlanVersionsService {
   /**
    * Copy a version to create a new version
    */
-  async copyVersion(
-    versionId: string,
-    userId: string,
-  ): Promise<PlanVersion> {
+  async copyVersion(versionId: string, userId: string): Promise<PlanVersion> {
     const sourceVersion = await this.findOne(versionId, userId);
 
     return this.createVersion(sourceVersion.planId, userId, {
@@ -278,10 +271,7 @@ export class PlanVersionsService {
     // TODO: Integrate with LLM service for intelligent merging
     // For now, concatenate with markers
     const mergedContent = versions
-      .map(
-        (v, i) =>
-          `=== VERSION ${v.versionNumber} ===\n${v.content}`,
-      )
+      .map((v, i) => `=== VERSION ${v.versionNumber} ===\n${v.content}`)
       .join('\n\n');
 
     const finalContent = `${mergedContent}\n\n=== MERGE INSTRUCTIONS ===\n${mergePrompt}\n\n[TODO: This will be replaced with LLM-generated merged content]`;
@@ -354,7 +344,10 @@ export class PlanVersionsService {
         );
       }
 
-      const originalTask = await this.tasksService.getTaskById(sourceVersion.taskId, userId);
+      const originalTask = await this.tasksService.getTaskById(
+        sourceVersion.taskId,
+        userId,
+      );
       if (!originalTask || !originalTask.prompt) {
         throw new BadRequestException(
           'Cannot rerun: original task not found or has no prompt',

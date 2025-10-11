@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsObject, IsOptional, IsString, Matches, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
 
 export enum AgentType {
   FUNCTION = 'function',
@@ -9,12 +16,18 @@ export enum AgentType {
 }
 
 export class CreateAgentDto {
-  @ApiProperty({ description: 'Organization slug (null for global)', required: false })
+  @ApiProperty({
+    description: 'Organization slug (null for global)',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   organization_slug?: string | null;
 
-  @ApiProperty({ description: 'Unique agent slug', examples: ['blog_post', 'hr_assistant'] })
+  @ApiProperty({
+    description: 'Unique agent slug',
+    examples: ['blog_post', 'hr_assistant'],
+  })
   @IsString()
   @Matches(/^[a-z0-9][a-z0-9_-]{1,62}$/)
   slug!: string;
@@ -27,26 +40,41 @@ export class CreateAgentDto {
   @IsEnum(AgentType)
   agent_type!: AgentType;
 
-  @ApiProperty({ description: 'Mode profile (e.g., draft, active)', example: 'draft' })
+  @ApiProperty({
+    description: 'Mode profile (e.g., draft, active)',
+    example: 'draft',
+  })
   @IsString()
   mode_profile!: string;
 
-  @ApiProperty({ description: 'Agent status (draft, active, archived)', required: false })
+  @ApiProperty({
+    description: 'Agent status (draft, active, archived)',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   status?: string | null;
 
-  @ApiProperty({ description: 'YAML definition (JSON string allowed)', required: false })
+  @ApiProperty({
+    description: 'YAML definition (JSON string allowed)',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   yaml?: string;
 
-  @ApiProperty({ description: 'Function code (JavaScript/TypeScript) for function agents', required: false })
+  @ApiProperty({
+    description: 'Function code (JavaScript/TypeScript) for function agents',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   function_code?: string | null;
 
-  @ApiProperty({ description: 'Optional long-form description', required: false })
+  @ApiProperty({
+    description: 'Optional long-form description',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   description?: string | null;
@@ -61,7 +89,10 @@ export class CreateAgentDto {
   @IsObject()
   context?: Record<string, any> | null;
 
-  @ApiProperty({ description: 'Runtime configuration (type-specific)', required: false })
+  @ApiProperty({
+    description: 'Runtime configuration (type-specific)',
+    required: false,
+  })
   @IsOptional()
   @IsObject()
   config?: Record<string, any> | null;
@@ -96,4 +127,3 @@ export class UpdateAgentDto {
   @IsObject()
   config?: Record<string, any> | null;
 }
-

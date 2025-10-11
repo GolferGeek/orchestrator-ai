@@ -153,7 +153,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       try {
         const observable = this.httpService.request({
           url,
-          method: method as any,
+          method: method,
           headers,
           data: body,
           params: queryParams,
@@ -245,7 +245,8 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         }),
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(
         `API agent ${definition.slug} BUILD failed: ${errorMessage}`,
       );
@@ -331,20 +332,23 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
    * Supports {{payload.field}}, {{metadata.field}}, {{userMessage}} syntax
    */
   private interpolateString(template: string, request: TaskRequestDto): string {
-    return template.replace(/\{\{([^}]+)\}\}/g, (match: string, path: string) => {
-      const keys = path.trim().split('.');
-      let value: any = request;
+    return template.replace(
+      /\{\{([^}]+)\}\}/g,
+      (match: string, path: string) => {
+        const keys = path.trim().split('.');
+        let value: any = request;
 
-      for (const key of keys) {
-        if (value && typeof value === 'object' && key in value) {
-          value = value[key];
-        } else {
-          return match; // Keep original if not found
+        for (const key of keys) {
+          if (value && typeof value === 'object' && key in value) {
+            value = value[key];
+          } else {
+            return match; // Keep original if not found
+          }
         }
-      }
 
-      return typeof value === 'string' ? value : JSON.stringify(value);
-    });
+        return typeof value === 'string' ? value : JSON.stringify(value);
+      },
+    );
   }
 
   /**

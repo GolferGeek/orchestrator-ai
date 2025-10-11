@@ -4,10 +4,7 @@ import {
 } from '@orchestrator-ai/transport-types';
 
 // Re-export shared types
-export {
-  TaskResponse,
-  TaskResponsePayload,
-};
+export { TaskResponse, TaskResponsePayload };
 
 export interface HumanResponsePayload {
   message: string;
@@ -36,7 +33,7 @@ export class TaskResponseDto implements TaskResponse {
     if (typeof metadataOrReason === 'string') {
       reason = metadataOrReason;
     } else if (metadataOrReason && typeof metadataOrReason === 'object') {
-      metadata = metadataOrReason as Record<string, any>;
+      metadata = metadataOrReason;
     }
     if (typeof maybeReason === 'string') {
       reason = maybeReason;

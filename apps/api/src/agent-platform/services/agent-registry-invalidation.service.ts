@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { AgentRegistryService } from './agent-registry.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 
@@ -62,4 +67,3 @@ export class AgentRegistryInvalidationService
     }
   }
 }
-

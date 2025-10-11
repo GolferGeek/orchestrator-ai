@@ -230,7 +230,10 @@ export class DeliverablesService implements IActionHandler {
       );
     }
 
-    const deliverableWithVersion = await this.findOne(deliverable.id, context.userId);
+    const deliverableWithVersion = await this.findOne(
+      deliverable.id,
+      context.userId,
+    );
 
     // Return in strict A2A protocol format: { deliverable, version }
     const currentVersion = deliverableWithVersion.currentVersion;
@@ -332,8 +335,8 @@ export class DeliverablesService implements IActionHandler {
     params: {
       versionId: string;
       rerunConfig: {
-        provider: string;  // Required
-        model: string;     // Required
+        provider: string; // Required
+        model: string; // Required
         temperature?: number;
         maxTokens?: number;
       };
@@ -395,7 +398,10 @@ export class DeliverablesService implements IActionHandler {
 
     await this.versionsService.deleteVersion(params.versionId, context.userId);
 
-    const deliverable = await this.findOne(version.deliverableId, context.userId);
+    const deliverable = await this.findOne(
+      version.deliverableId,
+      context.userId,
+    );
     const remainingVersions = await this.versionsService.getVersionHistory(
       version.deliverableId,
       context.userId,
@@ -445,7 +451,9 @@ export class DeliverablesService implements IActionHandler {
 
     // Get source versions
     const sourceVersions = await Promise.all(
-      params.versionIds.map(id => this.versionsService.getVersion(id, context.userId))
+      params.versionIds.map((id) =>
+        this.versionsService.getVersion(id, context.userId),
+      ),
     );
 
     // Return in strict A2A protocol format for BuildMergeVersionsResponse
@@ -506,7 +514,10 @@ export class DeliverablesService implements IActionHandler {
     }
 
     // Get version count before deletion
-    const versions = await this.versionsService.getVersionHistory(deliverable.id, context.userId);
+    const versions = await this.versionsService.getVersionHistory(
+      deliverable.id,
+      context.userId,
+    );
     const versionCount = versions.length;
 
     await this.remove(deliverable.id, context.userId);

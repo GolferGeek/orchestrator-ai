@@ -22,15 +22,24 @@ export class PseudonymDictionariesRepository {
     return this.supabase.getServiceClient();
   }
 
-  async listByOrganization(orgSlug: string | null): Promise<PseudonymDictionaryRecord[]> {
+  async listByOrganization(
+    orgSlug: string | null,
+  ): Promise<PseudonymDictionaryRecord[]> {
     const client = this.client();
     let q = client.from(this.table).select('*');
-    q = orgSlug ? q.eq('organization_slug', orgSlug) : q.is('organization_slug', null);
-    const { data, error } = await q.order('updated_at', { ascending: false, nullsFirst: false });
+    q = orgSlug
+      ? q.eq('organization_slug', orgSlug)
+      : q.is('organization_slug', null);
+    const { data, error } = await q.order('updated_at', {
+      ascending: false,
+      nullsFirst: false,
+    });
     if (error) {
-      this.logger.warn(`Failed to load pseudonym dictionary for ${orgSlug ?? 'global'}: ${error.message}`);
+      this.logger.warn(
+        `Failed to load pseudonym dictionary for ${orgSlug ?? 'global'}: ${error.message}`,
+      );
       return [];
     }
-    return (data as any[]) || [];
+    return data || [];
   }
 }

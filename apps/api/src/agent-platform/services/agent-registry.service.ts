@@ -74,7 +74,9 @@ export class AgentRegistryService {
     }
 
     const uniqueNamespaces = Array.from(
-      new Set(namespaces.map((ns) => (ns && ns.trim().length ? ns.trim() : null))),
+      new Set(
+        namespaces.map((ns) => (ns && ns.trim().length ? ns.trim() : null)),
+      ),
     );
 
     const results = await Promise.all(
