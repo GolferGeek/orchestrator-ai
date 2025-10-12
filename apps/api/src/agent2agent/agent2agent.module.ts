@@ -10,6 +10,7 @@ import { ContextAgentRunnerService } from './services/context-agent-runner.servi
 import { ToolAgentRunnerService } from './services/tool-agent-runner.service';
 import { ApiAgentRunnerService } from './services/api-agent-runner.service';
 import { ExternalAgentRunnerService } from './services/external-agent-runner.service';
+import { OrchestratorAgentRunnerService } from './services/orchestrator-agent-runner.service';
 import { RoutingPolicyAdapterService } from './services/routing-policy-adapter.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { LLMModule } from '../llms/llm.module';
@@ -54,6 +55,7 @@ import { HttpModule } from '@nestjs/axios';
     ToolAgentRunnerService,
     ApiAgentRunnerService,
     ExternalAgentRunnerService,
+    OrchestratorAgentRunnerService,
     RoutingPolicyAdapterService,
     ApiKeyGuard,
     Agent2AgentDeliverablesService,

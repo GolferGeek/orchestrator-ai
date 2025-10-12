@@ -5,6 +5,7 @@ import { ToolAgentRunnerService } from './tool-agent-runner.service';
 import { ApiAgentRunnerService } from './api-agent-runner.service';
 import { ExternalAgentRunnerService } from './external-agent-runner.service';
 import { FunctionAgentRunnerService } from './function-agent-runner.service';
+import { OrchestratorAgentRunnerService } from './orchestrator-agent-runner.service';
 import { IAgentRunner } from '../interfaces/agent-runner.interface';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentTaskMode } from '../dto/task-request.dto';
@@ -48,6 +49,10 @@ describe('AgentRunnerRegistryService', () => {
           provide: FunctionAgentRunnerService,
           useValue: new MockAgentRunner('function'),
         },
+        {
+          provide: OrchestratorAgentRunnerService,
+          useValue: new MockAgentRunner('orchestrator'),
+        },
       ],
     }).compile();
 
@@ -90,8 +95,8 @@ describe('AgentRunnerRegistryService', () => {
       service.registerRunner('custom2', custom2Runner);
       service.registerRunner('custom3', custom3Runner);
 
-      // 5 auto-registered + 3 custom = 8
-      expect(service.getRunnerCount()).toBe(8);
+      // 6 auto-registered + 3 custom = 9
+      expect(service.getRunnerCount()).toBe(9);
       expect(service.getRunner('custom1')).toBe(custom1Runner);
       expect(service.getRunner('custom2')).toBe(custom2Runner);
       expect(service.getRunner('custom3')).toBe(custom3Runner);
@@ -129,6 +134,7 @@ describe('AgentRunnerRegistryService', () => {
       expect(service.hasRunner('api')).toBe(true);
       expect(service.hasRunner('external')).toBe(true);
       expect(service.hasRunner('function')).toBe(true);
+      expect(service.hasRunner('orchestrator')).toBe(true);
     });
 
     it('should return true for a newly registered type', () => {
@@ -147,13 +153,14 @@ describe('AgentRunnerRegistryService', () => {
     it('should return all auto-registered agent types', () => {
       const types = service.getRegisteredTypes();
 
-      // Registry auto-registers 5 types in constructor
+      // Registry auto-registers 6 types in constructor
       expect(types).toContain('context');
       expect(types).toContain('tool');
       expect(types).toContain('api');
       expect(types).toContain('external');
       expect(types).toContain('function');
-      expect(types.length).toBe(5);
+      expect(types).toContain('orchestrator');
+      expect(types.length).toBe(6);
     });
 
     it('should return additional manually registered types', () => {

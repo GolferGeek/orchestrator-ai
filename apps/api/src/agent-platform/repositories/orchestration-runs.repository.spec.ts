@@ -15,20 +15,30 @@ describe('OrchestrationRunsRepository', () => {
   const runRecord = {
     id: 'run-1',
     plan_id: 'plan-1',
+    orchestration_definition_id: null,
+    orchestration_name: null,
+    conversation_id: null,
+    parent_orchestration_run_id: null,
     origin_type: 'plan',
     origin_id: 'plan-1',
     orchestration_slug: null,
-    prompt_inputs: {},
+    parameters: {},
     organization_slug: 'my-org',
     status: 'pending',
     current_step_index: null,
+    current_step_id: null,
     completed_steps: [],
     step_state: {},
     human_checkpoint_id: null,
+    plan: {},
+    results: {},
+    error_details: {},
     metadata: {},
+    created_by: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     started_at: new Date().toISOString(),
     completed_at: null,
-    updated_at: new Date().toISOString(),
   };
 
   it('creates orchestration runs', async () => {
@@ -50,7 +60,9 @@ describe('OrchestrationRunsRepository', () => {
     expect(insert).toHaveBeenCalled();
     const payload = insert.mock.calls[0][0][0];
     expect(payload.origin_type).toBe('plan');
-    expect(payload.prompt_inputs).toEqual({});
+    expect(payload.parameters).toEqual({});
+    expect(payload.plan).toEqual({});
+    expect(payload.results).toEqual({});
     expect(result).toEqual(runRecord);
   });
 

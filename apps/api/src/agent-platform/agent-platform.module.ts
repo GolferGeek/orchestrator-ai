@@ -5,10 +5,14 @@ import { LLMModule } from '@/llms/llm.module';
 import { AgentsRepository } from './repositories/agents.repository';
 import { ConversationPlansRepository } from './repositories/conversation-plans.repository';
 import { OrchestrationRunsRepository } from './repositories/orchestration-runs.repository';
+import { OrchestrationDefinitionsRepository } from './repositories/orchestration-definitions.repository';
+import { OrchestrationStepsRepository } from './repositories/orchestration-steps.repository';
 import { OrganizationCredentialsRepository } from './repositories/organization-credentials.repository';
 import { AgentOrchestrationsRepository } from './repositories/agent-orchestrations.repository';
 import { PlanEngineService } from './services/plan-engine.service';
 import { OrchestrationRunnerService } from './services/orchestration-runner.service';
+import { OrchestrationDefinitionService } from './services/orchestration-definition.service';
+import { OrchestrationStateService } from './services/orchestration-state.service';
 import { AgentRegistryService } from './services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from './services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from './services/agent-runtime-execution.service';
@@ -36,6 +40,7 @@ import { AgentPolicyService } from './services/agent-policy.service';
 import { AgentBuilderService } from './services/agent-builder.service';
 import { AgentPromotionService } from './services/agent-promotion.service';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
+import { OrchestrationExecutionService } from './services/orchestration-execution.service';
 
 @Module({
   imports: [
@@ -54,11 +59,16 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     RedactionPatternsRepository,
     HumanApprovalsRepository,
     ConversationPlansRepository,
+    OrchestrationDefinitionsRepository,
     OrchestrationRunsRepository,
+    OrchestrationStepsRepository,
     OrganizationCredentialsRepository,
     AgentOrchestrationsRepository,
     PlanEngineService,
+    OrchestrationDefinitionService,
+    OrchestrationStateService,
     OrchestrationRunnerService,
+    OrchestrationExecutionService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
@@ -84,11 +94,16 @@ import { HierarchyModule } from './hierarchy/hierarchy.module';
     RedactionPatternsRepository,
     HumanApprovalsRepository,
     ConversationPlansRepository,
+    OrchestrationDefinitionsRepository,
     OrchestrationRunsRepository,
+    OrchestrationStepsRepository,
     OrganizationCredentialsRepository,
     AgentOrchestrationsRepository,
     PlanEngineService,
+    OrchestrationDefinitionService,
+    OrchestrationStateService,
     OrchestrationRunnerService,
+    OrchestrationExecutionService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,

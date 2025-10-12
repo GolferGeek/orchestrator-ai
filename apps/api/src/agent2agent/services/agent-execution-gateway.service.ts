@@ -601,7 +601,7 @@ export class AgentExecutionGateway {
           agentSlug: agentMetadata.slug,
           agentType: agentMetadata.type,
           agentDisplayName: agentMetadata.displayName,
-          promptInputs,
+          parameters: promptInputs,
           metadata: runMetadata,
         });
 
@@ -653,7 +653,7 @@ export class AgentExecutionGateway {
           originType: 'saved_orchestration',
           originId: orchestration.id,
           orchestrationSlug: orchestration.slug,
-          promptInputs: resolvedInputs,
+          parameters: resolvedInputs,
           agentId: agentMetadata.id,
           agentSlug: agentMetadata.slug,
           agentType: agentMetadata.type,
