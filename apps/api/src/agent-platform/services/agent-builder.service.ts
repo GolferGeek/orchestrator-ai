@@ -129,12 +129,13 @@ export class AgentBuilderService {
 IMPORTANT RULES:
 1. Return ONLY the JavaScript code - no markdown, no explanations, no code fences
 2. The function must be named "handler" and accept (input, ctx) parameters
-3. Use ctx.services.images.generate() for image generation tasks
-4. Input modes: ${inputModes.join(', ')} - the function will receive data in these formats
-5. Output modes: ${outputModes.join(', ')} - the function must return data in these formats
-6. Always validate input and handle errors gracefully
-7. Return the result directly - no need to call callbacks or events
-8. Keep code concise but complete
+3. Call external APIs directly (e.g., const axios = ctx.require('axios')) and never rely on internal services
+4. Persist outputs using ctx.deliverables.create(...) and ctx.assets.saveBuffer(...) when creating deliverables or files
+5. Input modes: ${inputModes.join(', ')} - the function will receive data in these formats
+6. Output modes: ${outputModes.join(', ')} - the function must return data in these formats
+7. Always validate input and handle errors gracefully
+8. Return the result directly - no need to call callbacks or events
+9. Keep code concise but complete
 
 Example structure:
 async function handler(input, ctx) {

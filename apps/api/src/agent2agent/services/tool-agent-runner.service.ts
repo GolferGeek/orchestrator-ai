@@ -86,7 +86,11 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
   ): Promise<TaskResponseDto> {
     try {
       // Check for non-create actions (read, list, etc.)
-      const action = (request.payload as any)?.action;
+      const payloadOverrides = ((request.payload as any) ?? {}) as Record<
+        string,
+        any
+      >;
+      const action = payloadOverrides.action;
       if (action && action !== 'create') {
         return await this.handleBuildAction(
           definition,
@@ -98,7 +102,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       // Validate required context
       const userId = this.resolveUserId(request);
       const conversationId = this.resolveConversationId(request);
-      const taskId = (request.payload as any)?.taskId || null;
+      const taskId = payloadOverrides.taskId || null;
 
       if (!userId || !conversationId) {
         return TaskResponseDto.failure(
@@ -108,8 +112,17 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       }
 
       // 1. Get tool configuration from agent definition
-      const tools = definition.config?.tools || [];
-      const toolParams = definition.config?.toolParams || {};
+      let tools = definition.config?.tools || [];
+      if (
+        Array.isArray(payloadOverrides.tools) &&
+        payloadOverrides.tools.length > 0
+      ) {
+        tools = payloadOverrides.tools;
+      }
+      const toolParams = {
+        ...(definition.config?.toolParams || {}),
+        ...(payloadOverrides.toolParams || {}),
+      };
 
       if (tools.length === 0) {
         return TaskResponseDto.failure(
@@ -125,7 +138,11 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       // 2. Execute tools sequentially (or in parallel if configured)
       const toolResults = [];
       const executionMode =
-        definition.config?.toolExecutionMode || 'sequential';
+        payloadOverrides.toolExecutionMode ||
+        definition.config?.toolExecutionMode ||
+        'sequential';
+      const stopOnError =
+        payloadOverrides.stopOnError ?? definition.config?.stopOnError ?? true;
 
       if (executionMode === 'parallel') {
         // Execute all tools in parallel
@@ -178,7 +195,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
             this.logger.error(`Tool ${toolName} failed: ${errorMessage}`);
 
             // Stop execution on first error if stopOnError is true
-            if (definition.config?.stopOnError !== false) {
+            if (stopOnError !== false) {
               break;
             }
           }
@@ -212,6 +229,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
             successfulTools: successfulTools.length,
             failedTools: failedTools.length,
             executionMode,
+            stopOnError: stopOnError !== false,
+            toolsUsed: tools,
           },
         },
         {

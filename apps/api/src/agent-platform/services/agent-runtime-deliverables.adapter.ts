@@ -71,8 +71,7 @@ export class AgentRuntimeDeliverablesAdapter {
           targetDeliverableId,
           {
             content:
-              content ||
-              (hasImages ? this.describeImageSet(storedImages) : ''),
+              content || (hasImages ? this.describeImageSet(storedImages) : ''),
             format:
               (hasImages ? imageFormat : undefined) ??
               this.coerceDeliverableFormat(ctx.deliverableFormat) ??
@@ -83,7 +82,7 @@ export class AgentRuntimeDeliverablesAdapter {
               organizationSlug: ctx.organizationSlug,
               agentSlug: ctx.agentSlug,
               mode: ctx.mode,
-              imagesCount: hasImages ? storedImages.length : undefined,
+              ...(hasImages ? { imagesCount: storedImages.length } : {}),
             },
             fileAttachments: hasImages ? { images: storedImages } : undefined,
           },
@@ -224,7 +223,7 @@ export class AgentRuntimeDeliverablesAdapter {
 
     return (
       this.coerceDeliverableFormat(mime) ??
-      ((mime as unknown) as DeliverableFormat)
+      (mime as unknown as DeliverableFormat)
     );
   }
 

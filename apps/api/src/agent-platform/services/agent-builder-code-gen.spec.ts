@@ -130,7 +130,7 @@ async function handler(input, ctx) {
     expect(systemPromptCall).toContain('text/markdown');
   });
 
-  it('should provide context service examples in system prompt', async () => {
+  it('should mention ctx helpers in system prompt', async () => {
     await service.generateFunctionCode(
       'Generate an image',
       ['text/plain'],
@@ -139,6 +139,7 @@ async function handler(input, ctx) {
 
     const systemPromptCall = (llmService.generateResponse as jest.Mock).mock
       .calls[0][0];
-    expect(systemPromptCall).toContain('ctx.services.images.generate()');
+    expect(systemPromptCall).toContain("ctx.require('axios')");
+    expect(systemPromptCall).toContain('ctx.deliverables.create');
   });
 });
