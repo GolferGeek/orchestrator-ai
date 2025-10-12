@@ -691,8 +691,12 @@ export class AgentExecutionGateway {
           metadata: runMetadata,
         });
 
+        const concurrencyLimit =
+          this.executionService.getConcurrencyLimit(run);
         const { run: executionRun, readySteps } =
-          await this.executionService.startExecution(run.id);
+          await this.executionService.startExecution(run.id, {
+            maxParallel: concurrencyLimit,
+          });
         const allSteps = await this.orchestrationRunner.listSteps(
           executionRun.id,
         );
@@ -783,8 +787,12 @@ export class AgentExecutionGateway {
           ),
         });
 
+        const savedConcurrency =
+          this.executionService.getConcurrencyLimit(run);
         const { run: executionRun, readySteps } =
-          await this.executionService.startExecution(run.id);
+          await this.executionService.startExecution(run.id, {
+            maxParallel: savedConcurrency,
+          });
         const allSteps = await this.orchestrationRunner.listSteps(
           executionRun.id,
         );
@@ -1271,8 +1279,13 @@ export class AgentExecutionGateway {
       };
     }
 
+    const resumeConcurrency =
+      this.executionService.getConcurrencyLimit(resolution.run);
     const resumeResult = await this.executionService.startExecution(
       resolution.run.id,
+      {
+        maxParallel: resumeConcurrency,
+      },
     );
     const stepList = await this.orchestrationRunner.listSteps(
       resumeResult.run.id,

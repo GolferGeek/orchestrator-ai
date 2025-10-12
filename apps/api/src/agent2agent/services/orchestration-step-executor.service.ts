@@ -1,9 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
 import { OrchestrationOutputMapper } from '@agent-platform/services/orchestration-output-mapper.service';
+import {
+  OrchestrationCacheService,
+  StepOutputCacheHit,
+  StepOutputCacheKey,
+} from '@agent-platform/services/orchestration-cache.service';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
@@ -33,6 +38,28 @@ type StepProcessResult = {
   run: OrchestrationRunRecord;
 };
 
+type StepFailureContext = {
+  type:
+    | 'agent_execution_error'
+    | 'agent_response_failure'
+    | 'configuration_error'
+    | 'policy_failure'
+    | 'child_orchestration_failure';
+  errorDetails: Record<string, any>;
+  retryable?: boolean;
+};
+
+type RetryPlan =
+  | { shouldRetry: false }
+  | {
+      shouldRetry: true;
+      nextAttempt: number;
+      delayMs: number;
+      nextRetryAt: string;
+      config: Record<string, any>;
+      maxAttempts: number;
+    };
+
 @Injectable()
 export class OrchestrationStepExecutorService {
   private readonly logger = new Logger(OrchestrationStepExecutorService.name);
@@ -41,6 +68,7 @@ export class OrchestrationStepExecutorService {
   constructor(
     private readonly executionService: OrchestrationExecutionService,
     private readonly runner: OrchestrationRunnerService,
+    private readonly cache: OrchestrationCacheService,
     private readonly definitionService: OrchestrationDefinitionService,
     private readonly checkpointService: OrchestrationCheckpointService,
     private readonly outputMapper: OrchestrationOutputMapper,
@@ -48,6 +76,7 @@ export class OrchestrationStepExecutorService {
     private readonly runtimeDefinitions: AgentRuntimeDefinitionService,
     private readonly runtimeExecution: AgentRuntimeExecutionService,
     private readonly routingPolicy: RoutingPolicyAdapterService,
+    @Inject(forwardRef(() => AgentModeRouterService))
     private readonly modeRouter: AgentModeRouterService,
     private readonly conversations: Agent2AgentConversationsService,
     private readonly runFactory: OrchestrationRunFactoryService,
@@ -60,38 +89,105 @@ export class OrchestrationStepExecutorService {
       return;
     }
 
+    const activePromises = new Map<
+      string,
+      Promise<{ stepId: string; result: StepProcessResult }>
+    >();
     this.activeRuns.add(runId);
     try {
-      let start = await this.executionService.startExecution(runId);
+      const initialRun = await this.runner.getRun(runId);
+      if (!initialRun) {
+        this.logger.warn(`Cannot process orchestration run ${runId} because it no longer exists`);
+        return;
+      }
+
+      let concurrencyLimit = this.executionService.getConcurrencyLimit(initialRun);
+      let start = await this.executionService.startExecution(runId, {
+        maxParallel: concurrencyLimit,
+      });
       let run = start.run;
-      let readySteps = start.readySteps;
+      concurrencyLimit = this.executionService.getConcurrencyLimit(run);
+      const readyQueue: OrchestrationStepRecord[] = [...start.readySteps];
+      let halted = false;
 
-      while (readySteps.length > 0) {
-        let shouldHalt = false;
+      const scheduleAvailable = () => {
+        while (
+          !halted &&
+          readyQueue.length > 0 &&
+          activePromises.size < concurrencyLimit
+        ) {
+          const nextStep = readyQueue.shift();
+          if (!nextStep) {
+            break;
+          }
 
-        for (const step of readySteps) {
-          const stepResult = await this.executeStep(run, step);
-          run = stepResult.run;
+          const runSnapshot = run;
+          const tracked = this.executeStep(runSnapshot, nextStep)
+            .then((result) => ({
+              stepId: nextStep.id,
+              result,
+            }))
+            .catch(async (error) => {
+              this.logger.error(
+                `Unhandled error executing step ${nextStep.id} in run ${runId}: ${error instanceof Error ? error.message : String(error)}`,
+              );
+              const fallbackRun =
+                (await this.runner.getRun(runSnapshot.id)) ?? runSnapshot;
+              return {
+                stepId: nextStep.id,
+                result: {
+                  status: 'failed',
+                  run: fallbackRun,
+                } satisfies StepProcessResult,
+              };
+            });
 
-          if (stepResult.status === 'checkpoint' || stepResult.status === 'failed') {
-            shouldHalt = true;
+          activePromises.set(nextStep.id, tracked);
+        }
+      };
+
+      scheduleAvailable();
+
+      while (!halted) {
+        if (activePromises.size === 0) {
+          if (readyQueue.length === 0) {
+            break;
+          }
+
+          scheduleAvailable();
+          if (activePromises.size === 0) {
             break;
           }
         }
 
-        if (shouldHalt) {
+        const settled = await Promise.race(activePromises.values());
+        activePromises.delete(settled.stepId);
+        run = settled.result.run;
+
+        if (settled.result.status === 'checkpoint' || settled.result.status === 'failed') {
+          halted = true;
           break;
         }
 
-        start = await this.executionService.startExecution(run.id);
-        run = start.run;
-        readySteps = start.readySteps;
+        concurrencyLimit = this.executionService.getConcurrencyLimit(run);
+        const nextStart = await this.executionService.startExecution(run.id, {
+          maxParallel: concurrencyLimit,
+        });
+        run = nextStart.run;
+        if (nextStart.readySteps.length > 0) {
+          readyQueue.push(...nextStart.readySteps);
+        }
+
+        scheduleAvailable();
       }
     } catch (error) {
       this.logger.error(
         `Failed to process orchestration run ${runId}: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
+      if (activePromises.size > 0) {
+        await Promise.allSettled(activePromises.values());
+      }
       this.activeRuns.delete(runId);
     }
   }
@@ -118,9 +214,34 @@ export class OrchestrationStepExecutorService {
     }
 
     const userId = this.resolveUserId(run);
-    const conversationId = await this.ensureConversation(run, step, userId);
-
     const resolvedInput = this.resolveStepInput(step, run);
+    let conversationId: string | null = null;
+
+    const cachingPolicy =
+      stepType === 'agent'
+        ? this.resolveCachingPolicy(run, step)
+        : { enabled: false, ttlSeconds: null };
+
+    let cacheKey: StepOutputCacheKey | null = null;
+    if (cachingPolicy.enabled) {
+      cacheKey = this.cache.buildStepOutputKey({
+        run,
+        step,
+        input: resolvedInput.resolvedInput,
+      });
+      const cachedHit = this.cache.getStepOutput(cacheKey.key);
+      if (cachedHit) {
+        return this.completeStepFromCache(
+          run,
+          step,
+          conversationId,
+          cachedHit,
+          cacheKey,
+        );
+      }
+    }
+
+    conversationId = await this.ensureConversation(run, step, userId);
 
     const agentRecord = await this.agentRegistry.getAgent(
       run.organization_slug,
@@ -195,18 +316,30 @@ export class OrchestrationStepExecutorService {
         routingMetadata: policyAssessment.metadata,
       });
     } catch (error) {
-      await this.executionService.markStepFailed(runningStep.id, {
-        message: error instanceof Error ? error.message : String(error),
+      return this.handleStepFailure(run, runningStep, {
         type: 'agent_execution_error',
+        retryable: true,
+        errorDetails: {
+          message: error instanceof Error ? error.message : String(error),
+          type: 'agent_execution_error',
+        },
       });
-      const refreshed = (await this.runner.getRun(run.id)) ?? run;
-      return { status: 'failed', run: refreshed };
     }
 
     if (!agentResponse.success) {
-      await this.markStepFailedWithResponse(runningStep, agentResponse);
-      const refreshed = (await this.runner.getRun(run.id)) ?? run;
-      return { status: 'failed', run: refreshed };
+      return this.handleStepFailure(run, runningStep, {
+        type: 'agent_response_failure',
+        retryable: this.isResponseRetryable(agentResponse),
+        errorDetails: {
+          message:
+            agentResponse.humanResponse?.message ??
+            agentResponse.payload?.metadata?.reason ??
+            'Agent execution failed',
+          mode: agentResponse.mode,
+          payload: agentResponse.payload,
+          type: agentResponse.payload?.metadata?.errorType ?? 'agent_response_failure',
+        },
+      });
     }
 
     const mapping = this.outputMapper.map(
@@ -214,11 +347,23 @@ export class OrchestrationStepExecutorService {
       (step.metadata?.outputMapping ?? undefined) as Record<string, any> | undefined,
     );
 
-    const metadataPatch = this.buildMetadataPatch(
+    let metadataPatch = this.buildMetadataPatch(
       step,
       resolvedInput.resolvedInput,
       agentResponse,
     );
+
+    let cacheTimestamp: string | null = null;
+    if (cacheKey && cachingPolicy.enabled) {
+      cacheTimestamp = new Date().toISOString();
+      metadataPatch = this.prepareMetadataForCacheStorage(
+        metadataPatch,
+        cacheKey.fingerprint,
+        run.id,
+        runningStep.id,
+        cacheTimestamp,
+      );
+    }
 
     const update: OrchestrationStepUpdateInput = {
       conversation_id: conversationId,
@@ -231,6 +376,21 @@ export class OrchestrationStepExecutorService {
       mapping.output,
       update,
     );
+
+    if (cacheKey && cachingPolicy.enabled) {
+      this.cache.setStepOutput(
+        cacheKey,
+        {
+          output: mapping.output,
+          deliverableId: mapping.deliverableId ?? null,
+          metadata: metadataPatch,
+          sourceRunId: run.id,
+          sourceStepId: runningStep.id,
+          conversationId,
+        },
+        cachingPolicy.ttlSeconds,
+      );
+    }
 
     const checkpointConfig = this.resolveCheckpointConfig(step);
     if (checkpointConfig) {
@@ -249,6 +409,49 @@ export class OrchestrationStepExecutorService {
         run: checkpointResult.run,
       };
     }
+
+    return {
+      status: 'completed',
+      run: completion.run,
+    };
+  }
+
+  private async completeStepFromCache(
+    run: OrchestrationRunRecord,
+    step: OrchestrationStepRecord,
+    conversationId: string | null,
+    cached: StepOutputCacheHit,
+    cacheKey: StepOutputCacheKey,
+  ): Promise<StepProcessResult> {
+    const runningStep = await this.executionService.markStepRunning(step.id);
+    const timestamp = new Date().toISOString();
+
+    const metadata = this.prepareMetadataForCacheHit(
+      cached.payload.metadata,
+      cacheKey.fingerprint,
+      run.id,
+      timestamp,
+      cached.payload.sourceRunId,
+      cached.payload.sourceStepId,
+    );
+
+    const completion = await this.executionService.markStepCompleted(
+      runningStep.id,
+      cached.payload.output,
+      {
+        deliverable_id: cached.payload.deliverableId ?? null,
+        metadata,
+      },
+    );
+
+    this.cache.updateStepOutputMetadata(cacheKey, cached, {
+      output: cached.payload.output,
+      deliverableId: cached.payload.deliverableId ?? null,
+      metadata,
+      sourceRunId: cached.payload.sourceRunId,
+      sourceStepId: cached.payload.sourceStepId,
+      conversationId: cached.payload.conversationId ?? null,
+    });
 
     return {
       status: 'completed',
@@ -461,6 +664,131 @@ export class OrchestrationStepExecutorService {
     };
   }
 
+  private resolveCachingPolicy(
+    run: OrchestrationRunRecord,
+    step: OrchestrationStepRecord,
+  ): { enabled: boolean; ttlSeconds: number | null } {
+    const metadata = this.asRecord(run.metadata);
+    const execution = this.asRecord(
+      metadata?.execution as Record<string, any> | undefined,
+    );
+    const caching = this.asRecord(
+      execution?.caching as Record<string, any> | undefined,
+    );
+
+    if (!caching) {
+      return { enabled: false, ttlSeconds: null };
+    }
+
+    const stepKey = this.resolveStepKey(step);
+    const stepsConfig = Array.isArray((caching as any).steps)
+      ? (caching.steps as Array<Record<string, any>>)
+      : [];
+    const stepConfig = stepsConfig.find(
+      (entry) =>
+        entry &&
+        typeof entry === 'object' &&
+        (entry.id === stepKey || entry.id === step.step_id),
+    );
+
+    let enabled =
+      caching.enabled === undefined
+        ? false
+        : this.normalizeBoolean(caching.enabled);
+
+    if (stepConfig && stepConfig.enabled !== undefined) {
+      enabled = this.normalizeBoolean(stepConfig.enabled);
+    } else if (stepsConfig.length > 0) {
+      enabled = Boolean(stepConfig);
+    }
+
+    if (!enabled) {
+      return { enabled: false, ttlSeconds: null };
+    }
+
+    const ttl =
+      this.coerceNumber(
+        stepConfig?.ttlSeconds,
+        (stepConfig as any)?.ttl_seconds,
+      ) ??
+      this.coerceNumber(caching.ttlSeconds, (caching as any)?.ttl_seconds);
+
+    return {
+      enabled: true,
+      ttlSeconds: ttl !== null ? Math.max(0, Math.floor(ttl)) : null,
+    };
+  }
+
+  private prepareMetadataForCacheStorage(
+    metadata: Record<string, any>,
+    fingerprint: string,
+    runId: string,
+    stepId: string,
+    timestamp: string,
+  ): Record<string, any> {
+    const clone = this.cloneValue(metadata) ?? {};
+    const runtime = this.asRecord(clone.runtime) ?? {};
+    runtime.completedAt = timestamp;
+    runtime.cache = {
+      fingerprint,
+      storedAt: timestamp,
+      storedByRunId: runId,
+      storedStepId: stepId,
+      hits: 0,
+    };
+    clone.runtime = runtime;
+    return clone;
+  }
+
+  private prepareMetadataForCacheHit(
+    cachedMetadata: Record<string, any>,
+    fingerprint: string,
+    runId: string,
+    timestamp: string,
+    sourceRunId?: string,
+    sourceStepId?: string,
+  ): Record<string, any> {
+    const clone = this.cloneValue(cachedMetadata) ?? {};
+    const runtime = this.asRecord(clone.runtime) ?? {};
+    const cacheInfo = this.asRecord(runtime.cache) ?? {};
+
+    runtime.completedAt = timestamp;
+    runtime.cache = {
+      ...cacheInfo,
+      fingerprint,
+      hits: typeof cacheInfo.hits === 'number' ? cacheInfo.hits + 1 : 1,
+      lastHitAt: timestamp,
+      lastHitRunId: runId,
+      storedByRunId: cacheInfo.storedByRunId ?? sourceRunId ?? null,
+      storedStepId: cacheInfo.storedStepId ?? sourceStepId ?? null,
+      storedAt: cacheInfo.storedAt ?? timestamp,
+    };
+
+    clone.runtime = runtime;
+    return clone;
+  }
+
+  private normalizeBoolean(value: any): boolean {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return ['true', '1', 'yes', 'on'].includes(normalized);
+    }
+    if (typeof value === 'number') {
+      return value !== 0;
+    }
+    return Boolean(value);
+  }
+
+  private resolveStepKey(step: OrchestrationStepRecord): string {
+    if (step.step_id) {
+      return step.step_id;
+    }
+    return `index_${step.step_index}`;
+  }
+
   private checkUnsupportedMode(
     definition: any,
     mode: AgentTaskMode,
@@ -506,9 +834,153 @@ export class OrchestrationStepExecutorService {
     await this.executionService.markStepFailed(step.id, {
       message,
       type: 'configuration_error',
-      runId: run.id,
-      stepId: step.step_id ?? step.id,
+        runId: run.id,
+        stepId: step.step_id ?? step.id,
     });
+  }
+
+  private async handleStepFailure(
+    run: OrchestrationRunRecord,
+    step: OrchestrationStepRecord,
+    context: StepFailureContext,
+  ): Promise<StepProcessResult> {
+    const plan = this.planRetry(step, context);
+
+    if (plan.shouldRetry) {
+      this.logger.warn(
+        `Step ${step.step_id ?? step.id} failed with ${context.type}; scheduling retry ${plan.nextAttempt}/${plan.maxAttempts} in ${plan.delayMs}ms`,
+      );
+      const failure = await this.executionService.markStepFailed(
+        step.id,
+        context.errorDetails,
+        {
+          allowRetry: true,
+          retryAt: plan.nextRetryAt,
+        },
+      );
+
+      try {
+        await this.scheduleRetry(failure.step, plan, context);
+      } catch (scheduleError) {
+        this.logger.error(
+          `Failed to schedule retry for step ${step.id}: ${scheduleError instanceof Error ? scheduleError.message : String(scheduleError)}`,
+        );
+        return { status: 'failed', run: failure.run };
+      }
+
+      this.scheduleRunWakeup(run.id, plan.delayMs);
+      return { status: 'failed', run: failure.run };
+    }
+
+    const failure = await this.executionService.markStepFailed(
+      step.id,
+      context.errorDetails,
+    );
+    return { status: 'failed', run: failure.run };
+  }
+
+  private planRetry(
+    step: OrchestrationStepRecord,
+    context: StepFailureContext,
+  ): RetryPlan {
+    if (context.retryable === false) {
+      return { shouldRetry: false };
+    }
+
+    const behavior = this.asRecord(
+      (step.metadata as Record<string, any> | undefined)?.behavior,
+    );
+    const retryConfig = this.asRecord(behavior?.retry);
+    if (!retryConfig) {
+      return { shouldRetry: false };
+    }
+
+    const maxAttempts = this.resolveMaxAttempts(retryConfig);
+    const currentAttempt = step.attempt_number ?? 1;
+    if (currentAttempt >= maxAttempts) {
+      return { shouldRetry: false };
+    }
+
+    const delayMs = this.computeBackoffDelay(retryConfig, currentAttempt);
+    const nextRetryAt = new Date(Date.now() + delayMs).toISOString();
+
+    return {
+      shouldRetry: true,
+      nextAttempt: currentAttempt + 1,
+      delayMs,
+      nextRetryAt,
+      config: retryConfig,
+      maxAttempts,
+    };
+  }
+
+  private async scheduleRetry(
+    failedStep: OrchestrationStepRecord,
+    plan: Extract<RetryPlan, { shouldRetry: true }>,
+    context: StepFailureContext,
+  ): Promise<void> {
+    const metadata = this.mergeStepMetadata(
+      failedStep.metadata as Record<string, any> | undefined,
+      {},
+    );
+
+    const runtime = this.asRecord(metadata.runtime) ?? {};
+    const retryRuntime = this.asRecord(runtime.retry) ?? {};
+    const history = Array.isArray(retryRuntime.history)
+      ? [...retryRuntime.history]
+      : [];
+
+    history.push({
+      attempt: failedStep.attempt_number,
+      failedAt: new Date().toISOString(),
+      nextRetryAt: plan.nextRetryAt,
+      reason: context.type,
+    });
+
+    retryRuntime.history = history;
+    retryRuntime.nextRetryAt = plan.nextRetryAt;
+    retryRuntime.lastError = context.errorDetails ?? {};
+    retryRuntime.attempt = plan.nextAttempt;
+    retryRuntime.maxAttempts = plan.maxAttempts;
+
+    runtime.retry = retryRuntime;
+    metadata.runtime = runtime;
+
+    metadata.lastFailure = {
+      ...(this.asRecord(metadata.lastFailure) ?? {}),
+      at: new Date().toISOString(),
+      type: context.type,
+    };
+
+    await this.runner.updateStep(failedStep.id, {
+      status: 'pending',
+      attempt_number: plan.nextAttempt,
+      metadata,
+      started_at: null,
+      completed_at: null,
+    });
+  }
+
+  private scheduleRunWakeup(runId: string, delayMs: number): void {
+    const safeDelay = Math.max(0, delayMs);
+    setTimeout(() => {
+      this.processRun(runId).catch((error) => {
+        this.logger.error(
+          `Failed to resume orchestration run ${runId} after retry delay: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+    }, safeDelay);
+  }
+
+  private isResponseRetryable(response: TaskResponseDto): boolean {
+    if (response.humanResponse) {
+      return false;
+    }
+    const metadata = response.payload?.metadata ?? {};
+    if (typeof metadata.retryable === 'boolean') {
+      return metadata.retryable;
+    }
+    return true;
   }
 
   private resolveCheckpointConfig(
@@ -742,6 +1214,103 @@ export class OrchestrationStepExecutorService {
         : {};
     this.mergeInto(base, patch);
     return base;
+  }
+
+  private resolveMaxAttempts(config: Record<string, any>): number {
+    const maxAttempts = this.coerceNumber(
+      config.maxAttempts,
+      config.max_attempts,
+    );
+    if (maxAttempts !== null) {
+      return Math.max(1, maxAttempts);
+    }
+
+    const retryCount = this.coerceNumber(
+      config.retry_count,
+      config.retryCount,
+    );
+    if (retryCount !== null) {
+      return Math.max(1, retryCount + 1);
+    }
+
+    return 1;
+  }
+
+  private computeBackoffDelay(
+    config: Record<string, any>,
+    attempt: number,
+  ): number {
+    const initialDelay =
+      this.coerceNumber(
+        config.initialDelayMs,
+        config.initial_delay_ms,
+        config.initial_delay_seconds
+          ? Number(config.initial_delay_seconds) * 1000
+          : undefined,
+        config.base_delay_ms,
+        config.base_delay_seconds
+          ? Number(config.base_delay_seconds) * 1000
+          : undefined,
+      ) ?? 2000;
+
+    const strategy =
+      typeof config.strategy === 'string'
+        ? config.strategy.toLowerCase()
+        : 'exponential';
+
+    const multiplier =
+      this.coerceNumber(
+        config.backoffMultiplier,
+        config.backoff_multiplier,
+        config.multiplier,
+      ) ?? 2;
+
+    let delay: number;
+    if (strategy === 'linear') {
+      delay = initialDelay * attempt;
+    } else {
+      delay = initialDelay * Math.pow(Math.max(1, multiplier), Math.max(0, attempt - 1));
+    }
+
+    const maxDelay =
+      this.coerceNumber(
+        config.maxDelayMs,
+        config.max_delay_ms,
+        config.max_delay_seconds
+          ? Number(config.max_delay_seconds) * 1000
+          : undefined,
+      ) ?? null;
+
+    if (typeof maxDelay === 'number' && maxDelay >= 0) {
+      delay = Math.min(delay, maxDelay);
+    }
+
+    return Math.max(250, delay);
+  }
+
+  private coerceNumber(...values: Array<any>): number | null {
+    for (const value of values) {
+      if (value === null || value === undefined) {
+        continue;
+      }
+      const parsed =
+        typeof value === 'number'
+          ? value
+          : typeof value === 'string'
+            ? Number(value)
+            : NaN;
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  private asRecord(value: unknown): Record<string, any> | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    return { ...(value as Record<string, any>) };
   }
 
   private buildInitialChildMetadataPatch(

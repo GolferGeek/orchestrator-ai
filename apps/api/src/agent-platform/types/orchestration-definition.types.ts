@@ -57,6 +57,7 @@ export interface OrchestrationDefinitionSchema {
     steps: OrchestrationStepDefinition[];
     parameters?: OrchestrationParameterDefinition[];
     error_handling?: Record<string, any>;
+    execution?: Record<string, any>;
   };
 }
 
@@ -71,4 +72,28 @@ export interface OrchestrationResolvedDefinition {
   steps: OrchestrationStepDefinition[];
   parameters: OrchestrationParameterDefinition[];
   rawDefinition: Record<string, any>;
+  execution?: OrchestrationExecutionConfig | null;
+}
+
+export interface OrchestrationConcurrencyConfig {
+  maxParallel?: number | null;
+  queueStrategy?: 'fifo' | 'dependency';
+}
+
+export interface OrchestrationCachingStepConfig {
+  id: string;
+  enabled?: boolean;
+  ttlSeconds?: number | null;
+}
+
+export interface OrchestrationCachingConfig {
+  enabled?: boolean;
+  ttlSeconds?: number | null;
+  strategy?: 'per_step' | 'definition';
+  steps?: OrchestrationCachingStepConfig[];
+}
+
+export interface OrchestrationExecutionConfig {
+  concurrency?: OrchestrationConcurrencyConfig | null;
+  caching?: OrchestrationCachingConfig | null;
 }

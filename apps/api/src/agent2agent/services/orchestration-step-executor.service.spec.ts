@@ -97,6 +97,7 @@ describe('OrchestrationStepExecutorService', () => {
             startExecution: jest.fn(),
             markStepCompleted: jest.fn(),
             markStepFailed: jest.fn(),
+            markStepRunning: jest.fn(),
           },
         },
         {
@@ -267,8 +268,9 @@ describe('OrchestrationStepExecutorService', () => {
       });
 
       executionService.markStepCompleted.mockResolvedValue({
-        ...mockRun,
-        results: { 'fetch-kpi-data': { query_results: [{ metric: 'revenue', value: 150000 }] } },
+        step: mockStep,
+        run: mockRun,
+        nextSteps: [],
       });
 
       await service.processRun('run-123');
@@ -363,9 +365,9 @@ describe('OrchestrationStepExecutorService', () => {
         readySteps: [failingStep],
       });
 
-      executionService.updateStepStatus.mockResolvedValue({
-        ...mockRun,
-        status: 'failed',
+      executionService.markStepFailed.mockResolvedValue({
+        step: { ...mockStep, status: 'failed' },
+        run: { ...mockRun, status: 'failed' },
       });
 
       runnerService.getRun.mockResolvedValue({
@@ -375,10 +377,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(executionService.updateStepStatus).toHaveBeenCalledWith(
-        'run-123',
+      expect(executionService.markStepFailed).toHaveBeenCalledWith(
         failingStep.id,
-        'failed',
         expect.objectContaining({
           error: expect.stringContaining('missing agent'),
         }),
@@ -461,11 +461,13 @@ describe('OrchestrationStepExecutorService', () => {
     it('should trigger checkpoint with correct options', async () => {
       const stepWithCheckpoint: OrchestrationStepRecord = {
         ...mockStep,
-        checkpoint: {
-          type: 'manual',
-          message: 'Review the query results before summarizing',
+        metadata: {
+          name: 'Fetch Data',
+          checkpoint: {
+            type: 'manual',
+            message: 'Review the query results before summarizing',
+          }
         },
-        metadata: { name: 'Fetch Data' },
       };
 
       executionService.startExecution.mockResolvedValueOnce({
@@ -528,7 +530,7 @@ describe('OrchestrationStepExecutorService', () => {
 
       const stepWithCheckpoint: OrchestrationStepRecord = {
         ...mockStep,
-        checkpoint: { type: 'manual' },
+        metadata: { checkpoint: { type: 'manual' } },
       };
 
       executionService.startExecution
@@ -562,12 +564,16 @@ describe('OrchestrationStepExecutorService', () => {
         deliverableId: null,
         deliverableVersionId: null,
       });
-      executionService.completeStep.mockResolvedValue(mockRun);
+      executionService.markStepCompleted.mockResolvedValue({
+        step: mockStep,
+        run: mockRun,
+        nextSteps: [],
+      });
 
       await service.processRun('run-123');
 
       expect(executionService.startExecution).toHaveBeenCalledTimes(2);
-      expect(executionService.completeStep).toHaveBeenCalled();
+      expect(executionService.markStepCompleted).toHaveBeenCalled();
     });
   });
 
@@ -575,9 +581,11 @@ describe('OrchestrationStepExecutorService', () => {
     it('should apply output_mapping to agent response', async () => {
       const stepWithMapping: OrchestrationStepRecord = {
         ...mockStep,
-        output_mapping: {
-          query_results: '$.content.rows',
-          summary: '$.content.summary',
+        metadata: {
+          output_mapping: {
+            query_results: '$.content.rows',
+            summary: '$.content.summary',
+          }
         },
       };
 
@@ -625,7 +633,11 @@ describe('OrchestrationStepExecutorService', () => {
         deliverableVersionId: null,
       });
 
-      executionService.completeStep.mockResolvedValue(mockRun);
+      executionService.markStepCompleted.mockResolvedValue({
+        step: mockStep,
+        run: mockRun,
+        nextSteps: [],
+      });
       executionService.startExecution.mockResolvedValueOnce({
         run: mockRun,
         readySteps: [],
@@ -676,7 +688,11 @@ describe('OrchestrationStepExecutorService', () => {
         deliverableVersionId: 'ver-456',
       });
 
-      executionService.completeStep.mockResolvedValue(mockRun);
+      executionService.markStepCompleted.mockResolvedValue({
+        step: mockStep,
+        run: mockRun,
+        nextSteps: [],
+      });
       executionService.startExecution.mockResolvedValueOnce({
         run: mockRun,
         readySteps: [],

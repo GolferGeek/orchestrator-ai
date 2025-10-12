@@ -1,0 +1,148 @@
+metadata:
+  name: marketing-campaign-launch
+  displayName: Marketing Campaign Launch
+  version: 1.0.0
+  description: Coordinate multi-channel launch assets and approvals for a new campaign.
+
+orchestration:
+  execution:
+    concurrency:
+      maxParallel: 2
+      queueStrategy: fifo
+    caching:
+      enabled: true
+      ttlSeconds: 3600
+      steps:
+        - id: gather-campaign-research
+          ttlSeconds: 86400
+  steps:
+    - id: gather-campaign-research
+      name: Gather Campaign Research
+      agent: marketing-swarm
+      mode: BUILD
+      input:
+        userMessage: |
+          Prepare a launch brief for the "{{ campaign_name }}" campaign.
+          Include target audience insights, value propositions, competitor notes,
+          and recommended tone. Launch date: {{ launch_date }}.
+        context:
+          audience: "{{ target_audience }}"
+          offer: "{{ primary_offer }}"
+          channels: "{{ preferred_channels }}"
+      checkpoint_after:
+        question: Approve the research brief before drafting assets?
+        required: true
+        options:
+          - action: continue
+            label: Brief looks good
+          - action: retry
+            label: Request edits and retry
+            allows_modification: true
+          - action: abort
+            label: Stop orchestration
+      output_mapping:
+        research_brief: "$.content.deliverable.content"
+        research_deliverable_id: "$.content.deliverable.id"
+
+    - id: draft-web-copy
+      name: Draft Landing Page Copy
+      agent: marketing-swarm
+      mode: BUILD
+      depends_on:
+        - gather-campaign-research
+      input:
+        userMessage: |
+          Create high-conversion landing page copy for the "{{ campaign_name }}" launch.
+          Use the research brief below. Produce headline, sub-headline, key benefits,
+          social proof, and call-to-action.
+
+          Research brief:
+          {{ steps.gather-campaign-research.research_brief }}
+        context:
+          assetType: landing_page
+          launchDate: "{{ launch_date }}"
+      output_mapping:
+        landing_page_copy: "$.content.deliverable.content"
+        landing_page_deliverable_id: "$.content.deliverable.id"
+
+    - id: draft-email-sequence
+      name: Draft Email Sequence
+      agent: marketing-swarm
+      mode: BUILD
+      depends_on:
+        - gather-campaign-research
+      input:
+        userMessage: |
+          Create a three-touch email sequence for the "{{ campaign_name }}" launch.
+          Touch 1: teaser. Touch 2: value demonstration. Touch 3: final call-to-action.
+          Reference the following research notes to tailor messaging:
+
+          {{ steps.gather-campaign-research.research_brief }}
+        context:
+          assetType: email_sequence
+          sequenceLength: 3
+      output_mapping:
+        email_sequence: "$.content.deliverable.content"
+        email_deliverable_id: "$.content.deliverable.id"
+
+    - id: synthesize-go-to-market
+      name: Synthesize GTM Plan
+      agent: summarizer
+      mode: BUILD
+      depends_on:
+        - draft-web-copy
+        - draft-email-sequence
+      input:
+        userMessage: |
+          Produce a go-to-market summary for stakeholders. Include:
+          - Campaign overview (goal, launch date, target audience)
+          - Landing page highlights
+          - Email sequence outline
+          - Next steps for design and analytics
+        context:
+          campaign:
+            name: "{{ campaign_name }}"
+            launchDate: "{{ launch_date }}"
+            primaryOffer: "{{ primary_offer }}"
+          landingPage: "{{ steps.draft-web-copy.landing_page_copy }}"
+          emailSequence: "{{ steps.draft-email-sequence.email_sequence }}"
+      output_mapping:
+        gtm_summary: "$.content.deliverable.content"
+        summary_deliverable_id: "$.content.deliverable.id"
+
+  parameters:
+    - name: campaign_name
+      type: string
+      required: true
+      description: Campaign name displayed in briefs and assets.
+    - name: launch_date
+      type: date
+      required: true
+      description: Planned go-live date.
+    - name: primary_offer
+      type: string
+      required: true
+      description: Core offer or call-to-action.
+    - name: target_audience
+      type: string
+      required: true
+      description: Audience segment guidance for messaging.
+    - name: preferred_channels
+      type: string[]
+      required: false
+      default:
+        - web
+        - email
+        - social
+      description: Channels to emphasize in asset drafts.
+
+  error_handling:
+    on_step_failure:
+      maxAttempts: 3
+      initialDelayMs: 3000
+      backoffMultiplier: 2
+      allowSkip: true
+      notifyHuman: true
+    rollback:
+      reversible: true
+      description: Revert to prior approved messaging if any asset fails validation.

@@ -80,6 +80,7 @@ export class OrchestrationStateService {
             attempt: 1,
             history: [],
             nextRetryAt: null,
+            maxAttempts: retryBehavior.maxAttempts,
           },
         };
       }
@@ -157,22 +158,50 @@ export class OrchestrationStateService {
   /**
    * Return steps in a run that are ready for execution (all dependencies completed).
    */
-  async findRunnableSteps(runId: string): Promise<OrchestrationStepRecord[]> {
-    const steps = await this.orchestrationRunner.listSteps(runId);
+  async findRunnableSteps(
+    runId: string,
+    options: {
+      steps?: OrchestrationStepRecord[];
+      limit?: number;
+    } = {},
+  ): Promise<OrchestrationStepRecord[]> {
+    const steps =
+      options.steps ?? (await this.orchestrationRunner.listSteps(runId));
     const completed = new Set(
       steps
         .filter((step) => step.status === 'completed')
         .map((step) => step.step_id),
     );
+    const now = Date.now();
+    const limit =
+      typeof options.limit === 'number' ? Math.max(0, options.limit) : null;
 
-    return steps.filter((step) => {
-      if (step.status !== 'pending') {
-        return false;
-      }
-      return (step.depends_on ?? []).every((dependency) =>
-        completed.has(dependency),
-      );
-    });
+    const ready = steps
+      .filter((step) => {
+        if (step.status !== 'pending') {
+          return false;
+        }
+        const runtime = this.asRecord(
+          (step.metadata as Record<string, any> | undefined)?.runtime,
+        );
+        const retryState = this.asRecord(runtime?.retry);
+        if (retryState?.nextRetryAt) {
+          const scheduled = Date.parse(retryState.nextRetryAt);
+          if (!Number.isNaN(scheduled) && scheduled > now) {
+            return false;
+          }
+        }
+        return (step.depends_on ?? []).every((dependency) =>
+          completed.has(dependency),
+        );
+      })
+      .sort((a, b) => a.step_index - b.step_index);
+
+    if (limit !== null) {
+      return ready.slice(0, limit);
+    }
+
+    return ready;
   }
 
   /**

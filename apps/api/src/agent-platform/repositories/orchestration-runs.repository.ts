@@ -247,18 +247,16 @@ export class OrchestrationRunsRepository {
       return [];
     }
 
-    const { data, error } = (await this.client()
+    const { data, error} = (await this.client()
       .from(TABLE)
       .select('*')
       .in('id', ids)) as SupabaseListResponse<OrchestrationRunRecord>;
 
     if (error) {
       this.logger.error(
-        `Failed to load orchestration runs by ids: ${error.message}`,
+        `Failed to list orchestration runs by ids: ${error.message}`,
       );
-      throw new Error(
-        `Failed to load orchestration runs by ids: ${error.message}`,
-      );
+      throw new Error(`Failed to list orchestration runs: ${error.message}`);
     }
 
     return data ?? [];

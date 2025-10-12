@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { BaseAgentRunner } from './base-agent-runner.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
@@ -49,6 +49,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     private readonly executionService: OrchestrationExecutionService,
     private readonly orchestrationEvents: OrchestrationEventsService,
     private readonly checkpointService: OrchestrationCheckpointService,
+    @Inject(forwardRef(() => OrchestrationStepExecutorService))
     private readonly stepExecutor: OrchestrationStepExecutorService,
     private readonly runFactory: OrchestrationRunFactoryService,
   ) {
@@ -303,8 +304,12 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       });
     }
 
+    const concurrencyLimit =
+      this.executionService.getConcurrencyLimit(resolution.run);
     const { run: resumedRun, readySteps } =
-      await this.executionService.startExecution(resolution.run.id);
+      await this.executionService.startExecution(resolution.run.id, {
+        maxParallel: concurrencyLimit,
+      });
     const allSteps = await this.orchestrationRunner.listSteps(resumedRun.id);
 
     if (readySteps.length > 0) {

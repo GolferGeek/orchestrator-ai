@@ -94,15 +94,17 @@ export class OrchestrationExecutionService {
         ? Math.max(0, Math.floor(maxParallel) - activeCount)
         : steps.length;
 
-    const readySteps =
-      availableSlots <= 0
-        ? []
-        : await this.stateService.findRunnableSteps(runId, {
-            steps,
-            limit: Number.isFinite(maxParallel)
-              ? Math.max(availableSlots, 0)
-              : undefined,
-          });
+    let readySteps: OrchestrationStepRecord[];
+    if (availableSlots <= 0) {
+      readySteps = [];
+    } else {
+      readySteps = await this.stateService.findRunnableSteps(runId, {
+        steps,
+        limit: Number.isFinite(maxParallel)
+          ? Math.max(availableSlots, 0)
+          : undefined,
+      });
+    }
 
     if (!readySteps.length && activeCount === 0) {
       const completedRun = await this.orchestrationRunner.updateRun({

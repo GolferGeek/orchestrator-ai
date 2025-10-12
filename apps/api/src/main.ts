@@ -108,6 +108,10 @@ async function bootstrap() {
     )
     .addTag('sovereign-policy', 'Sovereign mode policy management')
     .addTag('models', 'Model and provider management')
+    .addTag(
+      'orchestrations',
+      'Orchestration dashboard, approvals, and replay APIs',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

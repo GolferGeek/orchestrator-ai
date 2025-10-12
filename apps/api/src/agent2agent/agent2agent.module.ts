@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { Agent2AgentController } from './agent2agent.controller';
 import { AgentApprovalsActionsController } from './controllers/agent-approvals-actions.controller';
 import { AgentPlatformModule } from '../agent-platform/agent-platform.module';
@@ -32,7 +32,7 @@ import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
-    AgentPlatformModule,
+    forwardRef(() => AgentPlatformModule),
     LLMModule,
     AuthModule,
     SupabaseModule,
@@ -65,6 +65,10 @@ import { HttpModule } from '@nestjs/axios';
     Agent2AgentTaskStatusService,
     Agent2AgentConversationsService,
   ],
-  exports: [AgentExecutionGateway],
+  exports: [
+    AgentExecutionGateway,
+    OrchestrationStepExecutorService,
+    AgentModeRouterService,
+  ],
 })
 export class Agent2AgentModule {}

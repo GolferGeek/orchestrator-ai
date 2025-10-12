@@ -1,0 +1,145 @@
+metadata:
+  name: content-pipeline
+  displayName: Content Pipeline
+  version: 1.0.0
+  description: Generates a long-form article, runs compliance review, and prepares distribution assets.
+
+orchestration:
+  execution:
+    concurrency:
+      maxParallel: 1
+    caching:
+      enabled: true
+      ttlSeconds: 43200
+      steps:
+        - id: generate-outline
+          ttlSeconds: 86400
+  steps:
+    - id: generate-outline
+      name: Generate Outline
+      agent: blog_post_writer
+      mode: BUILD
+      input:
+        userMessage: |
+          Create a detailed outline for an article about "{{ topic }}".
+          Audience: {{ audience }}.
+          Primary keyword: {{ primary_keyword }}.
+          Tone: {{ tone }}.
+          Include estimated word counts and callouts for supporting assets.
+      output_mapping:
+        outline: "$.content.deliverable.content"
+        outline_deliverable_id: "$.content.deliverable.id"
+
+    - id: write-draft
+      name: Write Article Draft
+      agent: blog_post_writer
+      mode: BUILD
+      depends_on:
+        - generate-outline
+      input:
+        userMessage: |
+          Using the approved outline below, write a {{ target_word_count }} word article.
+          Format with Markdown headings, include actionable takeaways, and cite sources inline.
+
+          Outline:
+          {{ steps.generate-outline.outline }}
+        context:
+          targetWordCount: "{{ target_word_count }}"
+          keyword: "{{ primary_keyword }}"
+      checkpoint_after:
+        question: Approve the draft before moving to compliance?
+        required: true
+        options:
+          - action: continue
+            label: Draft approved
+          - action: retry
+            label: Request revisions
+            allows_modification: true
+          - action: abort
+            label: Stop pipeline
+      output_mapping:
+        draft_markdown: "$.content.deliverable.content"
+        draft_deliverable_id: "$.content.deliverable.id"
+
+    - id: qa-review
+      name: Compliance & Voice Review
+      agent: hr_assistant
+      mode: BUILD
+      depends_on:
+        - write-draft
+      input:
+        userMessage: |
+          Review the draft content for compliance and tone.
+          Checklist:
+          - Inclusive language
+          - No legal guarantees
+          - Matches requested tone "{{ tone }}"
+          - Highlights call-to-action: {{ call_to_action }}
+          Flag sections needing revision and provide suggested copy.
+
+          Draft:
+          {{ steps.write-draft.draft_markdown }}
+        context:
+          audience: "{{ audience }}"
+          tone: "{{ tone }}"
+      output_mapping:
+        qa_report: "$.content.deliverable.content"
+        qa_deliverable_id: "$.content.deliverable.id"
+
+    - id: summarize-distribution
+      name: Distribution Summary
+      agent: summarizer
+      mode: BUILD
+      depends_on:
+        - qa-review
+      input:
+        userMessage: |
+          Produce a distribution kit for the article "{{ topic }}".
+          Include:
+          - Executive summary (150 words)
+          - Three social posts (Twitter, LinkedIn, Facebook)
+          - Email subject line + preview text
+          - Recommended tracking UTM parameters
+          Base content on the final draft and QA recommendations.
+        context:
+          draft: "{{ steps.write-draft.draft_markdown }}"
+          qaReport: "{{ steps.qa-review.qa_report }}"
+      output_mapping:
+        distribution_kit: "$.content.deliverable.content"
+        distribution_deliverable_id: "$.content.deliverable.id"
+
+  parameters:
+    - name: topic
+      type: string
+      required: true
+      description: Article topic or working title.
+    - name: audience
+      type: string
+      required: true
+      description: Audience description for tone guidance.
+    - name: primary_keyword
+      type: string
+      required: true
+      description: SEO keyword to emphasize throughout the article.
+    - name: tone
+      type: string
+      required: false
+      default: authoritative
+      description: Writing voice (e.g., conversational, authoritative, playful).
+    - name: target_word_count
+      type: number
+      required: false
+      default: 1200
+      description: Desired article length.
+    - name: call_to_action
+      type: string
+      required: false
+      default: Request a demo
+      description: CTA to weave into copy and distribution assets.
+
+  error_handling:
+    on_step_failure:
+      maxAttempts: 2
+      initialDelayMs: 5000
+      allowSkip: false
+      notifyHuman: true

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { LLMModule } from '@/llms/llm.module';
@@ -28,6 +28,7 @@ import { AgentRuntimePlansAdapter } from './services/agent-runtime-plans.adapter
 import { DeliverablesModule } from '@/agent2agent/deliverables/deliverables.module';
 import { PlansModule } from '@/agent2agent/plans/plans.module';
 import { AssetsModule } from '@/assets/assets.module';
+import { Agent2AgentModule } from '@/agent2agent/agent2agent.module';
 import { AgentRuntimeNormalizationService } from './services/agent-runtime-normalization.service';
 import { AgentRuntimeRedactionService } from './services/agent-runtime-redaction.service';
 import { FunctionAgentRunnerService } from '@/agent2agent/services/function-agent-runner.service';
@@ -51,6 +52,9 @@ import { OrchestrationStatusService } from './services/orchestration-status.serv
 import { OrchestrationOutputMapper } from './services/orchestration-output-mapper.service';
 import { OrchestrationRunFactoryService } from './services/orchestration-run-factory.service';
 import { OrchestrationDashboardService } from './services/orchestration-dashboard.service';
+import { OrchestrationCacheService } from './services/orchestration-cache.service';
+import { OrchestrationMetricsService } from './services/orchestration-metrics.service';
+import { MetricsController } from './controllers/metrics.controller';
 
 @Module({
   imports: [
@@ -60,6 +64,7 @@ import { OrchestrationDashboardService } from './services/orchestration-dashboar
     DeliverablesModule,
     PlansModule,
     AssetsModule,
+    forwardRef(() => Agent2AgentModule),
     // Agent Platform Sub-modules
     HierarchyModule,
     TasksModule,
@@ -68,6 +73,7 @@ import { OrchestrationDashboardService } from './services/orchestration-dashboar
     AgentApprovalsController,
     AgentsAdminController,
     OrchestrationsController,
+    MetricsController,
   ],
   providers: [
     AgentsRepository,
@@ -92,6 +98,8 @@ import { OrchestrationDashboardService } from './services/orchestration-dashboar
     OrchestrationOutputMapper,
     OrchestrationRunFactoryService,
     OrchestrationDashboardService,
+    OrchestrationCacheService,
+    OrchestrationMetricsService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
@@ -154,6 +162,8 @@ import { OrchestrationDashboardService } from './services/orchestration-dashboar
     AgentPromotionService,
     OrchestrationOutputMapper,
     OrchestrationDashboardService,
+    OrchestrationCacheService,
+    OrchestrationMetricsService,
   ],
 })
 export class AgentPlatformModule {}

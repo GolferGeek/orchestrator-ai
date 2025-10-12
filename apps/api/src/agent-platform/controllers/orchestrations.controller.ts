@@ -15,6 +15,9 @@ import {
   ListOrchestrationApprovalsQueryDto,
   ListOrchestrationsQueryDto,
   ResolveOrchestrationApprovalDto,
+  RetryOrchestrationStepDto,
+  SkipOrchestrationStepDto,
+  AbortOrchestrationRunDto,
 } from '../dto/orchestrations.dto';
 
 @ApiTags('orchestrations')
@@ -106,6 +109,104 @@ export class OrchestrationsController {
     return {
       success: true,
       data: result,
+    };
+  }
+
+  @Post(':runId/actions/retry')
+  @ApiOperation({
+    summary: 'Manually retry the most recent failed orchestration step.',
+  })
+  @ApiOkResponse({
+    description: 'Updated orchestration run summary after scheduling the retry.',
+  })
+  async retryFailedStep(
+    @Param('runId') runId: string,
+    @Body() body: RetryOrchestrationStepDto,
+    @Req() req: any,
+  ) {
+    const actor =
+      req.user?.sub ??
+      req.user?.id ??
+      req.user?.userId ??
+      req.user?.user_id ??
+      null;
+
+    const summary = await this.dashboardService.retryStep({
+      runId,
+      stepRecordId: body.stepRecordId,
+      delaySeconds: body.delaySeconds,
+      modifications: body.modifications,
+      note: body.note ?? null,
+      actorId: actor,
+    });
+
+    return {
+      success: true,
+      data: summary,
+    };
+  }
+
+  @Post(':runId/actions/skip')
+  @ApiOperation({
+    summary: 'Manually skip a failed orchestration step and continue execution.',
+  })
+  @ApiOkResponse({
+    description: 'Updated orchestration summary reflecting the skipped step.',
+  })
+  async skipFailedStep(
+    @Param('runId') runId: string,
+    @Body() body: SkipOrchestrationStepDto,
+    @Req() req: any,
+  ) {
+    const actor =
+      req.user?.sub ??
+      req.user?.id ??
+      req.user?.userId ??
+      req.user?.user_id ??
+      null;
+
+    const summary = await this.dashboardService.skipStep({
+      runId,
+      stepRecordId: body.stepRecordId,
+      note: body.note ?? null,
+      replacementOutput: body.replacementOutput ?? undefined,
+      actorId: actor,
+    });
+
+    return {
+      success: true,
+      data: summary,
+    };
+  }
+
+  @Post(':runId/actions/abort')
+  @ApiOperation({
+    summary: 'Abort an orchestration run and mark it as terminated.',
+  })
+  @ApiOkResponse({
+    description: 'Updated orchestration summary after aborting the run.',
+  })
+  async abortRun(
+    @Param('runId') runId: string,
+    @Body() body: AbortOrchestrationRunDto,
+    @Req() req: any,
+  ) {
+    const actor =
+      req.user?.sub ??
+      req.user?.id ??
+      req.user?.userId ??
+      req.user?.user_id ??
+      null;
+
+    const summary = await this.dashboardService.abortRun({
+      runId,
+      note: body.note ?? null,
+      actorId: actor,
+    });
+
+    return {
+      success: true,
+      data: summary,
     };
   }
 

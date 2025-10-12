@@ -166,3 +166,78 @@ export class ResolveOrchestrationApprovalDto {
   @IsObject()
   modifications?: Record<string, any>;
 }
+
+export class RetryOrchestrationStepDto {
+  @ApiPropertyOptional({
+    description:
+      'Specific orchestration step record identifier to retry. Defaults to the last failed step when omitted.',
+  })
+  @IsOptional()
+  @IsString()
+  stepRecordId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Optional delay before retrying the step, expressed in seconds (0-600).',
+    minimum: 0,
+    maximum: 600,
+    default: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(600)
+  delaySeconds?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Optional modifications to merge into the step input prior to retry execution.',
+    type: Object,
+  })
+  @IsOptional()
+  @IsObject()
+  modifications?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: 'Optional note recorded alongside the manual retry request.',
+  })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class SkipOrchestrationStepDto {
+  @ApiPropertyOptional({
+    description:
+      'Specific orchestration step record identifier to skip. Defaults to the last failed step when omitted.',
+  })
+  @IsOptional()
+  @IsString()
+  stepRecordId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional note recorded alongside the skip action.',
+  })
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Optional replacement output object persisted for downstream steps when skipping.',
+    type: Object,
+  })
+  @IsOptional()
+  @IsObject()
+  replacementOutput?: Record<string, any>;
+}
+
+export class AbortOrchestrationRunDto {
+  @ApiPropertyOptional({
+    description: 'Optional note captured when aborting the orchestration run.',
+  })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}

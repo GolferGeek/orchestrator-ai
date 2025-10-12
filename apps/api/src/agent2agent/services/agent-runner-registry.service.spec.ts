@@ -179,19 +179,19 @@ describe('AgentRunnerRegistryService', () => {
   });
 
   describe('getRunnerCount', () => {
-    it('should return 5 for auto-registered runners', () => {
-      // Registry auto-registers 5 runners in constructor
-      expect(service.getRunnerCount()).toBe(5);
+    it('should return 6 for auto-registered runners', () => {
+      // Registry auto-registers 6 runners in constructor
+      expect(service.getRunnerCount()).toBe(6);
     });
 
     it('should return the correct count after adding more runners', () => {
-      expect(service.getRunnerCount()).toBe(5);
-
-      service.registerRunner('custom1', new MockAgentRunner('custom1'));
       expect(service.getRunnerCount()).toBe(6);
 
-      service.registerRunner('custom2', new MockAgentRunner('custom2'));
+      service.registerRunner('custom1', new MockAgentRunner('custom1'));
       expect(service.getRunnerCount()).toBe(7);
+
+      service.registerRunner('custom2', new MockAgentRunner('custom2'));
+      expect(service.getRunnerCount()).toBe(8);
     });
   });
 });

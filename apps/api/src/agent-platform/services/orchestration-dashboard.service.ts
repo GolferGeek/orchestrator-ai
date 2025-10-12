@@ -1,8 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
 import {
-  OrchestrationRunsRepository,
-  OrchestrationRunListOptions,
-} from '../repositories/orchestration-runs.repository';
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common';
+import { OrchestrationRunsRepository } from '../repositories/orchestration-runs.repository';
 import {
   HumanApprovalsRepository,
   HumanApprovalRecord,
@@ -17,6 +21,7 @@ import {
 } from './orchestration-checkpoint.service';
 import { OrchestrationDefinitionService } from './orchestration-definition.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
+import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
 import {
   OrchestrationApprovalListResult,
   OrchestrationApprovalListItem,
@@ -26,6 +31,8 @@ import {
   OrchestrationRunDetail,
   OrchestrationRunSummary,
 } from '../types/orchestration-dashboard.types';
+import { OrchestrationExecutionService } from './orchestration-execution.service';
+import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 
 export interface OrchestrationDashboardListOptions {
   organizationSlug?: string | null;
@@ -61,6 +68,29 @@ export interface ResolveOrchestrationApprovalOptions {
   modifications?: Record<string, any>;
 }
 
+export interface ManualRetryOptions {
+  runId: string;
+  stepRecordId?: string;
+  delaySeconds?: number;
+  modifications?: Record<string, any>;
+  note?: string | null;
+  actorId?: string | null;
+}
+
+export interface ManualSkipOptions {
+  runId: string;
+  stepRecordId?: string;
+  note?: string | null;
+  replacementOutput?: Record<string, any> | null;
+  actorId?: string | null;
+}
+
+export interface ManualAbortOptions {
+  runId: string;
+  note?: string | null;
+  actorId?: string | null;
+}
+
 @Injectable()
 export class OrchestrationDashboardService {
   private readonly logger = new Logger(OrchestrationDashboardService.name);
@@ -86,6 +116,9 @@ export class OrchestrationDashboardService {
     private readonly runner: OrchestrationRunnerService,
     private readonly checkpointService: OrchestrationCheckpointService,
     private readonly definitionService: OrchestrationDefinitionService,
+    private readonly execution: OrchestrationExecutionService,
+    @Inject(forwardRef(() => OrchestrationStepExecutorService))
+    private readonly stepExecutor: OrchestrationStepExecutorService,
   ) {}
 
   async listRuns(
@@ -93,7 +126,7 @@ export class OrchestrationDashboardService {
   ): Promise<OrchestrationDashboardListResult> {
     const statuses = this.resolveLifecycleStatuses(options.lifecycle);
 
-    const listOptions: OrchestrationRunListOptions = {
+    const listOptions = {
       organizationSlug: options.organizationSlug,
       statuses,
       definitionId: options.definitionId ?? undefined,
@@ -103,8 +136,8 @@ export class OrchestrationDashboardService {
       offset: options.offset,
       startedAfter: options.startedAfter,
       startedBefore: options.startedBefore,
-      sortBy: 'created_at',
-      sortDirection: 'desc',
+      sortBy: 'created_at' as const,
+      sortDirection: 'desc' as const,
     };
 
     const { data, count, limit, offset } =
@@ -301,6 +334,309 @@ export class OrchestrationDashboardService {
     };
   }
 
+  async retryStep(
+    options: ManualRetryOptions,
+  ): Promise<OrchestrationRunSummary> {
+    const now = new Date();
+    const run = await this.runner.getRun(options.runId);
+    if (!run) {
+      throw new NotFoundException(
+        `Orchestration run ${options.runId} could not be found`,
+      );
+    }
+
+    const step = await this.resolveTargetStep(run.id, options.stepRecordId);
+    if (!step) {
+      throw new BadRequestException(
+        'No failed step available to retry for this run',
+      );
+    }
+
+    if (step.status !== 'failed') {
+      throw new BadRequestException(
+        `Step ${step.step_id ?? step.id} is not in a failed state`,
+      );
+    }
+
+    const delaySeconds = Math.max(0, options.delaySeconds ?? 0);
+    const delayMs = delaySeconds * 1000;
+    const nextAttempt = step.attempt_number + 1;
+    const scheduledAt =
+      delayMs > 0 ? new Date(now.getTime() + delayMs).toISOString() : null;
+
+    const metadata = this.mergeStepMetadata(
+      step.metadata as Record<string, any> | undefined,
+      {},
+    );
+    const runtime = this.asRecord(metadata.runtime) ?? {};
+    const retryRuntime = this.asRecord(runtime.retry) ?? {};
+
+    const history = Array.isArray(retryRuntime.history)
+      ? [...retryRuntime.history]
+      : [];
+    history.push({
+      attempt: step.attempt_number,
+      failedAt: step.completed_at ?? now.toISOString(),
+      manual: true,
+      requestedAt: now.toISOString(),
+      requestedBy: options.actorId ?? null,
+      scheduledFor: scheduledAt,
+      note: options.note ?? null,
+    });
+
+    retryRuntime.history = history;
+    retryRuntime.nextRetryAt = scheduledAt;
+    retryRuntime.lastError = step.error_details ?? {};
+    retryRuntime.attempt = nextAttempt;
+    retryRuntime.manual = true;
+    retryRuntime.requestedAt = now.toISOString();
+    retryRuntime.requestedBy = options.actorId ?? null;
+    if (typeof retryRuntime.maxAttempts !== 'number') {
+      retryRuntime.maxAttempts =
+        this.resolveConfiguredMaxAttempts(
+          metadata,
+          step.metadata as Record<string, any> | undefined,
+        ) ?? nextAttempt;
+    }
+
+    runtime.retry = retryRuntime;
+    metadata.runtime = runtime;
+    if (options.note) {
+      metadata.lastManualNote = options.note;
+    }
+
+    const mergedInput = this.mergeRecords(
+      step.input ?? {},
+      options.modifications ?? {},
+    );
+
+    await this.runner.updateStep(step.id, {
+      status: 'pending',
+      attempt_number: nextAttempt,
+      metadata,
+      input: mergedInput,
+      started_at: null,
+      completed_at: null,
+      deliverable_id: null,
+      output: null,
+    });
+
+    const stepState = this.updateStepStateEntry(
+      run.step_state ?? {},
+      step.step_id ?? step.id,
+      {
+        status: 'pending',
+        attemptNumber: nextAttempt,
+        metadata: {
+          manualRetry: {
+            requestedAt: now.toISOString(),
+            requestedBy: options.actorId ?? null,
+            delaySeconds,
+            note: options.note ?? null,
+          },
+        },
+      },
+    );
+
+    const updatedRun = await this.runner.updateRun({
+      runId: run.id,
+      status: 'running',
+      currentStepIndex: step.step_index,
+      currentStepId: step.step_id ?? step.id,
+      stepState,
+      humanCheckpointId: null,
+      metadata: this.mergeRunMetadata(run.metadata, {
+        manualRecovery: {
+          lastAction: 'retry',
+          requestedAt: now.toISOString(),
+          requestedBy: options.actorId ?? null,
+          stepId: step.step_id ?? step.id,
+          delaySeconds,
+          note: options.note ?? null,
+        },
+      }),
+      completedAt: null,
+    });
+
+    if (delayMs > 0) {
+      setTimeout(() => {
+        this.stepExecutor
+          .processRun(run.id)
+          .catch((error) =>
+            this.logger.error(
+              `Failed to resume orchestration run ${run.id} after manual retry delay: ${error instanceof Error ? error.message : String(
+                error,
+              )}`,
+            ),
+          );
+      }, delayMs);
+    } else {
+      this.stepExecutor
+        .processRun(run.id)
+        .catch((error) =>
+          this.logger.error(
+            `Failed to resume orchestration run ${run.id} after manual retry: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
+    }
+
+    const pendingCounts =
+      await this.approvalsRepository.countPendingByRunIds([updatedRun.id]);
+
+    return this.buildRunSummary(
+      updatedRun,
+      pendingCounts[updatedRun.id] ?? 0,
+    );
+  }
+
+  async skipStep(
+    options: ManualSkipOptions,
+  ): Promise<OrchestrationRunSummary> {
+    const now = new Date().toISOString();
+    const run = await this.runner.getRun(options.runId);
+    if (!run) {
+      throw new NotFoundException(
+        `Orchestration run ${options.runId} could not be found`,
+      );
+    }
+
+    const step = await this.resolveTargetStep(run.id, options.stepRecordId);
+    if (!step) {
+      throw new BadRequestException(
+        'No target step available to skip for this run',
+      );
+    }
+
+    if (step.status === 'completed') {
+      throw new BadRequestException(
+        `Step ${step.step_id ?? step.id} is already completed`,
+      );
+    }
+
+    const behavior = this.asRecord(
+      (step.metadata as Record<string, any> | undefined)?.behavior,
+    );
+    const retryBehavior = this.asRecord(behavior?.retry);
+    if (retryBehavior && retryBehavior.allowSkip === false) {
+      throw new BadRequestException(
+        `Step ${step.step_id ?? step.id} does not allow skipping`,
+      );
+    }
+
+    const metadata = this.mergeStepMetadata(
+      step.metadata as Record<string, any> | undefined,
+      {},
+    );
+    metadata.runtime = {
+      ...(metadata.runtime ?? {}),
+      skip: {
+        manual: true,
+        requestedAt: now,
+        requestedBy: options.actorId ?? null,
+        note: options.note ?? null,
+      },
+    };
+
+    const output =
+      options.replacementOutput && Object.keys(options.replacementOutput).length
+        ? this.cloneRecord(options.replacementOutput)
+        : { skipped: true };
+
+    const completion = await this.execution.markStepCompleted(
+      step.id,
+      output,
+      {
+        metadata,
+        deliverable_id: null,
+      },
+    );
+
+    this.stepExecutor
+      .processRun(run.id)
+      .catch((error) =>
+        this.logger.error(
+          `Failed to continue orchestration run ${run.id} after manual skip: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+
+    const pendingCounts =
+      await this.approvalsRepository.countPendingByRunIds([
+        completion.run.id,
+      ]);
+
+    return this.buildRunSummary(
+      completion.run,
+      pendingCounts[completion.run.id] ?? 0,
+    );
+  }
+
+  async abortRun(
+    options: ManualAbortOptions,
+  ): Promise<OrchestrationRunSummary> {
+    const now = new Date().toISOString();
+    const run = await this.runner.getRun(options.runId);
+    if (!run) {
+      throw new NotFoundException(
+        `Orchestration run ${options.runId} could not be found`,
+      );
+    }
+
+    const stepState = { ...(run.step_state ?? {}) };
+    const currentStepKey =
+      typeof run.current_step_id === 'string' ? run.current_step_id : null;
+    if (currentStepKey) {
+      stepState[currentStepKey] = {
+        ...(stepState[currentStepKey] ?? {}),
+        status: 'aborted',
+        metadata: {
+          ...(this.asRecord(stepState[currentStepKey]?.metadata) ?? {}),
+          manualAbort: {
+            requestedAt: now,
+            requestedBy: options.actorId ?? null,
+            note: options.note ?? null,
+          },
+        },
+      };
+    }
+
+    const updatedRun = await this.runner.updateRun({
+      runId: run.id,
+      status: 'aborted',
+      stepState,
+      humanCheckpointId: null,
+      metadata: this.mergeRunMetadata(run.metadata, {
+        manualRecovery: {
+          lastAction: 'abort',
+          requestedAt: now,
+          requestedBy: options.actorId ?? null,
+          note: options.note ?? null,
+        },
+      }),
+      completedAt: now,
+    });
+
+    this.events.emitRunFailed(
+      updatedRun,
+      {
+        type: 'manual_abort',
+        note: options.note ?? null,
+      },
+      {
+        totalSteps: updatedRun.completed_steps?.length ?? 0,
+      },
+    );
+
+    const pendingCounts =
+      await this.approvalsRepository.countPendingByRunIds([
+        updatedRun.id,
+      ]);
+
+    return this.buildRunSummary(
+      updatedRun,
+      pendingCounts[updatedRun.id] ?? 0,
+    );
+  }
+
   async getReplayContext(
     runId: string,
   ): Promise<OrchestrationReplayContext | null> {
@@ -443,6 +779,129 @@ export class OrchestrationDashboardService {
       requestedAt: this.asString(checkpoint.requestedAt),
       stepLabel: this.asString(step?.label),
     };
+  }
+
+  private async resolveTargetStep(
+    runId: string,
+    stepRecordId?: string,
+  ): Promise<OrchestrationStepRecord | null> {
+    if (stepRecordId) {
+      return this.runner.getStep(stepRecordId);
+    }
+
+    const steps = await this.runner.listSteps(runId);
+    for (let index = steps.length - 1; index >= 0; index -= 1) {
+      if (steps[index]?.status === 'failed') {
+        return steps[index] ?? null;
+      }
+    }
+    return null;
+  }
+
+  private mergeStepMetadata(
+    current: Record<string, any> | undefined,
+    patch: Record<string, any>,
+  ): Record<string, any> {
+    const base =
+      current && typeof current === 'object'
+        ? this.cloneRecord(current)
+        : {};
+    this.mergeInto(base, patch);
+    return base;
+  }
+
+  private resolveConfiguredMaxAttempts(
+    metadata: Record<string, any>,
+    original: Record<string, any> | undefined,
+  ): number | null {
+    const behavior = this.asRecord(metadata.behavior);
+    const retry = this.asRecord(behavior?.retry);
+    if (retry && typeof retry.maxAttempts === 'number') {
+      return retry.maxAttempts;
+    }
+
+    const originalBehavior = this.asRecord(original?.behavior);
+    const originalRetry = this.asRecord(originalBehavior?.retry);
+    if (
+      originalRetry &&
+      typeof originalRetry.maxAttempts === 'number'
+    ) {
+      return originalRetry.maxAttempts;
+    }
+
+    return null;
+  }
+
+  private mergeRecords(
+    base: Record<string, any> | undefined,
+    patch: Record<string, any>,
+  ): Record<string, any> {
+    if (!patch || Object.keys(patch).length === 0) {
+      return base ? this.cloneRecord(base) : {};
+    }
+
+    const target =
+      base && typeof base === 'object' ? this.cloneRecord(base) : {};
+    this.mergeInto(target, patch);
+    return target;
+  }
+
+  private mergeRunMetadata(
+    existing: Record<string, any> | undefined,
+    patch: Record<string, any>,
+  ): Record<string, any> {
+    const base = { ...(existing ?? {}) };
+    const mergeResult = { ...base, ...patch };
+
+    if (patch.stats && base.stats) {
+      mergeResult.stats = {
+        ...base.stats,
+        ...patch.stats,
+      };
+    }
+
+    return mergeResult;
+  }
+
+  private updateStepStateEntry(
+    current: Record<string, any>,
+    key: string,
+    entry: Record<string, any>,
+  ): Record<string, any> {
+    return {
+      ...current,
+      [key]: {
+        ...(current[key] ?? {}),
+        ...entry,
+      },
+    };
+  }
+
+  private mergeInto(
+    target: Record<string, any>,
+    patch: Record<string, any>,
+  ): void {
+    Object.entries(patch).forEach(([key, value]) => {
+      if (
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value)
+      ) {
+        if (!target[key] || typeof target[key] !== 'object') {
+          target[key] = {};
+        }
+        this.mergeInto(target[key], value);
+      } else {
+        target[key] = value;
+      }
+    });
+  }
+
+  private asRecord(value: unknown): Record<string, any> | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    return { ...(value as Record<string, any>) };
   }
 
   private asString(value: unknown): string | null {

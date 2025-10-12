@@ -4,6 +4,9 @@ import { OrchestrationStateService } from '@agent-platform/services/orchestratio
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
+import { OrchestrationEventsService } from '@agent-platform/services/orchestration-events.service';
+import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
+import { OrchestrationRunFactoryService } from '@agent-platform/services/orchestration-run-factory.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
@@ -48,7 +51,10 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
   let stateService: jest.Mocked<OrchestrationStateService>;
   let runnerService: jest.Mocked<OrchestrationRunnerService>;
   let executionService: jest.Mocked<OrchestrationExecutionService>;
+  let eventsService: jest.Mocked<OrchestrationEventsService>;
   let checkpointService: jest.Mocked<OrchestrationCheckpointService>;
+  let stepExecutor: jest.Mocked<OrchestrationStepExecutorService>;
+  let runFactory: jest.Mocked<OrchestrationRunFactoryService>;
   let service: OrchestratorAgentRunnerService;
 
   const baseRun = {
@@ -79,16 +85,33 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
       startExecution: jest.fn(),
     } as unknown as jest.Mocked<OrchestrationExecutionService>;
 
+    eventsService = {
+      emitRunStarted: jest.fn(),
+      emitRunCompleted: jest.fn(),
+      emitRunFailed: jest.fn(),
+    } as unknown as jest.Mocked<OrchestrationEventsService>;
+
     checkpointService = {
       resolveCheckpoint: jest.fn(),
     } as unknown as jest.Mocked<OrchestrationCheckpointService>;
+
+    stepExecutor = {
+      processRun: jest.fn(),
+    } as unknown as jest.Mocked<OrchestrationStepExecutorService>;
+
+    runFactory = {
+      buildAndStartSubOrchestration: jest.fn(),
+    } as unknown as jest.Mocked<OrchestrationRunFactoryService>;
 
     service = new OrchestratorAgentRunnerService(
       definitionService,
       stateService,
       runnerService,
       executionService,
+      eventsService,
       checkpointService,
+      stepExecutor,
+      runFactory,
     );
   });
 

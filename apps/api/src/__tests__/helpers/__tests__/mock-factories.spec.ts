@@ -355,7 +355,7 @@ describe('MockFactories', () => {
       });
 
       const run = MockFactories.createOrchestrationRun({
-        orchestration_definition_slug: definition.slug,
+        orchestration_definition_id: definition.id,
       });
 
       const step = MockFactories.createOrchestrationStep({
@@ -363,7 +363,7 @@ describe('MockFactories', () => {
       });
 
       expect(step.orchestration_run_id).toBe(run.id);
-      expect(run.orchestration_definition_slug).toBe(definition.slug);
+      expect(run.orchestration_definition_id).toBe(definition.id);
     });
 
     it('should generate valid UUID v4 IDs', () => {
@@ -386,12 +386,15 @@ describe('MockFactories', () => {
       const agent = MockFactories.createAgent();
       const after = new Date();
 
-      expect(agent.created_at.getTime()).toBeGreaterThanOrEqual(
+      const createdAt = new Date(agent.created_at);
+      const updatedAt = new Date(agent.updated_at);
+
+      expect(createdAt.getTime()).toBeGreaterThanOrEqual(
         before.getTime(),
       );
-      expect(agent.created_at.getTime()).toBeLessThanOrEqual(after.getTime());
-      expect(agent.updated_at.getTime()).toBeGreaterThanOrEqual(
-        agent.created_at.getTime(),
+      expect(createdAt.getTime()).toBeLessThanOrEqual(after.getTime());
+      expect(updatedAt.getTime()).toBeGreaterThanOrEqual(
+        createdAt.getTime(),
       );
     });
   });
