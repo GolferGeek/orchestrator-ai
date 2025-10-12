@@ -85,7 +85,9 @@ describe('MockFactories', () => {
 
         expect(agent.agent_type).toBe('orchestrator');
         expect(agent.runner_type).toBe('orchestrator');
-        expect(agent.configuration.orchestration_slug).toBe('test-orchestration');
+        expect(agent.configuration.orchestration_slug).toBe(
+          'test-orchestration',
+        );
       });
 
       it('should allow overrides on type-specific factories', () => {
@@ -291,7 +293,9 @@ describe('MockFactories', () => {
         expect(scenario.steps).toHaveLength(2);
 
         // Verify relationships
-        expect(scenario.run.orchestration_definition_slug).toBe(scenario.definition.slug);
+        expect(scenario.run.orchestration_definition_slug).toBe(
+          scenario.definition.slug,
+        );
         expect(scenario.steps[0].orchestration_run_id).toBe(scenario.run.id);
         expect(scenario.steps[1].orchestration_run_id).toBe(scenario.run.id);
 
@@ -363,7 +367,8 @@ describe('MockFactories', () => {
     });
 
     it('should generate valid UUID v4 IDs', () => {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
       const agent = MockFactories.createAgent();
       const definition = MockFactories.createOrchestrationDefinition();
@@ -381,9 +386,13 @@ describe('MockFactories', () => {
       const agent = MockFactories.createAgent();
       const after = new Date();
 
-      expect(agent.created_at.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(agent.created_at.getTime()).toBeGreaterThanOrEqual(
+        before.getTime(),
+      );
       expect(agent.created_at.getTime()).toBeLessThanOrEqual(after.getTime());
-      expect(agent.updated_at.getTime()).toBeGreaterThanOrEqual(agent.created_at.getTime());
+      expect(agent.updated_at.getTime()).toBeGreaterThanOrEqual(
+        agent.created_at.getTime(),
+      );
     });
   });
 });

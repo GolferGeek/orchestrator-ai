@@ -79,11 +79,20 @@ describe('OrchestrationExecutionService', () => {
     findRunnableSteps: jest.fn(),
   } as unknown as jest.Mocked<OrchestrationStateService>;
 
+  const events = {
+    emitStepStatusChange: jest.fn(),
+    emitRunStatusChange: jest.fn(),
+    emitStepCompleted: jest.fn(),
+    emitRunCompleted: jest.fn(),
+    emitStepFailed: jest.fn(),
+    emitRunFailed: jest.fn(),
+  } as any;
+
   let service: OrchestrationExecutionService;
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new OrchestrationExecutionService(runner, state);
+    service = new OrchestrationExecutionService(runner, state, events);
   });
 
   describe('startExecution', () => {
@@ -92,6 +101,7 @@ describe('OrchestrationExecutionService', () => {
       const step = createStepRecord();
 
       runner.getRun.mockResolvedValue(run);
+      runner.listSteps.mockResolvedValue([step]);
       state.findRunnableSteps.mockResolvedValue([step]);
       runner.updateStep.mockResolvedValue({ ...step, status: 'queued' });
       runner.updateRun.mockResolvedValue({
@@ -149,6 +159,7 @@ describe('OrchestrationExecutionService', () => {
 
       runner.updateStep.mockResolvedValue(failedStep);
       runner.getRun.mockResolvedValue(run);
+      runner.listSteps.mockResolvedValue([failedStep]);
       runner.updateRun.mockResolvedValue({
         ...run,
         status: 'failed',

@@ -67,7 +67,11 @@ export class OrchestrationStepEntity {
   @Column({ name: 'checkpoint_decided_by', type: 'uuid', nullable: true })
   checkpointDecidedBy!: string | null;
 
-  @Column({ name: 'checkpoint_decided_at', type: 'timestamptz', nullable: true })
+  @Column({
+    name: 'checkpoint_decided_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
   checkpointDecidedAt!: Date | null;
 
   @Column({ name: 'invalidated_at', type: 'timestamptz', nullable: true })

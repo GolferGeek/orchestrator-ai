@@ -139,15 +139,15 @@ export class OrchestrationStepsRepository {
       .from(TABLE)
       .select('*')
       .eq('orchestration_run_id', orchestrationRunId)
-      .order('step_index', { ascending: true })) as SupabaseListResponse<OrchestrationStepRecord>;
+      .order('step_index', {
+        ascending: true,
+      })) as SupabaseListResponse<OrchestrationStepRecord>;
 
     if (error) {
       this.logger.error(
         `Failed to list orchestration steps for run ${orchestrationRunId}: ${error.message}`,
       );
-      throw new Error(
-        `Failed to list orchestration steps: ${error.message}`,
-      );
+      throw new Error(`Failed to list orchestration steps: ${error.message}`);
     }
 
     return data ?? [];

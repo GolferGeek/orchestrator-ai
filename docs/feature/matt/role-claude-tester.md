@@ -17,10 +17,11 @@ Respond with:
 > 5. **Fix any issues** - TypeScript errors, test failures, type mismatches (I don't ask Codex to fix)
 > 6. **Create verification report** - phaseN-verification-claude.md with status, findings, verdict
 > 7. **Commit and push** - Stage ALL changes (Codex's + mine), commit to phase branch, push
-> 8. **Update task log** - Log closure with file counts, test results, build status
-> 9. **Signal completion** to GolferGeek
+> 8. **Create next phase branch** - `git checkout -b integration/orchestration-phase-N+1` so Codex can start immediately
+> 9. **Update task log** - Log closure with file counts, test results, build status
+> 10. **Signal completion** to GolferGeek
 >
-> **I handle ALL git operations** except branch creation (Codex does that)
+> **I handle ALL git operations** including branch creation for next phase
 >
 > **Current status**: [Check task log - waiting for Codex or active phase to verify]
 >
@@ -68,21 +69,32 @@ Check periodically (or when GolferGeek notifies you) for new Codex entries that 
 
 When you see a completion entry:
 
-#### A. Check Build Status
+#### A. Run Migrations (if any)
+```bash
+# Check for new migrations
+ls -la apps/api/supabase/migrations/ | tail -5
+
+# Run any new migrations
+npx supabase db push
+```
+
+**Always run migrations first** - schema changes must be applied before build/tests
+
+#### B. Check Build Status
 ```bash
 npm run build 2>&1 | tail -50
 ```
 
 **If errors**: Fix TypeScript errors immediately
 
-#### B. Run Existing Tests
+#### C. Run Existing Tests
 ```bash
 npm test 2>&1 | tail -100
 ```
 
 **If failures**: Investigate and fix
 
-#### C. Review Code Quality
+#### D. Review Code Quality
 - Read new files Codex created
 - Check for proper error handling
 - Verify type safety
@@ -178,12 +190,14 @@ If you found TypeScript errors, test failures, or code issues:
 
 ### 7. Commit and Push
 
-**IMPORTANT**: You handle commits and pushes. Codex handles branch creation.
+**IMPORTANT**: You handle all git operations including branch creation for the next phase.
+
+**TIMING NOTE**: GolferGeek starts Codex on the next phase before you finish testing. Codex will be planning/thinking while you test. Your commit will capture your test work plus any early files Codex creates - this is expected and OK.
 
 When phase is verified and complete:
 
 ```bash
-# Stage all changes (yours AND Codex's)
+# Stage all changes (yours AND Codex's early work)
 git add -A
 
 # Create comprehensive commit
@@ -206,6 +220,9 @@ git commit -m "feat(orchestration): Phase N - [description]
 - Fixed [TypeScript error 1]
 - Fixed [issue 2]
 
+### Note
+This commit may include early Phase N+1 files from Codex (planning/initial implementation). This is expected due to parallel workflow.
+
 ### Verification
 ✅ Build passes
 ✅ All tests pass
@@ -226,7 +243,27 @@ git push origin integration/orchestration-phase-N
 
 ---
 
-### 8. Signal Completion
+### 8. Create Next Phase Branch
+
+After commit and push, immediately create the next phase branch:
+
+```bash
+# Calculate next phase number
+# If just closed Phase 2, create Phase 3
+git checkout -b integration/orchestration-phase-N+1
+git push -u origin integration/orchestration-phase-N+1
+```
+
+**Why**: Codex needs the branch to exist before they start implementing. Creating it now prevents conflicts during commit/test cycles.
+
+Log branch creation:
+```
+| 2025-10-12T20:35:00Z | Claude | Phase 3 | Created branch integration/orchestration-phase-3 | Ready for Codex to start Phase 3 implementation |
+```
+
+---
+
+### 9. Signal Completion
 
 Update task log with phase closure:
 
@@ -235,7 +272,7 @@ Update task log with phase closure:
 ```
 
 **Tell GolferGeek**:
-> "Phase 2 closed. All tests pass, build clean. Committed to integration/orchestration-phase-2. Ready to hand off to Codex when you clear their context."
+> "Phase 2 closed. All tests pass, build clean. Committed to integration/orchestration-phase-2. Created integration/orchestration-phase-3 for Codex. Ready to hand off."
 
 ---
 
@@ -258,6 +295,18 @@ Update task log with phase closure:
 ---
 
 ## Commands You Use
+
+### Run Migrations
+```bash
+# Check for new migrations
+ls -la apps/api/supabase/migrations/
+
+# Push migrations to local Supabase
+npx supabase db push
+
+# Check migration status
+npx supabase migration list
+```
 
 ### Check Build
 ```bash
@@ -368,21 +417,25 @@ Ask for guidance when:
 ## Example Session
 
 ```
-GolferGeek: "Codex finished Phase 2, check it out"
+GolferGeek: "Codex finished Phase 2, check it out. Starting them on Phase 3 now."
 
 Claude:
-1. Read task log - sees Codex completion entry
-2. Check build - finds 3 TypeScript errors
-3. Fix errors in 5 minutes
-4. Review code - looks good, solid implementation
-5. Write 18 test cases for new services
-6. Run tests - all pass
-7. Create phase2-verification-claude.md
-8. Update task log with verification entry
-9. Commit everything with detailed message
-10. Push to remote
-11. Update task log with closure entry
-12. Report: "Phase 2 verified and closed. Ready for Phase 3."
+1. Read task log - sees Codex Phase 2 completion entry
+2. Check for new migrations - runs npx supabase db push
+3. Check build - finds 3 TypeScript errors
+4. Fix errors in 5 minutes
+5. Review code - looks good, solid implementation
+6. Write 18 test cases for new services
+7. Run tests - all pass
+8. Create phase2-verification-claude.md
+9. Update task log with verification entry
+10. Stage all files (Phase 2 + Codex's early Phase 3 files) and commit
+11. Push to remote
+12. Create integration/orchestration-phase-4 branch
+13. Update task log with closure and branch creation
+14. Report: "Phase 2 verified and closed. Phase 4 branch ready. Codex can continue Phase 3."
+
+Note: Codex was planning/starting Phase 3 during steps 1-8. Commit includes their early work.
 ```
 
 ---

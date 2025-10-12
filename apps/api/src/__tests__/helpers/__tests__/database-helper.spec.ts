@@ -21,7 +21,9 @@ describe('DatabaseTestHelper', () => {
 
   beforeAll(async () => {
     if (!isSupabaseConfigured) {
-      console.warn('⚠️  Supabase not configured - skipping database helper tests');
+      console.warn(
+        '⚠️  Supabase not configured - skipping database helper tests',
+      );
       return;
     }
     await DatabaseTestHelper.setupTestDatabase();
@@ -40,7 +42,9 @@ describe('DatabaseTestHelper', () => {
         return expect(true).toBe(true); // Skip
       }
 
-      await expect(DatabaseTestHelper.setupTestDatabase()).resolves.not.toThrow();
+      await expect(
+        DatabaseTestHelper.setupTestDatabase(),
+      ).resolves.not.toThrow();
     });
 
     it('should teardown test database connection', async () => {
@@ -48,7 +52,9 @@ describe('DatabaseTestHelper', () => {
         return expect(true).toBe(true); // Skip
       }
 
-      await expect(DatabaseTestHelper.teardownTestDatabase()).resolves.not.toThrow();
+      await expect(
+        DatabaseTestHelper.teardownTestDatabase(),
+      ).resolves.not.toThrow();
     });
 
     it('should handle multiple setup calls idempotently', async () => {
@@ -57,7 +63,9 @@ describe('DatabaseTestHelper', () => {
       }
 
       await DatabaseTestHelper.setupTestDatabase();
-      await expect(DatabaseTestHelper.setupTestDatabase()).resolves.not.toThrow();
+      await expect(
+        DatabaseTestHelper.setupTestDatabase(),
+      ).resolves.not.toThrow();
     });
   });
 
@@ -159,7 +167,7 @@ describe('DatabaseTestHelper', () => {
         // This test verifies the method runs without error
         // Actual cleanup behavior is tested in integration tests
         await expect(
-          DatabaseTestHelper.cleanupTestData(TEST_PREFIX)
+          DatabaseTestHelper.cleanupTestData(TEST_PREFIX),
         ).resolves.not.toThrow();
       });
 
@@ -169,7 +177,7 @@ describe('DatabaseTestHelper', () => {
         }
 
         await expect(
-          DatabaseTestHelper.cleanupTestData('nonexistent-prefix-')
+          DatabaseTestHelper.cleanupTestData('nonexistent-prefix-'),
         ).resolves.not.toThrow();
       });
     });
@@ -180,9 +188,9 @@ describe('DatabaseTestHelper', () => {
           return expect(true).toBe(true); // Skip
         }
 
-        await expect(
-          DatabaseTestHelper.truncateTable('users')
-        ).rejects.toThrow('not whitelisted');
+        await expect(DatabaseTestHelper.truncateTable('users')).rejects.toThrow(
+          'not whitelisted',
+        );
       });
 
       it('should allow truncation of whitelisted tables', async () => {
@@ -192,7 +200,7 @@ describe('DatabaseTestHelper', () => {
 
         // orchestration_steps is whitelisted
         await expect(
-          DatabaseTestHelper.truncateTable('orchestration_steps')
+          DatabaseTestHelper.truncateTable('orchestration_steps'),
         ).resolves.not.toThrow();
       });
     });
@@ -204,7 +212,7 @@ describe('DatabaseTestHelper', () => {
         }
 
         await expect(
-          DatabaseTestHelper.cleanupAllTestOrchestrations()
+          DatabaseTestHelper.cleanupAllTestOrchestrations(),
         ).resolves.not.toThrow();
       });
     });
@@ -219,7 +227,7 @@ describe('DatabaseTestHelper', () => {
 
         const exists = await DatabaseTestHelper.recordExists(
           'agents',
-          '00000000-0000-0000-0000-000000000000'
+          '00000000-0000-0000-0000-000000000000',
         );
 
         expect(exists).toBe(false);
@@ -238,7 +246,10 @@ describe('DatabaseTestHelper', () => {
 
         await DatabaseTestHelper.seedTestAgent(testAgent);
 
-        const exists = await DatabaseTestHelper.recordExists('agents', testAgent.id);
+        const exists = await DatabaseTestHelper.recordExists(
+          'agents',
+          testAgent.id,
+        );
 
         expect(exists).toBe(true);
 
@@ -256,7 +267,7 @@ describe('DatabaseTestHelper', () => {
         const count = await DatabaseTestHelper.countRecords(
           'agents',
           'organization_slug',
-          'test-org'
+          'test-org',
         );
 
         expect(typeof count).toBe('number');
@@ -271,7 +282,7 @@ describe('DatabaseTestHelper', () => {
         const count = await DatabaseTestHelper.countRecords(
           'agents',
           'organization_slug',
-          'nonexistent-org-12345'
+          'nonexistent-org-12345',
         );
 
         expect(count).toBe(0);
@@ -339,7 +350,8 @@ describe('DatabaseTestHelper', () => {
           organization_slug: 'test-org',
         });
 
-        const seeded = await DatabaseTestHelper.seedTestOrchestration(testDefinition);
+        const seeded =
+          await DatabaseTestHelper.seedTestOrchestration(testDefinition);
 
         expect(seeded).toBeDefined();
         expect(seeded.id).toBe(testDefinition.id);
@@ -415,8 +427,9 @@ describe('DatabaseTestHelper', () => {
       // Reset cached auth
       await DatabaseTestHelper.teardownTestDatabase();
 
-      await expect(DatabaseTestHelper.authenticateTestUser())
-        .rejects.toThrow(/authentication failed/i);
+      await expect(DatabaseTestHelper.authenticateTestUser()).rejects.toThrow(
+        /authentication failed/i,
+      );
 
       // Restore
       process.env.SUPABASE_TEST_USER = originalUser;
@@ -429,7 +442,7 @@ describe('DatabaseTestHelper', () => {
 
       // Try to check existence on non-existent table
       await expect(
-        DatabaseTestHelper.recordExists('nonexistent_table', 'some-id')
+        DatabaseTestHelper.recordExists('nonexistent_table', 'some-id'),
       ).rejects.toThrow();
     });
 
@@ -440,7 +453,7 @@ describe('DatabaseTestHelper', () => {
 
       // Try to count on non-existent table
       await expect(
-        DatabaseTestHelper.countRecords('nonexistent_table', 'column', 'value')
+        DatabaseTestHelper.countRecords('nonexistent_table', 'column', 'value'),
       ).rejects.toThrow();
     });
   });

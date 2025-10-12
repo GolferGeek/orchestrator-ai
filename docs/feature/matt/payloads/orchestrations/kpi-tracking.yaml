@@ -1,0 +1,87 @@
+metadata:
+  name: kpi-tracking
+  displayName: KPI Tracking Orchestration
+  version: 1.0.0
+  description: Fetch and analyze KPI metrics from database
+
+orchestration:
+  steps:
+    - id: fetch-kpi-data
+      name: Fetch KPI Data
+      agent: supabase-agent
+      mode: BUILD
+      input:
+        userMessage: |
+          Fetch KPI metrics for: {{ kpi_names }}
+          Time range: {{ start_date }} to {{ end_date }}
+          Group by: {{ grouping }}
+
+          Use schema introspection to understand table structure,
+          then build and execute the appropriate query.
+        context:
+          kpiNames: "{{ kpi_names }}"
+          startDate: "{{ start_date }}"
+          endDate: "{{ end_date }}"
+          grouping: "{{ grouping }}"
+      checkpoint_after:
+        question: Review KPI query results before summarizing?
+        required: false
+        options:
+          - action: continue
+            label: Looks good, proceed to summary
+          - action: retry
+            label: Retry with different parameters
+            allows_modification: true
+          - action: abort
+            label: Stop orchestration
+      output_mapping:
+        query_results: "$.content.deliverable.content"
+        sql: "$.content.deliverable.metadata.sql"
+        row_count: "$.content.deliverable.metadata.rowCount"
+
+    - id: summarize-results
+      name: Summarize KPIs
+      agent: summarizer
+      mode: BUILD
+      depends_on:
+        - fetch-kpi-data
+      input:
+        userMessage: |
+          Analyze these KPI results and provide:
+          - Key metrics summary
+          - Trends and patterns
+          - Recommendations
+        context:
+          data: "{{ steps.fetch-kpi-data.query_results }}"
+          kpis: "{{ kpi_names }}"
+          sql: "{{ steps.fetch-kpi-data.sql }}"
+          row_count: "{{ steps.fetch-kpi-data.row_count }}"
+      output_mapping:
+        summary: "$.content.deliverable.content"
+        summary_deliverable_id: "$.content.deliverable.id"
+
+  parameters:
+    - name: kpi_names
+      type: string[]
+      required: true
+      description: Names of KPIs to track
+    - name: start_date
+      type: date
+      required: true
+      description: Start date for KPI tracking
+    - name: end_date
+      type: date
+      required: true
+      description: End date for KPI tracking
+    - name: grouping
+      type: string
+      required: false
+      default: day
+      enum: [day, week, month]
+      description: Time grouping for results
+
+  error_handling:
+    on_step_failure:
+      retry_count: 2
+      notify_human: true
+      allow_skip: false

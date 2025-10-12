@@ -112,12 +112,11 @@ export class DatabaseTestHelper {
 
     // Fallback: authenticate via Supabase client directly
     await DatabaseTestHelper.setupTestDatabase();
-    const { data, error } = await DatabaseTestHelper.supabaseClient!.auth.signInWithPassword(
-      {
+    const { data, error } =
+      await DatabaseTestHelper.supabaseClient!.auth.signInWithPassword({
         email: TEST_DB_CONFIG.testUser,
         password: TEST_DB_CONFIG.testPassword,
-      },
-    );
+      });
 
     if (error || !data.session) {
       throw new Error(
@@ -183,15 +182,9 @@ export class DatabaseTestHelper {
     const client = DatabaseTestHelper.supabaseClient!;
 
     // Clean up orchestration data
-    await client
-      .from('orchestration_steps')
-      .delete()
-      .like('id', `${prefix}%`);
+    await client.from('orchestration_steps').delete().like('id', `${prefix}%`);
 
-    await client
-      .from('orchestration_runs')
-      .delete()
-      .like('id', `${prefix}%`);
+    await client.from('orchestration_runs').delete().like('id', `${prefix}%`);
 
     await client
       .from('orchestration_definitions')
@@ -199,26 +192,14 @@ export class DatabaseTestHelper {
       .like('slug', `${prefix}%`);
 
     // Clean up conversations and deliverables
-    await client
-      .from('deliverables')
-      .delete()
-      .like('id', `${prefix}%`);
+    await client.from('deliverables').delete().like('id', `${prefix}%`);
 
-    await client
-      .from('tasks')
-      .delete()
-      .like('id', `${prefix}%`);
+    await client.from('tasks').delete().like('id', `${prefix}%`);
 
-    await client
-      .from('conversations')
-      .delete()
-      .like('id', `${prefix}%`);
+    await client.from('conversations').delete().like('id', `${prefix}%`);
 
     // Clean up test agents
-    await client
-      .from('agents')
-      .delete()
-      .like('slug', `${prefix}%`);
+    await client.from('agents').delete().like('slug', `${prefix}%`);
   }
 
   /**
@@ -246,7 +227,10 @@ export class DatabaseTestHelper {
     const client = DatabaseTestHelper.supabaseClient!;
 
     // Delete all rows (Supabase doesn't expose TRUNCATE)
-    await client.from(tableName).delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Match all
+    await client
+      .from(tableName)
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Match all
   }
 
   /**
@@ -273,10 +257,7 @@ export class DatabaseTestHelper {
       .delete()
       .eq('organization_slug', 'test-org');
 
-    await client
-      .from('agents')
-      .delete()
-      .eq('organization_slug', 'test-org');
+    await client.from('agents').delete().eq('organization_slug', 'test-org');
   }
 
   // --------------------------------------------------------------------------
@@ -430,9 +411,7 @@ export class DatabaseTestHelper {
       .single();
 
     if (error) {
-      throw new Error(
-        `Failed to seed test orchestration: ${error.message}`,
-      );
+      throw new Error(`Failed to seed test orchestration: ${error.message}`);
     }
 
     return data;

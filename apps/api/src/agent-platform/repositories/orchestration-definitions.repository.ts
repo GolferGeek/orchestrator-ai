@@ -20,9 +20,7 @@ const TABLE = 'orchestration_definitions';
 
 @Injectable()
 export class OrchestrationDefinitionsRepository {
-  private readonly logger = new Logger(
-    OrchestrationDefinitionsRepository.name,
-  );
+  private readonly logger = new Logger(OrchestrationDefinitionsRepository.name);
 
   constructor(private readonly supabase: SupabaseService) {}
 
@@ -148,7 +146,8 @@ export class OrchestrationDefinitionsRepository {
       query = query.eq('version', version);
     }
 
-    const { data, error } = (await query.maybeSingle()) as SupabaseSingleResponse<OrchestrationDefinitionRecord>;
+    const { data, error } =
+      (await query.maybeSingle()) as SupabaseSingleResponse<OrchestrationDefinitionRecord>;
 
     if (error && error.code !== 'PGRST116') {
       this.logger.error(
@@ -169,7 +168,9 @@ export class OrchestrationDefinitionsRepository {
       .from(TABLE)
       .select('*')
       .eq('organization_slug', organizationSlug)
-      .order('updated_at', { ascending: false })) as SupabaseListResponse<OrchestrationDefinitionRecord>;
+      .order('updated_at', {
+        ascending: false,
+      })) as SupabaseListResponse<OrchestrationDefinitionRecord>;
 
     if (error) {
       this.logger.error(

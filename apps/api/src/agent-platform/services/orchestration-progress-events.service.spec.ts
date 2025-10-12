@@ -221,7 +221,10 @@ describe('OrchestrationProgressEventsService', () => {
         taskStatusService,
       );
 
-      const step = createStepSnapshot({ id: 'step-1', metadata: { name: 'Fetch Data' } });
+      const step = createStepSnapshot({
+        id: 'step-1',
+        metadata: { name: 'Fetch Data' },
+      });
       const event = createEvent(
         'orchestration.step.running',
         {
@@ -443,11 +446,7 @@ describe('OrchestrationProgressEventsService', () => {
         index: 0,
         metadata: { name: 'Fetch Data' },
       });
-      const event = createEvent(
-        'orchestration.step.running',
-        {},
-        { step },
-      );
+      const event = createEvent('orchestration.step.running', {}, { step });
 
       await service.handleEvent(event);
 

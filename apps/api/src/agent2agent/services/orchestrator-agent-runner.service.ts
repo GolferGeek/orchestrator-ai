@@ -14,6 +14,7 @@ import {
 import { OrchestrationResolvedDefinition } from '@agent-platform/types/orchestration-definition.types';
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
 import { OrchestrationEventsService } from '@agent-platform/services/orchestration-events.service';
+import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
 
 interface OrchestratorStartPayload {
   orchestrationDefinitionId?: string;
@@ -47,6 +48,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     private readonly executionService: OrchestrationExecutionService,
     private readonly orchestrationEvents: OrchestrationEventsService,
     private readonly checkpointService: OrchestrationCheckpointService,
+    private readonly stepExecutor: OrchestrationStepExecutorService,
   ) {
     super();
   }
@@ -202,6 +204,16 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         executionRun.id,
       );
 
+      if (readySteps.length > 0) {
+        this.stepExecutor
+          .processRun(executionRun.id)
+          .catch((err) =>
+            this.logger.error(
+              `Failed to process orchestration run ${executionRun.id}: ${err instanceof Error ? err.message : err}`,
+            ),
+          );
+      }
+
       return this.buildRunSuccessResponse(
         executionRun,
         allSteps,
@@ -330,6 +342,16 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     const { run: resumedRun, readySteps } =
       await this.executionService.startExecution(resolution.run.id);
     const allSteps = await this.orchestrationRunner.listSteps(resumedRun.id);
+
+    if (readySteps.length > 0) {
+      this.stepExecutor
+        .processRun(resumedRun.id)
+        .catch((err) =>
+          this.logger.error(
+            `Failed to continue orchestration run ${resumedRun.id}: ${err instanceof Error ? err.message : err}`,
+          ),
+        );
+    }
 
     return this.buildRunSuccessResponse(
       resumedRun,

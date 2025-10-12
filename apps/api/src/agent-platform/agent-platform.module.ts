@@ -48,6 +48,7 @@ import { OrchestrationEventsService } from './services/orchestration-events.serv
 import { OrchestrationProgressEventsService } from './services/orchestration-progress-events.service';
 import { TasksModule } from '@/agent2agent/tasks/tasks.module';
 import { OrchestrationStatusService } from './services/orchestration-status.service';
+import { OrchestrationOutputMapper } from './services/orchestration-output-mapper.service';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { OrchestrationStatusService } from './services/orchestration-status.serv
     OrchestrationProgressEventsService,
     OrchestrationExecutionService,
     OrchestrationStatusService,
+    OrchestrationOutputMapper,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
@@ -145,6 +147,7 @@ import { OrchestrationStatusService } from './services/orchestration-status.serv
     AgentPolicyService,
     AgentBuilderService,
     AgentPromotionService,
+    OrchestrationOutputMapper,
   ],
 })
 export class AgentPlatformModule {}

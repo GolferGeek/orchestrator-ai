@@ -9,10 +9,7 @@ import { HumanApprovalsRepository } from '../repositories/human-approvals.reposi
 import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 
-export type OrchestrationCheckpointDecision =
-  | 'continue'
-  | 'retry'
-  | 'abort';
+export type OrchestrationCheckpointDecision = 'continue' | 'retry' | 'abort';
 
 export interface RequestOrchestrationCheckpointOptions {
   runId: string;
@@ -139,9 +136,7 @@ export class OrchestrationCheckpointService {
   async resolveCheckpoint(
     options: ResolveOrchestrationCheckpointOptions,
   ): Promise<{
-    approval: Awaited<
-      ReturnType<HumanApprovalsRepository['setStatus']>
-    >;
+    approval: Awaited<ReturnType<HumanApprovalsRepository['setStatus']>>;
     run: OrchestrationRunRecord;
     decision: OrchestrationCheckpointDecision;
   }> {

@@ -5,7 +5,9 @@ import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
 
-const createRun = (overrides: Partial<OrchestrationRunRecord> = {}): OrchestrationRunRecord => ({
+const createRun = (
+  overrides: Partial<OrchestrationRunRecord> = {},
+): OrchestrationRunRecord => ({
   id: 'run-1',
   plan_id: null,
   orchestration_definition_id: 'def-1',
@@ -35,7 +37,9 @@ const createRun = (overrides: Partial<OrchestrationRunRecord> = {}): Orchestrati
   ...overrides,
 });
 
-const createStep = (overrides: Partial<OrchestrationStepRecord> = {}): OrchestrationStepRecord => ({
+const createStep = (
+  overrides: Partial<OrchestrationStepRecord> = {},
+): OrchestrationStepRecord => ({
   id: 'orch-step-rec-1',
   orchestration_run_id: 'run-1',
   step_index: 0,
@@ -162,9 +166,7 @@ describe('OrchestrationCheckpointService', () => {
     const run = createRun({ human_checkpoint_id: 'approval-1' });
     const updatedRun = { ...run, status: 'running', human_checkpoint_id: null };
 
-    runner.getRun
-      .mockResolvedValueOnce(run)
-      .mockResolvedValueOnce(updatedRun);
+    runner.getRun.mockResolvedValueOnce(run).mockResolvedValueOnce(updatedRun);
     runner.updateRun.mockResolvedValue(updatedRun);
 
     approvals.get.mockResolvedValue({
@@ -242,9 +244,7 @@ describe('OrchestrationCheckpointService', () => {
       human_checkpoint_id: null,
     };
 
-    runner.getRun
-      .mockResolvedValueOnce(run)
-      .mockResolvedValueOnce(updatedRun);
+    runner.getRun.mockResolvedValueOnce(run).mockResolvedValueOnce(updatedRun);
     runner.updateRun.mockResolvedValue(updatedRun);
     runner.getStep.mockResolvedValue(step);
 

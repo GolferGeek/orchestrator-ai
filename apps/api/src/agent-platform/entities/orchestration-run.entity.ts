@@ -70,7 +70,11 @@ export class OrchestrationRunEntity {
   @Column({ name: 'current_step_id', type: 'text', nullable: true })
   currentStepId!: string | null;
 
-  @Column({ name: 'completed_steps', type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({
+    name: 'completed_steps',
+    type: 'jsonb',
+    default: () => "'[]'::jsonb",
+  })
   completedSteps!: string[];
 
   @Column({ name: 'step_state', type: 'jsonb', default: () => "'{}'::jsonb" })
@@ -85,7 +89,11 @@ export class OrchestrationRunEntity {
   @Column({ name: 'results', type: 'jsonb', default: () => "'{}'::jsonb" })
   results!: Record<string, any>;
 
-  @Column({ name: 'error_details', type: 'jsonb', default: () => "'{}'::jsonb" })
+  @Column({
+    name: 'error_details',
+    type: 'jsonb',
+    default: () => "'{}'::jsonb",
+  })
   errorDetails!: Record<string, any>;
 
   @Column({ name: 'metadata', type: 'jsonb', default: () => "'{}'::jsonb" })

@@ -14,7 +14,12 @@ export enum DeliverableFormat {
   MARKDOWN = 'markdown',
   TEXT = 'text',
   JSON = 'json',
-  HTML = 'html'
+  HTML = 'html',
+  IMAGE_PNG = 'image/png',
+  IMAGE_JPEG = 'image/jpeg',
+  IMAGE_WEBP = 'image/webp',
+  IMAGE_GIF = 'image/gif',
+  IMAGE_SVG = 'image/svg+xml'
 }
 export enum DeliverableVersionCreationType {
   AI_RESPONSE = 'ai_response',
@@ -62,6 +67,7 @@ export interface CreateDeliverableDto {
   initialCreationType?: DeliverableVersionCreationType;
   initialTaskId?: string;
   initialMetadata?: Record<string, any>;
+  initialFileAttachments?: Record<string, any>;
 }
 export interface CreateVersionDto {
   content: string;
@@ -69,6 +75,7 @@ export interface CreateVersionDto {
   createdByType?: DeliverableVersionCreationType;
   taskId?: string;
   metadata?: Record<string, any>;
+  fileAttachments?: Record<string, any>;
 }
 export interface DeliverableFilters {
   type?: DeliverableType;

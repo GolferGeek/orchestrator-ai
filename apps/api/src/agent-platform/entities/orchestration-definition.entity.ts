@@ -19,10 +19,7 @@ import {
   'ownerAgentSlug',
   'organizationSlug',
 ])
-@Index('idx_orchestration_definitions_org_name', [
-  'organizationSlug',
-  'name',
-])
+@Index('idx_orchestration_definitions_org_name', ['organizationSlug', 'name'])
 export class OrchestrationDefinitionEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

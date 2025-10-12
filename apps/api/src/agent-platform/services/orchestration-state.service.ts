@@ -28,9 +28,7 @@ export class OrchestrationStateService {
     parameters: Record<string, any> = {},
   ): Promise<OrchestrationStepRecord[]> {
     const orderedStepIds = this.resolveExecutionOrder(definition.steps);
-    const stepLookup = new Map(
-      definition.steps.map((step) => [step.id, step]),
-    );
+    const stepLookup = new Map(definition.steps.map((step) => [step.id, step]));
 
     const createdSteps: Promise<OrchestrationStepRecord>[] = [];
 
@@ -111,9 +109,7 @@ export class OrchestrationStateService {
   /**
    * Return steps in a run that are ready for execution (all dependencies completed).
    */
-  async findRunnableSteps(
-    runId: string,
-  ): Promise<OrchestrationStepRecord[]> {
+  async findRunnableSteps(runId: string): Promise<OrchestrationStepRecord[]> {
     const steps = await this.orchestrationRunner.listSteps(runId);
     const completed = new Set(
       steps
@@ -150,10 +146,7 @@ export class OrchestrationStateService {
               return `{{ ${expression} }}`;
             }
 
-            const paramValue = this.lookupParameter(
-              expression,
-              parameters,
-            );
+            const paramValue = this.lookupParameter(expression, parameters);
             return paramValue !== undefined ? String(paramValue) : '';
           },
         );

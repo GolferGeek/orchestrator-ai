@@ -56,3 +56,9 @@ Chronological log tracking major orchestration delivery activities. Use UTC time
 | 2025-10-13T01:30:00Z | Claude | Phase 3 | Verified build and test suite | All 30 tests passing; build clean (0 TypeScript errors) |
 | 2025-10-13T01:35:00Z | Claude | Phase 3 | Published observability verification report | Created `phase3-observability-verification-claude.md` with build status, test coverage, issues found/fixed, integration verification, API documentation |
 | 2025-10-13T01:40:00Z | Claude | Phase 3 | Closed Phase 3 observability | Committed and pushed Phase 3 observability to integration/orchestration-phase-4 - 16 files, +2,153/-89 lines (includes Codex's impl + Claude's tests/fixes) |
+| 2025-10-12T18:50:11Z | Codex | Phase 5 | Created branch `integration/orchestration-phase-5` | Phase 5 kickoff per orchestration system plan §5 |
+| 2025-10-12T18:54:32Z | Codex | Phase 5 | Outlined implementation approach | Plan: ADR-005 deliverable mapping, Supabase migration for kpi-tracking, runner deliverable wiring, finance-manager doc updates |
+| 2025-10-12T19:03:00Z | Codex | Phase 5 | Authored ADR-005 deliverable mapping strategy | Captured JSONPath rules, fallback behavior, deliverable linkage + runtime metadata expectations for step executor |
+| 2025-10-12T19:04:39Z | Codex | Phase 5 | Seeded KPI orchestration definition | Added migration 202510140010_seed_phase5_kpi_tracking_orchestration.sql and documentation payloads/orchestrations/kpi-tracking.yaml |
+| 2025-10-12T19:15:52Z | Codex | Phase 5 | Wired orchestration step executor pipeline | Added OrchestrationOutputMapper + OrchestrationStepExecutorService with agent invocation, output mapping, checkpoint triggers; updated orchestrator runner & gateway to auto-process runs |
+| 2025-10-12T19:16:43Z | Codex | Phase 5 | Authored KPI orchestration runbook | Published docs/feature/matt/kpi-tracking-guide.md covering parameters, checkpoint flow, API usage, deliverable mapping |

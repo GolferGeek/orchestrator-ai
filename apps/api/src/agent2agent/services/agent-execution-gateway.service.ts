@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
@@ -26,9 +27,12 @@ import {
   OrchestrationCheckpointService,
 } from '@agent-platform/services/orchestration-checkpoint.service';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
+import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
 
 @Injectable()
 export class AgentExecutionGateway {
+  private readonly logger = new Logger(AgentExecutionGateway.name);
+
   constructor(
     private readonly agentRegistry: AgentRegistryService,
     private readonly runtimeDefinitions: AgentRuntimeDefinitionService,
@@ -41,6 +45,7 @@ export class AgentExecutionGateway {
     private readonly streamService: AgentRuntimeStreamService,
     private readonly approvals: HumanApprovalsRepository,
     private readonly executionService: OrchestrationExecutionService,
+    private readonly stepExecutor: OrchestrationStepExecutorService,
     private readonly checkpointService: OrchestrationCheckpointService,
   ) {}
 
@@ -597,18 +602,15 @@ export class AgentExecutionGateway {
         request.payload.approvalId
       ) {
         const actorId =
-          request.metadata?.actorId ??
-          request.metadata?.userId ??
-          null;
+          request.metadata?.actorId ?? request.metadata?.userId ?? null;
 
-        const resolutionResult =
-          await this.resolveCheckpointAndMaybeResume({
-            approvalId: request.payload.approvalId,
-            decision: request.payload.decision,
-            actorId,
-            notes: request.payload.notes ?? null,
-            modifications: request.payload.modifications ?? undefined,
-          });
+        const resolutionResult = await this.resolveCheckpointAndMaybeResume({
+          approvalId: request.payload.approvalId,
+          decision: request.payload.decision,
+          actorId,
+          notes: request.payload.notes ?? null,
+          modifications: request.payload.modifications ?? undefined,
+        });
 
         this.publishStreamChunk(streamSession, {
           type: 'partial',
@@ -694,6 +696,10 @@ export class AgentExecutionGateway {
         const allSteps = await this.orchestrationRunner.listSteps(
           executionRun.id,
         );
+
+        this.triggerRunProcessing(executionRun.id, readySteps.length);
+
+        this.triggerRunProcessing(executionRun.id, readySteps.length);
 
         this.publishStreamChunk(streamSession, {
           type: 'partial',
@@ -1027,6 +1033,20 @@ export class AgentExecutionGateway {
     };
   }
 
+  private triggerRunProcessing(runId: string, readySteps: number): void {
+    if (readySteps <= 0) {
+      return;
+    }
+
+    this.stepExecutor
+      .processRun(runId)
+      .catch((error) => {
+        this.logger.error(
+          `Failed to process orchestration run ${runId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+  }
+
   private maybeStartStream(
     request: TaskRequestDto,
     organizationSlug: string | null,
@@ -1169,17 +1189,20 @@ export class AgentExecutionGateway {
 
       if (resolutionResult.decision === 'abort') {
         this.completeStream(streamSession);
-        return TaskResponseDto.success(AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE, {
-          content: {
-            orchestrationRunId: resolutionResult.run.id,
-            status: resolutionResult.run.status,
+        return TaskResponseDto.success(
+          AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE,
+          {
+            content: {
+              orchestrationRunId: resolutionResult.run.id,
+              status: resolutionResult.run.status,
+            },
+            metadata: {
+              orchestrationDefinitionId:
+                resolutionResult.run.orchestration_definition_id,
+              ownerAgentSlug: definition.slug,
+            },
           },
-          metadata: {
-            orchestrationDefinitionId:
-              resolutionResult.run.orchestration_definition_id,
-            ownerAgentSlug: definition.slug,
-          },
-        });
+        );
       }
 
       const resumedRun = resolutionResult.run;
@@ -1206,8 +1229,7 @@ export class AgentExecutionGateway {
             readySteps,
           },
           metadata: {
-            orchestrationDefinitionId:
-              resumedRun.orchestration_definition_id,
+            orchestrationDefinitionId: resumedRun.orchestration_definition_id,
             ownerAgentSlug: definition.slug,
           },
         },
@@ -1230,9 +1252,7 @@ export class AgentExecutionGateway {
     readySteps?: Awaited<
       ReturnType<OrchestrationExecutionService['startExecution']>
     >['readySteps'];
-    steps?: Awaited<
-      ReturnType<OrchestrationRunnerService['listSteps']>
-    >;
+    steps?: Awaited<ReturnType<OrchestrationRunnerService['listSteps']>>;
   }> {
     const resolution = await this.checkpointService.resolveCheckpoint({
       approvalId: options.approvalId,
@@ -1256,6 +1276,11 @@ export class AgentExecutionGateway {
     );
     const stepList = await this.orchestrationRunner.listSteps(
       resumeResult.run.id,
+    );
+
+    this.triggerRunProcessing(
+      resumeResult.run.id,
+      resumeResult.readySteps?.length ?? 0,
     );
 
     return {

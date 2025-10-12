@@ -148,10 +148,13 @@ describe('OrchestrationStatusService', () => {
         stats: { totalSteps: 2, completedSteps: 1, progressPercentage: 50 },
       } as any);
 
-      events.snapshotStep.mockImplementation((r, s) => ({
-        id: s.step_id,
-        index: s.step_index,
-      } as any));
+      events.snapshotStep.mockImplementation(
+        (r, s) =>
+          ({
+            id: s.step_id,
+            index: s.step_index,
+          }) as any,
+      );
 
       const result = await service.getRunStatus('run-1');
 
@@ -175,10 +178,13 @@ describe('OrchestrationStatusService', () => {
         stats: { totalSteps: 2, completedSteps: 0, progressPercentage: 0 },
       } as any);
 
-      events.snapshotStep.mockImplementation((r, s) => ({
-        id: s.step_id,
-        index: s.step_index,
-      } as any));
+      events.snapshotStep.mockImplementation(
+        (r, s) =>
+          ({
+            id: s.step_id,
+            index: s.step_index,
+          }) as any,
+      );
 
       const result = await service.getRunStatus('run-1');
 
@@ -202,10 +208,13 @@ describe('OrchestrationStatusService', () => {
         stats: { totalSteps: 2, completedSteps: 1, progressPercentage: 50 },
       } as any);
 
-      events.snapshotStep.mockImplementation((r, s) => ({
-        id: s.step_id,
-        index: s.step_index,
-      } as any));
+      events.snapshotStep.mockImplementation(
+        (r, s) =>
+          ({
+            id: s.step_id,
+            index: s.step_index,
+          }) as any,
+      );
 
       const result = await service.getRunStatus('run-1');
 
@@ -251,10 +260,13 @@ describe('OrchestrationStatusService', () => {
       runner.getRun.mockResolvedValue(run);
       runner.listSteps.mockResolvedValue(steps);
 
-      events.snapshotStep.mockImplementation((r, s) => ({
-        id: s.step_id,
-        index: s.step_index,
-      } as any));
+      events.snapshotStep.mockImplementation(
+        (r, s) =>
+          ({
+            id: s.step_id,
+            index: s.step_index,
+          }) as any,
+      );
 
       const result = await service.getRunStatus('run-1');
 

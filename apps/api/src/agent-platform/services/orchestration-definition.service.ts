@@ -149,13 +149,13 @@ export class OrchestrationDefinitionService {
     const stepIds = new Set<string>();
     steps.forEach((step) => {
       if (!step.id) {
-        throw new BadRequestException('Each orchestration step must have an id');
+        throw new BadRequestException(
+          'Each orchestration step must have an id',
+        );
       }
 
       if (stepIds.has(step.id)) {
-        throw new BadRequestException(
-          `Duplicate step id detected: ${step.id}`,
-        );
+        throw new BadRequestException(`Duplicate step id detected: ${step.id}`);
       }
 
       stepIds.add(step.id);

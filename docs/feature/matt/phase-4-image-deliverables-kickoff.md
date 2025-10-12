@@ -1,6 +1,6 @@
 # Phase 4 — Image Deliverables (Kickoff)
 
-Status: Ready to plan and execute (first slice of Phase 4)
+Status: Runtime implemented — pending docs/UI follow-up
 Owner: Codex with Matt
 
 ## Goal
@@ -56,8 +56,8 @@ Enable agents to produce and manage image deliverables (creation + enhancement v
 - Editor/Enhance: image enhancement flow and version browsing UI
 
 ## Tasks (MVP)
-1. Deliverables Adapter: accept and persist `payload.images` to `file_attachments`
-2. Mode Router: wire image path on build success (create or version)
+1. ✅ Deliverables Adapter: accept and persist `payload.images` to `file_attachments`
+2. ✅ Mode Router: wire image path on build success (create or version)
 3. Docs: update API/External/Tool guides with image deliverable notes
 4. UI: simple thumbnails + lightbox support
 5. Tests: adapter path (create/version), router integration

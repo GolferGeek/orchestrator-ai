@@ -56,7 +56,13 @@ export interface OrchestrationRun {
   orchestration_slug: string;
   conversation_id: string;
   task_id: string;
-  status: 'planning' | 'running' | 'checkpoint' | 'completed' | 'failed' | 'aborted';
+  status:
+    | 'planning'
+    | 'running'
+    | 'checkpoint'
+    | 'completed'
+    | 'failed'
+    | 'aborted';
   parameters: Record<string, any>;
   parent_run_id: string | null;
   started_at: string;

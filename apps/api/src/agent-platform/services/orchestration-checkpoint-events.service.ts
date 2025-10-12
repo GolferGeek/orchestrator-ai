@@ -55,8 +55,7 @@ export class OrchestrationCheckpointEventsService {
         checkpointId: event.checkpointId,
         question: event.question,
         options: event.options ?? [],
-        step:
-          (await this.describeStep(run, event.stepId)) ?? stepFromMetadata,
+        step: (await this.describeStep(run, event.stepId)) ?? stepFromMetadata,
         organizationSlug: run.organization_slug ?? null,
         conversationId: run.conversation_id ?? null,
         metadata: run.metadata ?? {},
@@ -95,7 +94,8 @@ export class OrchestrationCheckpointEventsService {
           (await this.describeStep(
             run,
             lastCheckpoint?.step?.definitionId ?? null,
-          )) ?? lastCheckpoint?.step ??
+          )) ??
+          lastCheckpoint?.step ??
           null,
         timestamp: new Date().toISOString(),
       };

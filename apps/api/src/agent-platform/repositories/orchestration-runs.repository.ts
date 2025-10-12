@@ -27,20 +27,19 @@ export class OrchestrationRunsRepository {
     input: OrchestrationRunStartInput,
   ): Promise<OrchestrationRunRecord> {
     const now = new Date().toISOString();
-    const originType =
-      input.origin_type ?? (input.plan_id ? 'plan' : 'ad_hoc');
+    const originType = input.origin_type ?? (input.plan_id ? 'plan' : 'ad_hoc');
     const originId =
       input.origin_id ??
-      (originType === 'plan' ? input.plan_id ?? null : input.origin_id ?? null);
+      (originType === 'plan'
+        ? (input.plan_id ?? null)
+        : (input.origin_id ?? null));
 
     const payload = {
       plan_id: input.plan_id ?? null,
-      orchestration_definition_id:
-        input.orchestration_definition_id ?? null,
+      orchestration_definition_id: input.orchestration_definition_id ?? null,
       orchestration_name: input.orchestration_name ?? null,
       conversation_id: input.conversation_id ?? null,
-      parent_orchestration_run_id:
-        input.parent_orchestration_run_id ?? null,
+      parent_orchestration_run_id: input.parent_orchestration_run_id ?? null,
       origin_type: originType,
       origin_id: originId,
       orchestration_slug: input.orchestration_slug ?? null,
@@ -63,9 +62,7 @@ export class OrchestrationRunsRepository {
 
     const { data, error } = (await this.client()
       .from(TABLE)
-      .insert([
-        payload,
-      ])
+      .insert([payload])
       .select()
       .maybeSingle()) as SupabaseSelectResponse<OrchestrationRunRecord>;
 

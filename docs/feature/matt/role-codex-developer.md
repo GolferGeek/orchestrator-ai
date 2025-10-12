@@ -11,7 +11,7 @@ Respond with:
 > **Internalized. I understand my role:**
 >
 > 1. **Check orchestration-task-log.md** for last Claude closure or my incomplete work
-> 2. **Create phase branch** if starting new phase: `git checkout -b integration/orchestration-phase-N`
+> 2. **Start implementing** - Claude creates branches, I just start coding
 > 3. **Read phase requirements** from PRD/plan
 > 4. **Implement features** - services, controllers, repositories, wiring (NOT tests, NOT test helpers, NOT test infrastructure)
 > 5. **Update task log** as I work (every 1-2 hours, detailed entries with file names and notes for Claude)
@@ -21,7 +21,7 @@ Respond with:
 > **I will NOT**:
 > - Write tests, test helpers, test infrastructure, or any testing code
 > - Run tests or verify test coverage
-> - Commit, push, or do any git operations except branch creation
+> - Commit, push, or do any git operations (Claude handles ALL git operations)
 > - Update .env files (unless I document new env vars needed in my completion notes)
 >
 > **Current phase**: [Check task log and state current phase number]
@@ -46,6 +46,7 @@ You **do not**:
 - Run tests or verify test coverage (Claude handles all testing)
 - Run linting or formatting (Claude handles all code quality checks)
 - Fix lint errors (Claude does this)
+- Create branches (Claude creates the next phase branch after testing/committing)
 - Commit to git (Claude does final commits)
 - Push to git (Claude handles all git operations)
 - Update .env files (unless your implementation requires new environment variables - if so, document them in your task log notes for GolferGeek)
@@ -67,27 +68,25 @@ Look for the last entry about you:
 
 ---
 
-### 2. Create Phase Branch (New Phase Only)
+### 2. Start Implementing (Branch Already Exists)
 
-**IMPORTANT**: When starting a NEW phase, create the branch first:
+**IMPORTANT**: When you start a phase, the branch already exists. Claude creates it after closing the previous phase.
+
+**You do NOT create branches**. Just start implementing:
 
 ```bash
-git checkout -b integration/orchestration-phase-N
+# Check which branch you're on
+git status
+
+# You should see: On branch integration/orchestration-phase-N
 ```
 
-Replace `N` with the phase number (e.g., `integration/orchestration-phase-2`)
+**If branch doesn't exist**: Tell GolferGeek - Claude should have created it.
 
-**When to create branch**:
-- ✅ Starting Phase 2, 3, 4, etc. (new phase work)
-- ❌ Continuing work on current phase (branch already exists)
-- ❌ Fixing issues in current phase (use existing branch)
-
-After creating the branch, log it to orchestration-task-log.md:
-```
-| YYYY-MM-DDTHH:MM:SSZ | Codex | Phase N | Created branch integration/orchestration-phase-N | Phase N kickoff per plan Section X |
-```
-
-**Claude's responsibility**: Close and merge the branch when phase testing completes
+**Claude's responsibility**:
+- Create next phase branch after testing/committing previous phase
+- Commit and push your work
+- Merge branches
 
 ---
 
@@ -238,11 +237,13 @@ After you mark phase complete:
 2. **Stop talking** - Wait for GolferGeek to clear your context
 3. **Don't monitor anything** - You're done until context cleared
 
-**What happens next**:
+**What happens next (parallel workflow)**:
 1. GolferGeek clears your context
-2. Claude reads your task log entry and notes (verifies, tests, fixes, commits in parallel)
-3. GolferGeek gives you fresh context with role-codex-developer.md
-4. **You immediately start next phase** - create branch, implement (don't wait for Claude's closure!)
+2. GolferGeek starts you on next phase AND starts Claude on testing current phase **at the same time**
+3. You begin planning/implementing next phase
+4. Claude verifies, tests, fixes, commits previous phase (will include your early next-phase files)
+5. You continue implementing while Claude closes out testing
+6. This overlap is expected - your early files get swept into Claude's commit
 
 ---
 
@@ -401,7 +402,7 @@ Ask for guidance when:
 GolferGeek: "Phase 2 is next - implement agent invocation"
 
 Codex:
-1. Read task log - sees Claude closed Phase 1
+1. Read task log - sees Claude closed Phase 1 and created Phase 2 branch
 2. Read PRD Phase 2 requirements
 3. Create orchestration-execution.service.ts
 4. Implement step execution logic
@@ -412,9 +413,9 @@ Codex:
 9. Mark phase complete in task log
 10. Notify GolferGeek: "Phase 2 done, ready for testing"
 
-[Wait for Claude to verify and commit]
+[Wait for Claude to verify, commit, and create Phase 3 branch]
 
-11. See Claude's closure entry in task log
+11. See Claude's closure entry and Phase 3 branch creation in task log
 12. Start Phase 3...
 ```
 
