@@ -238,18 +238,18 @@ Each phase shows builder tasks (`[ ] (B)`) and tester tasks (`[ ] (T)`), with ex
 
 **Goal:** Ensure local and CI environments are clean, repeatable, and ready for orchestration development.
 
-- [ ] (B) Supabase baseline reset (1d)
-  - Run `npm run dev:supabase:reset`, validate clean migrations
-  - Seed fixtures:
+- [ ] (B) Supabase seed fixtures (0.5d)
+  - Create seed data for:
     - Base agents (context, api, tool, function runners)
     - Single test organization (`global`)
     - Conversation template for orchestration steps
   - Document seeded data in `docs/feature/matt/phase0-seed-inventory.md`
-  - Output: `docs/feature/matt/phase0-supabase-report.md`
-- [ ] (T) Supabase verification (0.5d)
+- [ ] (T) Supabase baseline verification (1d)
+  - Run `npm run dev:supabase:reset`, validate clean migrations
   - Re-run reset, confirm idempotency (migration state identical)
   - Snapshot schema diff: `supabase/migrations/schema-diff-phase0.sql`
   - Ensure `task_messages` TTL migration intact
+  - Output: `docs/feature/matt/phase0-supabase-report.md`
 - [ ] (T) Lint & tooling baseline (0.5d)
   - `npm run lint`, `npm run format` dry run, address outstanding issues
   - Document existing lint suppressions in `docs/feature/matt/known-lint-waivers.md`
@@ -266,8 +266,11 @@ Each phase shows builder tasks (`[ ] (B)`) and tester tasks (`[ ] (T)`), with ex
   - Document current TaskStatusService behavior and cache implementation
   - Identify integration points for orchestration lifecycle
   - Output: Add section to `docs/feature/matt/testing-scaffolding-proposal.md`
-- [ ] (B) Plan alignment session (0.5d)
-  - Merge final plan (this document) into repo as `docs/feature/matt/orchestration-system-plan.md`
+- [ ] (B) Draft plan document (0.25d)
+  - Create `docs/feature/matt/orchestration-system-plan.md` with phase breakdown
+- [ ] (T) Plan review and merge (0.25d)
+  - Review plan for completeness and clarity
+  - Merge final plan into repo
 
 **Exit Criteria**
 1. Supabase reset script tested twice, schemas match.
@@ -558,17 +561,18 @@ Each phase shows builder tasks (`[ ] (B)`) and tester tasks (`[ ] (T)`), with ex
 - [ ] (T) Doc review & validation (0.75d)
 - [ ] (B) Example orchestration library (marketing, content pipeline, finance) (1d)
 - [ ] (T) Example validation tests (ensure definitions load/run) (0.75d)
-- [ ] (B) Production readiness checklist (security audit, backups, monitoring, alerts) (0.75d)
-  - Document in `docs/feature/matt/production-readiness-checklist.md`
-  - Security audit:
-    - Agent execution sandboxing verified
-    - Parameterized SQL queries only (block injection vectors)
-    - AuthN/Z enforced on all orchestration endpoints
-    - Sensitive data scrubbed from logs (API keys, credentials)
-    - Rate limiting on orchestration execution APIs
-    - Webhook signature verification & replay protection
-  - Backups, monitoring dashboards, alert thresholds captured
-- [ ] (T) Execute checklist in staging (1d)
+- [ ] (B) Production readiness documentation (0.5d)
+  - Document required production setup in `docs/feature/matt/production-readiness-checklist.md`
+  - List security requirements (sandboxing, SQL injection prevention, AuthN/Z, etc.)
+  - Document backup procedures, monitoring dashboards, alert thresholds
+- [ ] (T) Security audit & production verification (1.25d)
+  - Verify agent execution sandboxing
+  - Verify parameterized SQL queries only (block injection vectors)
+  - Verify AuthN/Z enforced on all orchestration endpoints
+  - Verify sensitive data scrubbed from logs (API keys, credentials)
+  - Verify rate limiting on orchestration execution APIs
+  - Verify webhook signature verification & replay protection
+  - Execute full checklist in staging environment
 - [ ] (T) Final regression suite (all phases) + coverage summary (1d)
 - [ ] (T) Prepare release notes & communicate to stakeholders (0.5d)
 - [ ] (B/T/H) Final sign-off meeting; human conducts happy-path validation (0.5d)
