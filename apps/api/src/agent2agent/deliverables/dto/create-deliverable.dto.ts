@@ -26,6 +26,11 @@ export enum DeliverableFormat {
   TEXT = 'text',
   JSON = 'json',
   HTML = 'html',
+  IMAGE_PNG = 'image/png',
+  IMAGE_JPEG = 'image/jpeg',
+  IMAGE_WEBP = 'image/webp',
+  IMAGE_GIF = 'image/gif',
+  IMAGE_SVG = 'image/svg+xml',
 }
 
 export enum DeliverableVersionCreationType {
@@ -140,4 +145,13 @@ export class CreateDeliverableDto {
   @IsOptional()
   @IsObject()
   initialMetadata?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: 'Initial file attachments for the first version',
+    type: 'object',
+    additionalProperties: true,
+  })
+  @IsOptional()
+  @IsObject()
+  initialFileAttachments?: Record<string, any>;
 }

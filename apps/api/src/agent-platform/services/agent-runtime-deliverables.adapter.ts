@@ -59,6 +59,8 @@ export class AgentRuntimeDeliverablesAdapter {
         userId,
       });
       const title = this.computeTitle(baseTitle, ctx);
+      const hasImages = storedImages.length > 0;
+      const imageFormat = this.resolveImageFormat(storedImages);
 
       // Enhancement path: if a target deliverableId is provided, create a new version instead
       const targetDeliverableId =
@@ -68,21 +70,22 @@ export class AgentRuntimeDeliverablesAdapter {
         const version = await this.versions.createVersion(
           targetDeliverableId,
           {
-            content: content || (storedImages.length ? 'Image assets' : ''),
+            content:
+              content ||
+              (hasImages ? this.describeImageSet(storedImages) : ''),
             format:
-              storedImages.length > 0
-                ? DeliverableFormat.JSON
-                : (this.coerceDeliverableFormat(ctx.deliverableFormat) ??
-                  DeliverableFormat.TEXT),
+              (hasImages ? imageFormat : undefined) ??
+              this.coerceDeliverableFormat(ctx.deliverableFormat) ??
+              DeliverableFormat.TEXT,
             createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
             taskId: (request as any).taskId,
             metadata: {
               organizationSlug: ctx.organizationSlug,
               agentSlug: ctx.agentSlug,
               mode: ctx.mode,
+              imagesCount: hasImages ? storedImages.length : undefined,
             },
-            fileAttachments:
-              storedImages.length > 0 ? { images: storedImages } : {},
+            fileAttachments: hasImages ? { images: storedImages } : undefined,
           },
           userId,
         );
@@ -92,11 +95,14 @@ export class AgentRuntimeDeliverablesAdapter {
         title,
         type:
           this.coerceDeliverableType(ctx.deliverableType) ??
-          DeliverableType.DOCUMENT,
+          (hasImages ? DeliverableType.IMAGE : DeliverableType.DOCUMENT),
         conversationId,
         agentName: ctx.agentSlug,
-        initialContent: content || undefined,
+        initialContent:
+          content ||
+          (hasImages ? this.describeImageSet(storedImages) : undefined),
         initialFormat:
+          (hasImages ? imageFormat : undefined) ??
           this.coerceDeliverableFormat(ctx.deliverableFormat) ??
           DeliverableFormat.TEXT,
         initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
@@ -105,30 +111,16 @@ export class AgentRuntimeDeliverablesAdapter {
           organizationSlug: ctx.organizationSlug,
           agentSlug: ctx.agentSlug,
           mode: ctx.mode,
+          ...(hasImages ? { imagesCount: storedImages.length } : {}),
         },
+        initialFileAttachments: hasImages
+          ? {
+              images: storedImages,
+            }
+          : undefined,
       };
 
       const deliverable = await this.deliverables.create(dto, userId);
-
-      // If images provided, append a version with the image file attachments and make it current
-      if (storedImages.length > 0) {
-        await this.versions.createVersion(
-          deliverable.id,
-          {
-            content: content || 'Image assets',
-            format: DeliverableFormat.JSON,
-            createdByType: DeliverableVersionCreationType.AI_RESPONSE,
-            taskId: (request as any).taskId,
-            metadata: {
-              organizationSlug: ctx.organizationSlug,
-              agentSlug: ctx.agentSlug,
-              mode: ctx.mode,
-            },
-            fileAttachments: { images: storedImages },
-          },
-          userId,
-        );
-      }
 
       return { kind: 'deliverable', deliverable };
     } catch (error) {
@@ -202,10 +194,59 @@ export class AgentRuntimeDeliverablesAdapter {
         return DeliverableFormat.JSON;
       case 'html':
         return DeliverableFormat.HTML;
+      case 'image/png':
+        return DeliverableFormat.IMAGE_PNG;
+      case 'image/jpeg':
+      case 'image/jpg':
+        return DeliverableFormat.IMAGE_JPEG;
+      case 'image/webp':
+        return DeliverableFormat.IMAGE_WEBP;
+      case 'image/gif':
+        return DeliverableFormat.IMAGE_GIF;
+      case 'image/svg+xml':
+        return DeliverableFormat.IMAGE_SVG;
       default:
         return undefined;
     }
   }
+
+  private resolveImageFormat(
+    images: Array<Record<string, any>>,
+  ): DeliverableFormat | undefined {
+    if (!images.length) {
+      return undefined;
+    }
+
+    const mime = String(images[0]?.mime || '').toLowerCase();
+    if (!mime) {
+      return undefined;
+    }
+
+    return (
+      this.coerceDeliverableFormat(mime) ??
+      ((mime as unknown) as DeliverableFormat)
+    );
+  }
+
+  private describeImageSet(images: Array<Record<string, any>>): string {
+    if (!images.length) {
+      return 'Image assets';
+    }
+
+    const lines = images.map((img, index) => {
+      const label = img.mime ? img.mime : 'image';
+      const dims =
+        img.width && img.height
+          ? `${img.width}x${img.height}`
+          : img.width || img.height
+            ? `${img.width ?? img.height}px`
+            : 'unknown size';
+      return `- Image ${index + 1}: ${label} (${dims})`;
+    });
+
+    return ['Generated image set:', ...lines].join('\n');
+  }
+
   private normalizeImageAttachment(input: any) {
     const obj = typeof input === 'object' && input ? input : {};
     const out: Record<string, any> = {

@@ -35,6 +35,7 @@ import { HumanApprovalsRepository } from './repositories/human-approvals.reposit
 import { RedactionPatternsRepository } from './repositories/redaction-patterns.repository';
 import { AgentApprovalsController } from './controllers/agent-approvals.controller';
 import { AgentsAdminController } from './controllers/agents-admin.controller';
+import { OrchestrationsController } from './controllers/orchestrations.controller';
 import { AgentValidationService } from './services/agent-validation.service';
 import { AgentDryRunService } from './services/agent-dry-run.service';
 import { AgentPolicyService } from './services/agent-policy.service';
@@ -43,6 +44,10 @@ import { AgentPromotionService } from './services/agent-promotion.service';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { OrchestrationExecutionService } from './services/orchestration-execution.service';
 import { OrchestrationCheckpointEventsService } from './services/orchestration-checkpoint-events.service';
+import { OrchestrationEventsService } from './services/orchestration-events.service';
+import { OrchestrationProgressEventsService } from './services/orchestration-progress-events.service';
+import { TasksModule } from '@/agent2agent/tasks/tasks.module';
+import { OrchestrationStatusService } from './services/orchestration-status.service';
 
 @Module({
   imports: [
@@ -54,8 +59,13 @@ import { OrchestrationCheckpointEventsService } from './services/orchestration-c
     AssetsModule,
     // Agent Platform Sub-modules
     HierarchyModule,
+    TasksModule,
   ],
-  controllers: [AgentApprovalsController, AgentsAdminController],
+  controllers: [
+    AgentApprovalsController,
+    AgentsAdminController,
+    OrchestrationsController,
+  ],
   providers: [
     AgentsRepository,
     RedactionPatternsRepository,
@@ -71,8 +81,11 @@ import { OrchestrationCheckpointEventsService } from './services/orchestration-c
     OrchestrationStateService,
     OrchestrationRunnerService,
     OrchestrationCheckpointService,
+    OrchestrationEventsService,
     OrchestrationCheckpointEventsService,
+    OrchestrationProgressEventsService,
     OrchestrationExecutionService,
+    OrchestrationStatusService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
@@ -108,8 +121,11 @@ import { OrchestrationCheckpointEventsService } from './services/orchestration-c
     OrchestrationStateService,
     OrchestrationRunnerService,
     OrchestrationCheckpointService,
+    OrchestrationEventsService,
     OrchestrationCheckpointEventsService,
+    OrchestrationProgressEventsService,
     OrchestrationExecutionService,
+    OrchestrationStatusService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,

@@ -22,10 +22,7 @@ export class OrchestrationEventsService {
 
   constructor(private readonly eventEmitter: EventEmitter2) {}
 
-  emitRunCreated(
-    run: OrchestrationRunRecord,
-    context?: RunEventContext,
-  ): void {
+  emitRunCreated(run: OrchestrationRunRecord, context?: RunEventContext): void {
     this.dispatch(
       this.buildRunEventPayload('orchestration.run.created', run, context),
     );
@@ -37,7 +34,12 @@ export class OrchestrationEventsService {
     context?: RunEventContext,
   ): void {
     this.dispatch(
-      this.buildRunEventPayload('orchestration.run.updated', run, context, data),
+      this.buildRunEventPayload(
+        'orchestration.run.updated',
+        run,
+        context,
+        data,
+      ),
     );
   }
 
@@ -46,14 +48,9 @@ export class OrchestrationEventsService {
     context?: RunEventContext,
   ): void {
     this.dispatch(
-      this.buildRunEventPayload(
-        'orchestration.run.completed',
-        run,
-        context,
-        {
-          results: run.results ?? {},
-        },
-      ),
+      this.buildRunEventPayload('orchestration.run.completed', run, context, {
+        results: run.results ?? {},
+      }),
     );
   }
 
@@ -82,14 +79,9 @@ export class OrchestrationEventsService {
       this.buildStepSnapshot(run, step),
     );
     this.dispatch(
-      this.buildRunEventPayload(
-        'orchestration.step.queued',
-        run,
-        context,
-        {
-          steps: stepSnapshots,
-        },
-      ),
+      this.buildRunEventPayload('orchestration.step.queued', run, context, {
+        steps: stepSnapshots,
+      }),
     );
   }
 
@@ -227,7 +219,7 @@ export class OrchestrationEventsService {
     const metadata = step.metadata ?? {};
     const outputSummary = step.output
       ? Object.keys(step.output)
-      : metadata.outputPreview ?? [];
+      : (metadata.outputPreview ?? []);
 
     return {
       id: step.step_id,
@@ -254,9 +246,9 @@ export class OrchestrationEventsService {
     const metadataStats =
       (run.metadata?.stats as Record<string, any> | undefined) ?? {};
 
-    const totalSteps = this.extractNumber(
-      context?.totalSteps ?? metadataStats.totalSteps,
-    ) ?? this.estimateTotalSteps(run);
+    const totalSteps =
+      this.extractNumber(context?.totalSteps ?? metadataStats.totalSteps) ??
+      this.estimateTotalSteps(run);
 
     const completedSteps =
       this.extractNumber(metadataStats.completedSteps) ??
@@ -266,12 +258,9 @@ export class OrchestrationEventsService {
       totalSteps && totalSteps > 0
         ? Math.min(
             100,
-            Math.max(
-              0,
-              Math.round((completedSteps / totalSteps) * 100),
-            ),
+            Math.max(0, Math.round((completedSteps / totalSteps) * 100)),
           )
-        : metadataStats.progressPercentage ?? undefined;
+        : (metadataStats.progressPercentage ?? undefined);
 
     return {
       totalSteps: totalSteps ?? undefined,
@@ -289,12 +278,13 @@ export class OrchestrationEventsService {
       'orchestration-manager';
 
     return {
-      id: this.extractString(agentMetadata.id),
+      id: this.extractString(agentMetadata.id) ?? null,
       slug,
-      type: this.extractString(agentMetadata.type),
+      type: this.extractString(agentMetadata.type) ?? null,
       displayName:
         this.extractString(agentMetadata.displayName) ??
-        this.extractString(agentMetadata.name),
+        this.extractString(agentMetadata.name) ??
+        null,
     };
   }
 

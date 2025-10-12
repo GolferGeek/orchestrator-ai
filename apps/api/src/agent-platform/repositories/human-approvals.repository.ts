@@ -91,4 +91,23 @@ export class HumanApprovalsRepository {
     if (error) throw new Error(`Failed to fetch approval: ${error.message}`);
     return (data as HumanApprovalRecord) || null;
   }
+
+  async listPendingByRun(
+    orchestrationRunId: string,
+  ): Promise<HumanApprovalRecord[]> {
+    const { data, error } = await this.client()
+      .from(this.table)
+      .select('*')
+      .eq('orchestration_run_id', orchestrationRunId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new Error(
+        `Failed to list approvals for run ${orchestrationRunId}: ${error.message}`,
+      );
+    }
+
+    return (data as HumanApprovalRecord[]) ?? [];
+  }
 }

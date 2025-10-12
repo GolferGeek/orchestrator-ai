@@ -1,10 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseAgentRunner } from './base-agent-runner.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
-import {
-  TaskRequestDto,
-  AgentTaskMode,
-} from '../dto/task-request.dto';
+import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { OrchestrationDefinitionService } from '@agent-platform/services/orchestration-definition.service';
 import { OrchestrationStateService } from '@agent-platform/services/orchestration-state.service';
@@ -16,6 +13,7 @@ import {
 } from '@agent-platform/services/orchestration-checkpoint.service';
 import { OrchestrationResolvedDefinition } from '@agent-platform/types/orchestration-definition.types';
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
+import { OrchestrationEventsService } from '@agent-platform/services/orchestration-events.service';
 
 interface OrchestratorStartPayload {
   orchestrationDefinitionId?: string;
@@ -47,6 +45,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     private readonly stateService: OrchestrationStateService,
     private readonly orchestrationRunner: OrchestrationRunnerService,
     private readonly executionService: OrchestrationExecutionService,
+    private readonly orchestrationEvents: OrchestrationEventsService,
     private readonly checkpointService: OrchestrationCheckpointService,
   ) {
     super();
@@ -137,6 +136,11 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         ...(request.promptParameters ?? {}),
       };
 
+      const taskLink = this.resolveTaskLink(request);
+      const requestMetadata = this.extractRequestMetadata(
+        (request.metadata ?? {}) as Record<string, any> | undefined,
+      );
+
       const runRecord = await this.orchestrationRunner.startRun({
         planId: request.planId ?? null,
         orchestrationDefinitionId: resolvedDefinition.recordId ?? null,
@@ -154,9 +158,16 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
             mode: step.mode ?? 'BUILD',
           })),
         },
+        agentId: definition.record.id ?? null,
+        agentSlug: definition.slug,
+        agentType: definition.agentType,
+        agentDisplayName: definition.displayName ?? null,
+        createdBy: this.asString(request.metadata?.userId) ?? null,
         metadata: {
           triggeredByAgent: definition.slug,
-          requestMetadata: request.metadata ?? {},
+          agent: this.buildAgentMetadata(definition),
+          requestMetadata,
+          ...(taskLink ? { task: taskLink } : {}),
         },
       });
 
@@ -169,11 +180,20 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       const planningRun = await this.orchestrationRunner.updateRun({
         runId: runRecord.id,
         status: 'planning',
-        currentStepIndex: 0,
-        metadata: {
-          ...(runRecord.metadata ?? {}),
+        currentStepIndex: createdSteps[0]?.step_index ?? 0,
+        currentStepId: createdSteps[0]?.step_id ?? null,
+        metadata: this.mergeRunMetadata(runRecord.metadata, {
           lifecycle: 'initialized',
-        },
+          stats: {
+            totalSteps: createdSteps.length,
+            completedSteps: 0,
+            progressPercentage: createdSteps.length > 0 ? 0 : null,
+          },
+        }),
+      });
+
+      this.orchestrationEvents.emitRunCreated(planningRun, {
+        totalSteps: createdSteps.length,
       });
 
       const { run: executionRun, readySteps } =
@@ -224,7 +244,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       );
     }
 
-    const startPayload = payload as OrchestratorStartPayload;
+    const startPayload = payload;
 
     if (startPayload.orchestrationDefinitionId) {
       const record = await this.definitionService.getDefinitionById(
@@ -321,9 +341,13 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   }
 
   private buildRunSuccessResponse(
-    run: Awaited<ReturnType<OrchestrationExecutionService['startExecution']>>['run'],
+    run: Awaited<
+      ReturnType<OrchestrationExecutionService['startExecution']>
+    >['run'],
     steps: Awaited<ReturnType<OrchestrationRunnerService['listSteps']>>,
-    readySteps: Awaited<ReturnType<OrchestrationExecutionService['startExecution']>>['readySteps'],
+    readySteps: Awaited<
+      ReturnType<OrchestrationExecutionService['startExecution']>
+    >['readySteps'],
     orchestrationDefinitionId: string | null,
     ownerAgentSlug: string,
   ): TaskResponseDto {
@@ -349,6 +373,12 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       metadata: {
         orchestrationDefinitionId,
         ownerAgentSlug,
+        orchestrationRunId: run.id,
+        streamId: run.id,
+        streaming: {
+          streamId: run.id,
+          streamSource: 'orchestration',
+        },
       },
     });
   }
@@ -383,7 +413,108 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       metadata: {
         orchestrationDefinitionId: options.run.orchestration_definition_id,
         ownerAgentSlug: options.run.metadata?.agent?.slug ?? null,
+        orchestrationRunId: options.run.id,
+        streamId: options.run.id,
+        streaming: {
+          streamId: options.run.id,
+          streamSource: 'orchestration',
+        },
       },
     });
+  }
+
+  private buildAgentMetadata(
+    definition: AgentRuntimeDefinition,
+  ): Record<string, any> {
+    return {
+      id: definition.record.id ?? null,
+      slug: definition.slug,
+      type: definition.agentType ?? null,
+      displayName: definition.displayName ?? null,
+      organizationSlug: definition.organizationSlug ?? null,
+    };
+  }
+
+  private resolveTaskLink(
+    request: TaskRequestDto,
+  ): { id: string | null; userId: string | null } | null {
+    const metadata = request.metadata ?? {};
+    const payloadTaskId = this.asString(request.payload?.taskId);
+    const metadataTaskId =
+      this.asString(metadata.taskId) ?? this.asString(metadata.id);
+    const id = metadataTaskId ?? payloadTaskId ?? null;
+    const userId =
+      this.asString(metadata.userId) ??
+      this.asString(metadata.createdBy) ??
+      this.asString(metadata.actorId);
+
+    if (!id && !userId) {
+      return null;
+    }
+
+    return {
+      id,
+      userId: userId ?? null,
+    };
+  }
+
+  private extractRequestMetadata(
+    metadata?: Record<string, any>,
+  ): Record<string, any> {
+    if (!metadata || typeof metadata !== 'object') {
+      return {};
+    }
+
+    const allowedKeys = [
+      'taskId',
+      'userId',
+      'createdBy',
+      'actorId',
+      'sessionId',
+      'streamId',
+      'requestId',
+    ];
+
+    const result: Record<string, any> = {};
+    for (const key of allowedKeys) {
+      if (metadata[key] !== undefined) {
+        result[key] = metadata[key];
+      }
+    }
+
+    return result;
+  }
+
+  private mergeRunMetadata(
+    existing: Record<string, any> | undefined,
+    patch: Record<string, any>,
+  ): Record<string, any> {
+    const base = { ...(existing ?? {}) };
+    const existingStats = (base.stats as Record<string, any> | undefined) ?? {};
+    const patchStats =
+      (patch.stats as Record<string, any> | undefined) ?? undefined;
+
+    const merged: Record<string, any> = {
+      ...base,
+      ...patch,
+    };
+
+    if (patchStats) {
+      merged.stats = {
+        ...existingStats,
+        ...patchStats,
+      };
+    } else if (Object.keys(existingStats).length > 0 && !merged.stats) {
+      merged.stats = existingStats;
+    }
+
+    return merged;
+  }
+
+  private asString(value: unknown): string | undefined {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+    return undefined;
   }
 }

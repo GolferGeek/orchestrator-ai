@@ -1088,13 +1088,16 @@ export class DeliverablesService implements IActionHandler {
         {
           deliverable_id: deliverableId,
           version_number: 1,
-          content: createDto.initialContent || '', // Default to empty string if no content
-          format: createDto.initialFormat || 'text', // Default to text format
+          content:
+            typeof createDto.initialContent === 'string'
+              ? createDto.initialContent
+              : '',
+          format: createDto.initialFormat || 'text',
           is_current_version: true,
           created_by_type: createDto.initialCreationType || 'user_request', // Default creation type
           task_id: createDto.initialTaskId || null,
           metadata: createDto.initialMetadata || {},
-          file_attachments: {},
+          file_attachments: createDto.initialFileAttachments || {},
         },
       ])
       .select('*')

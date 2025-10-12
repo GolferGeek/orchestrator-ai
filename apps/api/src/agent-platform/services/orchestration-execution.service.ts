@@ -6,6 +6,7 @@ import {
   OrchestrationStepRecord,
   OrchestrationStepUpdateInput,
 } from '../interfaces/orchestration-step-record.interface';
+import { OrchestrationEventsService } from './orchestration-events.service';
 
 interface StepStateEntry {
   status: string;
@@ -22,15 +23,14 @@ export class OrchestrationExecutionService {
   constructor(
     private readonly orchestrationRunner: OrchestrationRunnerService,
     private readonly stateService: OrchestrationStateService,
+    private readonly events: OrchestrationEventsService,
   ) {}
 
   /**
    * Begin execution by finding runnable steps and marking them as queued.
    * Returns updated run state and the steps ready for execution.
    */
-  async startExecution(
-    runId: string,
-  ): Promise<{
+  async startExecution(runId: string): Promise<{
     run: OrchestrationRunRecord;
     readySteps: OrchestrationStepRecord[];
   }> {
@@ -39,6 +39,7 @@ export class OrchestrationExecutionService {
       throw new Error(`Orchestration run ${runId} not found`);
     }
 
+    const metrics = await this.gatherStepMetrics(runId);
     const readySteps = await this.stateService.findRunnableSteps(runId);
 
     if (!readySteps.length) {
@@ -48,6 +49,13 @@ export class OrchestrationExecutionService {
         currentStepIndex: null,
         currentStepId: null,
         completedAt: new Date().toISOString(),
+        metadata: this.mergeMetadata(run.metadata, {
+          lifecycle: 'completed',
+          stats: this.buildStats(metrics.total, metrics.completed),
+        }),
+      });
+      this.events.emitRunCompleted(completedRun, {
+        totalSteps: metrics.total,
       });
       return { run: completedRun, readySteps: [] };
     }
@@ -80,9 +88,29 @@ export class OrchestrationExecutionService {
       runId,
       status: 'running',
       currentStepIndex: queuedSteps[0]?.step_index ?? null,
-      currentStepId: queuedSteps[0] ? this.resolveStepKey(queuedSteps[0]) : null,
+      currentStepId: queuedSteps[0]
+        ? this.resolveStepKey(queuedSteps[0])
+        : null,
       stepState: stepState,
+      metadata: this.mergeMetadata(run.metadata, {
+        lifecycle: 'running',
+        stats: this.buildStats(metrics.total, metrics.completed),
+      }),
     });
+
+    this.events.emitStepsQueued(updatedRun, queuedSteps, {
+      totalSteps: metrics.total,
+    });
+    this.events.emitRunUpdated(
+      updatedRun,
+      {
+        reason: 'execution_started',
+        queuedStepIds: queuedSteps.map((step) => this.resolveStepKey(step)),
+      },
+      {
+        totalSteps: metrics.total,
+      },
+    );
 
     return { run: updatedRun, readySteps: queuedSteps };
   }
@@ -109,13 +137,33 @@ export class OrchestrationExecutionService {
       },
     ]);
 
-    await this.orchestrationRunner.updateRun({
+    const updatedRun = await this.orchestrationRunner.updateRun({
       runId: step.orchestration_run_id,
       status: 'running',
       currentStepIndex: step.step_index,
       currentStepId: this.resolveStepKey(step),
       stepState: stepState,
+      metadata: this.mergeMetadata(run.metadata, {
+        lifecycle: 'running',
+        currentStep: this.resolveStepKey(step),
+      }),
     });
+
+    const totalSteps = this.extractTotalSteps(updatedRun.metadata) ?? undefined;
+
+    this.events.emitStepRunning(
+      updatedRun,
+      step,
+      totalSteps !== undefined ? { totalSteps } : undefined,
+    );
+    this.events.emitRunUpdated(
+      updatedRun,
+      {
+        reason: 'step_running',
+        stepId: this.resolveStepKey(step),
+      },
+      totalSteps !== undefined ? { totalSteps } : undefined,
+    );
 
     return step;
   }
@@ -148,6 +196,9 @@ export class OrchestrationExecutionService {
       .filter((item) => item.status === 'completed')
       .map((item) => this.resolveStepKey(item));
 
+    const totalSteps = allSteps.length;
+    const completedCount = completedSteps.length;
+
     const stepState = this.mergeStepState(run.step_state ?? {}, [
       {
         key: this.resolveStepKey(step),
@@ -169,7 +220,7 @@ export class OrchestrationExecutionService {
       runId: step.orchestration_run_id,
       status: runStatus,
       currentStepIndex:
-        runStatus === 'completed' ? null : run.current_step_index ?? null,
+        runStatus === 'completed' ? null : (run.current_step_index ?? null),
       currentStepId: runStatus === 'completed' ? null : run.current_step_id,
       completedSteps: completedSteps,
       stepState: stepState,
@@ -178,10 +229,10 @@ export class OrchestrationExecutionService {
         this.resolveStepKey(step),
         output ?? {},
       ),
-      metadata: {
-        ...(run.metadata ?? {}),
+      metadata: this.mergeMetadata(run.metadata, {
         lastCompletedStep: this.resolveStepKey(step),
-      },
+        stats: this.buildStats(totalSteps, completedCount),
+      }),
       completedAt: runStatus === 'completed' ? now : undefined,
     });
 
@@ -189,6 +240,28 @@ export class OrchestrationExecutionService {
       runStatus === 'completed'
         ? []
         : await this.stateService.findRunnableSteps(step.orchestration_run_id);
+
+    const context =
+      totalSteps > 0
+        ? {
+            totalSteps,
+          }
+        : undefined;
+
+    this.events.emitStepCompleted(updatedRun, step, nextSteps, context);
+
+    if (runStatus === 'completed') {
+      this.events.emitRunCompleted(updatedRun, context);
+    } else {
+      this.events.emitRunUpdated(
+        updatedRun,
+        {
+          reason: 'step_completed',
+          stepId: this.resolveStepKey(step),
+        },
+        context,
+      );
+    }
 
     return { step, run: updatedRun, nextSteps };
   }
@@ -208,6 +281,7 @@ export class OrchestrationExecutionService {
     });
 
     const run = await this.ensureRun(step.orchestration_run_id);
+    const metrics = await this.gatherStepMetrics(step.orchestration_run_id);
     const stepState = this.mergeStepState(run.step_state ?? {}, [
       {
         key: this.resolveStepKey(step),
@@ -225,15 +299,26 @@ export class OrchestrationExecutionService {
       currentStepIndex: step.step_index,
       currentStepId: this.resolveStepKey(step),
       stepState: stepState,
-      metadata: {
+      metadata: this.mergeMetadata(run.metadata, {
         error_details: {
           ...(run.error_details ?? {}),
           lastError: errorDetails,
         },
         lastFailedStep: this.resolveStepKey(step),
-      },
+        stats: this.buildStats(metrics.total, metrics.completed),
+      }),
       completedAt: now,
     });
+
+    const context =
+      metrics.total > 0
+        ? {
+            totalSteps: metrics.total,
+          }
+        : undefined;
+
+    this.events.emitStepFailed(updatedRun, step, errorDetails, context);
+    this.events.emitRunFailed(updatedRun, errorDetails, context);
 
     return { step, run: updatedRun };
   }
@@ -241,6 +326,92 @@ export class OrchestrationExecutionService {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
+
+  private async gatherStepMetrics(runId: string): Promise<{
+    total: number;
+    completed: number;
+  }> {
+    const steps = await this.orchestrationRunner.listSteps(runId);
+    const completed = steps.filter(
+      (step) => step.status === 'completed',
+    ).length;
+    return {
+      total: steps.length,
+      completed,
+    };
+  }
+
+  private buildStats(
+    totalSteps: number,
+    completedSteps: number,
+  ): Record<string, any> {
+    if (totalSteps <= 0) {
+      return {
+        totalSteps,
+        completedSteps,
+        progressPercentage: 100,
+      };
+    }
+
+    const percentage = Math.min(
+      100,
+      Math.max(0, Math.round((completedSteps / totalSteps) * 100)),
+    );
+
+    return {
+      totalSteps,
+      completedSteps,
+      progressPercentage: percentage,
+    };
+  }
+
+  private mergeMetadata(
+    existing: Record<string, any> | undefined,
+    patch: Record<string, any>,
+  ): Record<string, any> {
+    const base = { ...(existing ?? {}) };
+    const existingStats = (base.stats as Record<string, any> | undefined) ?? {};
+    const patchStats =
+      (patch.stats as Record<string, any> | undefined) ?? undefined;
+
+    const merged: Record<string, any> = {
+      ...base,
+      ...patch,
+    };
+
+    if (patchStats) {
+      merged.stats = {
+        ...existingStats,
+        ...patchStats,
+      };
+    } else if (Object.keys(existingStats).length > 0 && !merged.stats) {
+      merged.stats = existingStats;
+    }
+
+    return merged;
+  }
+
+  private extractTotalSteps(
+    metadata: Record<string, any> | undefined,
+  ): number | undefined {
+    const stats =
+      (metadata?.stats as Record<string, any> | undefined) ?? undefined;
+    if (!stats) {
+      return undefined;
+    }
+
+    const value = stats.totalSteps;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+    return undefined;
+  }
 
   private async ensureRun(runId: string): Promise<OrchestrationRunRecord> {
     const run = await this.orchestrationRunner.getRun(runId);
