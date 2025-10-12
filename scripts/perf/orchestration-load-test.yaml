@@ -1,0 +1,54 @@
+# Artillery load test for orchestration throughput/perf validation.
+# Usage:
+#   export API_BASE="https://api.orchestratorai.io"
+#   export API_TOKEN="<jwt>"
+#   artillery run scripts/perf/orchestration-load-test.yaml --output results.json
+
+config:
+  target: "{{ $processEnvironment.API_BASE || 'http://localhost:7100' }}"
+  plugins:
+    expect: {}
+  phases:
+    - name: warmup
+      duration: 60
+      arrivalRate: 5
+    - name: sustained-load
+      duration: 120
+      arrivalRate: 10
+      rampTo: 30
+  defaults:
+    headers:
+      Authorization: "Bearer {{ $processEnvironment.API_TOKEN || '' }}"
+      Content-Type: application/json
+  variables:
+    orchestrationName: "{{ $processEnvironment.ORCHESTRATION_NAME || 'kpi-tracking' }}"
+    organizationSlug: "{{ $processEnvironment.ORGANIZATION_SLUG || 'global' }}"
+    pollIterations: 4
+
+scenarios:
+  - name: Start orchestration and poll status
+    flow:
+      - post:
+          url: "/api/orchestrations"
+          json:
+            orchestrationName: "{{ orchestrationName }}"
+            organizationSlug: "{{ organizationSlug }}"
+            parameters:
+              # TODO: customize parameters or load from fixture file
+              kpi_names:
+                - revenue
+                - expenses
+              start_date: "2024-01-01"
+              end_date: "2024-03-31"
+          expect:
+            - statusCode: 201
+          capture:
+            - json: "$.data.run.id"
+              as: runId
+      - loop:
+          - get:
+              url: "/api/orchestrations/{{ runId }}/status"
+              expect:
+                - statusCode: 200
+          count: "{{ pollIterations }}"
+          think: 5

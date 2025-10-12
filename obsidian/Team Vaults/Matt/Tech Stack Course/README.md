@@ -22,7 +22,21 @@ The course covers:
 
 ## Documents in This Folder
 
-### 📋 **00-Codebase-Analysis.md** (CURRENT PHASE)
+### 🚀 **START HERE: Intern-Overview-Tech-Stack.md** 
+**Purpose:** 10-minute high-level intro for new interns  
+**Status:** ✅ Ready  
+**Contents:**
+- What is Orchestrator AI?
+- Tech stack overview (NestJS, Vue, Supabase)
+- Agent system basics
+- First week goals
+- Getting started guide
+
+**👉 NEW INTERNS: Read this first!**
+
+---
+
+### 📋 **00-Codebase-Analysis.md** (DEEP DIVE)
 **Purpose:** Comprehensive deep dive into the entire codebase  
 **Status:** ✅ Complete - Ready for review  
 **Contents:**
