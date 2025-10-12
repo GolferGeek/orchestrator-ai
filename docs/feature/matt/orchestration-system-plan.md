@@ -4,8 +4,8 @@
 
 This plan aligns all implementation and quality work required to deliver the orchestration system defined in the PRD. Every coding task has a paired testing checklist so we move through the phased roadmap together, stay accountable to standards, and end each phase in a shippable state.
 
-- **Builder (Codex)** – Architecture, services, migrations, implementation, documentation scaffolding. Does not run or author tests.
-- **Tester (Claude)** – Code review for standards, writes/runs all tests (unit, integration, contract, E2E, load), enforces gates, prepares commits.
+- **Builder (Codex)** – Architecture, services, migrations, implementation, documentation scaffolding. Does not write tests, test helpers, test infrastructure, or run any tests. Does not update .env files unless implementation requires new environment variables (documents in task log).
+- **Tester (Claude)** – Code review for standards, writes/runs ALL tests (unit, integration, contract, E2E, load), writes ALL test infrastructure (helpers, mocks, fixtures, harnesses), enforces gates, prepares commits, handles ALL git operations.
 - **Human Owner** – Validates happy-path UX at designated gates, approves plan & releases.
 
 > **Note:** We keep this plan as the single source of truth. Each phase expands into detailed subtasks only when both agents are ready to execute, so context stays manageable. (No further split into separate files unless the plan grows beyond ~15 pages.)
@@ -20,6 +20,9 @@ This plan aligns all implementation and quality work required to deliver the orc
 | Architectural decisions (ADR)     | ✅ (draft)       | ✅ (review)      | ⚠️    |
 | Standards enforcement             | ⚠️ (self-check) | ✅ (final say)   | ❌    |
 | Test authoring/execution          | ❌              | ✅              | ❌    |
+| Test infrastructure & helpers     | ❌              | ✅              | ❌    |
+| Test planning & design            | ❌              | ✅              | ❌    |
+| .env file updates                 | ❌ (documents only) | ✅          | ⚠️    |
 | Git commits / pushes              | ❌              | ✅              | ❌    |
 | Quality gate approvals            | ⚠️ (builder sign-off) | ✅ (final gate) | ✅ (Phase 5 & 10) |
 | Release readiness checklist       | ⚠️              | ✅              | ✅    |
