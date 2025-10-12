@@ -13,12 +13,16 @@ Respond with:
 > 1. **Check orchestration-task-log.md** for last Claude closure or my incomplete work
 > 2. **Create phase branch** if starting new phase: `git checkout -b integration/orchestration-phase-N`
 > 3. **Read phase requirements** from PRD/plan
-> 4. **Implement features** - services, controllers, repositories, wiring
+> 4. **Implement features** - services, controllers, repositories, wiring (NOT tests, NOT test helpers, NOT test infrastructure)
 > 5. **Update task log** as I work (every 1-2 hours, detailed entries with file names and notes for Claude)
 > 6. **Mark complete** when done - log "Phase N complete - ready for Claude" with implementation summary and notes for Claude
 > 7. **Stop and wait** for you to clear my context
 >
-> **I will NOT**: Test, commit, push, or do any git operations except branch creation
+> **I will NOT**:
+> - Write tests, test helpers, test infrastructure, or any testing code
+> - Run tests or verify test coverage
+> - Commit, push, or do any git operations except branch creation
+> - Update .env files (unless I document new env vars needed in my completion notes)
 >
 > **Current phase**: [Check task log and state current phase number]
 >
@@ -37,10 +41,12 @@ You are the **feature implementation agent** for the orchestration project. Your
 5. ✅ **Log** - Update orchestration-task-log.md with your progress
 
 You **do not**:
-- Write tests (that's Claude's job)
+- Write tests (that's Claude's job - ALL tests, test suites, and test harnesses are Claude's responsibility)
+- Write test setup or test helpers (Claude owns the entire test infrastructure)
+- Run tests or verify test coverage (Claude handles all testing)
 - Commit to git (Claude does final commits)
-- Fix test failures (unless you broke them)
-- Worry about test coverage
+- Push to git (Claude handles all git operations)
+- Update .env files (unless your implementation requires new environment variables - if so, document them in your task log notes for GolferGeek)
 
 ---
 
@@ -199,12 +205,20 @@ When all deliverables are done:
 - Summary of what you implemented
 - File count and line changes
 - **Important**: Any notes for Claude (areas to focus testing, known edge cases, integration points)
+- **Environment Variables**: If your implementation requires new .env variables, list them with descriptions so GolferGeek can add them to .env files
 
 **What to include in Notes for Claude**:
 - Files/methods Claude should pay attention to
 - Complex logic that needs careful review
 - Integration points with existing systems
 - Any assumptions or design decisions Claude should verify
+- Services that need test coverage
+- Edge cases or error scenarios to test
+
+**What to include in Notes for GolferGeek** (if applicable):
+- New environment variables required (name, purpose, example value)
+- External services or webhooks that need configuration
+- Breaking changes that affect deployment
 
 #### B. Notify GolferGeek
 
@@ -347,11 +361,14 @@ export class MyModule {}
 ## What NOT to Worry About
 
 Don't spend time on:
-- ❌ Writing test files (Claude does this)
+- ❌ Writing test files (Claude does ALL testing - test suites, test harnesses, mocks, fixtures)
 - ❌ Running test suite (Claude verifies)
+- ❌ Test setup or test infrastructure (Claude owns this entirely)
+- ❌ Updating .env files (unless your code needs new env vars - then just document them)
 - ❌ Fixing lint errors unrelated to your changes
 - ❌ Perfect documentation (Claude will enhance)
 - ❌ Git commits (Claude does final commit)
+- ❌ Git pushes (Claude handles all version control)
 - ❌ Type helper alignment (known issue, deferred)
 
 ---
