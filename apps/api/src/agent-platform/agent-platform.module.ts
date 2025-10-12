@@ -36,6 +36,7 @@ import { HumanApprovalsRepository } from './repositories/human-approvals.reposit
 import { RedactionPatternsRepository } from './repositories/redaction-patterns.repository';
 import { AgentApprovalsController } from './controllers/agent-approvals.controller';
 import { AgentsAdminController } from './controllers/agents-admin.controller';
+import { AgentsPublicController } from './controllers/agents-public.controller';
 import { OrchestrationsController } from './controllers/orchestrations.controller';
 import { AgentValidationService } from './services/agent-validation.service';
 import { AgentDryRunService } from './services/agent-dry-run.service';
@@ -72,6 +73,7 @@ import { MetricsController } from './controllers/metrics.controller';
   controllers: [
     AgentApprovalsController,
     AgentsAdminController,
+    AgentsPublicController,
     OrchestrationsController,
     MetricsController,
   ],

@@ -1,32 +1,16 @@
-import { Controller, Get, Headers, Logger } from '@nestjs/common';
+import { Controller, Get, Headers } from '@nestjs/common';
 import { Public } from '@/auth/decorators/public.decorator';
 import { AgentRegistryService } from '../services/agent-registry.service';
 
-@Controller('hierarchy')
-export class HierarchyController {
-  private readonly logger = new Logger(HierarchyController.name);
-
+@Controller('agents')
+export class AgentsPublicController {
   constructor(private readonly agentRegistry: AgentRegistryService) {}
 
   /**
-   * Test endpoint
-   * Route: GET /hierarchy/test
+   * Frontend compatibility endpoint for agent hierarchy
+   * Route: GET /agents/.well-known/hierarchy
    */
-  @Get('test')
-  @Public()
-  async testHierarchy() {
-    return {
-      message: 'Hierarchy controller working',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Get agent hierarchy
-   * Route: GET /hierarchy/agents
-   * Also available at: GET /agents/.well-known/hierarchy (for frontend compatibility)
-   */
-  @Get('agents')
+  @Get('.well-known/hierarchy')
   @Public()
   async getAgentHierarchy(
     @Headers('x-agent-namespace') namespaceHeader?: string,
@@ -73,18 +57,6 @@ export class HierarchyController {
         },
       };
     }
-  }
-
-  /**
-   * Frontend compatibility endpoint
-   * Route: GET /.well-known/hierarchy
-   */
-  @Get('.well-known/hierarchy')
-  @Public()
-  async getAgentHierarchyWellKnown(
-    @Headers('x-agent-namespace') namespaceHeader?: string,
-  ) {
-    return this.getAgentHierarchy(namespaceHeader);
   }
 
   private buildHierarchyFromAgents(agents: any[]): any[] {
