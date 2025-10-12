@@ -86,13 +86,24 @@ describe('OrchestrationExecutionService', () => {
     emitRunCompleted: jest.fn(),
     emitStepFailed: jest.fn(),
     emitRunFailed: jest.fn(),
+    emitStepsQueued: jest.fn(),
+    emitRunUpdated: jest.fn(),
+  } as any;
+
+  const metrics = {
+    recordRunCreated: jest.fn(),
+    recordStepStarted: jest.fn(),
+    recordStepCompleted: jest.fn(),
+    recordStepFailed: jest.fn(),
+    recordRunCompleted: jest.fn(),
+    recordRunFailed: jest.fn(),
   } as any;
 
   let service: OrchestrationExecutionService;
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new OrchestrationExecutionService(runner, state, events);
+    service = new OrchestrationExecutionService(runner, state, events, metrics);
   });
 
   describe('startExecution', () => {

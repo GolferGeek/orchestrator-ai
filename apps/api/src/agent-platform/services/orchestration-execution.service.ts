@@ -7,6 +7,7 @@ import {
   OrchestrationStepUpdateInput,
 } from '../interfaces/orchestration-step-record.interface';
 import { OrchestrationEventsService } from './orchestration-events.service';
+import { OrchestrationMetricsService } from './orchestration-metrics.service';
 
 interface StepStateEntry {
   status: string;
@@ -14,6 +15,11 @@ interface StepStateEntry {
   completedAt?: string | null;
   attemptNumber?: number;
   metadata?: Record<string, any>;
+}
+
+interface StepFailureOptions {
+  allowRetry?: boolean;
+  retryAt?: string | null;
 }
 
 @Injectable()
@@ -24,13 +30,46 @@ export class OrchestrationExecutionService {
     private readonly orchestrationRunner: OrchestrationRunnerService,
     private readonly stateService: OrchestrationStateService,
     private readonly events: OrchestrationEventsService,
+    private readonly metrics: OrchestrationMetricsService,
   ) {}
+
+  getConcurrencyLimit(run: OrchestrationRunRecord): number {
+    const metadata = this.asRecord(
+      run.metadata as Record<string, any> | undefined,
+    );
+    const execution = this.asRecord(
+      metadata?.execution as Record<string, any> | undefined,
+    );
+    const concurrency = this.asRecord(
+      execution?.concurrency as Record<string, any> | undefined,
+    );
+
+    const configured = this.coercePositiveInteger(
+      concurrency?.maxParallelSteps,
+      concurrency?.max_parallel_steps,
+      concurrency?.maxParallel,
+      concurrency?.max_parallel,
+    );
+    if (configured !== null) {
+      return configured;
+    }
+
+    const fallback = this.coercePositiveInteger(
+      process.env.ORCHESTRATION_DEFAULT_MAX_PARALLEL,
+      process.env.ORCHESTRATION_MAX_CONCURRENCY,
+    );
+
+    return fallback ?? 1;
+  }
 
   /**
    * Begin execution by finding runnable steps and marking them as queued.
    * Returns updated run state and the steps ready for execution.
    */
-  async startExecution(runId: string): Promise<{
+  async startExecution(
+    runId: string,
+    options: { maxParallel?: number } = {},
+  ): Promise<{
     run: OrchestrationRunRecord;
     readySteps: OrchestrationStepRecord[];
   }> {
@@ -39,10 +78,33 @@ export class OrchestrationExecutionService {
       throw new Error(`Orchestration run ${runId} not found`);
     }
 
-    const metrics = await this.gatherStepMetrics(runId);
-    const readySteps = await this.stateService.findRunnableSteps(runId);
+    const steps = await this.orchestrationRunner.listSteps(runId);
+    const metrics = await this.gatherStepMetrics(runId, steps);
+    const activeCount = steps.filter((step) =>
+      ['running', 'queued'].includes(step.status),
+    ).length;
 
-    if (!readySteps.length) {
+    const maxParallel =
+      typeof options.maxParallel === 'number'
+        ? options.maxParallel
+        : Number.POSITIVE_INFINITY;
+
+    const availableSlots =
+      Number.isFinite(maxParallel) && maxParallel >= 0
+        ? Math.max(0, Math.floor(maxParallel) - activeCount)
+        : steps.length;
+
+    const readySteps =
+      availableSlots <= 0
+        ? []
+        : await this.stateService.findRunnableSteps(runId, {
+            steps,
+            limit: Number.isFinite(maxParallel)
+              ? Math.max(availableSlots, 0)
+              : undefined,
+          });
+
+    if (!readySteps.length && activeCount === 0) {
       const completedRun = await this.orchestrationRunner.updateRun({
         runId,
         status: 'completed',
@@ -57,20 +119,37 @@ export class OrchestrationExecutionService {
       this.events.emitRunCompleted(completedRun, {
         totalSteps: metrics.total,
       });
+      this.metrics.recordRunCompleted(completedRun, 'completed');
       return { run: completedRun, readySteps: [] };
+    }
+
+    if (!readySteps.length) {
+      return { run, readySteps: [] };
     }
 
     const now = new Date().toISOString();
     const queuedSteps = await Promise.all(
-      readySteps.map((step) =>
-        this.orchestrationRunner.updateStep(step.id, {
+      readySteps.map((step) => {
+        const metadata = this.cloneMetadata(
+          step.metadata as Record<string, any> | undefined,
+        );
+        metadata.queuedAt = now;
+
+        const runtime = this.asRecord(metadata.runtime);
+        if (runtime?.retry) {
+          runtime.retry = {
+            ...runtime.retry,
+            nextRetryAt: null,
+            lastQueuedAt: now,
+          };
+          metadata.runtime = runtime;
+        }
+
+        return this.orchestrationRunner.updateStep(step.id, {
           status: 'queued',
-          metadata: {
-            ...(step.metadata ?? {}),
-            queuedAt: now,
-          },
-        }),
-      ),
+          metadata,
+        });
+      }),
     );
 
     const stepState = this.mergeStepState(
@@ -148,6 +227,11 @@ export class OrchestrationExecutionService {
         currentStep: this.resolveStepKey(step),
       }),
     });
+
+    const queueDuration = this.computeQueueDuration(step);
+    if (queueDuration !== null) {
+      this.metrics.observeStepQueueDuration(updatedRun, step, queueDuration);
+    }
 
     const totalSteps = this.extractTotalSteps(updatedRun.metadata) ?? undefined;
 
@@ -248,6 +332,11 @@ export class OrchestrationExecutionService {
           }
         : undefined;
 
+    const stepDuration = this.computeStepDuration(step);
+    if (stepDuration !== null) {
+      this.metrics.observeStepDuration(updatedRun, step, stepDuration, 'completed');
+    }
+
     this.events.emitStepCompleted(updatedRun, step, nextSteps, context);
 
     if (runStatus === 'completed') {
@@ -272,6 +361,7 @@ export class OrchestrationExecutionService {
   async markStepFailed(
     stepId: string,
     errorDetails: Record<string, any>,
+    options: StepFailureOptions = {},
   ): Promise<{ step: OrchestrationStepRecord; run: OrchestrationRunRecord }> {
     const now = new Date().toISOString();
     const step = await this.orchestrationRunner.updateStep(stepId, {
@@ -282,20 +372,33 @@ export class OrchestrationExecutionService {
 
     const run = await this.ensureRun(step.orchestration_run_id);
     const metrics = await this.gatherStepMetrics(step.orchestration_run_id);
+    const allowRetry = options.allowRetry === true;
     const stepState = this.mergeStepState(run.step_state ?? {}, [
       {
         key: this.resolveStepKey(step),
         state: {
           status: 'failed',
           completedAt: now,
-          metadata: errorDetails,
+          metadata: allowRetry
+            ? {
+                ...errorDetails,
+                retryAt: options.retryAt ?? null,
+              }
+            : errorDetails,
         },
       },
     ]);
+    const retryMetadataPatch = allowRetry
+      ? {
+          retry: {
+            scheduledAt: options.retryAt ?? null,
+          },
+        }
+      : undefined;
 
     const updatedRun = await this.orchestrationRunner.updateRun({
       runId: step.orchestration_run_id,
-      status: 'failed',
+      status: allowRetry ? 'running' : 'failed',
       currentStepIndex: step.step_index,
       currentStepId: this.resolveStepKey(step),
       stepState: stepState,
@@ -306,9 +409,19 @@ export class OrchestrationExecutionService {
         },
         lastFailedStep: this.resolveStepKey(step),
         stats: this.buildStats(metrics.total, metrics.completed),
+        ...(retryMetadataPatch ?? {}),
       }),
-      completedAt: now,
+      completedAt: allowRetry ? run.completed_at ?? null : now,
     });
+
+    const failureDuration = this.computeStepDuration(step);
+    if (failureDuration !== null) {
+      this.metrics.observeStepDuration(updatedRun, step, failureDuration, 'failed');
+    }
+
+    if (!allowRetry) {
+      this.metrics.recordRunCompleted(updatedRun, 'failed');
+    }
 
     const context =
       metrics.total > 0
@@ -318,7 +431,19 @@ export class OrchestrationExecutionService {
         : undefined;
 
     this.events.emitStepFailed(updatedRun, step, errorDetails, context);
-    this.events.emitRunFailed(updatedRun, errorDetails, context);
+    if (allowRetry) {
+      this.events.emitRunUpdated(
+        updatedRun,
+        {
+          reason: 'step_failed_retry_scheduled',
+          stepId: this.resolveStepKey(step),
+          nextRetryAt: options.retryAt ?? null,
+        },
+        context,
+      );
+    } else {
+      this.events.emitRunFailed(updatedRun, errorDetails, context);
+    }
 
     return { step, run: updatedRun };
   }
@@ -327,16 +452,20 @@ export class OrchestrationExecutionService {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private async gatherStepMetrics(runId: string): Promise<{
+  private async gatherStepMetrics(
+    runId: string,
+    steps?: OrchestrationStepRecord[],
+  ): Promise<{
     total: number;
     completed: number;
   }> {
-    const steps = await this.orchestrationRunner.listSteps(runId);
-    const completed = steps.filter(
+    const records =
+      steps ?? (await this.orchestrationRunner.listSteps(runId));
+    const completed = records.filter(
       (step) => step.status === 'completed',
     ).length;
     return {
-      total: steps.length,
+      total: records.length,
       completed,
     };
   }
@@ -389,6 +518,78 @@ export class OrchestrationExecutionService {
     }
 
     return merged;
+  }
+
+  private cloneMetadata(
+    metadata: Record<string, any> | undefined,
+  ): Record<string, any> {
+    if (!metadata) {
+      return {};
+    }
+    try {
+      return JSON.parse(JSON.stringify(metadata));
+    } catch (error) {
+      this.logger.warn(
+        `Failed to deep clone step metadata, falling back to shallow copy: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return { ...metadata };
+    }
+  }
+
+  private computeQueueDuration(step: OrchestrationStepRecord): number | null {
+    const metadata = this.asRecord(step.metadata);
+    const queuedAtRaw = metadata?.queuedAt;
+    if (!queuedAtRaw || !step.started_at) {
+      return null;
+    }
+
+    const queuedAt = Date.parse(String(queuedAtRaw));
+    const startedAt = Date.parse(step.started_at);
+    if (Number.isNaN(queuedAt) || Number.isNaN(startedAt)) {
+      return null;
+    }
+
+    const diff = startedAt - queuedAt;
+    return diff >= 0 ? diff : null;
+  }
+
+  private computeStepDuration(step: OrchestrationStepRecord): number | null {
+    if (!step.started_at || !step.completed_at) {
+      return null;
+    }
+    const startedAt = Date.parse(step.started_at);
+    const completedAt = Date.parse(step.completed_at);
+    if (Number.isNaN(startedAt) || Number.isNaN(completedAt)) {
+      return null;
+    }
+    const diff = completedAt - startedAt;
+    return diff >= 0 ? diff : null;
+  }
+
+  private coercePositiveInteger(...values: Array<any>): number | null {
+    for (const value of values) {
+      if (value === null || value === undefined) {
+        continue;
+      }
+      const parsed =
+        typeof value === 'number'
+          ? value
+          : typeof value === 'string'
+            ? Number(value)
+            : NaN;
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        const normalized = Math.max(1, Math.floor(Number(parsed)));
+        return Math.min(normalized, 16);
+      }
+    }
+    return null;
+  }
+
+  private asRecord(value: unknown): Record<string, any> | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    return { ...(value as Record<string, any>) };
   }
 
   private extractTotalSteps(

@@ -1,9 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
+import { OrchestrationCacheService } from '@agent-platform/services/orchestration-cache.service';
+import { OrchestrationDefinitionService } from '@agent-platform/services/orchestration-definition.service';
 import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
 import { OrchestrationOutputMapper } from '@agent-platform/services/orchestration-output-mapper.service';
+import { OrchestrationRunFactoryService } from '@agent-platform/services/orchestration-run-factory.service';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
@@ -28,27 +32,57 @@ describe('OrchestrationStepExecutorService', () => {
 
   const mockRun: OrchestrationRunRecord = {
     id: 'run-123',
-    organization_slug: 'test-org',
+    plan_id: null,
+    orchestration_definition_id: null,
     orchestration_name: 'kpi-tracking',
+    conversation_id: null,
+    parent_orchestration_run_id: null,
+    origin_type: 'manual',
+    origin_id: null,
+    orchestration_slug: null,
+    organization_slug: 'test-org',
     status: 'running',
+    current_step_index: 0,
+    current_step_id: 'fetch-kpi-data',
+    completed_steps: [],
+    step_state: {},
+    human_checkpoint_id: null,
+    plan: {},
     parameters: { month: '2024-10' },
     results: {},
+    error_details: {},
+    metadata: {},
     created_at: '2025-10-12T00:00:00Z',
     updated_at: '2025-10-12T00:00:00Z',
+    started_at: '2025-10-12T00:00:00Z',
+    completed_at: null,
+    created_by: null,
   };
 
   const mockStep: OrchestrationStepRecord = {
     id: 'step-123',
-    run_id: 'run-123',
+    orchestration_run_id: 'run-123',
     step_id: 'fetch-kpi-data',
     step_index: 0,
     agent_slug: 'supabase-agent',
+    mode: 'orchestrate',
     status: 'pending',
+    conversation_id: null,
+    plan_id: null,
     depends_on: [],
+    attempt_number: 1,
+    checkpoint_decision: null,
+    checkpoint_decided_by: null,
+    checkpoint_decided_at: null,
+    invalidated_at: null,
+    invalidated_reason: null,
     input: { userMessage: 'Fetch KPI data for {{ parameters.month }}' },
     output: null,
     deliverable_id: null,
     metadata: {},
+    error_details: null,
+    started_at: null,
+    completed_at: null,
     created_at: '2025-10-12T00:00:00Z',
     updated_at: '2025-10-12T00:00:00Z',
   };
@@ -61,8 +95,8 @@ describe('OrchestrationStepExecutorService', () => {
           provide: OrchestrationExecutionService,
           useValue: {
             startExecution: jest.fn(),
-            updateStepStatus: jest.fn(),
-            completeStep: jest.fn(),
+            markStepCompleted: jest.fn(),
+            markStepFailed: jest.fn(),
           },
         },
         {
@@ -70,6 +104,16 @@ describe('OrchestrationStepExecutorService', () => {
           useValue: {
             getRun: jest.fn(),
             updateRun: jest.fn(),
+            updateStep: jest.fn(),
+            listSteps: jest.fn(),
+          },
+        },
+        {
+          provide: OrchestrationCacheService,
+          useValue: {
+            getRunCache: jest.fn(),
+            setRunCache: jest.fn(),
+            clearRunCache: jest.fn(),
           },
         },
         {
@@ -93,25 +137,26 @@ describe('OrchestrationStepExecutorService', () => {
         {
           provide: AgentRuntimeDefinitionService,
           useValue: {
-            buildDefinitionMetadata: jest.fn(),
+            buildDefinition: jest.fn(),
           },
         },
         {
           provide: AgentRuntimeExecutionService,
           useValue: {
             buildRunMetadata: jest.fn(),
+            getAgentMetadataFromDefinition: jest.fn(),
           },
         },
         {
           provide: RoutingPolicyAdapterService,
           useValue: {
-            resolve: jest.fn(),
+            evaluate: jest.fn(),
           },
         },
         {
           provide: AgentModeRouterService,
           useValue: {
-            route: jest.fn(),
+            execute: jest.fn(),
           },
         },
         {
@@ -119,6 +164,26 @@ describe('OrchestrationStepExecutorService', () => {
           useValue: {
             createConversation: jest.fn(),
             getConversationById: jest.fn(),
+          },
+        },
+        {
+          provide: OrchestrationRunFactoryService,
+          useValue: {
+            createRunFromDefinition: jest.fn(),
+          },
+        },
+        {
+          provide: OrchestrationDefinitionService,
+          useValue: {
+            getDefinitionForExecution: jest.fn(),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
+            on: jest.fn(),
+            off: jest.fn(),
           },
         },
       ],
@@ -162,7 +227,7 @@ describe('OrchestrationStepExecutorService', () => {
         organizationSlug: 'test-org',
       } as any);
 
-      runtimeDefinitions.buildDefinitionMetadata.mockResolvedValue({
+      runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: {
           id: 'agent-id',
           slug: 'supabase-agent',
@@ -178,7 +243,7 @@ describe('OrchestrationStepExecutorService', () => {
         resolvedInput: { userMessage: 'Fetch KPI data for 2024-10' },
       } as any);
 
-      routingPolicy.resolve.mockResolvedValue({
+      routingPolicy.evaluate.mockResolvedValue({
         taskRequest: {
           metadata: {},
           input: { userMessage: 'Fetch KPI data for 2024-10' },
@@ -187,7 +252,7 @@ describe('OrchestrationStepExecutorService', () => {
         },
       } as any);
 
-      modeRouter.route.mockResolvedValue({
+      modeRouter.execute.mockResolvedValue({
         payload: {
           content: { rows: [{ metric: 'revenue', value: 150000 }] },
           metadata: {},
@@ -201,7 +266,7 @@ describe('OrchestrationStepExecutorService', () => {
         deliverableVersionId: null,
       });
 
-      executionService.completeStep.mockResolvedValue({
+      executionService.markStepCompleted.mockResolvedValue({
         ...mockRun,
         results: { 'fetch-kpi-data': { query_results: [{ metric: 'revenue', value: 150000 }] } },
       });
@@ -209,7 +274,7 @@ describe('OrchestrationStepExecutorService', () => {
       await service.processRun('run-123');
 
       expect(executionService.startExecution).toHaveBeenCalledTimes(2);
-      expect(executionService.completeStep).toHaveBeenCalledWith(
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'run-123',
         'step-123',
         expect.objectContaining({
@@ -236,7 +301,7 @@ describe('OrchestrationStepExecutorService', () => {
     it('should halt on checkpoint', async () => {
       const stepWithCheckpoint: OrchestrationStepRecord = {
         ...mockStep,
-        checkpoint: { type: 'manual', message: 'Review results' },
+        checkpoint_decision: { type: 'manual', message: 'Review results' },
       };
 
       executionService.startExecution.mockResolvedValueOnce({
@@ -251,7 +316,7 @@ describe('OrchestrationStepExecutorService', () => {
         organizationSlug: 'test-org',
       } as any);
 
-      runtimeDefinitions.buildDefinitionMetadata.mockResolvedValue({
+      runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: { id: 'agent-id', slug: 'supabase-agent' },
       } as any);
 
@@ -261,11 +326,11 @@ describe('OrchestrationStepExecutorService', () => {
         resolvedInput: {},
       } as any);
 
-      routingPolicy.resolve.mockResolvedValue({
+      routingPolicy.evaluate.mockResolvedValue({
         taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
       } as any);
 
-      modeRouter.route.mockResolvedValue({
+      modeRouter.execute.mockResolvedValue({
         payload: { content: 'result', metadata: {} },
         conversation: null,
       } as any);
@@ -290,7 +355,7 @@ describe('OrchestrationStepExecutorService', () => {
     it('should handle step execution failure gracefully', async () => {
       const failingStep: OrchestrationStepRecord = {
         ...mockStep,
-        agent_slug: undefined,
+        agent_slug: null,
       };
 
       executionService.startExecution.mockResolvedValueOnce({
@@ -413,7 +478,7 @@ describe('OrchestrationStepExecutorService', () => {
         slug: 'supabase-agent',
       } as any);
 
-      runtimeDefinitions.buildDefinitionMetadata.mockResolvedValue({
+      runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: { id: 'agent-id', slug: 'supabase-agent' },
       } as any);
 
@@ -423,11 +488,11 @@ describe('OrchestrationStepExecutorService', () => {
         resolvedInput: {},
       } as any);
 
-      routingPolicy.resolve.mockResolvedValue({
+      routingPolicy.evaluate.mockResolvedValue({
         taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
       } as any);
 
-      modeRouter.route.mockResolvedValue({
+      modeRouter.execute.mockResolvedValue({
         payload: { content: 'result', metadata: {} },
         conversation: null,
       } as any);
@@ -477,7 +542,7 @@ describe('OrchestrationStepExecutorService', () => {
         });
 
       agentRegistry.getAgent.mockResolvedValue({ id: 'agent-id', slug: 'supabase-agent' } as any);
-      runtimeDefinitions.buildDefinitionMetadata.mockResolvedValue({
+      runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: { id: 'agent-id', slug: 'supabase-agent' },
       } as any);
       runtimeExecution.buildRunMetadata.mockReturnValue({
@@ -485,10 +550,10 @@ describe('OrchestrationStepExecutorService', () => {
         stream: false,
         resolvedInput: {},
       } as any);
-      routingPolicy.resolve.mockResolvedValue({
+      routingPolicy.evaluate.mockResolvedValue({
         taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
       } as any);
-      modeRouter.route.mockResolvedValue({
+      modeRouter.execute.mockResolvedValue({
         payload: { content: 'result', metadata: {} },
         conversation: null,
       } as any);
@@ -526,7 +591,7 @@ describe('OrchestrationStepExecutorService', () => {
         slug: 'supabase-agent',
       } as any);
 
-      runtimeDefinitions.buildDefinitionMetadata.mockResolvedValue({
+      runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: { id: 'agent-id', slug: 'supabase-agent' },
       } as any);
 
@@ -536,11 +601,11 @@ describe('OrchestrationStepExecutorService', () => {
         resolvedInput: {},
       } as any);
 
-      routingPolicy.resolve.mockResolvedValue({
+      routingPolicy.evaluate.mockResolvedValue({
         taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
       } as any);
 
-      modeRouter.route.mockResolvedValue({
+      modeRouter.execute.mockResolvedValue({
         payload: {
           content: {
             rows: [{ metric: 'revenue', value: 150000 }],
@@ -589,7 +654,7 @@ describe('OrchestrationStepExecutorService', () => {
       });
 
       agentRegistry.getAgent.mockResolvedValue({ id: 'agent-id', slug: 'supabase-agent' } as any);
-      runtimeDefinitions.buildDefinitionMetadata.mockResolvedValue({
+      runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: { id: 'agent-id', slug: 'supabase-agent' },
       } as any);
       runtimeExecution.buildRunMetadata.mockReturnValue({
@@ -597,10 +662,10 @@ describe('OrchestrationStepExecutorService', () => {
         stream: false,
         resolvedInput: {},
       } as any);
-      routingPolicy.resolve.mockResolvedValue({
+      routingPolicy.evaluate.mockResolvedValue({
         taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
       } as any);
-      modeRouter.route.mockResolvedValue({
+      modeRouter.execute.mockResolvedValue({
         payload: { content: 'result', metadata: {} },
         conversation: null,
       } as any);
@@ -619,7 +684,7 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(executionService.completeStep).toHaveBeenCalledWith(
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'run-123',
         'step-123',
         expect.objectContaining({

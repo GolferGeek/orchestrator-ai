@@ -8,7 +8,7 @@ module.exports = {
     '^.+\\.ts$': 'ts-jest',
   },
   transformIgnorePatterns: [
-    'node_modules/'  
+    'node_modules/'
   ],
   collectCoverageFrom: [
     '**/*.(t|j)s',
@@ -16,6 +16,7 @@ module.exports = {
   coverageDirectory: '../coverage',
   testTimeout: 120000,
   moduleNameMapper: {
+    '^quick-lru$': '<rootDir>/__mocks__/quick-lru.js',
     '^@/(.*)$': '<rootDir>/$1',
     '^@agents/(.*)$': '<rootDir>/agents/$1',
     '^@agents/base/(.*)$': '<rootDir>/agents/base/$1',

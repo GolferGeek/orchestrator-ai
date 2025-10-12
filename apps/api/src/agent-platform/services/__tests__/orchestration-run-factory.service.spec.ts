@@ -5,6 +5,7 @@ import { OrchestrationRunnerService } from '../orchestration-runner.service';
 import { OrchestrationStateService } from '../orchestration-state.service';
 import { OrchestrationExecutionService } from '../orchestration-execution.service';
 import { OrchestrationEventsService } from '../orchestration-events.service';
+import { OrchestrationMetricsService } from '../orchestration-metrics.service';
 import { OrchestrationResolvedDefinition } from '../../types/orchestration-definition.types';
 import { OrchestrationRunRecord } from '../../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../../interfaces/orchestration-step-record.interface';
@@ -129,6 +130,15 @@ describe('OrchestrationRunFactoryService', () => {
           },
         },
         {
+          provide: OrchestrationMetricsService,
+          useValue: {
+            recordRunCreated: jest.fn(),
+            recordRunStarted: jest.fn(),
+            recordStepStarted: jest.fn(),
+            recordStepCompleted: jest.fn(),
+          },
+        },
+        {
           provide: EventEmitter2,
           useValue: {
             emit: jest.fn(),
@@ -198,7 +208,7 @@ describe('OrchestrationRunFactoryService', () => {
         totalSteps: 1,
       });
 
-      expect(mockExecution.startExecution).toHaveBeenCalledWith('run-123');
+      expect(mockExecution.startExecution).toHaveBeenCalledWith('run-123', expect.any(Object));
     });
 
     it('should include parent run metadata for child orchestrations', async () => {

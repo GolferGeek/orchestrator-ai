@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { OrchestrationStepExecutorService } from '../orchestration-step-executor.service';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
+import { OrchestrationCacheService } from '@agent-platform/services/orchestration-cache.service';
 import { OrchestrationDefinitionService } from '@agent-platform/services/orchestration-definition.service';
 import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
 import { OrchestrationOutputMapper } from '@agent-platform/services/orchestration-output-mapper.service';
@@ -173,6 +174,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
             updateRun: jest.fn(),
             updateStep: jest.fn(),
             listSteps: jest.fn(),
+          },
+        },
+        {
+          provide: OrchestrationCacheService,
+          useValue: {
+            getRunCache: jest.fn(),
+            setRunCache: jest.fn(),
+            clearRunCache: jest.fn(),
           },
         },
         {

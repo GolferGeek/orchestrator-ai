@@ -7,6 +7,8 @@ import { OrchestrationStatusService } from './orchestration-status.service';
 import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationCheckpointService } from './orchestration-checkpoint.service';
 import { OrchestrationDefinitionService } from './orchestration-definition.service';
+import { OrchestrationExecutionService } from './orchestration-execution.service';
+import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { HumanApprovalRecord } from '../repositories/human-approvals.repository';
 import { OrchestrationRunSnapshot } from '../types/orchestration-events.types';
@@ -51,6 +53,8 @@ describe('OrchestrationDashboardService', () => {
   let runnerService: jest.Mocked<OrchestrationRunnerService>;
   let checkpointService: jest.Mocked<OrchestrationCheckpointService>;
   let definitionService: jest.Mocked<OrchestrationDefinitionService>;
+  let executionService: jest.Mocked<OrchestrationExecutionService>;
+  let stepExecutorService: jest.Mocked<OrchestrationStepExecutorService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -74,6 +78,7 @@ describe('OrchestrationDashboardService', () => {
           provide: OrchestrationEventsService,
           useValue: {
             snapshotRun: jest.fn(),
+            emitRunFailed: jest.fn(),
           },
         },
         {
@@ -86,6 +91,10 @@ describe('OrchestrationDashboardService', () => {
           provide: OrchestrationRunnerService,
           useValue: {
             getRun: jest.fn(),
+            listSteps: jest.fn(),
+            updateStep: jest.fn(),
+            updateRun: jest.fn(),
+            getStep: jest.fn(),
           },
         },
         {
@@ -98,6 +107,18 @@ describe('OrchestrationDashboardService', () => {
           provide: OrchestrationDefinitionService,
           useValue: {
             getDefinitionById: jest.fn(),
+          },
+        },
+        {
+          provide: OrchestrationExecutionService,
+          useValue: {
+            markStepCompleted: jest.fn(),
+          },
+        },
+        {
+          provide: OrchestrationStepExecutorService,
+          useValue: {
+            processRun: jest.fn(),
           },
         },
       ],
@@ -113,6 +134,8 @@ describe('OrchestrationDashboardService', () => {
     runnerService = module.get(OrchestrationRunnerService);
     checkpointService = module.get(OrchestrationCheckpointService);
     definitionService = module.get(OrchestrationDefinitionService);
+    executionService = module.get(OrchestrationExecutionService);
+    stepExecutorService = module.get(OrchestrationStepExecutorService);
   });
 
   describe('listRuns', () => {
@@ -673,6 +696,7 @@ describe('OrchestrationDashboardService', () => {
       });
 
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
 
       eventsService.snapshotRun.mockReturnValue(createMockSnapshot({
         id: 'run-1',
@@ -833,6 +857,610 @@ describe('OrchestrationDashboardService', () => {
       expect(result).not.toBeNull();
       expect(result?.definition.id).toBeNull();
       expect(result?.definition.name).toBe('No Definition');
+    });
+  });
+
+  // Phase 8: Manual Recovery Tests
+  describe('retryStep', () => {
+    it('should manually retry a failed step with default delay', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        orchestration_name: 'Test Orchestration',
+        created_at: '2025-10-12T10:00:00Z',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        step_index: 0,
+        status: 'failed',
+        attempt_number: 1,
+        error_details: { message: 'Network timeout' },
+        completed_at: '2025-10-12T10:05:00Z',
+        input: { param1: 'value1' },
+        metadata: {
+          behavior: { retry: { maxAttempts: 3 } },
+          runtime: { retry: { attempt: 1, history: [], maxAttempts: 3 } }
+        },
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
+      runnerService.updateRun.mockResolvedValue({ ...mockRun, status: 'running' } as OrchestrationRunRecord);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      const result = await service.retryStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+        delaySeconds: 0,
+        note: 'Manual retry after timeout',
+      });
+
+      const updateCall = runnerService.updateStep.mock.calls[0];
+      expect(updateCall?.[0]).toBe('step-rec-1');
+      expect(updateCall?.[1]).toMatchObject({
+        status: 'pending',
+        attempt_number: 2,
+        completed_at: null,
+        started_at: null,
+        output: null,
+        deliverable_id: null,
+      });
+      expect(updateCall?.[1]?.metadata).toBeDefined();
+      expect(updateCall?.[1]?.metadata?.runtime?.retry).toBeDefined();
+      expect(result.status).toBe('running');
+    });
+
+    it('should schedule retry with delay when delaySeconds > 0', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        step_index: 0,
+        status: 'failed',
+        attempt_number: 2,
+        metadata: { runtime: { retry: { attempt: 2, history: [] } } },
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
+      runnerService.updateRun.mockResolvedValue(mockRun);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      await service.retryStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+        delaySeconds: 30,
+      });
+
+      const updateCall = runnerService.updateStep.mock.calls[0]?.[1];
+      expect(updateCall?.metadata?.runtime?.retry?.nextRetryAt).toBeTruthy();
+      expect(updateCall?.metadata?.runtime?.retry?.manual).toBe(true);
+    });
+
+    it('should merge modifications into step input on retry', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        step_index: 0,
+        status: 'failed',
+        attempt_number: 1,
+        input: { param1: 'original', param2: 'unchanged' },
+        metadata: {},
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
+      runnerService.updateRun.mockResolvedValue(mockRun);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      await service.retryStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+        modifications: { param1: 'modified', param3: 'new' },
+      });
+
+      const updateCall = runnerService.updateStep.mock.calls[0]?.[1];
+      expect(updateCall?.input).toEqual({
+        param1: 'modified',
+        param2: 'unchanged',
+        param3: 'new',
+      });
+    });
+
+    it('should track retry history with manual flag', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        step_index: 0,
+        status: 'failed',
+        attempt_number: 2,
+        completed_at: '2025-10-12T10:05:00Z',
+        metadata: {
+          runtime: {
+            retry: {
+              attempt: 2,
+              history: [
+                { attempt: 1, failedAt: '2025-10-12T10:03:00Z', manual: false }
+              ]
+            }
+          }
+        },
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
+      runnerService.updateRun.mockResolvedValue(mockRun);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      await service.retryStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+        note: 'Operator review complete',
+      });
+
+      const updateCall = runnerService.updateStep.mock.calls[0]?.[1];
+      expect(updateCall?.metadata?.runtime?.retry?.history).toHaveLength(2);
+      expect(updateCall?.metadata?.runtime?.retry?.history?.[1]).toMatchObject({
+        attempt: 2,
+        manual: true,
+        requestedBy: 'user-123',
+        note: 'Operator review complete',
+      });
+    });
+
+    it('should throw NotFoundException when run not found', async () => {
+      runnerService.getRun.mockResolvedValue(null);
+
+      await expect(
+        service.retryStep({ runId: 'nonexistent', actorId: 'user-123' })
+      ).rejects.toThrow('Orchestration run nonexistent could not be found');
+    });
+
+    it('should throw BadRequestException when no failed step exists', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([
+        { id: 'step-1', status: 'completed' } as any,
+        { id: 'step-2', status: 'pending' } as any,
+      ]);
+
+      await expect(
+        service.retryStep({ runId: 'run-1', actorId: 'user-123' })
+      ).rejects.toThrow('No failed step available to retry for this run');
+    });
+
+    it('should throw BadRequestException when specified step is not failed', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const completedStep = {
+        id: 'step-rec-1',
+        step_id: 'step-1',
+        status: 'completed',
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.getStep.mockResolvedValue(completedStep);
+
+      await expect(
+        service.retryStep({
+          runId: 'run-1',
+          stepRecordId: 'step-rec-1',
+          actorId: 'user-123',
+        })
+      ).rejects.toThrow('is not in a failed state');
+    });
+  });
+
+  describe('skipStep', () => {
+    it('should skip a failed step and mark as completed', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        step_index: 0,
+        status: 'failed',
+        error_details: { message: 'Original error' },
+        metadata: {},
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      const result = await service.skipStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+        note: 'Accepting previous deliverable',
+      });
+
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+        'step-rec-1',
+        { skipped: true },
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            runtime: expect.objectContaining({
+              skip: expect.objectContaining({
+                manual: true,
+                requestedBy: 'user-123',
+                note: 'Accepting previous deliverable',
+              }),
+            }),
+          }),
+        })
+      );
+      expect(result.status).toBe('running');
+    });
+
+    it('should store replacement output when provided', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        status: 'failed',
+        metadata: {},
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      await service.skipStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+        replacementOutput: { content: 'Manual override data' },
+      });
+
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+        'step-rec-1',
+        { content: 'Manual override data' },
+        expect.any(Object)
+      );
+    });
+
+    it('should store skipped flag when no replacement output', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        status: 'failed',
+        metadata: {},
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      await service.skipStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+      });
+
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+        'step-rec-1',
+        { skipped: true },
+        expect.any(Object)
+      );
+    });
+
+    it('should record skip metadata with actor and note', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const failedStep = {
+        id: 'step-rec-1',
+        orchestration_run_id: 'run-1',
+        step_id: 'step-1',
+        status: 'failed',
+        metadata: {},
+      } as any;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([failedStep]);
+      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+
+      await service.skipStep({
+        runId: 'run-1',
+        actorId: 'user-123',
+        note: 'Step no longer needed',
+      });
+
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+        'step-rec-1',
+        { skipped: true },
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            runtime: expect.objectContaining({
+              skip: expect.objectContaining({
+                manual: true,
+                requestedBy: 'user-123',
+                note: 'Step no longer needed',
+              }),
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should throw NotFoundException when run not found', async () => {
+      runnerService.getRun.mockResolvedValue(null);
+
+      await expect(
+        service.skipStep({ runId: 'nonexistent', actorId: 'user-123' })
+      ).rejects.toThrow('Orchestration run nonexistent could not be found');
+    });
+
+    it('should throw BadRequestException when no failed step exists', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'completed',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.listSteps.mockResolvedValue([
+        { id: 'step-1', status: 'completed' } as any,
+      ]);
+
+      await expect(
+        service.skipStep({ runId: 'run-1', actorId: 'user-123' })
+      ).rejects.toThrow('No target step available to skip for this run');
+    });
+  });
+
+  describe('abortRun', () => {
+    it('should abort a running orchestration', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        orchestration_name: 'Test Orchestration',
+        created_at: '2025-10-12T10:00:00Z',
+        started_at: '2025-10-12T10:01:00Z',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      const abortedRun = {
+        ...mockRun,
+        status: 'aborted',
+      } as OrchestrationRunRecord;
+      runnerService.updateRun.mockResolvedValue(abortedRun);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+
+      const result = await service.abortRun({
+        runId: 'run-1',
+        actorId: 'user-123',
+        note: 'Escalated to human review',
+      });
+
+      expect(runnerService.updateRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runId: 'run-1',
+          status: 'aborted',
+          completedAt: expect.any(String),
+        })
+      );
+      expect(result.status).toBe('aborted');
+    });
+
+    it('should record abort metadata with actor and note', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'checkpoint',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.updateRun.mockResolvedValue({
+        ...mockRun,
+        status: 'aborted',
+      } as OrchestrationRunRecord);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+
+      await service.abortRun({
+        runId: 'run-1',
+        actorId: 'user-123',
+        note: 'Critical issue found',
+      });
+
+      const updateCall = runnerService.updateRun.mock.calls[0]?.[0];
+      expect(updateCall?.metadata).toMatchObject({
+        manualRecovery: {
+          lastAction: 'abort',
+          requestedBy: 'user-123',
+          note: 'Critical issue found',
+        },
+      });
+    });
+
+    it('should set completed_at timestamp on abort', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.updateRun.mockResolvedValue({
+        ...mockRun,
+        status: 'aborted',
+      } as OrchestrationRunRecord);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+
+      await service.abortRun({
+        runId: 'run-1',
+        actorId: 'user-123',
+      });
+
+      const updateCall = runnerService.updateRun.mock.calls[0]?.[0];
+      expect(updateCall?.completedAt).toBeTruthy();
+    });
+
+    it('should throw NotFoundException when run not found', async () => {
+      runnerService.getRun.mockResolvedValue(null);
+
+      await expect(
+        service.abortRun({ runId: 'nonexistent', actorId: 'user-123' })
+      ).rejects.toThrow('Orchestration run nonexistent could not be found');
+    });
+
+    it('should emit abort event after update', async () => {
+      const mockRun: OrchestrationRunRecord = {
+        id: 'run-1',
+        status: 'running',
+        parameters: {},
+        plan: {},
+        results: {},
+        metadata: {},
+      } as OrchestrationRunRecord;
+
+      const abortedRun: OrchestrationRunRecord = {
+        ...mockRun,
+        status: 'aborted',
+        completed_at: '2025-10-12T10:10:00Z',
+      } as OrchestrationRunRecord;
+
+      runnerService.getRun.mockResolvedValue(mockRun);
+      runnerService.updateRun.mockResolvedValue(abortedRun);
+      approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
+      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+
+      await service.abortRun({
+        runId: 'run-1',
+        actorId: 'user-123',
+      });
+
+      expect(eventsService.emitRunFailed).toHaveBeenCalledWith(
+        abortedRun,
+        expect.objectContaining({
+          type: 'manual_abort',
+          note: null,
+        }),
+        expect.any(Object)
+      );
     });
   });
 });
