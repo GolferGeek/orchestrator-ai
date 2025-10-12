@@ -1,0 +1,59 @@
+metadata:
+  name: finance-quarterly-review
+  displayName: Finance Quarterly Review
+  version: 1.0.0
+  description: Run KPI tracking orchestration and prepare an executive finance brief.
+
+orchestration:
+  steps:
+    - id: run-kpi-tracking
+      name: Execute KPI Tracking Orchestration
+      type: orchestration
+      agent: finance-manager
+      orchestration:
+        name: kpi-tracking
+        version: 1.0.0
+        inherit_conversation: true
+        parameters:
+          kpi_names: "{{ parameters.kpi_names }}"
+          start_date: "{{ parameters.start_date }}"
+          end_date: "{{ parameters.end_date }}"
+          grouping: "{{ parameters.grouping }}"
+
+    - id: prepare-executive-brief
+      name: Prepare Executive Brief
+      agent: summarizer
+      mode: BUILD
+      depends_on:
+        - run-kpi-tracking
+      input:
+        userMessage: |
+          Create an executive-ready summary based on the KPI tracking results.
+          Highlight notable trends, risks, and recommended follow-ups.
+        context:
+          childStatus: "{{ steps.run-kpi-tracking.status }}"
+          aggregatedResults: "{{ steps.run-kpi-tracking.results }}"
+          summary: "{{ steps.run-kpi-tracking.results.summarize-results.summary }}"
+      output_mapping:
+        executive_summary: "$.content.deliverable.content"
+        summary_deliverable_id: "$.content.deliverable.id"
+
+  parameters:
+    - name: kpi_names
+      type: string[]
+      required: true
+      description: Names of KPIs to include
+    - name: start_date
+      type: date
+      required: true
+      description: Start date for the review window
+    - name: end_date
+      type: date
+      required: true
+      description: End date for the review window
+    - name: grouping
+      type: string
+      required: false
+      default: month
+      enum: [day, week, month]
+      description: Time grouping for KPI aggregation

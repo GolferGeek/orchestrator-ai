@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
@@ -7,6 +8,7 @@ import { AgentRegistryService } from '@agent-platform/services/agent-registry.se
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
 import { AgentRuntimeAgentMetadata } from '@agent-platform/interfaces/agent-runtime-agent-metadata.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { Agent2AgentConversationsService } from './agent-conversations.service';
@@ -19,6 +21,12 @@ import {
   OrchestrationCheckpointDecision,
   RequestOrchestrationCheckpointOptions,
 } from '@agent-platform/services/orchestration-checkpoint.service';
+import { OrchestrationDefinitionService } from '@agent-platform/services/orchestration-definition.service';
+import { OrchestrationRunFactoryService } from '@agent-platform/services/orchestration-run-factory.service';
+import {
+  OrchestrationResolvedDefinition,
+  OrchestrationSubDefinition,
+} from '@agent-platform/types/orchestration-definition.types';
 
 type StepProcessResult = {
   status: 'completed' | 'checkpoint' | 'failed';
@@ -33,6 +41,7 @@ export class OrchestrationStepExecutorService {
   constructor(
     private readonly executionService: OrchestrationExecutionService,
     private readonly runner: OrchestrationRunnerService,
+    private readonly definitionService: OrchestrationDefinitionService,
     private readonly checkpointService: OrchestrationCheckpointService,
     private readonly outputMapper: OrchestrationOutputMapper,
     private readonly agentRegistry: AgentRegistryService,
@@ -41,6 +50,8 @@ export class OrchestrationStepExecutorService {
     private readonly routingPolicy: RoutingPolicyAdapterService,
     private readonly modeRouter: AgentModeRouterService,
     private readonly conversations: Agent2AgentConversationsService,
+    private readonly runFactory: OrchestrationRunFactoryService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async processRun(runId: string): Promise<void> {
@@ -90,6 +101,12 @@ export class OrchestrationStepExecutorService {
     queuedStep: OrchestrationStepRecord,
   ): Promise<StepProcessResult> {
     const step = queuedStep;
+    const stepType = this.resolveStepType(step);
+
+    if (stepType === 'orchestration') {
+      return this.executeSubOrchestrationStep(run, step);
+    }
+
     if (!step.agent_slug) {
       await this.markFailedDueToConfiguration(
         run,
@@ -232,6 +249,211 @@ export class OrchestrationStepExecutorService {
         run: checkpointResult.run,
       };
     }
+
+    return {
+      status: 'completed',
+      run: completion.run,
+    };
+  }
+
+  private async executeSubOrchestrationStep(
+    run: OrchestrationRunRecord,
+    step: OrchestrationStepRecord,
+  ): Promise<StepProcessResult> {
+    const runningStep = await this.executionService.markStepRunning(step.id);
+    const config = this.extractOrchestrationConfig(step);
+
+    if (!config || !config.name) {
+      await this.markFailedDueToConfiguration(
+        run,
+        runningStep,
+        'Sub-orchestration step missing orchestration name',
+      );
+      const refreshed = (await this.runner.getRun(run.id)) ?? run;
+      return { status: 'failed', run: refreshed };
+    }
+
+    const ownerSlug = this.resolveChildOrchestrationOwner(config, step, run);
+    if (!ownerSlug) {
+      await this.markFailedDueToConfiguration(
+        run,
+        runningStep,
+        'Sub-orchestration step missing owner agent slug',
+      );
+      const refreshed = (await this.runner.getRun(run.id)) ?? run;
+      return { status: 'failed', run: refreshed };
+    }
+
+    const childParameters = this.resolveChildParameters(
+      config.parameters,
+      run,
+    );
+
+    let childDefinition: OrchestrationResolvedDefinition;
+    try {
+      childDefinition = await this.definitionService.getDefinitionForExecution({
+        ownerAgentSlug: ownerSlug,
+        organizationSlug: run.organization_slug ?? 'global',
+        name: config.name,
+        version: config.version,
+      });
+    } catch (error) {
+      await this.markFailedDueToConfiguration(
+        run,
+        runningStep,
+        `Failed to resolve sub-orchestration definition ${config.name}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      const refreshed = (await this.runner.getRun(run.id)) ?? run;
+      return { status: 'failed', run: refreshed };
+    }
+
+    const agentRecord = await this.resolveAgentRecord(
+      ownerSlug,
+      run.organization_slug,
+    );
+    if (!agentRecord) {
+      await this.markFailedDueToConfiguration(
+        run,
+        runningStep,
+        `Orchestrator agent ${ownerSlug} not found`,
+      );
+      const refreshed = (await this.runner.getRun(run.id)) ?? run;
+      return { status: 'failed', run: refreshed };
+    }
+
+    let stepMetadata = this.mergeStepMetadata(
+      runningStep.metadata as Record<string, any> | undefined,
+      this.buildInitialChildMetadataPatch(config, childDefinition, {
+        ownerSlug,
+        parameters: childParameters,
+      }),
+    );
+
+    await this.runner.updateStep(runningStep.id, {
+      metadata: stepMetadata,
+    });
+
+    const childRunMetadata = this.buildChildRunMetadata(run, runningStep, {
+      ownerSlug,
+      definition: childDefinition,
+    });
+
+    const factoryResult = await this.runFactory.createRunFromDefinition({
+      definition: childDefinition,
+      parameters: childParameters,
+      conversationId: this.shouldInheritConversation(config)
+        ? run.conversation_id ?? null
+        : null,
+      parentRunId: run.id,
+      organizationSlug: childDefinition.organizationSlug,
+      agent: {
+        id: agentRecord.id ?? null,
+        slug: ownerSlug,
+        type: agentRecord.agent_type ?? null,
+        displayName: agentRecord.display_name ?? ownerSlug,
+      },
+      createdBy: run.created_by ?? null,
+      requestMetadata: this.buildChildRequestMetadata(run, runningStep),
+      metadata: childRunMetadata,
+    });
+
+    const childRunId = factoryResult.run.id;
+    stepMetadata = this.mergeStepMetadata(stepMetadata, {
+      runtime: {
+        subOrchestration: {
+          childRunId,
+        },
+      },
+    });
+
+    await this.runner.updateStep(runningStep.id, {
+      metadata: stepMetadata,
+    });
+
+    let finalChildRun: OrchestrationRunRecord | null = null;
+
+    while (true) {
+      await this.processRun(childRunId);
+
+      const current = await this.runner.getRun(childRunId);
+      if (!current) {
+        const failure = await this.executionService.markStepFailed(
+          runningStep.id,
+          {
+            type: 'child_orchestration_missing',
+            message: `Child orchestration run ${childRunId} no longer exists`,
+          },
+        );
+        return { status: 'failed', run: failure.run };
+      }
+
+      if (this.isTerminalRunStatus(current.status)) {
+        finalChildRun = current;
+        break;
+      }
+
+      if (current.status === 'checkpoint') {
+        const latest = await this.runner.getRun(childRunId);
+        if (latest && latest.status !== 'checkpoint') {
+          continue;
+        }
+        await this.waitForRunEvent(childRunId, [
+          'orchestration.checkpoint.resolved',
+          'orchestration.run.failed',
+          'orchestration.run.completed',
+        ]);
+        continue;
+      }
+
+      await this.waitForRunEvent(childRunId, [
+        'orchestration.run.updated',
+        'orchestration.run.failed',
+        'orchestration.run.completed',
+      ]);
+    }
+
+    stepMetadata = this.mergeStepMetadata(stepMetadata, {
+      runtime: {
+        subOrchestration: {
+          completedAt: finalChildRun?.completed_at ?? null,
+          status: finalChildRun?.status ?? null,
+        },
+      },
+    });
+
+    if (
+      !finalChildRun ||
+      !this.isSuccessfulRun(finalChildRun.status)
+    ) {
+      await this.runner.updateStep(runningStep.id, {
+        metadata: stepMetadata,
+      });
+
+      const failureDetails = {
+        type:
+          finalChildRun?.status === 'aborted'
+            ? 'child_orchestration_aborted'
+            : 'child_orchestration_failed',
+        childRunId,
+        status: finalChildRun?.status ?? 'unknown',
+        error: finalChildRun?.error_details ?? {},
+      };
+
+      const failure = await this.executionService.markStepFailed(
+        runningStep.id,
+        failureDetails,
+      );
+      return { status: 'failed', run: failure.run };
+    }
+
+    const output = this.buildChildRunOutput(finalChildRun);
+    const completion = await this.executionService.markStepCompleted(
+      runningStep.id,
+      output,
+      {
+        metadata: stepMetadata,
+      },
+    );
 
     return {
       status: 'completed',
@@ -416,6 +638,277 @@ export class OrchestrationStepExecutorService {
       );
       return null;
     }
+  }
+
+  private extractOrchestrationConfig(
+    step: OrchestrationStepRecord,
+  ): OrchestrationSubDefinition | null {
+    const metadata = (step.metadata ?? {}) as Record<string, any>;
+    const config = metadata.orchestration;
+    if (!config || typeof config !== 'object') {
+      return null;
+    }
+    try {
+      const clone = JSON.parse(JSON.stringify(config));
+      if (clone && typeof clone === 'object') {
+        delete (clone as Record<string, any>).runtime;
+      }
+      return clone;
+    } catch (_error) {
+      const fallback = { ...(config as OrchestrationSubDefinition) };
+      delete (fallback as Record<string, any>).runtime;
+      return fallback;
+    }
+  }
+
+  private resolveStepType(
+    step: OrchestrationStepRecord,
+  ): 'agent' | 'orchestration' {
+    const metadata = (step.metadata ?? {}) as Record<string, any>;
+    const rawType =
+      typeof metadata.type === 'string'
+        ? metadata.type
+        : typeof metadata.stepType === 'string'
+          ? metadata.stepType
+          : null;
+    if ((step.mode ?? '').toString().toUpperCase() === 'ORCHESTRATION') {
+      return 'orchestration';
+    }
+    return rawType && rawType.toLowerCase() === 'orchestration'
+      ? 'orchestration'
+      : 'agent';
+  }
+
+  private resolveChildOrchestrationOwner(
+    config: OrchestrationSubDefinition | null,
+    step: OrchestrationStepRecord,
+    run: OrchestrationRunRecord,
+  ): string | null {
+    const candidates = [
+      config?.owner,
+      step.agent_slug,
+      (run.metadata?.agent as Record<string, any> | undefined)?.slug,
+      (run.metadata as Record<string, any> | undefined)?.agentSlug,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim().length > 0) {
+        return candidate.trim();
+      }
+    }
+
+    return null;
+  }
+
+  private resolveChildParameters(
+    template: Record<string, any> | undefined,
+    run: OrchestrationRunRecord,
+  ): Record<string, any> {
+    if (!template || typeof template !== 'object') {
+      return {};
+    }
+
+    const clone = this.cloneValue(template);
+    const resolved = this.interpolateValues(clone, run);
+    if (!resolved || typeof resolved !== 'object') {
+      return {};
+    }
+    return resolved as Record<string, any>;
+  }
+
+  private async resolveAgentRecord(
+    slug: string,
+    organizationSlug: string | null,
+  ): Promise<AgentRecord | null> {
+    const direct = await this.agentRegistry.getAgent(organizationSlug, slug);
+    if (direct) {
+      return direct;
+    }
+
+    if (organizationSlug === 'global') {
+      return null;
+    }
+
+    return this.agentRegistry.getAgent('global', slug);
+  }
+
+  private mergeStepMetadata(
+    current: Record<string, any> | undefined,
+    patch: Record<string, any>,
+  ): Record<string, any> {
+    const base =
+      current && typeof current === 'object'
+        ? this.cloneValue(current)
+        : {};
+    this.mergeInto(base, patch);
+    return base;
+  }
+
+  private buildInitialChildMetadataPatch(
+    config: OrchestrationSubDefinition,
+    definition: OrchestrationResolvedDefinition,
+    context: { ownerSlug: string; parameters: Record<string, any> },
+  ): Record<string, any> {
+    const patch: Record<string, any> = {
+      type: 'orchestration',
+      runtime: {
+        subOrchestration: {
+          ownerSlug: context.ownerSlug,
+          target: {
+            name: definition.name,
+            definitionId: definition.recordId ?? null,
+            version: definition.version,
+          },
+          parameters: context.parameters,
+          initiatedAt: new Date().toISOString(),
+        },
+      },
+    };
+
+    if (config && typeof config === 'object') {
+      patch.orchestration = this.cloneValue(config);
+    }
+
+    return patch;
+  }
+
+  private buildChildRunMetadata(
+    run: OrchestrationRunRecord,
+    step: OrchestrationStepRecord,
+    context: {
+      ownerSlug: string;
+      definition: OrchestrationResolvedDefinition;
+    },
+  ): Record<string, any> {
+    return {
+      parent: {
+        runId: run.id,
+        stepRecordId: step.id,
+        stepDefinitionId: step.step_id ?? null,
+        stepIndex: step.step_index,
+      },
+      subOrchestration: {
+        ownerSlug: context.ownerSlug,
+        definitionId: context.definition.recordId ?? null,
+        definitionName: context.definition.name,
+        version: context.definition.version,
+      },
+    };
+  }
+
+  private buildChildRequestMetadata(
+    run: OrchestrationRunRecord,
+    step: OrchestrationStepRecord,
+  ): Record<string, any> {
+    return {
+      parentRunId: run.id,
+      parentStepId: step.step_id ?? null,
+      parentStepRecordId: step.id,
+      parentStepIndex: step.step_index,
+      conversationId: run.conversation_id ?? null,
+    };
+  }
+
+  private shouldInheritConversation(
+    config: OrchestrationSubDefinition | null,
+  ): boolean {
+    return Boolean(config?.inherit_conversation);
+  }
+
+  private isTerminalRunStatus(
+    status: string | null | undefined,
+  ): boolean {
+    if (!status) {
+      return false;
+    }
+    const normalized = status.toLowerCase();
+    return (
+      normalized === 'completed' ||
+      normalized === 'failed' ||
+      normalized === 'aborted' ||
+      normalized === 'cancelled'
+    );
+  }
+
+  private isSuccessfulRun(status: string | null | undefined): boolean {
+    return (status ?? '').toLowerCase() === 'completed';
+  }
+
+  private buildChildRunOutput(
+    childRun: OrchestrationRunRecord,
+  ): Record<string, any> {
+    return {
+      orchestrationRunId: childRun.id,
+      status: childRun.status,
+      results: this.cloneValue(childRun.results ?? {}),
+      parameters: this.cloneValue(childRun.parameters ?? {}),
+      plan: this.cloneValue(childRun.plan ?? {}),
+      metadata: this.cloneValue(childRun.metadata ?? {}),
+      completedSteps: this.cloneValue(childRun.completed_steps ?? []),
+      errorDetails: this.cloneValue(childRun.error_details ?? {}),
+      timings: {
+        startedAt: childRun.started_at ?? null,
+        completedAt: childRun.completed_at ?? null,
+      },
+    };
+  }
+
+  private async waitForRunEvent(
+    runId: string,
+    eventNames: string[],
+    timeoutMs = 300_000,
+  ): Promise<void> {
+    if (!eventNames.length) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      let resolved = false;
+      const handlers: Array<(payload: any) => void> = [];
+
+      const cleanup = () => {
+        handlers.forEach((handler, index) => {
+          const eventName = eventNames[index];
+          if (eventName) {
+            this.eventEmitter.off(eventName, handler);
+          }
+        });
+      };
+
+      const timer = setTimeout(() => {
+        if (resolved) {
+          return;
+        }
+        resolved = true;
+        cleanup();
+        resolve();
+      }, timeoutMs);
+
+      eventNames.forEach((eventName) => {
+        const handler = (payload: any) => {
+          if (resolved) {
+            return;
+          }
+          const payloadRunId =
+            payload?.runId ??
+            payload?.run?.id ??
+            payload?.data?.runId ??
+            payload?.data?.run?.id;
+
+          if (payloadRunId !== runId) {
+            return;
+          }
+
+          resolved = true;
+          clearTimeout(timer);
+          cleanup();
+          resolve();
+        };
+
+        handlers.push(handler);
+        this.eventEmitter.on(eventName, handler);
+      });
+    });
   }
 
   private buildTaskRequest(

@@ -49,6 +49,7 @@ import { OrchestrationProgressEventsService } from './services/orchestration-pro
 import { TasksModule } from '@/agent2agent/tasks/tasks.module';
 import { OrchestrationStatusService } from './services/orchestration-status.service';
 import { OrchestrationOutputMapper } from './services/orchestration-output-mapper.service';
+import { OrchestrationRunFactoryService } from './services/orchestration-run-factory.service';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { OrchestrationOutputMapper } from './services/orchestration-output-mappe
     OrchestrationExecutionService,
     OrchestrationStatusService,
     OrchestrationOutputMapper,
+    OrchestrationRunFactoryService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
@@ -129,6 +131,7 @@ import { OrchestrationOutputMapper } from './services/orchestration-output-mappe
     OrchestrationExecutionService,
     OrchestrationStatusService,
     AgentRegistryService,
+    OrchestrationRunFactoryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
     AgentRuntimePromptService,

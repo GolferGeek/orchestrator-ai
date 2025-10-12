@@ -15,6 +15,7 @@ import { OrchestrationResolvedDefinition } from '@agent-platform/types/orchestra
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
 import { OrchestrationEventsService } from '@agent-platform/services/orchestration-events.service';
 import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
+import { OrchestrationRunFactoryService } from '@agent-platform/services/orchestration-run-factory.service';
 
 interface OrchestratorStartPayload {
   orchestrationDefinitionId?: string;
@@ -49,6 +50,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     private readonly orchestrationEvents: OrchestrationEventsService,
     private readonly checkpointService: OrchestrationCheckpointService,
     private readonly stepExecutor: OrchestrationStepExecutorService,
+    private readonly runFactory: OrchestrationRunFactoryService,
   ) {
     super();
   }
@@ -143,66 +145,28 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         (request.metadata ?? {}) as Record<string, any> | undefined,
       );
 
-      const runRecord = await this.orchestrationRunner.startRun({
+      const factoryResult = await this.runFactory.createRunFromDefinition({
+        definition: resolvedDefinition,
+        parameters: runtimeParameters,
         planId: request.planId ?? null,
-        orchestrationDefinitionId: resolvedDefinition.recordId ?? null,
-        orchestrationName: resolvedDefinition.name,
         conversationId: request.conversationId ?? null,
-        parentOrchestrationRunId: request.orchestrationRunId ?? null,
+        parentRunId: request.orchestrationRunId ?? null,
         organizationSlug:
           resolvedDefinition.organizationSlug ?? definition.organizationSlug,
-        parameters: runtimeParameters,
-        plan: {
-          name: resolvedDefinition.name,
-          steps: resolvedDefinition.steps.map((step) => ({
-            id: step.id,
-            agent: step.agent,
-            mode: step.mode ?? 'BUILD',
-          })),
+        agent: {
+          id: definition.record.id ?? null,
+          slug: definition.slug,
+          type: definition.agentType ?? null,
+          displayName: definition.displayName ?? null,
         },
-        agentId: definition.record.id ?? null,
-        agentSlug: definition.slug,
-        agentType: definition.agentType,
-        agentDisplayName: definition.displayName ?? null,
         createdBy: this.asString(request.metadata?.userId) ?? null,
-        metadata: {
-          triggeredByAgent: definition.slug,
-          agent: this.buildAgentMetadata(definition),
-          requestMetadata,
-          ...(taskLink ? { task: taskLink } : {}),
-        },
+        requestMetadata,
+        taskLink,
       });
 
-      const createdSteps = await this.stateService.initializeRun(
-        runRecord,
-        resolvedDefinition,
-        runtimeParameters,
-      );
-
-      const planningRun = await this.orchestrationRunner.updateRun({
-        runId: runRecord.id,
-        status: 'planning',
-        currentStepIndex: createdSteps[0]?.step_index ?? 0,
-        currentStepId: createdSteps[0]?.step_id ?? null,
-        metadata: this.mergeRunMetadata(runRecord.metadata, {
-          lifecycle: 'initialized',
-          stats: {
-            totalSteps: createdSteps.length,
-            completedSteps: 0,
-            progressPercentage: createdSteps.length > 0 ? 0 : null,
-          },
-        }),
-      });
-
-      this.orchestrationEvents.emitRunCreated(planningRun, {
-        totalSteps: createdSteps.length,
-      });
-
-      const { run: executionRun, readySteps } =
-        await this.executionService.startExecution(planningRun.id);
-      const allSteps = await this.orchestrationRunner.listSteps(
-        executionRun.id,
-      );
+      const executionRun = factoryResult.run;
+      const allSteps = factoryResult.steps;
+      const readySteps = factoryResult.readySteps;
 
       if (readySteps.length > 0) {
         this.stepExecutor
@@ -383,6 +347,9 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
           status: step.status,
           agent: step.agent_slug,
           mode: step.mode,
+          type:
+            ((step.metadata as Record<string, any> | undefined)?.type as
+              string) ?? 'agent',
           dependsOn: step.depends_on,
         })),
         readySteps: readySteps.map((step) => ({
@@ -390,6 +357,9 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
           index: step.step_index,
           agent: step.agent_slug,
           mode: step.mode,
+          type:
+            ((step.metadata as Record<string, any> | undefined)?.type as
+              string) ?? 'agent',
         })),
       },
       metadata: {
@@ -443,18 +413,6 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         },
       },
     });
-  }
-
-  private buildAgentMetadata(
-    definition: AgentRuntimeDefinition,
-  ): Record<string, any> {
-    return {
-      id: definition.record.id ?? null,
-      slug: definition.slug,
-      type: definition.agentType ?? null,
-      displayName: definition.displayName ?? null,
-      organizationSlug: definition.organizationSlug ?? null,
-    };
   }
 
   private resolveTaskLink(

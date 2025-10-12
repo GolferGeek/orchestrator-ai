@@ -43,13 +43,24 @@ export class OrchestrationStateService {
         parameters,
       );
 
+      const stepType =
+        typeof stepDefinition.type === 'string'
+          ? (stepDefinition.type as string).toLowerCase()
+          : 'agent';
+
       const insert: OrchestrationStepInsertInput = {
         orchestration_run_id: run.id,
         step_index: index,
         step_id: stepDefinition.id,
         status: 'pending',
-        agent_slug: stepDefinition.agent,
-        mode: stepDefinition.mode ?? 'BUILD',
+        agent_slug:
+          stepDefinition.agent ??
+          stepDefinition.orchestration?.owner ??
+          null,
+        mode:
+          stepType === 'orchestration'
+            ? 'ORCHESTRATION'
+            : stepDefinition.mode ?? 'BUILD',
         depends_on: stepDefinition.depends_on ?? [],
         input: inputPayload,
         metadata: {
@@ -58,6 +69,10 @@ export class OrchestrationStateService {
           rawInput: stepDefinition.input ?? null,
           rawContext: stepDefinition.context ?? null,
           outputMapping: stepDefinition.output_mapping ?? null,
+          type: stepType === 'orchestration' ? 'orchestration' : 'agent',
+          orchestration: stepDefinition.orchestration
+            ? JSON.parse(JSON.stringify(stepDefinition.orchestration))
+            : null,
         },
       };
 

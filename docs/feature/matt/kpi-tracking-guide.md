@@ -8,6 +8,40 @@ The KPI Tracking orchestration coordinates a two-step workflow owned by the `fin
 - **Supabase seed migration:** `202510140010_seed_phase5_kpi_tracking_orchestration.sql`
 - **Definition payload:** `docs/feature/matt/payloads/orchestrations/kpi-tracking.yaml`
 
+## Sub-Orchestration Usage
+
+Phase 6 introduces the `finance-quarterly-review` orchestration, which invokes `kpi-tracking` as a child run. The parent step receives a structured output with the child `status`, full `results`, and timing metadata so downstream steps can summarize or audit the KPI workflow.
+
+```yaml
+- id: run-kpi-tracking
+  type: orchestration
+  agent: finance-manager
+  orchestration:
+    name: kpi-tracking
+    version: 1.0.0
+    parameters:
+      kpi_names: "{{ parameters.kpi_names }}"
+      start_date: "{{ parameters.start_date }}"
+      end_date: "{{ parameters.end_date }}"
+      grouping: "{{ parameters.grouping }}"
+
+- id: prepare-executive-brief
+  agent: summarizer
+  depends_on:
+    - run-kpi-tracking
+  input:
+    context:
+      summary: "{{ steps.run-kpi-tracking.results.summarize-results.summary }}"
+      childStatus: "{{ steps.run-kpi-tracking.status }}"
+      rawResults: "{{ steps.run-kpi-tracking.results }}"
+```
+
+Child outputs follow this shape:
+
+- `status` – final disposition (`completed`, `failed`, `checkpoint`, etc.)
+- `results` – mapped outputs for each child step (e.g., `fetch-kpi-data`, `summarize-results`)
+- `parameters` / `plan` / `completedSteps` – useful for audit trails and secondary summarization
+
 ## Parameters
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |

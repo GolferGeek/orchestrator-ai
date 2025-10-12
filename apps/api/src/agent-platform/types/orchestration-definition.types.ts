@@ -19,10 +19,21 @@ export interface OrchestrationCheckpointConfig {
   options?: OrchestrationCheckpointOption[];
 }
 
+export type OrchestrationStepType = 'agent' | 'orchestration';
+
+export interface OrchestrationSubDefinition {
+  name: string;
+  owner?: string;
+  version?: string;
+  parameters?: Record<string, any>;
+  inherit_conversation?: boolean;
+  metadata?: Record<string, any>;
+}
+
 export interface OrchestrationStepDefinition {
   id: string;
   name: string;
-  agent: string;
+  agent?: string;
   mode?: string;
   depends_on?: string[];
   input?: Record<string, any>;
@@ -30,6 +41,8 @@ export interface OrchestrationStepDefinition {
   output_mapping?: Record<string, any>;
   checkpoint_after?: OrchestrationCheckpointConfig;
   metadata?: Record<string, any>;
+  type?: OrchestrationStepType;
+  orchestration?: OrchestrationSubDefinition;
 }
 
 export interface OrchestrationDefinitionSchema {

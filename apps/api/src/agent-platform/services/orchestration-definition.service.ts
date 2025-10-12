@@ -121,12 +121,27 @@ export class OrchestrationDefinitionService {
 
     // Normalize step modes to uppercase
     clone.orchestration.steps = clone.orchestration.steps.map(
-      (step: OrchestrationStepDefinition, index: number) => ({
-        ...step,
-        id: step.id || `step_${index + 1}`,
-        mode: (step.mode || 'BUILD').toUpperCase(),
-        depends_on: Array.isArray(step.depends_on) ? step.depends_on : [],
-      }),
+      (step: OrchestrationStepDefinition, index: number) => {
+        const normalizedType =
+          typeof step.type === 'string'
+            ? (step.type as string).toLowerCase()
+            : 'agent';
+
+        const orchestrationConfig =
+          step.orchestration && typeof step.orchestration === 'object'
+            ? JSON.parse(JSON.stringify(step.orchestration))
+            : undefined;
+
+        return {
+          ...step,
+          id: step.id || `step_${index + 1}`,
+          mode: (step.mode || 'BUILD').toUpperCase(),
+          depends_on: Array.isArray(step.depends_on) ? step.depends_on : [],
+          type:
+            normalizedType === 'orchestration' ? 'orchestration' : 'agent',
+          orchestration: orchestrationConfig,
+        };
+      },
     );
 
     return clone as OrchestrationDefinitionSchema;
@@ -160,20 +175,7 @@ export class OrchestrationDefinitionService {
 
       stepIds.add(step.id);
 
-      if (!step.agent) {
-        throw new BadRequestException(
-          `Step ${step.id} missing required agent slug`,
-        );
-      }
-
-      if (
-        step.mode &&
-        !['CONVERSE', 'PLAN', 'BUILD'].includes(step.mode.toUpperCase())
-      ) {
-        throw new BadRequestException(
-          `Step ${step.id} has unsupported mode ${step.mode}`,
-        );
-      }
+      this.validateStepConfiguration(step);
     });
 
     // Validate dependencies (no unknown references, no self dependency)
@@ -246,5 +248,51 @@ export class OrchestrationDefinitionService {
       parameters: normalized.orchestration.parameters ?? [],
       rawDefinition: record.definition,
     };
+  }
+
+  private validateStepConfiguration(step: OrchestrationStepDefinition): void {
+    const stepType =
+      typeof step.type === 'string'
+        ? (step.type as string).toLowerCase()
+        : 'agent';
+
+    if (!['agent', 'orchestration'].includes(stepType)) {
+      throw new BadRequestException(
+        `Step ${step.id} has unsupported type ${step.type}`,
+      );
+    }
+
+    if (
+      step.mode &&
+      !['CONVERSE', 'PLAN', 'BUILD', 'ORCHESTRATION'].includes(
+        step.mode.toUpperCase(),
+      )
+    ) {
+      throw new BadRequestException(
+        `Step ${step.id} has unsupported mode ${step.mode}`,
+      );
+    }
+
+    if (stepType === 'agent') {
+      if (!step.agent) {
+        throw new BadRequestException(
+          `Step ${step.id} missing required agent slug`,
+        );
+      }
+      return;
+    }
+
+    const orchestrationConfig = step.orchestration;
+    if (!orchestrationConfig || !orchestrationConfig.name) {
+      throw new BadRequestException(
+        `Step ${step.id} missing orchestration target`,
+      );
+    }
+
+    if (!step.agent && !orchestrationConfig.owner) {
+      throw new BadRequestException(
+        `Step ${step.id} must specify agent or orchestration.owner to execute sub-orchestration`,
+      );
+    }
   }
 }
