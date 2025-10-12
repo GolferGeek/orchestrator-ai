@@ -23,6 +23,84 @@ CREATE TABLE IF NOT EXISTS public.plans (
   updated_at timestamptz DEFAULT now()
 );
 
+-- Backfill columns when plans table existed prior to this migration.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'organization_slug'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN organization_slug text;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'agent_slug'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN agent_slug text;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'title'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN title text;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'status'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN status text DEFAULT 'draft';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'summary'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN summary text;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'plan_json'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN plan_json jsonb DEFAULT '{}'::jsonb;
+    UPDATE public.plans SET plan_json = '{}'::jsonb WHERE plan_json IS NULL;
+    ALTER TABLE public.plans ALTER COLUMN plan_json SET NOT NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'created_by'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN created_by uuid;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'plans'
+      AND column_name = 'approved_by'
+  ) THEN
+    ALTER TABLE public.plans ADD COLUMN approved_by uuid;
+  END IF;
+END $$;
+
 COMMENT ON TABLE public.plans IS 'Structured execution plans, replacing conversation_plans.';
 COMMENT ON COLUMN public.plans.plan_json IS 'Plan structure with phases, steps, dependencies, checkpoints.';
 

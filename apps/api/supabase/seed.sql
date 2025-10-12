@@ -1299,11 +1299,180 @@ $$,
           "input_modes": ["text/plain"],
           "output_modes": ["text/markdown", "application/json"]
         }'::jsonb,
-        '{
+    '{
           "supported_modes": ["converse", "plan", "build"],
           "streaming": { "enabled": true },
           "capabilities": ["requirements", "analysis"],
           "default_llm": "gpt-4o-mini"
+        }'::jsonb
+    ),
+    (
+        'global',
+        'context-baseline',
+        'Context Baseline Agent',
+        'Provides lightweight summarization for orchestration smoke tests.',
+        'context',
+        'context_full',
+        'active',
+        $$
+{
+    "metadata": {
+        "name": "global-context-baseline",
+        "displayName": "Context Baseline Agent",
+        "description": "Provides concise summaries to unblock orchestration development smoke tests.",
+        "version": "0.0.1",
+        "type": "context"
+    },
+    "configuration": {
+        "prompt_prefix": "You summarize key points and highlight next actions in one or two paragraphs.",
+        "execution_capabilities": {
+            "supports_converse": true,
+            "supports_plan": false,
+            "supports_build": true
+        }
+    }
+}
+$$,
+        '{
+          "supported_modes": ["converse", "build"],
+          "input_modes": ["text/plain"],
+          "output_modes": ["text/markdown"]
+        }'::jsonb,
+        '{
+          "supported_modes": ["converse", "build"],
+          "streaming": { "enabled": false }
+        }'::jsonb
+    ),
+    (
+        'global',
+        'api-baseline',
+        'API Baseline Agent',
+        'Calls a local echo endpoint to validate API runner plumbing.',
+        'api',
+        'api_full',
+        'active',
+        $$
+{
+    "metadata": {
+        "name": "global-api-baseline",
+        "displayName": "API Baseline Agent",
+        "description": "Exercise API agent runner via a controllable echo endpoint.",
+        "version": "0.0.1",
+        "type": "api"
+    },
+    "configuration": {
+        "api": {
+            "endpoint": "http://host.docker.internal:8055/echo",
+            "method": "POST",
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "authentication": {
+                "type": "none"
+            },
+            "response_mapping": {
+                "status_field": "status",
+                "result_field": "payload"
+            }
+        },
+        "execution_capabilities": {
+            "supports_converse": false,
+            "supports_plan": false,
+            "supports_build": true
+        }
+    }
+}
+$$,
+        '{
+          "supported_modes": ["build"],
+          "input_modes": ["application/json"],
+          "output_modes": ["application/json"]
+        }'::jsonb,
+        '{
+          "supported_modes": ["build"],
+          "streaming": { "enabled": false },
+          "retries": { "max": 0 }
+        }'::jsonb
+    ),
+    (
+        'global',
+        'tool-baseline',
+        'Tool Baseline Agent',
+        'Wraps a mock MCP tool for database smoke testing.',
+        'tool',
+        'tool_full',
+        'active',
+        $$
+{
+    "metadata": {
+        "name": "global-tool-baseline",
+        "displayName": "Tool Baseline Agent",
+        "description": "Uses the sandbox MCP toolset to execute no-op commands for smoke tests.",
+        "version": "0.0.1",
+        "type": "tool"
+    },
+    "configuration": {
+        "mcp": {
+            "server": "sandbox",
+            "tools": [
+                "noop"
+            ]
+        },
+        "execution_capabilities": {
+            "supports_converse": true,
+            "supports_plan": false,
+            "supports_build": true
+        }
+    }
+}
+$$,
+        '{
+          "supported_modes": ["converse", "build"],
+          "input_modes": ["text/plain"],
+          "output_modes": ["application/json"]
+        }'::jsonb,
+        '{
+          "supported_modes": ["converse", "build"],
+          "tooling": { "server": "sandbox", "tools": ["noop"] }
+        }'::jsonb
+    ),
+    (
+        'global',
+        'function-baseline',
+        'Function Baseline Agent',
+        'Executes a trivial JavaScript function for smoke testing.',
+        'function',
+        'function_full',
+        'active',
+        $$
+{
+    "metadata": {
+        "name": "global-function-baseline",
+        "displayName": "Function Baseline Agent",
+        "description": "Runs a simple JavaScript echo to validate function runner wiring.",
+        "version": "0.0.1",
+        "type": "function"
+    },
+    "configuration": {
+        "function": {
+            "code": "module.exports = async ({ userMessage }) => ({ echo: userMessage });"
+        },
+        "execution_capabilities": {
+            "supports_converse": false,
+            "supports_plan": false,
+            "supports_build": true
+        }
+    }
+}
+$$,
+        '{
+          "supported_modes": ["build"],
+          "input_modes": ["application/json"],
+          "output_modes": ["application/json"]
+        }'::jsonb,
+        '{
+          "supported_modes": ["build"],
+          "streaming": { "enabled": false }
         }'::jsonb
     )
 ON CONFLICT (organization_slug, slug) DO UPDATE
