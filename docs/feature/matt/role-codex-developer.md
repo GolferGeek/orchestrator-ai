@@ -44,6 +44,8 @@ You **do not**:
 - Write tests (that's Claude's job - ALL tests, test suites, and test harnesses are Claude's responsibility)
 - Write test setup or test helpers (Claude owns the entire test infrastructure)
 - Run tests or verify test coverage (Claude handles all testing)
+- Run linting or formatting (Claude handles all code quality checks)
+- Fix lint errors (Claude does this)
 - Commit to git (Claude does final commits)
 - Push to git (Claude handles all git operations)
 - Update .env files (unless your implementation requires new environment variables - if so, document them in your task log notes for GolferGeek)
@@ -365,7 +367,8 @@ Don't spend time on:
 - ❌ Running test suite (Claude verifies)
 - ❌ Test setup or test infrastructure (Claude owns this entirely)
 - ❌ Updating .env files (unless your code needs new env vars - then just document them)
-- ❌ Fixing lint errors unrelated to your changes
+- ❌ Running linting or formatting (Claude handles all code quality)
+- ❌ Fixing lint errors (Claude does this)
 - ❌ Perfect documentation (Claude will enhance)
 - ❌ Git commits (Claude does final commit)
 - ❌ Git pushes (Claude handles all version control)
@@ -388,6 +391,7 @@ Ask for guidance when:
 - Code style questions (follow existing patterns)
 - Minor design choices (use your judgment)
 - Testing questions (not your concern)
+- Linting questions (Claude handles code quality)
 
 ---
 

@@ -4,8 +4,8 @@
 
 This plan aligns all implementation and quality work required to deliver the orchestration system defined in the PRD. Every coding task has a paired testing checklist so we move through the phased roadmap together, stay accountable to standards, and end each phase in a shippable state.
 
-- **Builder (Codex)** – Architecture, services, migrations, implementation, documentation scaffolding. Does not write tests, test helpers, test infrastructure, or run any tests. Does not update .env files unless implementation requires new environment variables (documents in task log).
-- **Tester (Claude)** – Code review for standards, writes/runs ALL tests (unit, integration, contract, E2E, load), writes ALL test infrastructure (helpers, mocks, fixtures, harnesses), enforces gates, prepares commits, handles ALL git operations.
+- **Builder (Codex)** – Architecture, services, migrations, implementation, documentation scaffolding. Does not write tests, test helpers, test infrastructure, or run any tests. Does not run linting or formatting. Does not update .env files unless implementation requires new environment variables (documents in task log).
+- **Tester (Claude)** – Code review for standards, linting, formatting, writes/runs ALL tests (unit, integration, contract, E2E, load), writes ALL test infrastructure (helpers, mocks, fixtures, harnesses), enforces gates, prepares commits, handles ALL git operations.
 - **Human Owner** – Validates happy-path UX at designated gates, approves plan & releases.
 
 > **Note:** We keep this plan as the single source of truth. Each phase expands into detailed subtasks only when both agents are ready to execute, so context stays manageable. (No further split into separate files unless the plan grows beyond ~15 pages.)
@@ -18,7 +18,8 @@ This plan aligns all implementation and quality work required to deliver the orc
 |-----------------------------------|-----------------|-----------------|-------|
 | Feature implementation            | ✅              | ⚠️ (bug fixes)  | ❌    |
 | Architectural decisions (ADR)     | ✅ (draft)       | ✅ (review)      | ⚠️    |
-| Standards enforcement             | ⚠️ (self-check) | ✅ (final say)   | ❌    |
+| Standards enforcement             | ❌              | ✅              | ❌    |
+| Linting & formatting              | ❌              | ✅              | ❌    |
 | Test authoring/execution          | ❌              | ✅              | ❌    |
 | Test infrastructure & helpers     | ❌              | ✅              | ❌    |
 | Test planning & design            | ❌              | ✅              | ❌    |
@@ -249,10 +250,9 @@ Each phase shows builder tasks (`[ ] (B)`) and tester tasks (`[ ] (T)`), with ex
   - Re-run reset, confirm idempotency (migration state identical)
   - Snapshot schema diff: `supabase/migrations/schema-diff-phase0.sql`
   - Ensure `task_messages` TTL migration intact
-- [ ] (B) Lint & tooling baseline (0.5d)
+- [ ] (T) Lint & tooling baseline (0.5d)
   - `npm run lint`, `npm run format` dry run, address outstanding issues
   - Document existing lint suppressions in `docs/feature/matt/known-lint-waivers.md`
-- [ ] (T) Tooling verification (0.5d)
   - Confirm lint/format/test commands run clean on CI profile
   - Capture Node/Nest versions in `docs/feature/matt/tooling-baseline.md`
 - [ ] (B) ADR kick-off (0.5d)
