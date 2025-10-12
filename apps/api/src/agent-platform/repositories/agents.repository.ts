@@ -78,19 +78,12 @@ export class AgentsRepository {
     let query = client
       .from(AGENTS_TABLE)
       .select('*')
-      .eq('slug', agentSlug);
+      .eq('slug', agentSlug)
+      .limit(1);
 
-    // Include both organization-specific and global agents
-    // Priority: organization-specific agents override global ones with the same slug
-    if (organizationSlug) {
-      query = query.in('organization_slug', [organizationSlug, 'global']);
-    } else {
-      query = query.is('organization_slug', null);
-    }
-
-    // Order by organization_slug to prioritize org-specific agents over global
-    // (organizationSlug comes before 'global' alphabetically in most cases)
-    query = query.order('organization_slug', { ascending: false }).limit(1);
+    query = organizationSlug
+      ? query.eq('organization_slug', organizationSlug)
+      : query.is('organization_slug', null);
 
     const { data, error } =
       (await query.maybeSingle()) as SupabaseSelectResponse<AgentRecord>;
@@ -108,13 +101,9 @@ export class AgentsRepository {
   ): Promise<AgentRecord[]> {
     const client = this.getClient();
     let query = client.from(AGENTS_TABLE).select('*');
-
-    // Include both organization-specific and global agents
-    if (organizationSlug) {
-      query = query.in('organization_slug', [organizationSlug, 'global']);
-    } else {
-      query = query.is('organization_slug', null);
-    }
+    query = organizationSlug
+      ? query.eq('organization_slug', organizationSlug)
+      : query.is('organization_slug', null);
 
     const { data, error } = (await query.order('slug', {
       ascending: true,
