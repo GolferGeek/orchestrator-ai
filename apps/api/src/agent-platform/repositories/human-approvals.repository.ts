@@ -7,6 +7,8 @@ export interface HumanApprovalRecord {
   agent_slug: string;
   conversation_id: string | null;
   task_id: string | null;
+  orchestration_run_id: string | null;
+  orchestration_step_id: string | null;
   mode: string;
   status: 'pending' | 'approved' | 'rejected';
   approved_by?: string | null;
@@ -32,6 +34,8 @@ export class HumanApprovalsRepository {
     agentSlug: string;
     conversationId?: string | null;
     taskId?: string | null;
+    orchestrationRunId?: string | null;
+    orchestrationStepId?: string | null;
     mode: string;
     metadata?: Record<string, any>;
   }): Promise<HumanApprovalRecord> {
@@ -42,6 +46,8 @@ export class HumanApprovalsRepository {
         agent_slug: input.agentSlug,
         conversation_id: input.conversationId ?? null,
         task_id: input.taskId ?? null,
+        orchestration_run_id: input.orchestrationRunId ?? null,
+        orchestration_step_id: input.orchestrationStepId ?? null,
         mode: input.mode,
         status: 'pending',
         metadata: input.metadata ?? {},
@@ -56,14 +62,19 @@ export class HumanApprovalsRepository {
     id: string,
     status: 'approved' | 'rejected',
     approvedBy?: string | null,
+    metadata?: Record<string, any>,
   ): Promise<HumanApprovalRecord> {
+    const payload: Record<string, any> = {
+      status,
+      approved_by: approvedBy ?? null,
+      decision_at: new Date().toISOString(),
+    };
+    if (metadata) {
+      payload.metadata = metadata;
+    }
     const { data, error } = await this.client()
       .from(this.table)
-      .update({
-        status,
-        approved_by: approvedBy ?? null,
-        decision_at: new Date().toISOString(),
-      })
+      .update(payload)
       .eq('id', id)
       .select('*')
       .single();

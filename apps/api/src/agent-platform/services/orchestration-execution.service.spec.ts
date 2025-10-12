@@ -108,7 +108,7 @@ describe('OrchestrationExecutionService', () => {
 
       expect(result.run.status).toBe('running');
       expect(result.readySteps).toHaveLength(1);
-      expect(result.readySteps[0].status).toBe('queued');
+      expect(result.readySteps[0]?.status).toBe('queued');
     });
   });
 

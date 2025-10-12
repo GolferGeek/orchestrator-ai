@@ -10,14 +10,33 @@ import { OrchestrationDefinitionService } from '@agent-platform/services/orchest
 import { OrchestrationStateService } from '@agent-platform/services/orchestration-state.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
+import {
+  OrchestrationCheckpointService,
+  OrchestrationCheckpointDecision,
+} from '@agent-platform/services/orchestration-checkpoint.service';
 import { OrchestrationResolvedDefinition } from '@agent-platform/types/orchestration-definition.types';
+import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
 
-interface OrchestratorRequestPayload {
+interface OrchestratorStartPayload {
   orchestrationDefinitionId?: string;
   orchestrationName?: string;
   orchestrationVersion?: string;
   parameters?: Record<string, any>;
+  action?: undefined;
 }
+
+interface OrchestratorResumePayload {
+  action: 'resume_after_approval';
+  approvalId: string;
+  decision: OrchestrationCheckpointDecision;
+  notes?: string | null;
+  modifications?: Record<string, any> | null;
+  actorId?: string | null;
+}
+
+type OrchestratorRequestPayload =
+  | OrchestratorStartPayload
+  | OrchestratorResumePayload;
 
 @Injectable()
 export class OrchestratorAgentRunnerService extends BaseAgentRunner {
@@ -28,6 +47,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     private readonly stateService: OrchestrationStateService,
     private readonly orchestrationRunner: OrchestrationRunnerService,
     private readonly executionService: OrchestrationExecutionService,
+    private readonly checkpointService: OrchestrationCheckpointService,
   ) {
     super();
   }
@@ -103,6 +123,11 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   ): Promise<TaskResponseDto> {
     try {
       const payload = this.parsePayload(request);
+
+      if (payload.action === 'resume_after_approval') {
+        return await this.resumeAfterApproval(definition, request, payload);
+      }
+
       const resolvedDefinition = await this.resolveDefinition(
         definition,
         payload,
@@ -157,30 +182,13 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         executionRun.id,
       );
 
-      return TaskResponseDto.success(AgentTaskMode.BUILD, {
-        content: {
-          orchestrationRunId: executionRun.id,
-          status: executionRun.status,
-          steps: allSteps.map((step) => ({
-            id: step.step_id,
-            index: step.step_index,
-            status: step.status,
-            agent: step.agent_slug,
-            mode: step.mode,
-            dependsOn: step.depends_on,
-          })),
-          readySteps: readySteps.map((step) => ({
-            id: step.step_id,
-            index: step.step_index,
-            agent: step.agent_slug,
-            mode: step.mode,
-          })),
-        },
-        metadata: {
-          orchestrationDefinitionId: resolvedDefinition.recordId,
-          ownerAgentSlug: resolvedDefinition.ownerAgentSlug,
-        },
-      });
+      return this.buildRunSuccessResponse(
+        executionRun,
+        allSteps,
+        readySteps,
+        resolvedDefinition.recordId ?? null,
+        resolvedDefinition.ownerAgentSlug,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to initialize orchestration run: ${
@@ -199,28 +207,39 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   // ---------------------------------------------------------------------------
 
   private parsePayload(request: TaskRequestDto): OrchestratorRequestPayload {
-    const payload = (request.payload ?? {}) as OrchestratorRequestPayload;
-    return payload;
+    const payload = request.payload ?? {};
+    if (payload && typeof payload === 'object' && 'action' in payload) {
+      return payload as OrchestratorRequestPayload;
+    }
+    return payload as OrchestratorRequestPayload;
   }
 
   private async resolveDefinition(
     agentDefinition: AgentRuntimeDefinition,
     payload: OrchestratorRequestPayload,
   ): Promise<OrchestrationResolvedDefinition> {
-    if (payload.orchestrationDefinitionId) {
+    if ('action' in payload && payload.action === 'resume_after_approval') {
+      throw new Error(
+        'Resume payload does not require orchestration definition resolution',
+      );
+    }
+
+    const startPayload = payload as OrchestratorStartPayload;
+
+    if (startPayload.orchestrationDefinitionId) {
       const record = await this.definitionService.getDefinitionById(
-        payload.orchestrationDefinitionId,
+        startPayload.orchestrationDefinitionId,
       );
       if (!record) {
         throw new Error(
-          `Orchestration definition ${payload.orchestrationDefinitionId} not found`,
+          `Orchestration definition ${startPayload.orchestrationDefinitionId} not found`,
         );
       }
       return record;
     }
 
     const requestedName =
-      payload.orchestrationName ??
+      startPayload.orchestrationName ??
       this.resolveDefaultOrchestrationName(agentDefinition);
 
     if (!requestedName) {
@@ -233,7 +252,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       ownerAgentSlug: agentDefinition.slug,
       organizationSlug: agentDefinition.organizationSlug || 'global',
       name: requestedName,
-      version: payload.orchestrationVersion,
+      version: startPayload.orchestrationVersion,
     });
   }
 
@@ -247,5 +266,124 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     const available: string[] =
       orchestrationConfig.available_orchestrations || [];
     return available.length > 0 ? (available[0] ?? null) : null;
+  }
+
+  private async resumeAfterApproval(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    payload: OrchestratorResumePayload,
+  ): Promise<TaskResponseDto> {
+    if (!payload.approvalId) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'approvalId is required to resume orchestration',
+      );
+    }
+
+    const actorId =
+      payload.actorId ??
+      (request.metadata?.actorId as string | undefined) ??
+      (request.metadata?.userId as string | undefined) ??
+      null;
+
+    const resolution = await this.checkpointService.resolveCheckpoint({
+      approvalId: payload.approvalId,
+      decision: payload.decision,
+      actorId,
+      notes: payload.notes ?? null,
+      modifications: payload.modifications ?? undefined,
+    });
+
+    if (resolution.decision === 'abort') {
+      return TaskResponseDto.success(AgentTaskMode.BUILD, {
+        content: {
+          orchestrationRunId: resolution.run.id,
+          status: resolution.run.status,
+        },
+        metadata: {
+          orchestrationDefinitionId: resolution.run.orchestration_definition_id,
+          ownerAgentSlug: definition.slug,
+        },
+      });
+    }
+
+    const { run: resumedRun, readySteps } =
+      await this.executionService.startExecution(resolution.run.id);
+    const allSteps = await this.orchestrationRunner.listSteps(resumedRun.id);
+
+    return this.buildRunSuccessResponse(
+      resumedRun,
+      allSteps,
+      readySteps,
+      resumedRun.orchestration_definition_id,
+      definition.slug,
+    );
+  }
+
+  private buildRunSuccessResponse(
+    run: Awaited<ReturnType<OrchestrationExecutionService['startExecution']>>['run'],
+    steps: Awaited<ReturnType<OrchestrationRunnerService['listSteps']>>,
+    readySteps: Awaited<ReturnType<OrchestrationExecutionService['startExecution']>>['readySteps'],
+    orchestrationDefinitionId: string | null,
+    ownerAgentSlug: string,
+  ): TaskResponseDto {
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        orchestrationRunId: run.id,
+        status: run.status,
+        steps: steps.map((step) => ({
+          id: step.step_id,
+          index: step.step_index,
+          status: step.status,
+          agent: step.agent_slug,
+          mode: step.mode,
+          dependsOn: step.depends_on,
+        })),
+        readySteps: readySteps.map((step) => ({
+          id: step.step_id,
+          index: step.step_index,
+          agent: step.agent_slug,
+          mode: step.mode,
+        })),
+      },
+      metadata: {
+        orchestrationDefinitionId,
+        ownerAgentSlug,
+      },
+    });
+  }
+
+  public buildAwaitingApprovalResponse(options: {
+    run: OrchestrationRunRecord;
+    approvalId: string;
+    question: string;
+    checkpointId: string;
+    step?: {
+      definitionId?: string | null;
+      label?: string | null;
+      index?: number | null;
+    };
+    choices?: Array<{
+      action: OrchestrationCheckpointDecision;
+      label: string;
+      allowsModification?: boolean;
+      description?: string;
+    }>;
+  }): TaskResponseDto {
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        orchestrationRunId: options.run.id,
+        status: 'awaiting_approval',
+        approvalId: options.approvalId,
+        checkpointId: options.checkpointId,
+        question: options.question,
+        step: options.step ?? null,
+        options: options.choices ?? [],
+      },
+      metadata: {
+        orchestrationDefinitionId: options.run.orchestration_definition_id,
+        ownerAgentSlug: options.run.metadata?.agent?.slug ?? null,
+      },
+    });
   }
 }

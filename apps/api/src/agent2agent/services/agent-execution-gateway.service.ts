@@ -20,6 +20,12 @@ import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-ru
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 import { HumanApprovalsRepository } from '@agent-platform/repositories/human-approvals.repository';
+import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
+import {
+  OrchestrationCheckpointDecision,
+  OrchestrationCheckpointService,
+} from '@agent-platform/services/orchestration-checkpoint.service';
+import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -34,6 +40,8 @@ export class AgentExecutionGateway {
     private readonly agentOrchestrations: AgentOrchestrationsRepository,
     private readonly streamService: AgentRuntimeStreamService,
     private readonly approvals: HumanApprovalsRepository,
+    private readonly executionService: OrchestrationExecutionService,
+    private readonly checkpointService: OrchestrationCheckpointService,
   ) {}
 
   async execute(
@@ -189,7 +197,13 @@ export class AgentExecutionGateway {
           request,
         );
       case AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE:
-        return TaskResponseDto.human('Manual confirmation required');
+        return this.handleOrchestratorRunHumanResponse(
+          organizationSlug,
+          agent,
+          definition,
+          agentMetadata,
+          request,
+        );
       case AgentTaskMode.ORCHESTRATOR_PLAN_REVIEW:
       case AgentTaskMode.ORCHESTRATOR_PLAN_APPROVE:
       case AgentTaskMode.ORCHESTRATOR_PLAN_REJECT:
@@ -578,6 +592,76 @@ export class AgentExecutionGateway {
     const metadata = this.runtimeExecution.collectRequestMetadata(request);
 
     try {
+      if (
+        request.payload?.action === 'resume_after_approval' &&
+        request.payload.approvalId
+      ) {
+        const actorId =
+          request.metadata?.actorId ??
+          request.metadata?.userId ??
+          null;
+
+        const resolutionResult =
+          await this.resolveCheckpointAndMaybeResume({
+            approvalId: request.payload.approvalId,
+            decision: request.payload.decision,
+            actorId,
+            notes: request.payload.notes ?? null,
+            modifications: request.payload.modifications ?? undefined,
+          });
+
+        this.publishStreamChunk(streamSession, {
+          type: 'partial',
+          content: JSON.stringify({
+            status: 'checkpoint_resolved',
+            approvalId: request.payload.approvalId,
+            decision: request.payload.decision,
+          }),
+        });
+
+        if (resolutionResult.decision === 'abort') {
+          this.completeStream(streamSession);
+          return TaskResponseDto.success(responseMode, {
+            content: {
+              orchestrationRunId: resolutionResult.run.id,
+              status: resolutionResult.run.status,
+            },
+            metadata: {
+              orchestrationDefinitionId:
+                resolutionResult.run.orchestration_definition_id,
+              ownerAgentSlug: agentMetadata.slug,
+            },
+          });
+        }
+
+        const resumedRun = resolutionResult.run;
+        const readySteps = resolutionResult.readySteps ?? [];
+        const allSteps = resolutionResult.steps ?? [];
+
+        this.publishStreamChunk(streamSession, {
+          type: 'partial',
+          content: JSON.stringify({
+            status: 'run_resumed',
+            run: resumedRun,
+          }),
+        });
+
+        this.completeStream(streamSession);
+
+        return TaskResponseDto.success(responseMode, {
+          content: {
+            orchestrationRunId: resumedRun.id,
+            status: resumedRun.status,
+            steps: allSteps,
+            readySteps,
+          },
+          metadata: {
+            orchestrationDefinitionId: resumedRun.orchestration_definition_id,
+            ownerAgentSlug: agentMetadata.slug,
+          },
+        });
+      }
+
       if (request.planId) {
         const plan = await this.resolvePlanForExecution(
           organizationSlug,
@@ -605,9 +689,18 @@ export class AgentExecutionGateway {
           metadata: runMetadata,
         });
 
+        const { run: executionRun, readySteps } =
+          await this.executionService.startExecution(run.id);
+        const allSteps = await this.orchestrationRunner.listSteps(
+          executionRun.id,
+        );
+
         this.publishStreamChunk(streamSession, {
           type: 'partial',
-          content: JSON.stringify({ status: 'run_started', run }),
+          content: JSON.stringify({
+            status: 'run_started',
+            run: executionRun,
+          }),
         });
 
         const responseMetadata = this.attachStreamId(
@@ -627,7 +720,24 @@ export class AgentExecutionGateway {
         this.completeStream(streamSession);
 
         return TaskResponseDto.success(responseMode, {
-          content: run,
+          content: {
+            orchestrationRunId: executionRun.id,
+            status: executionRun.status,
+            steps: allSteps.map((step) => ({
+              id: step.step_id,
+              index: step.step_index,
+              status: step.status,
+              agent: step.agent_slug,
+              mode: step.mode,
+              dependsOn: step.depends_on,
+            })),
+            readySteps: readySteps.map((step) => ({
+              id: step.step_id,
+              index: step.step_index,
+              agent: step.agent_slug,
+              mode: step.mode,
+            })),
+          },
           metadata: responseMetadata,
         });
       }
@@ -667,9 +777,18 @@ export class AgentExecutionGateway {
           ),
         });
 
+        const { run: executionRun, readySteps } =
+          await this.executionService.startExecution(run.id);
+        const allSteps = await this.orchestrationRunner.listSteps(
+          executionRun.id,
+        );
+
         this.publishStreamChunk(streamSession, {
           type: 'partial',
-          content: JSON.stringify({ status: 'run_started', run }),
+          content: JSON.stringify({
+            status: 'run_started',
+            run: executionRun,
+          }),
         });
 
         const responseMetadata = this.attachStreamId(
@@ -690,16 +809,30 @@ export class AgentExecutionGateway {
         this.completeStream(streamSession);
 
         return TaskResponseDto.success(responseMode, {
-          content: run,
+          content: {
+            orchestrationRunId: executionRun.id,
+            status: executionRun.status,
+            steps: allSteps.map((step) => ({
+              id: step.step_id,
+              index: step.step_index,
+              status: step.status,
+              agent: step.agent_slug,
+              mode: step.mode,
+              dependsOn: step.depends_on,
+            })),
+            readySteps: readySteps.map((step) => ({
+              id: step.step_id,
+              index: step.step_index,
+              agent: step.agent_slug,
+              mode: step.mode,
+            })),
+          },
           metadata: responseMetadata,
         });
       }
 
-      if (options.requireTarget) {
-        this.completeStream(streamSession);
-        return null;
-      }
-
+      // If we reach this point there is no immediate orchestration to launch.
+      // Keep the A2A contract clean by returning null after completing stream.
       this.completeStream(streamSession);
       return null;
     } catch (error) {
@@ -976,5 +1109,160 @@ export class AgentExecutionGateway {
       mode,
       'Orchestration mode not implemented yet',
     );
+  }
+
+  private async handleOrchestratorRunHumanResponse(
+    organizationSlug: string | null,
+    agent: AgentRecord,
+    definition: AgentRuntimeDefinition,
+    agentMetadata: AgentRuntimeAgentMetadata,
+    request: TaskRequestDto,
+  ): Promise<TaskResponseDto> {
+    const payload = request.payload ?? {};
+    const approvalId: string | undefined =
+      payload.approvalId ?? payload.approval_id;
+    const decision: OrchestrationCheckpointDecision | undefined =
+      payload.decision;
+
+    if (!approvalId) {
+      throw new BadRequestException(
+        'approvalId is required to resolve orchestration checkpoint',
+      );
+    }
+
+    if (!decision) {
+      throw new BadRequestException(
+        'decision is required to resolve orchestration checkpoint',
+      );
+    }
+
+    const streamSession = this.maybeStartStream(
+      request,
+      organizationSlug,
+      agent,
+      AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE,
+    );
+
+    try {
+      const actorId =
+        payload.actorId ??
+        request.metadata?.actorId ??
+        request.metadata?.userId ??
+        null;
+
+      const resolutionResult = await this.resolveCheckpointAndMaybeResume({
+        approvalId,
+        decision,
+        actorId,
+        notes: payload.notes ?? null,
+        modifications: payload.modifications ?? undefined,
+      });
+
+      this.publishStreamChunk(streamSession, {
+        type: 'partial',
+        content: JSON.stringify({
+          status: 'checkpoint_resolved',
+          approvalId,
+          decision,
+        }),
+      });
+
+      if (resolutionResult.decision === 'abort') {
+        this.completeStream(streamSession);
+        return TaskResponseDto.success(AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE, {
+          content: {
+            orchestrationRunId: resolutionResult.run.id,
+            status: resolutionResult.run.status,
+          },
+          metadata: {
+            orchestrationDefinitionId:
+              resolutionResult.run.orchestration_definition_id,
+            ownerAgentSlug: definition.slug,
+          },
+        });
+      }
+
+      const resumedRun = resolutionResult.run;
+      const readySteps = resolutionResult.readySteps ?? [];
+      const steps = resolutionResult.steps ?? [];
+
+      this.publishStreamChunk(streamSession, {
+        type: 'partial',
+        content: JSON.stringify({
+          status: 'run_resumed',
+          run: resumedRun,
+        }),
+      });
+
+      this.completeStream(streamSession);
+
+      return TaskResponseDto.success(
+        AgentTaskMode.ORCHESTRATOR_RUN_HUMAN_RESPONSE,
+        {
+          content: {
+            orchestrationRunId: resumedRun.id,
+            status: resumedRun.status,
+            steps,
+            readySteps,
+          },
+          metadata: {
+            orchestrationDefinitionId:
+              resumedRun.orchestration_definition_id,
+            ownerAgentSlug: definition.slug,
+          },
+        },
+      );
+    } catch (error) {
+      this.errorStream(streamSession, error);
+      throw error;
+    }
+  }
+
+  private async resolveCheckpointAndMaybeResume(options: {
+    approvalId: string;
+    decision: OrchestrationCheckpointDecision;
+    actorId?: string | null;
+    notes?: string | null;
+    modifications?: Record<string, any> | undefined;
+  }): Promise<{
+    decision: OrchestrationCheckpointDecision;
+    run: OrchestrationRunRecord;
+    readySteps?: Awaited<
+      ReturnType<OrchestrationExecutionService['startExecution']>
+    >['readySteps'];
+    steps?: Awaited<
+      ReturnType<OrchestrationRunnerService['listSteps']>
+    >;
+  }> {
+    const resolution = await this.checkpointService.resolveCheckpoint({
+      approvalId: options.approvalId,
+      decision: options.decision,
+      actorId: options.actorId ?? null,
+      notes: options.notes ?? null,
+      modifications: options.modifications ?? undefined,
+    });
+
+    if (resolution.decision === 'abort') {
+      return {
+        decision: resolution.decision,
+        run: resolution.run,
+        readySteps: [],
+        steps: [],
+      };
+    }
+
+    const resumeResult = await this.executionService.startExecution(
+      resolution.run.id,
+    );
+    const stepList = await this.orchestrationRunner.listSteps(
+      resumeResult.run.id,
+    );
+
+    return {
+      decision: resolution.decision,
+      run: resumeResult.run,
+      readySteps: resumeResult.readySteps,
+      steps: stepList,
+    };
   }
 }

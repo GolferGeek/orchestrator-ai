@@ -11,6 +11,7 @@ import { OrganizationCredentialsRepository } from './repositories/organization-c
 import { AgentOrchestrationsRepository } from './repositories/agent-orchestrations.repository';
 import { PlanEngineService } from './services/plan-engine.service';
 import { OrchestrationRunnerService } from './services/orchestration-runner.service';
+import { OrchestrationCheckpointService } from './services/orchestration-checkpoint.service';
 import { OrchestrationDefinitionService } from './services/orchestration-definition.service';
 import { OrchestrationStateService } from './services/orchestration-state.service';
 import { AgentRegistryService } from './services/agent-registry.service';
@@ -41,6 +42,7 @@ import { AgentBuilderService } from './services/agent-builder.service';
 import { AgentPromotionService } from './services/agent-promotion.service';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { OrchestrationExecutionService } from './services/orchestration-execution.service';
+import { OrchestrationCheckpointEventsService } from './services/orchestration-checkpoint-events.service';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { OrchestrationExecutionService } from './services/orchestration-executio
     OrchestrationDefinitionService,
     OrchestrationStateService,
     OrchestrationRunnerService,
+    OrchestrationCheckpointService,
+    OrchestrationCheckpointEventsService,
     OrchestrationExecutionService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
@@ -103,6 +107,8 @@ import { OrchestrationExecutionService } from './services/orchestration-executio
     OrchestrationDefinitionService,
     OrchestrationStateService,
     OrchestrationRunnerService,
+    OrchestrationCheckpointService,
+    OrchestrationCheckpointEventsService,
     OrchestrationExecutionService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,

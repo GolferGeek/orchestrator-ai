@@ -46,7 +46,31 @@ Implement a complete orchestration system that enables complex, multi-agent work
 #### 4. Human Checkpoint System
 - Checkpoints are step metadata (`checkpoint_after`)
 - Humans can: continue, retry (with modifications), or abort
-- Checkpoint decisions stored in `human_approvals` table
+- Checkpoint decisions stored in `human_approvals` table (linked to `conversation_id` + `task_id`)
+- Orchestrator returns a `TaskResponseDto` with `status: awaiting_approval` when a checkpoint is hit, ensuring the A2A loop pauses cleanly
+- Humans resume orchestration by submitting a NEW `TaskRequestDto` (same conversation/task), embedding `approvalId`, `decision`, and optional modifications in the payload
+- `OrchestrationCheckpointService` orchestrates approval creation/resolution, emits `orchestration.checkpoint.requested/resolved` events, and updates run + step state via repositories
+- No direct REST mutation of orchestration state—everything flows through A2A task execution
+
+**Resume Payload Example:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "resume-approval-1",
+  "method": "agent.execute",
+  "params": {
+    "agentSlug": "finance-manager",
+    "mode": "BUILD",
+    "conversationId": "conv-123",
+    "payload": {
+      "action": "resume_after_approval",
+      "approvalId": "approvals-uuid",
+      "decision": "continue",
+      "notes": "Looks good" 
+    }
+  }
+}
+```
 - Future: Advanced checkpoint control (rewind, restart sub-orchestrations)
 
 #### 5. Orchestration Ownership Model

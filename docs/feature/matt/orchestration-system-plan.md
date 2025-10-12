@@ -353,30 +353,33 @@ Each phase shows builder tasks (`[ ] (B)`) and tester tasks (`[ ] (T)`), with ex
 
 **Goal:** Complete checkpoint lifecycle (creation, decisions, API, SSE/webhooks).
 
-#### 2.1 Checkpoint Service & DTOs
-- [ ] (B) CheckpointService implementation (1.5d)
-- [ ] (T) Unit/integration tests with SSE verification – `.../checkpoint.service.spec.ts` (1.5d)
-- [ ] (B) DTO definitions with validation (0.25d)
+#### 2.1 Checkpoint Service & Payloads
+- [ ] (B) `OrchestrationCheckpointService` (create/resolve + events + run updates) (1.5d)
+- [ ] (T) Unit/integration tests with SSE verification – `.../orchestration-checkpoint.service.spec.ts` (1.5d)
+- [ ] (B) A2A payload DTOs (`awaiting_approval` response + resume action) (0.25d)
 - [ ] (T) DTO validation tests (0.25d)
 
-#### 2.2 API Layer
-- [ ] (B) CheckpointController (1d)
-- [ ] (T) Controller unit + E2E tests – `.../checkpoint.controller.spec.ts` & `apps/api/test/checkpoint.e2e-spec.ts` (1.5d)
+#### 2.2 Agent Execution Hooks (A2A-Aligned)
+- [ ] (B) Update `OrchestratorAgentRunnerService` to pause via `TaskResponseDto` + resume on new `TaskRequestDto` (1.25d)
+- [ ] (T) Runner unit tests covering checkpoint → resume logic – `.../orchestrator-agent-runner.checkpoint.spec.ts` (1.0d)
+- [ ] (B) Ensure `AgentExecutionGateway` maps resume payloads into runner inputs (0.5d)
+- [ ] (T) Regression tests for gateway payload handling (0.5d)
 
 #### 2.3 Notification Integrations
-- [ ] (B) Webhook updates for checkpoints (0.75d)
+- [ ] (B) Emit `orchestration.checkpoint.requested/resolved` + webhook bridge (0.75d)
 - [ ] (T) Webhook tests – `.../checkpoint-webhooks.spec.ts` (0.75d)
-- [ ] (B) SSE event wiring (0.5d)
+- [ ] (B) SSE event wiring via existing stream service (0.5d)
 - [ ] (T) SSE tests – `.../checkpoint-sse.spec.ts` (0.5d)
 
 #### 2.4 Full Flow Testing & Commit
-- [ ] (T) E2E checkpoint flow (continue/retry/abort) – `.../checkpoint-flow.integration.spec.ts` (1d)
+- [ ] (T) E2E checkpoint flow (continue/retry/abort, modifications) – `.../checkpoint-flow.integration.spec.ts` (1d)
 - [ ] (T) Standards review + commit (0.5d)
 
 **Exit Criteria**
 1. Checkpoint decisions persisted and reflected in orchestration state.
 2. SSE & webhook payloads validated.
-3. Commit: `feat(orchestration): Phase 2 – Human-in-the-loop checkpoints`
+3. Orchestrator pause/resume flows strictly through A2A task requests (no direct REST state mutations).
+4. Commit: `feat(orchestration): Phase 2 – Human-in-the-loop checkpoints`
 
 ---
 
