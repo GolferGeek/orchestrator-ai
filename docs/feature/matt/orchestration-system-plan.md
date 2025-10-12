@@ -421,34 +421,64 @@ Each phase shows builder tasks (`[ ] (B)`) and tester tasks (`[ ] (T)`), with ex
 
 ---
 
-### Phase 4 – Agent Implementations (Weeks 5–6)
+### Phase 4 – Agent Implementations + Function Agent Architecture Fix (Weeks 5–6)
 
-**Goal:** Finalize all seven agents with configuration, migrations (if needed), seeds, and tests.
+**Goal:** Finalize all seven agents with self-contained function agent architecture (no ImageGenerationService).
 
-#### 4.1 Implementation Order (Simplest → Complex)
+#### 4.1 **CRITICAL: Function Agent Architecture Fix**
+
+**Problem:** Current implementation violates self-contained agent principle by using ImageGenerationService.
+
+**Solution:**
+- [ ] (B) **DELETE ImageGenerationService** and provider classes (0.5d)
+  - Delete `image-generation.service.ts`, `openai-image.provider.ts`, `google-image.provider.ts`
+  - Remove from `AgentPlatformModule`
+- [ ] (B) **Enhance FunctionAgentRunnerService sandbox** (1d)
+  - Add `ctx.require()` with whitelist: `['axios', 'crypto', 'url']`
+  - Add `Buffer`, filtered `process.env` to sandbox
+  - Add `ctx.deliverables.create()` and `ctx.assets.saveBuffer()` infrastructure helpers
+- [ ] (B) **Update agent definitions** with full JavaScript implementations (1d)
+  - OpenAI and Google agents make direct HTTP calls
+  - All provider logic in `function_code` column
+- [ ] (T) **Write sandbox security tests** (0.5d)
+  - Test `require()` whitelist enforcement
+  - Test environment variable filtering
+  - Test infrastructure service calls
+- [ ] (T) **Delete old service/provider tests** (0.25d)
+  - Remove `image-generation.service.spec.ts`
+  - Remove provider test files
+
+**Reference:** See [phase4-function-agent-architecture-fix.md](phase4-function-agent-architecture-fix.md) for full details.
+
+#### 4.2 Implementation Order (Simplest → Complex)
 1. **summarizer (Context)** – 1.75d
 2. **marketing-swarm (API)** – 1.75d
 3. **supabase-agent (Tool)** – 1.75d
-4. **image-generator-openai (Function)** – 1.75d
-5. **image-generator-google (Function)** – 1.75d
+4. **image-generator-openai (Function)** – ~~1.75d~~ **DONE** (needs refactor per 4.1)
+5. **image-generator-google (Function)** – ~~1.75d~~ **DONE** (needs refactor per 4.1)
 6. **image-orchestrator (Orchestrator)** – 1.75d
 7. **finance-manager (Orchestrator)** – 1.75d
 
-#### 4.2 Per-agent Checklist (repeat for each agent above)
+#### 4.3 Per-agent Checklist (repeat for each agent above)
 - [ ] (B) Agent configuration (YAML/JSON), security restrictions, seeding (0.75d each)
 - [ ] (T) Contract tests (A2A compliance) – `apps/api/src/agent-platform/contracts/__tests__/{agent}.contract.spec.ts` (0.5d each)
+  - For function agents: Mock `axios` to test HTTP calls
+  - Verify deliverable/asset creation
 - [ ] (T) Integration tests (mock external services where needed) – 0.5d each
 - [ ] (T) Seed validation (ensure seeding scripts re-runnable) – 0.25d each
 
-#### 4.3 Additional Tasks
+#### 4.4 Additional Tasks
 - [ ] (B) Shared migrations for agent seeds (if central seeding required) (0.5d)
 - [ ] (T) Smoke test covering all agents – `apps/api/test/agents-smoke.spec.ts` (0.5d)
 - [ ] (T) Phase review & commit (0.5d)
 
 **Exit Criteria**
 1. All agents pass contract/integration tests.
-2. Seed scripts idempotent; README updated with agent descriptions.
-3. Commit: `feat(orchestration): Phase 4 – Agent suite`
+2. **Function agents are fully self-contained** (no ImageGenerationService dependency).
+3. Seed scripts idempotent; README updated with agent descriptions.
+4. Commit: `feat(orchestration): Phase 4 – Agent suite with self-contained function architecture`
+
+**Timeline:** +1 day for architectural refactor (total: ~13d → 14d)
 
 ---
 

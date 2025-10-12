@@ -324,6 +324,14 @@ Output:
 ### 4. image-generator-openai (Function Agent)
 **Type**: `function`
 **Purpose**: Generate images using OpenAI GPT-Image-1 (latest, released April 2025)
+
+**Architecture Requirement**: ⚠️ **SELF-CONTAINED FUNCTION AGENTS**
+- ALL logic MUST be in the JavaScript `function_code` column
+- NO internal service dependencies (e.g., ImageGenerationService)
+- Function code makes DIRECT HTTP calls to external APIs using `axios` or `fetch`
+- VM sandbox MUST provide: `require('axios')`, `Buffer`, `crypto`, filtered `process.env`
+- Adding new providers = new database row, ZERO code deployment
+
 **Configuration**:
 ```yaml
 metadata:
@@ -333,24 +341,74 @@ metadata:
 
 configuration:
   function:
+    timeout_ms: 120000
     code: |
-      // Call OpenAI GPT-Image-1 API (replaces DALL-E 3 as of March 2025)
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-image-1',
-          prompt: userMessage,
-          size: '1024x1024',
-          quality: 'standard', // or 'hd' for $0.17/image
-          n: 1
-        })
-      });
-      const data = await response.json();
-      return data.data[0].url;
+      // FULL IMPLEMENTATION - Makes direct API call, creates deliverable
+      async function handler(input, ctx) {
+        const axios = ctx.require('axios');
+        const crypto = ctx.require('crypto');
+
+        const prompt = input.prompt || input.userMessage || '';
+        if (!prompt.trim()) throw new Error('prompt required');
+
+        const size = input.size || '1024x1024';
+        const quality = input.quality === 'hd' ? 'hd' : 'standard';
+        const count = Math.max(1, Math.min(input.count || 1, 4));
+
+        // Direct API call to OpenAI
+        const response = await axios.post(
+          'https://api.openai.com/v1/images/generations',
+          {
+            model: 'gpt-image-1',
+            prompt, size, quality, n: count,
+            response_format: 'b64_json',
+            user: ctx.userId
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${ctx.process.env.OPENAI_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 120000
+          }
+        );
+
+        // Process images, create assets, create deliverable
+        const images = response.data?.data || [];
+        const attachments = [];
+
+        for (let i = 0; i < images.length; i++) {
+          const buffer = Buffer.from(images[i].b64_json, 'base64');
+          const asset = await ctx.assets.saveBuffer({
+            buffer,
+            mime: 'image/png',
+            filename: `openai-${Date.now()}-${i}.png`,
+            subpath: 'generated'
+          });
+
+          attachments.push({
+            assetId: asset.id,
+            url: `/assets/${asset.id}`,
+            mime: 'image/png',
+            hash: crypto.createHash('sha256').update(buffer).digest('hex'),
+            altText: prompt,
+            provider: 'openai'
+          });
+        }
+
+        // Create deliverable using infrastructure service
+        const deliverable = await ctx.deliverables.create({
+          title: input.title || 'OpenAI Image Set',
+          content: `Generated ${attachments.length} image(s) via OpenAI`,
+          format: 'image/png',
+          type: 'image',
+          attachments: { images: attachments },
+          metadata: { provider: 'openai', model: 'gpt-image-1', prompt, size, quality }
+        });
+
+        return { success: true, deliverable, images: attachments };
+      }
+      module.exports = handler;
 
   execution_capabilities:
     supports_converse: false
@@ -360,11 +418,18 @@ configuration:
 
 **Pricing**: $0.01 (low), $0.04 (standard), $0.17 (hd)
 
+**Implementation Notes**:
+- Function code stored in `agents.function_code` column (longtext)
+- Sandbox whitelist: `['axios', 'crypto', 'url']` via `ctx.require()`
+- Infrastructure services (`ctx.deliverables`, `ctx.assets`) provided for database operations ONLY
+- NO business logic in services - all provider-specific code in function
+
 ---
 
 ### 5. image-generator-google (Function Agent)
 **Type**: `function`
-**Purpose**: Generate images using Google Imagen 4 (latest, released 2025)
+**Purpose**: Generate images using Google Imagen 4 Fast (latest, released 2025)
+
 **Configuration**:
 ```yaml
 metadata:
@@ -374,25 +439,84 @@ metadata:
 
 configuration:
   function:
+    timeout_ms: 120000
     code: |
-      // Call Google Imagen 4 Fast API (10x faster variant)
-      const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
-      const response = await fetch(
-        `https://aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-4.0-fast-generate-001:predict`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.GOOGLE_ACCESS_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            instances: [{ prompt: userMessage }],
-            parameters: { sampleCount: 1 }
-          })
+      // FULL IMPLEMENTATION - Self-contained Google Imagen agent
+      async function handler(input, ctx) {
+        const axios = ctx.require('axios');
+        const crypto = ctx.require('crypto');
+
+        const prompt = input.prompt || input.userMessage || '';
+        if (!prompt.trim()) throw new Error('prompt required');
+
+        const count = Math.max(1, Math.min(input.count || 1, 4));
+        const projectId = ctx.process.env.GOOGLE_PROJECT_ID;
+        const accessToken = ctx.process.env.GOOGLE_ACCESS_TOKEN;
+
+        if (!projectId || !accessToken) {
+          throw new Error('GOOGLE_PROJECT_ID and GOOGLE_ACCESS_TOKEN required');
         }
-      );
-      const data = await response.json();
-      return data.predictions[0].bytesBase64Encoded;
+
+        // Direct API call to Google Imagen 4 Fast
+        const endpoint = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/imagen-4.0-fast-generate-001:predict`;
+
+        const response = await axios.post(
+          endpoint,
+          {
+            instances: [{ prompt }],
+            parameters: { sampleCount: count }
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 120000
+          }
+        );
+
+        // Process predictions
+        const predictions = response.data?.predictions || [];
+        const attachments = [];
+
+        for (let i = 0; i < predictions.length; i++) {
+          const pred = predictions[i];
+          const base64 = pred.bytesBase64Encoded || pred.imageBytes || pred.data;
+          if (!base64) continue;
+
+          const buffer = Buffer.from(base64, 'base64');
+          const mime = pred.mimeType || 'image/png';
+
+          const asset = await ctx.assets.saveBuffer({
+            buffer,
+            mime,
+            filename: `google-${Date.now()}-${i}.${mime.split('/')[1]}`,
+            subpath: 'generated'
+          });
+
+          attachments.push({
+            assetId: asset.id,
+            url: `/assets/${asset.id}`,
+            mime,
+            hash: crypto.createHash('sha256').update(buffer).digest('hex'),
+            altText: prompt,
+            provider: 'google'
+          });
+        }
+
+        // Create deliverable
+        const deliverable = await ctx.deliverables.create({
+          title: input.title || 'Imagen Image Set',
+          content: `Generated ${attachments.length} image(s) via Google Imagen 4`,
+          format: attachments[0]?.mime || 'image/png',
+          type: 'image',
+          attachments: { images: attachments },
+          metadata: { provider: 'google', model: 'imagen-4.0-fast', prompt }
+        });
+
+        return { success: true, deliverable, images: attachments };
+      }
+      module.exports = handler;
 
   execution_capabilities:
     supports_converse: false
@@ -401,6 +525,8 @@ configuration:
 ```
 
 **Pricing**: $0.04/image (all variants: standard, fast, ultra)
+
+**Note**: Same self-contained architecture as OpenAI agent - all logic in function code
 
 ---
 
