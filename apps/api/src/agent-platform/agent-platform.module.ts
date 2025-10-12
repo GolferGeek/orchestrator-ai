@@ -50,6 +50,7 @@ import { TasksModule } from '@/agent2agent/tasks/tasks.module';
 import { OrchestrationStatusService } from './services/orchestration-status.service';
 import { OrchestrationOutputMapper } from './services/orchestration-output-mapper.service';
 import { OrchestrationRunFactoryService } from './services/orchestration-run-factory.service';
+import { OrchestrationDashboardService } from './services/orchestration-dashboard.service';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { OrchestrationRunFactoryService } from './services/orchestration-run-fac
     OrchestrationStatusService,
     OrchestrationOutputMapper,
     OrchestrationRunFactoryService,
+    OrchestrationDashboardService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
@@ -151,6 +153,7 @@ import { OrchestrationRunFactoryService } from './services/orchestration-run-fac
     AgentBuilderService,
     AgentPromotionService,
     OrchestrationOutputMapper,
+    OrchestrationDashboardService,
   ],
 })
 export class AgentPlatformModule {}

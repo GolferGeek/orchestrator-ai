@@ -18,6 +18,26 @@ export interface HumanApprovalRecord {
   updated_at?: string;
 }
 
+interface SupabaseListResponse<T> {
+  data: T[] | null;
+  error: { message: string; code?: string } | null;
+  count: number | null;
+}
+
+export interface HumanApprovalListOptions {
+  organizationSlug?: string | null;
+  statuses?: Array<'pending' | 'approved' | 'rejected'>;
+  status?: 'pending' | 'approved' | 'rejected';
+  mode?: string;
+  orchestrationRunId?: string;
+  limit?: number;
+  offset?: number;
+  sortBy?: 'created_at' | 'updated_at' | 'decision_at';
+  sortDirection?: 'asc' | 'desc';
+  createdAfter?: string;
+  createdBefore?: string;
+}
+
 @Injectable()
 export class HumanApprovalsRepository {
   private readonly logger = new Logger(HumanApprovalsRepository.name);
@@ -109,5 +129,135 @@ export class HumanApprovalsRepository {
     }
 
     return (data as HumanApprovalRecord[]) ?? [];
+  }
+
+  async list(
+    options: HumanApprovalListOptions = {},
+  ): Promise<{
+    data: HumanApprovalRecord[];
+    count: number | null;
+    limit: number;
+    offset: number;
+  }> {
+    const limit = this.clampLimit(options.limit ?? 50);
+    const offset = Math.max(options.offset ?? 0, 0);
+
+    let query = this.client()
+      .from(this.table)
+      .select('*', { count: 'exact', head: false });
+
+    if (options.organizationSlug) {
+      query = query.eq('organization_slug', options.organizationSlug);
+    }
+
+    if (options.statuses && options.statuses.length > 0) {
+      query = query.in('status', options.statuses);
+    } else if (options.status) {
+      query = query.eq('status', options.status);
+    }
+
+    if (options.mode) {
+      query = query.eq('mode', options.mode);
+    }
+
+    if (options.orchestrationRunId) {
+      query = query.eq('orchestration_run_id', options.orchestrationRunId);
+    }
+
+    if (options.createdAfter) {
+      query = query.gte('created_at', options.createdAfter);
+    }
+
+    if (options.createdBefore) {
+      query = query.lte('created_at', options.createdBefore);
+    }
+
+    const sortBy = options.sortBy ?? 'created_at';
+    const ascending = (options.sortDirection ?? 'desc') === 'asc';
+    query = query.order(sortBy, { ascending });
+
+    const { data, error, count } = (await query.range(
+      offset,
+      offset + limit - 1,
+    )) as SupabaseListResponse<HumanApprovalRecord>;
+
+    if (error) {
+      this.logger.error(`Failed to list approvals: ${error.message}`);
+      throw new Error(`Failed to list approvals: ${error.message}`);
+    }
+
+    return {
+      data: (data as HumanApprovalRecord[]) ?? [],
+      count: count ?? null,
+      limit,
+      offset,
+    };
+  }
+
+  async listByRunIds(runIds: string[]): Promise<HumanApprovalRecord[]> {
+    if (!runIds.length) {
+      return [];
+    }
+
+    const { data, error } = (await this.client()
+      .from(this.table)
+      .select('*')
+      .in('orchestration_run_id', runIds)
+      .order('created_at', { ascending: false })) as SupabaseListResponse<HumanApprovalRecord>;
+
+    if (error) {
+      this.logger.error(
+        `Failed to list approvals by run ids: ${error.message}`,
+      );
+      throw new Error(
+        `Failed to list approvals by run ids: ${error.message}`,
+      );
+    }
+
+    return (data as HumanApprovalRecord[]) ?? [];
+  }
+
+  async countPendingByRunIds(
+    runIds: string[],
+  ): Promise<Record<string, number>> {
+    if (!runIds.length) {
+      return {};
+    }
+
+    const { data, error } = (await this.client()
+      .from(this.table)
+      .select('id, orchestration_run_id')
+      .in('orchestration_run_id', runIds)
+      .eq('status', 'pending')) as SupabaseListResponse<{
+      id: string;
+      orchestration_run_id: string | null;
+    }>;
+
+    if (error) {
+      this.logger.error(
+        `Failed to count pending approvals: ${error.message}`,
+      );
+      throw new Error(
+        `Failed to count pending approvals: ${error.message}`,
+      );
+    }
+
+    const counts: Record<string, number> = {};
+    (data ?? []).forEach((record) => {
+      const runId = record.orchestration_run_id;
+      if (runId) {
+        counts[runId] = (counts[runId] ?? 0) + 1;
+      }
+    });
+
+    return counts;
+  }
+
+  private clampLimit(limit: number): number {
+    if (!Number.isFinite(limit) || limit <= 0) {
+      return 50;
+    }
+
+    return Math.min(Math.floor(limit), 200);
   }
 }

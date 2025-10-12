@@ -11,7 +11,29 @@ interface SupabaseSelectResponse<T> {
   error: { message: string; code?: string } | null;
 }
 
+interface SupabaseListResponse<T> {
+  data: T[] | null;
+  error: { message: string; code?: string } | null;
+  count: number | null;
+}
+
 const TABLE = 'orchestration_runs';
+
+export interface OrchestrationRunListOptions {
+  organizationSlug?: string | null;
+  statuses?: string[];
+  parentRunId?: string | null;
+  definitionId?: string | null;
+  originType?: string | null;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  sortBy?: 'created_at' | 'updated_at' | 'started_at' | 'completed_at';
+  sortDirection?: 'asc' | 'desc';
+  startedAfter?: string;
+  startedBefore?: string;
+  includeUnassigned?: boolean;
+}
 
 @Injectable()
 export class OrchestrationRunsRepository {
@@ -130,5 +152,122 @@ export class OrchestrationRunsRepository {
     }
 
     return data;
+  }
+
+  async list(
+    options: OrchestrationRunListOptions = {},
+  ): Promise<{
+    data: OrchestrationRunRecord[];
+    count: number | null;
+    limit: number;
+    offset: number;
+  }> {
+    const limit = this.clampLimit(options.limit ?? 25);
+    const offset = Math.max(options.offset ?? 0, 0);
+
+    let query = this.client()
+      .from(TABLE)
+      .select('*', { count: 'exact', head: false });
+
+    if (options.organizationSlug) {
+      query = query.eq('organization_slug', options.organizationSlug);
+    } else if (options.includeUnassigned === false) {
+      query = query.not('organization_slug', 'is', null);
+    }
+
+    if (options.statuses && options.statuses.length > 0) {
+      query = query.in('status', options.statuses);
+    }
+
+    if (options.parentRunId !== undefined) {
+      if (options.parentRunId === null) {
+        query = query.is('parent_orchestration_run_id', null);
+      } else {
+        query = query.eq(
+          'parent_orchestration_run_id',
+          options.parentRunId,
+        );
+      }
+    }
+
+    if (options.definitionId) {
+      query = query.eq(
+        'orchestration_definition_id',
+        options.definitionId,
+      );
+    }
+
+    if (options.originType) {
+      query = query.eq('origin_type', options.originType);
+    }
+
+    if (options.startedAfter) {
+      query = query.gte('started_at', options.startedAfter);
+    }
+
+    if (options.startedBefore) {
+      query = query.lte('started_at', options.startedBefore);
+    }
+
+    if (options.search && options.search.trim().length > 0) {
+      const term = options.search.trim();
+      const pattern = `%${term}%`;
+      query = query.or(
+        `id.ilike.${pattern},orchestration_name.ilike.${pattern},orchestration_slug.ilike.${pattern}`,
+      );
+    }
+
+    const sortBy = options.sortBy ?? 'created_at';
+    const ascending = (options.sortDirection ?? 'desc') === 'asc';
+
+    query = query.order(sortBy, { ascending });
+
+    const { data, error, count } = (await query.range(
+      offset,
+      offset + limit - 1,
+    )) as SupabaseListResponse<OrchestrationRunRecord>;
+
+    if (error) {
+      this.logger.error(
+        `Failed to list orchestration runs: ${error.message}`,
+      );
+      throw new Error(`Failed to list orchestration runs: ${error.message}`);
+    }
+
+    return {
+      data: data ?? [],
+      count: count ?? null,
+      limit,
+      offset,
+    };
+  }
+
+  async listByIds(ids: string[]): Promise<OrchestrationRunRecord[]> {
+    if (!ids.length) {
+      return [];
+    }
+
+    const { data, error } = (await this.client()
+      .from(TABLE)
+      .select('*')
+      .in('id', ids)) as SupabaseListResponse<OrchestrationRunRecord>;
+
+    if (error) {
+      this.logger.error(
+        `Failed to load orchestration runs by ids: ${error.message}`,
+      );
+      throw new Error(
+        `Failed to load orchestration runs by ids: ${error.message}`,
+      );
+    }
+
+    return data ?? [];
+  }
+
+  private clampLimit(limit: number): number {
+    if (!Number.isFinite(limit) || limit <= 0) {
+      return 25;
+    }
+    return Math.min(Math.floor(limit), 100);
   }
 }

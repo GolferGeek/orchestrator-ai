@@ -48,6 +48,49 @@ export class OrchestrationStateService {
           ? (stepDefinition.type as string).toLowerCase()
           : 'agent';
 
+      const retryBehavior = this.buildStepRetryMetadata(
+        definition,
+        stepDefinition,
+      );
+      const rollbackBehavior = this.buildStepRollbackMetadata(
+        definition,
+        stepDefinition,
+      );
+
+      const metadata: Record<string, any> = {
+        name: stepDefinition.name,
+        checkpoint: stepDefinition.checkpoint_after ?? null,
+        rawInput: stepDefinition.input ?? null,
+        rawContext: stepDefinition.context ?? null,
+        outputMapping: stepDefinition.output_mapping ?? null,
+        type: stepType === 'orchestration' ? 'orchestration' : 'agent',
+        orchestration: stepDefinition.orchestration
+          ? JSON.parse(JSON.stringify(stepDefinition.orchestration))
+          : null,
+      };
+
+      if (retryBehavior) {
+        metadata.behavior = {
+          ...(metadata.behavior ?? {}),
+          retry: retryBehavior,
+        };
+        metadata.runtime = {
+          ...(metadata.runtime ?? {}),
+          retry: {
+            attempt: 1,
+            history: [],
+            nextRetryAt: null,
+          },
+        };
+      }
+
+      if (rollbackBehavior) {
+        metadata.behavior = {
+          ...(metadata.behavior ?? {}),
+          rollback: rollbackBehavior,
+        };
+      }
+
       const insert: OrchestrationStepInsertInput = {
         orchestration_run_id: run.id,
         step_index: index,
@@ -63,17 +106,7 @@ export class OrchestrationStateService {
             : stepDefinition.mode ?? 'BUILD',
         depends_on: stepDefinition.depends_on ?? [],
         input: inputPayload,
-        metadata: {
-          name: stepDefinition.name,
-          checkpoint: stepDefinition.checkpoint_after ?? null,
-          rawInput: stepDefinition.input ?? null,
-          rawContext: stepDefinition.context ?? null,
-          outputMapping: stepDefinition.output_mapping ?? null,
-          type: stepType === 'orchestration' ? 'orchestration' : 'agent',
-          orchestration: stepDefinition.orchestration
-            ? JSON.parse(JSON.stringify(stepDefinition.orchestration))
-            : null,
-        },
+        metadata,
       };
 
       createdSteps.push(this.orchestrationRunner.createStep(insert));
@@ -208,5 +241,200 @@ export class OrchestrationStateService {
       }
     }
     return current;
+  }
+
+  private buildStepRetryMetadata(
+    definition: OrchestrationResolvedDefinition,
+    step: OrchestrationStepDefinition,
+  ): Record<string, any> | null {
+    const orchestrationConfig =
+      (definition.rawDefinition?.orchestration ?? {}) as Record<string, any>;
+    const defaultRetryConfig = this.normalizeRetryConfig(
+      orchestrationConfig.error_handling,
+    );
+    const stepRetryRaw = this.asRecord(
+      (step.metadata as Record<string, any> | undefined)?.retry,
+    );
+
+    const merged = {
+      ...defaultRetryConfig,
+      ...(stepRetryRaw ?? {}),
+    };
+
+    const maxAttempts = this.resolveMaxAttempts(merged);
+    if (maxAttempts <= 1) {
+      return null;
+    }
+
+    const initialDelayMs =
+      this.coerceNumber(
+        merged.initialDelayMs,
+        merged.initial_delay_ms,
+        merged.initial_delay_seconds
+          ? Number(merged.initial_delay_seconds) * 1000
+          : undefined,
+        merged.base_delay_ms,
+        merged.base_delay_seconds
+          ? Number(merged.base_delay_seconds) * 1000
+          : undefined,
+      ) ?? 2000;
+
+    const backoffMultiplier =
+      this.coerceNumber(
+        merged.backoffMultiplier,
+        merged.backoff_multiplier,
+        merged.multiplier,
+      ) ?? 2;
+
+    const maxDelayMs =
+      this.coerceNumber(
+        merged.maxDelayMs,
+        merged.max_delay_ms,
+        merged.max_delay_seconds
+          ? Number(merged.max_delay_seconds) * 1000
+          : undefined,
+      ) ?? null;
+
+    return {
+      maxAttempts,
+      strategy:
+        typeof merged.strategy === 'string'
+          ? merged.strategy
+          : 'exponential',
+      initialDelayMs: Math.max(250, initialDelayMs),
+      backoffMultiplier: Math.max(1, backoffMultiplier),
+      maxDelayMs:
+        typeof maxDelayMs === 'number' ? Math.max(0, maxDelayMs) : null,
+      notifyHuman:
+        typeof merged.notify_human === 'boolean'
+          ? merged.notify_human
+          : merged.notifyHuman === true,
+      allowSkip:
+        typeof merged.allow_skip === 'boolean'
+          ? merged.allow_skip
+          : merged.allowSkip === true,
+    };
+  }
+
+  private buildStepRollbackMetadata(
+    definition: OrchestrationResolvedDefinition,
+    step: OrchestrationStepDefinition,
+  ): Record<string, any> | null {
+    const orchestrationConfig =
+      (definition.rawDefinition?.orchestration ?? {}) as Record<string, any>;
+    const defaultRollback = this.asRecord(
+      orchestrationConfig.error_handling?.rollback,
+    );
+    const stepMetadata = this.asRecord(step.metadata);
+
+    const rollbackSource = this.asRecord(stepMetadata?.rollback);
+    const reversibleFlag =
+      typeof stepMetadata?.reversible === 'boolean'
+        ? stepMetadata.reversible
+        : undefined;
+
+    const merged = {
+      ...(defaultRollback ?? {}),
+      ...(rollbackSource ?? {}),
+    };
+
+    const reversible =
+      typeof merged.reversible === 'boolean'
+        ? merged.reversible
+        : reversibleFlag ?? false;
+
+    if (!reversible) {
+      return null;
+    }
+
+    return {
+      reversible: true,
+      label:
+        typeof merged.label === 'string' && merged.label.trim().length > 0
+          ? merged.label.trim()
+          : step.name ?? step.id,
+      description:
+        typeof merged.description === 'string'
+          ? merged.description
+          : null,
+      manualOnly:
+        typeof merged.manualOnly === 'boolean'
+          ? merged.manualOnly
+          : merged.manual_only === true,
+    };
+  }
+
+  private normalizeRetryConfig(
+    raw: Record<string, any> | undefined,
+  ): Record<string, any> {
+    if (!raw || typeof raw !== 'object') {
+      return {};
+    }
+
+    const onFailureRaw = (raw as Record<string, any>).on_step_failure;
+    if (!onFailureRaw) {
+      return {};
+    }
+
+    if (Array.isArray(onFailureRaw)) {
+      return onFailureRaw.reduce<Record<string, any>>((acc, entry) => {
+        if (entry && typeof entry === 'object') {
+          Object.assign(acc, entry);
+        }
+        return acc;
+      }, {});
+    }
+
+    if (typeof onFailureRaw === 'object') {
+      return { ...(onFailureRaw as Record<string, any>) };
+    }
+
+    return {};
+  }
+
+  private resolveMaxAttempts(config: Record<string, any>): number {
+    const attemptConfig = this.coerceNumber(
+      config.maxAttempts,
+      config.max_attempts,
+    );
+    if (attemptConfig !== null) {
+      return Math.max(1, attemptConfig);
+    }
+
+    const retryCount = this.coerceNumber(
+      config.retry_count,
+      config.retryCount,
+    );
+
+    if (retryCount !== null) {
+      return Math.max(1, retryCount + 1);
+    }
+
+    return 1;
+  }
+
+  private coerceNumber(...values: Array<any>): number | null {
+    for (const value of values) {
+      if (value === null || value === undefined) {
+        continue;
+      }
+      const parsed =
+        typeof value === 'number'
+          ? value
+          : typeof value === 'string'
+            ? Number(value)
+            : NaN;
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  private asRecord(value: unknown): Record<string, any> | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    return { ...(value as Record<string, any>) };
   }
 }
