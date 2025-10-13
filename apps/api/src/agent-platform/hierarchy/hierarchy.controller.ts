@@ -102,12 +102,15 @@ export class HierarchyController {
         type: agent.agent_type,
         description: agent.description,
         status: agent.status,
+        namespace: agent.organization_slug ?? 'global',
       });
     }
 
     return Array.from(byNamespace.entries()).map(([namespace, agentList]) => ({
+      id: namespace,
+      name: namespace,
       namespace,
-      agents: agentList,
+      children: agentList,
     }));
   }
 }

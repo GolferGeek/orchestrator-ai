@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Set PATH to include Python user bin directory for PDM
-export PATH="$HOME/Library/Python/3.9/bin:$PATH"
-
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -14,7 +11,7 @@ N8N_MANAGE_SCRIPT="../n8n/manage.sh"
 N8N_CONTAINER_NAME="orchestrator-n8n"
 N8N_STARTED_BY_SCRIPT=false
 
-echo -e "${BLUE}🚀 Starting OrchAI NestJS API with Python Agent Support${NC}"
+echo -e "${BLUE}🚀 Starting OrchAI NestJS API${NC}"
 
 # Load environment variables from project root
 if [ -f "../../.env" ]; then
@@ -209,39 +206,6 @@ cleanup() {
 # Set up signal handlers
 trap cleanup SIGINT SIGTERM
 
-# Check if PDM is installed
-if ! command -v pdm &> /dev/null; then
-    echo -e "${RED}❌ PDM is not installed. Please install PDM first:${NC}"
-    echo -e "${BLUE}   pip install pdm${NC}"
-    exit 1
-fi
-
-# Initialize PDM environment if needed
-if [ ! -f "pdm.lock" ]; then
-    echo -e "${BLUE}📦 Installing Python dependencies with PDM...${NC}"
-    pdm install
-fi
-
-# Verify Python environment
-python_version=$(python3 --version 2>&1)
-echo -e "${GREEN}✅ Python available: $python_version${NC}"
-
-# Verify LangGraph is available (with better error handling)
-echo -e "${BLUE}🔍 Checking LangGraph dependencies...${NC}"
-if python3 -c "from langgraph.graph import StateGraph" 2>/dev/null; then
-    echo -e "${GREEN}✅ LangGraph dependencies verified${NC}"
-else
-    echo -e "${YELLOW}⚠️  LangGraph not available${NC}"
-    echo -e "${BLUE}🔧 Running 'pdm install' to fix dependencies...${NC}"
-    pdm install
-    if python3 -c "from langgraph.graph import StateGraph" 2>/dev/null; then
-        echo -e "${GREEN}✅ LangGraph dependencies fixed${NC}"
-    else
-        echo -e "${YELLOW}⚠️  LangGraph still not available, but continuing...${NC}"
-        echo -e "${BLUE}💡 Python agents may not work properly${NC}"
-    fi
-fi
-
 # Build transport-types if needed
 echo -e "${BLUE}📦 Building transport-types...${NC}"
 npm --prefix .. run build:transport-types
@@ -256,9 +220,7 @@ NESTJS_PID=$!
 sleep 2
 
 echo -e "${GREEN}✅ Development environment ready!${NC}"
-echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-9000}${NC}"
-echo -e "${BLUE}🐍 Python: Available${NC}"
-echo -e "${BLUE}🔧 LangGraph: Available for Python agents${NC}"
+echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-7100}${NC}"
 echo -e "\n${BLUE}Press Ctrl+C to stop all services${NC}"
 
 # Wait for NestJS process to finish

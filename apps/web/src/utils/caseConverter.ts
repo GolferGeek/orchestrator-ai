@@ -29,6 +29,7 @@ export function convertAPIResponseToFrontend(response: any): any {
 }
 // Format agent names from snake_case to Title Case for display
 export function formatAgentName(name: string): string {
+  if (!name) return '';
   return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 // Format agent descriptions for display
