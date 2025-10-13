@@ -208,7 +208,7 @@ trap cleanup SIGINT SIGTERM
 
 # Build transport-types if needed
 echo -e "${BLUE}📦 Building transport-types...${NC}"
-npm --prefix .. run build:transport-types
+npm --prefix ../.. run build:transport-types
 echo -e "${GREEN}✅ Transport-types built${NC}"
 
 # Start NestJS development server in background
