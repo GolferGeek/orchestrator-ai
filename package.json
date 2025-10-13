@@ -13,7 +13,7 @@
     "build:transport-types": "cd apps/transport-types && npm run build",
     "dev:web": "cd apps/web && npm run dev",
     "dev:start": "./start-dev-local.sh",
-    "dev:ports": "./dev-ports.sh",
+    "dev:ports": "./scripts/dev-ports.sh",
     "dev:supabase": "cd apps/api && supabase status",
     "dev:supabase:start": "cd apps/api && supabase start",
     "dev:supabase:stop": "cd apps/api && supabase stop",
