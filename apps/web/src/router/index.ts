@@ -40,15 +40,7 @@ const routes: Array<RouteRecordRaw> = [
     children: [
       {
         path: '',
-        redirect: () => {
-          const authStore = useAuthStore();
-          // If admin, land on LLM Usage dashboard
-          if (authStore.user?.roles?.includes(UserRole.ADMIN)) {
-            return '/app/admin/settings';
-          }
-          // Otherwise, send to a simple welcome page
-          return '/app/welcome';
-        }
+        redirect: '/app/welcome'
       },
       {
         path: 'home',
@@ -273,6 +265,15 @@ router.beforeEach(async (to, from, next) => {
       } else {
         // No user data available, redirect to login
         next({ path: '/login', query: { redirect: to.fullPath } });
+        return;
+      }
+    }
+    
+    // If navigating to /app or /app/welcome and user is admin, redirect to admin dashboard
+    if ((to.path === '/app' || to.path === '/app/welcome' || to.name === 'Welcome') && authStore.user?.roles?.includes(UserRole.ADMIN)) {
+      // Only redirect if not explicitly coming from admin area
+      if (!from.path.startsWith('/app/admin')) {
+        next({ path: '/app/admin/settings' });
         return;
       }
     }

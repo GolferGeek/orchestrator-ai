@@ -48,7 +48,7 @@ function filterHierarchyByNamespace(
         (node as any).namespace || (node as any).metadata?.namespace;
 
       const matchesNamespace =
-        !nodeNamespace || nodeNamespace === namespace || children.length > 0;
+        !nodeNamespace || nodeNamespace === namespace || nodeNamespace === 'global' || children.length > 0;
 
       if (matchesNamespace) {
         result.push({ ...node, children });
@@ -109,7 +109,8 @@ export const useAgentsStore = defineStore('agents', () => {
               // If backend doesn't tag the agent, assume it belongs to the active namespace
               return true;
             }
-            return agent.namespace === namespace;
+            // Always include global agents alongside namespace-specific agents
+            return agent.namespace === namespace || agent.namespace === 'global';
           })
         : [];
 

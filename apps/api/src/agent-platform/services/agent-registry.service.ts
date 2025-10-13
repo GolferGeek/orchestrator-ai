@@ -79,6 +79,11 @@ export class AgentRegistryService {
       ),
     );
 
+    // Always include global agents alongside namespace-specific agents
+    if (!uniqueNamespaces.includes(null)) {
+      uniqueNamespaces.push(null);
+    }
+
     const results = await Promise.all(
       uniqueNamespaces.map((namespace) => this.listAgents(namespace)),
     );

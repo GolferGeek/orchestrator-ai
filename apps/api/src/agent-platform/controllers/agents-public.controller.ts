@@ -62,24 +62,69 @@ export class AgentsPublicController {
   private buildHierarchyFromAgents(agents: any[]): any[] {
     const byNamespace = new Map<string, any[]>();
 
+    // Group agents by namespace
     for (const agent of agents) {
       const namespace = agent.organization_slug ?? 'global';
       if (!byNamespace.has(namespace)) {
         byNamespace.set(namespace, []);
       }
-      byNamespace.get(namespace)!.push({
-        id: agent.id,
-        name: agent.slug,
-        displayName: agent.display_name,
-        type: agent.agent_type,
-        description: agent.description,
-        status: agent.status,
-      });
+      byNamespace.get(namespace)!.push(agent);
     }
 
-    return Array.from(byNamespace.entries()).map(([namespace, agentList]) => ({
-      namespace,
-      agents: agentList,
-    }));
+    const roots: any[] = [];
+
+    // Build hierarchy for each namespace
+    byNamespace.forEach((namespaceAgents, namespace) => {
+      const agentMap = new Map<string, any>();
+
+      // Create nodes for all agents
+      for (const agent of namespaceAgents) {
+        const node = {
+          id: agent.id,
+          name: agent.slug,
+          displayName: agent.display_name,
+          type: agent.agent_type,
+          description: agent.description,
+          status: agent.status,
+          namespace: agent.organization_slug ?? 'global',
+          metadata: {
+            execution_profile: agent.config?.execution_profile,
+            execution_capabilities: agent.config?.execution_capabilities,
+          },
+          children: [],
+        };
+        agentMap.set(agent.slug, node);
+      }
+
+      // Build parent-child relationships based on hierarchy.reportsTo or reports_to
+      const topLevelNodes: any[] = [];
+      
+      for (const agent of namespaceAgents) {
+        const node = agentMap.get(agent.slug);
+        if (!node) continue;
+
+        // Check both camelCase and snake_case
+        const reportsTo = agent.config?.hierarchy?.reportsTo || agent.config?.hierarchy?.reports_to;
+        
+        if (reportsTo && agentMap.has(reportsTo)) {
+          // This agent reports to another agent - add as child
+          const parent = agentMap.get(reportsTo);
+          if (parent && parent !== node) {
+            parent.children.push(node);
+          } else {
+            // Parent not found or circular reference - add as top level
+            topLevelNodes.push(node);
+          }
+        } else {
+          // No reportsTo or parent not in this namespace - top level node
+          topLevelNodes.push(node);
+        }
+      }
+
+      // Add all top-level nodes as roots
+      roots.push(...topLevelNodes);
+    });
+
+    return roots;
   }
 }

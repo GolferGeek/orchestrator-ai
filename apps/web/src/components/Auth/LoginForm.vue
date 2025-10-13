@@ -19,8 +19,8 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { IonList, IonItem, IonLabel, IonInput, IonButton, IonText } from '@ionic/vue';
-const email = ref('');
-const password = ref('');
+const email = ref(import.meta.env.VITE_TEST_USER || '');
+const password = ref(import.meta.env.VITE_TEST_PASSWORD || '');
 const error = ref<string | null>(null);
 const loading = ref(false);
 // Define emits for when login is successful or fails

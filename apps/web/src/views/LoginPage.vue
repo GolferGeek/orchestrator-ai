@@ -49,7 +49,7 @@ import { ref, computed } from 'vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonText, IonSpinner } from '@ionic/vue';
 // LoginForm component is not directly used here anymore, logic moved to this view for store integration
 import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, UserRole } from '@/stores/authStore';
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
@@ -67,8 +67,15 @@ const hasDemoCreds = computed(() => {
 const performLogin = async () => {
   const success = await auth.login({ email: email.value, password: password.value });
   if (success) {
-    const redirectPath = route.query.redirect as string || '/';
-    router.push(redirectPath);
+    // Check if user is admin and redirect to admin dashboard
+    // Access user roles directly instead of computed property for immediate check
+    const isUserAdmin = auth.user?.roles?.includes(UserRole.ADMIN);
+    if (isUserAdmin) {
+      router.push('/app/admin/settings');
+    } else {
+      const redirectPath = route.query.redirect as string || '/app';
+      router.push(redirectPath);
+    }
   }
 };
 

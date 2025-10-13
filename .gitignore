@@ -67,3 +67,11 @@ apps/web/src/views/landing/my-org/
 apps/web/src/views/landing/saas/
 apps/web/src/components/landing/my-org/
 apps/web/src/components/landing/saas/
+
+# Playwright screenshots and test artifacts
+*.png
+*.jpg
+*.jpeg
+test-results/
+playwright-report/
+playwright/.cache/
