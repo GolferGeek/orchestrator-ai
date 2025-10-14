@@ -6,6 +6,7 @@ import { TaskResponseDto } from '../dto/task-response.dto';
 import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
 import { LLMService } from '@llm/llm.service';
 import { PlansService } from '../plans/services/plans.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 
 /**
@@ -55,12 +56,19 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
   protected readonly logger = new Logger(ContextAgentRunnerService.name);
 
   constructor(
-    private readonly contextOptimization: ContextOptimizationService,
-    private readonly llmService: LLMService,
-    private readonly plansService: PlansService,
-    private readonly deliverablesService: DeliverablesService,
+    contextOptimization: ContextOptimizationService,
+    llmService: LLMService,
+    plansService: PlansService,
+    conversationsService: Agent2AgentConversationsService,
+    deliverablesService: DeliverablesService,
   ) {
-    super();
+    super(
+      llmService,
+      contextOptimization,
+      plansService,
+      conversationsService,
+      deliverablesService,
+    );
   }
 
   /**
@@ -100,23 +108,12 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
   /**
    * BUILD mode - fetch context and generate deliverable with LLM
    */
-  protected async handleBuild(
+  protected async executeBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     try {
-      // Check if this is a non-create action (read, list, edit)
-      const action = (request.payload as any)?.action || 'create';
-      if (action !== 'create') {
-        return this.handleBuildAction(
-          definition,
-          request,
-          organizationSlug,
-          action,
-        );
-      }
-
       // Standard create action with LLM
       this.logger.debug(
         `Context agent ${definition.slug} executing BUILD mode (create action)`,
@@ -225,60 +222,6 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         `Failed to execute context agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
-  }
-
-  /**
-   * Handle non-create BUILD actions (read, list, edit, etc.)
-   */
-  private async handleBuildAction(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-    action: string,
-  ): Promise<TaskResponseDto> {
-    const userId = this.resolveUserId(request);
-    const conversationId = this.resolveConversationId(request);
-
-    if (!userId || !conversationId) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        'Missing required userId or conversationId',
-      );
-    }
-
-    // Extract params from payload (excluding action)
-    const {
-      action: _,
-      taskId: __,
-      llmSelection: ___,
-      ...params
-    } = (request.payload as any) || {};
-
-    // Route to DeliverablesService
-    const result = await this.deliverablesService.executeAction(
-      action,
-      params,
-      {
-        conversationId,
-        userId,
-        agentSlug: definition.slug,
-      },
-    );
-
-    if (!result.success) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        result.error?.message || `Failed to execute action: ${action}`,
-      );
-    }
-
-    return TaskResponseDto.success(AgentTaskMode.BUILD, {
-      content: result.data,
-      metadata: {
-        action,
-        executedAt: new Date().toISOString(),
-      },
-    });
   }
 
   /**

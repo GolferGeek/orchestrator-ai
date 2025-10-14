@@ -69,6 +69,7 @@ import { HttpModule } from '@nestjs/axios';
     AgentExecutionGateway,
     OrchestrationStepExecutorService,
     AgentModeRouterService,
+    Agent2AgentConversationsService,
   ],
 })
 export class Agent2AgentModule {}

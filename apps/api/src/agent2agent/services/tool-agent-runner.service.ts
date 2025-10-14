@@ -5,6 +5,10 @@ import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { MCPService } from '../../mcp/mcp.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { LLMService } from '@llm/llm.service';
+import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
+import { PlansService } from '../plans/services/plans.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
 
 /**
  * Tool Agent Runner
@@ -43,9 +47,19 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
 
   constructor(
     private readonly mcpService: MCPService,
-    private readonly deliverablesService: DeliverablesService,
+    llmService: LLMService,
+    contextOptimization: ContextOptimizationService,
+    plansService: PlansService,
+    conversationsService: Agent2AgentConversationsService,
+    deliverablesService: DeliverablesService,
   ) {
-    super();
+    super(
+      llmService,
+      contextOptimization,
+      plansService,
+      conversationsService,
+      deliverablesService,
+    );
   }
 
   /**
@@ -79,25 +93,16 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
   /**
    * BUILD mode - execute MCP tools and save results
    */
-  protected async handleBuild(
+  protected async executeBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     try {
-      // Check for non-create actions (read, list, etc.)
       const payloadOverrides = ((request.payload as any) ?? {}) as Record<
         string,
         any
       >;
-      const action = payloadOverrides.action;
-      if (action && action !== 'create') {
-        return await this.handleBuildAction(
-          definition,
-          request,
-          organizationSlug,
-        );
-      }
 
       // Validate required context
       const userId = this.resolveUserId(request);
@@ -269,51 +274,6 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         `Failed to execute tool agent: ${errorMessage}`,
       );
     }
-  }
-
-  /**
-   * Handle non-create BUILD actions (read, list, etc.)
-   */
-  private async handleBuildAction(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    const action = (request.payload as any)?.action;
-    const userId = this.resolveUserId(request);
-    const conversationId = this.resolveConversationId(request);
-
-    if (!userId || !conversationId) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        'Missing required userId or conversationId',
-      );
-    }
-
-    // Route to DeliverablesService for non-create actions
-    const result = await this.deliverablesService.executeAction(
-      action,
-      request.payload,
-      {
-        conversationId,
-        userId,
-        agentSlug: definition.slug,
-      },
-    );
-
-    if (!result.success) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        result.error?.message || `Action ${action} failed`,
-      );
-    }
-
-    return TaskResponseDto.success(AgentTaskMode.BUILD, {
-      content: result.data,
-      metadata: this.buildMetadata(request, {
-        action,
-      }),
-    });
   }
 
   /**

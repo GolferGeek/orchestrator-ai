@@ -3,6 +3,11 @@ import { BaseAgentRunner } from './base-agent-runner.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
+import { LLMService } from '@llm/llm.service';
+import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
+import { PlansService } from '../plans/services/plans.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
+import { DeliverablesService } from '../deliverables/deliverables.service';
 import { OrchestrationDefinitionService } from '@agent-platform/services/orchestration-definition.service';
 import { OrchestrationStateService } from '@agent-platform/services/orchestration-state.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
@@ -52,8 +57,19 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     @Inject(forwardRef(() => OrchestrationStepExecutorService))
     private readonly stepExecutor: OrchestrationStepExecutorService,
     private readonly runFactory: OrchestrationRunFactoryService,
+    llmService: LLMService,
+    contextOptimization: ContextOptimizationService,
+    plansService: PlansService,
+    conversationsService: Agent2AgentConversationsService,
+    deliverablesService: DeliverablesService,
   ) {
-    super();
+    super(
+      llmService,
+      contextOptimization,
+      plansService,
+      conversationsService,
+      deliverablesService,
+    );
   }
 
   protected async handleConverse(
@@ -120,7 +136,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     }
   }
 
-  protected async handleBuild(
+  protected async executeBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     _organizationSlug: string | null,
