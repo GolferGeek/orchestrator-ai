@@ -15,8 +15,9 @@ if [ -f ".env" ]; then
   source .env
 fi
 
-# Database connection
+# Database connection - use Docker exec for psql
 DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:7012/postgres}"
+DOCKER_PSQL="/Applications/Docker.app/Contents/Resources/bin/docker exec -i supabase_db_api-dev psql -U postgres -d postgres"
 
 # Check if jq is available
 if ! command -v jq &> /dev/null; then
@@ -65,48 +66,39 @@ echo "$WORKFLOWS_JSON" | jq -c '.data[]' | while read -r workflow; do
 
   echo -e "${BLUE}📝 Processing: $WORKFLOW_NAME${NC}"
 
-  # Escape single quotes for SQL
-  NAME_ESCAPED=$(echo "$WORKFLOW_NAME" | sed "s/'/''/g")
-  NODES_ESCAPED=$(echo "$WORKFLOW_NODES" | sed "s/'/''/g")
-  CONNECTIONS_ESCAPED=$(echo "$WORKFLOW_CONNECTIONS" | sed "s/'/''/g")
-  SETTINGS_ESCAPED=$(echo "$WORKFLOW_SETTINGS" | sed "s/'/''/g")
+  # Create temporary SQL file with proper escaping
+  TEMP_SQL=$(mktemp)
+  cat > "$TEMP_SQL" << EOF
+INSERT INTO n8n.n8n_workflows (
+  id, name, active, nodes, connections, settings, created_at, updated_at
+) VALUES (
+  '$WORKFLOW_ID',
+  \$\$${WORKFLOW_NAME}\$\$,
+  $WORKFLOW_ACTIVE,
+  \$\$${WORKFLOW_NODES}\$\$::jsonb,
+  \$\$${WORKFLOW_CONNECTIONS}\$\$::jsonb,
+  \$\$${WORKFLOW_SETTINGS}\$\$::jsonb,
+  '$WORKFLOW_CREATED'::timestamptz,
+  '$WORKFLOW_UPDATED'::timestamptz
+) ON CONFLICT (name) DO UPDATE SET
+  active = EXCLUDED.active,
+  nodes = EXCLUDED.nodes,
+  connections = EXCLUDED.connections,
+  settings = EXCLUDED.settings,
+  updated_at = EXCLUDED.updated_at
+WHERE n8n.n8n_workflows.updated_at < EXCLUDED.updated_at;
+EOF
 
-  # Insert/update workflow in Supabase
-  SQL="
-    INSERT INTO n8n.n8n_workflows (
-      id,
-      name,
-      active,
-      nodes,
-      connections,
-      settings,
-      created_at,
-      updated_at
-    )
-    VALUES (
-      gen_random_uuid(),
-      '$NAME_ESCAPED',
-      $WORKFLOW_ACTIVE,
-      '$NODES_ESCAPED'::jsonb,
-      '$CONNECTIONS_ESCAPED'::jsonb,
-      '$SETTINGS_ESCAPED'::jsonb,
-      '$WORKFLOW_CREATED'::timestamptz,
-      '$WORKFLOW_UPDATED'::timestamptz
-    )
-    ON CONFLICT (name) DO UPDATE SET
-      active = EXCLUDED.active,
-      nodes = EXCLUDED.nodes,
-      connections = EXCLUDED.connections,
-      settings = EXCLUDED.settings,
-      updated_at = EXCLUDED.updated_at
-    WHERE n8n.n8n_workflows.updated_at < EXCLUDED.updated_at;
-  "
-
-  if psql "$DB_URL" -c "$SQL" > /dev/null 2>&1; then
+  if $DOCKER_PSQL < "$TEMP_SQL" > /dev/null 2>&1; then
     echo -e "${GREEN}✅ Synced: $WORKFLOW_NAME${NC}"
   else
     echo -e "${RED}❌ Failed to sync: $WORKFLOW_NAME${NC}"
+    # Show error for debugging
+    $DOCKER_PSQL < "$TEMP_SQL" 2>&1 | head -3
   fi
+  
+  # Clean up temp file
+  rm -f "$TEMP_SQL"
 done
 
 echo ""

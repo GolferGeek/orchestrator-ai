@@ -29,12 +29,12 @@ run_compose() {
         echo "No .env file found in n8n directory"
         exit 1
     fi
-    COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME" docker-compose -f "$COMPOSE_FILE" "$@"
+    COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME" /Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose -f "$COMPOSE_FILE" "$@"
 }
 
 # Function to check if n8n is running
 check_n8n_running() {
-    if docker ps --format "table {{.Names}}" | grep -q "^orchestrator-n8n$"; then
+    if /Applications/Docker.app/Contents/Resources/bin/docker ps --format "table {{.Names}}" | grep -q "^orchestrator-n8n$"; then
         return 0
     else
         return 1
