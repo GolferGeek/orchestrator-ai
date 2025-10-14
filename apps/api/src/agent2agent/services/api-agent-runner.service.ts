@@ -70,20 +70,6 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
   }
 
   /**
-   * CONVERSE mode - not yet implemented for API agents
-   */
-  protected async handleConverse(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    return TaskResponseDto.failure(
-      AgentTaskMode.CONVERSE,
-      'CONVERSE mode not yet implemented for API agents',
-    );
-  }
-
-  /**
    * PLAN mode - not yet implemented for API agents
    */
   protected async handlePlan(

@@ -72,17 +72,6 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     );
   }
 
-  protected async handleConverse(
-    _definition: AgentRuntimeDefinition,
-    _request: TaskRequestDto,
-    _organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    return TaskResponseDto.failure(
-      AgentTaskMode.CONVERSE,
-      'Orchestrator agents do not support CONVERSE mode yet',
-    );
-  }
-
   protected async handlePlan(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,

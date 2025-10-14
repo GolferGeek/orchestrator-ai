@@ -1,11 +1,13 @@
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { LLMService } from '@llm/llm.service';
+import type { LLMResponse } from '@llm/services/llm-interfaces';
+import type { ConversationMessage } from '../../context-optimization/context-optimization.service';
 import { PlansService } from '../../plans/services/plans.service';
 import { DeliverablesService } from '../../deliverables/deliverables.service';
 import { Agent2AgentConversationsService } from '../agent-conversations.service';
 import { ContextOptimizationService } from '../../context-optimization/context-optimization.service';
 import { TaskRequestDto, AgentTaskMode } from '../../dto/task-request.dto';
 import { TaskResponseDto } from '../../dto/task-response.dto';
+import type { AgentRuntimeDefinition } from '../../../agent-platform/interfaces/database-agent-definition.interface';
 
 /**
  * Fetches conversation history required for agent execution.
@@ -16,10 +18,74 @@ import { TaskResponseDto } from '../../dto/task-response.dto';
 export async function fetchConversationHistory(
   conversationsService: Agent2AgentConversationsService,
   request: TaskRequestDto,
-): Promise<unknown[]> {
-  void conversationsService;
-  void request;
-  throw new Error('fetchConversationHistory not implemented');
+): Promise<ConversationMessage[]> {
+  const inlineMessages = Array.isArray(request.messages)
+    ? request.messages
+        .map((message) => ({
+          role: String(message.role ?? '').trim() || 'user',
+          content:
+            typeof message.content === 'string'
+              ? message.content
+              : JSON.stringify(message.content ?? ''),
+          timestamp: new Date().toISOString(),
+        }))
+        .filter((message) => message.content.length > 0)
+    : [];
+
+  const userId = resolveUserId(request);
+  const conversationId = resolveConversationId(request);
+
+  if (!userId || !conversationId) {
+    return inlineMessages;
+  }
+
+  try {
+    const conversation = await conversationsService.getConversationById(
+      conversationId,
+      userId,
+    );
+
+    const metadataHistory = conversation?.metadata?.history;
+    if (!Array.isArray(metadataHistory)) {
+      return inlineMessages;
+    }
+
+    const normalizedHistory = metadataHistory
+      .map((item: any): ConversationMessage | null => {
+        if (!item || typeof item !== 'object') {
+          return null;
+        }
+
+        const role = typeof item.role === 'string' ? item.role : null;
+        const content =
+          typeof item.content === 'string'
+            ? item.content
+            : typeof item.content !== 'undefined'
+              ? JSON.stringify(item.content)
+              : null;
+        if (!role || !content) {
+          return null;
+        }
+
+        return {
+          role,
+          content,
+          timestamp:
+            typeof item.timestamp === 'string'
+              ? item.timestamp
+              : new Date().toISOString(),
+          metadata:
+            item.metadata && typeof item.metadata === 'object'
+              ? item.metadata
+              : undefined,
+        };
+      })
+      .filter((message): message is ConversationMessage => Boolean(message));
+
+    return normalizedHistory.length > 0 ? normalizedHistory : inlineMessages;
+  } catch (_error) {
+    return inlineMessages;
+  }
 }
 
 /**
@@ -84,14 +150,106 @@ export async function callLLM(
   llmConfig: Record<string, unknown> | null | undefined,
   systemPrompt: string,
   userMessage: string,
-  conversationHistory?: unknown[],
-): Promise<unknown> {
-  void llmService;
-  void llmConfig;
-  void systemPrompt;
-  void userMessage;
-  void conversationHistory;
-  throw new Error('callLLM not implemented');
+  conversationHistory?: ConversationMessage[],
+): Promise<LLMResponse> {
+  if (!userMessage || !userMessage.trim()) {
+    throw new Error('User message is required for LLM invocation');
+  }
+
+  const config = llmConfig ?? {};
+  const provider =
+    typeof config.provider === 'string'
+      ? config.provider
+      : typeof config.providerName === 'string'
+        ? config.providerName
+        : 'anthropic';
+  const model =
+    typeof config.model === 'string'
+      ? config.model
+      : typeof config.modelName === 'string'
+        ? config.modelName
+        : undefined;
+
+  const temperature =
+    typeof config.temperature === 'number' ? config.temperature : undefined;
+  const maxTokens =
+    typeof config.maxTokens === 'number' ? config.maxTokens : undefined;
+  const stream =
+    typeof config.stream === 'boolean' ? config.stream : undefined;
+  const conversationId =
+    typeof config.conversationId === 'string'
+      ? (config.conversationId as string)
+      : undefined;
+  const sessionId =
+    typeof config.sessionId === 'string'
+      ? (config.sessionId as string)
+      : undefined;
+  const userId =
+    typeof config.userId === 'string' ? (config.userId as string) : undefined;
+  const callerType =
+    typeof config.callerType === 'string'
+      ? (config.callerType as string)
+      : 'agent';
+  const callerName =
+    typeof config.callerName === 'string'
+      ? (config.callerName as string)
+      : 'agent-converse-mode';
+  const organizationSlug =
+    typeof config.organizationSlug === 'string'
+      ? (config.organizationSlug as string)
+      : config.organizationSlug === null
+        ? null
+        : undefined;
+  const agentSlug =
+    typeof config.agentSlug === 'string'
+      ? (config.agentSlug as string)
+      : undefined;
+
+  try {
+    const options: Record<string, any> = {
+      temperature,
+      maxTokens,
+      stream,
+      provider: provider as
+        | 'openai'
+        | 'anthropic'
+        | 'ollama'
+        | 'google'
+        | string,
+      providerName: provider,
+      conversationId,
+      sessionId,
+      userId,
+      callerType,
+      callerName,
+      organizationSlug,
+      agentSlug,
+      // Pass conversation history for providers that support it.
+      previousMessages: conversationHistory,
+    };
+
+    if (model) {
+      options.modelName = model;
+    }
+
+    const response = await llmService.generateResponse(
+      systemPrompt,
+      userMessage,
+      options as any,
+    );
+
+    if (!response || typeof response.content !== 'string') {
+      throw new Error('LLM returned an unexpected response');
+    }
+
+    return response;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error('Failed to generate response from LLM');
+  }
 }
 
 /**
@@ -100,8 +258,32 @@ export async function callLLM(
  * @returns The resolved user identifier or null
  */
 export function resolveUserId(request: TaskRequestDto): string | null {
-  void request;
-  throw new Error('resolveUserId not implemented');
+  const fromMetadata = request.metadata?.userId ?? request.metadata?.createdBy;
+  if (fromMetadata) {
+    return String(fromMetadata);
+  }
+
+  const payload = request.payload ?? {};
+  const fromPayload =
+    payload.userId ??
+    payload.createdBy ??
+    payload.metadata?.userId ??
+    payload.metadata?.createdBy;
+  if (fromPayload) {
+    return String(fromPayload);
+  }
+
+  const fromMessages = Array.isArray(request.messages)
+    ? request.messages
+        .map((message) => (message as any)?.metadata?.userId)
+        .find((value) => typeof value === 'string' && value.trim().length > 0)
+    : null;
+
+  if (fromMessages) {
+    return String(fromMessages);
+  }
+
+  return null;
 }
 
 /**
@@ -110,8 +292,22 @@ export function resolveUserId(request: TaskRequestDto): string | null {
  * @returns The resolved conversation identifier or null
  */
 export function resolveConversationId(request: TaskRequestDto): string | null {
-  void request;
-  throw new Error('resolveConversationId not implemented');
+  if (typeof request.conversationId === 'string') {
+    return request.conversationId;
+  }
+
+  const payloadConversation =
+    request.payload?.conversationId ?? request.payload?.metadata?.conversationId;
+  if (typeof payloadConversation === 'string') {
+    return payloadConversation;
+  }
+
+  const metadataConversation = request.metadata?.conversationId;
+  if (typeof metadataConversation === 'string') {
+    return metadataConversation;
+  }
+
+  return null;
 }
 
 /**
@@ -120,8 +316,19 @@ export function resolveConversationId(request: TaskRequestDto): string | null {
  * @returns The resolved task identifier or null
  */
 export function resolveTaskId(request: TaskRequestDto): string | null {
-  void request;
-  throw new Error('resolveTaskId not implemented');
+  const metadataTaskId = request.metadata?.taskId;
+  if (typeof metadataTaskId === 'string') {
+    return metadataTaskId;
+  }
+
+  const payloadTaskId =
+    (request.payload as any)?.taskId ??
+    (request.payload as any)?.metadata?.taskId;
+  if (typeof payloadTaskId === 'string') {
+    return payloadTaskId;
+  }
+
+  return null;
 }
 
 /**
@@ -134,9 +341,10 @@ export function buildResponseMetadata(
   baseMetadata: Record<string, unknown> | null | undefined,
   overrides: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> {
-  void baseMetadata;
-  void overrides;
-  throw new Error('buildResponseMetadata not implemented');
+  return {
+    ...(baseMetadata ?? {}),
+    ...(overrides ?? {}),
+  };
 }
 
 /**
@@ -149,9 +357,14 @@ export function handleError(
   mode: AgentTaskMode,
   error: unknown,
 ): TaskResponseDto {
-  void mode;
-  void error;
-  throw new Error('handleError not implemented');
+  const reason =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : 'Unknown error';
+
+  return TaskResponseDto.failure(mode, reason);
 }
 
 /**
@@ -160,6 +373,15 @@ export function handleError(
  * @returns True when streaming is requested
  */
 export function shouldStreamResponse(request: TaskRequestDto): boolean {
-  void request;
-  throw new Error('shouldStreamResponse not implemented');
+  const payloadStream =
+    request.payload?.options?.stream ?? request.payload?.stream;
+  if (typeof payloadStream === 'boolean') {
+    return payloadStream;
+  }
+
+  if (typeof request.metadata?.stream === 'boolean') {
+    return request.metadata.stream;
+  }
+
+  return false;
 }

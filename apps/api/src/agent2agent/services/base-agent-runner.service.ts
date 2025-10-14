@@ -11,6 +11,7 @@ import { DeliverablesService } from '../deliverables/deliverables.service';
 import * as ConverseHandlers from './base-agent-runner/converse.handlers';
 import * as PlanHandlers from './base-agent-runner/plan.handlers';
 import * as BuildHandlers from './base-agent-runner/build.handlers';
+import { handleError as sharedHandleError } from './base-agent-runner/shared.helpers';
 
 /**
  * Base abstract class for all agent runners.
@@ -165,10 +166,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       this.logger.error(
         `Failed to execute CONVERSE mode for agent ${definition.slug}: ${error instanceof Error ? error.message : String(error)}`,
       );
-      return TaskResponseDto.failure(
-        AgentTaskMode.CONVERSE,
-        error instanceof Error ? error.message : 'Unknown error',
-      );
+      return sharedHandleError(AgentTaskMode.CONVERSE, error);
     }
   }
 

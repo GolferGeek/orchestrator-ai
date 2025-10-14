@@ -1,7 +1,18 @@
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import type { ConversationMessage } from '../../context-optimization/context-optimization.service';
 import { LLMService } from '@llm/llm.service';
+import { ConverseModePayload } from '@orchestrator-ai/transport-types';
 import { Agent2AgentConversationsService } from '../agent-conversations.service';
-import { TaskRequestDto } from '../../dto/task-request.dto';
+import {
+  fetchConversationHistory,
+  callLLM,
+  resolveUserId,
+  resolveConversationId,
+  handleError,
+  buildResponseMetadata,
+  shouldStreamResponse,
+} from './shared.helpers';
+import { TaskRequestDto, AgentTaskMode } from '../../dto/task-request.dto';
 import { TaskResponseDto } from '../../dto/task-response.dto';
 
 export interface ConverseHandlerDependencies {
@@ -23,11 +34,130 @@ export async function executeConverse(
   organizationSlug: string | null,
   services: ConverseHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
-  void organizationSlug;
-  void services;
-  throw new Error('executeConverse not implemented');
+  try {
+    const userId = resolveUserId(request);
+    if (!userId) {
+      throw new Error('Unable to determine user identity for conversation');
+    }
+
+    const existingConversationId = resolveConversationId(request) ?? undefined;
+    const namespace =
+      organizationSlug ?? definition.organizationSlug ?? 'global';
+
+    const conversation =
+      await services.conversationsService.getOrCreateConversation(
+        existingConversationId,
+        userId,
+        definition.slug,
+        namespace ?? 'global',
+      );
+
+    request.conversationId = conversation.id;
+
+    const history = await fetchConversationHistory(
+      services.conversationsService,
+      request,
+    );
+
+    const systemPrompt = buildConversationalPrompt(definition, history);
+    const payload = (request.payload ?? {}) as ConverseModePayload;
+    const userMessage = request.userMessage?.trim() ?? '';
+
+    if (!userMessage) {
+      throw new Error('User message is required to execute Converse mode');
+    }
+
+    const llmResponse = await callLLM(
+      services.llmService,
+      {
+        ...(definition.llm ?? {}),
+        ...payload,
+        conversationId: conversation.id,
+        sessionId: request.sessionId,
+        userId,
+        organizationSlug: namespace,
+        agentSlug: definition.slug,
+        stream: shouldStreamResponse(request),
+        callerType: 'agent',
+        callerName: `${definition.slug}-converse`,
+      },
+      systemPrompt,
+      userMessage,
+      history,
+    );
+
+    const timestamp = new Date().toISOString();
+    const updatedHistory: ConversationMessage[] = [...history];
+
+    if (userMessage.length > 0) {
+      updatedHistory.push({
+        role: 'user',
+        content: userMessage,
+        timestamp,
+      });
+    }
+
+    updatedHistory.push({
+      role: 'assistant',
+      content: llmResponse.content,
+      timestamp,
+      metadata: {
+        provider: llmResponse.metadata?.provider,
+        model: llmResponse.metadata?.model,
+      },
+    });
+
+    const maxHistoryEntries = 50;
+    const trimmedHistory =
+      updatedHistory.length > maxHistoryEntries
+        ? updatedHistory.slice(updatedHistory.length - maxHistoryEntries)
+        : updatedHistory;
+
+    await services.conversationsService.updateConversation(
+      conversation.id,
+      userId,
+      {
+        metadata: {
+          history: trimmedHistory,
+          lastAssistantMessageAt: timestamp,
+        },
+      },
+    );
+
+    const usage = llmResponse.metadata?.usage ?? {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+    };
+
+    const normalizedUsage = {
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+      totalTokens:
+        usage.totalTokens ??
+        (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0),
+      cost: usage.cost ?? 0,
+    };
+
+    const responseMetadata = buildResponseMetadata(
+      {
+        provider: llmResponse.metadata?.provider ?? 'unknown',
+        model: llmResponse.metadata?.model ?? 'unknown',
+        usage: normalizedUsage,
+      },
+      undefined,
+    );
+
+    return TaskResponseDto.success(AgentTaskMode.CONVERSE, {
+      content: {
+        message: llmResponse.content,
+      },
+      metadata: responseMetadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.CONVERSE, error);
+  }
 }
 
 /**
@@ -38,9 +168,53 @@ export async function executeConverse(
  */
 export function buildConversationalPrompt(
   definition: AgentRuntimeDefinition,
-  conversationHistory: unknown[],
+  conversationHistory: ConversationMessage[],
 ): string {
-  void definition;
-  void conversationHistory;
-  throw new Error('buildConversationalPrompt not implemented');
+  const promptCandidate =
+    definition.prompts?.system ??
+    definition.llm?.systemPrompt ??
+    definition.context?.system_prompt ??
+    definition.context?.systemPrompt ??
+    definition.description;
+
+  const fallbackName = definition.displayName ?? definition.slug;
+  let prompt =
+    typeof promptCandidate === 'string' && promptCandidate.trim().length > 0
+      ? promptCandidate.trim()
+      : [
+          `You are ${fallbackName}.`,
+          'Respond helpfully and concisely.',
+          'Ask a clarifying question when it helps progress the conversation.',
+          'Follow organizational policies and agent guidelines.',
+        ].join(' ');
+
+  const additionalGuidance =
+    typeof definition.context?.conversation_guidelines === 'string'
+      ? definition.context?.conversation_guidelines
+      : typeof definition.context?.conversationGuidelines === 'string'
+        ? definition.context?.conversationGuidelines
+        : typeof definition.context?.instructions === 'string'
+          ? definition.context?.instructions
+          : null;
+
+  if (additionalGuidance && additionalGuidance.trim().length > 0) {
+    prompt += `\n\nAgent guidance:\n${additionalGuidance.trim()}`;
+  }
+
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+    const formattedHistory = conversationHistory
+      .slice(-10)
+      .map(
+        (message) =>
+          `${message.role ?? 'unknown'}: ${message.content ?? ''}`.trim(),
+      )
+      .filter((line) => line.length > 0)
+      .join('\n');
+
+    if (formattedHistory.length > 0) {
+      prompt += `\n\nRecent conversation history:\n${formattedHistory}`;
+    }
+  }
+
+  return prompt;
 }

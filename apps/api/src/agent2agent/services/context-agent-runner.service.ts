@@ -72,23 +72,6 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
   }
 
   /**
-   * CONVERSE mode - conversational interaction
-   * Context agents use default implementation from BaseAgentRunner
-   */
-  protected async handleConverse(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    // Context agents don't have special CONVERSE logic yet
-    // Return a simple response indicating this mode isn't fully implemented
-    return TaskResponseDto.failure(
-      AgentTaskMode.CONVERSE,
-      'CONVERSE mode not yet implemented for context agents',
-    );
-  }
-
-  /**
    * PLAN mode - planning
    * Context agents use default implementation from BaseAgentRunner
    */
