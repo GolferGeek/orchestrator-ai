@@ -512,38 +512,17 @@ class ApiService {
   }
 
   async getAgentHierarchy(namespace?: string): Promise<any> {
-    // Route to appropriate hierarchy endpoint based on namespace
-    // - Database agents (my-org, etc.) use A2A endpoint: /agent-to-agent/.well-known/hierarchy
-    // - File-based agents (demo, null, undefined) use legacy endpoint: /agents/.well-known/hierarchy
+    // All agents now use the A2A endpoint
+    // Use A2A controller endpoint for all namespaces (including 'demo')
+    console.log('🔍 [ApiService.getAgentHierarchy] Using A2A endpoint for namespace:', namespace);
     
-    // Determine if this is a database namespace or file-based
-    const isDatabaseNamespace = namespace && namespace !== 'demo' && namespace !== 'global';
-    
-    console.log('🔍 [ApiService.getAgentHierarchy] Routing decision:', {
-      namespace,
-      isDatabaseNamespace,
-      endpoint: isDatabaseNamespace ? '/agent-to-agent/.well-known/hierarchy' : '/agents/.well-known/hierarchy'
+    const response = await this.axiosInstance.get('/agent-to-agent/.well-known/hierarchy');
+    console.log('✅ [ApiService.getAgentHierarchy] A2A response:', {
+      totalAgents: response.data?.metadata?.totalAgents,
+      source: response.data?.metadata?.source,
+      rootNodes: response.data?.data?.length
     });
-    
-    if (isDatabaseNamespace) {
-      // Database agents: use A2A controller endpoint
-      const response = await this.axiosInstance.get('/agent-to-agent/.well-known/hierarchy');
-      console.log('✅ [ApiService.getAgentHierarchy] A2A response:', {
-        totalAgents: response.data?.metadata?.totalAgents,
-        source: response.data?.metadata?.source,
-        rootNodes: response.data?.data?.length
-      });
-      return response.data;
-    } else {
-      // File-based agents: use legacy DynamicAgents controller endpoint
-      // This returns both file-based AND database agents merged together for backward compatibility
-      const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
-      console.log('✅ [ApiService.getAgentHierarchy] Legacy response:', {
-        totalAgents: response.data?.metadata?.totalAgents,
-        rootNodes: response.data?.data?.length
-      });
-      return response.data;
-    }
+    return response.data;
   }
 
   /**

@@ -26,6 +26,16 @@
                 "obsidian-mcp",
                 "/Users/golfergeek/projects/golfergeek/orchestrator-ai/obsidian"
             ]
+        },
+        "playwright": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@playwright/mcp"
+            ],
+            "env": {
+                "BROWSER": "firefox"
+            }
         }
     },
     "mcpServers": {

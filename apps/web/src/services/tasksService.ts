@@ -237,67 +237,42 @@ class TasksService {
     //   Format: CreateTaskDto { method, prompt, conversationHistory, ... }
     // - Database agents (source: 'database'): Use Agent2AgentController - /agent-to-agent/:namespace/:agentName/tasks
     //   Format: JSON-RPC 2.0 { jsonrpc, method, id, params }
-    // 
-    // For now, we detect database agents by checking if namespace exists and is NOT 'demo'
-    // Future: Check agent.metadata.source === 'database' when agent info is passed in
-    let url: string;
-    let payload: any;
+    // All agents now use the agent2agent controller with A2A-compliant JSON-RPC 2.0 format
+    const namespace = options?.namespace || 'demo';
     
-    const isDatabaseAgent = options?.namespace && options.namespace !== 'demo';
+    // Build agent2agent endpoint
+    const url = `/agent-to-agent/${namespace}/${agentName}/tasks`;
     
-    if (isDatabaseAgent) {
-      // New system: Database agents with org namespace (my-org, etc.)
-      // Use Agent2AgentController with A2A-compliant JSON-RPC 2.0 format
-      url = `/agent-to-agent/${options.namespace}/${agentName}/tasks`;
-      
-      // Transform to JSON-RPC 2.0 format (A2A protocol compliant)
-      payload = {
-        jsonrpc: '2.0',
-        method: taskData.method,
-        id: taskData.taskId, // Use taskId as JSON-RPC id
-        params: {
-          conversationId: taskData.conversationId,
-          userMessage: taskData.prompt,
-          messages: taskData.conversationHistory?.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-          payload: {
-            ...(taskData.params || {}),
-            llmSelection: taskData.llmSelection,
-            executionMode: taskData.executionMode,
-            taskId: taskData.taskId,
-            timeoutSeconds: taskData.timeoutSeconds,
-          },
-          metadata: taskData.metadata,
+    // Transform to JSON-RPC 2.0 format (A2A protocol compliant)
+    const payload = {
+      jsonrpc: '2.0',
+      method: taskData.method,
+      id: taskData.taskId, // Use taskId as JSON-RPC id
+      params: {
+        conversationId: taskData.conversationId,
+        userMessage: taskData.prompt,
+        messages: taskData.conversationHistory?.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        payload: {
+          ...(taskData.params || {}),
+          llmSelection: taskData.llmSelection,
+          executionMode: taskData.executionMode,
+          taskId: taskData.taskId,
+          timeoutSeconds: taskData.timeoutSeconds,
         },
-      };
-      
-      console.log('🚀 Sending A2A JSON-RPC 2.0 request:', {
-        url,
-        namespace: options.namespace,
-        method: payload.method,
-        id: payload.id,
-        conversationId: payload.params.conversationId,
-      });
-    } else {
-      // Old system: File-based agents in demo namespace
-      // Use DynamicAgentsController with legacy CreateTaskDto format
-      const normalizedAgentType = agentType === 'specialist' ? 'specialists' : agentType;
-      url = `/agents/${normalizedAgentType}/${agentName}/tasks`;
-      
-      // Sanitize but keep original format
-      payload = this.apiSanitization.sanitizeTaskRequest(taskData);
-      
-      console.log('🚀 Sending legacy CreateTaskDto request:', {
-        url,
-        agentType,
-        agentName,
-        method: payload.method,
-        taskId: payload.taskId,
-        conversationId: payload.conversationId,
-      });
-    }
+        metadata: taskData.metadata,
+      },
+    };
+    
+    console.log('🚀 Sending A2A JSON-RPC 2.0 request:', {
+      url,
+      namespace: namespace,
+      method: payload.method,
+      id: payload.id,
+      conversationId: payload.params.conversationId,
+    });
 
     const response = await apiService.post(url, payload);
     return response;
