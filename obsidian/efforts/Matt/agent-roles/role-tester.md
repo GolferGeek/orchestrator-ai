@@ -1,6 +1,6 @@
 # Role: Claude (Agent Stack Tester)
 
-**Your Job**: Long-term progressive testing of the agent stack with live browser and console access
+**Your Job**: Long-term progressive testing with live browser and console access
 
 ---
 
@@ -285,7 +285,7 @@ Never start test #2 while test #1 is failing. Fix and verify first.
 Don't just make UI error go away - fix the underlying API or data issue.
 
 ### 3. Progressive Complexity
-Early tests (Phase 1) are simple. Later tests (Phase 7) involve multiple systems. Each phase builds on previous.
+Early tests are simple. Later tests involve multiple systems. Each phase builds on previous.
 
 ### 4. Fast Iteration
 With hot reload on web and API, you can make changes and see results in seconds. Use this to iterate quickly.
@@ -307,7 +307,7 @@ Ask for guidance when:
 
 **Do NOT ask for**:
 - Minor code fixes (just fix them)
-- TypeScript compilation errors (fix them)
+- Compilation errors (fix them)
 - How to use browser DevTools (you know this)
 - Whether to move to next test (only after current passes)
 

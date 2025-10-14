@@ -705,25 +705,20 @@ const hierarchyGroups = computed(() => {
     if (!matchesSearch && !hasMatchingChildren) return;
 
     // Get conversations for this manager/orchestrator
-    // For database agents (with namespace), filter by organizationSlug
-    // For file-based agents, filter by agentType
-    const nodeConversations = node.namespace
-      ? storeConversations.value.filter(conv => {
-          const match = conv.agentName === node.name && conv.organizationSlug === node.namespace;
-          if (node.name === 'blog_post_writer') {
-            console.log('🔍 [AgentTreeView] Filtering conversation for blog_post_writer:', {
-              convAgentName: conv.agentName,
-              nodeAgentName: node.name,
-              convOrgSlug: conv.organizationSlug,
-              nodeNamespace: node.namespace,
-              match
-            });
-          }
-          return match;
-        })
-      : storeConversations.value.filter(conv =>
-          conv.agentName === node.name && conv.agentType === node.type
-        );
+    // All agents now filter by organizationSlug/namespace
+    const nodeConversations = storeConversations.value.filter(conv => {
+      const match = conv.agentName === node.name && conv.organizationSlug === (node.namespace || 'demo');
+      if (node.name === 'blog_post_writer') {
+        console.log('🔍 [AgentTreeView] Filtering conversation for blog_post_writer:', {
+          convAgentName: conv.agentName,
+          nodeAgentName: node.name,
+          convOrgSlug: conv.organizationSlug,
+          nodeNamespace: node.namespace || 'demo',
+          match
+        });
+      }
+      return match;
+    });
 
     // Create the manager/orchestrator agent
     const mainAgent = {
@@ -753,15 +748,10 @@ const hierarchyGroups = computed(() => {
           child.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
 
         if (childMatchesSearch) {
-          // For database agents (with namespace), filter by organizationSlug
-          // For file-based agents, filter by agentType
-          const childConversations = child.namespace
-            ? storeConversations.value.filter(conv =>
-                conv.agentName === child.name && conv.organizationSlug === child.namespace
-              )
-            : storeConversations.value.filter(conv =>
-                conv.agentName === child.name && conv.agentType === child.type
-              );
+          // All agents now filter by organizationSlug/namespace
+          const childConversations = storeConversations.value.filter(conv =>
+            conv.agentName === child.name && conv.organizationSlug === (child.namespace || 'demo')
+          );
 
           // Add this child as a team member
           console.log('🔍 [AgentTreeView] Building child agent object:', {

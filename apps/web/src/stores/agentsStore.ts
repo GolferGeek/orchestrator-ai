@@ -215,14 +215,12 @@ export const useAgentsStore = defineStore('agents', () => {
   };
 
   const debugNamespaceRouting = () => {
-    const namespace = currentNamespace.value;
-    const isDatabaseNamespace = namespace && namespace !== 'demo' && namespace !== 'global';
+    const namespace = currentNamespace.value || 'demo';
     console.log('🔍 [AgentsStore Debug] Namespace routing:', {
       currentNamespace: namespace,
-      isDatabaseNamespace,
-      endpoint: isDatabaseNamespace ? '/agent-to-agent/.well-known/hierarchy' : '/agents/.well-known/hierarchy'
+      endpoint: '/agent-to-agent/.well-known/hierarchy'
     });
-    return { namespace, isDatabaseNamespace };
+    return { namespace };
   };
 
   return {
