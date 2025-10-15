@@ -243,6 +243,9 @@ export class AgentRuntimeDefinitionService {
       canBuild:
         this.asBoolean(executionCaps?.can_build) ??
         this.guessCanBuild(modeProfile),
+      canOrchestrate:
+        this.asBoolean(executionCaps?.can_orchestrate) ??
+        this.guessCanOrchestrate(modeProfile),
       requiresHumanGate:
         this.asBoolean(executionCaps?.requires_human_gate) ?? false,
       executionProfile,
@@ -459,5 +462,10 @@ export class AgentRuntimeDefinitionService {
   private guessCanBuild(modeProfile: string): boolean {
     const lowered = modeProfile.toLowerCase();
     return lowered.includes('build') || lowered.includes('full');
+  }
+
+  private guessCanOrchestrate(modeProfile: string): boolean {
+    const lowered = modeProfile.toLowerCase();
+    return lowered.includes('orchestrate') || lowered.includes('full');
   }
 }

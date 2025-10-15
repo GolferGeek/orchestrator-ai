@@ -43,6 +43,7 @@ export interface AgentExecutionDefinition {
   canConverse: boolean;
   canPlan: boolean;
   canBuild: boolean;
+  canOrchestrate: boolean;
   requiresHumanGate: boolean;
   executionProfile?: string | null;
   timeoutSeconds?: number | null;

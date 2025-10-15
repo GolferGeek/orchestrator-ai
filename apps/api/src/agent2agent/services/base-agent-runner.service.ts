@@ -118,6 +118,9 @@ export abstract class BaseAgentRunner implements IAgentRunner {
         case AgentTaskMode.BUILD:
           return await this.handleBuild(definition, request, organizationSlug);
 
+        case AgentTaskMode.ORCHESTRATE:
+          return await this.handleOrchestrate(definition, request, organizationSlug);
+
         case AgentTaskMode.HUMAN_RESPONSE:
           // Human response mode is handled by gateway/router, not runners
           return TaskResponseDto.human('Manual confirmation required');
@@ -380,6 +383,21 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto>;
+
+  /**
+   * Handle orchestrate - Abstract, each runner implements specific orchestrate logic.
+   * For most runners, this will return "not supported". Only orchestrator agent runner implements this.
+   */
+  protected async handleOrchestrate(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return TaskResponseDto.failure(
+      AgentTaskMode.ORCHESTRATE,
+      'Orchestrate mode not supported by this agent type',
+    );
+  }
 
   /**
    * Handles PLAN create action.

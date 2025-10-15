@@ -125,6 +125,16 @@ export class AgentExecutionGateway {
           request,
           routingMetadata: assessment.metadata,
         });
+      case AgentTaskMode.ORCHESTRATE:
+        // Delegate to mode router (uses action-based routing for orchestrate operations)
+        return this.modeRouter.execute({
+          organizationSlug,
+          agentSlug: agent.slug,
+          agent,
+          definition,
+          request,
+          routingMetadata: assessment.metadata,
+        });
       case AgentTaskMode.ORCHESTRATE_CREATE:
         return this.handleOrchestrateCreate(
           organizationSlug,
@@ -260,6 +270,10 @@ export class AgentExecutionGateway {
           : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       case AgentTaskMode.BUILD:
         return exec.canBuild
+          ? null
+          : TaskResponseDto.failure(mode, 'Mode not supported by agent');
+      case AgentTaskMode.ORCHESTRATE:
+        return exec.canOrchestrate
           ? null
           : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       default:

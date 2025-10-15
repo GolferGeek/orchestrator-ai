@@ -21,6 +21,10 @@ import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration
 import { OrchestrationEventsService } from '@agent-platform/services/orchestration-events.service';
 import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
 import { OrchestrationRunFactoryService } from '@agent-platform/services/orchestration-run-factory.service';
+import {
+  handleOrchestrateAction,
+  OrchestrateHandlerDependencies,
+} from './base-agent-runner/orchestrate.handlers';
 
 interface OrchestratorStartPayload {
   orchestrationDefinitionId?: string;
@@ -69,6 +73,26 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       plansService,
       conversationsService,
       deliverablesService,
+    );
+  }
+
+  /**
+   * Handle ORCHESTRATE mode with action-based routing
+   * Routes to appropriate handler based on action field in payload
+   */
+  protected async handleOrchestrate(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    const services: OrchestrateHandlerDependencies = {};
+
+    return handleOrchestrateAction(
+      definition,
+      request,
+      organizationSlug,
+      services,
+      this, // Pass runner context for access to existing methods
     );
   }
 
