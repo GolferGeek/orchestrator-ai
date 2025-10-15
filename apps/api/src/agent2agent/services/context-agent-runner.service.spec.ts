@@ -4,6 +4,7 @@ import { ContextOptimizationService } from '../context-optimization/context-opti
 import { LLMService } from '@llm/llm.service';
 import { PlansService } from '../plans/services/plans.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { ActionResult } from '../common/interfaces/action-handler.interface';
@@ -35,12 +36,19 @@ describe('ContextAgentRunnerService', () => {
           provide: PlansService,
           useValue: {
             executeAction: jest.fn(),
+            findByConversationId: jest.fn(),
           },
         },
         {
           provide: DeliverablesService,
           useValue: {
             executeAction: jest.fn(),
+          },
+        },
+        {
+          provide: Agent2AgentConversationsService,
+          useValue: {
+            findByConversationId: jest.fn(),
           },
         },
       ],
