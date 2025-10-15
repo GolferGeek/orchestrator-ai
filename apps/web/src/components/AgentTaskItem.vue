@@ -227,6 +227,7 @@ import { usePlanStore } from '@/stores/planStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import { agentTaskService } from '@/services/agent-tasks';
 import analyticsService from '@/services/analyticsService';
 import { apiService } from '@/services/apiService';
 import { toastController } from '@ionic/vue';
@@ -841,14 +842,35 @@ const suggestsBuild = computed(() => {
   return /would you like.*build|should i.*build|build (it|this)|proceed to build|execute (now|this)/i.test(props.message.content || '');
 });
 
-function handlePlanNow() {
+async function handlePlanNow() {
   if (!chatStore.isModeAllowed('plan')) {
     return;
   }
-  chatStore.setChatMode('plan');
+
+  const conv = chatStore.getConversationById(props.conversationId);
+  if (!conv) return;
+
+  // Find last user message
+  const lastUserMessage = [...conv.messages].reverse().find(m => m.role === 'user')?.content;
+  if (!lastUserMessage) return;
+
+  chatStore.setChatMode(props.conversationId, 'plan');
   chatStore.setPendingAction('plan', props.message.taskId || undefined);
-  // Immediately execute from last user message
-  chatStore.executeFromLastUserMessage('plan');
+
+  // Execute using service layer (Vue reactivity handles UI updates)
+  try {
+    await agentTaskService.sendTask({
+      agentSlug: conv.agent.slug || conv.agent.name,
+      namespace: conv.agent.namespace || undefined,
+      mode: 'plan',
+      action: 'create',
+      userMessage: lastUserMessage,
+      conversationId: props.conversationId,
+    });
+  } catch (error) {
+    console.error('Error creating plan:', error);
+  }
+
   analyticsService.trackEvent({
     eventType: 'ui',
     category: 'cta',
@@ -858,14 +880,38 @@ function handlePlanNow() {
     context: { url: window.location.pathname, userAgent: navigator.userAgent },
   });
 }
-function handleBuildNow() {
+async function handleBuildNow() {
   if (!chatStore.isModeAllowed('build')) {
     return;
   }
-  chatStore.setChatMode('build');
+
+  const conv = chatStore.getConversationById(props.conversationId);
+  if (!conv) return;
+
+  // Find last user message
+  const lastUserMessage = [...conv.messages].reverse().find(m => m.role === 'user')?.content;
+  if (!lastUserMessage) return;
+
+  chatStore.setChatMode(props.conversationId, 'build');
   chatStore.setPendingAction('build', props.message.taskId || undefined);
-  // Immediately execute from last user message
-  chatStore.executeFromLastUserMessage('build');
+
+  // Execute using service layer (Vue reactivity handles UI updates)
+  try {
+    await agentTaskService.sendTask({
+      agentSlug: conv.agent.slug || conv.agent.name,
+      namespace: conv.agent.namespace || undefined,
+      mode: 'build',
+      action: 'create',
+      userMessage: lastUserMessage,
+      conversationId: props.conversationId,
+      additionalParams: {
+        planId: conv.latestPlan?.id,
+      },
+    });
+  } catch (error) {
+    console.error('Error creating build:', error);
+  }
+
   analyticsService.trackEvent({
     eventType: 'ui',
     category: 'cta',

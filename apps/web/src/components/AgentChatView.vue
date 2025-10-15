@@ -87,6 +87,7 @@ import {
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
+import { agentTaskService } from '@/services/agent-tasks';
 // TTS is now handled directly in AgentTaskItem when messages are displayed
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
@@ -155,25 +156,29 @@ const sendMessage = async (mode?: AgentChatMode) => {
   }
 
   try {
-    // Send message directly through the agent chat store
+    // Send message using service layer (Vue reactivity handles UI updates)
     const activeConversation = agentChatStore.getActiveConversation();
     if (activeConversation && currentAgent.value) {
-      await agentChatStore.sendMessage(text);
-    } else {
-
+      await agentTaskService.sendTask({
+        agentSlug: currentAgent.value.slug || currentAgent.value.name,
+        namespace: currentAgent.value.namespace || undefined,
+        mode: chatMode.value as any,
+        userMessage: text,
+        conversationId: activeConversation.id,
+      });
     }
   } catch (error) {
-
+    console.error('Error sending message:', error);
     // Re-populate the input if there was an error
     messageText.value = text;
   }
   scrollToBottom();
 };
 const clearError = () => {
-  // Clear error on the active conversation
+  // Clear error using store mutation (Vue reactivity handles UI updates)
   const activeConversation = agentChatStore.getActiveConversation();
   if (activeConversation) {
-    activeConversation.error = undefined;
+    agentChatStore.clearError(activeConversation.id);
   }
 };
 const scrollToBottom = async () => {
