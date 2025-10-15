@@ -1,6 +1,6 @@
 # Phase 5: BUILD Execution (Context Agent)
 
-**Status**: 🟡 Not Started
+**Status**: 🟠 In Progress
 **Assignee**: Cursor (Dev) → Claude (Test/Commit)
 **Duration**: 2-4 hours
 **Branch**: `implement-agent-modes`
@@ -18,19 +18,19 @@ Implement `executeBuild()` in ContextAgentRunner to actually create deliverables
 
 ### Task 1: Implement executeBuild() in ContextAgentRunner
 **Assignee**: Cursor
-**Status**: ⬜ Not Started
+**Status**: 🟠 In Progress
 
 **Description**: Implement the BUILD create logic in `context-agent-runner.service.ts`
 
 **Acceptance Criteria**:
-- [ ] Fetches plan (if planVersionId specified) or uses current plan
-- [ ] Falls back to conversation history if no plan
-- [ ] Builds execution prompt with deliverable_structure and io_schema
-- [ ] Calls LLM to generate deliverable
-- [ ] Validates against deliverable_structure if defined
-- [ ] Validates against io_schema.output if defined
-- [ ] Saves deliverable via DeliverablesService
-- [ ] Returns BuildCreateResponseContent
+- [x] Fetches plan (if planVersionId specified) or uses current plan
+- [x] Falls back to conversation history if no plan
+- [x] Builds execution prompt with deliverable_structure and io_schema
+- [x] Calls LLM to generate deliverable (with manual content override support)
+- [x] Validates against deliverable_structure if defined
+- [x] Validates against io_schema.output if defined
+- [x] Saves deliverable via DeliverablesService
+- [x] Returns BuildCreateResponseContent
 
 **Implementation**:
 ```typescript
@@ -98,26 +98,28 @@ protected async executeBuild(
 ```
 
 **Notes**:
-
+- Added helper utilities for namespace resolution, usage normalization, metadata compaction, and rerun/merge overrides.
+- ExecuteBuild now honors manual content payloads while still running validations and metadata wiring.
 
 **Log**:
+- 2025-10-15 13:52 Codex: Implemented executeBuild with plan-aware prompt assembly, validation hooks, and DeliverablesService integration. Added supporting helpers for rerun/merge flows and LLM overrides.
 
 
 ---
 
 ### Task 2: Implement buildExecutionPrompt()
 **Assignee**: Cursor
-**Status**: ⬜ Not Started
+**Status**: 🟠 In Progress
 
 **Description**: Create helper method to build execution prompt with schemas
 
 **Acceptance Criteria**:
-- [ ] Includes agent's system prompt
-- [ ] Includes plan or conversation context
-- [ ] Adds deliverable_structure guidance if defined
-- [ ] Adds io_schema.output guidance if defined
-- [ ] Gracefully handles null schemas
-- [ ] Clear, structured prompt
+- [x] Includes agent's system prompt
+- [x] Includes plan or conversation context
+- [x] Adds deliverable_structure guidance if defined
+- [x] Adds io_schema.output guidance if defined
+- [x] Gracefully handles null schemas
+- [x] Clear, structured prompt
 
 **Implementation**:
 ```typescript

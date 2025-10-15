@@ -102,7 +102,7 @@ export function buildPlanningPrompt(
 
 ### Task 4: Implement PLAN Action Handlers (Part 3: Delete/Merge/Copy)
 **Assignee**: Cursor
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 **Description**: Implement final 4 PLAN actions in `plan.handlers.ts`
 
@@ -115,9 +115,12 @@ export function buildPlanningPrompt(
 - [ ] Delete checks prevent deleting current version
 
 **Notes**:
-
+- LLM-backed merge now calls `PlanVersionsService.mergeVersions` with agent LLM config + plan schema
+- Merge output validated against `plan_structure` when provided
+- Response metadata includes provider/model/usage from merge run
 
 **Log**:
+- 2025-10-15 Codex: Wired PLAN merge handler to pass llmConfig/planStructure and implemented LLM merge pipeline in `plan-versions.service.ts` with schema validation + metadata propagation
 
 
 ---

@@ -18,7 +18,7 @@ Implement BUILD mode CRUD action handlers in BaseAgentRunner. These handle deliv
 
 ### Task 1: Implement Build Helper Methods
 **Assignee**: Cursor
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 **Description**: Implement helper methods in `build.handlers.ts`
 
@@ -53,16 +53,18 @@ export function validateDeliverableSchema(content: any, schema: any): void {
 ```
 
 **Notes**:
-
+- Added Ajv-backed validators plus serialization helpers for deliverable metadata/namespace
+- Reused shared helpers to resolve user/conversation context safely
 
 **Log**:
+- 2025-10-15 Codex: Implemented deliverable validation + metadata helpers in `build.handlers.ts`, including namespace/format serialization for downstream handlers.
 
 
 ---
 
 ### Task 2: Implement BUILD CRUD Handlers (Part 1: Read/List)
 **Assignee**: Cursor
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 **Description**: Implement read and list actions in `build.handlers.ts`
 
@@ -74,16 +76,18 @@ export function validateDeliverableSchema(content: any, schema: any): void {
 - [ ] Handles includeArchived parameter in list
 
 **Notes**:
-
+- Read/list now delegate to DeliverablesService and normalize responses for front-end transport types.
+- Read handles explicit version selection; list returns metadata with serialized versions.
 
 **Log**:
+- 2025-10-15 Codex: Wired BUILD read/list actions to DeliverablesService with version filtering + response normalization.
 
 
 ---
 
 ### Task 3: Implement BUILD CRUD Handlers (Part 2: Edit/SetCurrent/Delete)
 **Assignee**: Cursor
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 **Description**: Implement edit, set_current, and delete actions in `build.handlers.ts`
 
@@ -95,16 +99,18 @@ export function validateDeliverableSchema(content: any, schema: any): void {
 - [ ] Delete removes all versions
 
 **Notes**:
-
+- Manual edits validate against `deliverable_structure` and `io_schema`.
+- Delete/set-current responses expose transport-friendly summaries (deleted flag, ids).
 
 **Log**:
+- 2025-10-15 Codex: Implemented BUILD edit/set_current/delete/delete_version with schema validation + structured metadata.
 
 
 ---
 
 ### Task 4: Implement BUILD Advanced Handlers (Rerun/Merge/Copy/DeleteVersion)
 **Assignee**: Cursor
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 
 **Description**: Implement advanced actions in `build.handlers.ts`
 
@@ -147,9 +153,11 @@ export async function handleBuildRerun(
 ```
 
 **Notes**:
-
+- Rerun/merge now clone requests into `executeBuild` with enriched context payloads.
+- CopyVersion delegates to DeliverablesService and returns new version metadata.
 
 **Log**:
+- 2025-10-15 Codex: Delivered BUILD advanced handlers—rerun/merge route through `executeBuild`, delete/copy version wired to DeliverablesService with metadata overlays.
 
 
 ---
