@@ -21,25 +21,25 @@
 
 ### Tasks
 
-- [x] **1.1: Create orchestrate.types.ts**
-  - **Files:** `apps/web/src/types/orchestrate.types.ts` (new)
+- [x] **1.1: Migrate to shared transport-types package**
+  - **Files:**
+    - DELETED: `apps/web/src/types/orchestrate.types.ts` (duplicate)
+    - UPDATED: `apps/transport-types/shared/strict-aliases.ts` (added missing types)
+    - UPDATED: All frontend services to import from `@orchestrator-ai/transport-types`
   - **Dependencies:** None
   - **Complexity:** Low
   - **Details:**
-    - Created frontend-specific transport types file
-    - Defined `AgentTaskMode` enum (CONVERSE, PLAN, BUILD, CONTEXT)
-    - Defined `LLMSelection` interface for provider/model configuration
-    - Created base request/response metadata interfaces
-    - Created Converse mode request/response types
-    - Created Plan mode types (actions, data structures, request/response types)
-    - Created Build mode types (actions, data structures, request/response types)
-    - Created SSE/streaming types
-    - Added comprehensive JSDoc documentation
-    - Added type guard functions for all major types
+    - Deleted duplicate frontend-only orchestrate.types.ts
+    - Discovered `AgentTaskMode` enum already exists in transport-types with all modes
+    - Updated all services to import from shared `@orchestrator-ai/transport-types`
+    - Added missing Strict* type aliases (StrictPlanRequest, StrictBuildRequest, StrictConverseRequest, StrictTaskMessage)
+    - Frontend now shares transport types with backend for type-safe API contracts
+    - Verified backend handlers already use shared transport types correctly
   - **Success Criteria:**
-    - ✅ File compiles without errors
-    - ✅ Comprehensive JSDoc documentation
-    - ✅ All major modes covered (converse, plan, build)
+    - ✅ Frontend uses shared transport-types package
+    - ✅ No duplicate type definitions
+    - ✅ All services compile without errors
+    - ✅ Backend and frontend share same type definitions
 
 - [x] **1.2: Verify types compile**
   - **Files:** N/A
@@ -54,11 +54,12 @@
 
 **Phase 1 Commit Message:**
 ```
-feat(transport-types): add orchestrate mode types
+refactor(types): migrate frontend to use shared transport-types package
 
-- Add orchestrate.types.ts with action types and payloads
-- Export orchestrate types from index
-- Follow same pattern as plan/build modes
+- Deleted duplicate `apps/web/src/types/orchestrate.types.ts`
+- Updated all frontend services to import from `@orchestrator-ai/transport-types`
+- Added missing Strict* type aliases to transport-types
+- Frontend now shares transport types with backend for type-safe API contracts
 ```
 
 ---
