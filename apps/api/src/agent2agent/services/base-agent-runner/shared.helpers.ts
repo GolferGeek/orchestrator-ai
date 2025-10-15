@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { LLMService } from '@llm/llm.service';
 import type { LLMResponse } from '@llm/services/llm-interfaces';
 import type { ConversationMessage } from '../../context-optimization/context-optimization.service';
@@ -98,9 +99,41 @@ export async function fetchExistingPlan(
   plansService: PlansService,
   request: TaskRequestDto,
 ): Promise<unknown> {
-  void plansService;
-  void request;
-  throw new Error('fetchExistingPlan not implemented');
+  const userId = resolveUserId(request);
+  if (!userId) {
+    return null;
+  }
+
+  const planIdCandidates: Array<unknown> = [
+    request.planId,
+    request.payload?.planId,
+    request.payload?.plan?.id,
+    request.metadata?.planId,
+    request.metadata?.plan_id,
+  ];
+
+  const planId = planIdCandidates.find(
+    (candidate): candidate is string =>
+      typeof candidate === 'string' && candidate.trim().length > 0,
+  );
+
+  try {
+    if (planId) {
+      return await plansService.findOne(planId, userId);
+    }
+
+    const conversationId = resolveConversationId(request);
+    if (!conversationId) {
+      return null;
+    }
+
+    return await plansService.findByConversationId(conversationId, userId);
+  } catch (error) {
+    if (error instanceof NotFoundException) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -113,9 +146,45 @@ export async function fetchExistingDeliverable(
   deliverablesService: DeliverablesService,
   request: TaskRequestDto,
 ): Promise<unknown> {
-  void deliverablesService;
-  void request;
-  throw new Error('fetchExistingDeliverable not implemented');
+  const userId = resolveUserId(request);
+  if (!userId) {
+    return null;
+  }
+
+  const deliverableIdCandidates: Array<unknown> = [
+    request.payload?.deliverableId,
+    request.payload?.deliverable?.id,
+    request.metadata?.deliverableId,
+    request.metadata?.deliverable_id,
+  ];
+
+  const deliverableId = deliverableIdCandidates.find(
+    (candidate): candidate is string =>
+      typeof candidate === 'string' && candidate.trim().length > 0,
+  );
+
+  try {
+    if (deliverableId) {
+      return await deliverablesService.findOne(deliverableId, userId);
+    }
+
+    const conversationId = resolveConversationId(request);
+    if (!conversationId) {
+      return null;
+    }
+
+    const deliverables = await deliverablesService.findByConversationId(
+      conversationId,
+      userId,
+    );
+
+    return deliverables.length > 0 ? deliverables[0] : null;
+  } catch (error) {
+    if (error instanceof NotFoundException) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -129,11 +198,78 @@ export async function optimizeContext(
   contextOptimization: ContextOptimizationService,
   history: unknown[],
   definition: AgentRuntimeDefinition,
-): Promise<unknown> {
-  void contextOptimization;
-  void history;
-  void definition;
-  throw new Error('optimizeContext not implemented');
+): Promise<ConversationMessage[]> {
+  if (!Array.isArray(history) || history.length === 0) {
+    return [];
+  }
+
+  const conversationHistory = history
+    .map((entry): ConversationMessage | null => {
+      if (!entry || typeof entry !== 'object') {
+        return null;
+      }
+
+      const message = entry as Partial<ConversationMessage>;
+      if (typeof message.role !== 'string' || typeof message.content !== 'string') {
+        return null;
+      }
+
+      return {
+        role: message.role,
+        content: message.content,
+        timestamp:
+          typeof message.timestamp === 'string' && message.timestamp.trim().length > 0
+            ? message.timestamp
+            : new Date().toISOString(),
+        metadata:
+          message.metadata && typeof message.metadata === 'object'
+            ? message.metadata
+            : undefined,
+      };
+    })
+    .filter((message): message is ConversationMessage => message !== null);
+
+  if (conversationHistory.length === 0) {
+    return [];
+  }
+
+  const tokenBudgetCandidates: Array<unknown> = [
+    (definition.config as any)?.plan?.tokenBudget,
+    (definition.config as any)?.plan?.token_budget,
+    (definition.config as any)?.planning?.tokenBudget,
+    (definition.config as any)?.planning?.token_budget,
+    (definition.config as any)?.context?.tokenBudget,
+    (definition.config as any)?.context?.token_budget,
+    (definition.context as any)?.tokenBudget,
+    (definition.context as any)?.token_budget,
+  ];
+
+  const resolvedBudget =
+    tokenBudgetCandidates
+      .map((candidate) => {
+        if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+          return candidate;
+        }
+
+        if (typeof candidate === 'string') {
+          const parsed = Number(candidate);
+          if (Number.isFinite(parsed)) {
+            return parsed;
+          }
+        }
+
+        return null;
+      })
+      .find((value): value is number => value !== null && value > 0) ?? 8000;
+
+  try {
+    return await contextOptimization.optimizeContext({
+      fullHistory: conversationHistory,
+      tokenBudget: resolvedBudget,
+    });
+  } catch (_error) {
+    return conversationHistory;
+  }
 }
 
 /**
