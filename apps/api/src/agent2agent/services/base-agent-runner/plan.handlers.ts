@@ -121,10 +121,26 @@ export async function handlePlanCreate(
           ? request.userMessage.trim()
           : 'Generate a detailed, actionable plan that satisfies the conversation context.';
 
+      // Extract LLM configuration from payload (required from frontend)
+      const payloadAny = payload as any;
+      const providerName = payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
+      const modelName = payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
+
+      // Validate LLM configuration (no fallbacks - frontend must provide)
+      if (!providerName || !modelName) {
+        throw new Error(
+          'LLM provider and model must be specified in the request payload. ' +
+          'Frontend must send currentProvider and currentModel.'
+        );
+      }
+
       llmResponse = await callLLM(
         services.llmService,
         {
-          ...(definition.llm ?? {}),
+          providerName,
+          modelName,
+          temperature: payloadAny.temperature,
+          maxTokens: payloadAny.maxTokens,
           conversationId,
           sessionId: request.sessionId,
           userId,

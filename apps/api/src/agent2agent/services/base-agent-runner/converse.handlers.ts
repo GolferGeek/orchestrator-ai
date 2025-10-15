@@ -67,25 +67,25 @@ export async function executeConverse(
       throw new Error('User message is required to execute Converse mode');
     }
 
-    // DEBUG: Log the agent definition and LLM configuration
-    console.log('🔍 [DEBUG] executeConverse - definition.llm:', JSON.stringify(definition.llm, null, 2));
-    console.log('🔍 [DEBUG] executeConverse - definition.config:', JSON.stringify(definition.config, null, 2));
-    console.log('🔍 [DEBUG] executeConverse - payload:', JSON.stringify(payload, null, 2));
+    // Extract LLM configuration from payload (required from frontend)
+    // Frontend sends currentProvider and currentModel in the payload
+    const payloadAny = payload as any; // Temporary until transport types fully integrated
+    const providerName = payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
+    const modelName = payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
 
-    // Extract LLM configuration from payload (frontend store)
-    // The payload should contain currentProvider and currentModel from the store
-    const providerName = (payload as any).currentProvider ?? (payload as any).llmSelection?.providerName;
-    const modelName = (payload as any).currentModel ?? (payload as any).llmSelection?.modelName;
-
+    // Validate LLM configuration (no fallbacks - frontend must provide)
     if (!providerName || !modelName) {
-      throw new Error('LLM provider and model must be specified in the request payload');
+      throw new Error(
+        'LLM provider and model must be specified in the request payload. ' +
+        'Frontend must send currentProvider and currentModel.'
+      );
     }
 
     const llmConfig = {
       providerName,
       modelName,
-      temperature: (payload as any).llmSelection?.temperature ?? payload.temperature,
-      maxTokens: (payload as any).llmSelection?.maxTokens ?? payload.maxTokens,
+      temperature: payloadAny.llmSelection?.temperature ?? payload.temperature,
+      maxTokens: payloadAny.llmSelection?.maxTokens ?? payload.maxTokens,
       conversationId: conversation.id,
       sessionId: request.sessionId,
       userId,
@@ -95,8 +95,6 @@ export async function executeConverse(
       callerType: 'agent',
       callerName: `${definition.slug}-converse`,
     };
-
-    console.log('🔍 [DEBUG] executeConverse - Final llmConfig:', JSON.stringify(llmConfig, null, 2));
     
     const llmResponse = await callLLM(
       services.llmService,
