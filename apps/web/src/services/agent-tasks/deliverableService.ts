@@ -1,0 +1,490 @@
+/**
+ * Deliverable Service
+ *
+ * Handles Build mode operations for creating deliverables from plans.
+ * This service manages all build-related business logic, keeping the store
+ * as pure state. The frontend updates automatically via Vue reactivity.
+ *
+ * Key Responsibilities:
+ * - Route build actions to appropriate handlers
+ * - Send build requests to backend
+ * - Process build responses
+ * - Update store state via simple mutations
+ * - Manage deliverable lifecycle (create, read, edit, versions, etc.)
+ */
+
+import type {
+  AgentTaskMode,
+  BuildAction,
+  DeliverableData,
+  LLMSelection,
+} from '@/types/orchestrate.types';
+import type {
+  ServiceConfig,
+  ServiceError,
+} from './types';
+import {
+  createServiceError,
+  validateRequired,
+  buildRequestMetadata,
+  debugLog,
+  extractErrorMessage,
+  extractErrorCode,
+} from './types';
+import { tasksService } from '../tasksService';
+import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useLLMStore } from '@/stores/llmStore';
+import { useAuthStore } from '@/stores/authStore';
+
+/**
+ * Base parameters for deliverable operations
+ */
+interface BaseDeliverableParams {
+  agentSlug: string;
+  namespace?: string;
+  conversationId: string;
+}
+
+/**
+ * Parameters for creating a deliverable
+ */
+export interface DeliverableCreateParams extends BaseDeliverableParams {
+  userMessage: string;
+  llmSelection: LLMSelection;
+  planId?: string;
+  title?: string;
+  description?: string;
+}
+
+/**
+ * Parameters for reading a deliverable
+ */
+export interface DeliverableReadParams extends BaseDeliverableParams {
+  deliverableId: string;
+  version?: number;
+}
+
+/**
+ * Parameters for listing deliverables
+ */
+export interface DeliverableListParams extends BaseDeliverableParams {
+  titleFilter?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Deliverable Service
+ */
+export class DeliverableService {
+  private config: ServiceConfig;
+
+  constructor(config: ServiceConfig = {}) {
+    this.config = config;
+  }
+
+  /**
+   * Routes a build action to the appropriate handler
+   *
+   * @param action - Build action to perform
+   * @param params - Action-specific parameters
+   * @returns Action response
+   */
+  async handleAction(action: BuildAction, params: any): Promise<any> {
+    debugLog(this.config, 'handleAction', { action, params });
+
+    switch (action) {
+      case 'create':
+        return this.create(params);
+      case 'read':
+        return this.read(params);
+      case 'list':
+        return this.list(params);
+      case 'edit':
+        return this.edit(params);
+      case 'rerun':
+        return this.rerun(params);
+      case 'set-current':
+        return this.setCurrent(params);
+      case 'delete-version':
+        return this.deleteVersion(params);
+      case 'merge-versions':
+        return this.mergeVersions(params);
+      case 'copy-version':
+        return this.copyVersion(params);
+      case 'delete':
+        return this.delete(params);
+      default:
+        throw createServiceError(
+          'UNKNOWN_ACTION',
+          `Unknown build action: ${action}`,
+          { action }
+        );
+    }
+  }
+
+  /**
+   * Creates a new deliverable
+   *
+   * @param params - Deliverable creation parameters
+   * @returns Deliverable creation response
+   */
+  async create(params: DeliverableCreateParams): Promise<any> {
+    debugLog(this.config, 'create', params);
+
+    try {
+      // Validate required parameters
+      validateRequired(params, ['agentSlug', 'userMessage', 'conversationId']);
+      validateRequired(params.llmSelection, ['providerName', 'modelName']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      // Build request metadata
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      // Build deliverable create payload
+      const payload = {
+        action: 'create' as const,
+        planId: params.planId,
+        title: params.title,
+        description: params.description,
+      };
+
+      debugLog(this.config, 'Sending deliverable create request:', { payload, params });
+
+      // Send request to backend via tasksService
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: params.userMessage,
+          conversationId: params.conversationId,
+          llmSelection: params.llmSelection,
+          params: {
+            mode: 'build',
+            action: 'create',
+            payload,
+          },
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      debugLog(this.config, 'Received deliverable create response:', response);
+
+      // Handle the response
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      debugLog(this.config, 'Error in create:', error);
+      return this.handleError(error, params.conversationId);
+    }
+  }
+
+  /**
+   * Reads a deliverable
+   *
+   * @param params - Deliverable read parameters
+   * @returns Deliverable read response
+   */
+  async read(params: DeliverableReadParams): Promise<any> {
+    debugLog(this.config, 'read', params);
+
+    try {
+      validateRequired(params, ['agentSlug', 'deliverableId', 'conversationId']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      // Build request metadata
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      // Build deliverable read payload
+      const payload = {
+        action: 'read' as const,
+        deliverableId: params.deliverableId,
+        version: params.version,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: '', // No user message for read
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'read',
+            payload,
+          },
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
+  }
+
+  /**
+   * Lists deliverables
+   *
+   * @param params - Deliverable list parameters
+   * @returns Deliverable list response
+   */
+  async list(params: DeliverableListParams): Promise<any> {
+    debugLog(this.config, 'list', params);
+
+    try {
+      validateRequired(params, ['agentSlug', 'conversationId']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      // Build request metadata
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      // Build deliverable list payload
+      const payload = {
+        action: 'list' as const,
+        titleFilter: params.titleFilter,
+        limit: params.limit,
+        offset: params.offset,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: '', // No user message for list
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'list',
+            payload,
+          },
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
+  }
+
+  /**
+   * Edits a deliverable
+   */
+  async edit(params: any): Promise<any> {
+    debugLog(this.config, 'edit', params);
+    // TODO: Implement edit action
+    throw createServiceError('NOT_IMPLEMENTED', 'Edit action not yet implemented');
+  }
+
+  /**
+   * Reruns a deliverable build
+   */
+  async rerun(params: any): Promise<any> {
+    debugLog(this.config, 'rerun', params);
+    // TODO: Implement rerun action
+    throw createServiceError('NOT_IMPLEMENTED', 'Rerun action not yet implemented');
+  }
+
+  /**
+   * Sets current deliverable version
+   */
+  async setCurrent(params: any): Promise<any> {
+    debugLog(this.config, 'setCurrent', params);
+    // TODO: Implement set-current action
+    throw createServiceError('NOT_IMPLEMENTED', 'Set-current action not yet implemented');
+  }
+
+  /**
+   * Deletes a deliverable version
+   */
+  async deleteVersion(params: any): Promise<any> {
+    debugLog(this.config, 'deleteVersion', params);
+    // TODO: Implement delete-version action
+    throw createServiceError('NOT_IMPLEMENTED', 'Delete-version action not yet implemented');
+  }
+
+  /**
+   * Merges deliverable versions
+   */
+  async mergeVersions(params: any): Promise<any> {
+    debugLog(this.config, 'mergeVersions', params);
+    // TODO: Implement merge-versions action
+    throw createServiceError('NOT_IMPLEMENTED', 'Merge-versions action not yet implemented');
+  }
+
+  /**
+   * Copies a deliverable version
+   */
+  async copyVersion(params: any): Promise<any> {
+    debugLog(this.config, 'copyVersion', params);
+    // TODO: Implement copy-version action
+    throw createServiceError('NOT_IMPLEMENTED', 'Copy-version action not yet implemented');
+  }
+
+  /**
+   * Deletes a deliverable
+   */
+  async delete(params: any): Promise<any> {
+    debugLog(this.config, 'delete', params);
+    // TODO: Implement delete action
+    throw createServiceError('NOT_IMPLEMENTED', 'Delete action not yet implemented');
+  }
+
+  /**
+   * Processes a deliverable response from the backend
+   *
+   * @param response - Raw backend response
+   * @param conversationId - Conversation ID
+   * @returns Processed deliverable response
+   */
+  async handleResponse(response: any, conversationId: string): Promise<any> {
+    debugLog(this.config, 'handleResponse', { response, conversationId });
+
+    try {
+      // Extract result from JSON-RPC response
+      const result = response.result;
+      if (!result) {
+        throw createServiceError(
+          'INVALID_RESPONSE',
+          'Response does not contain result',
+          { response }
+        );
+      }
+
+      // Check if response indicates success
+      if (result.success === false) {
+        return this.handleErrorResponse(result, conversationId);
+      }
+
+      return this.handleSuccess(result, conversationId);
+    } catch (error) {
+      debugLog(this.config, 'Error in handleResponse:', error);
+      throw createServiceError(
+        'RESPONSE_PROCESSING_ERROR',
+        extractErrorMessage(error),
+        { response },
+        error as Error
+      );
+    }
+  }
+
+  /**
+   * Handles a successful deliverable response
+   *
+   * @param response - Successful deliverable response
+   * @param conversationId - Conversation ID
+   * @returns Processed response
+   */
+  private handleSuccess(response: any, conversationId: string): any {
+    debugLog(this.config, 'handleSuccess', { response, conversationId });
+
+    try {
+      const chatStore = useAgentChatStore();
+
+      // Extract deliverable data from response
+      const deliverable = response.content?.deliverable || response.payload?.content?.deliverable;
+      const deliverableId = deliverable?.id;
+
+      // Update store with deliverable data (Vue reactivity handles UI updates)
+      if (deliverableId && deliverable) {
+        chatStore.setDeliverable(conversationId, deliverable);
+      }
+
+      // Extract and add assistant message if present
+      const message = response.content?.message || response.payload?.content?.message;
+      if (message) {
+        chatStore.addMessage(conversationId, {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: message,
+          timestamp: new Date(),
+          metadata: {
+            deliverableId,
+            action: response.action,
+          },
+        });
+      }
+
+      debugLog(this.config, 'Success handled, deliverable added to store');
+
+      return response;
+    } catch (error) {
+      debugLog(this.config, 'Error in handleSuccess:', error);
+      throw createServiceError(
+        'SUCCESS_PROCESSING_ERROR',
+        extractErrorMessage(error),
+        { response },
+        error as Error
+      );
+    }
+  }
+
+  /**
+   * Handles an error response from the backend
+   *
+   * @param response - Error response
+   * @param conversationId - Conversation ID
+   * @returns Processed error response
+   */
+  private handleErrorResponse(response: any, conversationId: string): any {
+    debugLog(this.config, 'handleErrorResponse', { response, conversationId });
+
+    const errorCode = response.error?.code || 'UNKNOWN_ERROR';
+    const errorMessage = response.error?.message || 'An error occurred';
+    const errorDetails = response.error?.details;
+
+    // Update store with error state (Vue reactivity handles UI updates)
+    const chatStore = useAgentChatStore();
+    chatStore.setError(conversationId, errorMessage);
+
+    throw createServiceError(errorCode, errorMessage, errorDetails);
+  }
+
+  /**
+   * Handles errors that occur during processing
+   *
+   * @param error - Error that occurred
+   * @param conversationId - Conversation ID
+   * @returns Error response
+   */
+  private handleError(error: any, conversationId: string): never {
+    debugLog(this.config, 'handleError', { error, conversationId });
+
+    const errorCode = extractErrorCode(error);
+    const errorMessage = extractErrorMessage(error);
+
+    // Update store with error state (Vue reactivity handles UI updates)
+    const chatStore = useAgentChatStore();
+    chatStore.setError(conversationId, errorMessage);
+
+    // Re-throw for caller to handle
+    throw createServiceError(errorCode, errorMessage, error);
+  }
+}
+
+// Export singleton instance
+export const deliverableService = new DeliverableService();

@@ -2,7 +2,7 @@
 
 ## Current Status
 - [x] Phase 1: Transport Types (Foundation)
-- [ ] Phase 2: Frontend Services (New Architecture)
+- [x] Phase 2: Frontend Services (New Architecture)
 - [ ] Phase 3: Frontend Refactor (Store & Components)
 - [ ] Phase 4: Backend Integration
 - [ ] Phase 5: Testing & Validation
@@ -76,7 +76,7 @@ feat(transport-types): add orchestrate mode types
 
 ### Tasks
 
-- [ ] **2.1: Create base service types and utilities**
+- [x] **2.1: Create base service types and utilities**
   - **Files:** `apps/web/src/services/agent-tasks/types.ts` (new)
   - **Dependencies:** Phase 1 complete
   - **Complexity:** Medium
@@ -89,7 +89,7 @@ feat(transport-types): add orchestrate mode types
     - Common patterns abstracted for reuse across services
     - Type-safe service contracts defined
 
-- [ ] **2.2: Create conversationService.ts**
+- [x] **2.2: Create conversationService.ts**
   - **Files:** `apps/web/src/services/agent-tasks/conversationService.ts` (new)
   - **Dependencies:** 2.1
   - **Complexity:** High
@@ -111,7 +111,7 @@ feat(transport-types): add orchestrate mode types
     - No business logic leaks into store
     - Uses transport types exclusively
 
-- [ ] **2.3: Create planService.ts**
+- [x] **2.3: Create planService.ts**
   - **Files:** `apps/web/src/services/agent-tasks/planService.ts` (new)
   - **Dependencies:** 2.1
   - **Complexity:** High
@@ -139,7 +139,7 @@ feat(transport-types): add orchestrate mode types
     - Uses PlanAction type for routing
     - No business logic in store
 
-- [ ] **2.4: Create deliverableService.ts**
+- [x] **2.4: Create deliverableService.ts**
   - **Files:** `apps/web/src/services/agent-tasks/deliverableService.ts` (new)
   - **Dependencies:** 2.1
   - **Complexity:** High
@@ -167,7 +167,7 @@ feat(transport-types): add orchestrate mode types
     - Uses BuildAction type for routing
     - No business logic in store
 
-- [ ] **2.5: Create orchestrationService.ts**
+- [ ] **2.5: Create orchestrationService.ts** (SKIPPED - Not needed for current refactor)
   - **Files:** `apps/web/src/services/agent-tasks/orchestrationService.ts` (new)
   - **Dependencies:** 2.1, Phase 1 complete
   - **Complexity:** High
@@ -194,9 +194,9 @@ feat(transport-types): add orchestrate mode types
     - Uses OrchestrateAction type for routing
     - No business logic in store
 
-- [ ] **2.6: Create responseHandler.ts**
+- [x] **2.6: Create responseHandler.ts**
   - **Files:** `apps/web/src/services/agent-tasks/responseHandler.ts` (new)
-  - **Dependencies:** 2.2, 2.3, 2.4, 2.5
+  - **Dependencies:** 2.2, 2.3, 2.4
   - **Complexity:** Medium
   - **Details:**
     - **Methods:**
@@ -213,9 +213,9 @@ feat(transport-types): add orchestrate mode types
     - Unknown modes handled gracefully
     - Clean separation of concerns
 
-- [ ] **2.7: Create agentTaskService.ts facade**
+- [x] **2.7: Create agentTaskService.ts facade**
   - **Files:** `apps/web/src/services/agent-tasks/agentTaskService.ts` (new)
-  - **Dependencies:** 2.2, 2.3, 2.4, 2.5, 2.6
+  - **Dependencies:** 2.2, 2.3, 2.4, 2.6
   - **Complexity:** Medium
   - **Details:**
     - **Methods:**
@@ -236,7 +236,7 @@ feat(transport-types): add orchestrate mode types
     - Components don't need to know about service implementation
     - Uses AgentTaskMode enum for routing
 
-- [ ] **2.8: Create service index file**
+- [x] **2.8: Create service index file**
   - **Files:** `apps/web/src/services/agent-tasks/index.ts` (new)
   - **Dependencies:** 2.7
   - **Complexity:** Low
