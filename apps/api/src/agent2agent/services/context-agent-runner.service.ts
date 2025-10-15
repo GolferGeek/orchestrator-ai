@@ -72,23 +72,6 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
   }
 
   /**
-   * PLAN mode - planning
-   * Context agents use default implementation from BaseAgentRunner
-   */
-  protected async handlePlan(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    // Context agents don't have special PLAN logic yet
-    // Return a simple response indicating this mode isn't fully implemented
-    return TaskResponseDto.failure(
-      AgentTaskMode.PLAN,
-      'PLAN mode not yet implemented for context agents',
-    );
-  }
-
-  /**
    * BUILD mode - fetch context and generate deliverable with LLM
    */
   protected async executeBuild(

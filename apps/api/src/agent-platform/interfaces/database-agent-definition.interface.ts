@@ -128,5 +128,8 @@ export interface AgentRuntimeDefinition {
   config: Record<string, any> | null;
   agentCard?: Record<string, any> | null;
   rawDescriptor?: Record<string, any> | null;
+  planStructure?: Record<string, any> | null;
+  deliverableStructure?: Record<string, any> | null;
+  ioSchema?: Record<string, any> | null;
   record: AgentRecord;
 }
