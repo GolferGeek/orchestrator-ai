@@ -13,13 +13,11 @@
  * - Manage deliverable lifecycle (create, read, edit, versions, etc.)
  */
 
+import type { DeliverableData } from '@orchestrator-ai/transport-types';
 import type {
   AgentTaskMode,
   BuildAction,
-  DeliverableData,
   LLMSelection,
-} from '@/types/orchestrate.types';
-import type {
   ServiceConfig,
   ServiceError,
 } from './types';

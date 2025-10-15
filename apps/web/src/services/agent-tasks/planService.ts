@@ -13,13 +13,11 @@
  * - Manage plan lifecycle (create, read, edit, versions, etc.)
  */
 
+import type { PlanData } from '@orchestrator-ai/transport-types';
 import type {
   AgentTaskMode,
   PlanAction,
-  PlanData,
   LLMSelection,
-} from '@/types/orchestrate.types';
-import type {
   ServiceConfig,
   ServiceError,
 } from './types';

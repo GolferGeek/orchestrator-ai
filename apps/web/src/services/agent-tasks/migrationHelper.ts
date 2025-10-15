@@ -16,7 +16,7 @@
 import { agentTaskService } from './agentTaskService';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useLLMStore } from '@/stores/llmStore';
-import type { AgentTaskMode } from '@/types/orchestrate.types';
+import type { AgentTaskMode } from './types';
 
 /**
  * MIGRATION MAP

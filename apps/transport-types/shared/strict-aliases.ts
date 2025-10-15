@@ -4,9 +4,19 @@
  * These are just the generic types with strict naming for backwards compatibility
  */
 
-import type { A2ATaskSuccessResponse, A2ATaskErrorResponse, TaskResponse } from '../response/task-response.types';
+import type { A2ATaskSuccessResponse, A2ATaskErrorResponse, A2ATaskRequest, TaskMessage } from '../index';
 
-// For now, StrictPlanResponse, StrictBuildResponse, etc. are just the generic success response
+// Request types - all use the generic A2ATaskRequest structure
+export type StrictPlanRequest = A2ATaskRequest;
+export type StrictBuildRequest = A2ATaskRequest;
+export type StrictConverseRequest = A2ATaskRequest;
+export type StrictOrchestrateRequest = A2ATaskRequest;
+export type StrictA2ARequest = A2ATaskRequest;
+
+// Message type
+export type StrictTaskMessage = TaskMessage;
+
+// Response types - all use the generic success/error response structure
 // The mode field discriminates them at runtime
 export type StrictPlanResponse = A2ATaskSuccessResponse;
 export type StrictBuildResponse = A2ATaskSuccessResponse;
@@ -16,7 +26,6 @@ export type StrictOrchestrateResponse = A2ATaskSuccessResponse;
 export type StrictA2ASuccessResponse = A2ATaskSuccessResponse;
 export type StrictA2AErrorResponse = A2ATaskErrorResponse;
 export type StrictA2AResponse = StrictA2ASuccessResponse | StrictA2AErrorResponse;
-export type StrictA2ARequest = any; // The web builds these dynamically
 
 // Simple type guards based on mode
 export function isStrictPlanResponse(response: any): response is StrictPlanResponse {

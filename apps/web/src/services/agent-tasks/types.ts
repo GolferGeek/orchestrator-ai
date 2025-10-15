@@ -7,46 +7,198 @@
 
 import type {
   AgentTaskMode,
-  LLMSelection,
-  BaseRequestMetadata,
-  BaseResponseMetadata,
-  ConverseRequest,
-  ConverseResponse,
   PlanAction,
-  PlanCreateRequest,
-  PlanReadRequest,
-  PlanListRequest,
-  PlanCreateResponse,
-  PlanReadResponse,
-  PlanListResponse,
   BuildAction,
-  BuildCreateRequest,
-  BuildCreateResponse,
   SSEEvent,
   SSEEventHandler,
-} from '@/types/orchestrate.types';
+  ConverseResponseContent,
+  ConverseRequestMetadata,
+  ConverseResponseMetadata,
+  PlanCreateResponseContent,
+  PlanReadResponseContent,
+  PlanListResponseContent,
+  PlanRequestMetadata,
+  PlanResponseMetadata,
+  BuildCreateResponseContent,
+  BuildRequestMetadata,
+  BuildResponseMetadata,
+} from '@orchestrator-ai/transport-types';
 
-// Re-export core types for convenience
+// Re-export transport types for convenience
 export type {
   AgentTaskMode,
-  LLMSelection,
-  BaseRequestMetadata,
-  BaseResponseMetadata,
-  ConverseRequest,
-  ConverseResponse,
   PlanAction,
-  PlanCreateRequest,
-  PlanReadRequest,
-  PlanListRequest,
-  PlanCreateResponse,
-  PlanReadResponse,
-  PlanListResponse,
   BuildAction,
-  BuildCreateRequest,
-  BuildCreateResponse,
   SSEEvent,
   SSEEventHandler,
 };
+
+// ============================================================================
+// FRONTEND-SPECIFIC TYPES
+// ============================================================================
+
+/**
+ * LLM Selection Configuration
+ */
+export interface LLMSelection {
+  providerName?: string;
+  modelName?: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+/**
+ * Base metadata common to all requests
+ */
+export interface BaseRequestMetadata {
+  source: string;
+  userId: string;
+  conversationId?: string;
+  stream?: boolean;
+}
+
+/**
+ * Base metadata common to all responses
+ */
+export interface BaseResponseMetadata {
+  provider: string;
+  model: string;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    cost: number;
+  };
+  routingDecision?: Record<string, any>;
+  streamId?: string;
+}
+
+/**
+ * Converse Request
+ */
+export interface ConverseRequest {
+  message: string;
+  metadata: BaseRequestMetadata;
+  llmSelection: LLMSelection;
+}
+
+/**
+ * Converse Response
+ */
+export interface ConverseResponse {
+  success: boolean;
+  mode: 'converse';
+  content: ConverseResponseContent;
+  metadata: BaseResponseMetadata;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+/**
+ * Plan Create Request
+ */
+export interface PlanCreateRequest {
+  message: string;
+  metadata: BaseRequestMetadata;
+  llmSelection: LLMSelection;
+}
+
+/**
+ * Plan Read Request
+ */
+export interface PlanReadRequest {
+  planId: string;
+  versionId?: string;
+  metadata: BaseRequestMetadata;
+}
+
+/**
+ * Plan List Request
+ */
+export interface PlanListRequest {
+  conversationId?: string;
+  limit?: number;
+  offset?: number;
+  metadata: BaseRequestMetadata;
+}
+
+/**
+ * Plan Create Response
+ */
+export interface PlanCreateResponse {
+  success: boolean;
+  mode: 'plan';
+  action: 'create';
+  content: PlanCreateResponseContent;
+  metadata: BaseResponseMetadata;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+/**
+ * Plan Read Response
+ */
+export interface PlanReadResponse {
+  success: boolean;
+  mode: 'plan';
+  action: 'read';
+  content: PlanReadResponseContent;
+  metadata: BaseResponseMetadata;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+/**
+ * Plan List Response
+ */
+export interface PlanListResponse {
+  success: boolean;
+  mode: 'plan';
+  action: 'list';
+  content: PlanListResponseContent;
+  metadata: BaseResponseMetadata;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+/**
+ * Build Create Request
+ */
+export interface BuildCreateRequest {
+  planId: string;
+  planVersionId?: string;
+  message?: string;
+  metadata: BaseRequestMetadata;
+  llmSelection: LLMSelection;
+}
+
+/**
+ * Build Create Response
+ */
+export interface BuildCreateResponse {
+  success: boolean;
+  mode: 'build';
+  action: 'create';
+  content: BuildCreateResponseContent;
+  metadata: BaseResponseMetadata;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
 
 // ============================================================================
 // SERVICE INTERFACES
