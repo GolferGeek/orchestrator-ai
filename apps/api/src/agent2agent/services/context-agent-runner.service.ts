@@ -250,6 +250,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       const deliverableType = this.resolveDeliverableType(payload, definition);
 
+      const targetDeliverableId = this.resolveDeliverableId(payload, request);
+
       const createResult = await this.deliverablesService.executeAction(
         'create',
         {
@@ -261,6 +263,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           content: finalContent,
           format: deliverableFormat,
           type: deliverableType,
+          deliverableId: targetDeliverableId ?? undefined,
           agentName: definition.displayName ?? definition.slug,
           taskId,
           metadata: this.compactMetadata({
@@ -713,6 +716,27 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     }
 
     return `${definition.displayName ?? definition.slug} Deliverable`;
+  }
+
+  private resolveDeliverableId(
+    payload: ExtendedBuildCreatePayload,
+    request: TaskRequestDto,
+  ): string | null {
+    const baseId = this.resolveDeliverableIdFromRequest(request);
+
+    const candidates: Array<unknown> = [
+      payload.deliverableId,
+      payload.rerunContext?.deliverable?.id,
+      payload.mergeContext?.deliverable?.id,
+      baseId,
+    ];
+
+    const match = candidates.find(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return match ? match.trim() : null;
   }
 
   private resolveProvider(

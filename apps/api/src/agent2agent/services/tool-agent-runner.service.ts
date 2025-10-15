@@ -202,6 +202,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         definition.config?.deliverable?.format || 'json',
       );
 
+      const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
+
       // 4. Save deliverable
       const deliverableResult = await this.deliverablesService.executeAction(
         'create',
@@ -212,6 +214,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           content: formattedContent,
           format: definition.config?.deliverable?.format || 'json',
           type: definition.config?.deliverable?.type || 'tool-result',
+          deliverableId: targetDeliverableId ?? undefined,
           agentName: definition.slug,
           namespace: organizationSlug || 'default',
           taskId: taskId || undefined,

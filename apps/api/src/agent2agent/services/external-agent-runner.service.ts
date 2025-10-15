@@ -228,6 +228,8 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
 
       // 6. If BUILD mode and successful, save deliverable
       if (mode === AgentTaskMode.BUILD && a2aResponse.success) {
+        const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
+
         const deliverableResult = await this.deliverablesService.executeAction(
           'create',
           {
@@ -237,6 +239,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
             content: JSON.stringify(a2aResponse.payload?.content, null, 2),
             format: definition.config?.deliverable?.format || 'json',
             type: definition.config?.deliverable?.type || 'external-response',
+            deliverableId: targetDeliverableId ?? undefined,
             agentName: definition.slug,
             namespace: organizationSlug || 'default',
             taskId: taskId || undefined,

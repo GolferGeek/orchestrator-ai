@@ -807,6 +807,35 @@ export abstract class BaseAgentRunner implements IAgentRunner {
   }
 
   /**
+   * Resolve deliverableId from request payload or metadata.
+   *
+   * @param request - Task request
+   * @returns deliverableId if supplied, null otherwise
+   */
+  protected resolveDeliverableIdFromRequest(
+    request: TaskRequestDto,
+  ): string | null {
+    const payload = (request.payload ?? {}) as Record<string, any>;
+
+    const candidates: Array<unknown> = [
+      payload?.deliverableId,
+      payload?.deliverable_id,
+      payload?.deliverable?.id,
+      payload?.metadata?.deliverableId,
+      payload?.metadata?.deliverable_id,
+      request.metadata?.deliverableId,
+      request.metadata?.deliverable_id,
+    ];
+
+    const match = candidates.find(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return match ? match.trim() : null;
+  }
+
+  /**
    * Check if request wants streaming response.
    *
    * @param request - Task request

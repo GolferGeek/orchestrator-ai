@@ -188,6 +188,8 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         },
       );
 
+      const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
+
       // 8. Save deliverable
       const deliverableResult = await this.deliverablesService.executeAction(
         'create',
@@ -198,6 +200,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
           content: formattedContent,
           format: definition.config?.deliverable?.format || 'json',
           type: definition.config?.deliverable?.type || 'api-response',
+          deliverableId: targetDeliverableId ?? undefined,
           agentName: definition.slug,
           namespace: organizationSlug || 'default',
           taskId: taskId || undefined,
