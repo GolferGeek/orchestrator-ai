@@ -65,6 +65,7 @@
 - 2025-10-14 16:58 Codex: Implemented shared conversation helpers (`fetchConversationHistory`, `callLLM`, resolvers, error handling) in `apps/api/src/agent2agent/services/base-agent-runner/shared.helpers.ts`.
 - 2025-10-14 17:12 Codex: Built CONVERSE handler flow in `apps/api/src/agent2agent/services/base-agent-runner/converse.handlers.ts` and updated base runner + agent services to use shared implementation.
 - 2025-10-14 18:30 Claude: Completed Phase 2 testing and validation. Fixed TypeScript import error, created 5 passing unit tests, verified database schema, documented all test results. Committed Phase 2 implementation (commit: 5a2e1f8a4).
+- 2025-10-15 09:20 Codex: Enhanced PLAN merge pipeline. Routed llmConfig/planStructure through `plan.handlers.ts`, updated `plans.service.ts` merge routing, and replaced `plan-versions.service.ts` stub with schema-validated LLM merge implementation + metadata propagation.
 - 2025-10-15 10:59 Claude: Completed Phase 3 testing. Fixed 23 TypeScript errors, created 17 passing unit tests for plan handlers. Build passes, transport-types linked correctly. API integration tests deferred to Phase 6 per precedent. Ready to commit.
 
 ---
@@ -103,11 +104,14 @@
 
 ### Phase 3: PLAN Mode ✅
 - **Completed**: 2025-10-15
-- **Duration**: ~2 hours (testing & fixes)
-- **Commit**: Pending
+- **Duration**: ~3 hours (testing, fixes & LLM merge enhancement)
+- **Commits**:
+  - `e23e5418b` - Base PLAN mode handlers
+  - `fc7df913a` - LLM-based plan merging enhancement
 - **Test Results**:
-  - ✅ Build passes (fixed 23 TypeScript errors)
+  - ✅ Build passes (0 TypeScript errors)
   - ✅ Unit tests: 17/17 passing (plan.handlers.spec.ts)
+  - ✅ LLM metadata properly extracted and attached
   - ✅ Transport-types linked correctly
   - ⚠️ API integration tests deferred (auth required, Phase 6)
 - **Issues Fixed**:
@@ -117,6 +121,12 @@
   - format type narrowing → proper `'json' | 'markdown'` types
   - taskId property removed from version serialization
   - AgentRecord fixture missing schema fields
+- **Enhancements**:
+  - Implemented full LLM-based plan merging in mergeVersions
+  - Added normalizeLlmConfig for flexible LLM configuration
+  - Smart format detection (JSON vs Markdown)
+  - JSON Schema validation for structured plans
+  - Comprehensive error handling and validation
 
 ---
 
