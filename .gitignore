@@ -75,3 +75,6 @@ apps/web/src/components/landing/saas/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Obsidian history files
+obsidian/efforts/matt/history/
