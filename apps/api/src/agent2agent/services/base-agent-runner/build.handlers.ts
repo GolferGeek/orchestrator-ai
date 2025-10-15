@@ -1,10 +1,37 @@
+import Ajv from 'ajv';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { LLMService } from '@llm/llm.service';
 import { Agent2AgentConversationsService } from '../agent-conversations.service';
 import { PlansService } from '../../plans/services/plans.service';
 import { DeliverablesService } from '../../deliverables/deliverables.service';
-import { TaskRequestDto } from '../../dto/task-request.dto';
+import {
+  TaskRequestDto,
+  AgentTaskMode,
+} from '../../dto/task-request.dto';
 import { TaskResponseDto } from '../../dto/task-response.dto';
+import type {
+  BuildCopyVersionPayload,
+  BuildDeletePayload,
+  BuildDeleteVersionPayload,
+  BuildEditPayload,
+  BuildListPayload,
+  BuildMergeVersionsPayload,
+  BuildReadPayload,
+  BuildRerunPayload,
+  BuildSetCurrentPayload,
+} from '@orchestrator-ai/transport-types/modes/build.types';
+import type {
+  DeliverableData,
+  DeliverableVersionData,
+} from '@orchestrator-ai/transport-types/shared/data-types';
+import {
+  fetchExistingDeliverable,
+  buildResponseMetadata,
+  handleError,
+  resolveConversationId,
+  resolveTaskId,
+  resolveUserId,
+} from './shared.helpers';
 
 export interface BuildHandlerDependencies {
   deliverablesService: DeliverablesService;
@@ -33,11 +60,125 @@ export async function handleBuildRead(
   organizationSlug: string | null,
   services: BuildHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  throw new Error('handleBuildRead not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as Partial<BuildReadPayload>;
+    const { userId, conversationId, executionContext } = buildBuildActionContext(
+      definition,
+      request,
+    );
+
+    const existingDeliverable = (await fetchExistingDeliverable(
+      services.deliverablesService,
+      request,
+    )) as Record<string, any> | null;
+
+    if (!existingDeliverable) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'No deliverable found for this conversation',
+      );
+    }
+
+    const deliverableRecord = await services.deliverablesService.findOne(
+      existingDeliverable.id,
+      userId,
+    );
+
+    const baseDeliverable = serializeDeliverable(
+      deliverableRecord,
+      definition,
+      userId,
+    );
+
+    if (payload.versionId) {
+      const listResult = await services.deliverablesService.executeAction(
+        'list',
+        {
+          includeArchived: true,
+        },
+        executionContext,
+      );
+
+      if (!listResult.success || !listResult.data) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          listResult.error?.message ??
+            'Unable to list deliverable versions for version lookup',
+        );
+      }
+
+      const versions = (listResult.data.versions ?? []) as any[];
+      const targetVersion = versions.find(
+        (version) => version.id === payload.versionId,
+      );
+
+      if (!targetVersion) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          `Deliverable version ${payload.versionId} not found`,
+        );
+      }
+
+      const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+        deliverableMetadata: buildDeliverableMetadata(targetVersion.content),
+        requestedVersionId: payload.versionId,
+        conversationId,
+      });
+
+      return TaskResponseDto.success(AgentTaskMode.BUILD, {
+        content: {
+          deliverable: baseDeliverable,
+          version:
+            serializeDeliverableVersion(targetVersion) ?? undefined,
+        },
+        metadata,
+      });
+    }
+
+    const readResult = await services.deliverablesService.executeAction(
+      'read',
+      {},
+      executionContext,
+    );
+
+    if (!readResult.success || !readResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        readResult.error?.message ?? 'Failed to read deliverable',
+      );
+    }
+
+    const responseDeliverable =
+      readResult.data.deliverable ?? deliverableRecord;
+    const responseVersion =
+      readResult.data.version ?? deliverableRecord.currentVersion ?? null;
+
+    const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+      deliverableMetadata: buildDeliverableMetadata(
+        responseVersion?.content ?? '',
+      ),
+      conversationId,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        deliverable: serializeDeliverable(
+          responseDeliverable,
+          definition,
+          userId,
+        ),
+        version: serializeDeliverableVersion(responseVersion) ?? undefined,
+      },
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -54,11 +195,60 @@ export async function handleBuildList(
   organizationSlug: string | null,
   services: BuildHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  throw new Error('handleBuildList not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as Partial<BuildListPayload>;
+    const { userId, executionContext } = buildBuildActionContext(
+      definition,
+      request,
+    );
+
+    const listResult = await services.deliverablesService.executeAction(
+      'list',
+      {
+        includeArchived: payload.includeArchived ?? false,
+      },
+      executionContext,
+    );
+
+    if (!listResult.success || !listResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        listResult.error?.message ?? 'Failed to list deliverable versions',
+      );
+    }
+
+    const deliverable = serializeDeliverable(
+      listResult.data.deliverable,
+      definition,
+      userId,
+    );
+    const versions = (listResult.data.versions ?? []).map((version: any) =>
+      serializeDeliverableVersion(version),
+    );
+
+    const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+      versionCount: versions.filter(
+        (version: any): version is DeliverableVersionData => Boolean(version),
+      ).length,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        deliverables: [deliverable],
+        versions: versions.filter(
+          (version: any): version is DeliverableVersionData => Boolean(version),
+        ),
+      },
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -75,11 +265,84 @@ export async function handleBuildEdit(
   organizationSlug: string | null,
   services: BuildHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  throw new Error('handleBuildEdit not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as Partial<BuildEditPayload>;
+    if (!payload.editedContent) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'editedContent is required to edit a deliverable',
+      );
+    }
+
+    const { userId, executionContext } = buildBuildActionContext(
+      definition,
+      request,
+    );
+
+    const normalizedContent =
+      typeof payload.editedContent === 'string'
+        ? payload.editedContent
+        : JSON.stringify(payload.editedContent, null, 2);
+
+    validateDeliverableStructure(
+      normalizedContent,
+      definition.deliverableStructure ?? null,
+    );
+
+    const ioSchemaOutput =
+      definition.ioSchema?.output ?? definition.ioSchema ?? null;
+
+    validateDeliverableSchema(normalizedContent, ioSchemaOutput);
+
+    const metadataPayload = {
+      comment: payload.comment,
+      deliverableMetadata: buildDeliverableMetadata(normalizedContent),
+      deliverableStructureApplied: Boolean(definition.deliverableStructure),
+      ioSchemaApplied: Boolean(ioSchemaOutput),
+    };
+
+    const editResult = await services.deliverablesService.executeAction(
+      'edit',
+      {
+        content: normalizedContent,
+        metadata: metadataPayload,
+      },
+      executionContext,
+    );
+
+    if (!editResult.success || !editResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        editResult.error?.message ?? 'Failed to edit deliverable',
+      );
+    }
+
+    const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+      deliverableMetadata: buildDeliverableMetadata(
+        editResult.data.version?.content ?? '',
+      ),
+      source: 'manual-edit',
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        deliverable: serializeDeliverable(
+          editResult.data.deliverable,
+          definition,
+          userId,
+        ),
+        version: serializeDeliverableVersion(editResult.data.version) ?? undefined,
+      },
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -98,12 +361,140 @@ export async function handleBuildRerun(
   services: BuildHandlerDependencies,
   executeBuild: ExecuteBuildFn,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  void executeBuild;
-  throw new Error('handleBuildRerun not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as BuildRerunPayload;
+    if (!payload.versionId || !payload.rerunConfig) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'versionId and rerunConfig are required for rerun action',
+      );
+    }
+
+    const { userId, conversationId, executionContext } =
+      buildBuildActionContext(definition, request);
+
+    const existingDeliverable = (await fetchExistingDeliverable(
+      services.deliverablesService,
+      request,
+    )) as Record<string, any> | null;
+
+    if (!existingDeliverable) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'No deliverable found to rerun',
+      );
+    }
+
+    const deliverableRecord = await services.deliverablesService.findOne(
+      existingDeliverable.id,
+      userId,
+    );
+
+    const listResult = await services.deliverablesService.executeAction(
+      'list',
+      {
+        includeArchived: true,
+      },
+      executionContext,
+    );
+
+    if (!listResult.success || !listResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        listResult.error?.message ??
+          'Unable to load deliverable versions for rerun',
+      );
+    }
+
+    const versions = (listResult.data.versions ?? []) as any[];
+    const sourceVersion = versions.find(
+      (version) => version.id === payload.versionId,
+    );
+
+    if (!sourceVersion) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        `Deliverable version ${payload.versionId} not found`,
+      );
+    }
+
+    const serializedDeliverable = serializeDeliverable(
+      deliverableRecord,
+      definition,
+      userId,
+    );
+
+    const serializedVersion =
+      serializeDeliverableVersion(sourceVersion) ?? undefined;
+
+  const rerunPayload = {
+    action: 'create' as const,
+    title:
+      (request.payload as any)?.title ??
+      deliverableRecord.title ??
+      'Deliverable',
+    type:
+      (request.payload as any)?.type ??
+      deliverableRecord.type ??
+      'document',
+    planVersionId: (request.payload as any)?.planVersionId,
+    deliverableId: deliverableRecord.id,
+    rerunConfig: payload.rerunConfig,
+    rerunContext: {
+      sourceVersion: serializedVersion,
+      deliverable: serializedDeliverable,
+    },
+    };
+
+    const rerunRequest: TaskRequestDto = {
+      ...request,
+      payload: rerunPayload as Record<string, any>,
+      metadata: {
+        ...(request.metadata ?? {}),
+        buildRerun: {
+          sourceVersionId: payload.versionId,
+          rerunConfig: payload.rerunConfig,
+        },
+      },
+    };
+
+    const rerunResponse = await executeBuild(
+      definition,
+      rerunRequest,
+      organizationSlug,
+    );
+
+    if (!rerunResponse.success) {
+      return rerunResponse;
+    }
+
+    const metadata = buildResponseMetadata(
+      rerunResponse.payload.metadata ?? {},
+      {
+        sourceVersionId: payload.versionId,
+        rerunConfig: payload.rerunConfig,
+        conversationId,
+        origin: 'rerun',
+      },
+    );
+
+    const content = {
+      ...(rerunResponse.payload.content ?? {}),
+      sourceVersionId: payload.versionId,
+    };
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content,
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -120,11 +511,61 @@ export async function handleBuildSetCurrent(
   organizationSlug: string | null,
   services: BuildHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  throw new Error('handleBuildSetCurrent not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as BuildSetCurrentPayload;
+    if (!payload.versionId) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'versionId is required to set current deliverable version',
+      );
+    }
+
+    const { userId, executionContext } = buildBuildActionContext(
+      definition,
+      request,
+    );
+
+    const result = await services.deliverablesService.executeAction(
+      'set_current',
+      {
+        versionId: payload.versionId,
+      },
+      executionContext,
+    );
+
+    if (!result.success || !result.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        result.error?.message ?? 'Failed to set current deliverable version',
+      );
+    }
+
+    const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+      deliverableMetadata: buildDeliverableMetadata(
+        result.data.version?.content ?? '',
+      ),
+      updatedVersionId: payload.versionId,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        deliverable: serializeDeliverable(
+          result.data.deliverable,
+          definition,
+          userId,
+        ),
+        version: serializeDeliverableVersion(result.data.version) ?? undefined,
+      },
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -141,11 +582,71 @@ export async function handleBuildDeleteVersion(
   organizationSlug: string | null,
   services: BuildHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  throw new Error('handleBuildDeleteVersion not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as BuildDeleteVersionPayload;
+    if (!payload.versionId) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'versionId is required to delete a deliverable version',
+      );
+    }
+
+    const { userId, executionContext } = buildBuildActionContext(
+      definition,
+      request,
+    );
+
+    const deleteResult = await services.deliverablesService.executeAction(
+      'delete_version',
+      {
+        versionId: payload.versionId,
+      },
+      executionContext,
+    );
+
+    if (!deleteResult.success || !deleteResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        deleteResult.error?.message ?? 'Failed to delete deliverable version',
+      );
+    }
+
+    const deliverable = serializeDeliverable(
+      deleteResult.data.deliverable,
+      definition,
+      userId,
+    );
+
+    const remainingVersions = (deleteResult.data.remainingVersions ?? []).map(
+      (version: any) => serializeDeliverableVersion(version),
+    );
+
+    const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+      deletedVersionId: payload.versionId,
+      remainingVersionCount: remainingVersions.filter(
+        (version: any): version is DeliverableVersionData => Boolean(version),
+      ).length,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        deleted: true,
+        deliverableId: deliverable.id,
+        versionId: payload.versionId,
+        remainingVersions: remainingVersions.filter(
+          (version: any): version is DeliverableVersionData => Boolean(version),
+        ),
+      },
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -164,12 +665,153 @@ export async function handleBuildMergeVersions(
   services: BuildHandlerDependencies,
   executeBuild: ExecuteBuildFn,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  void executeBuild;
-  throw new Error('handleBuildMergeVersions not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as BuildMergeVersionsPayload;
+    if (!payload.versionIds || payload.versionIds.length < 2) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'At least two versionIds are required to merge versions',
+      );
+    }
+
+    if (!payload.mergePrompt || payload.mergePrompt.trim().length === 0) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'mergePrompt is required to merge versions',
+      );
+    }
+
+    const { userId, conversationId, executionContext } =
+      buildBuildActionContext(definition, request);
+
+    const existingDeliverable = (await fetchExistingDeliverable(
+      services.deliverablesService,
+      request,
+    )) as Record<string, any> | null;
+
+    if (!existingDeliverable) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'No deliverable found to merge',
+      );
+    }
+
+    const deliverableRecord = await services.deliverablesService.findOne(
+      existingDeliverable.id,
+      userId,
+    );
+
+    const listResult = await services.deliverablesService.executeAction(
+      'list',
+      {
+        includeArchived: true,
+      },
+      executionContext,
+    );
+
+    if (!listResult.success || !listResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        listResult.error?.message ??
+          'Unable to load deliverable versions for merging',
+      );
+    }
+
+    const versions = (listResult.data.versions ?? []) as any[];
+    const sourceVersions = payload.versionIds
+      .map((versionId) =>
+        versions.find((version) => version.id === versionId),
+      )
+      .filter((version): version is Record<string, any> => Boolean(version));
+
+    if (sourceVersions.length !== payload.versionIds.length) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'One or more versions could not be found for merging',
+      );
+    }
+
+    const serializedDeliverable = serializeDeliverable(
+      deliverableRecord,
+      definition,
+      userId,
+    );
+
+    const serializedVersions = sourceVersions
+      .map((version) => serializeDeliverableVersion(version))
+      .filter(
+        (version): version is DeliverableVersionData => Boolean(version),
+      );
+
+  const mergePayload = {
+    action: 'create' as const,
+    title:
+      (request.payload as any)?.title ??
+      deliverableRecord.title ??
+      'Deliverable',
+    type:
+      (request.payload as any)?.type ??
+      deliverableRecord.type ??
+      'document',
+    planVersionId: (request.payload as any)?.planVersionId,
+    deliverableId: deliverableRecord.id,
+    mergeContext: {
+      versionIds: payload.versionIds,
+      mergePrompt: payload.mergePrompt,
+      sourceVersions: serializedVersions,
+      deliverable: serializedDeliverable,
+      },
+    };
+
+    const mergeRequest: TaskRequestDto = {
+      ...request,
+      payload: mergePayload as Record<string, any>,
+      metadata: {
+        ...(request.metadata ?? {}),
+        buildMerge: {
+          versionIds: payload.versionIds,
+          mergePrompt: payload.mergePrompt,
+        },
+      },
+    };
+
+    const mergeResponse = await executeBuild(
+      definition,
+      mergeRequest,
+      organizationSlug,
+    );
+
+    if (!mergeResponse.success) {
+      return mergeResponse;
+    }
+
+    const metadata = buildResponseMetadata(
+      mergeResponse.payload.metadata ?? {},
+      {
+        sourceVersionIds: payload.versionIds,
+        mergePrompt: payload.mergePrompt,
+        conversationId,
+        origin: 'merge',
+      },
+    );
+
+    const content = {
+      ...(mergeResponse.payload.content ?? {}),
+      sourceVersionIds: payload.versionIds,
+    };
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content,
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -186,11 +828,66 @@ export async function handleBuildCopyVersion(
   organizationSlug: string | null,
   services: BuildHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  throw new Error('handleBuildCopyVersion not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as BuildCopyVersionPayload;
+    if (!payload.versionId) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        'versionId is required to copy a deliverable version',
+      );
+    }
+
+    const { userId, executionContext } = buildBuildActionContext(
+      definition,
+      request,
+    );
+
+    const copyResult = await services.deliverablesService.executeAction(
+      'copy_version',
+      {
+        versionId: payload.versionId,
+      },
+      executionContext,
+    );
+
+    if (!copyResult.success || !copyResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        copyResult.error?.message ?? 'Failed to copy deliverable version',
+      );
+    }
+
+    const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+      sourceVersionId: payload.versionId,
+      copiedVersionId: copyResult.data.copiedVersion?.id,
+    });
+
+    const targetDeliverable =
+      copyResult.data.targetDeliverable ??
+      copyResult.data.sourceDeliverable ??
+      copyResult.data.deliverable ??
+      {};
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        deliverable: serializeDeliverable(targetDeliverable, definition, userId),
+        version: serializeDeliverableVersion(
+          copyResult.data.copiedVersion,
+        ) ?? undefined,
+        sourceVersion: serializeDeliverableVersion(
+          copyResult.data.sourceVersion,
+        ) ?? undefined,
+      },
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -207,11 +904,55 @@ export async function handleBuildDelete(
   organizationSlug: string | null,
   services: BuildHandlerDependencies,
 ): Promise<TaskResponseDto> {
-  void definition;
-  void request;
   void organizationSlug;
-  void services;
-  throw new Error('handleBuildDelete not implemented');
+  void services.plansService;
+  void services.llmService;
+  void services.conversationsService;
+
+  try {
+    const payload = (request.payload ?? {}) as BuildDeletePayload;
+    void payload;
+
+    const { userId, executionContext } = buildBuildActionContext(
+      definition,
+      request,
+    );
+
+    const deleteResult = await services.deliverablesService.executeAction(
+      'delete',
+      {},
+      executionContext,
+    );
+
+    if (!deleteResult.success || !deleteResult.data) {
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        deleteResult.error?.message ?? 'Failed to delete deliverable',
+      );
+    }
+
+    const deletedDeliverableId =
+      deleteResult.data.deletedDeliverableId ??
+      deleteResult.data.deletedPlanId ??
+      '';
+
+    const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
+      deletedDeliverableId,
+      deletedVersionCount: deleteResult.data.deletedVersionCount ?? 0,
+    });
+
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        deleted: true,
+        deliverableId: deletedDeliverableId,
+        deletedVersionCount: deleteResult.data.deletedVersionCount ?? 0,
+        userId,
+      },
+      metadata,
+    });
+  } catch (error) {
+    return handleError(AgentTaskMode.BUILD, error);
+  }
 }
 
 /**
@@ -223,9 +964,35 @@ export function validateDeliverableStructure(
   deliverableContent: unknown,
   deliverableStructure: unknown,
 ): void {
-  void deliverableContent;
-  void deliverableStructure;
-  throw new Error('validateDeliverableStructure not implemented');
+  if (!deliverableStructure) {
+    return;
+  }
+
+  const schema =
+    typeof deliverableStructure === 'string'
+      ? parseJsonSafely(
+          deliverableStructure,
+          'deliverable_structure must be valid JSON',
+        )
+      : deliverableStructure;
+
+  const ajv = new Ajv({
+    allErrors: true,
+    strict: false,
+    allowUnionTypes: true,
+  });
+
+  const validate = ajv.compile(schema as Record<string, unknown>);
+  const candidate = coerceDeliverableContent(deliverableContent);
+
+  if (!validate(candidate)) {
+    const message = ajv.errorsText(validate.errors, { separator: '; ' });
+    const error = new Error(
+      `Deliverable does not conform to agent structure: ${message}`,
+    );
+    (error as any).details = validate.errors;
+    throw error;
+  }
 }
 
 /**
@@ -237,9 +1004,32 @@ export function validateDeliverableSchema(
   deliverableContent: unknown,
   ioSchema: unknown,
 ): void {
-  void deliverableContent;
-  void ioSchema;
-  throw new Error('validateDeliverableSchema not implemented');
+  if (!ioSchema) {
+    return;
+  }
+
+  const schema =
+    typeof ioSchema === 'string'
+      ? parseJsonSafely(ioSchema, 'io_schema output must be valid JSON')
+      : ioSchema;
+
+  const ajv = new Ajv({
+    allErrors: true,
+    strict: false,
+    allowUnionTypes: true,
+  });
+
+  const validate = ajv.compile(schema as Record<string, unknown>);
+  const candidate = coerceDeliverableContent(deliverableContent);
+
+  if (!validate(candidate)) {
+    const message = ajv.errorsText(validate.errors, { separator: '; ' });
+    const error = new Error(
+      `Deliverable output does not conform to io_schema: ${message}`,
+    );
+    (error as any).details = validate.errors;
+    throw error;
+  }
 }
 
 /**
@@ -250,6 +1040,330 @@ export function validateDeliverableSchema(
 export function buildDeliverableMetadata(
   deliverableContent: unknown,
 ): Record<string, unknown> {
-  void deliverableContent;
-  throw new Error('buildDeliverableMetadata not implemented');
+  if (deliverableContent === null || deliverableContent === undefined) {
+    return { hasContent: false };
+  }
+
+  if (typeof deliverableContent === 'string') {
+    const trimmed = deliverableContent.trim();
+    const metadata: Record<string, unknown> = {
+      format: 'text',
+      contentLength: trimmed.length,
+      lineCount: trimmed.split(/\r?\n/).length,
+    };
+
+    if (trimmed.length > 0) {
+      metadata.preview = trimmed.slice(0, 200);
+    }
+
+    const parsed = tryParseJson(trimmed);
+    if (parsed !== null) {
+      const keys = Object.keys(
+        parsed as Record<string, unknown>,
+      );
+      metadata.format = Array.isArray(parsed) ? 'array' : 'json';
+      metadata.keyCount = keys.length;
+      if (keys.length > 0) {
+        metadata.topLevelKeys = keys.slice(0, 10);
+      }
+    }
+
+    return metadata;
+  }
+
+  if (Array.isArray(deliverableContent)) {
+    return {
+      format: 'array',
+      length: deliverableContent.length,
+      hasContent: deliverableContent.length > 0,
+    };
+  }
+
+  if (typeof deliverableContent === 'object') {
+    const keys = Object.keys(deliverableContent as Record<string, unknown>);
+    return {
+      format: 'object',
+      keyCount: keys.length,
+      topLevelKeys: keys.slice(0, 10),
+    };
+  }
+
+  return {
+    format: typeof deliverableContent,
+  };
+}
+
+const EMPTY_USAGE = {
+  inputTokens: 0 as number,
+  outputTokens: 0 as number,
+  totalTokens: 0 as number,
+  cost: 0 as number,
+};
+
+const EMPTY_BUILD_METADATA = {
+  provider: '',
+  model: '',
+  usage: EMPTY_USAGE,
+};
+
+function buildBuildActionContext(
+  definition: AgentRuntimeDefinition,
+  request: TaskRequestDto,
+): {
+  userId: string;
+  conversationId: string;
+  taskId?: string;
+  executionContext: {
+    conversationId: string;
+    userId: string;
+    agentSlug: string;
+    taskId?: string;
+    metadata: Record<string, unknown>;
+  };
+} {
+  const userId = resolveUserId(request);
+  if (!userId) {
+    throw new Error('Unable to determine user identity for build operation');
+  }
+
+  const conversationId = resolveConversationId(request);
+  if (!conversationId) {
+    throw new Error('Missing conversationId for build operation');
+  }
+  request.conversationId = conversationId;
+
+  const taskId = resolveTaskId(request) ?? undefined;
+
+  return {
+    userId,
+    conversationId,
+    taskId,
+    executionContext: {
+      conversationId,
+      userId,
+      agentSlug: definition.slug,
+      taskId,
+      metadata: request.metadata ?? {},
+    },
+  };
+}
+
+function serializeDeliverable(
+  deliverable: any,
+  definition: AgentRuntimeDefinition,
+  fallbackUserId: string,
+): DeliverableData {
+  const createdAt = toIsoString(
+    deliverable.createdAt ?? deliverable.created_at ?? new Date().toISOString(),
+  );
+  const updatedAt = toIsoString(
+    deliverable.updatedAt ?? deliverable.updated_at ?? createdAt,
+  );
+
+  const userId = deliverable.userId ?? deliverable.user_id ?? fallbackUserId;
+
+  const namespace =
+    deliverable.namespace ??
+    definition.organizationSlug ??
+    definition.context?.namespace ??
+    'global';
+
+  const currentVersionId =
+    deliverable.currentVersionId ??
+    deliverable.current_version_id ??
+    deliverable.currentVersion?.id ??
+    '';
+
+  return {
+    id: deliverable.id,
+    conversationId:
+      deliverable.conversationId ??
+      deliverable.conversation_id ??
+      '',
+    userId,
+    agentName:
+      deliverable.agentName ??
+      deliverable.agent_name ??
+      definition.displayName ??
+      definition.slug,
+    namespace,
+    title: deliverable.title ?? 'Deliverable',
+    type: deliverable.type ?? deliverable.deliverableType ?? 'document',
+    currentVersionId,
+    createdAt,
+    updatedAt,
+  };
+}
+
+function serializeDeliverableVersion(
+  version: any,
+): DeliverableVersionData | null {
+  if (!version) {
+    return null;
+  }
+
+  const formatRaw =
+    version.format ?? version.deliverableFormat ?? 'markdown';
+  const normalizedFormat =
+    typeof formatRaw === 'string'
+      ? normalizeDeliverableFormat(formatRaw)
+      : 'markdown';
+
+  return {
+    id: version.id,
+    deliverableId:
+      version.deliverableId ?? version.deliverable_id ?? '',
+    versionNumber: numberOrZero(
+      version.versionNumber ?? version.version_number ?? 1,
+      1,
+    ),
+    content: version.content ?? '',
+    format: normalizedFormat,
+    createdByType:
+      version.createdByType ??
+      version.created_by_type ??
+      'agent',
+    createdById:
+      version.createdById ??
+      version.created_by_id ??
+      null,
+    metadata: version.metadata ?? undefined,
+    isCurrentVersion: Boolean(
+      version.isCurrentVersion ?? version.is_current_version,
+    ),
+    createdAt: toIsoString(version.createdAt ?? version.created_at),
+  };
+}
+
+function normalizeDeliverableFormat(
+  format: string,
+): 'markdown' | 'json' | 'html' {
+  const normalized = format.toLowerCase();
+  if (normalized.includes('json')) {
+    return 'json';
+  }
+  if (normalized === 'html' || normalized.includes('html')) {
+    return 'html';
+  }
+  return 'markdown';
+}
+
+function resolveNamespace(
+  definition: AgentRuntimeDefinition,
+  organizationSlug: string | null,
+): string {
+  return (
+    organizationSlug ??
+    definition.organizationSlug ??
+    definition.context?.namespace ??
+    'global'
+  );
+}
+
+function normalizeUsage(usage: any): typeof EMPTY_USAGE {
+  if (!usage || typeof usage !== 'object') {
+    return EMPTY_USAGE;
+  }
+
+  const inputTokens = numberOrZero(
+    usage.inputTokens ?? usage.promptTokens ?? usage.total_input_tokens,
+  );
+  const outputTokens = numberOrZero(
+    usage.outputTokens ?? usage.completionTokens ?? usage.total_output_tokens,
+  );
+  const totalTokens = numberOrZero(
+    usage.totalTokens ?? usage.total_tokens,
+    inputTokens + outputTokens,
+  );
+  const cost = numberOrZero(usage.cost ?? usage.price);
+
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    cost,
+  };
+}
+
+function coerceDeliverableContent(content: unknown): unknown {
+  if (typeof content === 'string') {
+    const candidate = extractCodeFenceContent(content.trim());
+    const parsed = tryParseJson(candidate);
+    return parsed !== null ? parsed : candidate;
+  }
+
+  if (Array.isArray(content)) {
+    return content;
+  }
+
+  if (content && typeof content === 'object') {
+    return content;
+  }
+
+  return content ?? '';
+}
+
+function tryParseJson(value: string): any | null {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function extractCodeFenceContent(value: string): string {
+  const fencedMatch = value.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch && fencedMatch[1]) {
+    return fencedMatch[1].trim();
+  }
+  return value;
+}
+
+function toIsoString(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === 'string') {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  }
+
+  return new Date().toISOString();
+}
+
+function numberOrZero(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function parseJsonSafely(value: string, errorMessage: string): any {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    const reason =
+      error instanceof Error ? error.message : 'Unable to parse JSON';
+    throw new Error(`${errorMessage}: ${reason}`);
+  }
 }

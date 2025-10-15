@@ -15,7 +15,7 @@
 | 1 | File Organization | ✅ Complete | 2 hours | Cursor → Claude | 100% |
 | 2 | CONVERSE Mode | ✅ Complete | 5 hours | Cursor → Claude | 100% |
 | 3 | PLAN Mode | ✅ Complete | 2 hours | Cursor → Claude | 100% |
-| 4 | BUILD Mode (Base) | 🟡 Not Started | 4-6 hours | Cursor → Claude | 0% |
+| 4 | BUILD Mode (Base) | 🟠 In Progress | 4-6 hours | Cursor → Claude | 60% |
 | 5 | BUILD Execution (Context) | 🟡 Not Started | 2-4 hours | Cursor → Claude | 0% |
 | 6 | Integration Testing | 🟡 Not Started | 4-6 hours | Claude | 0% |
 | 7 | Frontend Implementation | 🟡 Not Started | 16-20 hours | Cursor → Claude | 0% |
@@ -52,13 +52,13 @@
 
 **Active Phase**: Phase 4 - BUILD Mode (Base)
 
-**Status**: 🟡 Not Started
+**Status**: ⚠️ Awaiting Tests
 
 **Document**: [phase-4-build-mode-base.md](./phase-4-build-mode-base.md)
 
 **Next Steps**:
-1. Cursor/Codex: Begin Phase 4 BUILD Mode base implementation
-2. Claude: Test and validate when ready
+1. Codex: Create unit tests in `build.handlers.spec.ts` (Task 6 in phase plan)
+2. Claude: Execute tests, fix issues, and commit when all pass
 
 ### Work Log
 - 2025-10-14 16:45 Codex: Reviewed phase requirements and tracker scope to begin Phase 2. Preparing to implement shared helpers for converse mode.
@@ -67,6 +67,7 @@
 - 2025-10-14 18:30 Claude: Completed Phase 2 testing and validation. Fixed TypeScript import error, created 5 passing unit tests, verified database schema, documented all test results. Committed Phase 2 implementation (commit: 5a2e1f8a4).
 - 2025-10-15 09:20 Codex: Enhanced PLAN merge pipeline. Routed llmConfig/planStructure through `plan.handlers.ts`, updated `plans.service.ts` merge routing, and replaced `plan-versions.service.ts` stub with schema-validated LLM merge implementation + metadata propagation.
 - 2025-10-15 10:59 Claude: Completed Phase 3 testing. Fixed 23 TypeScript errors, created 17 passing unit tests for plan handlers. Build passes, transport-types linked correctly. API integration tests deferred to Phase 6 per precedent. Ready to commit.
+- 2025-10-15 12:05 Codex: Implemented BUILD CRUD + advanced handlers. Added deliverable validation helpers, wired read/list/edit/delete to DeliverablesService, and routed rerun/merge through `executeBuild` with enriched context payloads.
 
 ---
 
@@ -127,6 +128,32 @@
   - Smart format detection (JSON vs Markdown)
   - JSON Schema validation for structured plans
   - Comprehensive error handling and validation
+
+### Phase 4: BUILD Mode (Base CRUD) ⚠️
+- **Started**: 2025-10-15
+- **Status**: Implementation complete, awaiting tests
+- **Commit**: Pending (awaiting test creation)
+- **Implementation Results**:
+  - ✅ All 10 BUILD action handlers implemented
+  - ✅ Build compiles (0 TypeScript errors after fixing 5)
+  - ⏸️ Unit tests not yet created (build.handlers.spec.ts missing)
+- **Issues Fixed by Claude**:
+  - Missing `BuildCopyVersionPayload` import → added to imports
+  - 4x implicit `any` type on `version` parameters → added explicit type annotations
+- **Handlers Implemented**:
+  - `handleBuildRead` - Retrieve deliverable with version support
+  - `handleBuildList` - List all versions with metadata
+  - `handleBuildEdit` - Create new version with validation
+  - `handleBuildSetCurrent` - Update active version
+  - `handleBuildDelete` - Remove entire deliverable
+  - `handleBuildDeleteVersion` - Remove specific version
+  - `handleBuildRerun` - Regenerate deliverable
+  - `handleBuildMergeVersions` - Combine multiple versions
+  - `handleBuildCopyVersion` - Duplicate a version
+  - Plus 3 validation/metadata helpers
+- **Awaiting**:
+  - Codex to create `build.handlers.spec.ts` with 12+ tests
+  - Claude to execute, fix, and commit when tests pass
 
 ---
 
