@@ -626,9 +626,16 @@ export async function handlePlanMergeVersions(
       request,
     );
 
+    const planFormat = resolvePlanFormat(definition);
     const mergeResult = await services.plansService.executeAction(
       'merge_versions',
-      payload,
+      {
+        versionIds: payload.versionIds,
+        mergePrompt: payload.mergePrompt,
+        planStructure: definition.planStructure ?? null,
+        llmConfig: normalizeLlmConfig(definition.llm),
+        preferredFormat: planFormat,
+      },
       executionContext,
     );
 
@@ -640,13 +647,24 @@ export async function handlePlanMergeVersions(
     }
 
     const mergedVersion = serializePlanVersion(mergeResult.data.mergedVersion);
-    const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-      planMetadata: extractPlanMetadata(
-        mergeResult.data.mergedVersion?.content,
-      ),
-      mergedVersionId: mergedVersion?.id,
-      mergedVersionCount: payload.versionIds.length,
-    });
+    const llmMetadata = mergeResult.data.llmMetadata ?? null;
+    const planMetadata = extractPlanMetadata(
+      mergeResult.data.mergedVersion?.content,
+    );
+    const metadata = buildResponseMetadata(
+      llmMetadata
+        ? {
+            provider: llmMetadata.provider ?? '',
+            model: llmMetadata.model ?? '',
+            usage: normalizeUsage(llmMetadata.usage),
+          }
+        : (EMPTY_PLAN_METADATA as unknown as Record<string, unknown>),
+      {
+        planMetadata,
+        mergedVersionId: mergedVersion?.id,
+        mergedVersionCount: payload.versionIds.length,
+      },
+    );
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
@@ -1206,4 +1224,48 @@ function safeStringify(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+function normalizeLlmConfig(
+  llmConfig: AgentRuntimeDefinition['llm'] | undefined,
+): Record<string, unknown> | null {
+  if (!llmConfig) {
+    return null;
+  }
+
+  const provider =
+    typeof llmConfig.provider === 'string'
+      ? llmConfig.provider
+      : typeof llmConfig.raw?.provider === 'string'
+        ? llmConfig.raw.provider
+        : undefined;
+
+  const model =
+    typeof llmConfig.model === 'string'
+      ? llmConfig.model
+      : typeof llmConfig.raw?.model === 'string'
+        ? llmConfig.raw.model
+        : undefined;
+
+  const normalized: Record<string, unknown> = {};
+
+  if (provider) {
+    normalized.provider = provider;
+    normalized.providerName = provider;
+  }
+
+  if (model) {
+    normalized.model = model;
+    normalized.modelName = model;
+  }
+
+  if (typeof llmConfig.temperature === 'number') {
+    normalized.temperature = llmConfig.temperature;
+  }
+
+  if (typeof llmConfig.maxTokens === 'number') {
+    normalized.maxTokens = llmConfig.maxTokens;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : null;
 }
