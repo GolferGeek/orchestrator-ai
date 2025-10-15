@@ -34,6 +34,12 @@ export interface Agent {
   execution_modes?: string[];
   execution_profile?: AgentExecutionProfile;
   execution_capabilities?: AgentExecutionCapabilities;
+  plan_structure?: Record<string, any> | null;
+  deliverable_structure?: Record<string, any> | null;
+  io_schema?: {
+    input?: Record<string, any>;
+    output?: Record<string, any>;
+  } | null;
 }
 
 export interface ConversationPlanRecord {
@@ -159,6 +165,7 @@ export interface AgentConversation {
   title: string;
   isLoading: boolean;
   isSendingMessage: boolean;
+  activeTaskId?: string | null;
 }
 export type ExecutionMode = 'immediate' | 'polling' | 'websocket';
 export interface TaskExecutionOptions {

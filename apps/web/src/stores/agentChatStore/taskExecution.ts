@@ -26,6 +26,19 @@ export class TaskExecutionService {
       handlers.onPlaceholder(taskId, options.mode);
     }
 
+    const mode = options.mode || 'converse';
+    const params: Record<string, any> = {
+      mode,
+    };
+
+    if (mode === 'plan') {
+      params.payload = { action: 'create' };
+    } else if (mode === 'build') {
+      params.payload = { action: 'create' };
+    } else {
+      params.payload = {};
+    }
+
     const task = await tasksService.createAgentTask(
       options.agentType,
       options.agentName,
@@ -40,11 +53,7 @@ export class TaskExecutionService {
         timeoutSeconds:
           options.timeoutSeconds ??
           (options.mode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60),
-        params: {
-          mode: options.mode || 'converse',
-          quick: options.mode === 'converse' ? true : undefined,
-          noDeliverable: options.mode === 'converse' ? true : undefined,
-        },
+        params,
         metadata: options.metadata,
       },
       { namespace: options.agentNamespace ?? null },

@@ -244,26 +244,53 @@ class TasksService {
     const url = `/agent-to-agent/${namespace}/${agentName}/tasks`;
     
     // Transform to JSON-RPC 2.0 format (A2A protocol compliant)
+    const paramsInput = taskData.params || {};
+    const {
+      mode: requestedMode,
+      payload: modePayload,
+      promptParameters,
+      ...extraParams
+    } = paramsInput;
+
+    const mergedPayload = {
+      ...(modePayload || {}),
+      ...extraParams,
+    };
+
+    if (taskData.llmSelection) {
+      mergedPayload.llmSelection = taskData.llmSelection;
+    }
+    if (taskData.executionMode) {
+      mergedPayload.executionMode = taskData.executionMode;
+    }
+    if (taskData.taskId) {
+      mergedPayload.taskId = taskData.taskId;
+    }
+    if (typeof taskData.timeoutSeconds === 'number') {
+      mergedPayload.timeoutSeconds = taskData.timeoutSeconds;
+    }
+
+    const paramsBody: Record<string, any> = {
+      conversationId: taskData.conversationId,
+      userMessage: taskData.prompt,
+      messages: taskData.conversationHistory?.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      mode: requestedMode ?? taskData.method,
+      payload: mergedPayload,
+      metadata: taskData.metadata,
+    };
+
+    if (promptParameters) {
+      paramsBody.promptParameters = promptParameters;
+    }
+
     const payload = {
       jsonrpc: '2.0',
       method: taskData.method,
       id: taskData.taskId, // Use taskId as JSON-RPC id
-      params: {
-        conversationId: taskData.conversationId,
-        userMessage: taskData.prompt,
-        messages: taskData.conversationHistory?.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-        payload: {
-          ...(taskData.params || {}),
-          llmSelection: taskData.llmSelection,
-          executionMode: taskData.executionMode,
-          taskId: taskData.taskId,
-          timeoutSeconds: taskData.timeoutSeconds,
-        },
-        metadata: taskData.metadata,
-      },
+      params: paramsBody,
     };
     
     console.log('🚀 Sending A2A JSON-RPC 2.0 request:', {
@@ -272,6 +299,7 @@ class TasksService {
       method: payload.method,
       id: payload.id,
       conversationId: payload.params.conversationId,
+      mode: payload.params.mode,
     });
 
     const response = await apiService.post(url, payload);

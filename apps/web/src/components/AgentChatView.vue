@@ -1,5 +1,10 @@
 <template>
   <div class="agent-chat-view">
+    <ChatHeader>
+      <template #controls>
+        <ChatModeControl />
+      </template>
+    </ChatHeader>
     <!-- Loading State -->
     <div v-if="isLoading" class="loading-state">
       <ion-spinner />
@@ -54,29 +59,17 @@
       </div>
     </div>
     <!-- Typing Indicator -->
-    <!-- Conversational/Planning thinking bubble -->
-    <div v-if="isSendingMessage && (chatMode === 'converse' || chatMode === 'plan')" class="prominent-thinking-indicator">
-      <div class="thinking-content">
-        <div class="thinking-avatar">
-          <ion-spinner name="dots" color="primary"></ion-spinner>
-        </div>
-        <div class="thinking-bubble">
-          <div class="thinking-text">
-            <div class="agent-thinking-name">{{ currentAgent?.name || 'Agent' }}</div>
-            <div class="thinking-message">{{ thinkingMessage }}</div>
-          </div>
-          <div class="thinking-dots">
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Default typing indicator for non-converse modes -->
-    <div v-else-if="isSendingMessage" class="typing-indicator">
-      <ion-spinner size="small" />
-      <span>Processing...</span>
+    <div v-if="isSendingMessage" class="mode-loading-indicator">
+      <ion-spinner name="dots" />
+      <span>{{ loadingMessage }}</span>
+      <ion-button
+        v-if="showCancelButton"
+        size="small"
+        fill="outline"
+        @click="cancelCurrentOperation"
+      >
+        Cancel
+      </ion-button>
     </div>
   </div>
 </template>
@@ -91,7 +84,6 @@ import {
 } from '@ionic/vue';
 import {
   alertCircleOutline,
-  sendOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
@@ -101,6 +93,9 @@ import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import SpeechButton from './SpeechButton.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
+import ChatHeader from './ChatHeader.vue';
+import ChatModeControl from './ChatModeControl.vue';
+import { useModeSwitchShortcuts } from '@/composables/useKeyboardShortcuts';
 import type { AgentChatMode } from '@/stores/agentChatStore/types';
 // Define emits
 interface Props {
@@ -110,6 +105,7 @@ const props = defineProps<Props>();
 // Stores
 const agentChatStore = useAgentChatStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
+useModeSwitchShortcuts(agentChatStore);
 
 // TTS is now handled directly in AgentTaskItem components
 
@@ -136,14 +132,13 @@ const canSend = computed(() =>
   messageText.value.trim().length > 0 && currentAgent.value && !isSendingMessage.value
 );
 const chatMode = computed(() => agentChatStore.getActiveChatMode());
-
-// Informal thinking message for converse/plan
-const thinkingMessage = computed(() => {
+const loadingMessage = computed(() => {
   const mode = (chatMode.value || '').toLowerCase();
-  if (mode === 'converse') return 'One sec — thinking it through…';
-  if (mode === 'plan') return 'Sketching a quick plan…';
-  return 'Processing…';
+  if (mode === 'plan') return 'Creating plan...';
+  if (mode === 'build') return 'Building deliverable...';
+  return 'Agent is typing...';
 });
+const showCancelButton = computed(() => chatMode.value === 'build');
 
 const conversationId = computed(() => 
   props.conversation?.id || agentChatStore.getActiveConversation()?.id
@@ -199,6 +194,14 @@ const handleSpeechError = (error: string) => {
   console.error('Speech error:', error);
   // You could show a toast or other error handling here
 };
+
+const cancelCurrentOperation = async () => {
+  try {
+    await agentChatStore.cancelCurrentOperation();
+  } catch (error) {
+    console.error('Failed to cancel current operation', error);
+  }
+};
 // Watch for new messages to auto-scroll
 watch(() => messages.value.length, () => {
   scrollToBottom();
@@ -249,15 +252,6 @@ watch(() => conversationId.value, (newConversationId, oldConversationId) => {
   flex-direction: column;
   height: 100%;
   background: var(--ion-background-color);
-}
-.controls-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 8px 16px;
-  background: var(--ion-color-step-25);
-  border-bottom: 1px solid var(--ion-color-step-100);
-  min-height: 48px;
 }
 .loading-state,
 .error-state {
@@ -325,80 +319,23 @@ watch(() => conversationId.value, (newConversationId, oldConversationId) => {
   gap: 8px;
   align-items: center;
 }
-.typing-indicator {
+.mode-loading-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  font-size: 0.9em;
-  color: var(--ion-color-medium);
-}
-/* Prominent thinking indicator (converse mode) */
-.prominent-thinking-indicator {
-  margin-bottom: 16px;
-  padding: 0 16px;
-}
-.thinking-content {
-  display: flex;
-  align-items: flex-start;
   gap: 12px;
-}
-.thinking-avatar {
-  width: 32px;
-  height: 32px;
-  background-color: var(--ion-color-medium-tint);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.thinking-bubble {
-  background: var(--ion-color-light-shade);
   padding: 12px 16px;
-  border-radius: 16px;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  flex: 1;
-  max-width: 300px;
-}
-.thinking-text {
-  margin-bottom: 8px;
-}
-.agent-thinking-name {
-  font-size: 0.8em;
-  font-weight: bold;
-  color: var(--ion-color-medium-shade);
-  margin-bottom: 2px;
-}
-.thinking-message {
   font-size: 0.9em;
   color: var(--ion-color-medium);
-  font-style: italic;
+  border-top: 1px solid var(--ion-color-step-100);
+  background: var(--ion-color-step-25);
 }
-.thinking-dots {
-  display: flex;
-  gap: 4px;
-  justify-content: flex-start;
+
+.mode-loading-indicator ion-spinner {
+  --spinner-width: 20px;
+  --spinner-height: 20px;
 }
-.dot {
-  width: 6px;
-  height: 6px;
-  background-color: var(--ion-color-medium);
-  border-radius: 50%;
-  animation: thinking-pulse 1.4s infinite ease-in-out;
-}
-.dot:nth-child(1) { animation-delay: -0.32s; }
-.dot:nth-child(2) { animation-delay: -0.16s; }
-.dot:nth-child(3) { animation-delay: 0s; }
-@keyframes thinking-pulse {
-  0%, 80%, 100% { 
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-  40% { 
-    transform: scale(1);
-    opacity: 1;
-  }
+
+.mode-loading-indicator ion-button {
+  margin-left: auto;
 }
 </style>

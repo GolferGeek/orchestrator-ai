@@ -459,6 +459,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         if (!allowed.includes(mode)) {
           return;
         }
+        if (mode === 'plan' && !conv.agent?.plan_structure) {
+          return;
+        }
         conv.chatMode = mode;
       }
     },
@@ -469,7 +472,13 @@ export const useAgentChatStore = defineStore('agentChat', {
         return mode === DEFAULT_CHAT_MODES[0];
       }
       const allowed = conv.allowedChatModes?.length ? conv.allowedChatModes : DEFAULT_CHAT_MODES;
-      return allowed.includes(mode);
+      if (!allowed.includes(mode)) {
+        return false;
+      }
+      if (mode === 'plan' && !conv.agent?.plan_structure) {
+        return false;
+      }
+      return true;
     },
 
     /**
@@ -489,6 +498,39 @@ export const useAgentChatStore = defineStore('agentChat', {
         return null;
       }
       return this.pendingAction;
+    },
+
+    async cancelCurrentOperation(): Promise<void> {
+      const conversation = this.getActiveConversation();
+      if (!conversation) {
+        return;
+      }
+
+      const taskId = conversation.activeTaskId;
+      if (!taskId) {
+        return;
+      }
+
+      try {
+        await tasksService.cancelTask(taskId);
+      } catch (error) {
+        console.error('Failed to cancel agent task', error);
+      } finally {
+        conversation.isSendingMessage = false;
+        conversation.activeTaskId = null;
+        const placeholder = [...conversation.messages]
+          .reverse()
+          .find(message => message.taskId === taskId && message.metadata?.isPlaceholder);
+
+        if (placeholder) {
+          placeholder.content = 'Cancellation requested. Waiting for agent to acknowledge...';
+          placeholder.metadata = {
+            ...(placeholder.metadata || {}),
+            isCancelled: true,
+            isCompleted: false,
+          };
+        }
+      }
     },
 
     /**
@@ -1534,6 +1576,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       const modeString = typeof mode === 'string' ? mode : undefined;
       const placeholderMessage = messageFormatting.createPlaceholderMessage(taskId, modeString);
       conv.messages.push(placeholderMessage);
+      conv.activeTaskId = taskId;
     },
 
     /**
@@ -1583,6 +1626,10 @@ export const useAgentChatStore = defineStore('agentChat', {
         return;
       }
 
+      if (taskId && conv.activeTaskId === taskId) {
+        conv.activeTaskId = null;
+      }
+
       let existingMessage = conv.messages.find(msg => 
         msg.taskId === taskId && msg.role === 'assistant'
       );
@@ -1614,6 +1661,10 @@ export const useAgentChatStore = defineStore('agentChat', {
         if (!effectiveTaskId) {
           console.error('handleTaskCompletion called without a valid taskId; aborting to avoid /tasks/undefined');
           return;
+        }
+
+        if (conv.activeTaskId === effectiveTaskId) {
+          conv.activeTaskId = null;
         }
 
         // Retry mechanism for database timing issues (task not yet committed)

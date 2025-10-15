@@ -386,6 +386,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
         }
       }
 
+
       console.log('🔍 [ConversationService.updateConversationExecutionModes] Final allowedChatModes:', allowedChatModes);
       conversation.allowedChatModes = allowedChatModes;
       if (!allowedChatModes.includes(conversation.chatMode)) {
@@ -466,6 +467,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       orchestrationRuns: [],
       savedOrchestrations: [],
       streamSubscriptions: {},
+      activeTaskId: null,
     };
   }
 
