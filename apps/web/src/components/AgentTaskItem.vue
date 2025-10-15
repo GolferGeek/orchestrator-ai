@@ -170,13 +170,13 @@
       <!-- Agent avatar removed for more space -->
   </div>
     
-    <!-- Smart CTAs: Plan / Build (assistant messages only, no deliverable shown) -->
-    <div v-if="message.role === 'assistant' && !willHideForDeliverable && (suggestsPlan || suggestsBuild)" class="smart-cta-bar">
-      <ion-chip v-if="suggestsPlan" color="primary" outline @click="handlePlanNow">
-        Plan It
+    <!-- Smart CTAs: Plan / Build (assistant messages only) -->
+    <div v-if="message.role === 'assistant'" class="smart-cta-bar">
+      <ion-chip v-if="chatStore.isModeAllowed('plan')" color="primary" outline @click="handlePlanNow">
+        Plan
       </ion-chip>
-      <ion-chip v-if="suggestsBuild" color="success" outline @click="handleBuildNow">
-        Build It
+      <ion-chip v-if="chatStore.isModeAllowed('build')" color="success" outline @click="handleBuildNow">
+        Build
       </ion-chip>
     </div>
 
@@ -1769,5 +1769,24 @@ html[data-theme="dark"] .callout-action ion-button {
   font-size: 0.8em;
   color: var(--ion-color-medium-shade);
   opacity: 0.8;
+}
+
+/* Smart CTA Bar */
+.smart-cta-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  margin-left: 44px; /* Align with agent message content */
+  padding: 4px 0;
+}
+
+.smart-cta-bar ion-chip {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.smart-cta-bar ion-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>

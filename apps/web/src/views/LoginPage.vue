@@ -54,8 +54,8 @@ const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 // Prefill with demo credentials for the playground
-const DEMO_EMAIL = 'demo.user@playground.com';
-const DEMO_PASSWORD = 'demouser';
+const DEMO_EMAIL = 'demo.user@orchestratorai.io';
+const DEMO_PASSWORD = 'DemoUser123!';
 
 const email = ref(DEMO_EMAIL);
 const password = ref(DEMO_PASSWORD);

@@ -592,7 +592,6 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     request: TaskRequestDto,
   ): Record<string, unknown> {
     const config: Record<string, unknown> = {
-      ...(definition.llm ?? {}),
       conversationId,
       sessionId: request.sessionId,
       userId,
@@ -603,25 +602,28 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       stream: false,
     };
 
-    if (
-      payload.rerunConfig?.provider &&
-      payload.rerunConfig.provider.trim().length > 0
-    ) {
-      config.provider = payload.rerunConfig.provider.trim();
+    // Extract provider and model from payload (from frontend store)
+    const payloadAny = payload as any;
+    const providerName = payloadAny.currentProvider ?? payload.rerunConfig?.provider;
+    const modelName = payloadAny.currentModel ?? payload.rerunConfig?.model;
+
+    if (providerName && providerName.trim().length > 0) {
+      config.providerName = providerName.trim();
     }
 
-    if (
-      payload.rerunConfig?.model &&
-      payload.rerunConfig.model.trim().length > 0
-    ) {
-      config.model = payload.rerunConfig.model.trim();
+    if (modelName && modelName.trim().length > 0) {
+      config.modelName = modelName.trim();
     }
 
-    if (typeof payload.rerunConfig?.temperature === 'number') {
+    if (typeof payloadAny.temperature === 'number') {
+      config.temperature = payloadAny.temperature;
+    } else if (typeof payload.rerunConfig?.temperature === 'number') {
       config.temperature = payload.rerunConfig.temperature;
     }
 
-    if (typeof payload.rerunConfig?.maxTokens === 'number') {
+    if (typeof payloadAny.maxTokens === 'number') {
+      config.maxTokens = payloadAny.maxTokens;
+    } else if (typeof payload.rerunConfig?.maxTokens === 'number') {
       config.maxTokens = payload.rerunConfig.maxTokens;
     }
 

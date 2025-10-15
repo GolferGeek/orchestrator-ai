@@ -258,7 +258,19 @@ class TasksService {
     };
 
     if (taskData.llmSelection) {
-      mergedPayload.llmSelection = taskData.llmSelection;
+      // Extract provider and model from llmSelection
+      if (taskData.llmSelection.providerName) {
+        mergedPayload.currentProvider = taskData.llmSelection.providerName;
+      }
+      if (taskData.llmSelection.modelName) {
+        mergedPayload.currentModel = taskData.llmSelection.modelName;
+      }
+      if (taskData.llmSelection.temperature !== undefined) {
+        mergedPayload.temperature = taskData.llmSelection.temperature;
+      }
+      if (taskData.llmSelection.maxTokens !== undefined) {
+        mergedPayload.maxTokens = taskData.llmSelection.maxTokens;
+      }
     }
     if (taskData.executionMode) {
       mergedPayload.executionMode = taskData.executionMode;

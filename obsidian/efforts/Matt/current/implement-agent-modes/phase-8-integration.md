@@ -284,7 +284,70 @@ Test complete end-to-end workflows with real UI interacting with backend APIs. V
 
 ---
 
-### Test 10: Cross-Browser Testing
+### Test 10: E2E - Deliverable Editing Workflow
+**Assignee**: Claude
+**Status**: ⬜ Not Started
+
+**Description**: Test editing and updating deliverables
+
+**Test Steps**:
+1. Create deliverable via Build mode
+2. Click "Edit" button on deliverable
+3. Modify content in edit mode
+4. Save changes
+5. Verify updated content displayed
+6. Test multiple edit cycles
+7. Test cancel edit (discard changes)
+8. Verify version history (if implemented)
+
+**Expected Results**:
+- Edit mode opens correctly
+- Changes save properly
+- UI updates in real-time
+- Cancel works without saving
+- Version tracking works
+
+**Actual Results**:
+
+
+**Status**: ⬜ Pass / ⬜ Fail
+
+**Notes**:
+
+
+---
+
+### Test 11: E2E - Deliverable Collaboration
+**Assignee**: Claude
+**Status**: ⬜ Not Started
+
+**Description**: Test multiple users editing same deliverable
+
+**Test Steps**:
+1. User A creates deliverable
+2. User B opens same conversation
+3. User B tries to edit deliverable
+4. Verify conflict handling
+5. Test real-time updates between users
+6. Test edit locks/prevention
+
+**Expected Results**:
+- Clear conflict resolution
+- Real-time sync between users
+- No data loss
+- Clear indication of who's editing
+
+**Actual Results**:
+
+
+**Status**: ⬜ Pass / ⬜ Fail
+
+**Notes**:
+
+
+---
+
+### Test 12: Cross-Browser Testing
 **Assignee**: Claude
 **Status**: ⬜ Not Started
 
@@ -312,7 +375,7 @@ Test complete end-to-end workflows with real UI interacting with backend APIs. V
 
 ---
 
-### Test 11: Mobile Responsiveness
+### Test 13: Mobile Responsiveness
 **Assignee**: Claude
 **Status**: ⬜ Not Started
 
@@ -341,7 +404,7 @@ Test complete end-to-end workflows with real UI interacting with backend APIs. V
 
 ## Performance Testing
 
-### Test 12: Performance - Response Times
+### Test 14: Performance - Response Times
 **Assignee**: Claude
 **Status**: ⬜ Not Started
 
@@ -371,7 +434,7 @@ Test complete end-to-end workflows with real UI interacting with backend APIs. V
 
 ## Integration Test Summary
 
-**Total Tests**: 12
+**Total Tests**: 15
 **Passed**: 0
 **Failed**: 0
 **Blocked**: 0

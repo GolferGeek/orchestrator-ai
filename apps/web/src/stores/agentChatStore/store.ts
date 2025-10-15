@@ -586,26 +586,6 @@ export const useAgentChatStore = defineStore('agentChat', {
         return;
       }
 
-      if (mode === 'build' && activeConversation.latestPlanId) {
-        try {
-          analyticsService.trackEvent({
-            eventType: 'system',
-            category: 'chat',
-            action: 'orchestration_execute',
-            label: 'build_from_plan_cta',
-            properties: { conversationId, planId: activeConversation.latestPlanId },
-            context: { url: window.location.pathname, userAgent: navigator.userAgent },
-          });
-
-          await this.executeOrchestrationRun({
-            planId: activeConversation.latestPlanId,
-          });
-          activeConversation.isSendingMessage = false;
-          return;
-        } catch (error) {
-          console.error('Orchestration execution failed, falling back to legacy build:', error);
-        }
-      }
 
       // Use authStore.currentNamespace as source of truth for routing
       // (agent.namespace might be null even when user selected a namespace)
@@ -1084,26 +1064,6 @@ export const useAgentChatStore = defineStore('agentChat', {
           }
         }
 
-        if (chatMode === 'build' && activeConversation.latestPlanId) {
-          try {
-            analyticsService.trackEvent({
-              eventType: 'system',
-              category: 'chat',
-              action: 'orchestration_execute',
-              label: 'build_from_plan',
-              properties: { conversationId, planId: activeConversation.latestPlanId },
-              context: { url: window.location.pathname, userAgent: navigator.userAgent },
-            });
-
-            await this.executeOrchestrationRun({
-              planId: activeConversation.latestPlanId,
-            });
-            activeConversation.isSendingMessage = false;
-            return;
-          } catch (error) {
-            console.error('Orchestration execution failed, falling back to legacy build:', error);
-          }
-        }
 
         // Prepare task execution options
         // Ensure chatMode is a string to prevent JSON-RPC errors
@@ -1584,22 +1544,24 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     createResponseMessage(conversationId: string, task: any) {
       const conv = this.getConversationById(conversationId);
-      if (!conv) return;
-      
+      if (!conv) return null;
+
       // Check for duplicates
-      const existingResponse = conv.messages.find(msg => 
+      const existingResponse = conv.messages.find(msg =>
         msg.taskId === task.taskId && msg.role === 'assistant' && !msg.metadata?.isPlaceholder
       );
-      
+
       if (existingResponse) {
 
-        return;
+        return null;
       }
 
       const responseMessage = messageFormatting.createResponseMessage(conversationId, task);
       if (responseMessage) {
         conv.messages.push(responseMessage);
       }
+
+      return responseMessage;
     },
 
     /**
@@ -1911,6 +1873,11 @@ export const useAgentChatStore = defineStore('agentChat', {
           this.loadDeliverableInBackground(deliverableId, conversationId);
         }
 
+        // Load plan in background (non-blocking) - fire and forget
+        if (planId) {
+          this.loadPlanInBackground(conversationId);
+        }
+
         // If this is a plan response, extract and set the full plan data
         if (planId && parsedResponse?.result?.payload?.content?.plan) {
           const fullPlan = parsedResponse.result.payload.content.plan;
@@ -2112,7 +2079,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
           // Load the deliverable - Vue reactivity will update UI when this completes
           const newDeliverable = await deliverablesService.getDeliverable(deliverableId);
-          
+
           deliverablesStore.addDeliverable(newDeliverable);
 
           // Load conversation deliverables to ensure it shows up in lists
@@ -2122,6 +2089,31 @@ export const useAgentChatStore = defineStore('agentChat', {
           await deliverablesStore.loadDeliverableVersions(deliverableId);
 
         } catch (error) {
+          // Don't throw - this is background processing
+        }
+      })();
+    },
+
+    /**
+     * Load plan in background - non-blocking, UI will react when loaded
+     */
+    loadPlanInBackground(conversationId: string) {
+      // Fire and forget - don't await or block
+      (async () => {
+        try {
+          const { planActions } = await import('./planActions');
+
+          // Temporarily set active conversation ID to load the plan
+          const originalActiveId = this.activeConversationId;
+          this.activeConversationId = conversationId;
+
+          // Load the plan - Vue reactivity will update UI when this completes
+          await planActions.loadCurrentPlan.call(this);
+
+          // Restore original active conversation
+          this.activeConversationId = originalActiveId;
+        } catch (error) {
+          console.warn('⚠️ Failed to load plan in background:', error);
           // Don't throw - this is background processing
         }
       })();

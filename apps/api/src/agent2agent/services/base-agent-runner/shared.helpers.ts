@@ -298,13 +298,22 @@ export async function callLLM(
       ? config.provider
       : typeof config.providerName === 'string'
         ? config.providerName
-        : 'anthropic';
+        : null;
   const model =
     typeof config.model === 'string'
       ? config.model
       : typeof config.modelName === 'string'
         ? config.modelName
-        : undefined;
+        : null;
+
+  if (!provider || !model) {
+    throw new Error('LLM provider and model must be explicitly specified in the configuration');
+  }
+
+  // DEBUG: Log LLM configuration before processing
+  console.log('🔍 [DEBUG] callLLM - Input llmConfig:', JSON.stringify(llmConfig, null, 2));
+  console.log('🔍 [DEBUG] callLLM - Resolved provider:', provider);
+  console.log('🔍 [DEBUG] callLLM - Resolved model:', model);
 
   const temperature =
     typeof config.temperature === 'number' ? config.temperature : undefined;
