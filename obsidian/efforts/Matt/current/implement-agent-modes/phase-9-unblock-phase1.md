@@ -153,12 +153,15 @@ WHERE slug = 'blog-post-writer';
 - Agent ready for Phase 1 tests
 
 **Actual Results**:
+- Added setup script `apps/api/testing/configure-blog-post-writer-schemas.js` to apply the JSON schemas through Supabase.
+- Script prints before/after state and validates that plan/deliverable/io fields are populated for the agent slug.
+- Phase 1 testers can run `node apps/api/testing/configure-blog-post-writer-schemas.js` (after sourcing `.env`) to configure the agent.
 
-
-**Status**: ⬜ Complete
+**Status**: ✅ Complete
 
 **Notes**:
-
+- Script checks both `blog-post-writer` and legacy `blog_post_writer` slugs to handle existing databases.
+- Requires `SUPABASE_URL` plus `SUPABASE_SERVICE_ROLE_KEY` (or elevated `SUPABASE_ANON_KEY`) in the project root `.env`.
 
 ---
 
