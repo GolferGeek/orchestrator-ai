@@ -1,3 +1,4 @@
+import Ajv from 'ajv';
 import {
   Injectable,
   Logger,
@@ -232,15 +233,27 @@ export class PlanVersionsService {
   }
 
   /**
-   * Merge multiple versions into a new version
-   * TODO: Integrate with LLM service for intelligent merging
+   * Merge multiple versions into a new version using LLM assistance.
    */
   async mergeVersions(
     planId: string,
     userId: string,
     versionIds: string[],
     mergePrompt: string,
-  ): Promise<{ newVersion: PlanVersion; conflictSummary?: string }> {
+    options?: {
+      planStructure?: unknown;
+      llmConfig?: Record<string, unknown> | null;
+      preferredFormat?: 'markdown' | 'json' | 'text';
+    },
+  ): Promise<{
+    newVersion: PlanVersion;
+    conflictSummary?: string;
+    llmMetadata?: {
+      provider?: string;
+      model?: string;
+      usage?: Record<string, any>;
+    };
+  }> {
     // Verify plan exists
     const plan = await this.plansRepo.findById(planId, userId);
     if (!plan) {
@@ -248,7 +261,7 @@ export class PlanVersionsService {
     }
 
     // Validate that we have at least 2 versions to merge
-    if (versionIds.length < 2) {
+    if (!Array.isArray(versionIds) || versionIds.length < 2) {
       throw new BadRequestException(
         'At least 2 versions are required for merging',
       );
@@ -259,6 +272,12 @@ export class PlanVersionsService {
       versionIds.map((id) => this.findOne(id, userId)),
     );
 
+    if (versions.length !== versionIds.length) {
+      throw new BadRequestException(
+        'One or more plan versions could not be loaded for merging',
+      );
+    }
+
     // Verify all versions belong to the same plan
     for (const version of versions) {
       if (version.planId !== planId) {
@@ -268,29 +287,109 @@ export class PlanVersionsService {
       }
     }
 
-    // TODO: Integrate with LLM service for intelligent merging
-    // For now, concatenate with markers
-    const mergedContent = versions
-      .map((v, i) => `=== VERSION ${v.versionNumber} ===\n${v.content}`)
-      .join('\n\n');
+    const normalizedPlanStructure = this.normalizePlanStructure(
+      options?.planStructure,
+    );
+    const targetFormat = this.resolveTargetFormat(
+      versions,
+      options?.preferredFormat,
+      normalizedPlanStructure,
+    );
+    const llmConfig = this.normalizeLlmConfig(options?.llmConfig);
+    const systemPrompt = this.buildMergeSystemPrompt(targetFormat);
+    const userMessage = this.buildMergeUserMessage(
+      versions,
+      mergePrompt,
+      normalizedPlanStructure,
+      targetFormat,
+    );
 
-    const finalContent = `${mergedContent}\n\n=== MERGE INSTRUCTIONS ===\n${mergePrompt}\n\n[TODO: This will be replaced with LLM-generated merged content]`;
+    let llmResponseContent: string;
+    let llmResponseMetadata:
+      | {
+          provider?: string;
+          model?: string;
+          usage?: Record<string, any>;
+        }
+      | undefined;
+
+    try {
+      const response = await this.llmService.generateUnifiedResponse({
+        provider: llmConfig.provider,
+        model: llmConfig.model,
+        systemPrompt,
+        userMessage,
+        options: {
+          temperature: llmConfig.temperature,
+          maxTokens: llmConfig.maxTokens,
+          userId,
+          callerType: 'plan_merge',
+          callerName: `plan_merge_${plan.id}`,
+          conversationId: plan.conversation_id,
+          includeMetadata: true,
+        },
+      });
+
+      if (typeof response === 'string') {
+        llmResponseContent = response;
+        llmResponseMetadata = {
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+        };
+      } else {
+        llmResponseContent = response.content;
+        llmResponseMetadata = {
+          provider: response.metadata?.provider ?? llmConfig.provider,
+          model: response.metadata?.model ?? llmConfig.model,
+          usage: response.metadata?.usage ?? undefined,
+        };
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to merge plan versions with LLM: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new BadRequestException(
+        `Failed to merge plan versions: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+    }
+
+    const normalizedContent = this.normalizeMergedContent(
+      llmResponseContent,
+      targetFormat,
+      normalizedPlanStructure,
+    );
 
     // Create new version with merged content
     const newVersion = await this.createVersion(planId, userId, {
-      content: finalContent,
-      format: versions[0]?.format || 'markdown',
+      content: normalizedContent.content,
+      format: normalizedContent.format,
       createdByType: 'agent',
       metadata: {
         mergedFromVersionIds: versionIds,
         mergePrompt,
         mergedAt: new Date().toISOString(),
+        mergeStrategy: 'llm',
+        llmMergeInfo: {
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+          temperature: llmConfig.temperature,
+          maxTokens: llmConfig.maxTokens,
+        },
+        llmMetadata: llmResponseMetadata,
+        planStructureApplied: Boolean(normalizedPlanStructure),
+        targetFormat: normalizedContent.format,
       },
     });
 
     return {
       newVersion,
-      conflictSummary: `Merged ${versions.length} versions. LLM integration pending.`,
+      conflictSummary: `Merged ${versions.length} versions using ${llmConfig.provider}/${llmConfig.model}`,
+      llmMetadata: llmResponseMetadata,
     };
   }
 
@@ -309,6 +408,237 @@ export class PlanVersionsService {
       isCurrentVersion: data.is_current_version,
       createdAt: new Date(data.created_at),
     };
+  }
+
+  private normalizePlanStructure(value: unknown): Record<string, any> | null {
+    if (!value) {
+      return null;
+    }
+
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse planStructure string: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        return null;
+      }
+    }
+
+    if (typeof value === 'object') {
+      return value as Record<string, any>;
+    }
+
+    return null;
+  }
+
+  private resolveTargetFormat(
+    versions: PlanVersion[],
+    preferred?: 'markdown' | 'json' | 'text',
+    planStructure?: Record<string, any> | null,
+  ): 'markdown' | 'json' | 'text' {
+    if (preferred) {
+      return preferred;
+    }
+
+    if (planStructure) {
+      return 'json';
+    }
+
+    const formats = versions.map((version) => version.format);
+    if (formats.includes('json')) {
+      return 'json';
+    }
+    if (formats.includes('markdown')) {
+      return 'markdown';
+    }
+    return 'text';
+  }
+
+  private normalizeLlmConfig(
+    llmConfig: Record<string, unknown> | null | undefined,
+  ): {
+    provider: string;
+    model: string;
+    temperature?: number;
+    maxTokens?: number;
+  } {
+    const providerCandidates = [
+      (llmConfig?.provider as string | undefined) ?? null,
+      (llmConfig?.providerName as string | undefined) ?? null,
+    ].filter((candidate): candidate is string => Boolean(candidate));
+
+    const provider = (providerCandidates[0] ?? 'anthropic').toLowerCase();
+
+    const modelCandidates = [
+      llmConfig?.model as string | undefined,
+      llmConfig?.modelName as string | undefined,
+    ].filter((candidate): candidate is string => Boolean(candidate));
+
+    const model =
+      modelCandidates[0] ?? this.getDefaultModelForProvider(provider);
+
+    const temperature =
+      typeof llmConfig?.temperature === 'number'
+        ? llmConfig.temperature
+        : undefined;
+    const maxTokens =
+      typeof llmConfig?.maxTokens === 'number'
+        ? llmConfig.maxTokens
+        : undefined;
+
+    return {
+      provider,
+      model,
+      temperature,
+      maxTokens,
+    };
+  }
+
+  private getDefaultModelForProvider(provider: string): string {
+    switch (provider?.toLowerCase()) {
+      case 'openai':
+        return 'gpt-4o-mini';
+      case 'google':
+        return 'gemini-1.5-pro';
+      case 'grok':
+        return 'grok-beta';
+      case 'ollama':
+        return 'llama3.1:latest';
+      case 'anthropic':
+      default:
+        return 'claude-3-5-sonnet-20241022';
+    }
+  }
+
+  private buildMergeSystemPrompt(
+    format: 'markdown' | 'json' | 'text',
+  ): string {
+    const base =
+      'You are an expert planning assistant. Merge multiple plan versions into a single cohesive plan that preserves the strongest ideas, resolves conflicts, and maintains clarity.';
+
+    if (format === 'json') {
+      return `${base} Respond with a single valid JSON object. Do not include code fences or commentary outside the JSON.`;
+    }
+
+    if (format === 'markdown') {
+      return `${base} Respond with well-structured Markdown using headings and bullet points where appropriate.`;
+    }
+
+    return `${base} Respond with clear, structured text.`;
+  }
+
+  private buildMergeUserMessage(
+    versions: PlanVersion[],
+    mergePrompt: string,
+    planStructure: Record<string, any> | null,
+    format: 'markdown' | 'json' | 'text',
+  ): string {
+    const header = `We have ${versions.length} plan versions that need to be merged into a single ${
+      format === 'json' ? 'JSON' : format
+    } plan. Each version includes the full plan content. Produce a merged plan that incorporates the best elements of each version while eliminating duplicates and contradictions.`;
+
+    const versionsSection = versions
+      .map(
+        (version, index) =>
+          `--- PLAN VERSION ${index + 1} (versionId: ${version.id}, number: ${version.versionNumber}) ---\n${version.content}`,
+      )
+      .join('\n\n');
+
+    const instructions = mergePrompt
+      ? `\n\nAdditional merge instructions:\n${mergePrompt}`
+      : '';
+
+    const structureHint = planStructure
+      ? `\n\nThe merged plan MUST conform to the following JSON schema:\n${JSON.stringify(planStructure, null, 2)}`
+      : '';
+
+    return `${header}\n\n${versionsSection}${instructions}${structureHint}\n\nReturn only the merged plan content.`;
+  }
+
+  private normalizeMergedContent(
+    rawContent: string,
+    format: 'markdown' | 'json' | 'text',
+    planStructure: Record<string, any> | null,
+  ): { content: string; format: 'markdown' | 'json' | 'text' } {
+    if (!rawContent || !rawContent.trim()) {
+      throw new BadRequestException('Merged plan content was empty');
+    }
+
+    if (format === 'json' || planStructure) {
+      const candidate = this.extractJsonCandidate(rawContent);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(candidate);
+      } catch (error) {
+        throw new BadRequestException(
+          `Merged plan is not valid JSON: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
+      }
+
+      if (planStructure) {
+        this.validateAgainstStructure(parsed, planStructure);
+      }
+
+      return {
+        content: JSON.stringify(parsed, null, 2),
+        format: 'json',
+      };
+    }
+
+    return {
+      content: rawContent.trim(),
+      format,
+    };
+  }
+
+  private extractJsonCandidate(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fencedMatch && fencedMatch[1]) {
+      return fencedMatch[1].trim();
+    }
+
+    return trimmed;
+  }
+
+  private validateAgainstStructure(
+    content: any,
+    schema: Record<string, any>,
+  ): void {
+    try {
+      const ajv = new Ajv({
+        allErrors: true,
+        strict: false,
+        allowUnionTypes: true,
+      });
+      const validate = ajv.compile(schema);
+      const valid = validate(content);
+      if (!valid) {
+        const message = ajv.errorsText(validate.errors, { separator: '; ' });
+        throw new BadRequestException(
+          `Merged plan does not match required schema: ${message}`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to validate merged plan against schema: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+    }
   }
 
   /**

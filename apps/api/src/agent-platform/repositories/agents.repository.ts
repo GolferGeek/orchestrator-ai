@@ -31,24 +31,36 @@ export class AgentsRepository {
 
   async upsert(payload: AgentUpsertInput): Promise<AgentRecord> {
     const client = this.getClient();
-    const rows = [
-      {
-        organization_slug: payload.organization_slug,
-        slug: payload.slug,
-        display_name: payload.display_name,
-        description: payload.description ?? null,
-        agent_type: payload.agent_type,
-        mode_profile: payload.mode_profile,
-        version: payload.version ?? null,
-        status: payload.status ?? null,
-        yaml: payload.yaml,
-        function_code: payload.function_code ?? null,
-        agent_card: payload.agent_card ?? null,
-        context: payload.context ?? null,
-        config: payload.config ?? null,
-        updated_at: new Date().toISOString(),
-      },
-    ];
+    const row: Record<string, any> = {
+      organization_slug: payload.organization_slug,
+      slug: payload.slug,
+      display_name: payload.display_name,
+      description: payload.description ?? null,
+      agent_type: payload.agent_type,
+      mode_profile: payload.mode_profile,
+      version: payload.version ?? null,
+      status: payload.status ?? null,
+      yaml: payload.yaml,
+      function_code: payload.function_code ?? null,
+      agent_card: payload.agent_card ?? null,
+      context: payload.context ?? null,
+      config: payload.config ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (payload.plan_structure !== undefined) {
+      row.plan_structure = payload.plan_structure;
+    }
+
+    if (payload.deliverable_structure !== undefined) {
+      row.deliverable_structure = payload.deliverable_structure;
+    }
+
+    if (payload.io_schema !== undefined) {
+      row.io_schema = payload.io_schema;
+    }
+
+    const rows = [row];
 
     const { data, error } = (await client
       .from(AGENTS_TABLE)

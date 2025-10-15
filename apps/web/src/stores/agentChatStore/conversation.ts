@@ -34,47 +34,31 @@ export class ConversationService {
   async createConversation(agent: Agent): Promise<string> {
     // Get organization slug from authStore - the canonical source of truth
     const authStore = useAuthStore();
-    const orgSlug = authStore.currentNamespace;
+    const orgSlug = authStore.currentNamespace || 'demo';
 
-    // Database agents have an organization slug (like 'my-org')
-    // File-based agents have type 'demo', 'specialist', etc.
-    const isDatabaseAgent = orgSlug && orgSlug !== 'demo';
-
+    // All agents now use the Agent2Agent conversation service
     console.log('🔍 [ConversationService.createConversation] Agent routing:', {
       agentName: agent.name,
       agentType: agent.type,
       orgSlug: orgSlug,
-      isDatabaseAgent,
-      approach: isDatabaseAgent ? 'agent2agent-service' : 'legacy-service'
+      approach: 'agent2agent-service'
     });
 
-    if (isDatabaseAgent) {
-      // Database agents: Use dedicated Agent2Agent conversation service
-      console.log('🚀 [ConversationService] Using Agent2Agent service for database agent');
-      const conversationId = generateUUID(); // Generate ID upfront
-      const backendConversation = await agent2AgentConversationsService.createConversation({
-        agentName: agent.name,
-        agentType: agent.type as AgentType, // Required for backend validation
-        organizationSlug: orgSlug!, // Use authStore.currentNamespace as canonical source
-        conversationId: conversationId, // Pass the generated ID
-        metadata: {
-          source: 'frontend',
-        },
-      });
+    // Use dedicated Agent2Agent conversation service for all agents
+    console.log('🚀 [ConversationService] Using Agent2Agent service');
+    const conversationId = generateUUID(); // Generate ID upfront
+    const backendConversation = await agent2AgentConversationsService.createConversation({
+      agentName: agent.name,
+      agentType: agent.type as AgentType, // Required for backend validation
+      organizationSlug: orgSlug, // Use authStore.currentNamespace as canonical source
+      conversationId: conversationId, // Pass the generated ID
+      metadata: {
+        source: 'frontend',
+      },
+    });
 
-      console.log('✅ [ConversationService.createConversation] Database agent - created:', backendConversation.id);
-      return backendConversation.id;
-    } else {
-      // File-based agents: Use existing flow with old service
-      console.log('🚀 [ConversationService] Using legacy service for file-based agent');
-      const backendConversation = await agentConversationsService.createConversation({
-        agentName: agent.name,
-        agentType: agent.type as AgentType,
-      });
-
-      console.log('✅ [ConversationService.createConversation] File-based agent - created:', backendConversation.id);
-      return backendConversation.id;
-    }
+    console.log('✅ [ConversationService.createConversation] Created conversation:', backendConversation.id);
+    return backendConversation.id;
   }
 
   /**
@@ -402,6 +386,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
         }
       }
 
+
       console.log('🔍 [ConversationService.updateConversationExecutionModes] Final allowedChatModes:', allowedChatModes);
       conversation.allowedChatModes = allowedChatModes;
       if (!allowedChatModes.includes(conversation.chatMode)) {
@@ -482,6 +467,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       orchestrationRuns: [],
       savedOrchestrations: [],
       streamSubscriptions: {},
+      activeTaskId: null,
     };
   }
 

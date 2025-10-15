@@ -17,6 +17,12 @@ export interface Agent {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  plan_structure?: Record<string, any> | null;
+  deliverable_structure?: Record<string, any> | null;
+  io_schema?: {
+    input?: Record<string, any>;
+    output?: Record<string, any>;
+  } | null;
 }
 
 export interface AgentCapability {

@@ -6,6 +6,10 @@ import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agen
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { LLMService } from '@llm/llm.service';
+import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
+import { PlansService } from '../plans/services/plans.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
 
 /**
  * External Agent Runner
@@ -47,9 +51,19 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly deliverablesService: DeliverablesService,
+    llmService: LLMService,
+    contextOptimization: ContextOptimizationService,
+    plansService: PlansService,
+    conversationsService: Agent2AgentConversationsService,
+    deliverablesService: DeliverablesService,
   ) {
-    super();
+    super(
+      llmService,
+      contextOptimization,
+      plansService,
+      conversationsService,
+      deliverablesService,
+    );
   }
 
   /**
@@ -87,21 +101,11 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
   /**
    * BUILD mode - forward to external agent
    */
-  protected async handleBuild(
+  protected async executeBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    // Check for non-create actions (read, list, etc.)
-    const action = (request.payload as any)?.action;
-    if (action && action !== 'create') {
-      return await this.handleBuildAction(
-        definition,
-        request,
-        organizationSlug,
-      );
-    }
-
     return await this.forwardToExternalAgent(
       definition,
       request,
@@ -224,6 +228,8 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
 
       // 6. If BUILD mode and successful, save deliverable
       if (mode === AgentTaskMode.BUILD && a2aResponse.success) {
+        const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
+
         const deliverableResult = await this.deliverablesService.executeAction(
           'create',
           {
@@ -233,6 +239,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
             content: JSON.stringify(a2aResponse.payload?.content, null, 2),
             format: definition.config?.deliverable?.format || 'json',
             type: definition.config?.deliverable?.type || 'external-response',
+            deliverableId: targetDeliverableId ?? undefined,
             agentName: definition.slug,
             namespace: organizationSlug || 'default',
             taskId: taskId || undefined,
@@ -285,48 +292,4 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
     }
   }
 
-  /**
-   * Handle non-create BUILD actions (read, list, etc.)
-   */
-  private async handleBuildAction(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    const action = (request.payload as any)?.action;
-    const userId = this.resolveUserId(request);
-    const conversationId = this.resolveConversationId(request);
-
-    if (!userId || !conversationId) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        'Missing required userId or conversationId',
-      );
-    }
-
-    // Route to DeliverablesService for non-create actions
-    const result = await this.deliverablesService.executeAction(
-      action,
-      request.payload,
-      {
-        conversationId,
-        userId,
-        agentSlug: definition.slug,
-      },
-    );
-
-    if (!result.success) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        result.error?.message || `Action ${action} failed`,
-      );
-    }
-
-    return TaskResponseDto.success(AgentTaskMode.BUILD, {
-      content: result.data,
-      metadata: this.buildMetadata(request, {
-        action,
-      }),
-    });
-  }
 }

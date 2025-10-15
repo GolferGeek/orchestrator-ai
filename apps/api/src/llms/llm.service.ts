@@ -142,6 +142,12 @@ export class LLMService {
         `🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`,
       );
     }
+    
+    // DEBUG: Log all options being passed to generateResponse
+    console.log('🔍 [DEBUG] LLMService.generateResponse - Full options:', JSON.stringify(options, null, 2));
+    console.log('🔍 [DEBUG] LLMService.generateResponse - providerName:', options?.providerName);
+    console.log('🔍 [DEBUG] LLMService.generateResponse - modelName:', options?.modelName);
+    
     try {
       // Debug LLM options being received
 

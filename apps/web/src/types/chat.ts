@@ -60,6 +60,12 @@ export interface AgentInfo {
     can_build: boolean;
     requires_human_gate: boolean;
   };
+  plan_structure?: Record<string, any> | null;
+  deliverable_structure?: Record<string, any> | null;
+  io_schema?: {
+    input?: Record<string, any>;
+    output?: Record<string, any>;
+  } | null;
   // capabilities?: string[]; // Example
 }
 // Corrected TaskCreationRequest for /agents/orchestrator/tasks

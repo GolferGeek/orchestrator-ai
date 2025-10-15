@@ -48,58 +48,79 @@ export class MessageFormattingService {
             // Format: { success: true, message: "content", metadata: {...} } (orchestrator format)
             responseContent = String(parsedResult.message);
             responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID if present
+            // Extract deliverable ID and plan ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           } else if (parsedResult.success && parsedResult.response) {
             // Format: { success: true, response: "content", metadata: {...}, deliverableId: "uuid" }
             responseContent = String(parsedResult.response);
             responseMetadata = parsedResult.metadata || {};
 
-            // Extract deliverable ID if present - THIS IS THE KEY FIX
+            // Extract deliverable ID and plan ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           } else if (parsedResult.success) {
             // Format: { success: true, response: "content", deliverableId: "..." } (current blog post format)
             responseContent = String(parsedResult.response || parsedResult.message || 'Success');
             responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID if present
+            // Extract deliverable ID and plan ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           } else if (parsedResult.message) {
             // Format: { message: "content" }
             responseContent = String(parsedResult.message);
             responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID if present
+            // Extract deliverable ID and plan ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           } else if (parsedResult.response) {
             // Format: { response: "content" }
             responseContent = String(parsedResult.response);
             responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID if present
+            // Extract deliverable ID and plan ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           } else if (parsedResult.content) {
             // Format: { content: "content" }
             responseContent = String(parsedResult.content);
             responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID if present
+            // Extract deliverable ID and plan ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           } else if (parsedResult.result) {
             // Format: { result: "content" }
             responseContent = String(parsedResult.result);
             responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID if present
+            // Extract deliverable ID and plan ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           } else if (typeof parsedResult === 'string') {
             // Format: "content"
@@ -107,9 +128,12 @@ export class MessageFormattingService {
           } else {
             // Fallback: stringify the whole object
             responseContent = JSON.stringify(parsedResult, null, 2);
-            // Still check for deliverable ID even in fallback case
+            // Still check for deliverable ID and plan ID even in fallback case
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
+            }
+            if (parsedResult.planId) {
+              responseMetadata.planId = parsedResult.planId;
             }
           }
         }
@@ -150,7 +174,7 @@ export class MessageFormattingService {
       }
     }
 
-    return {
+    const message: any = {
       id: `response-${Date.now()}`,
       role: 'assistant' as const,
       content: responseContent,
@@ -163,6 +187,16 @@ export class MessageFormattingService {
         ...responseMetadata,
       },
     };
+
+    // Set deliverableId and planId directly on the message if present in metadata
+    if (responseMetadata.deliverableId) {
+      message.deliverableId = responseMetadata.deliverableId;
+    }
+    if (responseMetadata.planId) {
+      message.planId = responseMetadata.planId;
+    }
+
+    return message;
   }
 
   /**

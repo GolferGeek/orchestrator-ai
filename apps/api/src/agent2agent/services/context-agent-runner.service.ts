@@ -1,12 +1,66 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BaseAgentRunner } from './base-agent-runner.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import type { BuildCreatePayload } from '@orchestrator-ai/transport-types/modes/build.types';
+import type {
+  DeliverableData,
+  DeliverableVersionData,
+} from '@orchestrator-ai/transport-types/shared/data-types';
+import { LLMService } from '@llm/llm.service';
+import { BaseAgentRunner } from './base-agent-runner.service';
+import {
+  buildDeliverableMetadata,
+  validateDeliverableSchema,
+  validateDeliverableStructure,
+} from './base-agent-runner/build.handlers';
+import {
+  buildResponseMetadata,
+  callLLM,
+  fetchConversationHistory,
+  optimizeContext,
+} from './base-agent-runner/shared.helpers';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
-import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
-import { LLMService } from '@llm/llm.service';
-import { PlansService } from '../plans/services/plans.service';
+import {
+  ContextOptimizationService,
+  ConversationMessage,
+} from '../context-optimization/context-optimization.service';
+import type { ActionExecutionContext } from '../common/interfaces/action-handler.interface';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { PlansService, type Plan } from '../plans/services/plans.service';
+import type { PlanVersion } from '../plans/services/plan-versions.service';
+
+type ExtendedBuildCreatePayload = BuildCreatePayload & {
+  content?: unknown;
+  deliverableId?: string;
+  rerunConfig?: {
+    provider?: string;
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+  };
+  rerunContext?: {
+    sourceVersion?: DeliverableVersionData | null;
+    deliverable?: DeliverableData | null;
+  };
+  mergeContext?: {
+    versionIds: string[];
+    mergePrompt: string;
+    sourceVersions?: DeliverableVersionData[];
+    deliverable?: DeliverableData | null;
+  };
+};
+
+type PlanContextSource = 'requested-version' | 'current' | 'none';
+
+interface BuildContextResult {
+  plan: Plan | null;
+  planVersion: PlanVersion | null;
+  planSource: PlanContextSource;
+  conversationHistory: ConversationMessage[];
+  optimizedHistory: ConversationMessage[];
+  error?: string;
+}
 
 /**
  * Context Agent Runner
@@ -55,349 +109,786 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
   protected readonly logger = new Logger(ContextAgentRunnerService.name);
 
   constructor(
-    private readonly contextOptimization: ContextOptimizationService,
-    private readonly llmService: LLMService,
-    private readonly plansService: PlansService,
-    private readonly deliverablesService: DeliverablesService,
+    contextOptimization: ContextOptimizationService,
+    llmService: LLMService,
+    plansService: PlansService,
+    conversationsService: Agent2AgentConversationsService,
+    deliverablesService: DeliverablesService,
   ) {
-    super();
-  }
-
-  /**
-   * CONVERSE mode - conversational interaction
-   * Context agents use default implementation from BaseAgentRunner
-   */
-  protected async handleConverse(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    // Context agents don't have special CONVERSE logic yet
-    // Return a simple response indicating this mode isn't fully implemented
-    return TaskResponseDto.failure(
-      AgentTaskMode.CONVERSE,
-      'CONVERSE mode not yet implemented for context agents',
-    );
-  }
-
-  /**
-   * PLAN mode - planning
-   * Context agents use default implementation from BaseAgentRunner
-   */
-  protected async handlePlan(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    // Context agents don't have special PLAN logic yet
-    // Return a simple response indicating this mode isn't fully implemented
-    return TaskResponseDto.failure(
-      AgentTaskMode.PLAN,
-      'PLAN mode not yet implemented for context agents',
+    super(
+      llmService,
+      contextOptimization,
+      plansService,
+      conversationsService,
+      deliverablesService,
     );
   }
 
   /**
    * BUILD mode - fetch context and generate deliverable with LLM
    */
-  protected async handleBuild(
+  protected async executeBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
+    const payload = (request.payload ?? {}) as ExtendedBuildCreatePayload;
+
     try {
-      // Check if this is a non-create action (read, list, edit)
-      const action = (request.payload as any)?.action || 'create';
-      if (action !== 'create') {
-        return this.handleBuildAction(
-          definition,
-          request,
-          organizationSlug,
-          action,
+      const userId = this.resolveUserId(request);
+      if (!userId) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          'User identity is required for build execution',
         );
       }
 
-      // Standard create action with LLM
-      this.logger.debug(
-        `Context agent ${definition.slug} executing BUILD mode (create action)`,
-      );
+      const conversationId = this.resolveConversationId(request);
+      if (!conversationId) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          'Conversation context is required for build execution',
+        );
+      }
+      request.conversationId = conversationId;
 
-      // 1. Fetch context from sources
-      const contextData = await this.fetchContextFromSources(
+      const taskId = this.resolveTaskId(request) ?? undefined;
+      const executionContext: ActionExecutionContext = {
+        conversationId,
+        userId,
+        agentSlug: definition.slug,
+        taskId,
+        metadata: request.metadata ?? {},
+      };
+
+      const requestedPlanVersionId =
+        typeof payload.planVersionId === 'string' &&
+        payload.planVersionId.trim().length > 0
+          ? payload.planVersionId.trim()
+          : null;
+
+      const buildContext = await this.gatherBuildContext(
         definition,
         request,
+        executionContext,
+        requestedPlanVersionId,
       );
 
-      // 2. Optimize context to token budget
-      const tokenBudget = definition.config?.context?.tokenBudget || 8000;
-      const optimizedContext = await this.contextOptimization.optimizeContext({
-        fullHistory: contextData.history || [],
-        conversationId: request.conversationId,
-        tokenBudget,
-      });
-
-      // 3. Build system prompt
-      const systemPrompt = this.buildSystemPrompt(definition, {
-        ...contextData,
-        history: optimizedContext,
-      });
-
-      // 4. Call LLM
-      const llmConfig = definition.llm || {};
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        request.userMessage || '',
-        {
-          temperature: llmConfig.temperature,
-          maxTokens: llmConfig.maxTokens,
-          provider: (llmConfig.provider || 'anthropic') as
-            | 'openai'
-            | 'anthropic'
-            | 'ollama'
-            | 'google',
-          conversationId: request.conversationId,
-          sessionId: request.sessionId,
-          userId: this.resolveUserId(request) || undefined,
-        } as any,
-      );
-
-      // 5. Save deliverable
-      const userId = this.resolveUserId(request);
-      const conversationId = this.resolveConversationId(request);
-      const taskId = this.resolveTaskId(request);
-
-      if (!userId || !conversationId) {
-        return TaskResponseDto.failure(
-          AgentTaskMode.BUILD,
-          'Missing required userId or conversationId for deliverable creation',
-        );
+      if (buildContext.error) {
+        return TaskResponseDto.failure(AgentTaskMode.BUILD, buildContext.error);
       }
 
-      const deliverableResult = await this.deliverablesService.executeAction(
-        'create',
-        {
-          title: (request.payload as any)?.title || 'Context Agent Output',
-          content: response.content,
-          format: definition.config?.deliverable?.format || 'markdown',
-          type: definition.config?.deliverable?.type || 'document',
-          agentName: definition.slug,
-          namespace: organizationSlug || 'default',
-          taskId: taskId || undefined,
-          metadata: {
-            llmProvider: response.metadata?.provider,
-            llmModel: response.metadata?.model,
-            usage: response.metadata?.usage,
-          },
-        },
-        {
+      const namespace = this.resolveNamespace(definition, organizationSlug);
+      const conversationForPrompt =
+        buildContext.optimizedHistory.length > 0
+          ? buildContext.optimizedHistory
+          : buildContext.conversationHistory;
+
+      const deliverableStructure = definition.deliverableStructure ?? null;
+      const outputSchema =
+        definition.ioSchema?.output ?? definition.ioSchema ?? null;
+
+      const systemPrompt = this.buildExecutionPrompt(definition, {
+        plan: buildContext.plan,
+        planVersion: buildContext.planVersion,
+        conversationHistory: conversationForPrompt,
+        deliverableStructure,
+        outputSchema,
+        rerunContext: payload.rerunContext ?? undefined,
+        mergeContext: payload.mergeContext ?? undefined,
+      });
+
+      const userMessage = this.resolveUserMessage(payload, request);
+
+      let finalContent: string | null = null;
+      const providedContent = this.normalizeDeliverableContent(
+        payload.content,
+      );
+      if (providedContent.trim().length > 0) {
+        finalContent = providedContent;
+      }
+
+      let llmMetadata: Record<string, unknown> | null = null;
+
+      if (!finalContent) {
+        const llmConfig = this.buildLlmConfig(
+          definition,
+          payload,
           conversationId,
           userId,
-          agentSlug: definition.slug,
-          taskId: taskId || undefined,
-        },
-      );
+          namespace,
+          request,
+        );
 
-      if (!deliverableResult.success) {
+        const llmResponse = await callLLM(
+          this.llmService,
+          llmConfig,
+          systemPrompt,
+          userMessage,
+          conversationForPrompt,
+        );
+
+        finalContent = this.normalizeDeliverableContent(llmResponse.content);
+        llmMetadata = (llmResponse.metadata as unknown as Record<string, unknown>) ?? null;
+      }
+
+      if (!finalContent || finalContent.trim().length === 0) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
-          deliverableResult.error?.message || 'Failed to create deliverable',
+          'Generated deliverable content was empty',
         );
       }
+
+      validateDeliverableStructure(finalContent, deliverableStructure);
+      validateDeliverableSchema(finalContent, outputSchema);
+
+      const deliverableFormat = this.resolveDeliverableFormat(
+        finalContent,
+        payload,
+        definition,
+      );
+
+      const deliverableType = this.resolveDeliverableType(payload, definition);
+
+      const targetDeliverableId = this.resolveDeliverableId(payload, request);
+
+      const createResult = await this.deliverablesService.executeAction(
+        'create',
+        {
+          title: this.resolveDeliverableTitle(
+            payload,
+            buildContext.plan,
+            definition,
+          ),
+          content: finalContent,
+          format: deliverableFormat,
+          type: deliverableType,
+          deliverableId: targetDeliverableId ?? undefined,
+          agentName: definition.displayName ?? definition.slug,
+          taskId,
+          metadata: this.compactMetadata({
+            planId: buildContext.plan?.id ?? null,
+            planVersionId:
+              buildContext.planVersion?.id ?? requestedPlanVersionId ?? null,
+            planSource: buildContext.planSource,
+            conversationMessageCount: conversationForPrompt.length,
+            deliverableStructureApplied: Boolean(deliverableStructure),
+            ioSchemaApplied: Boolean(outputSchema),
+            rerunContext: payload.rerunContext
+              ? {
+                  sourceVersionId:
+                    payload.rerunContext.sourceVersion?.id ?? null,
+                  deliverableId: payload.rerunContext.deliverable?.id ?? null,
+                  providerOverride: payload.rerunConfig?.provider ?? null,
+                  modelOverride: payload.rerunConfig?.model ?? null,
+                }
+              : undefined,
+            mergeContext: payload.mergeContext
+              ? {
+                  versionIds: payload.mergeContext.versionIds,
+                  mergePrompt: payload.mergeContext.mergePrompt,
+                }
+              : undefined,
+            llm: llmMetadata ?? undefined,
+          }),
+        },
+        executionContext,
+      );
+
+      if (!createResult.success || !createResult.data) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          createResult.error?.message ?? 'Failed to create deliverable',
+        );
+      }
+
+      const usage = this.normalizeUsage(llmMetadata?.usage);
+      const provider = this.resolveProvider(llmMetadata, definition, payload);
+      const model = this.resolveModel(llmMetadata, definition, payload);
+
+      const metadata = buildResponseMetadata(
+        {
+          provider,
+          model,
+          usage,
+        },
+        this.compactMetadata({
+          namespace,
+          planId: buildContext.plan?.id ?? null,
+          planVersionId:
+            buildContext.planVersion?.id ?? requestedPlanVersionId ?? null,
+          planSource: buildContext.planSource,
+          planTitle: buildContext.plan?.title ?? null,
+          conversationMessageCount: conversationForPrompt.length,
+          deliverableStructureApplied: Boolean(deliverableStructure),
+          ioSchemaApplied: Boolean(outputSchema),
+          deliverableMetadata: buildDeliverableMetadata(
+            createResult.data.version?.content ?? finalContent,
+          ),
+          rerun: payload.rerunContext
+            ? {
+                sourceVersionId:
+                  payload.rerunContext.sourceVersion?.id ?? null,
+                deliverableId: payload.rerunContext.deliverable?.id ?? null,
+              }
+            : undefined,
+          merge: payload.mergeContext
+            ? {
+                versionIds: payload.mergeContext.versionIds,
+              }
+            : undefined,
+        }),
+      );
 
       return TaskResponseDto.success(AgentTaskMode.BUILD, {
         content: {
-          deliverable: deliverableResult.data.deliverable,
-          version: deliverableResult.data.version,
-          isNew: deliverableResult.data.isNew,
+          deliverable: createResult.data.deliverable,
+          version: createResult.data.version,
+          isNew: createResult.data.isNew,
         },
-        metadata: {
-          provider: response.metadata?.provider,
-          model: response.metadata?.model,
-          usage: response.metadata?.usage,
-        },
+        metadata,
       });
     } catch (error) {
       this.logger.error(
         `Context agent ${definition.slug} BUILD failed: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
-        `Failed to execute context agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.message : 'Unknown error',
       );
     }
   }
 
-  /**
-   * Handle non-create BUILD actions (read, list, edit, etc.)
-   */
-  private async handleBuildAction(
+  private async gatherBuildContext(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
-    organizationSlug: string | null,
-    action: string,
-  ): Promise<TaskResponseDto> {
-    const userId = this.resolveUserId(request);
-    const conversationId = this.resolveConversationId(request);
-
-    if (!userId || !conversationId) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        'Missing required userId or conversationId',
-      );
-    }
-
-    // Extract params from payload (excluding action)
-    const {
-      action: _,
-      taskId: __,
-      llmSelection: ___,
-      ...params
-    } = (request.payload as any) || {};
-
-    // Route to DeliverablesService
-    const result = await this.deliverablesService.executeAction(
-      action,
-      params,
-      {
-        conversationId,
-        userId,
-        agentSlug: definition.slug,
-      },
+    executionContext: ActionExecutionContext,
+    requestedPlanVersionId: string | null,
+  ): Promise<BuildContextResult> {
+    const conversationHistory = await fetchConversationHistory(
+      this.conversationsService,
+      request,
+    );
+    const optimizedHistory = await optimizeContext(
+      this.contextOptimization,
+      conversationHistory,
+      definition,
     );
 
-    if (!result.success) {
-      return TaskResponseDto.failure(
-        AgentTaskMode.BUILD,
-        result.error?.message || `Failed to execute action: ${action}`,
+    let plan: Plan | null = null;
+    if (executionContext.conversationId) {
+      plan = await this.plansService.findByConversationId(
+        executionContext.conversationId,
+        executionContext.userId,
       );
     }
 
-    return TaskResponseDto.success(AgentTaskMode.BUILD, {
-      content: result.data,
-      metadata: {
-        action,
-        executedAt: new Date().toISOString(),
-      },
-    });
+    let planVersion: PlanVersion | null =
+      (plan?.currentVersion as PlanVersion | undefined) ?? null;
+    let planSource: PlanContextSource = planVersion ? 'current' : 'none';
+
+    if (requestedPlanVersionId) {
+      const listResult = await this.plansService.executeAction(
+        'list',
+        { includeArchived: true },
+        executionContext,
+      );
+
+      if (!listResult.success) {
+        if (listResult.error?.code === 'NOT_FOUND') {
+          return {
+            plan,
+            planVersion: null,
+            planSource: 'none',
+            conversationHistory,
+            optimizedHistory,
+            error: `Plan version ${requestedPlanVersionId} not found`,
+          };
+        }
+
+        throw new Error(
+          listResult.error?.message ?? 'Unable to fetch plan versions',
+        );
+      }
+
+      const versions = (listResult.data?.versions ?? []) as PlanVersion[];
+      const targetVersion = versions.find(
+        (version) => version.id === requestedPlanVersionId,
+      );
+
+      if (!targetVersion) {
+        return {
+          plan: (listResult.data?.plan as Plan) ?? plan,
+          planVersion: null,
+          planSource: 'none',
+          conversationHistory,
+          optimizedHistory,
+          error: `Plan version ${requestedPlanVersionId} not found`,
+        };
+      }
+
+      planVersion = targetVersion;
+      planSource = 'requested-version';
+      plan = plan ?? ((listResult.data?.plan as Plan) ?? null);
+    }
+
+    if (plan?.id) {
+      request.planId = plan.id;
+    }
+
+    return {
+      plan,
+      planVersion,
+      planSource,
+      conversationHistory,
+      optimizedHistory,
+    };
   }
 
-  /**
-   * Fetch context from configured sources
-   */
-  private async fetchContextFromSources(
+  private buildExecutionPrompt(
     definition: AgentRuntimeDefinition,
+    options: {
+      plan: Plan | null;
+      planVersion: PlanVersion | null;
+      conversationHistory: ConversationMessage[];
+      deliverableStructure?: unknown;
+      outputSchema?: unknown;
+      rerunContext?: ExtendedBuildCreatePayload['rerunContext'];
+      mergeContext?: ExtendedBuildCreatePayload['mergeContext'];
+    },
+  ): string {
+    const basePromptCandidates = [
+      definition.prompts?.build,
+      definition.prompts?.system,
+      definition.llm?.systemPrompt,
+      definition.context?.systemPrompt,
+    ];
+
+    const basePrompt =
+      basePromptCandidates.find(
+        (candidate): candidate is string =>
+          typeof candidate === 'string' && candidate.trim().length > 0,
+      ) ??
+      `You are ${
+        definition.displayName ?? definition.slug
+      }, an expert builder responsible for producing high-quality deliverables from plans and conversations.`;
+
+    const sections: string[] = [basePrompt.trim()];
+
+    if (options.planVersion?.content) {
+      const planHeader = options.plan?.title
+        ? `${options.plan.title} (Plan Version ${
+            options.planVersion.versionNumber ?? ''
+          })`
+        : `Plan Version ${options.planVersion.versionNumber ?? ''}`;
+      sections.push(
+        `${planHeader}:\n${this.stringifyForPrompt(options.planVersion.content)}`,
+      );
+    }
+
+    if (options.conversationHistory.length > 0) {
+      const recentMessages = options.conversationHistory
+        .slice(-10)
+        .map(
+          (message) =>
+            `${message.role.toUpperCase()}: ${message.content}`.trim(),
+        )
+        .join('\n');
+      sections.push(`Recent Conversation:\n${recentMessages}`);
+    }
+
+    if (options.rerunContext?.sourceVersion?.content) {
+      sections.push(
+        `Previous Deliverable Version:\n${this.stringifyForPrompt(
+          options.rerunContext.sourceVersion.content,
+        )}`,
+      );
+    }
+
+    if (
+      options.mergeContext?.sourceVersions &&
+      options.mergeContext.sourceVersions.length > 0
+    ) {
+      const mergeSummary = options.mergeContext.sourceVersions
+        .map(
+          (version, index) =>
+            `Source ${index + 1} (${version.id}):\n${this.stringifyForPrompt(version.content)}`,
+        )
+        .join('\n\n');
+      sections.push(
+        `Merge Source Versions (IDs: ${options.mergeContext.versionIds.join(', ')}):\n${mergeSummary}`,
+      );
+    }
+
+    if (options.deliverableStructure) {
+      sections.push(
+        `Deliverable Structure Requirements:\n${this.stringifyForPrompt(options.deliverableStructure)}`,
+      );
+    }
+
+    if (options.outputSchema) {
+      sections.push(
+        `Output Schema Requirements:\n${this.stringifyForPrompt(options.outputSchema)}`,
+      );
+    }
+
+    let instruction =
+      'Generate a complete, polished deliverable that satisfies the user request.';
+
+    if (options.deliverableStructure || options.outputSchema) {
+      instruction +=
+        ' Ensure the output strictly validates against the provided structure and schema.';
+    }
+
+    if (options.mergeContext?.mergePrompt) {
+      instruction += ` Merge guidance: ${options.mergeContext.mergePrompt.trim()}.`;
+    }
+
+    sections.push(instruction);
+
+    return sections.join('\n\n---\n\n');
+  }
+
+  private resolveNamespace(
+    definition: AgentRuntimeDefinition,
+    organizationSlug: string | null,
+  ): string {
+    return (
+      organizationSlug ??
+      definition.organizationSlug ??
+      (definition.context?.namespace as string | undefined) ??
+      'global'
+    );
+  }
+
+  private resolveUserMessage(
+    payload: ExtendedBuildCreatePayload,
     request: TaskRequestDto,
-  ): Promise<{
-    plan?: any;
-    deliverables?: any[];
-    history?: any[];
-    projects?: any;
-  }> {
-    const sources = definition.config?.context?.sources || [];
-    const contextData: any = {};
+  ): string {
+    if (
+      payload.mergeContext?.mergePrompt &&
+      payload.mergeContext.mergePrompt.trim().length > 0
+    ) {
+      return payload.mergeContext.mergePrompt.trim();
+    }
 
-    const conversationId = this.resolveConversationId(request);
-    const userId = this.resolveUserId(request);
+    if (
+      typeof request.userMessage === 'string' &&
+      request.userMessage.trim().length > 0
+    ) {
+      return request.userMessage.trim();
+    }
 
-    // Fetch from each source
-    for (const source of sources) {
+    return 'Generate the requested deliverable using the provided context.';
+  }
+
+  private buildLlmConfig(
+    definition: AgentRuntimeDefinition,
+    payload: ExtendedBuildCreatePayload,
+    conversationId: string,
+    userId: string,
+    namespace: string,
+    request: TaskRequestDto,
+  ): Record<string, unknown> {
+    const config: Record<string, unknown> = {
+      conversationId,
+      sessionId: request.sessionId,
+      userId,
+      organizationSlug: namespace,
+      agentSlug: definition.slug,
+      callerType: 'agent',
+      callerName: `${definition.slug}-build-create`,
+      stream: false,
+    };
+
+    // Extract provider and model from payload (from frontend store)
+    const payloadAny = payload as any;
+    const providerName = payloadAny.currentProvider ?? payload.rerunConfig?.provider;
+    const modelName = payloadAny.currentModel ?? payload.rerunConfig?.model;
+
+    if (providerName && providerName.trim().length > 0) {
+      config.providerName = providerName.trim();
+    }
+
+    if (modelName && modelName.trim().length > 0) {
+      config.modelName = modelName.trim();
+    }
+
+    if (typeof payloadAny.temperature === 'number') {
+      config.temperature = payloadAny.temperature;
+    } else if (typeof payload.rerunConfig?.temperature === 'number') {
+      config.temperature = payload.rerunConfig.temperature;
+    }
+
+    if (typeof payloadAny.maxTokens === 'number') {
+      config.maxTokens = payloadAny.maxTokens;
+    } else if (typeof payload.rerunConfig?.maxTokens === 'number') {
+      config.maxTokens = payload.rerunConfig.maxTokens;
+    }
+
+    return config;
+  }
+
+  private normalizeDeliverableContent(content: unknown): string {
+    if (content === null || content === undefined) {
+      return '';
+    }
+
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    if (typeof content === 'object') {
       try {
-        switch (source) {
-          case 'plans':
-            if (conversationId && userId) {
-              const planResult = await this.plansService.executeAction(
-                'read',
-                {},
-                {
-                  conversationId,
-                  userId,
-                  agentSlug: definition.slug,
-                },
-              );
-              if (planResult.success) {
-                contextData.plan = planResult.data;
-              }
-            }
-            break;
-
-          case 'deliverables':
-            if (conversationId && userId) {
-              const deliverablesResult =
-                await this.deliverablesService.executeAction(
-                  'list',
-                  {},
-                  {
-                    conversationId,
-                    userId,
-                    agentSlug: definition.slug,
-                  },
-                );
-              if (deliverablesResult.success) {
-                contextData.deliverables = deliverablesResult.data;
-              }
-            }
-            break;
-
-          case 'conversations':
-            // Conversation history will be optimized separately
-            // For now, placeholder
-            contextData.history = [];
-            break;
-
-          case 'projects':
-            // Projects - placeholder for now
-            // Requires ProjectsService integration
-            break;
-        }
-      } catch (error) {
-        this.logger.warn(
-          `Failed to fetch context from source '${source}': ${String(error)}`,
-        );
-        // Continue with other sources
+        return JSON.stringify(content, null, 2);
+      } catch (_error) {
+        return String(content);
       }
     }
 
-    return contextData;
+    return String(content);
   }
 
-  /**
-   * Build system prompt from template and context
-   */
-  private buildSystemPrompt(
+  private resolveDeliverableFormat(
+    content: string,
+    payload: ExtendedBuildCreatePayload,
     definition: AgentRuntimeDefinition,
-    contextData: Record<string, any>,
   ): string {
-    // Get markdown from context column
-    const contextMarkdown =
-      typeof definition.context === 'string'
-        ? definition.context
-        : JSON.stringify(definition.context || {});
+    const mergeFormat =
+      payload.mergeContext?.sourceVersions &&
+      payload.mergeContext.sourceVersions.length > 0
+        ? payload.mergeContext.sourceVersions[0]?.format
+        : null;
 
-    // Get template from config
-    const template =
-      definition.config?.context?.systemPromptTemplate || contextMarkdown;
+    const rerunFormat = payload.rerunContext?.sourceVersion?.format;
+    const configuredFormat = definition.config?.deliverable?.format;
 
-    // Simple template interpolation
-    // Supports {{variable}} and {{object.property}} syntax
-    let prompt = template;
+    const candidates = [rerunFormat, mergeFormat, configuredFormat];
 
-    // Replace variables
-    const variableRegex = /\{\{([^}]+)\}\}/g;
-    prompt = prompt.replace(variableRegex, (match: string, path: string) => {
-      const keys = path.trim().split('.');
-      let value: any = contextData;
+    const selected = candidates.find(
+      (format): format is string =>
+        typeof format === 'string' && format.trim().length > 0,
+    );
 
-      for (const key of keys) {
-        if (value && typeof value === 'object' && key in value) {
-          value = value[key];
-        } else {
-          return match; // Keep original if not found
+    if (selected) {
+      return selected;
+    }
+
+    return this.isJsonString(content) ? 'json' : 'markdown';
+  }
+
+  private resolveDeliverableType(
+    payload: ExtendedBuildCreatePayload,
+    definition: AgentRuntimeDefinition,
+  ): string {
+    if (payload.type && payload.type.trim().length > 0) {
+      return payload.type.trim();
+    }
+
+    const rerunType = payload.rerunContext?.deliverable?.type;
+    if (rerunType && rerunType.trim().length > 0) {
+      return rerunType;
+    }
+
+    const configuredType = definition.config?.deliverable?.type;
+    if (configuredType && configuredType.trim().length > 0) {
+      return configuredType;
+    }
+
+    return 'document';
+  }
+
+  private resolveDeliverableTitle(
+    payload: ExtendedBuildCreatePayload,
+    plan: Plan | null,
+    definition: AgentRuntimeDefinition,
+  ): string {
+    if (payload.title && payload.title.trim().length > 0) {
+      return payload.title.trim();
+    }
+
+    const rerunTitle = payload.rerunContext?.deliverable?.title;
+    if (rerunTitle && rerunTitle.trim().length > 0) {
+      return rerunTitle.trim();
+    }
+
+    if (plan?.title && plan.title.trim().length > 0) {
+      return plan.title.trim();
+    }
+
+    return `${definition.displayName ?? definition.slug} Deliverable`;
+  }
+
+  private resolveDeliverableId(
+    payload: ExtendedBuildCreatePayload,
+    request: TaskRequestDto,
+  ): string | null {
+    const baseId = this.resolveDeliverableIdFromRequest(request);
+
+    const candidates: Array<unknown> = [
+      payload.deliverableId,
+      payload.rerunContext?.deliverable?.id,
+      payload.mergeContext?.deliverable?.id,
+      baseId,
+    ];
+
+    const match = candidates.find(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return match ? match.trim() : null;
+  }
+
+  private resolveProvider(
+    metadata: Record<string, unknown> | null,
+    definition: AgentRuntimeDefinition,
+    payload: ExtendedBuildCreatePayload,
+  ): string {
+    const fromMetadata = metadata?.provider;
+    if (
+      typeof fromMetadata === 'string' &&
+      fromMetadata.trim().length > 0
+    ) {
+      return fromMetadata;
+    }
+
+    if (
+      payload.rerunConfig?.provider &&
+      payload.rerunConfig.provider.trim().length > 0
+    ) {
+      return payload.rerunConfig.provider.trim();
+    }
+
+    const fromDefinition = definition.llm?.provider;
+    if (
+      typeof fromDefinition === 'string' &&
+      fromDefinition.trim().length > 0
+    ) {
+      return fromDefinition;
+    }
+
+    return '';
+  }
+
+  private resolveModel(
+    metadata: Record<string, unknown> | null,
+    definition: AgentRuntimeDefinition,
+    payload: ExtendedBuildCreatePayload,
+  ): string {
+    const fromMetadata = metadata?.model;
+    if (typeof fromMetadata === 'string' && fromMetadata.trim().length > 0) {
+      return fromMetadata;
+    }
+
+    if (
+      payload.rerunConfig?.model &&
+      payload.rerunConfig.model.trim().length > 0
+    ) {
+      return payload.rerunConfig.model.trim();
+    }
+
+    const fromDefinition = definition.llm?.model;
+    if (
+      typeof fromDefinition === 'string' &&
+      fromDefinition.trim().length > 0
+    ) {
+      return fromDefinition;
+    }
+
+    return '';
+  }
+
+  private normalizeUsage(raw: unknown): {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    cost: number;
+  } {
+    if (!raw || typeof raw !== 'object') {
+      return {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        cost: 0,
+      };
+    }
+
+    const value = raw as Record<string, unknown>;
+
+    const inputTokens = this.numberOrZero(
+      value.inputTokens ?? value.promptTokens ?? value.total_input_tokens,
+    );
+    const outputTokens = this.numberOrZero(
+      value.outputTokens ?? value.completionTokens ?? value.total_output_tokens,
+    );
+    const totalTokens = this.numberOrZero(
+      value.totalTokens ?? value.total_tokens,
+      inputTokens + outputTokens,
+    );
+    const cost = this.numberOrZero(value.cost ?? value.price);
+
+    return {
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      cost,
+    };
+  }
+
+  private isJsonString(value: string): boolean {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      return false;
+    }
+
+    try {
+      JSON.parse(trimmed);
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  private compactMetadata(
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.entries(metadata).reduce<Record<string, unknown>>(
+      (acc, [key, value]) => {
+        if (value !== undefined && value !== null) {
+          acc[key] = value;
         }
+        return acc;
+      },
+      {},
+    );
+  }
+
+  private stringifyForPrompt(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (_error) {
+      return String(value);
+    }
+  }
+
+  private numberOrZero(value: unknown, fallback = 0): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
       }
+    }
 
-      return typeof value === 'string' ? value : JSON.stringify(value);
-    });
-
-    return prompt;
+    return fallback;
   }
 }

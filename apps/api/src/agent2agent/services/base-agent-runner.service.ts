@@ -1,8 +1,17 @@
 import { Logger } from '@nestjs/common';
-import { IAgentRunner } from '../interfaces/agent-runner.interface';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { LLMService } from '@llm/llm.service';
+import { IAgentRunner } from '../interfaces/agent-runner.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
+import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
+import { PlansService } from '../plans/services/plans.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
+import { DeliverablesService } from '../deliverables/deliverables.service';
+import * as ConverseHandlers from './base-agent-runner/converse.handlers';
+import * as PlanHandlers from './base-agent-runner/plan.handlers';
+import * as BuildHandlers from './base-agent-runner/build.handlers';
+import { handleError as sharedHandleError } from './base-agent-runner/shared.helpers';
 
 /**
  * Base abstract class for all agent runners.
@@ -43,7 +52,13 @@ import { TaskResponseDto } from '../dto/task-response.dto';
 export abstract class BaseAgentRunner implements IAgentRunner {
   protected readonly logger: Logger;
 
-  constructor() {
+  constructor(
+    protected readonly llmService: LLMService,
+    protected readonly contextOptimization: ContextOptimizationService,
+    protected readonly plansService: PlansService,
+    protected readonly conversationsService: Agent2AgentConversationsService,
+    protected readonly deliverablesService: DeliverablesService,
+  ) {
     this.logger = new Logger(this.constructor.name);
   }
 
@@ -135,11 +150,25 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * @param organizationSlug - Organization context
    * @returns Task response with conversational content
    */
-  protected abstract handleConverse(
+  protected async handleConverse(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
-  ): Promise<TaskResponseDto>;
+  ): Promise<TaskResponseDto> {
+    try {
+      return await ConverseHandlers.executeConverse(
+        definition,
+        request,
+        organizationSlug,
+        this.getConverseDependencies(),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute CONVERSE mode for agent ${definition.slug}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return sharedHandleError(AgentTaskMode.CONVERSE, error);
+    }
+  }
 
   /**
    * Handle PLAN mode - structured planning.
@@ -154,11 +183,95 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * @param organizationSlug - Organization context
    * @returns Task response with plan data
    */
-  protected abstract handlePlan(
+  protected async handlePlan(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
-  ): Promise<TaskResponseDto>;
+  ): Promise<TaskResponseDto> {
+    const payload = (request.payload ?? {}) as { action?: string };
+    const action = typeof payload.action === 'string' ? payload.action : 'create';
+
+    try {
+      switch (action) {
+        case 'create':
+          return await this.handlePlanCreate(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'read':
+          return await this.handlePlanRead(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'list':
+          return await this.handlePlanList(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'edit':
+          return await this.handlePlanEdit(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'rerun':
+          return await this.handlePlanRerun(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'set_current':
+          return await this.handlePlanSetCurrent(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'delete_version':
+          return await this.handlePlanDeleteVersion(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'merge_versions':
+          return await this.handlePlanMergeVersions(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'copy_version':
+          return await this.handlePlanCopyVersion(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'delete':
+          return await this.handlePlanDelete(
+            definition,
+            request,
+            organizationSlug,
+          );
+        default:
+          this.logger.warn(
+            `Unsupported PLAN action "${action}" for agent ${definition.slug}`,
+          );
+          return TaskResponseDto.failure(
+            AgentTaskMode.PLAN,
+            `Unsupported plan action: ${action}`,
+          );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute PLAN action "${action}" for agent ${definition.slug}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return TaskResponseDto.failure(
+        AgentTaskMode.PLAN,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+  }
 
   /**
    * Handle BUILD mode - deliverable creation.
@@ -173,11 +286,406 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * @param organizationSlug - Organization context
    * @returns Task response with deliverable data
    */
-  protected abstract handleBuild(
+  protected async handleBuild(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    const payload = (request.payload ?? {}) as { action?: string };
+    const action = typeof payload.action === 'string' ? payload.action : 'create';
+
+    try {
+      switch (action) {
+        case 'create':
+          return await this.executeBuild(definition, request, organizationSlug);
+        case 'read':
+          return await this.handleBuildRead(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'list':
+          return await this.handleBuildList(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'edit':
+          return await this.handleBuildEdit(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'rerun':
+          return await this.handleBuildRerun(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'set_current':
+          return await this.handleBuildSetCurrent(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'delete_version':
+          return await this.handleBuildDeleteVersion(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'merge_versions':
+          return await this.handleBuildMergeVersions(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'copy_version':
+          return await this.handleBuildCopyVersion(
+            definition,
+            request,
+            organizationSlug,
+          );
+        case 'delete':
+          return await this.handleBuildDelete(
+            definition,
+            request,
+            organizationSlug,
+          );
+        default:
+          this.logger.warn(
+            `Unsupported BUILD action "${action}" for agent ${definition.slug}`,
+          );
+          return TaskResponseDto.failure(
+            AgentTaskMode.BUILD,
+            `Unsupported build action: ${action}`,
+          );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute BUILD action "${action}" for agent ${definition.slug}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return TaskResponseDto.failure(
+        AgentTaskMode.BUILD,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+  }
+
+  /**
+   * Execute build - Abstract, each runner implements specific build logic.
+   */
+  protected abstract executeBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto>;
+
+  /**
+   * Handles PLAN create action.
+   */
+  protected async handlePlanCreate(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanCreate(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN read action.
+   */
+  protected async handlePlanRead(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanRead(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN list action.
+   */
+  protected async handlePlanList(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanList(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN edit action.
+   */
+  protected async handlePlanEdit(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanEdit(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN rerun action.
+   */
+  protected async handlePlanRerun(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanRerun(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN set_current action.
+   */
+  protected async handlePlanSetCurrent(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanSetCurrent(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN delete_version action.
+   */
+  protected async handlePlanDeleteVersion(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanDeleteVersion(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN merge_versions action.
+   */
+  protected async handlePlanMergeVersions(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanMergeVersions(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN copy_version action.
+   */
+  protected async handlePlanCopyVersion(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanCopyVersion(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles PLAN delete action.
+   */
+  protected async handlePlanDelete(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return PlanHandlers.handlePlanDelete(
+      definition,
+      request,
+      organizationSlug,
+      this.getPlanHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles BUILD read action.
+   */
+  protected async handleBuildRead(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildRead(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles BUILD list action.
+   */
+  protected async handleBuildList(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildList(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles BUILD edit action.
+   */
+  protected async handleBuildEdit(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildEdit(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles BUILD rerun action.
+   */
+  protected async handleBuildRerun(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildRerun(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+      this.executeBuild.bind(this),
+    );
+  }
+
+  /**
+   * Handles BUILD set_current action.
+   */
+  protected async handleBuildSetCurrent(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildSetCurrent(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles BUILD delete_version action.
+   */
+  protected async handleBuildDeleteVersion(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildDeleteVersion(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles BUILD merge_versions action.
+   */
+  protected async handleBuildMergeVersions(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildMergeVersions(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+      this.executeBuild.bind(this),
+    );
+  }
+
+  /**
+   * Handles BUILD copy_version action.
+   */
+  protected async handleBuildCopyVersion(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildCopyVersion(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+    );
+  }
+
+  /**
+   * Handles BUILD delete action.
+   */
+  protected async handleBuildDelete(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    return BuildHandlers.handleBuildDelete(
+      definition,
+      request,
+      organizationSlug,
+      this.getBuildHandlerDependencies(),
+    );
+  }
 
   /**
    * Check if agent supports the given mode.
@@ -205,6 +713,30 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       default:
         return false;
     }
+  }
+
+  private getConverseDependencies(): ConverseHandlers.ConverseHandlerDependencies {
+    return {
+      llmService: this.llmService,
+      conversationsService: this.conversationsService,
+    };
+  }
+
+  private getPlanHandlerDependencies(): PlanHandlers.PlanHandlerDependencies {
+    return {
+      llmService: this.llmService,
+      plansService: this.plansService,
+      conversationsService: this.conversationsService,
+    };
+  }
+
+  private getBuildHandlerDependencies(): BuildHandlers.BuildHandlerDependencies {
+    return {
+      deliverablesService: this.deliverablesService,
+      plansService: this.plansService,
+      llmService: this.llmService,
+      conversationsService: this.conversationsService,
+    };
   }
 
   /**
@@ -272,6 +804,35 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    */
   protected resolveTaskId(request: TaskRequestDto): string | null {
     return request.metadata?.taskId || (request.payload as any)?.taskId || null;
+  }
+
+  /**
+   * Resolve deliverableId from request payload or metadata.
+   *
+   * @param request - Task request
+   * @returns deliverableId if supplied, null otherwise
+   */
+  protected resolveDeliverableIdFromRequest(
+    request: TaskRequestDto,
+  ): string | null {
+    const payload = (request.payload ?? {}) as Record<string, any>;
+
+    const candidates: Array<unknown> = [
+      payload?.deliverableId,
+      payload?.deliverable_id,
+      payload?.deliverable?.id,
+      payload?.metadata?.deliverableId,
+      payload?.metadata?.deliverable_id,
+      request.metadata?.deliverableId,
+      request.metadata?.deliverable_id,
+    ];
+
+    const match = candidates.find(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return match ? match.trim() : null;
   }
 
   /**

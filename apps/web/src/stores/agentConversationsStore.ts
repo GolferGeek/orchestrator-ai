@@ -40,13 +40,13 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
         // Match agent name
         if (conv.agentName !== agentName) return false;
 
-        // For database agents, match by organizationSlug
+        // Match by organizationSlug if provided, otherwise return all for this agent
         if (organizationSlug) {
           return conv.organizationSlug === organizationSlug;
         }
 
-        // For file-based agents, no organization slug needed
-        return !conv.organizationSlug;
+        // If no organizationSlug filter specified, return all conversations for this agent
+        return true;
       });
 
       // Debug logging if no conversations found

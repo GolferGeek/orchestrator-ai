@@ -49,6 +49,7 @@ import { OrchestrationCheckpointEventsService } from './services/orchestration-c
 import { OrchestrationEventsService } from './services/orchestration-events.service';
 import { OrchestrationProgressEventsService } from './services/orchestration-progress-events.service';
 import { TasksModule } from '@/agent2agent/tasks/tasks.module';
+import { ContextOptimizationModule } from '@/agent2agent/context-optimization/context-optimization.module';
 import { OrchestrationStatusService } from './services/orchestration-status.service';
 import { OrchestrationOutputMapper } from './services/orchestration-output-mapper.service';
 import { OrchestrationRunFactoryService } from './services/orchestration-run-factory.service';
@@ -65,6 +66,7 @@ import { MetricsController } from './controllers/metrics.controller';
     DeliverablesModule,
     PlansModule,
     AssetsModule,
+    ContextOptimizationModule,
     forwardRef(() => Agent2AgentModule),
     // Agent Platform Sub-modules
     HierarchyModule,

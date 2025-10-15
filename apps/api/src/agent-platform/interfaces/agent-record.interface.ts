@@ -13,6 +13,9 @@ export interface AgentRecord {
   agent_card: Record<string, any> | null;
   context: Record<string, any> | null;
   config: Record<string, any> | null;
+  plan_structure: Record<string, any> | null;
+  deliverable_structure: Record<string, any> | null;
+  io_schema: Record<string, any> | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,4 +34,7 @@ export interface AgentUpsertInput {
   agent_card?: Record<string, any> | null;
   context?: Record<string, any> | null;
   config?: Record<string, any> | null;
+  plan_structure?: Record<string, any> | null;
+  deliverable_structure?: Record<string, any> | null;
+  io_schema?: Record<string, any> | null;
 }

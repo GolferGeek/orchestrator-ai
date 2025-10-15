@@ -11,6 +11,10 @@ import {
   DeliverableVersionCreationType,
 } from '@/agent2agent/deliverables/dto';
 import { AssetsService } from '@/assets/assets.service';
+import { LLMService } from '@llm/llm.service';
+import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
+import { PlansService } from '../plans/services/plans.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
 
 /**
  * Function Agent Runner
@@ -31,10 +35,20 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   private readonly allowedModules = ['axios', 'crypto', 'url'];
 
   constructor(
-    private readonly deliverablesService: DeliverablesService,
+    deliverablesService: DeliverablesService,
     private readonly assetsService: AssetsService,
+    llmService: LLMService,
+    contextOptimization: ContextOptimizationService,
+    plansService: PlansService,
+    conversationsService: Agent2AgentConversationsService,
   ) {
-    super();
+    super(
+      llmService,
+      contextOptimization,
+      plansService,
+      conversationsService,
+      deliverablesService,
+    );
   }
 
   /**
@@ -68,7 +82,7 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   /**
    * Execute function agent code in sandboxed VM
    */
-  protected async handleBuild(
+  protected async executeBuild(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,

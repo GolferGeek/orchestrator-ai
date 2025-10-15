@@ -28,11 +28,38 @@ export class AgentRuntimeDefinitionService {
     const skills = this.extractSkills(descriptor);
     const communication = this.extractCommunication(descriptor);
     const execution = this.extractExecution(record, descriptor);
-    const transport = this.extractTransport(descriptor);
-    const llm = this.extractLlm(record, descriptor);
-    const prompts = this.extractPrompts(record, descriptor, llm);
-    const context = this.mergeContext(record, descriptor);
-    const config = this.mergeConfig(record, descriptor);
+   const transport = this.extractTransport(descriptor);
+   const llm = this.extractLlm(record, descriptor);
+   const prompts = this.extractPrompts(record, descriptor, llm);
+   const context = this.mergeContext(record, descriptor);
+   const config = this.mergeConfig(record, descriptor);
+    const planStructure = this.resolveSchema(
+      record.plan_structure,
+      config?.plan_structure,
+      config?.planStructure,
+      descriptor?.plan_structure,
+      descriptor?.planStructure,
+      descriptor?.schemas?.plan,
+    );
+    const deliverableStructure = this.resolveSchema(
+      record.deliverable_structure,
+      config?.deliverable_structure,
+      config?.deliverableStructure,
+      descriptor?.deliverable_structure,
+      descriptor?.deliverableStructure,
+      descriptor?.schemas?.deliverable,
+      descriptor?.schemas?.build,
+    );
+    const ioSchema = this.resolveSchema(
+      record.io_schema,
+      config?.io_schema,
+      config?.ioSchema,
+      descriptor?.io_schema,
+      descriptor?.ioSchema,
+      descriptor?.schemas?.io,
+      descriptor?.schemas?.io_schema,
+      descriptor?.schemas?.ioSchema,
+    );
 
     return {
       id: record.id,
@@ -56,6 +83,9 @@ export class AgentRuntimeDefinitionService {
       config,
       agentCard: record.agent_card ?? null,
       rawDescriptor: descriptor,
+      planStructure,
+      deliverableStructure,
+      ioSchema,
       record,
     };
   }
@@ -377,6 +407,33 @@ export class AgentRuntimeDefinitionService {
       return numeric;
     }
     return undefined;
+  }
+
+  private resolveSchema(...candidates: unknown[]): Record<string, any> | null {
+    for (const candidate of candidates) {
+      const normalized = this.normalizeSchema(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
+  private normalizeSchema(value: unknown): Record<string, any> | null {
+    if (!value) {
+      return null;
+    }
+
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return this.asRecord(parsed);
+      } catch {
+        return null;
+      }
+    }
+
+    return this.asRecord(value);
   }
 
   private asBoolean(value: unknown): boolean | undefined {

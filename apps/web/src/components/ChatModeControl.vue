@@ -7,6 +7,8 @@
           v-for="option in selectableModes"
           :key="option.value"
           :value="option.value"
+          :disabled="option.disabled"
+          :title="option.tooltip"
         >
           {{ option.label }}
         </ion-select-option>
@@ -26,16 +28,44 @@ const chatStore = useAgentChatStore();
 
 const mode = computed(() => chatStore.getActiveChatMode());
 
-const modeOptions: Array<{ value: PrimaryChatMode; label: string }> = [
+const BASE_MODE_OPTIONS: Array<{ value: PrimaryChatMode; label: string }> = [
   { value: 'converse', label: 'Converse' },
   { value: 'plan', label: 'Plan' },
   { value: 'build', label: 'Build' },
 ];
 
-const selectableModes = computed(() => {
+type SelectableMode = {
+  value: PrimaryChatMode;
+  label: string;
+  disabled?: boolean;
+  tooltip?: string;
+};
+
+const selectableModes = computed<SelectableMode[]>(() => {
   const conv = chatStore.getActiveConversation();
   const allowed = conv?.allowedChatModes?.length ? conv.allowedChatModes : DEFAULT_CHAT_MODES;
-  return modeOptions.filter(option => allowed.includes(option.value));
+  const agent = conv?.agent;
+  const planSupported = Boolean(agent?.plan_structure);
+
+  return BASE_MODE_OPTIONS.filter(option => {
+    if (option.value === 'plan') {
+      return allowed.includes(option.value) || !planSupported;
+    }
+    return allowed.includes(option.value);
+  }).map(option => {
+    if (option.value === 'plan' && !planSupported) {
+      return {
+        ...option,
+        disabled: true,
+        tooltip: 'This agent does not support planning',
+      };
+    }
+
+    return {
+      ...option,
+      disabled: !allowed.includes(option.value),
+    };
+  });
 });
 
 function onChange(ev: CustomEvent) {

@@ -160,16 +160,42 @@ export class DeliverablesService implements IActionHandler {
       agentName?: string;
       taskId?: string;
       metadata?: Record<string, any>;
+      deliverableId?: string;
     },
     context: ActionExecutionContext,
   ) {
-    // Check if deliverable already exists for this conversation
-    const existingDeliverables = await this.findByConversationId(
-      context.conversationId,
-      context.userId,
+    const explicitDeliverableId = this.normalizeDeliverableId(
+      params.deliverableId ??
+        context.metadata?.deliverableId ??
+        context.metadata?.deliverable_id ??
+        params.metadata?.deliverableId ??
+        params.metadata?.deliverable_id,
     );
 
-    const existingDeliverable = existingDeliverables[0];
+    let existingDeliverable: Deliverable | null = null;
+
+    if (explicitDeliverableId) {
+      try {
+        existingDeliverable = await this.findOne(
+          explicitDeliverableId,
+          context.userId,
+        );
+      } catch (error) {
+        if (error instanceof NotFoundException) {
+          throw new NotFoundException(
+            `Deliverable ${explicitDeliverableId} not found for enhancement`,
+          );
+        }
+        throw error;
+      }
+    } else {
+      const deliverables = await this.findByConversationId(
+        context.conversationId,
+        context.userId,
+      );
+      existingDeliverable = deliverables[0] ?? null;
+    }
+
     if (existingDeliverable) {
       // Enhance existing deliverable - create new version
       const newVersion = await this.versionsService.createVersion(
@@ -185,7 +211,10 @@ export class DeliverablesService implements IActionHandler {
       );
 
       return {
-        deliverable: await this.findOne(existingDeliverable.id, context.userId),
+        deliverable: await this.findOne(
+          existingDeliverable.id,
+          context.userId,
+        ),
         version: newVersion,
         isNew: false,
       };
@@ -211,6 +240,15 @@ export class DeliverablesService implements IActionHandler {
         isNew: true,
       };
     }
+  }
+
+  private normalizeDeliverableId(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
   }
 
   /**

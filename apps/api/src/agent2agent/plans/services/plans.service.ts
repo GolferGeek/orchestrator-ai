@@ -402,6 +402,9 @@ export class PlansService implements IActionHandler {
     params: {
       versionIds: string[];
       mergePrompt: string;
+      planStructure?: unknown;
+      llmConfig?: Record<string, unknown> | null;
+      preferredFormat?: 'markdown' | 'json' | 'text';
     },
     context: ActionExecutionContext,
   ) {
@@ -421,6 +424,11 @@ export class PlansService implements IActionHandler {
       context.userId,
       params.versionIds,
       params.mergePrompt,
+      {
+        planStructure: params.planStructure,
+        llmConfig: params.llmConfig,
+        preferredFormat: params.preferredFormat,
+      },
     );
 
     // Get source versions
@@ -435,6 +443,7 @@ export class PlansService implements IActionHandler {
       plan: this.mapToPlan(plan),
       mergedVersion: result.newVersion,
       sourceVersions,
+      llmMetadata: result.llmMetadata ?? undefined,
     };
   }
 

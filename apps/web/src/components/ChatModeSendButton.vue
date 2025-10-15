@@ -118,9 +118,17 @@ const allowedModes = computed(() => {
   return conversation?.allowedChatModes?.length ? conversation.allowedChatModes : DEFAULT_CHAT_MODES;
 });
 
-const modes = computed(() =>
-  baseModes.filter(mode => allowedModes.value.includes(mode.value))
-);
+const agent = computed(() => chatStore.getActiveConversation()?.agent);
+
+const modes = computed(() => {
+  let filtered = baseModes.filter(mode => allowedModes.value.includes(mode.value));
+
+  if (agent.value && !agent.value.plan_structure) {
+    filtered = filtered.filter(mode => mode.value !== 'plan');
+  }
+
+  return filtered;
+});
 
 const currentModeConfig = computed(() => {
   return modes.value.find(m => m.value === currentMode.value) || modes.value[0] || baseModes[0];

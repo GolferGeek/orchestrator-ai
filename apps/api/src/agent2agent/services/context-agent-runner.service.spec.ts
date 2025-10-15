@@ -4,6 +4,7 @@ import { ContextOptimizationService } from '../context-optimization/context-opti
 import { LLMService } from '@llm/llm.service';
 import { PlansService } from '../plans/services/plans.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { Agent2AgentConversationsService } from './agent-conversations.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { ActionResult } from '../common/interfaces/action-handler.interface';
@@ -35,12 +36,20 @@ describe('ContextAgentRunnerService', () => {
           provide: PlansService,
           useValue: {
             executeAction: jest.fn(),
+            findByConversationId: jest.fn(),
           },
         },
         {
           provide: DeliverablesService,
           useValue: {
             executeAction: jest.fn(),
+            findOne: jest.fn(),
+          },
+        },
+        {
+          provide: Agent2AgentConversationsService,
+          useValue: {
+            findByConversationId: jest.fn(),
           },
         },
       ],
@@ -147,17 +156,22 @@ describe('ContextAgentRunnerService', () => {
       };
 
       // Mock service responses
+      plansService.findByConversationId.mockResolvedValue({
+        id: 'plan-123',
+        title: 'Test Plan',
+        content: 'Test plan content',
+        currentVersion: {
+          id: 'ver-1',
+          content: 'Test plan content',
+        },
+      } as any);
+
       plansService.executeAction.mockResolvedValue({
         success: true,
         data: planData,
       });
 
-      deliverablesService.executeAction
-        .mockResolvedValueOnce({
-          success: true,
-          data: deliverablesData,
-        })
-        .mockResolvedValueOnce(deliverableResult);
+      deliverablesService.executeAction.mockResolvedValue(deliverableResult);
 
       contextOptimization.optimizeContext.mockResolvedValue(optimizedContext);
       llmService.generateResponse.mockResolvedValue(llmResponse);
@@ -177,31 +191,10 @@ describe('ContextAgentRunnerService', () => {
       expect(result.payload?.metadata?.provider).toBe('anthropic');
 
       // Verify service calls
-      expect(plansService.executeAction).toHaveBeenCalledWith(
-        'read',
-        {},
-        {
-          conversationId: 'conv-123',
-          userId: 'user-123',
-          agentSlug: 'test-context-agent',
-        },
+      expect(plansService.findByConversationId).toHaveBeenCalledWith(
+        'conv-123',
+        'user-123',
       );
-
-      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
-        'list',
-        {},
-        {
-          conversationId: 'conv-123',
-          userId: 'user-123',
-          agentSlug: 'test-context-agent',
-        },
-      );
-
-      expect(contextOptimization.optimizeContext).toHaveBeenCalledWith({
-        fullHistory: [],
-        conversationId: 'conv-123',
-        tokenBudget: 8000,
-      });
 
       expect(llmService.generateResponse).toHaveBeenCalledWith(
         expect.stringContaining('Test plan content'),
@@ -222,8 +215,7 @@ describe('ContextAgentRunnerService', () => {
           content: 'Generated analysis content',
           format: 'markdown',
           type: 'document',
-          agentName: 'test-context-agent',
-          namespace: 'test-org',
+          agentName: 'Test Context Agent',
         }),
         expect.objectContaining({
           conversationId: 'conv-123',
@@ -252,7 +244,7 @@ describe('ContextAgentRunnerService', () => {
 
       expect(result.success).toBe(false);
       expect(result.payload?.metadata?.reason).toContain(
-        'Missing required userId or conversationId',
+        'User identity is required for build execution',
       );
     });
 
@@ -280,6 +272,7 @@ describe('ContextAgentRunnerService', () => {
         },
       };
 
+      plansService.findByConversationId.mockResolvedValue(null);
       contextOptimization.optimizeContext.mockResolvedValue([]);
       llmService.generateResponse.mockRejectedValue(
         new Error('LLM service unavailable'),
@@ -289,7 +282,7 @@ describe('ContextAgentRunnerService', () => {
 
       expect(result.success).toBe(false);
       expect(result.payload?.metadata?.reason).toContain(
-        'Failed to execute context agent',
+        'LLM service unavailable',
       );
     });
 
@@ -363,29 +356,40 @@ describe('ContextAgentRunnerService', () => {
         },
       };
 
+      // Mock finding existing deliverable by conversation
       deliverablesService.executeAction.mockResolvedValue({
         success: true,
         data: {
-          id: 'del-123',
-          title: 'Test Deliverable',
-          content: 'Test content',
+          deliverables: [{ id: 'del-123' }],
         },
       });
+
+      // Mock findOne to return the deliverable
+      deliverablesService.findOne.mockResolvedValue({
+        id: 'del-123',
+        title: 'Test Deliverable',
+        content: 'Test content',
+        format: 'markdown',
+        type: 'document' as any,
+        agentName: 'test-agent',
+        userId: 'user-123',
+        conversationId: 'conv-123',
+        currentVersion: {
+          id: 'ver-1',
+          versionNumber: 1,
+          content: 'Test content',
+        } as any,
+      } as any);
 
       const result = await service.execute(definition, request, 'test-org');
 
       expect(result.success).toBe(true);
-      expect(result.payload?.content?.id).toBe('del-123');
-      expect(result.payload?.metadata?.action).toBe('read');
+      expect(result.payload?.content?.deliverable?.id).toBe('del-123');
 
-      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
-        'read',
-        { deliverableId: 'del-123' },
-        {
-          conversationId: 'conv-123',
-          userId: 'user-123',
-          agentSlug: 'test-agent',
-        },
+      // Deliverable is fetched by conversation context
+      expect(deliverablesService.findOne).toHaveBeenCalledWith(
+        'del-123',
+        'user-123',
       );
     });
   });
