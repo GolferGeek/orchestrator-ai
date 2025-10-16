@@ -73,7 +73,33 @@ export async function createOrchestration(
   console.log('✅ [Orchestrate Create Action] Response validated:', content);
 
   // 6. Update store
-  // TODO: Add orchestration to store when we implement store mutations
+  if (content.orchestration && content.orchestrationRunId) {
+    const { orchestration } = content;
+
+    // Map backend response to store format
+    const steps = orchestration.steps?.map((step: any, index: number) => ({
+      stepNumber: index,
+      mode: step.mode || 'build',
+      action: step.action || 'create',
+      agentId: step.agent,
+      status: 'pending' as const,
+    })) || [];
+
+    orchestratorStore.startOrchestration(
+      content.orchestrationRunId,
+      conversationId,
+      orchestration.name || 'orchestration',
+      steps,
+      {
+        displayName: orchestration.displayName,
+        description: orchestration.description,
+        version: orchestration.version,
+        definitionId: content.orchestrationDefinitionId,
+      }
+    );
+
+    orchestratorStore.setActiveOrchestration(content.orchestrationRunId);
+  }
 
   console.log('💾 [Orchestrate Create Action] Store updated');
 
@@ -128,7 +154,28 @@ export async function executeOrchestration(
   console.log('✅ [Orchestrate Execute Action] Response validated:', content);
 
   // 6. Update store
-  // TODO: Update orchestration status in store
+  if (content.status) {
+    // Map backend status to store status
+    const statusMap: Record<string, any> = {
+      'running': 'running',
+      'completed': 'completed',
+      'failed': 'failed',
+      'paused': 'paused',
+      'cancelled': 'cancelled',
+    };
+    const storeStatus = statusMap[content.status] || 'running';
+
+    orchestratorStore.updateOrchestrationStatus(orchestrationRunId, storeStatus);
+
+    // Update step statuses if provided
+    if (content.currentStep) {
+      orchestratorStore.updateStepStatus(
+        orchestrationRunId,
+        content.currentStep.id,
+        content.currentStep.status as any
+      );
+    }
+  }
 
   console.log('💾 [Orchestrate Execute Action] Store updated');
 

@@ -31,6 +31,7 @@ const createAgentDefinition = (
     canConverse: true,
     canPlan: true,
     canBuild: true,
+    canOrchestrate: true,
     requiresHumanGate: false,
   },
   transport: undefined,

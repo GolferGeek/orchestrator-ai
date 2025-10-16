@@ -114,11 +114,17 @@ export async function handleOrchestrateAction(
       case 'run_resume':
       case 'run_cancel':
       case 'run_evaluate':
-      case 'run_human_response':
       case 'run_rollback_step':
         return TaskResponseDto.failure(
           AgentTaskMode.ORCHESTRATE,
           `Action '${action}' not yet implemented`,
+        );
+      case 'run_human_response':
+        return await handleRunHumanResponse(
+          definition,
+          request,
+          organizationSlug,
+          runnerContext,
         );
 
       // Recipe management actions
@@ -232,3 +238,89 @@ async function handleOrchestrateRunStart(
   // Delegate to executeBuild which handles run execution
   return runnerContext.executeBuild(definition, request, organizationSlug);
 }
+
+/**
+ * Handle orchestrate 'run_human_response' action
+ * Responds to a human checkpoint in an orchestration run
+ */
+async function handleRunHumanResponse(
+  definition: AgentRuntimeDefinition,
+  request: TaskRequestDto,
+  organizationSlug: string | null,
+  runnerContext: any,
+): Promise<TaskResponseDto> {
+  const payload = (request.payload ?? {}) as OrchestrateModePayload;
+  const { approvalId, decision, notes, modifications } = payload as any;
+
+  if (!approvalId) {
+    return TaskResponseDto.failure(
+      AgentTaskMode.ORCHESTRATE,
+      'approvalId is required for run_human_response action',
+    );
+  }
+
+  if (!decision || !['continue', 'retry', 'abort'].includes(decision)) {
+    return TaskResponseDto.failure(
+      AgentTaskMode.ORCHESTRATE,
+      'decision must be one of: continue, retry, abort',
+    );
+  }
+
+  // Get the checkpoint service from runner context
+  const checkpointService = runnerContext.checkpointService;
+  if (!checkpointService) {
+    return TaskResponseDto.failure(
+      AgentTaskMode.ORCHESTRATE,
+      'Checkpoint service not available',
+    );
+  }
+
+  try {
+    // Resolve the checkpoint
+    const result = await checkpointService.resolveCheckpoint({
+      approvalId,
+      decision,
+      actorId: (request.metadata as any)?.userId ?? null,
+      notes: notes ?? null,
+      modifications: modifications ?? null,
+    });
+
+    // If decision is 'continue' or 'retry', resume the orchestration run
+    if (decision === 'continue' || decision === 'retry') {
+      // Continue execution by delegating to executeBuild
+      const continueRequest = {
+        ...request,
+        payload: {
+          action: 'continue',
+          runId: result.run.id,
+        },
+      };
+      return runnerContext.executeBuild(
+        definition,
+        continueRequest,
+        organizationSlug,
+      );
+    }
+
+    // For 'abort', return success response with run status
+    return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE, {
+      content: {
+        action: 'run_human_response',
+        decision,
+        runId: result.run.id,
+        status: result.run.status,
+        message: 'Orchestration checkpoint resolved',
+      },
+      metadata: EMPTY_ORCHESTRATE_METADATA,
+    });
+  } catch (error) {
+    return TaskResponseDto.failure(
+      AgentTaskMode.ORCHESTRATE,
+      error instanceof Error
+        ? error.message
+        : 'Failed to resolve checkpoint',
+    );
+  }
+}
+
+

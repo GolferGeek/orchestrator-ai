@@ -121,10 +121,6 @@ export abstract class BaseAgentRunner implements IAgentRunner {
         case AgentTaskMode.ORCHESTRATE:
           return await this.handleOrchestrate(definition, request, organizationSlug);
 
-        case AgentTaskMode.HUMAN_RESPONSE:
-          // Human response mode is handled by gateway/router, not runners
-          return TaskResponseDto.human('Manual confirmation required');
-
         default:
           this.logger.warn(`Unsupported mode: ${mode}`);
           return TaskResponseDto.failure(mode, 'Unsupported mode');

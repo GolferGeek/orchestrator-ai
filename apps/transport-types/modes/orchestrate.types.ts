@@ -256,14 +256,14 @@ export interface OrchestrateRunEvaluatePayload {
  */
 export interface OrchestrateRunHumanResponsePayload {
   action: 'run_human_response';
-  /** Run ID (REQUIRED) */
-  runId: string;
-  /** Checkpoint or step ID waiting for response (REQUIRED) */
-  checkpointId: string;
-  /** Human response (REQUIRED) */
-  response: string;
-  /** Additional context (optional) */
-  context?: Record<string, any>;
+  /** Approval ID (REQUIRED) */
+  approvalId: string;
+  /** Decision (REQUIRED) */
+  decision: 'continue' | 'retry' | 'abort';
+  /** Notes from the human (optional) */
+  notes?: string;
+  /** Modifications to apply (optional) */
+  modifications?: Record<string, any>;
 }
 
 /**

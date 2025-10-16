@@ -38,6 +38,7 @@ describe('AgentRuntimeRedactionService', () => {
       canConverse: true,
       canPlan: false,
       canBuild: false,
+      canOrchestrate: false,
       requiresHumanGate: false,
     },
     prompts: { system: '', plan: '', build: '', human: '' },

@@ -1037,22 +1037,21 @@ export class Agent2AgentController {
       case 'agent.build':
       case 'tasks.build':
         return AgentTaskMode.BUILD;
+      case 'orchestrate':
+      case 'agent.orchestrate':
       case 'orchestrate.create':
       case 'agent.orchestrate_create':
       case 'orchestrate_create':
-        return AgentTaskMode.ORCHESTRATE_CREATE;
       case 'orchestrate.execute':
       case 'agent.orchestrate_execute':
       case 'orchestrate_execute':
-        return AgentTaskMode.ORCHESTRATE_EXECUTE;
       case 'orchestrate.continue':
       case 'agent.orchestrate_continue':
       case 'orchestrate_continue':
-        return AgentTaskMode.ORCHESTRATE_CONTINUE;
       case 'orchestrate.save_recipe':
       case 'agent.orchestrate_save_recipe':
       case 'orchestrate_save_recipe':
-        return AgentTaskMode.ORCHESTRATE_SAVE_RECIPE;
+        return AgentTaskMode.ORCHESTRATE;
       default:
         return undefined;
     }

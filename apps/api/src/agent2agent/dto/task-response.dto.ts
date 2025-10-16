@@ -41,9 +41,13 @@ export class TaskResponseDto implements TaskResponse {
 
     return new TaskResponseDto(
       false,
-      'human_response',
+      'orchestrate',
       {
-        content: {},
+        content: {
+          action: 'run_human_response',
+          message,
+          reason,
+        },
         metadata: metadata || {},
       },
       {
