@@ -96,6 +96,20 @@ export class CreateAgentDto {
   @IsOptional()
   @IsObject()
   config?: Record<string, any> | null;
+
+  @ApiProperty({
+    description: 'Plan structure template (markdown string or JSON schema)',
+    required: false,
+  })
+  @IsOptional()
+  plan_structure?: string | Record<string, any> | null;
+
+  @ApiProperty({
+    description: 'Deliverable structure template (markdown string or JSON schema)',
+    required: false,
+  })
+  @IsOptional()
+  deliverable_structure?: string | Record<string, any> | null;
 }
 
 export class UpdateAgentDto {

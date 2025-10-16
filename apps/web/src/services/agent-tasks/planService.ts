@@ -406,6 +406,10 @@ export class PlanService {
         // Add to plan store so AgentTaskItem can find it
         planStore.addPlan(plan, version);
 
+        // Associate plan with conversation
+        console.log('[planService.handleSuccess] Associating plan with conversation');
+        planStore.associatePlanWithConversation(planId, conversationId);
+
         console.log('[planService.handleSuccess] Adding plan to chatStore');
         // Also update chat store for backward compatibility
         chatStore.setPlan(conversationId, plan);
@@ -425,6 +429,10 @@ export class PlanService {
 
       if (message) {
         console.log('[planService.handleSuccess] Adding message to chatStore');
+
+        // Extract LLM metadata from response
+        const llmMetadata = response.metadata || response.payload?.metadata;
+
         chatStore.addMessage(conversationId, {
           id: crypto.randomUUID(),
           role: 'assistant',
@@ -434,6 +442,11 @@ export class PlanService {
             planId,
             action: response.action,
             mode: 'plan', // Ensure mode is set for callout detection
+            llmMetadata: llmMetadata ? {
+              provider: llmMetadata.provider,
+              model: llmMetadata.model,
+              usage: llmMetadata.usage,
+            } : undefined,
           },
         });
       }

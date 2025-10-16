@@ -186,7 +186,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       const deliverableStructure = definition.deliverableStructure ?? null;
       const outputSchema =
-        definition.ioSchema?.output ?? definition.ioSchema ?? null;
+        (typeof definition.ioSchema === 'object' && definition.ioSchema?.output) ?? definition.ioSchema ?? null;
 
       const systemPrompt = this.buildExecutionPrompt(definition, {
         plan: buildContext.plan,

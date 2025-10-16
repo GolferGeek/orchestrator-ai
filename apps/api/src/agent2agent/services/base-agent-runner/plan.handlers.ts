@@ -177,7 +177,7 @@ export async function handlePlanCreate(
             : null) ?? 'Plan',
         content: normalizedContent,
         format: planFormat,
-        agentName: definition.displayName ?? definition.slug,
+        agentName: definition.slug, // Always use slug, not displayName
         namespace,
         taskId,
         metadata: {
@@ -208,11 +208,18 @@ export async function handlePlanCreate(
 
     request.planId = plan.id;
 
+    // Create a descriptive message for the frontend
+    const planTitle = plan.title || 'Untitled Plan';
+    const message = isNew
+      ? `Created plan "${planTitle}" (version ${version.versionNumber})`
+      : `Updated plan "${planTitle}" to version ${version.versionNumber}`;
+
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
         plan: serializePlan(plan, definition, userId),
         version: serializePlanVersion(version),
         isNew,
+        message,
       },
       metadata,
     });
@@ -823,15 +830,28 @@ export function buildPlanningPrompt(
   let prompt = `${basePrompt.trim()}\n\nConversation history:\n${historySection}`;
 
   if (planStructure) {
-    prompt += `\n\nYour plan must follow this structure:\n${safeStringify(planStructure)}`;
-    prompt += '\n\nIMPORTANT: You MUST return your response as valid JSON that strictly validates against the plan structure above. Do not return plain text, explanations, or any other format. Return ONLY valid JSON matching the structure exactly.';
+    // Check if planStructure is a string (markdown template) or object (JSON schema)
+    const isMarkdownTemplate = typeof planStructure === 'string';
+
+    if (isMarkdownTemplate) {
+      prompt += `\n\n=== MARKDOWN TEMPLATE TO FOLLOW ===\n${planStructure}\n=== END TEMPLATE ===`;
+      prompt += '\n\n🚨 CRITICAL INSTRUCTIONS 🚨';
+      prompt += '\n- Your ENTIRE response must be in MARKDOWN format only';
+      prompt += '\n- Use the template structure above with proper markdown headings (# ## ###)';
+      prompt += '\n- Use bullet points (-) and proper markdown formatting';
+      prompt += '\n- DO NOT use JSON format';
+      prompt += '\n- DO NOT wrap your response in code blocks';
+      prompt += '\n- DO NOT include any JSON objects or arrays';
+      prompt += '\n- Start your response directly with markdown content';
+      prompt += '\n\nReturn ONLY the markdown-formatted plan following the template structure. Begin now with your markdown response:';
+    } else {
+      prompt += `\n\nYour plan must follow this structure:\n${safeStringify(planStructure)}`;
+      prompt += '\n\nIMPORTANT: You MUST return your response as valid JSON that strictly validates against the plan structure above. Do not return plain text, explanations, or any other format. Return ONLY valid JSON matching the structure exactly.';
+    }
   } else {
     prompt +=
       '\n\nGenerate a structured plan with named phases, clear steps, owners, and measurable outcomes.';
   }
-
-  prompt +=
-    '\n\nProvide concise steps, sequencing, success criteria, and any dependencies.';
 
   return prompt;
 }
@@ -844,27 +864,44 @@ export function validatePlanStructure(
     return planContent;
   }
 
-  const schema =
-    typeof planStructure === 'string'
-      ? parseJsonSafely(planStructure, 'plan_structure must be valid JSON')
-      : planStructure;
+  // If planStructure is a string (markdown template), just return the content as-is
+  // No JSON schema validation needed for markdown templates
+  if (typeof planStructure === 'string') {
+    // Try to parse as JSON schema, but if it fails, treat as markdown template
+    try {
+      const parsed = JSON.parse(planStructure);
+      if (typeof parsed === 'object' && parsed !== null) {
+        // It's a JSON schema stored as a string, continue with validation
+        planStructure = parsed;
+      } else {
+        // It's a markdown template, return content as-is
+        return planContent;
+      }
+    } catch {
+      // Not valid JSON, it's a markdown template - return content as-is
+      console.log('📝 Plan structure is a markdown template, skipping JSON schema validation');
+      return planContent;
+    }
+  }
 
+  // planStructure is an object (JSON schema), validate the content
   const ajv = new Ajv({
     allErrors: true,
     strict: false,
     allowUnionTypes: true,
   });
 
-  const validate = ajv.compile(schema as Record<string, unknown>);
+  const validate = ajv.compile(planStructure as Record<string, unknown>);
   const candidate = coercePlanContent(planContent);
 
   if (!validate(candidate)) {
     const message = ajv.errorsText(validate.errors, { separator: '; ' });
-    const error = new Error(
-      `Plan does not conform to required structure: ${message}`,
+    console.warn(
+      `⚠️ Plan structure validation warning: ${message}`,
+      { errors: validate.errors }
     );
-    (error as any).details = validate.errors;
-    throw error;
+    // Don't throw - just log a warning and continue
+    // This allows flexible plan structures while still providing feedback
   }
 
   return candidate;

@@ -399,6 +399,7 @@ export class DeliverableService {
    * @returns Processed response
    */
   private handleSuccess(response: any, conversationId: string): any {
+    console.log('[deliverableService.handleSuccess] Called with response:', JSON.stringify(response, null, 2));
     debugLog(this.config, 'handleSuccess', { response, conversationId });
 
     try {
@@ -410,24 +411,32 @@ export class DeliverableService {
       const version = response.content?.version || response.payload?.content?.version;
       const deliverableId = deliverable?.id;
 
+      console.log('[deliverableService.handleSuccess] Extracted:', { deliverable: !!deliverable, version: !!version, deliverableId });
+
       // Update both stores with deliverable data (Vue reactivity handles UI updates)
       if (deliverableId && deliverable && version) {
+        console.log('[deliverableService.handleSuccess] Adding deliverable to store');
         // Use handleBuildExecute to properly set up deliverable with version
         deliverableStore.handleBuildExecute({ deliverable, version, isNew: true });
 
         // Also update chat store for backward compatibility
         chatStore.setDeliverable(conversationId, deliverable);
+      } else {
+        console.warn('[deliverableService.handleSuccess] No deliverable, version, or deliverableId found in response');
       }
 
       // Extract or create assistant message
       let message = response.content?.message || response.payload?.content?.message;
+      console.log('[deliverableService.handleSuccess] Message:', message ? message.substring(0, 100) : 'none');
 
       // If no message provided, create a synthetic message for the callout bubble
       if (!message && deliverable) {
         message = `Deliverable created: ${deliverable.title || 'Untitled Deliverable'}`;
+        console.log('[deliverableService.handleSuccess] Creating synthetic message:', message);
       }
 
       if (message) {
+        console.log('[deliverableService.handleSuccess] Adding message to chatStore');
         chatStore.addMessage(conversationId, {
           id: crypto.randomUUID(),
           role: 'assistant',
@@ -441,6 +450,7 @@ export class DeliverableService {
         });
       }
 
+      console.log('[deliverableService.handleSuccess] Success handled, deliverable added to stores');
       debugLog(this.config, 'Success handled, deliverable added to stores');
 
       return response;

@@ -6,6 +6,7 @@ import { PlansService } from './services/plans.service';
 import { PlanVersionsService } from './services/plan-versions.service';
 import { PlansRepository } from './repositories/plans.repository';
 import { PlanVersionsRepository } from './repositories/plan-versions.repository';
+import { PlansController } from './plans.controller';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PlanVersionsRepository } from './repositories/plan-versions.repository'
     forwardRef(() => LLMModule),
     forwardRef(() => TasksModule),
   ],
+  controllers: [PlansController],
   providers: [
     PlansService,
     PlanVersionsService,

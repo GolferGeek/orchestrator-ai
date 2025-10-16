@@ -295,7 +295,7 @@ export async function handleBuildEdit(
     );
 
     const ioSchemaOutput =
-      definition.ioSchema?.output ?? definition.ioSchema ?? null;
+      (typeof definition.ioSchema === 'object' && definition.ioSchema?.output) ?? definition.ioSchema ?? null;
 
     validateDeliverableSchema(normalizedContent, ioSchemaOutput);
 

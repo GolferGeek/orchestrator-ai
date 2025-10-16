@@ -194,7 +194,9 @@ const loadExistingRating = async () => {
   }
   try {
     isLoading.value = true;
+    console.log('[TaskRating] Attempting to load task:', props.taskId);
     const task = await tasksService.getTaskById(props.taskId);
+    console.log('[TaskRating] Task loaded successfully:', task?.id);
     if (task?.evaluation) {
       currentRating.value = {
         userRating: task.evaluation.user_rating,
@@ -213,7 +215,8 @@ const loadExistingRating = async () => {
       };
     }
   } catch (error) {
-    // Error loading task rating
+    console.error('[TaskRating] Error loading task rating:', error);
+    console.error('[TaskRating] Task ID that failed:', props.taskId);
   } finally {
     isLoading.value = false;
   }

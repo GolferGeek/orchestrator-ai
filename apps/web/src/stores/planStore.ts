@@ -8,6 +8,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
 import type { PlanCreateResult, PlanReadResult, PlanEditResult } from '@/services/agent2agent/utils/handlers';
+import { apiService } from '@/services/apiService';
 
 export const usePlanStore = defineStore('plan', () => {
   // State - using Maps for O(1) lookups
@@ -186,6 +187,65 @@ export const usePlanStore = defineStore('plan', () => {
   }
 
   /**
+   * Load plans by conversation ID from the API
+   */
+  async function loadPlansByConversation(conversationId: string): Promise<PlanData | null> {
+    try {
+      const response = await apiService.get(`/plans/conversation/${conversationId}`);
+
+      if (!response || !response.id) {
+        console.log('[planStore.loadPlansByConversation] No plan found for conversation:', conversationId);
+        return null;
+      }
+
+      // Map the API response to PlanData
+      const plan: PlanData = {
+        id: response.id,
+        conversationId: response.conversationId,
+        agentName: response.agentName,
+        namespace: response.namespace,
+        title: response.title,
+        createdAt: new Date(response.createdAt),
+        updatedAt: new Date(response.updatedAt),
+      };
+
+      // Add the plan to the store
+      addPlan(plan);
+
+      // Add versions if they exist
+      if (response.versions && Array.isArray(response.versions)) {
+        response.versions.forEach((versionData: any) => {
+          const version: PlanVersionData = {
+            id: versionData.id,
+            planId: versionData.plan_id,
+            versionNumber: versionData.version_number,
+            content: versionData.content,
+            format: versionData.format,
+            createdAt: new Date(versionData.created_at),
+            isCurrentVersion: versionData.is_current_version,
+            metadata: versionData.metadata,
+          };
+          addVersion(plan.id, version);
+
+          // Set as current version if flagged
+          if (version.isCurrentVersion) {
+            setCurrentVersion(plan.id, version.id);
+          }
+        });
+      }
+
+      // Associate with conversation
+      associatePlanWithConversation(plan.id, conversationId);
+
+      console.log('[planStore.loadPlansByConversation] Loaded plan:', plan.id, 'with', response.versions?.length || 0, 'versions');
+      return plan;
+    } catch (error) {
+      console.error('[planStore.loadPlansByConversation] Error loading plan:', error);
+      return null;
+    }
+  }
+
+  /**
    * Rerun plan creation with a different LLM
    * Uses the plan rerun action via agent2agent API
    */
@@ -273,6 +333,7 @@ export const usePlanStore = defineStore('plan', () => {
     associatePlanWithConversation,
     clearPlansByConversation,
     clearAll,
+    loadPlansByConversation,
     rerunWithDifferentLLM, // TODO: Move to plan.actions.ts
   };
 });

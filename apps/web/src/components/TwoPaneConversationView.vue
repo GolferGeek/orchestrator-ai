@@ -378,6 +378,7 @@ const props = defineProps<Props>();
 // Stores
 const agentChatStore = useAgentChatStore();
 const deliverablesStore = useDeliverablesStore();
+const planStore = usePlanStore();
 const authStore = useAuthStore();
 const sovereignPolicyStore = useSovereignPolicyStore();
 const llmStore = useLLMStore();
@@ -934,9 +935,9 @@ const executeRerunWithConfig = async (
 
     console.log('🔄 Plan LLM Rerun Config:', llmConfig);
 
-    // Call the rerunPlan action
+    // Call the rerunPlan action - use plan.agentName which is the agent slug
     const result = await rerunPlan(
-      plan.agentName,
+      plan.agentName, // agentName is actually the agent slug in PlanData
       plan.conversationId,
       capturedRerunData.version.id,
       {
@@ -1039,12 +1040,40 @@ watch(() => messages.value.length, () => {
 // Watch for conversation changes and handle deliverable/plan loading properly
 watch(() => props.conversation?.id, async (newId, oldId) => {
   if (newId && authStore.isAuthenticated) {
-    // Step 0: Load plan if it exists (plans are prioritized over deliverables for display)
-    try {
-      await agentChatStore.loadCurrentPlan();
-    } catch (error) {
-      console.error('Failed to load plan:', error);
+    console.log('🔍 [TwoPaneConversationView] Conversation changed to:', newId);
+
+    // Step 0: Load plan for this conversation (similar to deliverables)
+    let hasPlan = false;
+
+    // Check if we already have the plan in the store
+    let conversationPlans = planStore.plansByConversationId(newId);
+    console.log('🔍 [TwoPaneConversationView] Plans in store:', conversationPlans.length);
+
+    if (conversationPlans.length === 0) {
+      // Load from API if not in store
+      try {
+        console.log('📡 [TwoPaneConversationView] Loading plan from API for conversation:', newId);
+        const loadedPlan = await planStore.loadPlansByConversation(newId);
+        if (loadedPlan) {
+          // Set the plan on the conversation so PlanDisplay can access it
+          agentChatStore.setPlan(newId, loadedPlan);
+          hasPlan = true;
+          console.log('✅ [TwoPaneConversationView] Loaded plan from API and set on conversation:', loadedPlan.id);
+        } else {
+          console.log('❌ [TwoPaneConversationView] No plan found in API for conversation');
+        }
+      } catch (error) {
+        console.error('❌ [TwoPaneConversationView] Error loading plan:', error);
+      }
+    } else {
+      // Plan already in store - get it and set on conversation
+      const mostRecentPlan = conversationPlans[0]; // Already sorted by updatedAt DESC
+      agentChatStore.setPlan(newId, mostRecentPlan);
+      hasPlan = true;
+      console.log('✅ [TwoPaneConversationView] Plan already in store, set on conversation:', mostRecentPlan.id);
     }
+
+    console.log('🔍 [TwoPaneConversationView] hasPlan:', hasPlan);
 
     // Step 1: Check if deliverables are already loaded, if not load them
     let conversationDeliverables = deliverablesStore.getDeliverablesByConversation(newId);
@@ -1059,6 +1088,8 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
       }
     } else {
     }
+    console.log('🔍 [TwoPaneConversationView] Deliverables count:', conversationDeliverables.length, 'hasPlan:', hasPlan);
+
     if (conversationDeliverables.length > 0) {
       // Step 2: Get the most recent deliverable
       const mostRecentDeliverable = conversationDeliverables
@@ -1072,12 +1103,16 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
       // Step 4: Set up the work product pane and select the deliverable
       activeWorkProduct.value = { type: 'deliverable', data: mostRecentDeliverable };
       showWorkProductPane.value = true;
-    } else if (props.conversation?.currentPlan) {
+      console.log('✅ [TwoPaneConversationView] Showing deliverable pane');
+    } else if (hasPlan) {
       // If no deliverables but there's a plan, show the plan
+      console.log('📋 [TwoPaneConversationView] Setting activeTab to plan and showing pane');
       activeTab.value = 'plan';
       showWorkProductPane.value = true;
+      console.log('✅ [TwoPaneConversationView] Showing plan pane - showWorkProductPane:', showWorkProductPane.value, 'activeTab:', activeTab.value);
     } else {
       // Reset active work product when no deliverables or plans
+      console.log('⚠️ [TwoPaneConversationView] No deliverables or plans, hiding pane');
       activeWorkProduct.value = null;
       // Hide work product pane when no deliverables or plans (can be toggled back on)
       if (!isMobile.value) {

@@ -13,58 +13,7 @@
     "output_modes": ["text/markdown", "application/json"],
     "supported_modes": ["plan", "build", "converse"]
   },
-  "plan_structure": {
-    "type": "object",
-    "properties": {
-      "title_and_topic": {
-        "type": "object",
-        "properties": {
-          "working_title": {"type": "string", "description": "Draft title for the blog post"},
-          "target_topic": {"type": "string", "description": "Main topic or theme"},
-          "unique_angle": {"type": "string", "description": "Unique perspective or approach"}
-        },
-        "required": ["working_title", "target_topic"]
-      },
-      "audience_and_purpose": {
-        "type": "object",
-        "properties": {
-          "target_audience": {"type": "string", "description": "Description of target readers"},
-          "primary_goal": {"type": "string", "enum": ["inform", "persuade", "entertain", "educate"], "description": "Primary goal of the post"},
-          "reader_takeaway": {"type": "string", "description": "What readers should learn or do"}
-        },
-        "required": ["target_audience", "primary_goal", "reader_takeaway"]
-      },
-      "content_strategy": {
-        "type": "object",
-        "properties": {
-          "word_count_target": {"type": "number", "description": "Target word count (e.g., 1200)"},
-          "seo_keywords": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Keywords to optimize for"
-          },
-          "key_points": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "Main points to cover in the post"
-          },
-          "outline": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "heading": {"type": "string"},
-                "subpoints": {"type": "array", "items": {"type": "string"}}
-              }
-            },
-            "description": "Detailed outline with headings and subpoints"
-          }
-        },
-        "required": ["word_count_target", "key_points"]
-      }
-    },
-    "required": ["title_and_topic", "audience_and_purpose", "content_strategy"]
-  },
+  "plan_structure": "# Blog Post Plan\n\n## Title & Topic\n- **Working Title**: [Draft title for the blog post]\n- **Target Topic**: [Main topic or theme]\n- **Unique Angle**: [What makes this post different or interesting]\n\n## Audience & Purpose\n- **Target Audience**: [Description of who will read this]\n- **Primary Goal**: [inform | persuade | entertain | educate]\n- **Reader Takeaway**: [What should readers learn or do after reading]\n\n## Content Strategy\n- **Word Count Target**: [Target number, e.g., 1200 words]\n- **SEO Keywords**: [List 3-5 keywords to optimize for]\n- **Key Points**: [3-5 main ideas to cover]\n\n## Structure & Outline\n- **Introduction**: [Hook and overview]\n- **Main Sections**: \n  - Section 1: [Heading and key points]\n  - Section 2: [Heading and key points]\n  - Section 3: [Heading and key points]\n- **Conclusion**: [Summary and call-to-action]\n\n## Notes\n[Any additional context, requirements, or considerations]",
   "deliverable_structure": {
     "type": "object",
     "properties": {

@@ -42,9 +42,7 @@ export class AgentsRepository {
       status: payload.status ?? null,
       yaml: payload.yaml,
       function_code: payload.function_code ?? null,
-      agent_card: payload.agent_card ?? null,
       context: payload.context ?? null,
-      config: payload.config ?? null,
       updated_at: new Date().toISOString(),
     };
 

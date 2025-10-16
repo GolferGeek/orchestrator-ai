@@ -101,9 +101,7 @@ export class AgentBuilderService {
         version: null,
         status: 'draft', // Start as draft
         yaml: payload.yaml ?? '',
-        agent_card: payload.agent_card ?? null,
         context: payload.context ?? null,
-        config: payload.config ?? null,
       });
 
       return { success: true, data: record };

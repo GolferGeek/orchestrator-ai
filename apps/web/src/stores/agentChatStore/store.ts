@@ -11,6 +11,7 @@
  */
 
 import { defineStore } from 'pinia';
+import { usePlanStore } from '../planStore';
 import type {
   AgentConversation,
   AgentChatMessage,
@@ -249,6 +250,11 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (conv) {
         conv.currentPlan = plan;
         conv.latestPlan = plan;
+
+        // Also add to planStore for reactivity
+        const planStore = usePlanStore();
+        planStore.addPlan(plan);
+        planStore.associatePlanWithConversation(plan.id, conversationId);
       }
     },
 

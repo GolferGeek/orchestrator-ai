@@ -31,10 +31,8 @@ export interface AgentUpsertInput {
   status?: string | null;
   yaml: string;
   function_code?: string | null;
-  agent_card?: Record<string, any> | null;
   context?: Record<string, any> | null;
-  config?: Record<string, any> | null;
-  plan_structure?: Record<string, any> | null;
-  deliverable_structure?: Record<string, any> | null;
+  plan_structure?: string | Record<string, any> | null;
+  deliverable_structure?: string | Record<string, any> | null;
   io_schema?: Record<string, any> | null;
 }

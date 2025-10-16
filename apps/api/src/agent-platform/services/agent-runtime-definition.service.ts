@@ -412,7 +412,7 @@ export class AgentRuntimeDefinitionService {
     return undefined;
   }
 
-  private resolveSchema(...candidates: unknown[]): Record<string, any> | null {
+  private resolveSchema(...candidates: unknown[]): string | Record<string, any> | null {
     for (const candidate of candidates) {
       const normalized = this.normalizeSchema(candidate);
       if (normalized) {
@@ -422,7 +422,7 @@ export class AgentRuntimeDefinitionService {
     return null;
   }
 
-  private normalizeSchema(value: unknown): Record<string, any> | null {
+  private normalizeSchema(value: unknown): string | Record<string, any> | null {
     if (!value) {
       return null;
     }
@@ -432,7 +432,8 @@ export class AgentRuntimeDefinitionService {
         const parsed = JSON.parse(value);
         return this.asRecord(parsed);
       } catch {
-        return null;
+        // If it's not valid JSON, return the string as-is (e.g., markdown template)
+        return value;
       }
     }
 
