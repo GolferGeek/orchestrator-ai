@@ -651,12 +651,42 @@ const renderedMarkdown = computed(() => {
     return '';
   }
   try {
+    let contentToRender = displayVersion.value.content;
+
+    // Check if content is wrapped in JSON structure from io_schema output
+    // Different agents may use different wrapper keys (blog_post, image_description, etc.)
+    try {
+      const parsed = JSON.parse(contentToRender);
+
+      // Try to extract content from wrapper structures
+      // Look for any object with a 'content' field
+      let extracted = false;
+
+      // First, check if there's a nested object with content
+      for (const key of Object.keys(parsed)) {
+        if (parsed[key] && typeof parsed[key] === 'object' && parsed[key].content && typeof parsed[key].content === 'string') {
+          console.log(`[DeliverableDisplay] Unwrapping content from io_schema wrapper key: ${key}`);
+          contentToRender = parsed[key].content;
+          extracted = true;
+          break;
+        }
+      }
+
+      // If not found, check for top-level content field
+      if (!extracted && parsed.content && typeof parsed.content === 'string') {
+        console.log('[DeliverableDisplay] Using top-level content field');
+        contentToRender = parsed.content;
+      }
+    } catch {
+      // Not JSON or parsing failed - use original content
+    }
+
     // Configure marked with options
     marked.setOptions({
       breaks: true,
       gfm: true,
     });
-    return marked(displayVersion.value.content);
+    return marked(contentToRender);
   } catch (error) {
     console.error('Markdown rendering error:', error);
     console.log('Content that failed to render:', displayVersion.value.content);

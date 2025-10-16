@@ -824,6 +824,7 @@ export function buildPlanningPrompt(
 
   if (planStructure) {
     prompt += `\n\nYour plan must follow this structure:\n${safeStringify(planStructure)}`;
+    prompt += '\n\nIMPORTANT: You MUST return your response as valid JSON that strictly validates against the plan structure above. Do not return plain text, explanations, or any other format. Return ONLY valid JSON matching the structure exactly.';
   } else {
     prompt +=
       '\n\nGenerate a structured plan with named phases, clear steps, owners, and measurable outcomes.';

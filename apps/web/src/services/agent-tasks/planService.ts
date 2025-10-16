@@ -33,6 +33,7 @@ import { tasksService } from '../tasksService';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAuthStore } from '@/stores/authStore';
+import { usePlanStore } from '@/stores/planStore';
 
 /**
  * Base parameters for plan operations
@@ -385,23 +386,45 @@ export class PlanService {
    * @returns Processed response
    */
   private handleSuccess(response: any, conversationId: string): any {
+    console.log('[planService.handleSuccess] Called with response:', JSON.stringify(response, null, 2));
     debugLog(this.config, 'handleSuccess', { response, conversationId });
 
     try {
       const chatStore = useAgentChatStore();
+      const planStore = usePlanStore();
 
       // Extract plan data from response
       const plan = response.content?.plan || response.payload?.content?.plan;
+      const version = response.content?.version || response.payload?.content?.version;
       const planId = plan?.id;
 
-      // Update store with plan data (Vue reactivity handles UI updates)
+      console.log('[planService.handleSuccess] Extracted:', { plan: !!plan, version: !!version, planId });
+
+      // Update both stores with plan data (Vue reactivity handles UI updates)
       if (planId && plan) {
+        console.log('[planService.handleSuccess] Adding plan to planStore');
+        // Add to plan store so AgentTaskItem can find it
+        planStore.addPlan(plan, version);
+
+        console.log('[planService.handleSuccess] Adding plan to chatStore');
+        // Also update chat store for backward compatibility
         chatStore.setPlan(conversationId, plan);
+      } else {
+        console.warn('[planService.handleSuccess] No plan or planId found in response');
       }
 
-      // Extract and add assistant message if present
-      const message = response.content?.message || response.payload?.content?.message;
+      // Extract or create assistant message
+      let message = response.content?.message || response.payload?.content?.message;
+      console.log('[planService.handleSuccess] Message:', message ? message.substring(0, 100) : 'none');
+
+      // If no message provided, create a synthetic message for the callout bubble
+      if (!message && plan) {
+        message = `Plan created: ${plan.title || 'Untitled Plan'}`;
+        console.log('[planService.handleSuccess] Creating synthetic message:', message);
+      }
+
       if (message) {
+        console.log('[planService.handleSuccess] Adding message to chatStore');
         chatStore.addMessage(conversationId, {
           id: crypto.randomUUID(),
           role: 'assistant',
@@ -410,14 +433,17 @@ export class PlanService {
           metadata: {
             planId,
             action: response.action,
+            mode: 'plan', // Ensure mode is set for callout detection
           },
         });
       }
 
-      debugLog(this.config, 'Success handled, plan added to store');
+      console.log('[planService.handleSuccess] Success handled, plan added to stores');
+      debugLog(this.config, 'Success handled, plan added to stores');
 
       return response;
     } catch (error) {
+      console.error('[planService.handleSuccess] Error:', error);
       debugLog(this.config, 'Error in handleSuccess:', error);
       throw createServiceError(
         'SUCCESS_PROCESSING_ERROR',
@@ -438,9 +464,17 @@ export class PlanService {
   private handleErrorResponse(response: any, conversationId: string): any {
     debugLog(this.config, 'handleErrorResponse', { response, conversationId });
 
-    const errorCode = response.error?.code || 'UNKNOWN_ERROR';
-    const errorMessage = response.error?.message || 'An error occurred';
-    const errorDetails = response.error?.details;
+    const errorCode = response.error?.code || response.payload?.error?.code || 'UNKNOWN_ERROR';
+    const errorMessage = response.error?.message || response.payload?.error?.message || 'An error occurred';
+    const errorDetails = response.error?.details || response.payload?.error?.details;
+
+    // Log full error for debugging
+    console.error('Plan service error response:', {
+      errorCode,
+      errorMessage,
+      errorDetails,
+      fullResponse: response
+    });
 
     // Update store with error state (Vue reactivity handles UI updates)
     const chatStore = useAgentChatStore();
@@ -461,6 +495,14 @@ export class PlanService {
 
     const errorCode = extractErrorCode(error);
     const errorMessage = extractErrorMessage(error);
+
+    // Log full error details for debugging
+    console.error('Plan service error:', {
+      errorCode,
+      errorMessage,
+      fullError: error,
+      errorStack: error?.stack
+    });
 
     // Update store with error state (Vue reactivity handles UI updates)
     const chatStore = useAgentChatStore();

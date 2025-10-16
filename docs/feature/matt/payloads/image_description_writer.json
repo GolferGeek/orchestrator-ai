@@ -1,0 +1,242 @@
+{
+  "organization_slug": "my-org",
+  "slug": "image_description_writer",
+  "display_name": "Image Description Writer",
+  "description": "Creates detailed, accessible image descriptions for web content, social media, and documentation. Supports full mode × action architecture with plans and deliverables.",
+  "agent_type": "context",
+  "mode_profile": "autonomous_build",
+  "status": "active",
+  "yaml": "input_modes: ['application/json', 'image/*']\noutput_modes: ['text/plain', 'text/markdown']\n",
+  "plan_structure": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Title or name for this image description task"
+      },
+      "purpose": {
+        "type": "string",
+        "description": "Purpose of the description (accessibility, SEO, social media, documentation)"
+      },
+      "images": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string" },
+            "filename": { "type": "string" },
+            "context": { "type": "string", "description": "Where this image will be used" }
+          }
+        }
+      },
+      "style": {
+        "type": "object",
+        "properties": {
+          "length": {
+            "type": "string",
+            "enum": ["brief", "moderate", "detailed"],
+            "description": "Desired description length"
+          },
+          "tone": {
+            "type": "string",
+            "description": "Tone (professional, casual, technical)"
+          },
+          "focus": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Key elements to emphasize"
+          }
+        }
+      },
+      "accessibility": {
+        "type": "object",
+        "properties": {
+          "wcag_level": {
+            "type": "string",
+            "enum": ["A", "AA", "AAA"]
+          },
+          "include_alt_text": { "type": "boolean" },
+          "include_long_description": { "type": "boolean" }
+        }
+      }
+    },
+    "required": ["title", "purpose"]
+  },
+  "deliverable_structure": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Title of the deliverable"
+      },
+      "descriptions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "image_reference": { "type": "string" },
+            "alt_text": {
+              "type": "string",
+              "description": "Short alt text (125 characters or less)"
+            },
+            "short_description": {
+              "type": "string",
+              "description": "Brief description (1-2 sentences)"
+            },
+            "detailed_description": {
+              "type": "string",
+              "description": "Full detailed description"
+            },
+            "keywords": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["image_reference", "alt_text", "short_description"]
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "total_images": { "type": "number" },
+          "wcag_compliance": { "type": "string" },
+          "average_description_length": { "type": "number" }
+        }
+      }
+    },
+    "required": ["title", "descriptions"]
+  },
+  "io_schema": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["converse", "plan", "build"],
+          "description": "The interaction mode"
+        },
+        "action": {
+          "type": "string",
+          "description": "The action to perform (e.g., create, read, edit)"
+        },
+        "message": {
+          "type": "string",
+          "description": "User message or instructions"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string" },
+              "filename": { "type": "string" }
+            }
+          },
+          "description": "Images to describe"
+        },
+        "planId": {
+          "type": "string",
+          "description": "Plan ID for build mode"
+        }
+      },
+      "required": ["mode"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "content": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Response message or content"
+            }
+          }
+        },
+        "planId": {
+          "type": "string",
+          "description": "Plan ID if plan was created"
+        },
+        "deliverableId": {
+          "type": "string",
+          "description": "Deliverable ID if deliverable was created"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "provider": { "type": "string" },
+            "model": { "type": "string" },
+            "usage": {
+              "type": "object",
+              "properties": {
+                "inputTokens": { "type": "number" },
+                "outputTokens": { "type": "number" },
+                "totalTokens": { "type": "number" },
+                "cost": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "required": ["success", "mode"]
+    }
+  },
+  "context": {
+    "system": "You are an image description specialist. Create clear, accurate, and accessible descriptions for images. Focus on what's visible, relevant context, and appropriate detail level for the use case.",
+    "converse": "You are having a conversation about image description needs. Help the user understand best practices for alt text, accessibility requirements, and effective image descriptions. Ask clarifying questions about the images and their intended use.",
+    "plan": "You are creating a structured plan for describing one or more images. Follow the plan_structure schema. Include all required sections: title, purpose, images, style, and accessibility. Consider the target audience and use case when planning the descriptions.",
+    "build": "You are writing complete image descriptions following the deliverable_structure schema. For each image, provide: 1) Alt text (concise, 125 chars max), 2) Short description (1-2 sentences), 3) Detailed description (comprehensive). Ensure WCAG compliance and include relevant keywords for SEO.",
+    "plan_template": "When creating a plan for image descriptions, structure it with the following sections:\n\n# Image Description Plan\n\n## Project Overview\n- Project title\n- Number of images to describe\n- Primary purpose (accessibility, SEO, social media, documentation)\n\n## Target Audience\n- Who will be consuming these descriptions?\n- What level of detail is appropriate?\n- What background knowledge can we assume?\n\n## Style Guide\n- Description length (brief, moderate, detailed)\n- Tone and voice\n- Technical level\n- Special terminology or preferences\n\n## Accessibility Requirements\n- WCAG compliance level (A, AA, AAA)\n- Alt text requirements\n- Long description needs\n- Screen reader considerations\n\n## Images to Describe\nFor each image:\n- Filename/Reference\n- Context of use\n- Key elements to highlight\n- Special considerations\n\n## SEO Strategy (if applicable)\n- Target keywords per image\n- Search intent\n- Competitive keywords\n\n---\n\nIMPORTANT: For the first version of the plan, make reasonable assumptions based on the user's request. After completing the plan structure above, add a \"Questions for Refinement\" section with 3-5 specific questions to gather more details from the user."
+  },
+  "config": {
+    "execution_profile": "autonomous_build",
+    "execution_capabilities": {
+      "can_converse": true,
+      "can_plan": true,
+      "can_build": true
+    },
+    "a2a_capabilities": [
+      {
+        "mode": "plan",
+        "action": "create",
+        "description": "Create or refine a plan for image descriptions",
+        "requires": ["title", "content"],
+        "returns": "Plan with initial version"
+      },
+      {
+        "mode": "plan",
+        "action": "read",
+        "description": "Read the current plan",
+        "requires": [],
+        "returns": "Current plan with version"
+      },
+      {
+        "mode": "build",
+        "action": "create",
+        "description": "Create image descriptions deliverable",
+        "requires": ["title", "content"],
+        "returns": "Deliverable with initial version"
+      },
+      {
+        "mode": "build",
+        "action": "read",
+        "description": "Read the current deliverable",
+        "requires": [],
+        "returns": "Current deliverable with version"
+      },
+      {
+        "mode": "converse",
+        "action": "chat",
+        "description": "Have a conversation about image description needs",
+        "requires": ["message"],
+        "returns": "AI response"
+      }
+    ]
+  }
+}

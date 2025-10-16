@@ -33,6 +33,7 @@ import { tasksService } from '../tasksService';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useDeliverableStore } from '@/stores/deliverableStore';
 
 /**
  * Base parameters for deliverable operations
@@ -402,18 +403,30 @@ export class DeliverableService {
 
     try {
       const chatStore = useAgentChatStore();
+      const deliverableStore = useDeliverableStore();
 
       // Extract deliverable data from response
       const deliverable = response.content?.deliverable || response.payload?.content?.deliverable;
+      const version = response.content?.version || response.payload?.content?.version;
       const deliverableId = deliverable?.id;
 
-      // Update store with deliverable data (Vue reactivity handles UI updates)
-      if (deliverableId && deliverable) {
+      // Update both stores with deliverable data (Vue reactivity handles UI updates)
+      if (deliverableId && deliverable && version) {
+        // Use handleBuildExecute to properly set up deliverable with version
+        deliverableStore.handleBuildExecute({ deliverable, version, isNew: true });
+
+        // Also update chat store for backward compatibility
         chatStore.setDeliverable(conversationId, deliverable);
       }
 
-      // Extract and add assistant message if present
-      const message = response.content?.message || response.payload?.content?.message;
+      // Extract or create assistant message
+      let message = response.content?.message || response.payload?.content?.message;
+
+      // If no message provided, create a synthetic message for the callout bubble
+      if (!message && deliverable) {
+        message = `Deliverable created: ${deliverable.title || 'Untitled Deliverable'}`;
+      }
+
       if (message) {
         chatStore.addMessage(conversationId, {
           id: crypto.randomUUID(),
@@ -423,11 +436,12 @@ export class DeliverableService {
           metadata: {
             deliverableId,
             action: response.action,
+            mode: 'build', // Ensure mode is set for callout detection
           },
         });
       }
 
-      debugLog(this.config, 'Success handled, deliverable added to store');
+      debugLog(this.config, 'Success handled, deliverable added to stores');
 
       return response;
     } catch (error) {

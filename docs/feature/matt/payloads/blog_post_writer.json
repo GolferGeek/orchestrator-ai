@@ -7,8 +7,83 @@
   "mode_profile": "autonomous_build",
   "status": "active",
   "yaml": "input_modes: ['application/json']\noutput_modes: ['text/markdown']\n",
+  "plan_structure": "# Blog Post Plan\n\n## Title & Topic\n- Working title\n- Target topic/theme\n- Angle or unique perspective\n\n## Audience & Purpose\n- Target audience description\n- Primary goal (inform, persuade, entertain)\n- Reader takeaway\n\n## Content Strategy\n- Word count target\n- Tone and voice\n- Key points to cover (3-5 main ideas)\n\n## Structure & Outline\n- Introduction hook\n- Main sections/headings (H2, H3)\n- Supporting points for each section\n- Conclusion/call-to-action\n\n## SEO Strategy\n- Primary keyword\n- Secondary keywords (3-5)\n- Meta title (50-60 characters)\n- Meta description (150-160 characters)\n\n## Questions for Refinement\n- Clarifying questions for the user",
+  "deliverable_structure": "# [Blog Post Title]\n\n## Introduction\n[Engaging hook and overview of the topic]\n\n## [Main Section 1]\n[Content for first major point]\n\n### [Subsection if needed]\n[Supporting detail]\n\n## [Main Section 2]\n[Content for second major point]\n\n## [Main Section 3]\n[Content for third major point]\n\n## Conclusion\n[Summary and call-to-action]\n\n---\n\n**Metadata:**\n- Word Count: [number]\n- Reading Time: [X] minutes\n- Keywords: [list]\n- Meta Title: [50-60 chars]\n- Meta Description: [150-160 chars]",
+  "io_schema": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["converse", "plan", "build"],
+          "description": "The interaction mode"
+        },
+        "action": {
+          "type": "string",
+          "description": "The action to perform (e.g., create, read, edit)"
+        },
+        "message": {
+          "type": "string",
+          "description": "User message or instructions"
+        },
+        "planId": {
+          "type": "string",
+          "description": "Plan ID for build mode"
+        }
+      },
+      "required": ["mode"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "content": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Response message or content"
+            }
+          }
+        },
+        "planId": {
+          "type": "string",
+          "description": "Plan ID if plan was created"
+        },
+        "deliverableId": {
+          "type": "string",
+          "description": "Deliverable ID if deliverable was created"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "provider": { "type": "string" },
+            "model": { "type": "string" },
+            "usage": {
+              "type": "object",
+              "properties": {
+                "inputTokens": { "type": "number" },
+                "outputTokens": { "type": "number" },
+                "totalTokens": { "type": "number" },
+                "cost": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "required": ["success", "mode"]
+    }
+  },
   "context": {
     "system": "You are a blog post writer. Produce SEO-friendly Markdown with clear headings, intro, body, and conclusion. Maintain a helpful, concise tone.",
+    "converse": "You are having a conversation about blog post ideas and writing. Help the user clarify their topic, audience, and goals. Ask clarifying questions and provide suggestions.",
+    "plan": "You are creating a structured plan for a blog post. Follow the plan_structure schema. Include all required sections: title, topic, audience, content_strategy, structure, and seo. Be thorough and specific in your planning.",
+    "build": "You are writing a complete blog post based on the plan. Follow the deliverable_structure schema. Produce well-formatted Markdown with proper headings (# for title, ## for main sections, ### for subsections). Include an engaging introduction, well-structured body content, and a strong conclusion. Ensure the content matches the plan's intent and meets SEO requirements.",
     "plan_template": "When creating a plan for a blog post, structure it with the following sections:\n\n# Blog Post Plan\n\n## Title & Topic\n- Working title\n- Target topic/theme\n- Angle or unique perspective\n\n## Audience & Purpose\n- Target audience description\n- Primary goal (inform, persuade, entertain, etc.)\n- Reader takeaway\n\n## Content Strategy\n- Word count target (e.g., 800-1200 words)\n- Tone and voice (professional, casual, technical, etc.)\n- Key points to cover (3-5 main ideas)\n\n## Structure & Outline\n- Introduction hook\n- Main sections/headings (H2, H3)\n- Supporting points for each section\n- Conclusion/call-to-action\n\n## SEO Strategy\n- Primary keyword\n- Secondary keywords (3-5)\n- Meta title (50-60 characters)\n- Meta description (150-160 characters)\n- Internal linking opportunities\n- External sources to reference\n\n## Research & Resources\n- Facts/statistics needed\n- Expert quotes or interviews\n- Images/media to include\n- Sources to cite\n\n## Success Metrics\n- Target engagement (time on page, shares, etc.)\n- Conversion goals (if applicable)\n\n---\n\nIMPORTANT: For the first version of the plan, do your best to infer what each section would contain based on the user's request. Fill in reasonable assumptions and suggestions. After completing the plan structure above, add a \"Questions for Refinement\" section with 3-5 pointed questions to gather more specific details from the user."
   },
   "config": {

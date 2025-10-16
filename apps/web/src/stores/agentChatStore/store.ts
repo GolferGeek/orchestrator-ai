@@ -177,6 +177,19 @@ export const useAgentChatStore = defineStore('agentChat', {
     },
 
     /**
+     * Close a conversation (alias for removeConversation)
+     * Used when a conversation is deleted and needs to be closed
+     */
+    closeConversation(conversationId: string) {
+      // Clear active conversation if it's the one being closed
+      if (this.activeConversationId === conversationId) {
+        this.activeConversationId = null;
+      }
+      // Note: We don't remove from conversations array here because
+      // that's handled by the conversationsStore
+    },
+
+    /**
      * Get conversation by ID
      */
     getConversationById(conversationId: string): AgentConversation | undefined {

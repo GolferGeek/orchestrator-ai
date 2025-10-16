@@ -230,7 +230,7 @@
         <!-- Tab Content -->
         <div class="tab-content">
           <!-- Plan Tab -->
-          <div v-show="activeTab === 'plan' && conversation?.currentPlan">
+          <div v-if="activeTab === 'plan' && conversation?.currentPlan">
             <PlanDisplay
               :plan="conversation.currentPlan"
               :conversation-id="conversation?.id"
@@ -242,9 +242,8 @@
           </div>
 
           <!-- Deliverable Tab -->
-          <div v-show="activeTab === 'deliverable' && activeWorkProduct?.type === 'deliverable'">
+          <div v-if="activeTab === 'deliverable' && activeWorkProduct?.type === 'deliverable' && activeWorkProduct?.data">
             <DeliverableDisplay
-              v-if="activeWorkProduct?.data"
               :deliverable="activeWorkProduct.data"
               :conversation-id="conversation?.id"
               @version-changed="handleVersionChanged"
@@ -256,9 +255,8 @@
           </div>
 
           <!-- Project Tab -->
-          <div v-show="activeTab === 'project' && activeWorkProduct?.type === 'project'">
+          <div v-if="activeTab === 'project' && activeWorkProduct?.type === 'project' && activeWorkProduct?.data">
             <ProjectDisplay
-              v-if="activeWorkProduct?.data"
               :project="activeWorkProduct.data"
               :conversation-id="conversation?.id"
               @project-updated="handleProjectUpdated"

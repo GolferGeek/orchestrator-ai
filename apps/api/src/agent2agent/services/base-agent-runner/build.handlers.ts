@@ -1020,7 +1020,17 @@ export function validateDeliverableSchema(
   });
 
   const validate = ajv.compile(schema as Record<string, unknown>);
-  const candidate = coerceDeliverableContent(deliverableContent);
+
+  // For io_schema validation, we need the ORIGINAL wrapped format (not unwrapped)
+  // So parse the string but don't unwrap
+  let candidate = deliverableContent;
+  if (typeof deliverableContent === 'string') {
+    const extracted = extractCodeFenceContent(deliverableContent.trim());
+    const parsed = tryParseJson(extracted);
+    candidate = parsed !== null ? parsed : extracted;
+  }
+
+  console.log('[validateDeliverableSchema] Validating io_schema with wrapped format');
 
   if (!validate(candidate)) {
     const message = ajv.errorsText(validate.errors, { separator: '; ' });
@@ -1286,9 +1296,41 @@ function normalizeUsage(usage: any): typeof EMPTY_USAGE {
 }
 
 function coerceDeliverableContent(content: unknown): unknown {
+  console.log('[coerceDeliverableContent] Input type:', typeof content);
+  if (typeof content === 'string') {
+    console.log('[coerceDeliverableContent] Content length:', content.length);
+    console.log('[coerceDeliverableContent] First 300 chars:', content.substring(0, 300));
+    console.log('[coerceDeliverableContent] Last 300 chars:', content.substring(Math.max(0, content.length - 300)));
+  } else {
+    console.log('[coerceDeliverableContent] Input value:', JSON.stringify(content).substring(0, 200));
+  }
+
   if (typeof content === 'string') {
     const candidate = extractCodeFenceContent(content.trim());
     const parsed = tryParseJson(candidate);
+    console.log('[coerceDeliverableContent] After parsing:', {
+      hadCodeFence: candidate !== content.trim(),
+      parsedSuccessfully: parsed !== null,
+      parsedType: parsed !== null ? typeof parsed : 'null'
+    });
+
+    // If parsed successfully, check if it's wrapped in io_schema output format
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      // Check for common io_schema output wrappers and extract the actual deliverable
+      if ('blog_post' in parsed) {
+        console.log('[coerceDeliverableContent] Unwrapping blog_post from io_schema output format');
+        return parsed.blog_post;
+      }
+      if ('deliverable' in parsed) {
+        console.log('[coerceDeliverableContent] Unwrapping deliverable from io_schema output format');
+        return parsed.deliverable;
+      }
+      if ('data' in parsed) {
+        console.log('[coerceDeliverableContent] Unwrapping data from io_schema output format');
+        return parsed.data;
+      }
+    }
+
     return parsed !== null ? parsed : candidate;
   }
 
@@ -1297,6 +1339,20 @@ function coerceDeliverableContent(content: unknown): unknown {
   }
 
   if (content && typeof content === 'object') {
+    // Check if this is an io_schema wrapped object
+    const obj = content as any;
+    if ('blog_post' in obj) {
+      console.log('[coerceDeliverableContent] Unwrapping blog_post from object');
+      return obj.blog_post;
+    }
+    if ('deliverable' in obj) {
+      console.log('[coerceDeliverableContent] Unwrapping deliverable from object');
+      return obj.deliverable;
+    }
+    if ('data' in obj) {
+      console.log('[coerceDeliverableContent] Unwrapping data from object');
+      return obj.data;
+    }
     return content;
   }
 
@@ -1309,6 +1365,33 @@ function tryParseJson(value: string): any | null {
   }
 
   const trimmed = value.trim();
+
+  // First try: parse the entire string if it starts with JSON
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      // Fall through to search for JSON within the string
+    }
+  }
+
+  // Second try: search for JSON within the string (for models that output thinking text first)
+  // Look for the first occurrence of { or [ and try to parse from there
+  const jsonStartIndex = Math.min(
+    trimmed.indexOf('{') >= 0 ? trimmed.indexOf('{') : Infinity,
+    trimmed.indexOf('[') >= 0 ? trimmed.indexOf('[') : Infinity
+  );
+
+  if (jsonStartIndex !== Infinity && jsonStartIndex > 0) {
+    const possibleJson = trimmed.substring(jsonStartIndex);
+    try {
+      return JSON.parse(possibleJson);
+    } catch {
+      // Fall through to original parsing attempt
+    }
+  }
+
+  // Original parsing attempt (will fail but we tried)
   if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
     return null;
   }

@@ -34,6 +34,7 @@ import { tasksService } from '../tasksService';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAuthStore } from '@/stores/authStore';
+import { usePlanStore } from '@/stores/planStore';
 
 /**
  * Parameters for sending a converse request
