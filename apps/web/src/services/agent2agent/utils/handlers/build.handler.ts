@@ -15,7 +15,7 @@ import {
   extractSuccessPayload,
   StrictResponseValidationError,
 } from './response-validation';
-import { useDeliverableStore } from '@/stores/deliverableStore';
+import { useDeliverablesStore } from '@/stores/deliverablesStore';
 
 /**
  * Build response types for different actions
@@ -119,15 +119,19 @@ export const buildResponseHandler = {
    */
   handleExecute(response: any, planId?: string): BuildExecuteResult {
     const result = validateAndExtract<BuildExecuteResult>(response, 'create');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store
-    store.addDeliverable(result.deliverable, result.version);
-    if (planId) {
-      store.associateDeliverableWithPlan(result.deliverable.id, planId);
-    }
+    store.addDeliverable(result.deliverable);
     if (result.version) {
-      store.setCurrentVersion(result.deliverable.id, result.version.id);
+      store.addVersion(result.deliverable.id, result.version);
+    }
+    // TODO: Add plan-deliverable association to deliverablesStore if needed
+    // if (planId) {
+    //   store.associateDeliverableWithPlan(result.deliverable.id, planId);
+    // }
+    if (result.version) {
+      store.setCurrentVersion(result.version.id);
     }
 
     return result;
@@ -139,12 +143,15 @@ export const buildResponseHandler = {
    */
   handleRead(response: any): BuildReadResult {
     const result = validateAndExtract<BuildReadResult>(response, 'read');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store
-    store.addDeliverable(result.deliverable, result.version);
+    store.addDeliverable(result.deliverable);
     if (result.version) {
-      store.setCurrentVersion(result.deliverable.id, result.version.id);
+      store.addVersion(result.deliverable.id, result.version);
+    }
+    if (result.version) {
+      store.setCurrentVersion(result.version.id);
     }
 
     return result;
@@ -156,14 +163,15 @@ export const buildResponseHandler = {
    */
   handleList(response: any, planId?: string): BuildListResult {
     const result = validateAndExtract<BuildListResult>(response, 'list');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store with all deliverables
     result.deliverables.forEach(deliverable => {
       store.addDeliverable(deliverable);
-      if (planId) {
-        store.associateDeliverableWithPlan(deliverable.id, planId);
-      }
+      // TODO: Add plan-deliverable association to deliverablesStore if needed
+      // if (planId) {
+      //   store.associateDeliverableWithPlan(deliverable.id, planId);
+      // }
     });
 
     return result;
@@ -175,12 +183,15 @@ export const buildResponseHandler = {
    */
   handleRerun(response: any): BuildRerunResult {
     const result = validateAndExtract<BuildRerunResult>(response, 'rerun');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store with new version
-    store.addDeliverable(result.deliverable, result.version);
+    store.addDeliverable(result.deliverable);
     if (result.version) {
-      store.setCurrentVersion(result.deliverable.id, result.version.id);
+      store.addVersion(result.deliverable.id, result.version);
+    }
+    if (result.version) {
+      store.setCurrentVersion(result.version.id);
     }
 
     return result;
@@ -192,12 +203,15 @@ export const buildResponseHandler = {
    */
   handleEdit(response: any): BuildEditResult {
     const result = validateAndExtract<BuildEditResult>(response, 'edit');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store
-    store.addDeliverable(result.deliverable, result.version);
+    store.addDeliverable(result.deliverable);
     if (result.version) {
-      store.setCurrentVersion(result.deliverable.id, result.version.id);
+      store.addVersion(result.deliverable.id, result.version);
+    }
+    if (result.version) {
+      store.setCurrentVersion(result.version.id);
     }
 
     return result;
@@ -209,7 +223,7 @@ export const buildResponseHandler = {
    */
   handleSetCurrent(response: any): BuildSetCurrentResult {
     const result = validateAndExtract<BuildSetCurrentResult>(response, 'set_current');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store
     store.setCurrentVersion(result.deliverable.id, result.version.id);
@@ -223,7 +237,7 @@ export const buildResponseHandler = {
    */
   handleDeleteVersion(response: any): BuildDeleteVersionResult {
     const result = validateAndExtract<BuildDeleteVersionResult>(response, 'delete_version');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store
     if (result.deleted) {
@@ -239,12 +253,15 @@ export const buildResponseHandler = {
    */
   handleMergeVersions(response: any): BuildMergeVersionsResult {
     const result = validateAndExtract<BuildMergeVersionsResult>(response, 'merge_versions');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store with merged version
-    store.addDeliverable(result.deliverable, result.version);
+    store.addDeliverable(result.deliverable);
     if (result.version) {
-      store.setCurrentVersion(result.deliverable.id, result.version.id);
+      store.addVersion(result.deliverable.id, result.version);
+    }
+    if (result.version) {
+      store.setCurrentVersion(result.version.id);
     }
 
     return result;
@@ -256,7 +273,7 @@ export const buildResponseHandler = {
    */
   handleCopyVersion(response: any): BuildCopyVersionResult {
     const result = validateAndExtract<BuildCopyVersionResult>(response, 'copy_version');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store with copied version
     store.addVersion(result.deliverable.id, result.version);
@@ -270,7 +287,7 @@ export const buildResponseHandler = {
    */
   handleDelete(response: any): BuildDeleteResult {
     const result = validateAndExtract<BuildDeleteResult>(response, 'delete');
-    const store = useDeliverableStore();
+    const store = useDeliverablesStore();
 
     // Update store
     if (result.deleted) {

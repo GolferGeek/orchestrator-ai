@@ -740,25 +740,43 @@ const cancelEnhancement = async () => {
   try { await deliverablesStore.stopEnhancement(); } catch (_) {}
 };
 const handleDeliverableCreated = async (deliverable: any) => {
+  console.log('🎉 [TwoPaneConversationView.handleDeliverableCreated] Called with deliverable:', deliverable.id, 'title:', deliverable.title);
+  console.log('🎉 [TwoPaneConversationView.handleDeliverableCreated] Current conversation:', props.conversation?.id);
+  console.log('🎉 [TwoPaneConversationView.handleDeliverableCreated] Deliverable conversationId:', deliverable.conversationId);
+
   // Use the correct camelCase field name
   // Ensure the deliverable belongs to the current conversation
   if (props.conversation?.id && deliverable.conversationId !== props.conversation.id) {
-
+    console.log('⚠️ [TwoPaneConversationView.handleDeliverableCreated] Deliverable belongs to different conversation, ignoring');
     return;
   }
+
+  console.log('✅ [TwoPaneConversationView.handleDeliverableCreated] Deliverable belongs to current conversation');
+
   // Load versions for the newly created deliverable
   try {
+    console.log('📥 [TwoPaneConversationView.handleDeliverableCreated] Loading deliverable versions...');
     await deliverablesStore.loadDeliverableVersions(deliverable.id);
+    console.log('✅ [TwoPaneConversationView.handleDeliverableCreated] Versions loaded');
   } catch (error) {
-
+    console.error('❌ [TwoPaneConversationView.handleDeliverableCreated] Error loading versions:', error);
     // Don't let version loading failure block deliverable creation handling
   }
+
   // Auto-select newly created or newly loaded deliverable
+  console.log('🎯 [TwoPaneConversationView.handleDeliverableCreated] Setting activeWorkProduct to deliverable:', deliverable.id);
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
+  console.log('🎯 [TwoPaneConversationView.handleDeliverableCreated] activeWorkProduct set:', activeWorkProduct.value);
+
   // FORCE show the work product pane immediately when a deliverable is created
+  console.log('🎯 [TwoPaneConversationView.handleDeliverableCreated] Setting showWorkProductPane to true');
   showWorkProductPane.value = true;
+  console.log('🎯 [TwoPaneConversationView.handleDeliverableCreated] showWorkProductPane set:', showWorkProductPane.value);
+
   // Force Vue reactivity update
   await nextTick();
+  console.log('✅ [TwoPaneConversationView.handleDeliverableCreated] nextTick complete');
+
   // Show visual debugging toast to confirm pane opened
   try {
     const { toastController } = await import('@ionic/vue');
@@ -770,7 +788,7 @@ const handleDeliverableCreated = async (deliverable: any) => {
     });
     await toast.present();
   } catch (error) {
-
+    console.error('❌ [TwoPaneConversationView.handleDeliverableCreated] Error showing toast:', error);
   }
 };
 const handleDeliverableUpdated = (deliverable: any) => {
@@ -882,12 +900,15 @@ const canExecuteRerun = computed(() => {
 });
 
 const executeRerunWithConfig = async (
-  capturedRerunData: { plan: any; version: any },
+  capturedRerunData: { plan?: any; deliverable?: any; version: any },
   llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
 ) => {
-  console.log('🔍 [executeRerunWithConfig] Plan rerun data:', capturedRerunData);
+  console.log('🔍 [executeRerunWithConfig] Rerun data:', capturedRerunData);
 
   const plan = capturedRerunData.plan;
+  const deliverable = capturedRerunData.deliverable;
+  const isDeliverable = !!deliverable;
+  const isPlan = !!plan;
 
   // Find the original user message that generated this plan
   let originalUserPrompt = '';
@@ -900,7 +921,9 @@ const executeRerunWithConfig = async (
 
   // Use original prompt if found, otherwise create a descriptive message
   const rerunMessage = originalUserPrompt ||
-    `🔄 Regenerating plan "${plan.title}" with ${llmConfig.provider}/${llmConfig.model}`;
+    (isPlan
+      ? `🔄 Regenerating plan "${plan.title}" with ${llmConfig.provider}/${llmConfig.model}`
+      : `🔄 Regenerating deliverable "${deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`);
 
   if (originalUserPrompt) {
     console.log('✅ Found original user prompt for rerun:', originalUserPrompt);
@@ -933,20 +956,37 @@ const executeRerunWithConfig = async (
       props.conversation.error = undefined;
     }
 
-    console.log('🔄 Plan LLM Rerun Config:', llmConfig);
+    console.log('🔄 LLM Rerun Config:', llmConfig, 'isPlan:', isPlan, 'isDeliverable:', isDeliverable);
 
-    // Call the rerunPlan action - use plan.agentName which is the agent slug
-    const result = await rerunPlan(
-      plan.agentName, // agentName is actually the agent slug in PlanData
-      plan.conversationId,
-      capturedRerunData.version.id,
-      {
-        provider: llmConfig.provider,
-        model: llmConfig.model,
-        temperature: llmConfig.temperature,
-        maxTokens: llmConfig.maxTokens,
-      }
-    );
+    let result;
+    if (isPlan) {
+      // Call the rerunPlan action - use plan.agentName which is the agent slug
+      result = await rerunPlan(
+        plan.agentName, // agentName is actually the agent slug in PlanData
+        plan.conversationId,
+        capturedRerunData.version.id,
+        {
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+          temperature: llmConfig.temperature,
+          maxTokens: llmConfig.maxTokens,
+        }
+      );
+    } else if (isDeliverable) {
+      // Call the rerunWithDifferentLLM action from deliverablesStore
+      // NOTE: This should eventually be moved to deliverableService, but the service method is not implemented yet
+      const newVersion = await deliverablesStore.rerunWithDifferentLLM(
+        capturedRerunData.version.id,
+        {
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+          temperature: llmConfig.temperature,
+          maxTokens: llmConfig.maxTokens,
+        }
+      );
+      // Format result to match plan result structure
+      result = { version: newVersion };
+    }
 
     // Create assistant response message with the new version
     const assistantMessage: AgentChatMessage = {
@@ -954,7 +994,8 @@ const executeRerunWithConfig = async (
       role: 'assistant',
       content: `✅ Created new version with ${llmConfig.provider}/${llmConfig.model}`,
       timestamp: new Date(),
-      planId: plan.id,
+      ...(isPlan ? { planId: plan.id } : {}),
+      ...(isDeliverable ? { deliverableId: deliverable.id } : {}),
       metadata: {
         isRerunResponse: true,
         newVersionId: result.version.id,
@@ -1029,7 +1070,9 @@ watch(
 );
 // Ensure pane opens when a work product becomes active (desktop)
 watch(() => activeWorkProduct.value, (val) => {
+  console.log('👀 [TwoPaneConversationView] activeWorkProduct watcher triggered:', val, 'isMobile:', isMobile.value, 'showWorkProductPane:', showWorkProductPane.value);
   if (val && !isMobile.value && !showWorkProductPane.value) {
+    console.log('🎯 [TwoPaneConversationView] Opening work product pane from watcher');
     showWorkProductPane.value = true;
   }
 });
@@ -1077,33 +1120,46 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
 
     // Step 1: Check if deliverables are already loaded, if not load them
     let conversationDeliverables = deliverablesStore.getDeliverablesByConversation(newId);
+    console.log('🔍 [TwoPaneConversationView] Initial deliverables from store:', conversationDeliverables?.length || 0);
+
     if (!conversationDeliverables || conversationDeliverables.length === 0) {
       // Load deliverables first
+      console.log('📡 [TwoPaneConversationView] Loading deliverables from API...');
       try {
         const loadedDeliverables = await deliverablesStore.loadDeliverablesByConversation(newId);
         conversationDeliverables = loadedDeliverables || [];
+        console.log('✅ [TwoPaneConversationView] Loaded deliverables from API:', conversationDeliverables.length);
       } catch (error) {
-
+        console.error('❌ [TwoPaneConversationView] Error loading deliverables:', error);
         conversationDeliverables = [];
       }
     } else {
+      console.log('✅ [TwoPaneConversationView] Using existing deliverables from store');
     }
-    console.log('🔍 [TwoPaneConversationView] Deliverables count:', conversationDeliverables.length, 'hasPlan:', hasPlan);
+    console.log('🔍 [TwoPaneConversationView] Final deliverables count:', conversationDeliverables.length, 'hasPlan:', hasPlan);
+    console.log('🔍 [TwoPaneConversationView] Current showWorkProductPane before setting:', showWorkProductPane.value);
+    console.log('🔍 [TwoPaneConversationView] Current activeWorkProduct before setting:', activeWorkProduct.value);
 
     if (conversationDeliverables.length > 0) {
       // Step 2: Get the most recent deliverable
       const mostRecentDeliverable = conversationDeliverables
         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+      console.log('📋 [TwoPaneConversationView] Most recent deliverable:', mostRecentDeliverable.id);
+
       // Step 3: Load versions for the selected deliverable
       try {
         await deliverablesStore.loadDeliverableVersions(mostRecentDeliverable.id);
+        console.log('✅ [TwoPaneConversationView] Loaded deliverable versions');
       } catch (error) {
-
+        console.error('❌ [TwoPaneConversationView] Error loading deliverable versions:', error);
       }
+
       // Step 4: Set up the work product pane and select the deliverable
+      console.log('🎯 [TwoPaneConversationView] Setting activeWorkProduct to deliverable:', mostRecentDeliverable.id);
       activeWorkProduct.value = { type: 'deliverable', data: mostRecentDeliverable };
+      console.log('🎯 [TwoPaneConversationView] Setting showWorkProductPane to true');
       showWorkProductPane.value = true;
-      console.log('✅ [TwoPaneConversationView] Showing deliverable pane');
+      console.log('✅ [TwoPaneConversationView] After setting - showWorkProductPane:', showWorkProductPane.value, 'activeWorkProduct:', activeWorkProduct.value);
     } else if (hasPlan) {
       // If no deliverables but there's a plan, show the plan
       console.log('📋 [TwoPaneConversationView] Setting activeTab to plan and showing pane');
@@ -1118,6 +1174,7 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
       if (!isMobile.value) {
         showWorkProductPane.value = false;
       }
+      console.log('⚠️ [TwoPaneConversationView] After hiding - showWorkProductPane:', showWorkProductPane.value);
     }
   } else {
     // Reset active work product when switching conversations
@@ -1147,11 +1204,22 @@ watch(() => props.conversation?.currentPlan, (plan) => {
 
 // Watch for deliverable selection and switch tabs
 watch(() => activeWorkProduct.value, (workProduct) => {
+  console.log('👀 [TwoPaneConversationView] activeWorkProduct tab watcher:', workProduct);
   if (workProduct?.type === 'deliverable') {
+    console.log('🎯 [TwoPaneConversationView] Switching to deliverable tab');
     activeTab.value = 'deliverable';
   } else if (workProduct?.type === 'project') {
+    console.log('🎯 [TwoPaneConversationView] Switching to project tab');
     activeTab.value = 'project';
   }
+});
+
+// Debug watcher for showWorkProductPane
+watch(() => showWorkProductPane.value, (newVal, oldVal) => {
+  console.log('🔄 [TwoPaneConversationView] showWorkProductPane changed from', oldVal, 'to', newVal);
+  console.log('🔄 [TwoPaneConversationView] Current activeWorkProduct:', activeWorkProduct.value);
+  console.log('🔄 [TwoPaneConversationView] Current activeTab:', activeTab.value);
+  console.log('🔄 [TwoPaneConversationView] Current conversation.currentPlan:', props.conversation?.currentPlan);
 });
 </script>
 <style scoped>

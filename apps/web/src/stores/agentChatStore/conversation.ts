@@ -159,6 +159,17 @@ export class ConversationService {
 
             // Extract content - try multiple paths for different response formats
             let extractedContent = null;
+            let hasDeliverable = false;
+
+            // Check if this response has a deliverable (check for both deliverableId and deliverable object)
+            if (parsedResponse?.deliverableId ||
+                parsedResponse?.result?.deliverableId ||
+                parsedResponse?.payload?.deliverableId ||
+                parsedResponse?.deliverable ||
+                parsedResponse?.result?.deliverable ||
+                parsedResponse?.payload?.content?.deliverable) {
+              hasDeliverable = true;
+            }
 
             // For plan tasks, use a simple message instead of the full plan content
             if (planId) {
@@ -167,7 +178,14 @@ export class ConversationService {
                                 parsedResponse?.content?.message ||
                                 'Plan created successfully';
             }
-            // For non-plan tasks, extract the message content
+            // For build tasks with deliverables, use a simple message
+            else if (hasDeliverable) {
+              extractedContent = parsedResponse?.payload?.content?.message ||
+                                parsedResponse?.result?.content?.message ||
+                                parsedResponse?.content?.message ||
+                                'Deliverable created successfully';
+            }
+            // For other tasks, extract the message content
             else {
               // Try payload.content.message (new format from screenshot)
               if (parsedResponse?.payload?.content?.message) {
@@ -199,7 +217,20 @@ export class ConversationService {
 
             // Only stringify if it's still an object (shouldn't be if we extracted correctly)
             if (typeof responseContent === 'object') {
-              responseContent = JSON.stringify(responseContent, null, 2);
+              console.log('[loadConversationMessages] responseContent is object, hasDeliverable:', hasDeliverable, 'planId:', planId);
+              console.log('[loadConversationMessages] responseContent keys:', Object.keys(responseContent).slice(0, 10));
+
+              // If this is a deliverable or plan response without a message, use a simple fallback
+              if (hasDeliverable) {
+                console.log('[loadConversationMessages] Using deliverable fallback message');
+                responseContent = 'Deliverable created';
+              } else if (planId) {
+                console.log('[loadConversationMessages] Using plan fallback message');
+                responseContent = 'Plan created';
+              } else {
+                console.log('[loadConversationMessages] Stringifying response');
+                responseContent = JSON.stringify(responseContent, null, 2);
+              }
             }
 
             // Merge backend-provided metadata (provider/model/usage, etc.)
@@ -262,14 +293,27 @@ export class ConversationService {
           };
 
           // Check if this message has an associated deliverable
-          // Try both message ID and task ID mapping
+          // Try multiple sources: maps, response data
           let deliverableId = messageDeliverableMap.get(assistantMessageId);
           if (!deliverableId) {
             deliverableId = taskDeliverableMap.get(task.id);
           }
+          // Also check if deliverableId is in the parsed response
+          if (!deliverableId && task.response) {
+            try {
+              const parsedResponse = typeof task.response === 'string' ? JSON.parse(task.response) : task.response;
+              deliverableId = parsedResponse?.deliverableId ||
+                             parsedResponse?.result?.deliverableId ||
+                             parsedResponse?.payload?.deliverableId;
+            } catch {
+              // Ignore parse errors
+            }
+          }
 
           if (deliverableId) {
             assistantMessage.deliverableId = deliverableId;
+            // Also add to metadata for easier access
+            assistantMessage.metadata.deliverableId = deliverableId;
           }
 
           // Check if this message has an associated plan

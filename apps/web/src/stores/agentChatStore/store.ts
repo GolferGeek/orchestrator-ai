@@ -211,7 +211,24 @@ export const useAgentChatStore = defineStore('agentChat', {
     addMessage(conversationId: string, message: AgentChatMessage) {
       const conv = this.conversations.find(c => c.id === conversationId);
       if (conv) {
-        conv.messages.push(message);
+        // Clean up deliverable/plan messages that have JSON content
+        let cleanedMessage = { ...message };
+
+        // If this is an assistant message with deliverableId or planId, and content looks like JSON
+        if (cleanedMessage.role === 'assistant' && (cleanedMessage.deliverableId || cleanedMessage.planId || cleanedMessage.metadata?.deliverableId || cleanedMessage.metadata?.planId)) {
+          const content = cleanedMessage.content;
+          // Check if content looks like JSON (starts with { or [)
+          if (typeof content === 'string' && (content.trim().startsWith('{') || content.trim().startsWith('['))) {
+            // Replace with simple message
+            if (cleanedMessage.deliverableId || cleanedMessage.metadata?.deliverableId) {
+              cleanedMessage.content = 'Deliverable created';
+            } else if (cleanedMessage.planId || cleanedMessage.metadata?.planId) {
+              cleanedMessage.content = 'Plan created';
+            }
+          }
+        }
+
+        conv.messages.push(cleanedMessage);
         conv.lastActiveAt = new Date();
       }
     },

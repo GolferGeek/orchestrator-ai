@@ -732,7 +732,7 @@ const hierarchyGroups = computed(() => {
       namespace: node.namespace,
       conversations: nodeConversations,
       activeConversations: nodeConversations.filter(c => !c.endedAt).length,
-      totalConversations: nodeConversations.length,
+      totalConversations: nodeConversations.length, // Will be updated after child agents are processed
     };
 
     // Build the agents array - manager first, then direct children only
@@ -789,6 +789,14 @@ const hierarchyGroups = computed(() => {
 
     // Only create a group if we have agents to show
     if (agents.length > 0) {
+      // Update the main agent's (orchestrator's) conversation count to include all child conversations
+      if (agents.length > 1) { // Only if there are child agents
+        const totalChildConversations = agents.slice(1).reduce((sum, a) => sum + a.totalConversations, 0);
+        mainAgent.totalConversations = nodeConversations.length + totalChildConversations;
+        mainAgent.activeConversations = nodeConversations.filter(c => !c.endedAt).length + 
+          agents.slice(1).reduce((sum, a) => sum + a.activeConversations, 0);
+      }
+
       // Determine if this is a manager (has children or name indicates it)
       const isManager = (node.children && node.children.length > 0) ||
                        node.name.toLowerCase().includes('manager') ||
@@ -840,7 +848,7 @@ const hierarchyGroups = computed(() => {
         conversations: orchestratorConversations,
         projects: topOrchestrator.projects || [],
         activeConversations: orchestratorConversations.filter(c => !c.endedAt).length,
-        totalConversations: orchestratorConversations.length,
+        totalConversations: orchestratorConversations.length, // Will be updated after child agents are processed
       }];
 
       // Add non-manager children directly to the orchestrator's agents array
@@ -871,6 +879,14 @@ const hierarchyGroups = computed(() => {
             });
           }
         });
+      }
+
+      // Update the orchestrator's conversation count to include all child conversations
+      if (orchestratorAgents.length > 1) { // Only if there are child agents
+        const totalChildConversations = orchestratorAgents.slice(1).reduce((sum, a) => sum + a.totalConversations, 0);
+        orchestratorAgents[0].totalConversations = orchestratorConversations.length + totalChildConversations;
+        orchestratorAgents[0].activeConversations = orchestratorConversations.filter(c => !c.endedAt).length + 
+          orchestratorAgents.slice(1).reduce((sum, a) => sum + a.activeConversations, 0);
       }
 
       groups.push({

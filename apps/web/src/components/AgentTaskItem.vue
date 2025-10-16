@@ -274,28 +274,36 @@ const hasBackendDeliverable = computed(() => {
 });
 
 const backendDeliverableId = computed(() => {
-  return props.message.deliverableId ||
+  const id = props.message.deliverableId ||
          props.message.metadata?.deliverableId;
+  console.log('🆔 [AgentTaskItem.backendDeliverableId] Message:', props.message.id, 'has deliverableId:', id);
+  return id;
 });
 
 const backendDeliverable = computed(() => {
   const deliverableId = backendDeliverableId.value;
-  if (!deliverableId) return null;
-  
+  console.log('🔍 [AgentTaskItem.backendDeliverable] Computing for message:', props.message.id, 'deliverableId:', deliverableId);
+
+  if (!deliverableId) {
+    console.log('❌ [AgentTaskItem.backendDeliverable] No deliverableId found');
+    return null;
+  }
+
   // Get deliverable from store - this will be reactive to store changes
   const deliverable = deliverablesStore.getDeliverableById(deliverableId);
-  
+  console.log('📦 [AgentTaskItem.backendDeliverable] Retrieved from store:', deliverable ? deliverable.id : 'NOT FOUND');
+
   // Force reactivity by accessing conversation deliverables
   if (props.conversationId) {
     const conversationDeliverables = deliverablesStore.getDeliverablesByConversation(props.conversationId);
-    // This ensures the computed updates when conversation deliverables are loaded
-    
+    console.log('📋 [AgentTaskItem.backendDeliverable] Conversation deliverables count:', conversationDeliverables?.length || 0);
+
     // Also force reactivity on the deliverables store state
     const storeState = deliverablesStore.$state;
     // This line ensures we're reactive to any changes in the deliverables store
   }
-  
-  
+
+
   return deliverable;
 });
 
@@ -999,20 +1007,24 @@ watch(() => props.message, (newMessage) => {
 }, { immediate: false, deep: true });
 
 watch(() => backendDeliverable.value, (newVal, oldVal) => {
-  if (newVal !== oldVal) {
+  console.log('👀 [AgentTaskItem.backendDeliverable watcher] Triggered - newVal:', newVal?.id, 'oldVal:', oldVal?.id);
 
-    
+  if (newVal !== oldVal) {
+    console.log('🔄 [AgentTaskItem.backendDeliverable watcher] Values changed');
+
     // Emit deliverable-created event when a new deliverable is detected
     if (newVal && !oldVal) {
-
+      console.log('✨ [AgentTaskItem.backendDeliverable watcher] NEW deliverable detected, emitting deliverable-created:', newVal.id);
       emit('deliverable-created', newVal);
     } else if (newVal && oldVal && newVal.id !== oldVal.id) {
       // Different deliverable
-
+      console.log('🔄 [AgentTaskItem.backendDeliverable watcher] DIFFERENT deliverable detected, emitting deliverable-created:', newVal.id);
       emit('deliverable-created', newVal);
     } else if (newVal && oldVal) {
-
+      console.log('📝 [AgentTaskItem.backendDeliverable watcher] Same deliverable, no emit');
     }
+  } else {
+    console.log('➡️ [AgentTaskItem.backendDeliverable watcher] No change');
   }
 }, { immediate: true });
 
