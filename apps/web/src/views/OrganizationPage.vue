@@ -87,7 +87,7 @@ import {
 } from 'ionicons/icons';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 import AgentChatView from '@/components/AgentChatView.vue';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
 import { useAgentsStore } from '@/stores/agentsStore';
 const agentChatStore = useAgentChatStore();
 const agentsStore = useAgentsStore();
@@ -100,7 +100,7 @@ const handleConversationSelected = async (conversation: any) => {
 };
 const handleAgentSelected = async (agent: any) => {
   try {
-    await agentChatStore.startNewConversation(agent);
+    await conversation.createConversation(agent);
   } catch (error) {
 
   }
@@ -118,7 +118,7 @@ const handleQuickAction = async (agentType: string) => {
         description: targetAgent.description,
         execution_modes: targetAgent.execution_modes,
       };
-      await agentChatStore.startNewConversation(agentData);
+      await conversation.createConversation(agentData);
     } else {
 
     }

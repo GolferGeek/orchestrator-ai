@@ -86,6 +86,40 @@ tail -f web-server.log &
 - **Logs**: Check both `web-server.log` and `api-server.log`
 - **Browser**: Single Chrome instance ready for testing
 
+### **Environment Configuration**
+
+#### Root .env File
+The project uses a root-level `.env` file with the following key configurations:
+
+```bash
+# Port Configuration
+API_PORT=7100
+WEB_PORT=7101
+VITE_WEB_PORT=7101
+
+# Supabase Configuration
+SUPABASE_URL=http://127.0.0.1:7010
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Test Credentials
+SUPABASE_TEST_USER=demo.user@orchestratorai.io
+SUPABASE_TEST_PASSWORD=DemoUser123!
+SUPABASE_TEST_USERID=b29a590e-b07f-49df-a25b-574c956b5035
+```
+
+#### Database Management
+- **Backup Location**: `storage/backups/` directory
+- **Latest Backup**: `golfergeek_supabase_backup_20251013_164353.sql.gz`
+- **Restore Command**: `gunzip -c storage/backups/golfergeek_supabase_backup_20251013_164353.sql.gz | psql postgresql://postgres:postgres@127.0.0.1:7012/postgres`
+- **Important**: Never reset the database without explicit permission from the user
+
+#### Agent Configuration
+- **Blog Post Writer Agent**: Configured with Ollama provider and `llama3.2:1b` model
+- **LLM Configuration**: Stored in `config.llm_defaults` field in agents table
+- **Duplicate Agents**: Both `demo` and `my-org` organizations have blog_post_writer agents
+- **Configuration Location**: Database table `agents` with JSON config field
+
 ### **Debug Capabilities**
 - **Add debug logic** to frontend/backend code as needed
 - **Make changes** with hot reload enabled
@@ -180,6 +214,36 @@ const response = await page.waitForResponse(response =>
 - Clear browser cache
 - Check for TypeScript errors
 - Verify file watching
+
+### **5. Authentication Issues**
+**Symptoms**: `401 Unauthorized` errors
+**Details**: Check that credentials are correct (`demo.user@orchestratorai.io` / `DemoUser123!`)
+**Login Page**: Credentials are pre-filled in `LoginPage.vue` - verify they match the database
+**Session Issues**: Check Supabase connection and user table
+
+### **6. UI Navigation Issues**
+**Message Input**: Use the textarea with placeholder "Type your message..." (NOT the search box in left panel)
+**Send Button**: Look for "Send (Converse)" button after typing message
+**Full Screen**: Click on conversation area to hide left navigation panel
+**Agent Selection**: Click on agent name to start new conversation
+
+### **7. LLM Configuration Issues**
+**LLM Service Error**: "Both provider and model must be explicitly specified"
+- Check agent configuration in database `agents` table
+- Verify `config.llm_defaults` has proper `provider` and `model` fields
+- Example: `{"provider": "ollama", "model": "llama3.2:1b", "temperature": 0.7}`
+- Agent Not Responding: Verify agent has proper LLM configuration
+
+### **8. Database Issues**
+**No Data**: Restore from latest backup in `storage/backups/`
+**Agent Not Found**: Check that agents exist in database with proper organization
+**Configuration Missing**: Verify agent has `config.llm_defaults` field populated
+
+### **9. Port and Connection Issues**
+**Web Server**: Should run on port 7102 (not 7101 as configured in .env)
+**API Server**: Should run on port 7100
+**Supabase**: Should run on port 7010
+**Database**: Should run on port 7012
 
 ---
 

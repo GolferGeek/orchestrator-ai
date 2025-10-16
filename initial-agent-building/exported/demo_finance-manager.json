@@ -1,0 +1,69 @@
+{
+  "id": "1f4029ac-143b-43a6-b613-b57351a88463",
+  "organization_slug": "demo",
+  "slug": "finance-manager",
+  "display_name": "Finance Manager",
+  "description": "Coordinates financial analysis orchestrations and aggregates results.",
+  "agent_type": "orchestrator",
+  "mode_profile": "orchestrator_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"finance-manager\",\n        \"displayName\": \"Finance Manager\",\n        \"description\": \"Coordinates financial analysis orchestrations and aggregates results.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"orchestrator\",\n        \"tags\": [\n            \"finance\",\n            \"analytics\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\",\n            \"application/json\"\n        ],\n        \"output_modes\": [\n            \"application/json\",\n            \"text/markdown\"\n        ]\n    },\n    \"configuration\": {\n        \"orchestration\": {\n            \"available_orchestrations\": [\n                \"kpi-tracking\",\n                \"revenue-analysis\",\n                \"expense-report\"\n            ],\n            \"available_agents\": [\n                \"supabase-agent\",\n                \"summarizer\"\n            ]\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": true,\n            \"supports_build\": true,\n            \"supports_orchestration\": true\n        }\n    },\n    \"prompts\": {\n        \"system\": \"Coordinate financial orchestrations, validate database queries via Supabase Agent, and synthesize findings with the Summarizer agent.\",\n        \"build\": \"Aggregate outputs from delegated steps and present an executive-ready financial brief.\"\n    }\n}\n",
+  "agent_card": null,
+  "context": {
+    "input_modes": [
+      "text/plain",
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json",
+      "text/markdown"
+    ],
+    "supported_modes": [
+      "converse",
+      "plan",
+      "build"
+    ],
+    "available_agents": [
+      "supabase-agent",
+      "summarizer"
+    ],
+    "available_orchestrations": [
+      "kpi-tracking",
+      "revenue-analysis",
+      "expense-report"
+    ]
+  },
+  "config": {
+    "hierarchy": {
+      "team": [
+        "summarizer",
+        "supabase-agent"
+      ],
+      "level": "orchestrator",
+      "department": "finance"
+    },
+    "orchestration": {
+      "available_agents": [
+        "supabase-agent",
+        "summarizer"
+      ],
+      "available_orchestrations": [
+        "kpi-tracking",
+        "revenue-analysis",
+        "expense-report"
+      ]
+    },
+    "supported_modes": [
+      "converse",
+      "plan",
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.663667+00:00",
+  "updated_at": "2025-10-13T18:35:28.666168+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

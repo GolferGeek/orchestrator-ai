@@ -1,0 +1,21 @@
+{
+  "name": "initial-agent-building",
+  "version": "1.0.0",
+  "description": "Temporary workspace for building and testing agent configurations",
+  "private": true,
+  "scripts": {
+    "export-all": "tsx scripts/export-all-agents.ts",
+    "export-agent": "tsx scripts/export-agent.ts",
+    "load-agent": "tsx scripts/load-agent.ts",
+    "delete-agent": "tsx scripts/delete-agent.ts",
+    "list-agents": "tsx scripts/list-agents.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

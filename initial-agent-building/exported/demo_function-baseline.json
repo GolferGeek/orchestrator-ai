@@ -1,0 +1,38 @@
+{
+  "id": "d7111716-662b-442b-91bd-78d123d274fb",
+  "organization_slug": "demo",
+  "slug": "function-baseline",
+  "display_name": "Function Baseline Agent",
+  "description": "Executes a trivial JavaScript function for smoke testing.",
+  "agent_type": "function",
+  "mode_profile": "function_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"global-function-baseline\",\n        \"displayName\": \"Function Baseline Agent\",\n        \"description\": \"Runs a simple JavaScript echo to validate function runner wiring.\",\n        \"version\": \"0.0.1\",\n        \"type\": \"function\"\n    },\n    \"configuration\": {\n        \"function\": {\n            \"code\": \"module.exports = async ({ userMessage }) => ({ echo: userMessage });\"\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": false,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        }\n    }\n}\n",
+  "agent_card": null,
+  "context": {
+    "input_modes": [
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json"
+    ],
+    "supported_modes": [
+      "build"
+    ]
+  },
+  "config": {
+    "streaming": {
+      "enabled": false
+    },
+    "supported_modes": [
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.714052+00:00",
+  "updated_at": "2025-10-12T23:11:30.364148+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

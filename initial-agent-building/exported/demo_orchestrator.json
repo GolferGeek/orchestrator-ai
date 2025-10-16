@@ -1,0 +1,60 @@
+{
+  "id": "539c01fc-1114-4539-94a9-83cbcfbbb160",
+  "organization_slug": "demo",
+  "slug": "orchestrator",
+  "display_name": "Demo Orchestrator",
+  "description": "Coordinates multi-agent workflows for the demo namespace and delegates follow-up to specialists.",
+  "agent_type": "orchestrator",
+  "mode_profile": "orchestrator_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"demo-orchestrator\",\n        \"displayName\": \"Demo Orchestrator\",\n        \"description\": \"Coordinates multi-step workflows for the demo namespace and delegates tasks to specialists.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"orchestrator\",\n        \"tags\": [\n            \"demo\",\n            \"orchestrator\",\n            \"multi-agent\"\n        ]\n    },\n    \"capabilities\": [\n        \"converse\",\n        \"plan\",\n        \"build\",\n        \"delegate\"\n    ],\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\"\n        ],\n        \"output_modes\": [\n            \"text/markdown\",\n            \"application/json\"\n        ]\n    },\n    \"configuration\": {\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": true,\n            \"supports_build\": true,\n            \"supports_orchestration\": true\n        },\n        \"prompt_prefix\": \"You are the primary orchestrator for the demo organization. Coordinate specialists, capture assumptions, and keep stakeholders informed.\"\n    },\n    \"skills\": [\n        {\n            \"id\": \"orchestration-plan\",\n            \"name\": \"Produce orchestration plans\",\n            \"description\": \"Drafts multi-phase execution plans with owners, expected outputs, and checkpoints.\",\n            \"tags\": [\n                \"planning\",\n                \"coordination\"\n            ],\n            \"input_modes\": [\n                \"text/plain\"\n            ],\n            \"output_modes\": [\n                \"text/markdown\"\n            ]\n        },\n        {\n            \"id\": \"delegation-bridge\",\n            \"name\": \"Delegate supporting agents\",\n            \"description\": \"Identifies supporting agents, crafts delegation prompts, and tracks follow-ups.\",\n            \"tags\": [\n                \"delegation\"\n            ],\n            \"input_modes\": [\n                \"text/plain\"\n            ],\n            \"output_modes\": [\n                \"application/json\"\n            ]\n        }\n    ],\n    \"prompts\": {\n        \"system\": \"You are the Demo Orchestrator agent. Plan complex multi-step efforts, call out risks, and prepare the team to execute. Always provide a structured response with sections for context, execution plan, risks, and next steps.\",\n        \"plan\": \"Create an orchestration plan broken into numbered phases. Each phase must include an objective, concrete tasks, supporting agents/tools, and a readiness checklist.\",\n        \"build\": \"Summarize the execution status for all phases, including completed work, outstanding items, and human checkpoints that need attention.\",\n        \"human\": \"Clearly describe what decision or input the human stakeholder must provide to continue the orchestration.\"\n    },\n    \"context\": {\n        \"plan_rubric\": {\n            \"required_sections\": [\n                \"Context\",\n                \"Objectives\",\n                \"Phases\",\n                \"Risks\",\n                \"Next Steps\"\n            ],\n            \"default_phase_labels\": [\n                \"Discovery\",\n                \"Design\",\n                \"Implementation\",\n                \"Validation\"\n            ],\n            \"risk_checks\": [\n                \"Call out missing approvals\",\n                \"Highlight resource gaps\",\n                \"Track dependencies across teams\"\n            ]\n        },\n        \"input_modes\": [\n            \"text/plain\"\n        ],\n        \"output_modes\": [\n            \"text/markdown\",\n            \"application/json\"\n        ]\n    }\n}\n",
+  "agent_card": null,
+  "context": {
+    "input_modes": [
+      "text/plain"
+    ],
+    "output_modes": [
+      "text/markdown",
+      "application/json"
+    ],
+    "supported_modes": [
+      "converse",
+      "plan",
+      "build"
+    ]
+  },
+  "config": {
+    "streaming": {
+      "enabled": true
+    },
+    "extensions": [
+      "orchestration:v1"
+    ],
+    "default_llm": "gpt-4o-mini",
+    "capabilities": [
+      "delegate",
+      "orchestrate"
+    ],
+    "deliverables": {
+      "enabled": true
+    },
+    "notifications": {
+      "push": true
+    },
+    "stateTracking": {
+      "enabled": true
+    },
+    "supported_modes": [
+      "converse",
+      "plan",
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.714052+00:00",
+  "updated_at": "2025-10-12T18:39:12.714052+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

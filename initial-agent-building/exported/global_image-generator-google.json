@@ -1,0 +1,59 @@
+{
+  "id": "3c4a0de3-4519-48b6-a251-0dd662399d47",
+  "organization_slug": "global",
+  "slug": "image-generator-google",
+  "display_name": "Google Imagen Generator",
+  "description": "Generates images via Google Imagen 4 Fast API.",
+  "agent_type": "function",
+  "mode_profile": "function_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"image-generator-google\",\n        \"displayName\": \"Google Imagen Generator\",\n        \"description\": \"Generates images via Google Imagen 4 Fast API.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"function\",\n        \"tags\": [\n            \"image\",\n            \"google\",\n            \"imagen\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\",\n            \"application/json\"\n        ],\n        \"output_modes\": [\n            \"application/json\"\n        ]\n    },\n    \"configuration\": {\n        \"function\": {\n            \"language\": \"javascript\",\n            \"timeout_ms\": 20000,\n            \"code\": \"async function handler(input, ctx) {\\\\n  const axios = ctx.require(\\\\\"axios\\\\\");\\\\n  const crypto = ctx.require(\\\\\"crypto\\\\\");\\\\n\\\\n  const source = input || {};\\\\n  const basePrompt = typeof source.prompt === \\\\\"string\\\\\" ? source.prompt : \\\\\"\\\\\";\\\\n  const prompt =\\\\n    basePrompt.trim() ||\\\\n    (typeof source.userMessage === \\\\\"string\\\\\" ? source.userMessage.trim() : \\\\\"\\\");\\\\n  if (!prompt) {\\\\n    throw new Error(\\\\\"prompt is required\\\\\");\\\\n  }\\\\n\\\\n  const rawCount = Number(source.count ?? source.n ?? 1);\\\\n  const count = Math.max(\\\\n    1,\\\\n    Math.min(Number.isFinite(rawCount) ? rawCount : 1, 4)\\\\n  );\\\\n\\\\n  const projectId = ctx.process.env.GOOGLE_PROJECT_ID;\\\\n  const accessToken = ctx.process.env.GOOGLE_ACCESS_TOKEN;\\\\n  const location =\\\\n    ctx.process.env.GOOGLE_REGION && ctx.process.env.GOOGLE_REGION.trim().length\\\\n      ? ctx.process.env.GOOGLE_REGION.trim()\\\\n      : \\\\\"us-central1\\\\\";\\\\n\\\\n  if (!projectId || !accessToken) {\\\\n    throw new Error(\\\\\"GOOGLE_PROJECT_ID and GOOGLE_ACCESS_TOKEN required\\\\\");\\\\n  }\\\\n\\\\n  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-4.0-fast-generate-001:predict`;\\\\n\\\\n  const response = await axios.post(\\\\n    endpoint,\\\\n    {\\\\n      instances: [{ prompt }],\\\\n      parameters: { sampleCount: count },\\\\n    },\\\\n    {\\\\n      headers: {\\\\n        Authorization: `Bearer ${accessToken}`,\\\\n        \\\\\"Content-Type\\\\\": \\\\\"application/json\\\\\",\\\\n      },\\\\n      timeout: 120000,\\\\n    }\\\\n  );\\\\n\\\\n  const predictions = Array.isArray(response.data?.predictions)\\\\n    ? response.data.predictions\\\\n    : [];\\\\n\\\\n  if (!predictions.length) {\\\\n    throw new Error(\\\\\"Google Imagen returned no predictions\\\\\");\\\\n  }\\\\n\\\\n  const attachments = [];\\\\n  for (let index = 0; index < predictions.length; index++) {\\\\n    const prediction = predictions[index] || {};\\\\n    const base64 =\\\\n      prediction.bytesBase64Encoded ||\\\\n      prediction.imageBytes ||\\\\n      prediction.data;\\\\n    if (!base64 || typeof base64 !== \\\\\"string\\\\\") {\\\\n      continue;\\\\n    }\\\\n\\\\n    const buffer = Buffer.from(base64, \\\\\"base64\\\\\");\\\\n    if (!buffer.length) {\\\\n      continue;\\\\n    }\\\\n\\\\n    const mime =\\\\n      typeof prediction.mimeType === \\\\\"string\\\\\" && prediction.mimeType.length\\\\n        ? prediction.mimeType\\\\n        : \\\\\"image/png\\\\\";\\\\n    const extension = mime.split(\\\\\"/\\\\\")[1] || \\\\\"png\\\\\";\\\\n    const hash = crypto.createHash(\\\\\"sha256\\\\\").update(buffer).digest(\\\\\"hex\\\\\");\\\\n\\\\n    const asset = await ctx.assets.saveBuffer({\\\\n      buffer,\\\\n      mime,\\\\n      filename: `google-${Date.now()}-${index}.${extension}`,\\\\n      subpath: \\\\\"generated\\\\\",\\\\n    });\\\\n\\\\n    attachments.push({\\\\n      assetId: asset.id,\\\\n      url: `/assets/${asset.id}`,\\\\n      mime,\\\\n      size: buffer.length,\\\\n      hash,\\\\n      altText: prompt,\\\\n      provider: \\\\\"google\\\\\",\\\\n      index,\\\\n    });\\\\n  }\\\\n\\\\n  if (!attachments.length) {\\\\n    throw new Error(\\\\\"Failed to generate image attachments\\\\\");\\\\n  }\\\\n\\\\n  const title =\\\\n    typeof source.title === \\\\\"string\\\\\" && source.title.trim().length\\\\n      ? source.title.trim()\\\\n      : \\\\\"Google Imagen Set\\\\\";\\\\n\\\\n  const deliverable = await ctx.deliverables.create({\\\\n    title,\\\\n    content: `Generated ${attachments.length} image(s) via Google Imagen 4`,\\\\n    format: attachments[0]?.mime || \\\\\"image/png\\\\\",\\\\n    type: \\\\\"image\\\\\",\\\\n    attachments: { images: attachments },\\\\n    metadata: {\\\\n      provider: \\\\\"google\\\\\",\\\\n      model: \\\\\"imagen-4.0-fast\\\\\",\\\\n      prompt,\\\\n      count: attachments.length,\\\\n      location,\\\\n    },\\\\n  });\\\\n\\\\n  return {\\\\n    success: true,\\\\n    provider: \\\\\"google\\\\\",\\\\n    deliverable,\\\\n    images: attachments,\\\\n    metadata: {\\\\n      prompt,\\\\n      count: attachments.length,\\\\n      location,\\\\n    },\\\\n  };\\\\n}\\\\n\\\\nmodule.exports = handler;\"\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": false,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        }\n    },\n    \"prompts\": {\n        \"system\": \"Generate images via Google Imagen 4 Fast. Optimise prompts for business storytelling and keep metadata concise.\"\n    }\n}\n",
+  "agent_card": null,
+  "context": {
+    "defaults": {
+      "size": "1024x1024"
+    },
+    "input_modes": [
+      "text/plain",
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json"
+    ],
+    "supported_modes": [
+      "build"
+    ]
+  },
+  "config": {
+    "function": {
+      "provider": "google",
+      "timeout_ms": 20000
+    },
+    "hierarchy": {
+      "level": "specialist",
+      "department": "images",
+      "reports_to": "image-orchestrator"
+    },
+    "deliverable": {
+      "type": "image",
+      "format": "image/png"
+    },
+    "input_modes": [
+      "text/plain",
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json"
+    ],
+    "supported_modes": [
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.663667+00:00",
+  "updated_at": "2025-10-13T18:27:20.632573+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

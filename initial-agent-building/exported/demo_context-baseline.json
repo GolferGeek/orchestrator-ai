@@ -1,0 +1,40 @@
+{
+  "id": "8af19bc8-9d36-4cd4-ae18-b19ffa680193",
+  "organization_slug": "demo",
+  "slug": "context-baseline",
+  "display_name": "Context Baseline Agent",
+  "description": "Provides lightweight summarization for orchestration smoke tests.",
+  "agent_type": "context",
+  "mode_profile": "context_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"global-context-baseline\",\n        \"displayName\": \"Context Baseline Agent\",\n        \"description\": \"Provides concise summaries to unblock orchestration development smoke tests.\",\n        \"version\": \"0.0.1\",\n        \"type\": \"context\"\n    },\n    \"configuration\": {\n        \"prompt_prefix\": \"You summarize key points and highlight next actions in one or two paragraphs.\",\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        }\n    }\n}\n",
+  "agent_card": null,
+  "context": {
+    "input_modes": [
+      "text/plain"
+    ],
+    "output_modes": [
+      "text/markdown"
+    ],
+    "supported_modes": [
+      "converse",
+      "build"
+    ]
+  },
+  "config": {
+    "streaming": {
+      "enabled": false
+    },
+    "supported_modes": [
+      "converse",
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.714052+00:00",
+  "updated_at": "2025-10-12T23:11:30.364148+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

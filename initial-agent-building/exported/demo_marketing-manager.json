@@ -1,0 +1,31 @@
+{
+  "id": "b220a476-8746-4dcc-b11a-cbfb0d25e731",
+  "organization_slug": "demo",
+  "slug": "marketing-manager",
+  "display_name": "Marketing Manager",
+  "description": "Marketing orchestrator that coordinates blog writing, requirements gathering, and marketing campaigns",
+  "agent_type": "orchestrator",
+  "mode_profile": "orchestrator_full",
+  "version": null,
+  "status": "active",
+  "yaml": "{\"metadata\": {\"name\": \"marketing-manager\", \"tags\": [\"marketing\", \"orchestrator\", \"multi-agent\"], \"type\": \"orchestrator\", \"version\": \"0.1.0\", \"description\": \"Marketing orchestrator that coordinates blog writing, requirements gathering, and marketing campaigns\", \"displayName\": \"Marketing Manager\"}, \"capabilities\": [\"converse\", \"plan\", \"build\", \"delegate\"], \"communication\": {\"input_modes\": [\"text/plain\"], \"output_modes\": [\"text/markdown\", \"application/json\"]}}",
+  "agent_card": null,
+  "context": null,
+  "config": {
+    "hierarchy": {
+      "team": [
+        "blog_post_writer",
+        "requirements-specialist",
+        "marketing-swarm"
+      ],
+      "level": "orchestrator",
+      "department": "marketing"
+    }
+  },
+  "created_at": "2025-10-13T18:40:24.039806+00:00",
+  "updated_at": "2025-10-13T18:40:24.039806+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

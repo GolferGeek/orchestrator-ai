@@ -1,0 +1,80 @@
+{
+  "id": "837ead65-6676-4278-81c1-64030e96cb57",
+  "organization_slug": "demo",
+  "slug": "summarizer",
+  "display_name": "Data Summarizer",
+  "description": "Analyzes structured inputs and produces executive-ready summaries.",
+  "agent_type": "context",
+  "mode_profile": "context_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"summarizer\",\n        \"displayName\": \"Data Summarizer\",\n        \"description\": \"Analyzes structured data and produces executive-ready summaries.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"context\",\n        \"tags\": [\n            \"analysis\",\n            \"reporting\",\n            \"finance\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"application/json\",\n            \"text/markdown\",\n            \"text/plain\"\n        ],\n        \"output_modes\": [\n            \"text/markdown\",\n            \"application/json\"\n        ]\n    },\n    \"configuration\": {\n        \"prompt_prefix\": \"You are a business analyst creating clear, actionable summaries. Highlight trends, risks, and recommendations grounded in the provided data.\",\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        },\n        \"deliverables\": {\n            \"type\": \"report\",\n            \"format\": \"markdown\"\n        }\n    },\n    \"prompts\": {\n        \"system\": \"Synthesize the provided data into an executive summary. Call out key metrics, notable movements, and actionable recommendations.\",\n        \"build\": \"Produce a markdown report with sections for Key Metrics, Insights, and Recommendations. Include bullet points and concise explanations.\",\n        \"human\": \"List any clarifications or missing data required to complete the summary.\"\n    }\n}\n",
+  "agent_card": null,
+  "context": {
+    "sections": [
+      "Key Metrics",
+      "Insights",
+      "Recommendations"
+    ],
+    "input_modes": [
+      "application/json",
+      "text/markdown"
+    ],
+    "output_modes": [
+      "text/markdown",
+      "application/json"
+    ],
+    "supported_modes": [
+      "converse",
+      "build"
+    ]
+  },
+  "config": {
+    "llm": {
+      "model": "claude-3-5-sonnet-20241022",
+      "provider": "anthropic",
+      "temperature": 0.2
+    },
+    "hierarchy": {
+      "level": "specialist",
+      "department": "finance",
+      "reports_to": "finance-manager"
+    },
+    "transforms": {
+      "adapters": {
+        "json_to_markdown": {
+          "template": "### Structured Input\\n```json\\n{{ json }}\\n```"
+        }
+      },
+      "expected": {
+        "input": {
+          "strict": false,
+          "content_type": "application/json"
+        }
+      }
+    },
+    "deliverable": {
+      "type": "report",
+      "format": "markdown",
+      "titleTemplate": "Summary Report - {{metadata.conversationId}}"
+    },
+    "input_modes": [
+      "application/json",
+      "text/markdown"
+    ],
+    "output_modes": [
+      "text/markdown",
+      "application/json"
+    ],
+    "supported_modes": [
+      "converse",
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.663667+00:00",
+  "updated_at": "2025-10-13T18:35:28.66406+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

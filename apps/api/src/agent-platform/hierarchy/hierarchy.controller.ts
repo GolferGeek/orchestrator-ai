@@ -1,6 +1,7 @@
 import { Controller, Get, Headers, Logger } from '@nestjs/common';
 import { Public } from '@/auth/decorators/public.decorator';
 import { AgentRegistryService } from '../services/agent-registry.service';
+import { load as yamlLoad } from 'js-yaml';
 
 @Controller('hierarchy')
 export class HierarchyController {
@@ -124,16 +125,26 @@ export class HierarchyController {
         agentMap.set(agent.slug, node);
       }
 
-      // Build parent-child relationships based on hierarchy.reportsTo or reports_to
+      // Build parent-child relationships based on reports_to
       const topLevelNodes: any[] = [];
-      
+
       for (const agent of namespaceAgents) {
         const node = agentMap.get(agent.slug);
         if (!node) continue;
 
-        // Check both camelCase and snake_case
-        const reportsTo = agent.config?.hierarchy?.reportsTo || agent.config?.hierarchy?.reports_to;
-        
+        // Get reports_to from YAML
+        let reportsTo: string | null = null;
+
+        // Parse YAML to get reports_to
+        if (agent.yaml) {
+          try {
+            const yamlData = yamlLoad(agent.yaml) as any;
+            reportsTo = yamlData?.reports_to || yamlData?.reportsTo || null;
+          } catch (err) {
+            // YAML parse error - reportsTo remains null
+          }
+        }
+
         if (reportsTo && agentMap.has(reportsTo)) {
           // This agent reports to another agent - add as child
           const parent = agentMap.get(reportsTo);

@@ -169,7 +169,7 @@ import {
 } from '@ionic/vue';
 import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
 import { useRouter } from 'vue-router';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 const auth = useAuthStore();
@@ -213,10 +213,10 @@ const handleAgentSelected = async (agent: any) => {
         }
       });
     } else {
-      await agentChatStore.startNewConversation(agent);
+      const conversationId = await conversation.createConversation(agent);
       // Set flag in sessionStorage to indicate active conversation for admin users
       sessionStorage.setItem('activeConversation', 'true');
-      router.push({ path: '/app/home', query: { forceHome: 'true' } });
+      router.push({ path: '/app/home', query: { forceHome: 'true', conversationId } });
     }
   } catch (error) {
     console.error('Failed to handle agent selection:', error);

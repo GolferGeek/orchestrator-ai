@@ -1,0 +1,135 @@
+{
+  "organization_slug": "demo",
+  "slug": "marketing_manager_orchestrator",
+  "display_name": "Marketing Manager",
+  "description": "Marketing orchestrator that coordinates blog writing, SEO optimization, and social media content creation. Delegates work to specialized marketing agents.",
+  "agent_type": "orchestrator",
+  "mode_profile": "orchestrator_full",
+  "version": "1.0",
+  "status": "active",
+  "yaml": "name: marketing_manager_orchestrator\ndisplay_name: Marketing Manager\ndescription: Marketing orchestrator that coordinates blog writing, SEO optimization, and social media content creation. Delegates work to specialized marketing agents.\nagent_type: orchestrator\nmode_profile: orchestrator_full\nversion: \"1.0\"\nstatus: active\n\nsystem_prompt: |\n  You are a Marketing Manager orchestrator responsible for coordinating marketing content creation.\n  \n  You manage a team of specialized agents:\n  - blog_post_writer: Creates SEO-friendly blog posts\n  - seo_writer: Optimizes content for search engines (to be added)\n  - social_content_writer: Creates social media content (to be added)\n  \n  When given a marketing task, analyze requirements and delegate appropriately to your team.\n  Create plans that coordinate multiple agents when needed.\n  Review deliverables and ensure quality before finalizing.\n\nmodes:\n  orchestrate:\n    enabled: true\n    actions:\n      - create\n      - read\n      - list\n      - edit\n      - execute\n      - approve\n      - reject\n      - cancel\n      - delete\n\n  plan:\n    enabled: true\n    actions:\n      - create\n      - read\n      - list\n      - edit\n\n  converse:\n    enabled: true\n\nllm:\n  provider: ollama\n  model: llama3.2:3b\n  temperature: 0.7\n",
+  "context": {
+    "input_modes": ["text/plain", "application/json"],
+    "output_modes": ["text/markdown", "application/json"],
+    "supported_modes": ["orchestrate", "plan", "converse"]
+  },
+  "plan_structure": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Plan title"
+      },
+      "objective": {
+        "type": "string",
+        "description": "Marketing objective to accomplish"
+      },
+      "strategy": {
+        "type": "object",
+        "properties": {
+          "approach": {
+            "type": "string",
+            "description": "Overall marketing approach"
+          },
+          "channels": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Marketing channels to use (blog, social, email, etc.)"
+          },
+          "timeline": {
+            "type": "string",
+            "description": "Expected timeline"
+          }
+        }
+      },
+      "tasks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "string"},
+            "description": {"type": "string"},
+            "assigned_to": {"type": "string"},
+            "dependencies": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "status": {"type": "string", "enum": ["pending", "in_progress", "completed"]}
+          }
+        }
+      }
+    },
+    "required": ["title", "objective", "tasks"]
+  },
+  "deliverable_structure": {
+    "type": "object",
+    "properties": {
+      "campaign_name": {
+        "type": "string",
+        "description": "Name of the marketing campaign"
+      },
+      "deliverables": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {"type": "string", "description": "Type of deliverable (blog_post, social_post, etc.)"},
+            "content": {"type": "string", "description": "The actual content"},
+            "metadata": {"type": "object", "description": "Additional metadata"},
+            "created_by": {"type": "string", "description": "Agent that created this"}
+          }
+        }
+      },
+      "summary": {
+        "type": "string",
+        "description": "Summary of the campaign deliverables"
+      }
+    },
+    "required": ["campaign_name", "deliverables", "summary"]
+  },
+  "io_schema": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "task_type": {
+          "type": "string",
+          "enum": ["blog_campaign", "social_campaign", "content_review", "general_marketing"],
+          "description": "Type of marketing task"
+        },
+        "requirements": {
+          "type": "string",
+          "description": "Detailed requirements for the marketing task"
+        },
+        "target_audience": {
+          "type": "string",
+          "description": "Target audience description"
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional deadline"
+        }
+      },
+      "required": ["task_type", "requirements"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "partial", "failed"]
+        },
+        "result": {
+          "type": "object",
+          "description": "Result based on deliverable_structure"
+        },
+        "agents_used": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "List of agents that contributed"
+        }
+      },
+      "required": ["status", "result"]
+    }
+  }
+}

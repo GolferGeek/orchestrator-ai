@@ -1,0 +1,48 @@
+{
+  "id": "8559dd22-4759-4257-943a-a28e7442b68d",
+  "organization_slug": "my-org",
+  "slug": "requirements-specialist",
+  "display_name": "Requirements Specialist",
+  "description": "Transforms stakeholder requests into structured product requirements and acceptance criteria for my-org.",
+  "agent_type": "api",
+  "mode_profile": "api_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"my-org-requirements-specialist\",\n        \"displayName\": \"Requirements Specialist\",\n        \"description\": \"Transforms stakeholder requests into structured product requirements and acceptance criteria for the my-org namespace.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"specialist\",\n        \"tags\": [\n            \"my-org\",\n            \"requirements\",\n            \"analysis\"\n        ]\n    },\n    \"capabilities\": [\n        \"converse\",\n        \"plan\",\n        \"build\"\n    ],\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\"\n        ],\n        \"output_modes\": [\n            \"text/markdown\",\n            \"application/json\"\n        ]\n    },\n    \"configuration\": {\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": true,\n            \"supports_build\": true,\n            \"supports_orchestration\": false\n        },\n        \"prompt_prefix\": \"You are a senior requirements analyst. Clarify ambiguous stakeholder input, capture explicit assumptions, and produce structured requirements packages.\"\n    },\n    \"skills\": [\n        {\n            \"id\": \"clarify-context\",\n            \"name\": \"Clarify context\",\n            \"description\": \"Asks targeted follow-up questions to remove ambiguity and document assumptions.\",\n            \"tags\": [\n                \"analysis\",\n                \"discovery\"\n            ],\n            \"input_modes\": [\n                \"text/plain\"\n            ],\n            \"output_modes\": [\n                \"text/markdown\"\n            ]\n        },\n        {\n            \"id\": \"craft-requirements\",\n            \"name\": \"Craft structured requirements\",\n            \"description\": \"Produces user stories, acceptance criteria, and traceability matrices.\",\n            \"tags\": [\n                \"requirements\",\n                \"documentation\"\n            ],\n            \"input_modes\": [\n                \"text/plain\"\n            ],\n            \"output_modes\": [\n                \"text/markdown\",\n                \"application/json\"\n            ]\n        }\n    ],\n    \"prompts\": {\n        \"system\": \"You are the Requirements Specialist agent. Create precise, testable requirements packages and flag missing information.\",\n        \"plan\": \"Summarize the discovery plan you will follow, including questions to ask and artifacts to gather.\",\n        \"build\": \"Produce a requirements package with sections for problem statement, user stories, acceptance criteria, open questions, and implementation considerations.\",\n        \"human\": \"List any clarifications or approvals still required from stakeholders.\"\n    },\n    \"context\": {\n        \"templates\": {\n            \"requirements_package\": {\n                \"sections\": [\n                    \"Problem Statement\",\n                    \"User Stories\",\n                    \"Acceptance Criteria\",\n                    \"Open Questions\",\n                    \"Implementation Considerations\"\n                ]\n            }\n        },\n        \"input_modes\": [\n            \"text/plain\"\n        ],\n        \"output_modes\": [\n            \"text/markdown\",\n            \"application/json\"\n        ]\n    }\n}\n",
+  "agent_card": null,
+  "context": {
+    "input_modes": [
+      "text/plain"
+    ],
+    "output_modes": [
+      "text/markdown",
+      "application/json"
+    ],
+    "supported_modes": [
+      "converse",
+      "plan",
+      "build"
+    ]
+  },
+  "config": {
+    "streaming": {
+      "enabled": true
+    },
+    "default_llm": "gpt-4o-mini",
+    "capabilities": [
+      "requirements",
+      "analysis"
+    ],
+    "supported_modes": [
+      "converse",
+      "plan",
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.714052+00:00",
+  "updated_at": "2025-10-12T18:39:12.714052+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}
