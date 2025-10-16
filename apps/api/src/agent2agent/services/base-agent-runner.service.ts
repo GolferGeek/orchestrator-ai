@@ -721,9 +721,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
         return exec.canPlan;
       case AgentTaskMode.BUILD:
         return exec.canBuild;
-      case AgentTaskMode.HUMAN_RESPONSE:
-        // Human response is always allowed (gateway handles it)
-        return true;
+      case AgentTaskMode.ORCHESTRATE:
+        return exec.canOrchestrate;
       default:
         return false;
     }
