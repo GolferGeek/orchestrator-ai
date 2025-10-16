@@ -79,7 +79,7 @@ import {
 } from 'ionicons/icons';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import ConversationTabs from '@/components/ConversationTabs.vue';
 const router = useRouter();
@@ -89,7 +89,7 @@ const agentChatStore = useAgentChatStore();
 const userPreferencesStore = useUserPreferencesStore();
 // Computed properties
 const pageTitle = computed(() => {
-  const activeConversation = agentChatStore.getActiveConversation();
+  const activeConversation = agentChatStore.activeConversation;
   if (activeConversation) {
     return activeConversation.title || `Chat with ${activeConversation.agent?.name}`;
   }
@@ -105,19 +105,47 @@ const handleConversationFromQuery = async () => {
       const existingConversation = agentChatStore.conversations.find(conv => conv.id === conversationId);
       if (existingConversation) {
         // Just switch to it
-        agentChatStore.switchToConversation(conversationId);
+        agentChatStore.setActiveConversation(conversationId);
       } else {
-        // Open the conversation
-        await agentChatStore.openExistingConversation(conversationId);
+        // Load conversation metadata and messages from backend
+        const backendConversation = await conversation.getBackendConversation(conversationId);
+        const messages = await conversation.loadConversationMessages(conversationId);
+
+        // Get agent details from the agents store
+        const { useAgentsStore } = await import('@/stores/agentsStore');
+        const agentsStore = useAgentsStore();
+
+        // Ensure agents are loaded
+        if (!agentsStore.availableAgents || agentsStore.availableAgents.length === 0) {
+          await agentsStore.ensureAgentsLoaded();
+        }
+
+        const agent = agentsStore.availableAgents?.find(a => a.name === backendConversation.agentName);
+
+        if (!agent) {
+          console.error('Agent not found for conversation:', backendConversation.agentName);
+          return;
+        }
+
+        // Create the conversation object with proper date
+        const createdAt = backendConversation.createdAt ? new Date(backendConversation.createdAt) : new Date();
+        const loadedConversation = conversation.createConversationObject(agent, createdAt);
+        loadedConversation.id = conversationId; // Override the generated ID with the actual backend ID
+        loadedConversation.messages = messages;
+        loadedConversation.title = backendConversation.title || loadedConversation.title;
+
+        // Add it to the store
+        agentChatStore.addConversation(loadedConversation);
+        agentChatStore.setActiveConversation(conversationId);
       }
       // Clear the query parameter to avoid re-opening on refresh
-      router.replace({ 
-        name: route.name as string, 
+      router.replace({
+        name: route.name as string,
         params: route.params,
         query: { ...route.query, conversationId: undefined }
       });
     } catch (error) {
-
+      console.error('Failed to load conversation from query:', error);
     }
   }
 };

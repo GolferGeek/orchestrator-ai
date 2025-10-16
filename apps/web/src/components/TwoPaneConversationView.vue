@@ -71,8 +71,8 @@
             :agent-name="currentAgent?.name"
           />
           
-          <!-- Prominent thinking indicator (Converse/Plan modes) -->
-          <div v-if="isSendingMessage && (currentChatMode === 'converse' || currentChatMode === 'plan')" class="prominent-thinking-indicator">
+          <!-- Prominent thinking indicator (Converse/Plan/Build modes) -->
+          <div v-if="isSendingMessage && (currentChatMode === 'converse' || currentChatMode === 'plan' || currentChatMode === 'build')" class="prominent-thinking-indicator">
             <div class="thinking-content">
               <div class="thinking-avatar">
                 <ion-spinner name="dots" color="primary"></ion-spinner>
@@ -152,14 +152,14 @@
         </div>
         <!-- Input Area (always visible) -->
         <div class="input-area">
-          <form @submit.prevent="sendMessage">
+          <form @submit.prevent="sendMessage()">
             <ion-item>
               <ion-textarea
                 v-model="messageText"
                 placeholder="Type your message..."
                 :rows="2"
                 :disabled="!currentAgent"
-                @keydown.enter.prevent="sendMessage"
+                @keydown.enter.prevent="sendMessage()"
               />
               <!-- Conversational Speech Button (moved to middle position) -->
               <ConversationalSpeechButton
@@ -350,6 +350,7 @@ import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
 import { videoService } from '@/services/videoService';
+import { agentTaskService } from '@/services/agent-tasks';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -432,7 +433,7 @@ const canSend = computed(() => {
          !isSendingMessage.value && 
          currentAgent.value;
 });
-const currentChatMode = computed(() => props.conversation?.chatMode || agentChatStore.getActiveChatMode());
+const currentChatMode = computed(() => props.conversation?.chatMode || agentChatStore.activeChatMode);
 const agentRecommendations = computed(() =>
   currentAgentIdentifier.value
     ? llmStore.getRecommendationsForAgent(currentAgentIdentifier.value)
@@ -451,11 +452,12 @@ const shouldShowRecommendations = computed(
 // Current LLM selection for display
 const currentLLMProvider = computed(() => llmStore.selectedProvider?.name || 'No provider selected');
 const currentLLMModel = computed(() => llmStore.selectedModel?.modelName || 'No model selected');
-// Informal thinking message for converse/plan
+// Informal thinking message for converse/plan/build
 const thinkingMessage = computed(() => {
   const mode = (currentChatMode.value || '').toLowerCase();
   if (mode === 'converse') return 'One sec — thinking it through…';
   if (mode === 'plan') return 'Sketching a quick plan…';
+  if (mode === 'build') return 'Building your deliverable…';
   return 'Processing…';
 });
 const hasActiveWorkProduct = computed(() => {
@@ -528,11 +530,42 @@ const sendMessage = async (mode?: AgentChatMode) => {
     agentChatStore.setChatMode(mode);
   }
 
+  const conversationId = props.conversation?.id;
+  if (!conversationId) {
+    console.error('Cannot send message: missing conversationId');
+    return;
+  }
+
   try {
-    await agentChatStore.sendMessage(content);
+    const agent = props.conversation?.agent;
+
+    if (!agent) {
+      console.error('Cannot send message: missing agent');
+      return;
+    }
+
+    // Set loading state BEFORE sending
+    agentChatStore.setSendingMessage(conversationId, true);
+
+    const effectiveMode = mode || currentChatMode.value;
+
+    await agentTaskService.sendTask({
+      agentSlug: agent.slug || agent.name,
+      namespace: agent.namespace || undefined,
+      mode: effectiveMode as any,
+      action: (effectiveMode === 'plan' || effectiveMode === 'build') ? 'create' : undefined,
+      userMessage: content,
+      conversationId: conversationId,
+    });
+
     scrollToBottom();
   } catch (error) {
-
+    console.error('Error sending message:', error);
+    // Re-populate the input if there was an error
+    messageText.value = content;
+  } finally {
+    // Clear loading state AFTER sending (or error)
+    agentChatStore.setSendingMessage(conversationId, false);
   }
 };
 // Check if a recommendation matches the current selection
@@ -646,7 +679,9 @@ const applyRecommendation = (recommendation: AgentLLMRecommendation) => {
   });
 };
 const clearError = () => {
-  agentChatStore.clearError();
+  if (props.conversation?.id) {
+    agentChatStore.clearError(props.conversation.id);
+  }
 };
 const scrollToBottom = async () => {
   await nextTick();
@@ -1003,9 +1038,16 @@ watch(() => activeWorkProduct.value, (val) => {
 watch(() => messages.value.length, () => {
   scrollToBottom();
 });
-// Watch for conversation changes and handle deliverable loading properly
+// Watch for conversation changes and handle deliverable/plan loading properly
 watch(() => props.conversation?.id, async (newId, oldId) => {
   if (newId && authStore.isAuthenticated) {
+    // Step 0: Load plan if it exists (plans are prioritized over deliverables for display)
+    try {
+      await agentChatStore.loadCurrentPlan();
+    } catch (error) {
+      console.error('Failed to load plan:', error);
+    }
+
     // Step 1: Check if deliverables are already loaded, if not load them
     let conversationDeliverables = deliverablesStore.getDeliverablesByConversation(newId);
     if (!conversationDeliverables || conversationDeliverables.length === 0) {

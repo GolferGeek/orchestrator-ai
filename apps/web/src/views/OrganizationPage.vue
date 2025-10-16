@@ -91,9 +91,11 @@ import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
 import { useAgentsStore } from '@/stores/agentsStore';
 const agentChatStore = useAgentChatStore();
 const agentsStore = useAgentsStore();
-const handleConversationSelected = async (conversation: any) => {
+const handleConversationSelected = async (conv: any) => {
   try {
-    await agentChatStore.openExistingConversation(conversation.id);
+    // TODO: Load conversation messages if not already loaded
+    // await conversation.loadConversationMessages(conv.id);
+    agentChatStore.setActiveConversation(conv.id);
   } catch (error) {
 
   }

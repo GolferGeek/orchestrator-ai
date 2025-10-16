@@ -91,7 +91,7 @@ export function usePrivacyIndicators(options: PrivacyIndicatorOptions = {}) {
   const currentMessage = computed((): AgentChatMessage | null => {
     if (!options.messageId) return null;
     
-    const conversation = agentChatStore.getActiveConversation();
+    const conversation = agentChatStore.activeConversation;
     if (!conversation) return null;
     
     return conversation.messages.find(msg => msg.id === options.messageId) || null;

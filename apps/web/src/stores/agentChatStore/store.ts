@@ -58,6 +58,14 @@ export const useAgentChatStore = defineStore('agentChat', {
   // ============================================================================
   getters: {
     /**
+     * Get the active conversation
+     */
+    activeConversation: (state): AgentConversation | null => {
+      if (!state.activeConversationId) return null;
+      return state.conversations.find(c => c.id === state.activeConversationId) ?? null;
+    },
+
+    /**
      * Check if there's an active conversation
      */
     hasActiveConversation: (state) => !!state.activeConversationId,
@@ -116,6 +124,22 @@ export const useAgentChatStore = defineStore('agentChat', {
     getLatestRun(state): OrchestrationRunRecord | null {
       const conv = state.conversations.find(c => c.id === state.activeConversationId);
       return conv?.orchestrationRuns?.[0] ?? null;
+    },
+
+    /**
+     * Get active chat mode
+     */
+    activeChatMode(state): AgentChatMode {
+      const conv = state.conversations.find(c => c.id === state.activeConversationId);
+      return conv?.chatMode || DEFAULT_CHAT_MODES[0];
+    },
+
+    /**
+     * Get effective execution mode
+     */
+    effectiveExecutionMode(state): string | null {
+      const conv = state.conversations.find(c => c.id === state.activeConversationId);
+      return conv?.executionMode || null;
     },
   },
 

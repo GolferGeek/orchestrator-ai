@@ -122,7 +122,7 @@ const currentConversationId = computed(() => {
 // Get current conversation for agent info
 const currentConversation = computed(() => {
   if (!currentConversationId.value) return null;
-  return agentChatStore.getActiveConversation();
+  return agentChatStore.activeConversation;
 });
 
 // Setup validation rules

@@ -34,6 +34,7 @@ import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { micOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import { agentTaskService } from '@/services/agent-tasks';
 
 // Define speech states
 type SpeechState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
@@ -59,8 +60,8 @@ const audioChunks = ref<Blob[]>([]);
 const currentAudio = ref<HTMLAudioElement | null>(null);
 
 // Computed
-const currentAgent = computed(() => agentChatStore.getActiveConversation()?.agent);
-const conversationId = computed(() => agentChatStore.getActiveConversation()?.id);
+const currentAgent = computed(() => agentChatStore.activeConversation?.agent);
+const conversationId = computed(() => agentChatStore.activeConversation?.id);
 
 const isListening = computed(() => speechState.value === 'listening');
 const isProcessing = computed(() => speechState.value === 'processing');
@@ -195,10 +196,22 @@ const processAudio = async () => {
     console.log('🎤 [SpeechButton] Transcribed text:', transcription.text);
 
     // Step 2: Mark that the next message was sent via speech (for TTS triggering)
-    agentChatStore.setLastMessageWasSpeech(true);
-    
+    agentChatStore.lastMessageWasSpeech = true;
+
     // Step 3: Send the transcribed text through normal chat flow
-    await agentChatStore.sendMessage(transcription.text);
+    const conversation = agentChatStore.activeConversation;
+    if (conversation && conversation.agent) {
+      const mode = conversation.chatMode || 'converse';
+
+      await agentTaskService.sendTask({
+        agentSlug: conversation.agent.slug || conversation.agent.name,
+        namespace: conversation.agent.namespace || undefined,
+        mode: mode,
+        action: (mode === 'plan' || mode === 'build') ? 'create' : undefined,
+        userMessage: transcription.text,
+        conversationId: conversation.id,
+      });
+    }
 
     console.log('🎤 [SpeechButton] Message sent through chat store');
 

@@ -37,6 +37,7 @@ import { apiService } from '../services/apiService';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
 import { useAgentChatStore } from '../stores/agentChatStore';
+import { agentTaskService } from '@/services/agent-tasks';
 
 // Define conversation states
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
@@ -563,11 +564,22 @@ const processRecordedAudio = async () => {
 
     // Step 2: Mark that the next message was sent via speech (for TTS triggering)
     console.log('🎤 [DEBUG] Setting lastMessageWasSpeech = true');
-    agentChatStore.setLastMessageWasSpeech(true);
-    
+    agentChatStore.lastMessageWasSpeech = true;
+
     // Step 3: Send the transcribed text through normal chat flow
-    // This respects agent selection, conversation context, user preferences, etc.
-    await agentChatStore.sendMessage(transcription.text);
+    const conversation = agentChatStore.activeConversation;
+    if (conversation && conversation.agent) {
+      const mode = conversation.chatMode || 'converse';
+
+      await agentTaskService.sendTask({
+        agentSlug: conversation.agent.slug || conversation.agent.name,
+        namespace: conversation.agent.namespace || undefined,
+        mode: mode,
+        action: (mode === 'plan' || mode === 'build') ? 'create' : undefined,
+        userMessage: transcription.text,
+        conversationId: conversation.id,
+      });
+    }
 
     console.log('🎤 Message sent through chat store, waiting for response...');
 

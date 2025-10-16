@@ -1,79 +1,47 @@
 <template>
   <div class="chat-mode-send-button">
-    <!-- Main send button with current mode icon -->
+    <!-- Mode selection buttons (always visible) -->
+    <div class="mode-buttons">
+      <ion-button
+        v-for="mode in modes"
+        :key="mode.value"
+        size="small"
+        :fill="currentMode === mode.value ? 'solid' : 'outline'"
+        :color="currentMode === mode.value ? 'primary' : 'medium'"
+        @click="selectMode(mode.value)"
+        :disabled="disabled"
+        class="mode-button"
+        :title="mode.description"
+      >
+        <ion-icon :icon="mode.icon" slot="start"></ion-icon>
+        {{ mode.name }}
+      </ion-button>
+    </div>
+
+    <!-- Send button -->
     <ion-button
-      fill="clear"
       :color="!disabled ? 'primary' : 'medium'"
       @click="sendWithCurrentMode"
       :disabled="disabled"
       class="send-button"
       :title="`Send (${currentModeName})`"
     >
-      <ion-icon slot="icon-only" :icon="currentModeIcon"></ion-icon>
+      <ion-icon slot="icon-only" :icon="sendOutline"></ion-icon>
     </ion-button>
-
-    <!-- Dropdown arrow for mode selection -->
-    <ion-button
-      fill="clear"
-      :color="!disabled ? 'primary' : 'medium'"
-      @click="toggleModeMenu"
-      :disabled="disabled"
-      class="mode-selector-button"
-      size="small"
-    >
-      <ion-icon slot="icon-only" :icon="chevronDownOutline"></ion-icon>
-    </ion-button>
-
-    <!-- Mode selection popover -->
-    <ion-popover
-      :is-open="showModeMenu"
-      @did-dismiss="showModeMenu = false"
-      :trigger-action="'click'"
-      class="mode-popover"
-      :show-backdrop="false"
-      alignment="end"
-      side="top"
-    >
-      <ion-content class="mode-menu">
-        <ion-list lines="none">
-          <ion-item
-            button
-            v-for="mode in modes"
-            :key="mode.value"
-            @click="selectAndSend(mode.value)"
-            :class="{ active: currentMode === mode.value }"
-          >
-            <ion-icon :icon="mode.icon" slot="start" :color="currentMode === mode.value ? 'primary' : 'medium'"></ion-icon>
-            <ion-label>
-              <h3>{{ mode.name }}</h3>
-              <p>{{ mode.description }}</p>
-            </ion-label>
-            <ion-icon v-if="currentMode === mode.value" :icon="checkmarkOutline" slot="end" color="primary"></ion-icon>
-          </ion-item>
-        </ion-list>
-      </ion-content>
-    </ion-popover>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import {
   IonButton,
-  IonIcon,
-  IonPopover,
-  IonContent,
-  IonList,
-  IonItem,
-  IonLabel
+  IonIcon
 } from '@ionic/vue';
 import {
   sendOutline,
   chatbubblesOutline,
   documentTextOutline,
-  hammerOutline,
-  chevronDownOutline,
-  checkmarkOutline
+  hammerOutline
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import type { PrimaryChatMode, AgentChatMode } from '@/stores/agentChatStore/types';
@@ -88,7 +56,6 @@ const emit = defineEmits<{
 }>();
 
 const chatStore = useAgentChatStore();
-const showModeMenu = ref(false);
 
 const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: any; description: string }> = [
   {
@@ -111,22 +78,22 @@ const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: any; descri
   }
 ];
 
-const currentMode = computed<AgentChatMode>(() => chatStore.getActiveChatMode());
+// Use reactive getters instead of method calls
+const currentMode = computed<AgentChatMode>(() => chatStore.activeChatMode);
 
 const allowedModes = computed(() => {
-  const conversation = chatStore.getActiveConversation();
+  const conversation = chatStore.activeConversation;
   return conversation?.allowedChatModes?.length ? conversation.allowedChatModes : DEFAULT_CHAT_MODES;
 });
 
-const agent = computed(() => chatStore.getActiveConversation()?.agent);
+const agent = computed(() => chatStore.activeConversation?.agent);
 
 const modes = computed(() => {
+  // Show all modes that are allowed for this conversation
   let filtered = baseModes.filter(mode => allowedModes.value.includes(mode.value));
 
-  if (agent.value && !agent.value.plan_structure) {
-    filtered = filtered.filter(mode => mode.value !== 'plan');
-  }
-
+  // Don't filter out plan mode - agent should handle it gracefully if not supported
+  // The backend will return an error if plan mode isn't available
   return filtered;
 });
 
@@ -134,16 +101,15 @@ const currentModeConfig = computed(() => {
   return modes.value.find(m => m.value === currentMode.value) || modes.value[0] || baseModes[0];
 });
 
-const currentModeIcon = computed(() => {
-  return currentModeConfig.value.icon;
-});
-
 const currentModeName = computed(() => {
   return currentModeConfig.value.name;
 });
 
-function toggleModeMenu() {
-  showModeMenu.value = !showModeMenu.value;
+function selectMode(mode: PrimaryChatMode) {
+  const conversationId = chatStore.activeConversation?.id;
+  if (conversationId) {
+    chatStore.setChatMode(conversationId, mode);
+  }
 }
 
 function sendWithCurrentMode() {
@@ -155,85 +121,65 @@ function sendWithCurrentMode() {
     emit('send', activeMode);
   }
 }
-
-function selectAndSend(mode: PrimaryChatMode) {
-  showModeMenu.value = false;
-  chatStore.setChatMode(mode);
-  // Small delay to let the UI update before sending
-  setTimeout(() => {
-    emit('send', mode);
-  }, 100);
-}
 </script>
 
 <style scoped>
 .chat-mode-send-button {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 8px;
+  padding: 8px;
+}
+
+.mode-buttons {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mode-button {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  height: 32px;
+  font-size: 0.85rem;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Outline buttons - make them more visible */
+.mode-button[fill="outline"] {
+  --border-width: 2px;
+  --color: var(--ion-color-medium-contrast);
+  opacity: 0.7;
+}
+
+.mode-button[fill="outline"]:hover {
+  opacity: 1;
+  --border-color: var(--ion-color-primary);
+}
+
+/* Solid buttons - active state */
+.mode-button[fill="solid"] {
+  font-weight: 600;
+}
+
+.mode-button ion-icon {
+  font-size: 1rem;
+  margin-right: 4px;
 }
 
 .send-button {
   --padding-start: 12px;
-  --padding-end: 8px;
-  min-width: 44px;
-  height: 44px;
-  margin: 0;
-}
-
-.mode-selector-button {
-  --padding-start: 4px;
-  --padding-end: 8px;
-  min-width: 32px;
-  height: 44px;
-  margin: 0;
-  margin-left: -8px;
-  border-left: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
-}
-
-.mode-popover {
-  --width: 280px;
-  --max-height: 320px;
-}
-
-.mode-menu {
-  --background: var(--ion-background-color);
-}
-
-.mode-menu ion-list {
-  padding: 8px 0;
-}
-
-.mode-menu ion-item {
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --inner-padding-end: 8px;
-  --min-height: 56px;
-}
-
-.mode-menu ion-item.active {
-  --background: rgba(var(--ion-color-primary-rgb), 0.08);
-}
-
-.mode-menu ion-item:hover {
-  --background: rgba(var(--ion-color-primary-rgb), 0.04);
-}
-
-.mode-menu ion-label h3 {
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-
-.mode-menu ion-label p {
-  font-size: 0.85em;
-  color: var(--ion-color-medium);
+  --padding-end: 12px;
+  min-width: 48px;
+  height: 40px;
   margin: 0;
 }
 
 /* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
-  .mode-selector-button {
-    border-left-color: rgba(var(--ion-color-primary-rgb), 0.3);
+  .mode-button {
+    --border-color: rgba(var(--ion-color-primary-rgb), 0.3);
   }
 }
 </style>

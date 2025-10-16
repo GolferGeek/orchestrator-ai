@@ -53,14 +53,14 @@ import { IonButton, IonIcon } from '@ionic/vue';
 import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
 import { useRoute } from 'vue-router';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import { agentTaskService } from '@/services/agent-tasks';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';
 const route = useRoute();
 const agentChatStore = useAgentChatStore();
 // Computed
-const activeConversation = computed(() => {
-  return agentChatStore.getActiveConversation();
-});
+const activeConversation = computed(() => agentChatStore.activeConversation);
+
 const isOrchestratorConversation = computed(() => {
   const agentName = activeConversation.value?.agent?.name;
   // Ensure agentName is a string before calling toLowerCase
@@ -69,22 +69,45 @@ const isOrchestratorConversation = computed(() => {
   }
   return false;
 });
+
 const shouldUseTwoPaneView = computed(() => {
   // Enable two-pane view for all conversations
   // Regular agents: show deliverables in right pane
   // Orchestrator agents: show deliverables AND projects in right pane
   return true;
 });
+
 // Methods
 const switchToConversation = (conversationId: string) => {
-  agentChatStore.switchToConversation(conversationId);
+  agentChatStore.setActiveConversation(conversationId);
 };
+
 const closeConversation = (conversationId: string) => {
   // Close conversation without confirmation dialog
-  agentChatStore.closeConversation(conversationId);
+  agentChatStore.removeConversation(conversationId);
 };
+
 const handleSendMessage = async (content: string) => {
-  await agentChatStore.sendMessage(content);
+  const conversation = agentChatStore.activeConversation;
+  if (!conversation || !conversation.agent) {
+    console.error('Cannot send message: no active conversation');
+    return;
+  }
+
+  try {
+    const mode = conversation.chatMode || 'converse';
+
+    await agentTaskService.sendTask({
+      agentSlug: conversation.agent.slug || conversation.agent.name,
+      namespace: conversation.agent.namespace || undefined,
+      mode: mode,
+      action: (mode === 'plan' || mode === 'build') ? 'create' : undefined,
+      userMessage: content,
+      conversationId: conversation.id,
+    });
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
 };
 </script>
 <style scoped>

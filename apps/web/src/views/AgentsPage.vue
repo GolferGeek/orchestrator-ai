@@ -170,10 +170,12 @@ import {
 import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
+import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { useRouter } from 'vue-router';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 const auth = useAuthStore();
 const agentChatStore = useAgentChatStore();
+const conversationsStore = useAgentConversationsStore();
 const router = useRouter();
 // State for accordion and search
 const mainNavExpanded = ref(true); // Main navigation accordion starts expanded
@@ -192,12 +194,18 @@ const navigateToLanding = () => {
 };
 const handleConversationSelected = async (conversation: any) => {
   try {
-    await agentChatStore.openExistingConversation(conversation.id);
-    // Set flag in sessionStorage to indicate active conversation for admin users
-    sessionStorage.setItem('activeConversation', 'true');
-    router.push({ path: '/app/home', query: { forceHome: 'true' } });
-  } catch (error) {
+    console.log('Conversation selected:', conversation);
 
+    // Set the active conversation in the store
+    agentChatStore.setActiveConversation(conversation.id);
+
+    // Set flag in sessionStorage to indicate active conversation
+    sessionStorage.setItem('activeConversation', 'true');
+
+    // Navigate to home page to show the conversation
+    await router.push({ path: '/app/home', query: { forceHome: 'true', conversationId: conversation.id } });
+  } catch (error) {
+    console.error('Error selecting conversation:', error);
   }
 };
 const handleAgentSelected = async (agent: any) => {
@@ -214,6 +222,10 @@ const handleAgentSelected = async (agent: any) => {
       });
     } else {
       const conversationId = await conversation.createConversation(agent);
+
+      // Refresh conversations list to show the new conversation
+      await conversationsStore.fetchConversations(true);
+
       // Set flag in sessionStorage to indicate active conversation for admin users
       sessionStorage.setItem('activeConversation', 'true');
       router.push({ path: '/app/home', query: { forceHome: 'true', conversationId } });

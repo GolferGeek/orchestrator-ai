@@ -88,6 +88,7 @@ import {
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { agentTaskService } from '@/services/agent-tasks';
+import { tasksService } from '@/services/tasksService';
 // TTS is now handled directly in AgentTaskItem when messages are displayed
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
@@ -113,26 +114,26 @@ useModeSwitchShortcuts(agentChatStore);
 // Reactive state
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
-// Computed - use conversation data from props when available
-const currentAgent = computed(() => 
-  props.conversation?.agent || agentChatStore.getActiveConversation()?.agent
+// Computed - use conversation data from props when available, otherwise use reactive store getter
+const currentAgent = computed(() =>
+  props.conversation?.agent || agentChatStore.activeConversation?.agent
 );
-const messages = computed(() => 
-  props.conversation?.messages || agentChatStore.getActiveConversation()?.messages || []
+const messages = computed(() =>
+  props.conversation?.messages || agentChatStore.activeConversation?.messages || []
 );
-const isLoading = computed(() => 
-  props.conversation?.isLoading || agentChatStore.getActiveConversation()?.isLoading || false
+const isLoading = computed(() =>
+  props.conversation?.isLoading || agentChatStore.activeConversation?.isLoading || false
 );
-const error = computed(() => 
-  props.conversation?.error || agentChatStore.getActiveConversation()?.error || null
+const error = computed(() =>
+  props.conversation?.error || agentChatStore.activeConversation?.error || null
 );
-const isSendingMessage = computed(() => 
-  props.conversation?.isSendingMessage || agentChatStore.getActiveConversation()?.isSendingMessage || false
+const isSendingMessage = computed(() =>
+  props.conversation?.isSendingMessage || agentChatStore.activeConversation?.isSendingMessage || false
 );
-const canSend = computed(() => 
+const canSend = computed(() =>
   messageText.value.trim().length > 0 && currentAgent.value && !isSendingMessage.value
 );
-const chatMode = computed(() => agentChatStore.getActiveChatMode());
+const chatMode = computed(() => agentChatStore.activeChatMode);
 const loadingMessage = computed(() => {
   const mode = (chatMode.value || '').toLowerCase();
   if (mode === 'plan') return 'Creating plan...';
@@ -141,8 +142,8 @@ const loadingMessage = computed(() => {
 });
 const showCancelButton = computed(() => chatMode.value === 'build');
 
-const conversationId = computed(() => 
-  props.conversation?.id || agentChatStore.getActiveConversation()?.id
+const conversationId = computed(() =>
+  props.conversation?.id || agentChatStore.activeConversation?.id
 );
 // Methods
 const sendMessage = async (mode?: AgentChatMode) => {
@@ -157,7 +158,7 @@ const sendMessage = async (mode?: AgentChatMode) => {
 
   try {
     // Send message using service layer (Vue reactivity handles UI updates)
-    const activeConversation = agentChatStore.getActiveConversation();
+    const activeConversation = agentChatStore.activeConversation;
     if (activeConversation && currentAgent.value) {
       await agentTaskService.sendTask({
         agentSlug: currentAgent.value.slug || currentAgent.value.name,
@@ -176,7 +177,7 @@ const sendMessage = async (mode?: AgentChatMode) => {
 };
 const clearError = () => {
   // Clear error using store mutation (Vue reactivity handles UI updates)
-  const activeConversation = agentChatStore.getActiveConversation();
+  const activeConversation = agentChatStore.activeConversation;
   if (activeConversation) {
     agentChatStore.clearError(activeConversation.id);
   }
@@ -202,7 +203,14 @@ const handleSpeechError = (error: string) => {
 
 const cancelCurrentOperation = async () => {
   try {
-    await agentChatStore.cancelCurrentOperation();
+    const activeConversation = agentChatStore.activeConversation;
+    if (!activeConversation?.activeTaskId) {
+      console.warn('No active task to cancel');
+      return;
+    }
+
+    await tasksService.cancelTask(activeConversation.activeTaskId);
+    console.log('Task cancelled successfully');
   } catch (error) {
     console.error('Failed to cancel current operation', error);
   }

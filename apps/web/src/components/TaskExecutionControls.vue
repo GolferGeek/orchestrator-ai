@@ -83,8 +83,8 @@ const userPreferencesStore = useUserPreferencesStore();
 const showModeSelector = ref(false);
 // Computed properties
 const userPreferences = computed(() => userPreferencesStore.preferences);
-const currentMode = computed(() => agentChatStore.getEffectiveExecutionMode());
-const activeConversation = computed(() => agentChatStore.getActiveConversation());
+const currentMode = computed(() => agentChatStore.effectiveExecutionMode);
+const activeConversation = computed(() => agentChatStore.activeConversation);
 const isExecutionModeOverride = computed(() => activeConversation.value?.isExecutionModeOverride || false);
 const supportedModes = computed(() => {
   return activeConversation.value?.supportedExecutionModes || ['immediate'];

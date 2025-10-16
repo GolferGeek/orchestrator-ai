@@ -208,12 +208,8 @@ export class AgentTaskService {
   private getLLMSelection(): LLMSelection {
     const llmStore = useLLMStore();
 
-    return {
-      providerName: llmStore.selectedProvider?.name || '',
-      modelName: llmStore.selectedModel?.name || '',
-      temperature: llmStore.temperature,
-      maxTokens: llmStore.maxTokens,
-    };
+    // Use the store's computed property instead of duplicating logic
+    return llmStore.currentLLMSelection;
   }
 
   /**

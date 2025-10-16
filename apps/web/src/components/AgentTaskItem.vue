@@ -850,21 +850,17 @@ async function handlePlanNow() {
   const conv = chatStore.getConversationById(props.conversationId);
   if (!conv) return;
 
-  // Find last user message
-  const lastUserMessage = [...conv.messages].reverse().find(m => m.role === 'user')?.content;
-  if (!lastUserMessage) return;
-
   chatStore.setChatMode(props.conversationId, 'plan');
   chatStore.setPendingAction('plan', props.message.taskId || undefined);
 
-  // Execute using service layer (Vue reactivity handles UI updates)
+  // Execute using service layer - no user message needed, plan based on conversation
   try {
     await agentTaskService.sendTask({
       agentSlug: conv.agent.slug || conv.agent.name,
       namespace: conv.agent.namespace || undefined,
       mode: 'plan',
       action: 'create',
-      userMessage: lastUserMessage,
+      userMessage: 'Create a plan based on our conversation',
       conversationId: props.conversationId,
     });
   } catch (error) {
@@ -888,21 +884,17 @@ async function handleBuildNow() {
   const conv = chatStore.getConversationById(props.conversationId);
   if (!conv) return;
 
-  // Find last user message
-  const lastUserMessage = [...conv.messages].reverse().find(m => m.role === 'user')?.content;
-  if (!lastUserMessage) return;
-
   chatStore.setChatMode(props.conversationId, 'build');
   chatStore.setPendingAction('build', props.message.taskId || undefined);
 
-  // Execute using service layer (Vue reactivity handles UI updates)
+  // Execute using service layer - no user message needed, build based on conversation/plan
   try {
     await agentTaskService.sendTask({
       agentSlug: conv.agent.slug || conv.agent.name,
       namespace: conv.agent.namespace || undefined,
       mode: 'build',
       action: 'create',
-      userMessage: lastUserMessage,
+      userMessage: 'Build a deliverable based on our conversation',
       conversationId: props.conversationId,
       additionalParams: {
         planId: conv.latestPlan?.id,

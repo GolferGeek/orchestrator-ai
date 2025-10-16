@@ -144,23 +144,90 @@ export class ConversationService {
           // Parse the JSON response to extract the actual content and metadata
           let responseContent = task.response;
           let mergedResponseMetadata: any = {};
+          let planId: string | undefined;
+
           try {
             const parsedResponse = typeof task.response === 'string'
               ? JSON.parse(task.response)
               : task.response;
 
-            responseContent = parsedResponse?.response || parsedResponse?.content || parsedResponse;
+            // Detect if this is a plan task and extract planId
+            const taskMode = task.params?.mode || task.method?.includes('plan') ? 'plan' : null;
+            if (taskMode === 'plan' || parsedResponse?.planId || parsedResponse?.result?.planId) {
+              planId = parsedResponse?.planId || parsedResponse?.result?.planId || parsedResponse?.payload?.planId;
+            }
+
+            // Extract content - try multiple paths for different response formats
+            let extractedContent = null;
+
+            // For plan tasks, use a simple message instead of the full plan content
+            if (planId) {
+              extractedContent = parsedResponse?.payload?.content?.message ||
+                                parsedResponse?.result?.content?.message ||
+                                parsedResponse?.content?.message ||
+                                'Plan created successfully';
+            }
+            // For non-plan tasks, extract the message content
+            else {
+              // Try payload.content.message (new format from screenshot)
+              if (parsedResponse?.payload?.content?.message) {
+                extractedContent = parsedResponse.payload.content.message;
+              }
+              // Try result.content.message (agent2agent format)
+              else if (parsedResponse?.result?.content?.message) {
+                extractedContent = parsedResponse.result.content.message;
+              }
+              // Try content.message
+              else if (parsedResponse?.content?.message) {
+                extractedContent = parsedResponse.content.message;
+              }
+              // Try message field directly
+              else if (parsedResponse?.message) {
+                extractedContent = parsedResponse.message;
+              }
+              // Try response or content fields
+              else if (parsedResponse?.response) {
+                extractedContent = parsedResponse.response;
+              }
+              else if (parsedResponse?.content) {
+                extractedContent = parsedResponse.content;
+              }
+            }
+
+            // Use extracted content or fall back to full response
+            responseContent = extractedContent || parsedResponse;
+
+            // Only stringify if it's still an object (shouldn't be if we extracted correctly)
             if (typeof responseContent === 'object') {
               responseContent = JSON.stringify(responseContent, null, 2);
             }
 
             // Merge backend-provided metadata (provider/model/usage, etc.)
             if (parsedResponse && typeof parsedResponse === 'object') {
+              // Extract metadata from various locations
+              // 1. Top-level provider/model/usage fields
+              if (parsedResponse.provider || parsedResponse.model || parsedResponse.usage) {
+                mergedResponseMetadata = {
+                  ...mergedResponseMetadata,
+                  provider: parsedResponse.provider,
+                  model: parsedResponse.model,
+                  usage: parsedResponse.usage
+                };
+              }
+
+              // 2. result.metadata (agent2agent format)
+              if (parsedResponse.result?.metadata) {
+                mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.result.metadata };
+              }
+
+              // 3. Top-level metadata object
               if (parsedResponse.metadata) {
                 mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.metadata };
               }
-              if (parsedResponse.result?.metadata) {
-                mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.result.metadata };
+
+              // 4. payload.metadata
+              if (parsedResponse.payload?.metadata) {
+                mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.payload.metadata };
               }
             }
           } catch {
@@ -180,6 +247,8 @@ export class ConversationService {
               isCompleted: true,
               completedAt: task.completedAt,
               responseMetadata: task.responseMetadata,
+              // Include mode information
+              mode: task.params?.mode || (task.method?.includes('plan') ? 'plan' : task.method?.includes('build') ? 'build' : 'converse'),
               // Include LLM metadata stored with the task (contains original selection)
               ...(task.llmMetadata ? { llmMetadata: task.llmMetadata } : {}),
               // Include provider/model/usage from response metadata for accurate display
@@ -191,17 +260,23 @@ export class ConversationService {
               },
             },
           };
-          
+
           // Check if this message has an associated deliverable
           // Try both message ID and task ID mapping
           let deliverableId = messageDeliverableMap.get(assistantMessageId);
           if (!deliverableId) {
             deliverableId = taskDeliverableMap.get(task.id);
           }
-          
+
           if (deliverableId) {
             assistantMessage.deliverableId = deliverableId;
           }
+
+          // Check if this message has an associated plan
+          if (planId) {
+            assistantMessage.planId = planId;
+          }
+
           messages.push(assistantMessage);
           
         } else if (['pending', 'running'].includes(task.status)) {

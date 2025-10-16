@@ -107,13 +107,23 @@ export const useLLMStore = defineStore('llm', {
           maxTokensOverride: this.maxTokens,
         },
       };
-      return {
+
+      const selection = {
         providerName: this.selectedProvider?.name,
         modelName: this.selectedModel?.modelName,
         cidafmOptions: Object.keys(cidafmOptions).some(key => cidafmOptions[key as keyof CIDAFMOptions] !== undefined) ? cidafmOptions : undefined,
         temperature: this.temperature,
         maxTokens: this.maxTokens,
       };
+
+      console.log('🔍 LLM Selection being sent:', {
+        providerName: selection.providerName,
+        modelName: selection.modelName,
+        selectedModelObject: this.selectedModel,
+        selectedModelType: typeof this.selectedModel,
+      });
+
+      return selection;
     },
     
     // Get models for the currently selected provider (using filtered models)
@@ -610,7 +620,7 @@ export const useLLMStore = defineStore('llm', {
       this.selectedModel = model;
       // Ensure provider is also selected
       if (!this.selectedProvider || this.selectedProvider.name !== model.providerName) {
-        this.selectedProvider = this.getProviderByName(model.providerName);
+        this.selectedProvider = this.getProviderByName()(model.providerName);
       }
     },
     // Toggle CIDAFM command selection
@@ -665,10 +675,10 @@ export const useLLMStore = defineStore('llm', {
       if (saved) {
         const preferences = JSON.parse(saved);
           if (preferences.selectedProviderName) {
-            this.selectedProvider = this.getProviderByName(preferences.selectedProviderName);
+            this.selectedProvider = this.getProviderByName()(preferences.selectedProviderName);
           }
           if (preferences.selectedProviderName && preferences.selectedModelName) {
-            this.selectedModel = this.getModelByName(preferences.selectedProviderName, preferences.selectedModelName);
+            this.selectedModel = this.getModelByName()(preferences.selectedProviderName, preferences.selectedModelName);
           }
           this.selectedCIDAFMCommands = preferences.selectedCIDAFMCommands || [];
           this.customModifiers = preferences.customModifiers || [];
