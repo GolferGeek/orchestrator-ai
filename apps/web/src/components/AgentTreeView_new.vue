@@ -117,7 +117,7 @@ import {
 } from 'ionicons/icons';
 import { formatAgentName } from '@/utils/caseConverter';
 import { useAgentsStore } from '@/stores/agentsStore';
-import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 
 // Props
 const props = defineProps<{
@@ -136,7 +136,7 @@ const searchQuery = ref(props.searchQuery || '');
 
 // Stores
 const agentsStore = useAgentsStore();
-const conversationsStore = useAgentConversationsStore();
+const conversationsStore = useConversationsStore();
 
 // Simple hierarchy processing - just build the tree as it comes from the backend
 const hierarchyGroups = computed(() => {

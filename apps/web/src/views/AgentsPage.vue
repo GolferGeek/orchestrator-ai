@@ -170,12 +170,12 @@ import {
 import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
-import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 import { useRouter } from 'vue-router';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 const auth = useAuthStore();
 const agentChatStore = useAgentChatStore();
-const conversationsStore = useAgentConversationsStore();
+const conversationsStore = useConversationsStore();
 const router = useRouter();
 // State for accordion and search
 const mainNavExpanded = ref(true); // Main navigation accordion starts expanded

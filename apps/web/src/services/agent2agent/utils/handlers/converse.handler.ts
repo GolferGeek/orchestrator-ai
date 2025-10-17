@@ -10,7 +10,7 @@ import {
   extractSuccessPayload,
   StrictResponseValidationError,
 } from './response-validation';
-import { useConversationStore } from '@/stores/conversationStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 
 /**
  * Converse response types
@@ -73,7 +73,7 @@ export const converseResponseHandler = {
    */
   handleSend(response: any, conversationId: string): ConverseResult {
     const result = validateAndExtract(response, 'send');
-    const store = useConversationStore();
+    const store = useConversationsStore();
 
     // Update store with assistant message
     store.addAssistantMessage(conversationId, result);

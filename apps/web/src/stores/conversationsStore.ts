@@ -407,6 +407,34 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   /**
+   * Add assistant message from handler result
+   * Helper for converse handler
+   */
+  function addAssistantMessage(conversationId: string, result: any): Message {
+    return addMessage(conversationId, {
+      conversationId,
+      role: 'assistant',
+      content: result.message,
+      timestamp: result.metadata?.timestamp || new Date().toISOString(),
+      metadata: result.metadata,
+    });
+  }
+
+  /**
+   * Add user message
+   * Helper for creating user messages
+   */
+  function addUserMessage(conversationId: string, content: string, metadata?: Record<string, any>): Message {
+    return addMessage(conversationId, {
+      conversationId,
+      role: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+      metadata,
+    });
+  }
+
+  /**
    * Set all messages for a conversation
    * Used when loading messages from API
    */
@@ -658,6 +686,8 @@ export const useConversationsStore = defineStore('conversations', () => {
 
     // Message mutations
     addMessage,
+    addAssistantMessage,
+    addUserMessage,
     setMessages,
     clearMessages,
 
