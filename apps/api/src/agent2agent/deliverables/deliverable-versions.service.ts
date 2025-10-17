@@ -986,10 +986,6 @@ Please output ONLY the merged content, maintaining the same format as the origin
       contextPrompt += ' This is part of an ongoing conversation.';
     }
 
-    if (sourceVersion.metadata?.projectStepId) {
-      contextPrompt += ' This is part of a project workflow.';
-    }
-
     // Add format guidance
     const formatGuidance =
       sourceVersion.format === DeliverableFormat.MARKDOWN

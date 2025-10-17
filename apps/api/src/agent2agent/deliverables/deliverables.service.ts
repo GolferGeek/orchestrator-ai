@@ -588,7 +588,6 @@ export class DeliverablesService implements IActionHandler {
             {
               user_id: userId,
               conversation_id: createDto.conversationId,
-              project_step_id: createDto.projectStepId || null,
               agent_name: createDto.agentName || null,
               title: createDto.title,
               type: createDto.type || null,
@@ -948,8 +947,6 @@ export class DeliverablesService implements IActionHandler {
       // Only update fields that are provided
       if (updateDto.title !== undefined) updateData.title = updateDto.title;
       if (updateDto.type !== undefined) updateData.type = updateDto.type;
-      if (updateDto.projectStepId !== undefined)
-        updateData.project_step_id = updateDto.projectStepId;
       if (updateDto.agentName !== undefined)
         updateData.agent_name = updateDto.agentName;
 
@@ -1234,7 +1231,6 @@ export class DeliverablesService implements IActionHandler {
       id: data.id,
       userId: data.user_id,
       conversationId: data.conversation_id,
-      projectStepId: data.project_step_id,
       agentName: data.agent_name,
       title: data.title,
       type: data.type,

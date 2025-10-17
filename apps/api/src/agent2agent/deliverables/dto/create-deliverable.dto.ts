@@ -43,11 +43,11 @@ export enum DeliverableVersionCreationType {
   LLM_RERUN = 'llm_rerun',
 }
 
-// Custom validator to ensure at least one of conversationId or projectStepId is provided
-function AtLeastOneContext(validationOptions?: ValidationOptions) {
+// Custom validator to ensure conversationId is provided
+function RequireConversationId(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({
-      name: 'atLeastOneContext',
+      name: 'requireConversationId',
       target: object.constructor,
       propertyName: propertyName,
       constraints: [],
@@ -55,10 +55,10 @@ function AtLeastOneContext(validationOptions?: ValidationOptions) {
       validator: {
         validate(value: any, args: ValidationArguments) {
           const obj = args.object as CreateDeliverableDto;
-          return !!(obj.conversationId || obj.projectStepId);
+          return !!obj.conversationId;
         },
         defaultMessage(args: ValidationArguments) {
-          return 'Either conversationId or projectStepId must be provided';
+          return 'conversationId must be provided';
         },
       },
     });
@@ -80,23 +80,15 @@ export class CreateDeliverableDto {
   @IsEnum(DeliverableType)
   type?: DeliverableType;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description:
-      'Conversation ID this deliverable belongs to (optional - use when deliverable is part of a conversation)',
+      'Conversation ID this deliverable belongs to (required)',
   })
-  @IsOptional()
   @IsUUID()
-  @AtLeastOneContext({
-    message: 'Either conversationId or projectStepId must be provided',
+  @RequireConversationId({
+    message: 'conversationId must be provided',
   })
-  conversationId?: string;
-
-  @ApiPropertyOptional({
-    description: 'Project step ID this deliverable belongs to',
-  })
-  @IsOptional()
-  @IsUUID()
-  projectStepId?: string;
+  conversationId!: string;
 
   @ApiPropertyOptional({
     description:

@@ -73,11 +73,6 @@ export class Deliverable {
   conversationId?: string;
 
   @ApiPropertyOptional({
-    description: 'Project step this deliverable belongs to',
-  })
-  projectStepId?: string;
-
-  @ApiPropertyOptional({
     description:
       'Agent that should handle editing this deliverable (inherited from creating conversation)',
   })
