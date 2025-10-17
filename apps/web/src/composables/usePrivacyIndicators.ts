@@ -1,6 +1,6 @@
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, readonly } from 'vue';
 import { useSanitizationStore } from '@/stores/sanitizationStore';
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import type { AgentChatMessage } from '@/types/conversation';
 
@@ -55,7 +55,7 @@ export function usePrivacyIndicators(options: PrivacyIndicatorOptions = {}) {
   // =====================================
   
   const sanitizationStore = useSanitizationStore();
-  const llmUsageStore = useLlmUsageStore();
+  const llmAnalyticsStore = useLLMAnalyticsStore();
   const chatUiStore = useChatUiStore();
   
   // =====================================

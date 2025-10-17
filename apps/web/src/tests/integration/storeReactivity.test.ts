@@ -7,7 +7,7 @@ import { ref, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
+import { useLLMHealthStore } from '@/stores/llmHealthStore';
 
 // Mock component for testing reactivity
 const TestComponent = {
@@ -214,7 +214,7 @@ describe('Store Reactivity Tests', () => {
 
     it('should handle complex state updates in monitoring composables', async () => {
       const { 
-        llmMonitoringStore, 
+        llmHealthStore, 
         analyticsStore, 
         dashboardData, 
         systemHealthStatus 
@@ -225,7 +225,7 @@ describe('Store Reactivity Tests', () => {
       expect(systemHealthStatus.value).toBe('unknown');
 
       // Update system health
-      llmMonitoringStore.systemHealth = {
+      llmHealthStore.systemHealth = {
         totalModels: 5,
         healthyModels: 5,
         unhealthyModels: 0,
@@ -235,26 +235,26 @@ describe('Store Reactivity Tests', () => {
       expect(systemHealthStatus.value).toBe('healthy');
 
       // Update with some unhealthy models
-      llmMonitoringStore.systemHealth.healthyModels = 3;
-      llmMonitoringStore.systemHealth.unhealthyModels = 2;
+      llmHealthStore.systemHealth.healthyModels = 3;
+      llmHealthStore.systemHealth.unhealthyModels = 2;
 
       expect(systemHealthStatus.value).toBe('warning');
 
       // Update with mostly unhealthy models
-      llmMonitoringStore.systemHealth.healthyModels = 1;
-      llmMonitoringStore.systemHealth.unhealthyModels = 4;
+      llmHealthStore.systemHealth.healthyModels = 1;
+      llmHealthStore.systemHealth.unhealthyModels = 4;
 
       expect(systemHealthStatus.value).toBe('critical');
 
       // Update usage records
-      llmMonitoringStore.usageRecords = [
+      llmHealthStore.usageRecords = [
         { id: '1', cost: 10, provider: 'openai' },
         { id: '2', cost: 5, provider: 'anthropic' },
         { id: '3', cost: 15, provider: 'openai' }
       ];
 
-      expect(llmMonitoringStore.totalCost).toBe(30);
-      expect(llmMonitoringStore.totalRequests).toBe(3);
+      expect(llmHealthStore.totalCost).toBe(30);
+      expect(llmHealthStore.totalRequests).toBe(3);
     });
   });
 

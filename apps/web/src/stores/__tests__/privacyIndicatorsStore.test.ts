@@ -11,8 +11,8 @@ vi.mock('../sanitizationStore', () => ({
   })
 }));
 
-vi.mock('../llmUsageStore', () => ({
-  useLlmUsageStore: () => ({
+vi.mock('../llmAnalyticsStore', () => ({
+  useLLMAnalyticsStore: () => ({
     usageRecords: []
   })
 }));

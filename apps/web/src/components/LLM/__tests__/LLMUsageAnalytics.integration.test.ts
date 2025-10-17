@@ -10,7 +10,7 @@ import { mount, VueWrapper } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 import { IonicVue } from '@ionic/vue';
 import LLMUsageAnalytics from '../LLMUsageAnalytics.vue';
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
 import { nextTick } from 'vue';
 
 // Mock Chart.js components
@@ -106,7 +106,7 @@ const mockStats = {
 
 describe('LLMUsageAnalytics Integration Tests', () => {
   let wrapper: VueWrapper;
-  let store: ReturnType<typeof useLlmUsageStore>;
+  let store: ReturnType<typeof useLLMAnalyticsStore>;
 
   beforeEach(() => {
     // Create testing pinia with mocked store
@@ -140,7 +140,7 @@ describe('LLMUsageAnalytics Integration Tests', () => {
     });
 
     // Get store instance and mock data
-    store = useLlmUsageStore();
+    store = useLLMAnalyticsStore();
     store.usageRecords = mockUsageRecords;
     store.analytics = mockAnalytics;
     store.stats = mockStats;

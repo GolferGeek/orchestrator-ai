@@ -92,7 +92,7 @@ import { ref, computed, defineEmits, defineProps, onUnmounted, watch, onMounted 
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
 import { chevronUpOutline, checkmarkOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
-import { useLLMStore } from '../stores/llmStore';
+import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
 import { useAgentChatStore } from '@/services/conversationHelpers';
 import { Capacitor } from '@capacitor/core';
 import LLMSelector from './LLMSelector.vue';
@@ -110,7 +110,7 @@ const showLLMPanel = ref(false);
 const activeTab = ref<'model' | 'behavior'>('model');
 const showCostEstimate = ref(true);
 const uiStore = useUiStore();
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const validation = useValidation();

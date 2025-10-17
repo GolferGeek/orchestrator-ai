@@ -369,13 +369,13 @@ import {
   helpOutline
 } from 'ionicons/icons';
 
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
-import { llmUsageService } from '@/services/llmUsageService';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
+import { llmAnalyticsService } from '@/services/llmAnalyticsService';
 import LlmUsageTable from '@/components/Admin/LlmUsageTable.vue';
 import LlmAnalytics from '@/components/Admin/LlmAnalytics.vue';
 import { storeToRefs } from 'pinia';
 
-const store = useLlmUsageStore();
+const store = useLLMAnalyticsStore();
 
 // Reactive data
 const selectedTab = ref('overview');
@@ -481,7 +481,7 @@ const formatRelativeTime = (dateString: string) => {
 };
 
 const getCallerIcon = (callerType: string) => {
-  return llmUsageService.getCallerTypeIcon(callerType);
+  return llmAnalyticsService.getCallerTypeIcon(callerType);
 };
 
 const getCallerColor = (callerType: string) => {
@@ -496,7 +496,7 @@ const getCallerColor = (callerType: string) => {
 };
 
 const getStatusColor = (status: string) => {
-  return llmUsageService.getStatusColor(status);
+  return llmAnalyticsService.getStatusColor(status);
 };
 
 // Lifecycle

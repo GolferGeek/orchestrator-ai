@@ -171,7 +171,7 @@
             <ion-card>
               <ion-card-content>
                 <div class="stat-item">
-                  <div class="stat-value">{{ llmUsageService.formatCost(totalCost) }}</div>
+                  <div class="stat-value">{{ llmAnalyticsService.formatCost(totalCost) }}</div>
                   <div class="stat-label">Total Cost</div>
                 </div>
               </ion-card-content>
@@ -193,7 +193,7 @@
             <ion-card>
               <ion-card-content>
                 <div class="stat-item">
-                  <div class="stat-value">{{ llmUsageService.formatDuration(avgDuration) }}</div>
+                  <div class="stat-value">{{ llmAnalyticsService.formatDuration(avgDuration) }}</div>
                   <div class="stat-label">Avg Duration</div>
                 </div>
               </ion-card-content>
@@ -292,7 +292,7 @@
                   
                   <td>
                     <ion-chip 
-                      :color="llmUsageService.getStatusColor(record.status)"
+                      :color="llmAnalyticsService.getStatusColor(record.status)"
                       size="small"
                     >
                       {{ record.status }}
@@ -320,20 +320,20 @@
                     </div>
                   </td>
                   
-                  <td>{{ llmUsageService.formatDuration(record.duration_ms) }}</td>
+                  <td>{{ llmAnalyticsService.formatDuration(record.duration_ms) }}</td>
                   
                   <td>
                     <div class="tokens-cell">
                       <div v-if="record.input_tokens">
-                        In: {{ llmUsageService.formatTokens(record.input_tokens) }}
+                        In: {{ llmAnalyticsService.formatTokens(record.input_tokens) }}
                       </div>
                       <div v-if="record.output_tokens">
-                        Out: {{ llmUsageService.formatTokens(record.output_tokens) }}
+                        Out: {{ llmAnalyticsService.formatTokens(record.output_tokens) }}
                       </div>
                     </div>
                   </td>
                   
-                  <td>{{ llmUsageService.formatCost(record.total_cost) }}</td>
+                  <td>{{ llmAnalyticsService.formatCost(record.total_cost) }}</td>
                   
                   <td>
                     <ion-button 
@@ -476,12 +476,12 @@ import {
   checkmarkCircleOutline
 } from 'ionicons/icons';
 
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
-import { llmUsageService, type LlmUsageRecord } from '@/services/llmUsageService';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
+import { llmAnalyticsService, type LlmUsageRecord } from '@/services/llmAnalyticsService';
 import { storeToRefs } from 'pinia';
 import LLMUsageDetailModal from './LLMUsageDetailModal.vue';
 
-const store = useLlmUsageStore();
+const store = useLLMAnalyticsStore();
 
 // Reactive data
 const localFilters = ref({
@@ -548,7 +548,7 @@ const formatTime = (dateString: string) => {
 };
 
 const getCallerIcon = (callerType: string) => {
-  return llmUsageService.getCallerTypeIcon(callerType);
+  return llmAnalyticsService.getCallerTypeIcon(callerType);
 };
 
 const getCallerColor = (callerType: string) => {

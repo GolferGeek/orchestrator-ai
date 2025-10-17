@@ -186,11 +186,11 @@
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useLLMStore } from '../stores/llmStore';
+import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 import type { Provider, Model } from '../types/llm';
 
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const userPreferencesStore = useUserPreferencesStore();
 
 const showAdvanced = ref(false);

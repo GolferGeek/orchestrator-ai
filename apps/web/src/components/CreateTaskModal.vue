@@ -168,7 +168,7 @@ import { closeOutline, alertCircleOutline } from 'ionicons/icons';
 import { tasksService } from '@/services/tasksService';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
-import { useLLMStore } from '@/stores/llmStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useValidation, ValidationRules } from '@/composables/useValidation';
 interface Conversation {
   id: string;
@@ -201,7 +201,7 @@ const error = ref<string | null>(null);
 const customMethod = ref('');
 const parametersJson = ref('');
 // Store
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const validation = useValidation();
 
 const taskData = ref<TaskData>({

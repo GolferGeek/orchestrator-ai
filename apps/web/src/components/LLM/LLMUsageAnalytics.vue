@@ -409,7 +409,7 @@ import DoughnutChart from '@/components/Charts/DoughnutChart.vue';
 import LLMRoutingDashboard from './LLMRoutingDashboard.vue';
 
 // Store
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
 import {
   transformToTimeSeries,
   calculateProviderStats,
@@ -441,7 +441,7 @@ const emit = defineEmits<{
 }>();
 
 // Store
-const llmUsageStore = useLlmUsageStore();
+const llmUsageStore = useLLMAnalyticsStore();
 
 // Local reactive state (UI only)
 // Tab state

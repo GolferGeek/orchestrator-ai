@@ -204,10 +204,10 @@ import {
   analyticsOutline
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
-import { useLLMStore } from '@/stores/llmStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 
 const router = useRouter();
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 
 const navigateTo = (path: string) => {
   router.push(path);

@@ -283,7 +283,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
+import { useLLMHealthStore } from '@/stores/llmHealthStore';
 import {
   IonCard,
   IonCardContent,
@@ -323,19 +323,19 @@ const emit = defineEmits<{
 // Enhanced store integration
 // Direct store usage
 const analyticsStore = useAnalyticsStore();
-const llmMonitoringStore = useLLMMonitoringStore();
+const llmHealthStore = useLLMHealthStore();
 
 // Computed properties
 const adminMetrics = computed(() => analyticsStore.dashboardData);
-const systemHealth = computed(() => llmMonitoringStore.systemHealth);
-const storeLoading = computed(() => analyticsStore.isLoading || llmMonitoringStore.isLoading);
-const hasError = computed(() => !!analyticsStore.error || !!llmMonitoringStore.error);
+const systemHealth = computed(() => llmHealthStore.systemHealth);
+const storeLoading = computed(() => analyticsStore.isLoading || llmHealthStore.isLoadingSystemHealth);
+const hasError = computed(() => !!analyticsStore.error || !!llmHealthStore.error);
 
 // Methods
 const refreshSystem = async () => {
   await Promise.all([
     analyticsStore.loadDashboardData(),
-    llmMonitoringStore.fetchSystemHealth()
+    llmHealthStore.loadSystemHealth()
   ]);
 };
 

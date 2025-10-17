@@ -264,7 +264,7 @@ import {
 } from '@ionic/vue';
 import { closeOutline } from 'ionicons/icons';
 import { tasksService } from '../services/tasksService';
-import { useLLMStore } from '../stores/llmStore';
+import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
 interface Props {
   isOpen: boolean;
   taskId: string;
@@ -275,7 +275,7 @@ const emit = defineEmits<{
 }>();
 const taskData = ref<any>(null);
 const isLoading = ref(false);
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const handleClose = () => {
   emit('close');
 };

@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
 import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
 
@@ -100,14 +100,14 @@ describe('Store Integration Tests - Real API', () => {
 
   describe('LLM Usage Store - Real API Integration', () => {
     it('should initialize correctly', () => {
-      const store = useLlmUsageStore();
+      const store = useLLMAnalyticsStore();
       
       expect(store.usageRecords).toEqual([]);
       expect(store.isLoading).toBe(false);
     });
 
     it('should load usage records from real API', async () => {
-      const store = useLlmUsageStore();
+      const store = useLLMAnalyticsStore();
       
       await store.fetchUsageRecords();
       
@@ -126,7 +126,7 @@ describe('Store Integration Tests - Real API', () => {
     }, API_TIMEOUT);
 
     it('should calculate metrics from real data', async () => {
-      const store = useLlmUsageStore();
+      const store = useLLMAnalyticsStore();
       
       await store.fetchUsageRecords();
       
@@ -324,19 +324,19 @@ describe('Store Integration Tests - Real API', () => {
 
     it('should provide correct data for analytics dashboard components', async () => {
       const analyticsStore = useAnalyticsStore();
-      const llmUsageStore = useLlmUsageStore();
+      const llmAnalyticsStore = useLLMAnalyticsStore();
       
       // Initialize stores that dashboard components use
       await Promise.all([
         analyticsStore.loadDashboardData(),
-        llmUsageStore.fetchUsageRecords()
+        llmAnalyticsStore.fetchUsageRecords()
       ]);
       
       // Verify data structure for dashboard components
-      expect(Array.isArray(llmUsageStore.usageRecords)).toBe(true);
-      expect(typeof llmUsageStore.totalCost).toBe('number');
-      expect(typeof llmUsageStore.successRate).toBe('number');
-      expect(Array.isArray(llmUsageStore.providers)).toBe(true);
+      expect(Array.isArray(llmAnalyticsStore.usageRecords)).toBe(true);
+      expect(typeof llmAnalyticsStore.totalCost).toBe('number');
+      expect(typeof llmAnalyticsStore.successRate).toBe('number');
+      expect(Array.isArray(llmAnalyticsStore.providers)).toBe(true);
       
       // Analytics data might be null if service unavailable
       if (analyticsStore.dashboardData) {

@@ -35,7 +35,7 @@ import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { radioButtonOnOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
 import { useUiStore } from '../stores/uiStore';
-import { useLLMStore } from '../stores/llmStore';
+import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
 import { useAgentChatStore } from '@/services/conversationHelpers';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 
@@ -56,7 +56,7 @@ const emit = defineEmits<{
 }>();
 
 const uiStore = useUiStore();
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 

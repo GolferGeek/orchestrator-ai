@@ -341,7 +341,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { videoService } from '@/services/videoService';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 import { usePrivacyStore } from '@/stores/privacyStore';
-import { useLLMStore } from '@/stores/llmStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import type { AgentChatMessage, AgentChatMode } from '@/types/conversation';
@@ -373,7 +373,7 @@ const deliverablesStore = useDeliverablesStore();
 const planStore = usePlanStore();
 const authStore = useAuthStore();
 const sovereignPolicyStore = usePrivacyStore();
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const uiStore = useUiStore();
 // Reactive state
 const messageText = ref('');

@@ -637,7 +637,7 @@ import {
 } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { usePrivacyStore } from '@/stores/privacyStore';
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
 // Privacy stores consolidated into usePrivacyStore
 import { useAnalyticsStore } from '@/stores/analyticsStore';
 import { fetchGlobalModelConfig, updateGlobalModelConfig } from '@/services/systemSettingsService';
@@ -649,7 +649,7 @@ const router = useRouter();
 
 // Initialize all stores for reactive data
 const privacyStore = usePrivacyStore();
-const llmUsageStore = useLlmUsageStore();
+const llmAnalyticsStore = useLLMAnalyticsStore();
 const analyticsStore = useAnalyticsStore();
 
 // Reactive state (UI only)
@@ -825,12 +825,12 @@ const evaluationStats = computed(() => ({
 }));
 
 const llmStats = computed(() => ({
-  totalCost: llmUsageStore.totalCost || 0,
-  requestsToday: llmUsageStore.usageRecords.filter(r => {
+  totalCost: llmAnalyticsStore.totalCost || 0,
+  requestsToday: llmAnalyticsStore.usageRecords.filter(r => {
     const today = new Date().toDateString();
     return new Date(r.started_at).toDateString() === today;
   }).length || 0,
-  avgResponseTime: Math.round(llmUsageStore.avgDuration) || 0
+  avgResponseTime: Math.round(llmAnalyticsStore.avgDuration) || 0
 }));
 
 const piiStats = computed(() => ({
@@ -975,7 +975,7 @@ const loadStats = async () => {
 onMounted(async () => {
   try {
     await Promise.all([
-      llmUsageStore.initialize(),
+      llmAnalyticsStore.initialize(),
       analyticsStore.initialize?.() || Promise.resolve()
     ]);
     await loadGlobalModelConfig();

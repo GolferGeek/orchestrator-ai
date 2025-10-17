@@ -159,9 +159,9 @@ import {
   checkmarkOutline,
   playOutline,
 } from 'ionicons/icons';
-import { useLLMStore } from '@/stores/llmStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
-import type { Provider, Model } from '@/stores/llmStore/types';
+import type { Provider, Model } from '@/types/llm';
 
 interface Props {
   isOpen: boolean;
@@ -184,7 +184,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 // Stores
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const userPreferencesStore = useUserPreferencesStore();
 
 // Local state

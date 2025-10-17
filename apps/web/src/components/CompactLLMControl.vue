@@ -58,11 +58,11 @@ import {
   IonContent,
 } from '@ionic/vue';
 import { settingsOutline, closeOutline } from 'ionicons/icons';
-import { useLLMStore } from '@/stores/llmStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import LLMSelectorModal from './LLMSelectorModal.vue';
 
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const userPreferencesStore = useUserPreferencesStore();
 const isModalOpen = ref(false);
 

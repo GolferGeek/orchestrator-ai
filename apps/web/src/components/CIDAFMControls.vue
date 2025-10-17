@@ -93,10 +93,10 @@
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useLLMStore } from '../stores/llmStore';
+import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
 import CIDAFMModifierSelector from './CIDAFMModifierSelector.vue';
 import CIDAFMModifierTags from './CIDAFMModifierTags.vue';
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const showHelp = ref(false);
 onMounted(async () => {
   if (llmStore.cidafmCommands.length === 0) {

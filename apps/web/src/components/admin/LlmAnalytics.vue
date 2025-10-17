@@ -343,20 +343,20 @@ import {
   helpOutline
 } from 'ionicons/icons';
 
-import { useLlmUsageStore } from '@/stores/llmUsageStore';
-import { llmUsageService } from '@/services/llmUsageService';
+import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
+import { llmAnalyticsService } from '@/services/llmAnalyticsService';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
+import { useLLMHealthStore } from '@/stores/llmHealthStore';
 import { storeToRefs } from 'pinia';
 
-const store = useLlmUsageStore();
-const llmMonitoringStore = useLLMMonitoringStore();
+const store = useLLMAnalyticsStore();
+const llmHealthStore = useLLMHealthStore();
 const analyticsStore = useAnalyticsStore();
 
 // Computed properties
 const dashboardData = computed(() => analyticsStore.dashboardData);
 const systemHealthStatus = computed(() => {
-  const health = llmMonitoringStore.systemHealth;
+  const health = llmHealthStore.systemHealth;
   if (!health) return 'unknown';
   
   // Determine status based on health metrics
@@ -552,7 +552,7 @@ const formatChartDate = (dateString: string) => {
 };
 
 const getCallerIcon = (callerType: string) => {
-  return llmUsageService.getCallerTypeIcon(callerType);
+  return llmAnalyticsService.getCallerTypeIcon(callerType);
 };
 
 const getCallerColor = (callerType: string) => {
@@ -575,9 +575,9 @@ onMounted(() => {
 async function fetchRouteTrend(base: { startDate?: string; endDate?: string; callerType?: string; route?: 'local' | 'remote' | '' }) {
   const { startDate, endDate, callerType } = base || {};
   // Local
-  localAnalytics.value = await llmUsageService.getUsageAnalytics({ startDate, endDate, callerType, route: 'local' });
+  localAnalytics.value = await llmAnalyticsService.getUsageAnalytics({ startDate, endDate, callerType, route: 'local' });
   // Remote
-  remoteAnalytics.value = await llmUsageService.getUsageAnalytics({ startDate, endDate, callerType, route: 'remote' });
+  remoteAnalytics.value = await llmAnalyticsService.getUsageAnalytics({ startDate, endDate, callerType, route: 'remote' });
 }
 
 function applyPresetLocal7d() {

@@ -225,7 +225,7 @@ import UserPrivacyIndicators from './UserPrivacyIndicators.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePlanStore } from '@/stores/planStore';
 import { usePrivacyStore } from '@/stores/privacyStore';
-import { useLLMStore } from '@/stores/llmStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { sendMessage, createPlan, createDeliverable, setCurrentVersion } from '@/services/agent2agent/actions';
@@ -261,7 +261,7 @@ const emit = defineEmits<{
 const deliverablesStore = useDeliverablesStore();
 const planStore = usePlanStore();
 const privacyIndicatorsStore = usePrivacyStore();
-const llmStore = useLLMStore();
+const llmStore = useLLMPreferencesStore();
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 
