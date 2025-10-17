@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia';
+
+// =====================================
+// TYPES
+// =====================================
+
 export type ContextType = 'conversation' | 'deliverable' | 'project';
+
 export interface ContextState {
   activeContext: ContextType;
   activeDeliverableId: string | null;
@@ -7,12 +13,27 @@ export interface ContextState {
   // Track which pane should show the prompt input
   promptInputLocation: 'conversation' | 'deliverable' | 'project';
 }
+
+/**
+ * Context metadata for task creation
+ * Base metadata structure with type-safe extensions
+ */
 export interface ContextMetadata {
   context: ContextType;
   deliverableId?: string;
   projectId?: string;
-  method?: string;
-  [key: string]: any;
+  method?: 'create' | 'delete' | 'newVersion' | 'merge' | 'update' | string;
+
+  // Operation-specific fields
+  versionIds?: string[];
+  baseVersionId?: string;
+  agentType?: string;
+  agentName?: string;
+
+  // Additional typed metadata fields
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  tags?: string[];
+  notes?: string;
 }
 /**
  * Context Store - Manages active UI context for metadata-driven operations
@@ -179,7 +200,10 @@ export const useContextStore = defineStore('context', {
     /**
      * Create task metadata for project operations
      */
-    createProjectMetadata(method: string, additionalData?: Record<string, any>): ContextMetadata {
+    createProjectMetadata(
+      method: string,
+      additionalData?: Partial<ContextMetadata>
+    ): ContextMetadata {
       if (!this.isProjectContext) {
         throw new Error('Project operation requires project context');
       }

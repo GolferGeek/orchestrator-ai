@@ -3,6 +3,12 @@ import { ref, computed, watch } from 'vue';
 import { authService } from '@/services/authService'; // Removed AuthResponse import from here
 import { apiService } from '@/services/apiService';
 import { tokenManager } from '@/services/tokenManager';
+import type { SignupData, AuthError, isAuthError } from '@/types/auth';
+
+// Re-export types
+export type { SignupData, AuthError };
+export { isAuthError };
+
 // Interface for the token data expected from authService login/signup
 interface TokenData {
   accessToken: string;
@@ -453,7 +459,7 @@ export const useAuthStore = defineStore('auth', () => {
       return false;
     }
   }
-  async function signupAndLogin(signupData: any) {
+  async function signupAndLogin(signupData: SignupData) {
     isLoading.value = true;
     error.value = null;
     try {

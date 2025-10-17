@@ -6,47 +6,29 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import type {
+  Orchestration,
+  OrchestrationStep,
+  OrchestrationProgress,
+  OrchestrationStatus,
+  OrchestrationStepStatus,
+  OrchestrationMetadata,
+  OrchestrationStepInput,
+  OrchestrationStepOutput,
+  CreateOrchestrationStepPayload,
+} from '@/types/orchestration';
 
-// Types
-export type OrchestrationStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
-export type OrchestrationStepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
-
-export interface Orchestration {
-  id: string;
-  conversationId: string;
-  type: string;
-  status: OrchestrationStatus;
-  currentStepIndex: number;
-  createdAt: string;
-  updatedAt: string;
-  metadata?: Record<string, any>;
-}
-
-export interface OrchestrationStep {
-  id: string;
-  orchestrationId: string;
-  stepNumber: number;
-  mode: AgentTaskMode;
-  action: string;
-  agentId?: string;
-  taskId?: string;
-  status: OrchestrationStepStatus;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
-  error?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrchestrationProgress {
-  current: number;
-  total: number;
-  percentage: number;
-  completedSteps: number;
-  failedSteps: number;
-  pendingSteps: number;
-}
+// Re-export types for backward compatibility
+export type {
+  Orchestration,
+  OrchestrationStep,
+  OrchestrationProgress,
+  OrchestrationStatus,
+  OrchestrationStepStatus,
+  OrchestrationMetadata,
+  OrchestrationStepInput,
+  OrchestrationStepOutput,
+};
 
 export const useOrchestratorStore = defineStore('orchestrator', () => {
   // State
@@ -115,8 +97,8 @@ export const useOrchestratorStore = defineStore('orchestrator', () => {
     id: string,
     conversationId: string,
     type: string,
-    steps: Omit<OrchestrationStep, 'id' | 'orchestrationId' | 'status' | 'createdAt' | 'updatedAt'>[],
-    metadata?: Record<string, any>
+    steps: CreateOrchestrationStepPayload[],
+    metadata?: OrchestrationMetadata
   ): Orchestration {
     const now = new Date().toISOString();
 
@@ -221,7 +203,7 @@ export const useOrchestratorStore = defineStore('orchestrator', () => {
   function setStepOutput(
     orchestrationId: string,
     stepId: string,
-    output: Record<string, any>
+    output: OrchestrationStepOutput
   ): void {
     const steps = orchestrationSteps.value.get(orchestrationId) || [];
     const stepIndex = steps.findIndex(s => s.id === stepId);

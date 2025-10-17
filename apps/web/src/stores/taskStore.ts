@@ -7,10 +7,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import type { TaskStatus, TaskMetadata, TaskData } from '@/types/task';
 
-// Types
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+// Re-export types
+export type { TaskStatus, TaskMetadata, TaskData };
 
+// Store-specific types
 export interface Task {
   id: string;
   conversationId: string;
@@ -19,13 +21,13 @@ export interface Task {
   status: TaskStatus;
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: TaskMetadata;
 }
 
 export interface TaskResult {
   taskId: string;
   success: boolean;
-  data?: any;
+  data?: TaskData;
   error?: string;
   completedAt: string;
 }
@@ -87,7 +89,7 @@ export const useTaskStore = defineStore('task', () => {
     conversationId: string,
     mode: AgentTaskMode,
     action: string,
-    metadata?: Record<string, any>
+    metadata?: TaskMetadata
   ): Task {
     const now = new Date().toISOString();
     const task: Task = {
@@ -127,7 +129,7 @@ export const useTaskStore = defineStore('task', () => {
   /**
    * Update task metadata
    */
-  function updateTaskMetadata(taskId: string, metadata: Record<string, any>): void {
+  function updateTaskMetadata(taskId: string, metadata: TaskMetadata): void {
     const task = tasks.value.get(taskId);
     if (task) {
       tasks.value.set(taskId, {

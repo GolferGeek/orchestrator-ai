@@ -8,13 +8,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { AgentInfo } from '../types/chat';
+import type { HierarchyNode, AgentNodeMetadata } from '@/types/agent';
 
-interface HierarchyNode {
-  id: string;
-  name: string;
-  children?: HierarchyNode[];
-  [key: string]: any;
-}
+// Re-export for backward compatibility
+export type { HierarchyNode, AgentNodeMetadata };
 
 export function normalizeHierarchyResponse(input: unknown) {
   if (input && typeof input === 'object' && 'data' in input) {
@@ -49,8 +46,7 @@ export function filterHierarchyByNamespace(
 
     for (const node of tree) {
       const children = Array.isArray(node.children) ? prune(node.children) : [];
-      const nodeNamespace =
-        (node as any).namespace || (node as any).metadata?.namespace;
+      const nodeNamespace = node.namespace || node.metadata?.namespace;
 
       const matchesNamespace =
         !nodeNamespace || nodeNamespace === namespace || nodeNamespace === 'global' || children.length > 0;
@@ -78,7 +74,7 @@ export const useAgentsStore = defineStore('agents', () => {
   // ============================================================================
 
   const availableAgents = ref<AgentInfo[]>([]);
-  const agentHierarchy = ref<any>(null);
+  const agentHierarchy = ref<HierarchyNode | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const lastLoadedNamespace = ref<string | null>(null);
@@ -105,7 +101,7 @@ export const useAgentsStore = defineStore('agents', () => {
     availableAgents.value = agents;
   }
 
-  function setAgentHierarchy(hierarchy: any) {
+  function setAgentHierarchy(hierarchy: HierarchyNode | null) {
     agentHierarchy.value = hierarchy;
   }
 

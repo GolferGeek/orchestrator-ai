@@ -15,6 +15,18 @@
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import type {
+  Message as MessageType,
+  MessageMetadata,
+  Conversation as ConversationType,
+  ConversationMetadata,
+} from '@/types/message';
+import type {
+  Task as TaskType,
+  TaskStatus,
+  TaskMetadata,
+  TaskData,
+} from '@/types/task';
 
 // ============================================================================
 // Types
@@ -59,7 +71,7 @@ export interface Conversation {
   activeTasks?: number;
 
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: ConversationMetadata;
 }
 
 /**
@@ -71,13 +83,8 @@ export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: MessageMetadata;
 }
-
-/**
- * Task status
- */
-export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 /**
  * Task associated with a conversation
@@ -90,7 +97,7 @@ export interface Task {
   status: TaskStatus;
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: TaskMetadata;
 }
 
 /**
@@ -99,10 +106,13 @@ export interface Task {
 export interface TaskResult {
   taskId: string;
   success: boolean;
-  data?: any;
+  data?: TaskData;
   error?: string;
   completedAt: string;
 }
+
+// Re-export types
+export type { TaskStatus, MessageMetadata, ConversationMetadata, TaskMetadata, TaskData };
 
 // ============================================================================
 // Store Definition
@@ -410,12 +420,17 @@ export const useConversationsStore = defineStore('conversations', () => {
    * Add assistant message from handler result
    * Helper for converse handler
    */
-  function addAssistantMessage(conversationId: string, result: any): Message {
+  function addAssistantMessage(
+    conversationId: string,
+    result: { message: string; metadata?: MessageMetadata }
+  ): Message {
     return addMessage(conversationId, {
       conversationId,
       role: 'assistant',
       content: result.message,
-      timestamp: result.metadata?.timestamp || new Date().toISOString(),
+      timestamp: result.metadata?.generation?.duration
+        ? new Date().toISOString()
+        : new Date().toISOString(),
       metadata: result.metadata,
     });
   }
@@ -424,7 +439,11 @@ export const useConversationsStore = defineStore('conversations', () => {
    * Add user message
    * Helper for creating user messages
    */
-  function addUserMessage(conversationId: string, content: string, metadata?: Record<string, any>): Message {
+  function addUserMessage(
+    conversationId: string,
+    content: string,
+    metadata?: MessageMetadata
+  ): Message {
     return addMessage(conversationId, {
       conversationId,
       role: 'user',
@@ -483,7 +502,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   /**
    * Update task metadata
    */
-  function updateTaskMetadata(taskId: string, metadata: Record<string, any>): void {
+  function updateTaskMetadata(taskId: string, metadata: TaskMetadata): void {
     const task = tasks.value.get(taskId);
     if (task) {
       tasks.value.set(taskId, {
