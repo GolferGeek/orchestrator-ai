@@ -24,7 +24,7 @@
         </div>
         <!-- Main Content: Agent Chat or Welcome -->
         <div class="main-content">
-          <div v-if="!agentChatStore.hasActiveConversation" class="welcome-screen">
+          <div v-if="!chatUiStore.hasActiveConversation" class="welcome-screen">
             <div class="welcome-content">
               <ion-icon :icon="businessOutline" class="welcome-icon"></ion-icon>
               <h2>Welcome to Your Organization</h2>
@@ -87,15 +87,18 @@ import {
 } from 'ionicons/icons';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 import AgentChatView from '@/components/AgentChatView.vue';
-import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
+import { conversation } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useAgentsStore } from '@/stores/agentsStore';
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const agentsStore = useAgentsStore();
 const handleConversationSelected = async (conv: any) => {
   try {
     // TODO: Load conversation messages if not already loaded
     // await conversation.loadConversationMessages(conv.id);
-    agentChatStore.setActiveConversation(conv.id);
+    chatUiStore.setActiveConversation(conv.id);
   } catch (error) {
 
   }

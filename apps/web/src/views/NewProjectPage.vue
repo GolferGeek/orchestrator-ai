@@ -234,7 +234,7 @@ import {
 import { useRouter, useRoute } from 'vue-router';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { projectsService, type CreateProjectDto } from '@/services/projectsService';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 interface CreateProjectForm {
   name: string;
   description: string;
@@ -355,7 +355,7 @@ const createProject = async () => {
   }
   isCreating.value = true;
   try {
-    const chatStore = useAgentChatStore();
+    const conversationsStore = useConversationsStore();
     // Create a conversation first for the project
     const agent = {
       name: selectedOrchestrator.value?.name || 'ceo_orchestrator',

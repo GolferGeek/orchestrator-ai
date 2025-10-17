@@ -33,7 +33,7 @@
         <p>Please <router-link to="/login">log in</router-link> to access your conversations and projects.</p>
       </div>
       <!-- Agent Conversation View or Deliverable View -->
-      <div v-else-if="agentChatStore.hasActiveConversation || route.query.deliverableId" class="conversation-container">
+      <div v-else-if="chatUiStore.hasActiveConversation || route.query.deliverableId" class="conversation-container">
         <ConversationTabs />
       </div>
       <!-- Welcome/Empty State -->
@@ -79,19 +79,25 @@ import {
 } from 'ionicons/icons';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { conversation } from '@/stores/agentChatStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import ConversationTabs from '@/components/ConversationTabs.vue';
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const userPreferencesStore = useUserPreferencesStore();
 // Computed properties
 const pageTitle = computed(() => {
-  const activeConversation = agentChatStore.activeConversation;
-  if (activeConversation) {
-    return activeConversation.title || `Chat with ${activeConversation.agent?.name}`;
+  const activeConvId = chatUiStore.activeConversationId;
+  if (activeConvId) {
+    const activeConversation = conversationsStore.conversationById(activeConvId);
+    if (activeConversation) {
+      return activeConversation.title || `Chat with ${activeConversation.agentName}`;
+    }
   }
   return 'Orchestrator AI';
 });
@@ -102,10 +108,10 @@ const handleConversationFromQuery = async () => {
   if (conversationId && auth.isAuthenticated) {
     try {
       // Check if conversation is already open
-      const existingConversation = agentChatStore.conversations.find(conv => conv.id === conversationId);
+      const existingConversation = conversationsStore.conversationById(conversationId);
       if (existingConversation) {
         // Just switch to it
-        agentChatStore.setActiveConversation(conversationId);
+        chatUiStore.setActiveConversation(conversationId);
       } else {
         // Load conversation metadata and messages from backend
         const backendConversation = await conversation.getBackendConversation(conversationId);
@@ -135,8 +141,8 @@ const handleConversationFromQuery = async () => {
         loadedConversation.title = backendConversation.title || loadedConversation.title;
 
         // Add it to the store
-        agentChatStore.addConversation(loadedConversation);
-        agentChatStore.setActiveConversation(conversationId);
+        conversationsStore.addConversation(loadedConversation);
+        chatUiStore.setActiveConversation(conversationId);
       }
       // Clear the query parameter to avoid re-opening on refresh
       router.replace({

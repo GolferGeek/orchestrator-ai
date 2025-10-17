@@ -169,13 +169,14 @@ import {
 } from '@ionic/vue';
 import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
-import { useAgentChatStore, conversation } from '@/stores/agentChatStore';
+import { conversation } from '@/stores/agentChatStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useRouter } from 'vue-router';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 const auth = useAuthStore();
-const agentChatStore = useAgentChatStore();
 const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const router = useRouter();
 // State for accordion and search
 const mainNavExpanded = ref(true); // Main navigation accordion starts expanded
@@ -197,7 +198,7 @@ const handleConversationSelected = async (conversation: any) => {
     console.log('Conversation selected:', conversation);
 
     // Set the active conversation in the store
-    agentChatStore.setActiveConversation(conversation.id);
+    chatUiStore.setActiveConversation(conversation.id);
 
     // Set flag in sessionStorage to indicate active conversation
     sessionStorage.setItem('activeConversation', 'true');
