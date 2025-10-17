@@ -1013,7 +1013,7 @@ async function submitGenerate() {
       ? (selectedProviders[0] === 'gemini' ? 'image_google_generator' : 'image_openai_generator')
       : 'image_orchestrator';
     const { agentExecutionService } = await import('@/services/agentExecutionService');
-    const convId = (props as any).conversationId || (await import('@/stores/agentChatStore')).useAgentChatStore().getActiveConversation()?.id;
+    const convId = (props as any).conversationId || (await import('@/stores/ui/chatUiStore')).useChatUiStore().activeConversationId;
     if (!convId) throw new Error('No conversation available');
     const response = await agentExecutionService.executeAgentTask(orgSlug, agentSlug, {
       mode: 'build',

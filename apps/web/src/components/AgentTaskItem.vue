@@ -263,7 +263,7 @@ const deliverablesStore = useDeliverablesStore();
 const planStore = usePlanStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 const llmStore = useLLMStore();
-const chatStore = useAgentChatStore();
+// Migrated to conversationsStore + chatUiStore
 
 // Reactive state
 const showMetadataModal = ref(false);

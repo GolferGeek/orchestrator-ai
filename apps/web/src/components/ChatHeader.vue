@@ -25,7 +25,7 @@ import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { /* migrated */ } from '@/stores/agentChatStore';
 
-const chatStore = useAgentChatStore();
+// Migrated to conversationsStore + chatUiStore
 
 const agent = computed(() => chatStore.getActiveConversation()?.agent || null);
 const currentMode = computed(() => chatStore.getActiveChatMode());

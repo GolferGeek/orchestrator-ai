@@ -57,7 +57,7 @@ const emit = defineEmits<{
   (e: 'send', mode: PrimaryChatMode): void;
 }>();
 
-const chatStore = useAgentChatStore();
+// Migrated to conversationsStore + chatUiStore
 
 const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: any; description: string }> = [
   {

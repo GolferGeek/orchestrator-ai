@@ -26,7 +26,7 @@ import type { PrimaryChatMode } from '@/stores/agentChatStore/types';
 import { DEFAULT_CHAT_MODES } from '@/stores/agentChatStore/types';
 import analyticsService from '@/services/analyticsService';
 
-const chatStore = useAgentChatStore();
+// Migrated to conversationsStore + chatUiStore
 
 const mode = computed(() => chatStore.getActiveChatMode());
 
