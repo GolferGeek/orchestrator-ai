@@ -361,7 +361,7 @@ import {
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useDeliverables } from '@/composables/useDeliverables';
-import { DeliverableType, type Deliverable, type DeliverableSearchResult } from '@/services/deliverablesService';
+import { DeliverableType, type Deliverable, type DeliverableSearchResult, deliverablesService } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { deleteDeliverable as deleteDeliverableAction, setCurrentVersion } from '@/services/agent2agent/actions';
 import NewDeliverableDialog from '@/components/NewDeliverableDialog.vue';
@@ -438,9 +438,39 @@ const canLoadMore = computed(() => {
 // Methods
 const loadDeliverables = async () => {
   try {
-    await deliverablesStore.loadDeliverables();
-  } catch (err) {
+    deliverablesStore.setLoading(true);
+    deliverablesStore.clearError();
 
+    const result = await deliverablesService.getDeliverables({
+      limit: 100,
+      offset: 0,
+      latestOnly: true,
+    });
+
+    // Clear existing
+    deliverablesStore.clearAll();
+
+    // Fetch full deliverable objects
+    const deliverablePromises = result.items.map(async (searchItem) => {
+      try {
+        return await deliverablesService.getDeliverable(searchItem.id);
+      } catch (error) {
+        console.error(`Failed to load deliverable ${searchItem.id}:`, error);
+        return null;
+      }
+    });
+
+    const loadedDeliverables = (await Promise.all(deliverablePromises)).filter(Boolean) as Deliverable[];
+
+    // Update store
+    loadedDeliverables.forEach((deliverable) => {
+      deliverablesStore.addDeliverable(deliverable);
+    });
+  } catch (err: any) {
+    console.error('Failed to load deliverables:', err);
+    deliverablesStore.setError(err.message);
+  } finally {
+    deliverablesStore.setLoading(false);
   }
 };
 const handleRefresh = async (event: CustomEvent) => {
@@ -467,7 +497,7 @@ const handleFilter = async () => {
       offset: 0
     });
   } else {
-    await deliverablesStore.loadDeliverables();
+    await loadDeliverables();
   }
   currentOffset.value = 0;
 };
@@ -485,7 +515,7 @@ const loadMoreDeliverables = async () => {
         offset: newOffset
       });
     } else {
-      await deliverablesStore.loadDeliverables();
+      await loadDeliverables();
     }
     currentOffset.value = newOffset;
   } finally {
@@ -519,8 +549,10 @@ function openImage(img: any) {
 const viewDeliverable = async (deliverable: any) => {
   // Create a viewing conversation for this deliverable
   try {
+    deliverablesStore.setLoading(true);
+
     // Create conversation with "view" intent
-    const result = await deliverablesStore.createEditingConversation(
+    const result = await deliverablesService.createEditingConversation(
       deliverable.id,
       {
         action: 'discuss',
@@ -528,6 +560,15 @@ const viewDeliverable = async (deliverable: any) => {
         initialMessage: `Please show me this deliverable: "${deliverable.title}"`
       }
     );
+
+    // Update store with new conversation link
+    const updatedDeliverable = deliverablesStore.getDeliverableById(deliverable.id);
+    if (updatedDeliverable) {
+      updatedDeliverable.conversationId = result.conversationId;
+      deliverablesStore.addDeliverable(updatedDeliverable);
+    }
+
+    deliverablesStore.setLoading(false);
     // Navigate to split view with conversation and deliverable
     await router.push({
       name: 'Home',
@@ -552,7 +593,7 @@ const viewDeliverable = async (deliverable: any) => {
 const editDeliverable = async (deliverable: any) => {
   try {
     // Create editing conversation for this deliverable
-    const result = await deliverablesStore.createEditingConversation(
+    const result = await deliverablesService.createEditingConversation(
       deliverable.id,
       {
         action: 'edit',
@@ -586,10 +627,18 @@ const viewVersions = async (deliverable: any) => {
     isLoadingVersions.value = true;
     selectedDeliverableId.value = deliverable.id;
     showVersionsModal.value = true;
-    const versionList = await deliverablesStore.getDeliverableVersions(deliverable.id);
+
+    // Load versions from service
+    const versionList = await deliverablesService.getVersionHistory(deliverable.id);
+
+    // Update store
+    versionList.forEach(version => {
+      deliverablesStore.addVersion(deliverable.id, version);
+    });
+
     versions.value = versionList;
   } catch (err) {
-
+    console.error('Failed to load versions:', err);
   } finally {
     isLoadingVersions.value = false;
   }
@@ -724,8 +773,12 @@ const makeCurrentVersion = async (version: any) => {
 
               // Refresh the deliverables list to show the new current version
               await loadDeliverables();
+
               // Refresh the versions list in the modal
-              const versionList = await deliverablesStore.getDeliverableVersions(selectedDeliverableId.value!);
+              const versionList = await deliverablesService.getVersionHistory(selectedDeliverableId.value!);
+              versionList.forEach(v => {
+                deliverablesStore.addVersion(selectedDeliverableId.value!, v);
+              });
               versions.value = versionList;
               // Show success toast
               const toast = await toastController.create({
