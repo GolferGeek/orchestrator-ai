@@ -345,19 +345,18 @@ import {
 } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
 import { videoService } from '@/services/videoService';
-import { agentTaskService } from '@/services/agent-tasks';
+import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
-import type { AgentChatMessage, AgentChatMode } from '@/stores/agentChatStore/types';
+import type { AgentChatMessage, AgentChatMode } from '@/types/conversation';
 import type { AgentLLMRecommendation } from '@/types/evaluation';
-import { rerunPlan } from '@/services/agent2agent/actions';
+import { rerunPlan, rerunDeliverable } from '@/services/agent2agent/actions';
 import AgentTaskItem from './AgentTaskItem.vue';
 import AgentResourcesPanel from './AgentResourcesPanel.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
@@ -550,15 +549,17 @@ const sendMessage = async (mode?: AgentChatMode) => {
     chatUiStore.setSendingMessage(conversationId, true);
 
     const effectiveMode = mode || currentChatMode.value;
+    const agentName = agent.name;
 
-    await agentTaskService.sendTask({
-      agentSlug: agent.slug || agent.name,
-      namespace: agent.namespace || undefined,
-      mode: effectiveMode as any,
-      action: (effectiveMode === 'plan' || effectiveMode === 'build') ? 'create' : undefined,
-      userMessage: content,
-      conversationId: conversationId,
-    });
+    // Route to appropriate action based on mode
+    if (effectiveMode === 'plan') {
+      await createPlan(agentName, conversationId, content);
+    } else if (effectiveMode === 'build') {
+      await createDeliverable(agentName, conversationId, content);
+    } else {
+      // converse mode (default)
+      await sendMessage(agentName, conversationId, content);
+    }
 
     scrollToBottom();
   } catch (error) {
@@ -976,20 +977,19 @@ const executeRerunWithConfig = async (
         }
       );
     } else if (isDeliverable) {
-      // Call the deliverableService.rerun() method
-      const deliverableService = agentTaskService.deliverables;
-      result = await deliverableService.rerun({
-        agentSlug: deliverable.agentName,
-        conversationId: deliverable.conversationId,
-        deliverableId: deliverable.id,
-        versionId: capturedRerunData.version.id,
-        llmConfig: {
+      // Call the rerunDeliverable action
+      result = await rerunDeliverable(
+        deliverable.agentName,
+        deliverable.conversationId,
+        deliverable.id,
+        capturedRerunData.version.id,
+        {
           provider: llmConfig.provider,
           model: llmConfig.model,
           temperature: llmConfig.temperature,
           maxTokens: llmConfig.maxTokens,
-        },
-      });
+        }
+      );
     }
 
     // Create assistant response message with the new version

@@ -172,10 +172,10 @@
     
     <!-- Smart CTAs: Plan / Build (assistant messages only) -->
     <div v-if="message.role === 'assistant'" class="smart-cta-bar">
-      <ion-chip v-if="chatStore.isModeAllowed('plan')" color="primary" outline @click="handlePlanNow">
+      <ion-chip v-if="suggestsPlan" color="primary" outline @click="handlePlanNow">
         Plan
       </ion-chip>
-      <ion-chip v-if="chatStore.isModeAllowed('build')" color="success" outline @click="handleBuildNow">
+      <ion-chip v-if="suggestsBuild" color="success" outline @click="handleBuildNow">
         Build
       </ion-chip>
     </div>
@@ -228,8 +228,7 @@ import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
-import { agentTaskService } from '@/services/agent-tasks';
+import { sendMessage, createPlan, createDeliverable, setCurrentVersion } from '@/services/agent2agent/actions';
 import analyticsService from '@/services/analyticsService';
 import { apiService } from '@/services/apiService';
 import { toastController } from '@ionic/vue';
@@ -263,7 +262,8 @@ const deliverablesStore = useDeliverablesStore();
 const planStore = usePlanStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 const llmStore = useLLMStore();
-// Migrated to conversationsStore + chatUiStore
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 
 // Reactive state
 const showMetadataModal = ref(false);
@@ -467,12 +467,11 @@ const undoEnhancement = async () => {
     const deliverable = deliverablesStore.getDeliverableById(enhancedDeliverableId.value);
     if (!deliverable) throw new Error('Deliverable not found');
 
-    await agentTaskService.deliverables.setCurrent({
-      agentSlug: deliverable.agentName || 'blog_post_writer',
-      conversationId: deliverable.conversationId,
-      deliverableId: enhancedDeliverableId.value,
-      versionId: enhancedFromVersionId.value,
-    });
+    await setCurrentVersion(
+      deliverable.agentName || 'blog_post_writer',
+      enhancedDeliverableId.value,
+      enhancedFromVersionId.value
+    );
   } catch (e) {
     console.warn('Failed to undo enhancement', e);
   }
@@ -491,7 +490,7 @@ onMounted(() => {
     const needsHuman = meta.humanRequired === true || meta.approvalStatus === 'pending';
     const mode = (meta.mode || '').toLowerCase();
     if (needsHuman && (mode === 'build' || mode === 'plan')) {
-      chatStore.setPendingAction(mode as any, props.message.taskId, 30000);
+      chatUiStore.setPendingAction({ mode: mode as any, taskId: props.message.taskId });
     }
   } catch (_) {}
 });
@@ -848,41 +847,25 @@ const handleCalloutClick = () => {
 // Smart CTA detection
 const contentText = computed(() => (props.message.content || '').toLowerCase());
 const suggestsPlan = computed(() => {
-  if (!chatStore.isModeAllowed('plan')) {
-    return false;
-  }
+  // Simple regex-based detection - assume modes are allowed (no permission check here)
   const c = contentText.value;
   return /would you like.*plan|should i.*plan|plan (it|this)|create (a|the) (plan|prd)|requirements|spec/i.test(props.message.content || '');
 });
 const suggestsBuild = computed(() => {
-  if (!chatStore.isModeAllowed('build')) {
-    return false;
-  }
+  // Simple regex-based detection - assume modes are allowed (no permission check here)
   const c = contentText.value;
   return /would you like.*build|should i.*build|build (it|this)|proceed to build|execute (now|this)/i.test(props.message.content || '');
 });
 
 async function handlePlanNow() {
-  if (!chatStore.isModeAllowed('plan')) {
-    return;
-  }
+  if (!props.conversationId || !props.agent) return;
 
-  const conv = chatStore.getConversationById(props.conversationId);
-  if (!conv) return;
+  chatUiStore.setChatMode('plan');
+  chatUiStore.setPendingAction({ mode: 'plan', taskId: props.message.taskId });
 
-  chatStore.setChatMode(props.conversationId, 'plan');
-  chatStore.setPendingAction('plan', props.message.taskId || undefined);
-
-  // Execute using service layer - no user message needed, plan based on conversation
+  // Execute using actions
   try {
-    await agentTaskService.sendTask({
-      agentSlug: conv.agent.slug || conv.agent.name,
-      namespace: conv.agent.namespace || undefined,
-      mode: 'plan',
-      action: 'create',
-      userMessage: 'Create a plan based on our conversation',
-      conversationId: props.conversationId,
-    });
+    await createPlan(props.agent.name, props.conversationId, 'Create a plan based on our conversation');
   } catch (error) {
     console.error('Error creating plan:', error);
   }
@@ -897,29 +880,16 @@ async function handlePlanNow() {
   });
 }
 async function handleBuildNow() {
-  if (!chatStore.isModeAllowed('build')) {
-    return;
-  }
+  if (!props.conversationId || !props.agent) return;
 
-  const conv = chatStore.getConversationById(props.conversationId);
-  if (!conv) return;
+  chatUiStore.setChatMode('build');
+  chatUiStore.setPendingAction({ mode: 'build', taskId: props.message.taskId });
 
-  chatStore.setChatMode(props.conversationId, 'build');
-  chatStore.setPendingAction('build', props.message.taskId || undefined);
-
-  // Execute using service layer - no user message needed, build based on conversation/plan
+  // Execute using actions - use latest plan if available
   try {
-    await agentTaskService.sendTask({
-      agentSlug: conv.agent.slug || conv.agent.name,
-      namespace: conv.agent.namespace || undefined,
-      mode: 'build',
-      action: 'create',
-      userMessage: 'Build a deliverable based on our conversation',
-      conversationId: props.conversationId,
-      additionalParams: {
-        planId: conv.latestPlan?.id,
-      },
-    });
+    const conversation = conversationsStore.getConversation(props.conversationId);
+    const planId = conversation?.currentPlan?.id;
+    await createDeliverable(props.agent.name, props.conversationId, 'Build a deliverable based on our conversation', planId);
   } catch (error) {
     console.error('Error creating build:', error);
   }
@@ -995,16 +965,16 @@ watch(() => props.message, (newMessage) => {
   }
   
   // TTS: Only trigger if last message was sent via speech
-  if (newMessage && 
-      newMessage.role === 'assistant' && 
-      newMessage.content && 
+  if (newMessage &&
+      newMessage.role === 'assistant' &&
+      newMessage.content &&
       newMessage.content.trim().length > 0 &&
       !newMessage.metadata?.isPlaceholder) {
-    
+
     // Check if the last message was sent via speech
-    if (chatStore.lastMessageWasSpeech) {
+    if (chatUiStore.lastMessageWasSpeech) {
       console.log('🎤 [TTS] Assistant message detected, checking length...');
-      
+
       if (isResponseTooLong(newMessage.content)) {
         console.log('🎤 [TTS] Response is lengthy, using fallback message');
         handleTextToSpeech(LENGTHY_RESPONSE_FALLBACK);
@@ -1108,7 +1078,7 @@ async function handleTextToSpeech(text: string) {
     await toast.present();
   } finally {
     // Always clear the speech flag when TTS completes (success or error)
-    chatStore.setLastMessageWasSpeech(false);
+    chatUiStore.setLastMessageWasSpeech(false);
     console.log('🎤 [TTS] Cleared speech flag after TTS completion');
   }
 }

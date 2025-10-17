@@ -37,7 +37,7 @@ import { apiService } from '../services/apiService';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
 import { useAgentChatStore } from '@/services/conversationHelpers';
-import { agentTaskService } from '@/services/agent-tasks';
+import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 
 // Define conversation states
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
@@ -571,15 +571,17 @@ const processRecordedAudio = async () => {
     const conversation = chatUiStore.activeConversation;
     if (conversation && conversation.agent) {
       const mode = conversation.chatMode || 'converse';
+      const agentName = conversation.agent.name;
 
-      await agentTaskService.sendTask({
-        agentSlug: conversation.agent.slug || conversation.agent.name,
-        namespace: conversation.agent.namespace || undefined,
-        mode: mode,
-        action: (mode === 'plan' || mode === 'build') ? 'create' : undefined,
-        userMessage: transcription.text,
-        conversationId: conversation.id,
-      });
+      // Route to appropriate action based on mode
+      if (mode === 'plan') {
+        await createPlan(agentName, conversation.id, transcription.text);
+      } else if (mode === 'build') {
+        await createDeliverable(agentName, conversation.id, transcription.text);
+      } else {
+        // converse mode (default)
+        await sendMessage(agentName, conversation.id, transcription.text);
+      }
     }
 
     console.log('🎤 Message sent through chat store, waiting for response...');

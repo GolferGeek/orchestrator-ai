@@ -35,7 +35,7 @@ import { micOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { agentTaskService } from '@/services/agent-tasks';
+import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 
 // Define speech states
 type SpeechState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
@@ -204,15 +204,17 @@ const processAudio = async () => {
     const conversation = chatUiStore.activeConversation;
     if (conversation && conversation.agent) {
       const mode = conversation.chatMode || 'converse';
+      const agentName = conversation.agent.name;
 
-      await agentTaskService.sendTask({
-        agentSlug: conversation.agent.slug || conversation.agent.name,
-        namespace: conversation.agent.namespace || undefined,
-        mode: mode,
-        action: (mode === 'plan' || mode === 'build') ? 'create' : undefined,
-        userMessage: transcription.text,
-        conversationId: conversation.id,
-      });
+      // Route to appropriate action based on mode
+      if (mode === 'plan') {
+        await createPlan(agentName, conversation.id, transcription.text);
+      } else if (mode === 'build') {
+        await createDeliverable(agentName, conversation.id, transcription.text);
+      } else {
+        // converse mode (default)
+        await sendMessage(agentName, conversation.id, transcription.text);
+      }
     }
 
     console.log('🎤 [SpeechButton] Message sent through chat store');

@@ -363,7 +363,7 @@ import { useRouter } from 'vue-router';
 import { useDeliverables } from '@/composables/useDeliverables';
 import { DeliverableType, type Deliverable, type DeliverableSearchResult } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
-import { agentTaskService } from '@/services/agent-tasks';
+import { deleteDeliverable as deleteDeliverableAction, setCurrentVersion } from '@/services/agent2agent/actions';
 import NewDeliverableDialog from '@/components/NewDeliverableDialog.vue';
 const router = useRouter();
 const deliverables = useDeliverables();
@@ -611,11 +611,10 @@ const confirmDelete = async (deliverable: any) => {
 };
 const deleteDeliverable = async (deliverable: any) => {
   try {
-    await agentTaskService.deliverables.delete({
-      agentSlug: deliverable.agentName || 'blog_post_writer',
-      conversationId: deliverable.conversationId,
-      deliverableId: deliverable.id,
-    });
+    await deleteDeliverableAction(
+      deliverable.agentName || 'blog_post_writer',
+      deliverable.id
+    );
     // Show success toast
     const toast = await toastController.create({
       message: 'Deliverable deleted successfully',
@@ -716,13 +715,12 @@ const makeCurrentVersion = async (version: any) => {
               const deliverable = deliverablesStore.getDeliverableById(selectedDeliverableId.value!);
               if (!deliverable) throw new Error('Deliverable not found');
 
-              // Set the selected version as the current version using service
-              await agentTaskService.deliverables.setCurrent({
-                agentSlug: deliverable.agentName || 'blog_post_writer',
-                conversationId: deliverable.conversationId,
-                deliverableId: selectedDeliverableId.value!,
-                versionId: version.id,
-              });
+              // Set the selected version as the current version using action
+              await setCurrentVersion(
+                deliverable.agentName || 'blog_post_writer',
+                selectedDeliverableId.value!,
+                version.id
+              );
 
               // Refresh the deliverables list to show the new current version
               await loadDeliverables();

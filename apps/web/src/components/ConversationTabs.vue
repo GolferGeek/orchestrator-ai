@@ -54,7 +54,7 @@ import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
 import { useRoute } from 'vue-router';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { agentTaskService } from '@/services/agent-tasks';
+import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';
 const route = useRoute();
@@ -98,15 +98,17 @@ const handleSendMessage = async (content: string) => {
 
   try {
     const mode = conversation.chatMode || 'converse';
+    const agentName = conversation.agent.name;
 
-    await agentTaskService.sendTask({
-      agentSlug: conversation.agent.slug || conversation.agent.name,
-      namespace: conversation.agent.namespace || undefined,
-      mode: mode,
-      action: (mode === 'plan' || mode === 'build') ? 'create' : undefined,
-      userMessage: content,
-      conversationId: conversation.id,
-    });
+    // Route to appropriate action based on mode
+    if (mode === 'plan') {
+      await createPlan(agentName, conversation.id, content);
+    } else if (mode === 'build') {
+      await createDeliverable(agentName, conversation.id, content);
+    } else {
+      // converse mode (default)
+      await sendMessage(agentName, conversation.id, content);
+    }
   } catch (error) {
     console.error('Error sending message:', error);
   }

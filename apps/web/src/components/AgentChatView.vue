@@ -87,9 +87,8 @@ import {
 } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
-import { agentTaskService } from '@/services/agent-tasks';
+import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 import { tasksService } from '@/services/tasksService';
 // TTS is now handled directly in AgentTaskItem when messages are displayed
 import AgentTaskItem from './AgentTaskItem.vue';
@@ -100,7 +99,7 @@ import ChatModeSendButton from './ChatModeSendButton.vue';
 import ChatHeader from './ChatHeader.vue';
 import ChatModeControl from './ChatModeControl.vue';
 import { useModeSwitchShortcuts } from '@/composables/useKeyboardShortcuts';
-import type { AgentChatMode } from '@/stores/agentChatStore/types';
+import type { AgentChatMode } from '@/types/conversation';
 // Define emits
 interface Props {
   conversation?: any; // The conversation object from the store
@@ -110,7 +109,7 @@ const props = defineProps<Props>();
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
-useModeSwitchShortcuts(agentChatStore);
+useModeSwitchShortcuts(chatUiStore);
 
 // TTS is now handled directly in AgentTaskItem components
 
@@ -163,13 +162,18 @@ const sendMessage = async (mode?: AgentChatMode) => {
     // Send message using service layer (Vue reactivity handles UI updates)
     const activeConversation = chatUiStore.activeConversation;
     if (activeConversation && currentAgent.value) {
-      await agentTaskService.sendTask({
-        agentSlug: currentAgent.value.slug || currentAgent.value.name,
-        namespace: currentAgent.value.namespace || undefined,
-        mode: chatMode.value as any,
-        userMessage: text,
-        conversationId: activeConversation.id,
-      });
+      const effectiveMode = chatMode.value;
+      const agentName = currentAgent.value.name;
+
+      // Route to appropriate action based on mode
+      if (effectiveMode === 'plan') {
+        await createPlan(agentName, activeConversation.id, text);
+      } else if (effectiveMode === 'build') {
+        await createDeliverable(agentName, activeConversation.id, text);
+      } else {
+        // converse mode (default)
+        await sendMessage(agentName, activeConversation.id, text);
+      }
     }
   } catch (error) {
     console.error('Error sending message:', error);
