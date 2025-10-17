@@ -221,9 +221,7 @@
               <ion-label>Deliverable</ion-label>
               <ion-badge v-if="activeWorkProduct?.data" color="success">{{ activeWorkProduct.data.currentVersion?.versionNumber || 1 }}</ion-badge>
             </ion-segment-button>
-            <ion-segment-button v-if="activeWorkProduct?.type === 'project'" value="project">
-              <ion-label>Project</ion-label>
-            </ion-segment-button>
+            <!-- Project segment button removed - projects deprecated -->
           </ion-segment>
         </div>
 
@@ -254,16 +252,7 @@
             />
           </div>
 
-          <!-- Project Tab -->
-          <div v-if="activeTab === 'project' && activeWorkProduct?.type === 'project' && activeWorkProduct?.data">
-            <ProjectDisplay
-              :project="activeWorkProduct.data"
-              :conversation-id="conversation?.id"
-              @project-updated="handleProjectUpdated"
-              @step-updated="handleStepUpdated"
-              @edit-requested="handleEditRequested"
-            />
-          </div>
+          <!-- Project Tab removed - projects deprecated -->
         </div>
 
         <!-- Empty work product state -->
@@ -365,7 +354,7 @@ import TaskExecutionControls from './TaskExecutionControls.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
 import DeliverableDisplay from './DeliverableDisplay.vue';
 import PlanDisplay from './PlanDisplay.vue';
-import ProjectDisplay from './ProjectDisplay.vue';
+// ProjectDisplay removed - projects deprecated
 import DeliverableMergeView from './DeliverableMergeView.vue';
 import LLMSelector from './LLMSelector.vue';
 import LLMSelectorModal from './LLMSelectorModal.vue';
@@ -395,8 +384,8 @@ const showMergeModal = ref(false);
 const mergeDeliverable = ref<any>(null);
 const showLLMRerunModal = ref(false);
 const rerunDeliverableData = ref<{ deliverable: any; version: any } | null>(null);
-const activeWorkProduct = ref<{ type: 'deliverable' | 'project'; data: any } | null>(null);
-const activeTab = ref<'plan' | 'deliverable' | 'project'>('plan');
+const activeWorkProduct = ref<{ type: 'deliverable'; data: any } | null>(null);
+const activeTab = ref<'plan' | 'deliverable'>('plan');
 const isMobile = ref(false);
 // Computed properties
 const currentAgent = computed(() => props.conversation?.agent);
@@ -703,7 +692,7 @@ const getWorkProductLabel = () => {
   if (!activeWorkProduct.value) {
     return isOrchestratorConversation.value ? 'Work Product' : 'Deliverable';
   }
-  return activeWorkProduct.value.type === 'deliverable' ? 'Deliverable' : 'Project';
+  return 'Deliverable';
 };
 const messageHasDeliverable = (message: any) => {
   // Check if message has associated deliverable (support both snake_case and camelCase)
@@ -835,17 +824,7 @@ const handleEditRequested = (workProduct: any) => {
   // Implementation depends on editing strategy
   const productType = activeWorkProduct.value?.type || 'deliverable';
 };
-const handleProjectUpdated = (project: any) => {
-  // Update active work product if it's the same project
-  if (activeWorkProduct.value?.type === 'project' && 
-      activeWorkProduct.value.data.id === project.id) {
-    activeWorkProduct.value = { type: 'project', data: project };
-  }
-};
-const handleStepUpdated = (step: any) => {
-  // Handle project step updates
-  // Could update the project data with the new step information
-};
+// Project handlers removed - projects deprecated
 const closeMergeModal = () => {
   showMergeModal.value = false;
   mergeDeliverable.value = null;
@@ -1230,10 +1209,8 @@ watch(() => activeWorkProduct.value, (workProduct) => {
   if (workProduct?.type === 'deliverable') {
     console.log('🎯 [TwoPaneConversationView] Switching to deliverable tab');
     activeTab.value = 'deliverable';
-  } else if (workProduct?.type === 'project') {
-    console.log('🎯 [TwoPaneConversationView] Switching to project tab');
-    activeTab.value = 'project';
   }
+  // Project tab logic removed - projects deprecated
 });
 
 // Debug watcher for showWorkProductPane

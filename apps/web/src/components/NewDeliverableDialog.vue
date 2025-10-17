@@ -150,6 +150,8 @@ import {
   addOutline,
 } from 'ionicons/icons';
 import { useAgentsStore } from '@/stores/agentsStore';
+import { agentsService } from '@/services/agentsService';
+import { useAuthStore } from '@/stores/authStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { /* migrated */ } from '@/stores/agentChatStore';
@@ -236,11 +238,22 @@ const createDeliverable = async () => {
 onMounted(async () => {
   // Load agents if not already loaded
   try {
-    if (!agentsStore.agents || agentsStore.agents.length === 0) {
-      await agentsStore.fetchAvailableAgents();
+    if (!agentsStore.availableAgents || agentsStore.availableAgents.length === 0) {
+      const authStore = useAuthStore();
+      const namespace = authStore.currentNamespace;
+
+      if (namespace) {
+        const agents = await agentsService.getAvailableAgents();
+        const filteredAgents = agents.filter((agent) => {
+          if (!agent || typeof agent !== 'object') return false;
+          if (!('namespace' in agent) || !agent.namespace) return true;
+          return agent.namespace === namespace || agent.namespace === 'global';
+        });
+        agentsStore.setAvailableAgents(filteredAgents);
+      }
     }
   } catch (error) {
-
+    console.error('Failed to load agents:', error);
   }
 });
 // Watch for dialog open/close to reset form

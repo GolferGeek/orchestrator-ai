@@ -117,6 +117,8 @@ import {
 } from 'ionicons/icons';
 import { formatAgentName } from '@/utils/caseConverter';
 import { useAgentsStore } from '@/stores/agentsStore';
+import { agentsService } from '@/services/agentsService';
+import { useAuthStore } from '@/stores/authStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 
 // Props
@@ -249,11 +251,46 @@ const hierarchyGroups = computed(() => {
 // Methods
 const refreshData = async () => {
   try {
-    await agentsStore.fetchAvailableAgents();
-    await agentsStore.fetchAgentHierarchy();
+    const authStore = useAuthStore();
+    const namespace = authStore.currentNamespace;
+
+    if (!namespace) {
+      console.warn('No namespace available for refreshing agents');
+      return;
+    }
+
+    agentsStore.setLoading(true);
+    agentsStore.clearError();
+
+    // Load from service
+    const [agents, hierarchy] = await Promise.all([
+      agentsService.getAvailableAgents(),
+      agentsService.getAgentHierarchy(namespace).catch(() => null),
+    ]);
+
+    // Filter by namespace
+    const filteredAgents = Array.isArray(agents)
+      ? agents.filter((agent) => {
+          if (!agent || typeof agent !== 'object') return false;
+          if (!('namespace' in agent) || !agent.namespace) return true;
+          return agent.namespace === namespace || agent.namespace === 'global';
+        })
+      : [];
+
+    const { filterHierarchyByNamespace } = await import('@/stores/agentsStore');
+    const filteredHierarchy = hierarchy ? filterHierarchyByNamespace(hierarchy, namespace) : null;
+
+    // Update store
+    agentsStore.setAvailableAgents(filteredAgents);
+    agentsStore.setAgentHierarchy(filteredHierarchy);
+    agentsStore.setLastLoadedNamespace(namespace);
+    agentsStore.setLoading(false);
+
     await conversationsStore.fetchConversations(true);
   } catch (err) {
     console.error('Failed to refresh data:', err);
+    agentsStore.setError('Failed to refresh agents');
+    agentsStore.setLoading(false);
   }
 };
 

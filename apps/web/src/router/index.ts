@@ -79,24 +79,6 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresRole: ['admin'] }
       },
       {
-        path: 'projects',
-        name: 'Projects',
-        component: () => import('../views/ProjectsListPage.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'projects/new',
-        name: 'NewProject',
-        component: () => import('../views/NewProjectPage.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'projects/:id',
-        name: 'ProjectDetail',
-        component: () => import('../views/ProjectDetailPage.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
         path: 'deliverables',
         name: 'Deliverables',
         component: () => import('../views/DeliverablesListPage.vue'),
