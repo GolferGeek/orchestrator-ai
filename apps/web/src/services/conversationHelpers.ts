@@ -3,8 +3,8 @@ import agent2AgentConversationsService from '@/services/agent2AgentConversations
 import { useAgentsStore } from '@/stores/agentsStore';
 import { useAuthStore } from '@/stores/authStore';
 import { tasksService } from '@/services/tasksService';
-import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, AgentChatMode } from './types';
-import { DEFAULT_CHAT_MODES } from './types';
+import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, AgentChatMode } from '@/types/conversation';
+import { DEFAULT_CHAT_MODES } from '@/types/conversation';
 import { formatAgentName } from '@/utils/caseConverter';
 
 /**

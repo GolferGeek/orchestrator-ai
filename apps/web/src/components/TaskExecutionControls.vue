@@ -74,7 +74,7 @@ import {
   speedometer,
   pulse,
 } from 'ionicons/icons';
-import { useAgentChatStore } from '../stores/agentChatStore';
+import { useAgentChatStore } from '@/services/conversationHelpers';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 // Store instances
 const conversationsStore = useConversationsStore();

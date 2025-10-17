@@ -2,7 +2,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useSanitizationStore } from '@/stores/sanitizationStore';
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import type { AgentChatMessage } from '@/stores/agentChatStore/types';
+import type { AgentChatMessage } from '@/types/conversation';
 
 export interface PrivacyStatus {
   // Data protection status

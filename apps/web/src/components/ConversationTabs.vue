@@ -54,7 +54,6 @@ import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
 import { useRoute } from 'vue-router';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
 import { agentTaskService } from '@/services/agent-tasks';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';

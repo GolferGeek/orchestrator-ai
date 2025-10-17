@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted } from 'vue';
-import type { AgentChatMode } from '@/stores/agentChatStore/types';
+import type { AgentChatMode } from '@/types/conversation';
 
 interface ShortcutOptions {
   ctrl?: boolean;

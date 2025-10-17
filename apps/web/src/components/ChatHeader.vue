@@ -23,7 +23,6 @@ import { IonIcon } from '@ionic/vue';
 import { chatbubblesOutline, documentTextOutline, hammerOutline } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
 
 // Migrated to conversationsStore + chatUiStore
 

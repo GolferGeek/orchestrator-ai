@@ -1,3 +1,10 @@
+/**
+ * Conversation Types
+ *
+ * Types for agent conversations, messages, and execution modes.
+ * Migrated from stores/agentChatStore/types.ts
+ */
+
 export const PRIMARY_CHAT_MODES = ['converse', 'plan', 'build'] as const;
 export type PrimaryChatMode = typeof PRIMARY_CHAT_MODES[number];
 
@@ -103,6 +110,7 @@ export interface AgentTaskResponse {
     reason?: string;
   };
 }
+
 export interface AgentChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -135,6 +143,7 @@ export interface AgentChatMessage {
     [key: string]: any;
   };
 }
+
 export interface AgentConversation {
   id: string;
   agent: Agent;
@@ -167,7 +176,9 @@ export interface AgentConversation {
   isSendingMessage: boolean;
   activeTaskId?: string | null;
 }
+
 export type ExecutionMode = 'immediate' | 'polling' | 'websocket';
+
 export interface TaskExecutionOptions {
   method: string;
   prompt: string;
@@ -189,12 +200,14 @@ export interface PendingAction {
   expiresAt: number; // epoch ms
   sourceTaskId?: string;
 }
+
 export interface DeliverableOptions {
   taskId: string;
   content: string;
   existingContent: string;
   messageMetadata?: any;
 }
+
 export interface ProgressUpdate {
   taskId: string;
   status: string;
@@ -202,11 +215,13 @@ export interface ProgressUpdate {
   progressMessage?: string;
   data?: any;
 }
+
 export interface TaskCompletionEvent {
   taskId: string;
   conversationId: string;
   status: 'completed' | 'failed';
 }
+
 export interface WorkflowStepEvent {
   taskId: string;
   stepName: string;

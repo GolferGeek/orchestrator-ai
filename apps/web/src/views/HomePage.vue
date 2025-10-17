@@ -81,7 +81,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { conversation } from '@/stores/agentChatStore';
+import { conversation } from '@/services/conversationHelpers';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import ConversationTabs from '@/components/ConversationTabs.vue';
 const router = useRouter();

@@ -21,9 +21,8 @@ import { computed } from 'vue';
 import { IonItem, IonLabel, IonSelect, IonSelectOption } from '@ionic/vue';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
-import type { PrimaryChatMode } from '@/stores/agentChatStore/types';
-import { DEFAULT_CHAT_MODES } from '@/stores/agentChatStore/types';
+import type { PrimaryChatMode } from '@/types/conversation';
+import { DEFAULT_CHAT_MODES } from '@/types/conversation';
 import analyticsService from '@/services/analyticsService';
 
 // Migrated to conversationsStore + chatUiStore

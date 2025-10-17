@@ -45,9 +45,8 @@ import {
 } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
-import type { PrimaryChatMode, AgentChatMode } from '@/stores/agentChatStore/types';
-import { DEFAULT_CHAT_MODES } from '@/stores/agentChatStore/types';
+import type { PrimaryChatMode, AgentChatMode } from '@/types/conversation';
+import { DEFAULT_CHAT_MODES } from '@/types/conversation';
 
 const props = defineProps<{
   disabled?: boolean;

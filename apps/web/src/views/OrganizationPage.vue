@@ -87,7 +87,7 @@ import {
 } from 'ionicons/icons';
 import AgentTreeView from '@/components/AgentTreeView.vue';
 import AgentChatView from '@/components/AgentChatView.vue';
-import { conversation } from '@/stores/agentChatStore';
+import { conversation } from '@/services/conversationHelpers';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useAgentsStore } from '@/stores/agentsStore';

@@ -169,7 +169,7 @@ import {
 } from '@ionic/vue';
 import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
-import { conversation } from '@/stores/agentChatStore';
+import { conversation } from '@/services/conversationHelpers';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useRouter } from 'vue-router';

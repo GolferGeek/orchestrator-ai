@@ -93,14 +93,14 @@ import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastControlle
 import { chevronUpOutline, checkmarkOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
-import { useAgentChatStore } from '../stores/agentChatStore';
+import { useAgentChatStore } from '@/services/conversationHelpers';
 import { Capacitor } from '@capacitor/core';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
 import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
 import { useValidation, ValidationRules } from '@/composables/useValidation';
-import type { AgentChatMode } from '@/stores/agentChatStore/types';
+import type { AgentChatMode } from '@/types/conversation';
 const props = defineProps<{
   conversationId?: string;
 }>();

@@ -152,6 +152,8 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import {
   IonChip,
   IonButton,
@@ -272,7 +274,6 @@ const submitProjectPrompt = async () => {
   projectPrompt.value = '';
   try {
     // Import the agent chat store and context store
-    const { useAgentChatStore } = await import('@/stores/agentChatStore');
     const { useContextStore } = await import('@/stores/contextStore');
     const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();

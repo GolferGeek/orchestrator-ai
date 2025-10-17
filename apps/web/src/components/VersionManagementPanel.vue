@@ -187,7 +187,6 @@ import {
 import { useContextStore } from '@/stores/contextStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
 import type { DeliverableVersion } from '@/services/deliverablesService';
 // Props
 interface Props {

@@ -35,7 +35,6 @@ import { micOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { /* migrated */ } from '@/stores/agentChatStore';
 import { agentTaskService } from '@/services/agent-tasks';
 
 // Define speech states
