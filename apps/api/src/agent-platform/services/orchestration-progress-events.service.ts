@@ -2,11 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { firstValueFrom } from 'rxjs';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { TaskStatusService } from '@/agent2agent/tasks/task-status.service';
 import {
   OrchestrationRunEventPayload,
   OrchestrationStepSnapshot,
 } from '../types/orchestration-events.types';
+import type { OrchestrationStepStateEntry } from '../types/orchestration-run.types';
 
 @Injectable()
 export class OrchestrationProgressEventsService {
@@ -212,44 +214,6 @@ export class OrchestrationProgressEventsService {
     }
   }
 
-  private extractStep(
-    event: OrchestrationRunEventPayload,
-  ): OrchestrationStepSnapshot | undefined {
-    const data = event.data ?? {};
-    if (data.step && typeof data.step === 'object') {
-      return data.step as OrchestrationStepSnapshot;
-    }
-    if (Array.isArray(data.steps) && data.steps.length > 0) {
-      return data.steps[0] as OrchestrationStepSnapshot;
-    }
-    return undefined;
-  }
-
-  private buildStepMessage(
-    step: OrchestrationStepSnapshot | undefined,
-    status: string,
-  ): string {
-    if (!step) {
-      return `Step ${status}`;
-    }
-    const label =
-      this.extractStepName(step.metadata) ??
-      step.id ??
-      `#${step.index.toString()}`;
-    return `Step ${label} ${status}`;
-  }
-
-  private extractStepName(metadata: Record<string, any>): string | undefined {
-    if (!metadata) {
-      return undefined;
-    }
-    const nameValue = metadata.name ?? metadata.label;
-    if (typeof nameValue === 'string' && nameValue.trim().length > 0) {
-      return nameValue;
-    }
-    return undefined;
-  }
-
   private normalizeRunStatus(
     status: string,
   ): 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' {
@@ -273,19 +237,20 @@ export class OrchestrationProgressEventsService {
   private extractErrorMessage(
     event: OrchestrationRunEventPayload,
   ): string | undefined {
-    const data = event.data ?? {};
-    const error = data.error ?? event.run.errorDetails ?? {};
+    const error =
+      (event.data?.error as unknown) ?? event.run.errorDetails ?? undefined;
 
     if (typeof error === 'string' && error.trim().length > 0) {
       return error;
     }
 
-    if (typeof error === 'object' && error) {
+    if (error && typeof error === 'object') {
+      const errorRecord = error as JsonObject;
       const messageCandidates = [
-        error.message,
-        error.error,
-        error.reason,
-        error.details?.message,
+        errorRecord.message,
+        errorRecord.error,
+        errorRecord.reason,
+        (errorRecord.details as JsonObject | undefined)?.message,
       ];
 
       for (const candidate of messageCandidates) {
@@ -295,6 +260,73 @@ export class OrchestrationProgressEventsService {
       }
     }
 
+    return undefined;
+  }
+
+  private extractStep(
+    event: OrchestrationRunEventPayload,
+  ): OrchestrationStepSnapshot | undefined {
+    const data = event.data;
+    if (!data) {
+      return undefined;
+    }
+
+    const stepCandidate = (data.step ?? undefined) as unknown;
+    if (this.isStepSnapshot(stepCandidate)) {
+      return stepCandidate;
+    }
+
+    const stepsCandidate = data.steps as unknown;
+    if (Array.isArray(stepsCandidate)) {
+      const match = stepsCandidate.find((value) =>
+        this.isStepSnapshot(value),
+      );
+      if (match) {
+        return match;
+      }
+    }
+
+    return undefined;
+  }
+
+  private isStepSnapshot(value: unknown): value is OrchestrationStepSnapshot {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const candidate = value as OrchestrationStepSnapshot;
+    return (
+      typeof candidate.runId === 'string' &&
+      typeof candidate.index === 'number' &&
+      typeof candidate.status === 'string'
+    );
+  }
+
+  private buildStepMessage(
+    step: OrchestrationStepSnapshot | undefined,
+    status: string,
+  ): string {
+    if (!step) {
+      return `Step ${status}`;
+    }
+    const label =
+      this.extractStepName(step.metadata) ??
+      step.id ??
+      `#${step.index.toString()}`;
+    return `Step ${label} ${status}`;
+  }
+
+  private extractStepName(
+    metadata: OrchestrationStepStateEntry | undefined,
+  ): string | undefined {
+    if (!metadata) {
+      return undefined;
+    }
+    const nameValue =
+      (metadata.name as string | undefined) ??
+      (metadata.label as string | undefined);
+    if (nameValue && nameValue.trim().length > 0) {
+      return nameValue;
+    }
     return undefined;
   }
 }

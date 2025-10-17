@@ -130,6 +130,18 @@ export * from './validation';
 export * from './store';
 
 // =====================================
+// SHARED UTILITY TYPES
+// =====================================
+
+export type Primitive = string | number | boolean | null;
+export type JsonValue = Primitive | JsonObject | JsonValue[];
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+
+export type UnknownRecord = Record<string, unknown>;
+
+// =====================================
 // COMMON STORE TYPES
 // =====================================
 
@@ -150,7 +162,7 @@ export interface LoadingStates {
 export interface ErrorState {
   error: string | null;
   errorCode?: string;
-  errorDetails?: any;
+  errorDetails?: unknown;
   lastError?: Date;
 }
 
@@ -198,7 +210,7 @@ export interface SelectionState<T = string> {
 /**
  * Common API response wrapper
  */
-export interface StoreApiResponse<T = any> {
+export interface StoreApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -247,8 +259,8 @@ export interface AuditTrail {
   entityId: string;
   userId?: string;
   timestamp: string;
-  changes?: Record<string, { before: any; after: any }>;
-  metadata?: Record<string, any>;
+  changes?: Record<string, { before: unknown; after: unknown }>;
+  metadata?: UnknownRecord;
 }
 
 /**
@@ -280,7 +292,7 @@ export interface ExportOptions {
     from: string;
     to: string;
   };
-  filters?: Record<string, any>;
+  filters?: UnknownRecord;
   fields?: string[];
 }
 
@@ -316,7 +328,7 @@ export interface BulkOperationResult {
 /**
  * Common cache entry interface
  */
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
   ttl: number;
@@ -326,7 +338,7 @@ export interface CacheEntry<T = any> {
 /**
  * Common real-time update interface
  */
-export interface RealTimeUpdate<T = any> {
+export interface RealTimeUpdate<T = unknown> {
   type: 'create' | 'update' | 'delete' | 'bulk_update';
   entityType: string;
   entityId?: string;
@@ -354,10 +366,10 @@ export interface FilterConfig {
   field: string;
   type: 'text' | 'select' | 'multiselect' | 'date' | 'daterange' | 'number' | 'boolean';
   label: string;
-  options?: Array<{ label: string; value: any }>;
-  defaultValue?: any;
+  options?: Array<{ label: string; value: unknown }>;
+  defaultValue?: unknown;
   required?: boolean;
-  validation?: (value: any) => boolean;
+  validation?: (value: unknown) => boolean;
 }
 
 /**
@@ -372,7 +384,7 @@ export interface ColumnConfig {
   minWidth?: string;
   maxWidth?: string;
   align?: 'left' | 'center' | 'right';
-  format?: (value: any) => string;
+  format?: (value: unknown) => string;
   component?: string;
   visible?: boolean;
 }
@@ -389,7 +401,7 @@ export interface WidgetConfig {
   position: { x: number; y: number };
   dataSource: string;
   refreshInterval?: number;
-  config: Record<string, any>;
+  config: UnknownRecord;
   permissions?: string[];
 }
 
@@ -438,7 +450,7 @@ export interface BaseStoreState {
 /**
  * Store state for data-driven stores (CRUD operations)
  */
-export interface DataStoreState<T = any> extends BaseStoreState {
+export interface DataStoreState<T = unknown> extends BaseStoreState {
   // Data
   items: T[];
   selectedItems: string[];
@@ -447,7 +459,7 @@ export interface DataStoreState<T = any> extends BaseStoreState {
   pagination: PaginationState;
   
   // Filtering & Sorting
-  filters: Record<string, any>;
+  filters: UnknownRecord;
   sortOptions: SortOptions;
   
   // Search
@@ -463,15 +475,15 @@ export interface DataStoreState<T = any> extends BaseStoreState {
  */
 export interface MonitoringStoreState extends BaseStoreState {
   // Real-time data
-  realTimeData: any;
+  realTimeData: unknown;
   isRealTimeEnabled: boolean;
   
   // Metrics
-  metrics: Record<string, any>;
+  metrics: UnknownRecord;
   alerts: Notification[];
   
   // Historical data
-  historicalData: Record<string, any[]>;
+  historicalData: Record<string, unknown[]>;
   
   // Auto-refresh
   autoRefreshEnabled: boolean;
@@ -486,28 +498,29 @@ export interface MonitoringStoreState extends BaseStoreState {
 /**
  * Type guard to check if an object is a valid API response
  */
-export function isApiResponse<T>(obj: any): obj is StoreApiResponse<T> {
-  return obj && typeof obj === 'object' && typeof obj.success === 'boolean';
+export function isApiResponse<T>(obj: unknown): obj is StoreApiResponse<T> {
+  return Boolean(obj) && typeof obj === 'object' &&
+    typeof (obj as { success?: unknown }).success === 'boolean';
 }
 
 /**
  * Type guard to check if an object is a validation result
  */
-export function isValidationResult(obj: any): obj is ValidationResult {
-  return obj && typeof obj === 'object' && 
-         typeof obj.isValid === 'boolean' && 
-         Array.isArray(obj.errors);
+export function isValidationResult(obj: unknown): obj is ValidationResult {
+  return Boolean(obj) && typeof obj === 'object' &&
+    typeof (obj as ValidationResult).isValid === 'boolean' &&
+    Array.isArray((obj as ValidationResult).errors);
 }
 
 /**
  * Type guard to check if an object is a notification
  */
-export function isNotification(obj: any): obj is Notification {
-  return obj && typeof obj === 'object' && 
-         typeof obj.id === 'string' && 
-         typeof obj.type === 'string' && 
-         typeof obj.title === 'string' && 
-         typeof obj.message === 'string';
+export function isNotification(obj: unknown): obj is Notification {
+  return Boolean(obj) && typeof obj === 'object' &&
+    typeof (obj as Notification).id === 'string' &&
+    typeof (obj as Notification).type === 'string' &&
+    typeof (obj as Notification).title === 'string' &&
+    typeof (obj as Notification).message === 'string';
 }
 
 // =====================================
@@ -529,12 +542,12 @@ export type RequireFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 /**
  * Extract the return type of a store action
  */
-export type ActionReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
+export type ActionReturnType<T> = T extends (...args: unknown[]) => infer R ? R : never;
 
 /**
  * Extract the payload type of a store action
  */
-export type ActionPayload<T> = T extends (payload: infer P) => any ? P : never;
+export type ActionPayload<T> = T extends (payload: infer P) => unknown ? P : never;
 
 /**
  * Create a union type of all keys in T that have values of type V
@@ -546,20 +559,20 @@ export type KeysOfType<T, V> = {
 /**
  * Create a type that represents the state of a Pinia store
  */
-export type StoreState<T> = T extends (...args: any[]) => infer R ? R : never;
+export type StoreState<T> = T extends (...args: unknown[]) => infer R ? R : never;
 
 /**
  * Create a type that represents the getters of a Pinia store
  */
 export type StoreGetters<T> = {
-  readonly [K in keyof T]: T[K] extends (...args: any[]) => infer R ? R : T[K];
+  readonly [K in keyof T]: T[K] extends (...args: unknown[]) => infer R ? R : T[K];
 };
 
 /**
  * Create a type that represents the actions of a Pinia store
  */
 export type StoreActions<T> = {
-  [K in keyof T]: T[K] extends (...args: any[]) => any ? T[K] : never;
+  [K in keyof T]: T[K] extends (...args: unknown[]) => unknown ? T[K] : never;
 };
 
 // =====================================

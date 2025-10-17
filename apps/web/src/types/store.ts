@@ -12,8 +12,47 @@ import type {
   SelectionState,
   StoreConfig,
   ValidationResult,
-  BulkOperationResult
+  BulkOperationResult,
+  ExportOptions,
+  ImportOptions,
+  UnknownRecord
 } from './index';
+
+import type {
+  PIIPattern,
+  PIITestResponse,
+  PIIStatsResponse,
+  PIIPatternFilters,
+  PseudonymDictionaryEntry,
+  PseudonymGenerateResponse,
+  PseudonymLookupResponse,
+  PseudonymStatsResponse,
+  PIIDataType
+} from './pii';
+
+import type {
+  LLMUsageRecord,
+  SystemHealthMetrics,
+  ModelHealthMetrics,
+  Alert
+} from './llm-monitoring';
+
+import type {
+  DashboardData,
+  EvaluationAnalytics,
+  WorkflowAnalytics,
+  ProjectAnalytics,
+  UsageStats,
+  CostSummary,
+  ModelPerformance,
+  AnalyticsEvent,
+  ReportConfig,
+  GeneratedReport,
+  RealTimeAnalytics,
+  PerformanceMetric,
+  ConstraintAnalytics,
+  TimeRange
+} from './analytics';
 
 // =====================================
 // STORE INTERFACE DEFINITIONS
@@ -22,11 +61,11 @@ import type {
 /**
  * Interface for PII Patterns Store State
  */
-export interface PIIPatternsStoreState extends DataStoreState {
+export interface PIIPatternsStoreState extends DataStoreState<PIIPattern> {
   // PII-specific state
-  patterns: any[]; // PIIPattern[] - imported from pii.ts
-  testResults: any | null;
-  statistics: any | null;
+  patterns: PIIPattern[];
+  testResults: PIITestResponse | null;
+  statistics: PIIStatsResponse | null;
   
   // PII-specific filters
   filters: {
@@ -45,12 +84,12 @@ export interface PIIPatternsStoreState extends DataStoreState {
 /**
  * Interface for Pseudonym Dictionaries Store State
  */
-export interface PseudonymDictionariesStoreState extends DataStoreState {
+export interface PseudonymDictionariesStoreState extends DataStoreState<PseudonymDictionaryEntry> {
   // Pseudonym-specific state
-  dictionaries: any[]; // PseudonymDictionaryEntry[] - imported from pii.ts
-  generationResults: any | null;
-  lookupResults: any | null;
-  statistics: any | null;
+  dictionaries: PseudonymDictionaryEntry[];
+  generationResults: PseudonymGenerateResponse | null;
+  lookupResults: PseudonymLookupResponse | null;
+  statistics: PseudonymStatsResponse | null;
   
   // Import/Export state
   isImporting: boolean;
@@ -72,10 +111,10 @@ export interface PseudonymDictionariesStoreState extends DataStoreState {
  */
 export interface LLMMonitoringStoreState extends MonitoringStoreState {
   // LLM-specific monitoring data
-  usageRecords: any[]; // LLMUsageRecord[] - imported from llm-monitoring.ts
-  systemHealth: any | null; // SystemHealthMetrics
-  activeAlerts: any[]; // Alert[]
-  modelMetrics: any[]; // ModelHealthMetrics[]
+  usageRecords: LLMUsageRecord[];
+  systemHealth: SystemHealthMetrics | null;
+  activeAlerts: Alert[];
+  modelMetrics: ModelHealthMetrics[];
   
   // LLM-specific filters
   filters: {
@@ -97,13 +136,13 @@ export interface LLMMonitoringStoreState extends MonitoringStoreState {
  */
 export interface AnalyticsStoreState extends MonitoringStoreState {
   // Analytics-specific data
-  dashboardData: any | null; // DashboardData
-  evaluationAnalytics: any | null; // EvaluationAnalytics
-  workflowAnalytics: any | null; // WorkflowAnalytics
-  projectAnalytics: Record<string, any>; // ProjectAnalytics
-  usageStats: any | null; // UsageStats
-  costSummary: any | null; // CostSummary
-  modelPerformance: any[]; // ModelPerformance[]
+  dashboardData: DashboardData | null;
+  evaluationAnalytics: EvaluationAnalytics | null;
+  workflowAnalytics: WorkflowAnalytics | null;
+  projectAnalytics: Record<string, ProjectAnalytics>;
+  usageStats: UsageStats | null;
+  costSummary: CostSummary | null;
+  modelPerformance: ModelPerformance[];
   
   // Analytics-specific filters
   filters: {
@@ -119,12 +158,12 @@ export interface AnalyticsStoreState extends MonitoringStoreState {
   };
   
   // Event tracking
-  eventQueue: any[]; // AnalyticsEvent[]
+  eventQueue: AnalyticsEvent[];
   eventTrackingEnabled: boolean;
   
   // Reporting
-  reportConfigs: any[]; // ReportConfig[]
-  generatedReports: any[]; // GeneratedReport[]
+  reportConfigs: ReportConfig[];
+  generatedReports: GeneratedReport[];
 }
 
 // =====================================

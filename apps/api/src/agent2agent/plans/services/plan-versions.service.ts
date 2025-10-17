@@ -586,7 +586,7 @@ export class PlanVersionsService {
 
     if (format === 'json' || planStructure) {
       const candidate = this.extractJsonCandidate(rawContent);
-      let parsed: any;
+      let parsed: unknown;
       try {
         parsed = JSON.parse(candidate);
       } catch (error) {
@@ -601,10 +601,12 @@ export class PlanVersionsService {
         this.validateAgainstStructure(parsed, planStructure);
       }
 
-      return {
-        content: JSON.stringify(parsed, null, 2),
-        format: 'json',
-      };
+      if (typeof parsed === 'object' && parsed !== null) {
+        return {
+          content: JSON.stringify(parsed, null, 2),
+          format: 'json',
+        };
+      }
     }
 
     return {
@@ -669,7 +671,7 @@ export class PlanVersionsService {
       maxTokens?: number;
     },
     userId: string,
-  ): Promise<{ plan: any; version: PlanVersion }> {
+  ): Promise<{ plan: Plan; version: PlanVersion }> {
     try {
       // 1. Get the source version
       const sourceVersion = await this.findOne(versionId, userId);
@@ -733,33 +735,34 @@ export class PlanVersionsService {
         typeof llmResponse === 'object' ? llmResponse.metadata : undefined;
 
       // 7. Create new version with LLM response
+      const rerunMetadata = this.mergeMetadata(sourceVersion.metadata, {
+        sourceVersionId: versionId,
+        rerunAt: new Date().toISOString(),
+        llmRerunInfo: {
+          provider: rerunConfig.provider,
+          model: rerunConfig.model,
+          temperature: rerunConfig.temperature,
+          maxTokens: rerunConfig.maxTokens,
+        },
+        llmMetadata: responseMetadata
+          ? {
+              runId: responseMetadata.requestId,
+              provider: responseMetadata.provider,
+              model: responseMetadata.model,
+              inputTokens: responseMetadata.usage?.inputTokens,
+              outputTokens: responseMetadata.usage?.outputTokens,
+              cost: responseMetadata.usage?.cost,
+              duration: responseMetadata.timing?.duration,
+            }
+          : undefined,
+      } as JsonObject);
+
       const newVersion = await this.createVersion(plan.id, userId, {
         content: responseContent,
         format: sourceVersion.format || 'markdown',
         createdByType: 'agent',
         taskId: sourceVersion.taskId,
-        metadata: {
-          ...sourceVersion.metadata,
-          sourceVersionId: versionId,
-          rerunAt: new Date().toISOString(),
-          llmRerunInfo: {
-            provider: rerunConfig.provider,
-            model: rerunConfig.model,
-            temperature: rerunConfig.temperature,
-            maxTokens: rerunConfig.maxTokens,
-          },
-          llmMetadata: responseMetadata
-            ? {
-                runId: responseMetadata.requestId,
-                provider: responseMetadata.provider,
-                model: responseMetadata.model,
-                inputTokens: responseMetadata.usage?.inputTokens,
-                outputTokens: responseMetadata.usage?.outputTokens,
-                cost: responseMetadata.usage?.cost,
-                duration: responseMetadata.timing?.duration,
-              }
-            : undefined,
-        },
+        metadata: rerunMetadata,
       });
 
       this.logger.log(
@@ -787,7 +790,7 @@ export class PlanVersionsService {
     }
   }
 
-  private mapPlanFromDb(data: any): any {
+  private mapPlanFromDb(data: PlanRecord): Plan {
     return {
       id: data.id,
       conversationId: data.conversation_id,
@@ -796,8 +799,8 @@ export class PlanVersionsService {
       namespace: data.namespace,
       title: data.title,
       currentVersionId: data.current_version_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
     };
   }
 }

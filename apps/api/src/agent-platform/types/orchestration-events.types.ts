@@ -1,3 +1,13 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type {
+  OrchestrationRunErrorDetails,
+  OrchestrationRunMetadata,
+  OrchestrationRunParameters,
+  OrchestrationRunPlan,
+  OrchestrationRunResults,
+  OrchestrationStepStateEntry,
+} from './orchestration-run.types';
+
 export type OrchestrationEventType =
   | 'orchestration.run.created'
   | 'orchestration.run.updated'
@@ -39,11 +49,11 @@ export interface OrchestrationRunSnapshot {
   currentStepIndex: number | null;
   completedSteps: string[];
   humanCheckpointId: string | null;
-  plan: Record<string, any>;
-  results: Record<string, any>;
-  parameters: Record<string, any>;
-  errorDetails: Record<string, any>;
-  metadata: Record<string, any>;
+  plan: OrchestrationRunPlan;
+  results: OrchestrationRunResults;
+  parameters: OrchestrationRunParameters;
+  errorDetails: OrchestrationRunErrorDetails;
+  metadata: OrchestrationRunMetadata;
   stats: OrchestrationRunStats;
   timings: {
     createdAt: string;
@@ -67,14 +77,14 @@ export interface OrchestrationStepSnapshot {
   conversationId: string | null;
   startedAt: string | null;
   completedAt: string | null;
-  metadata: Record<string, any>;
+  metadata: OrchestrationStepStateEntry;
   outputSummary: string[];
-  errorDetails: Record<string, any> | null;
+  errorDetails: JsonObject | null;
 }
 
 export interface OrchestrationRunEventPayload {
   type: OrchestrationEventType;
   timestamp: string;
   run: OrchestrationRunSnapshot;
-  data?: Record<string, any>;
+  data?: JsonObject;
 }
