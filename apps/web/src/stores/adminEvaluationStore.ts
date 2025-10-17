@@ -115,6 +115,14 @@ export interface EnhancedEvaluationMetadata {
   };
   systemMetadata?: Record<string, unknown>;
 }
+const resolveErrorMessage = (error: unknown, fallback: string): string => (
+  error instanceof Error && error.message ? error.message : fallback
+);
+
+const normalizeError = (error: unknown): Error => (
+  error instanceof Error ? error : new Error(String(error))
+);
+
 export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -154,9 +162,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
         evaluations: evaluations.value,
         pagination: pagination.value
       };
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch evaluations';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to fetch evaluations');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }
@@ -177,9 +185,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       const response = await apiService.get(`/evaluation/admin/analytics/overview?${params.toString()}`);
       analytics.value = response;
       return response;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch analytics';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to fetch analytics');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }
@@ -200,9 +208,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       const response = await apiService.get(`/evaluation/admin/analytics/workflow?${params.toString()}`);
       workflowAnalytics.value = response;
       return response;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch workflow analytics';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to fetch workflow analytics');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }
@@ -223,9 +231,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       const response = await apiService.get(`/evaluation/admin/analytics/constraints?${params.toString()}`);
       constraintAnalytics.value = response;
       return response;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch constraint analytics';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to fetch constraint analytics');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }
@@ -276,9 +284,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
         window.URL.revokeObjectURL(url);
       }
       return response;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to export evaluations';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to export evaluations');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }
@@ -298,9 +306,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       });
       const response = await apiService.get(`/evaluation/admin/users/${userId}/evaluations?${params.toString()}`);
       return response;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch user evaluations';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to fetch user evaluations');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }
@@ -320,9 +328,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       });
       const response = await apiService.get(`/evaluation/admin/performance/agents?${params.toString()}`);
       return response;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch agent performance';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to fetch agent performance');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }
@@ -347,9 +355,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       });
       const response = await apiService.get(`/evaluation/admin/trends/time-series?${params.toString()}`);
       return response;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch evaluation trends';
-      throw err;
+    } catch (err) {
+      error.value = resolveErrorMessage(err, 'Failed to fetch evaluation trends');
+      throw normalizeError(err);
     } finally {
       isLoading.value = false;
     }

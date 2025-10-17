@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { ApiEndpoint, API_FEATURES } from '../types/api';
+import { ApiEndpoint, API_FEATURES, ApiVersion, ApiTechnology } from '../types/api';
 import { apiService } from '../services/apiService';
 interface ApiConfigState {
   // Environment configuration
@@ -22,10 +22,36 @@ interface ApiConfigState {
   configurationVersion: string;
   lastUpdated: Date;
 }
+const resolveEnvironment = (): ApiConfigState['environment'] => {
+  const mode = import.meta.env.MODE;
+  if (mode === 'production' || mode === 'staging') {
+    return mode;
+  }
+  return 'development';
+};
+
+const asString = (value: unknown, fallback = ''): string =>
+  typeof value === 'string' ? value : fallback;
+
+const asStringArray = (value: unknown): string[] | undefined => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return undefined;
+};
+
+const toApiVersion = (value: unknown): ApiVersion => {
+  const version = asString(value);
+  return version === 'v2' ? 'v2' : 'v1';
+};
+
+const toApiTechnology = (value: unknown): ApiTechnology => {
+  return asString(value) === 'typescript-nestjs' ? 'typescript-nestjs' : 'typescript-nestjs';
+};
 export const useApiConfigStore = defineStore('apiConfig', () => {
   // Reactive state
   const state = ref<ApiConfigState>({
-    environment: (import.meta.env.MODE as any) || 'development',
+    environment: resolveEnvironment(),
     discoveredEndpoints: [],
     lastDiscoveryTime: null,
     discoveryInProgress: false,
@@ -198,7 +224,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       for (const baseUrl of baseUrls) {
         try {
           // Try to discover endpoint capabilities
-          const response = await fetch(`${baseUrl}/health`, { 
+          const response = await fetch(`${baseUrl}/health`, {
             method: 'GET',
             signal: AbortSignal.timeout(environmentConfig.value.defaultTimeout),
           });
@@ -207,18 +233,21 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
             const infoResponse = await fetch(`${baseUrl}/api/info`, {
               signal: AbortSignal.timeout(environmentConfig.value.defaultTimeout),
             });
-            let endpointInfo: any = {};
+            let endpointInfo: Record<string, unknown> = {};
             if (infoResponse.ok) {
-              endpointInfo = await infoResponse.json();
+              const rawInfo: unknown = await infoResponse.json();
+              if (typeof rawInfo === 'object' && rawInfo) {
+                endpointInfo = rawInfo as Record<string, unknown>;
+              }
             }
-            // Create endpoint configuration based on discovery
+            const features = asStringArray(endpointInfo.features) ?? [API_FEATURES.ORCHESTRATOR];
             const endpoint: ApiEndpoint = {
-              version: endpointInfo.version || 'unknown',
-              technology: endpointInfo.technology || 'unknown',
+              version: toApiVersion(endpointInfo.version),
+              technology: toApiTechnology(endpointInfo.technology),
               baseUrl,
-              name: endpointInfo.name || `Discovered ${baseUrl}`,
-              description: endpointInfo.description || `Auto-discovered endpoint at ${baseUrl}`,
-              features: endpointInfo.features || [API_FEATURES.ORCHESTRATOR],
+              name: asString(endpointInfo.name, `Discovered ${baseUrl}`),
+              description: asString(endpointInfo.description, `Auto-discovered endpoint at ${baseUrl}`),
+              features,
               isAvailable: true,
             };
             discovered.push(endpoint);
@@ -270,7 +299,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
   const resetConfiguration = () => {
     localStorage.removeItem('apiConfiguration');
     state.value = {
-      environment: (import.meta.env.MODE as any) || 'development',
+      environment: resolveEnvironment(),
       discoveredEndpoints: [],
       lastDiscoveryTime: null,
       discoveryInProgress: false,

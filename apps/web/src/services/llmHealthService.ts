@@ -21,6 +21,8 @@ import {
   LLMDashboardResponse,
   RealTimeMetrics,
   LLMUsageStatsRequest,
+  ModelHealthMetrics,
+  SystemHealthMetrics,
 } from '@/types/llm-monitoring';
 
 class LLMHealthService {
@@ -63,10 +65,16 @@ class LLMHealthService {
   /**
    * Get model health metrics
    */
-  async getModelHealthMetrics(): Promise<any> {
+  async getModelHealthMetrics(): Promise<ModelHealthMetrics[]> {
     try {
       const response = await apiService.get('/llm/production/health/models');
-      return response;
+      if (Array.isArray(response)) {
+        return response as ModelHealthMetrics[];
+      }
+      if (response && Array.isArray(response.data)) {
+        return response.data as ModelHealthMetrics[];
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching model health metrics:', error);
       throw error;
@@ -76,10 +84,16 @@ class LLMHealthService {
   /**
    * Get memory statistics
    */
-  async getMemoryStats(): Promise<any> {
+  async getMemoryStats(): Promise<SystemHealthMetrics['memoryStats'] | null> {
     try {
       const response = await apiService.get('/llm/production/memory/stats');
-      return response;
+      if (response && typeof response === 'object') {
+        const data = 'data' in response ? (response as { data?: unknown }).data : response;
+        if (data && typeof data === 'object') {
+          return data as SystemHealthMetrics['memoryStats'];
+        }
+      }
+      return null;
     } catch (error) {
       console.error('Error fetching memory stats:', error);
       throw error;

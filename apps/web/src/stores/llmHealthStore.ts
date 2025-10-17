@@ -16,7 +16,8 @@ import {
   ComplianceMetrics,
   Alert,
   LLMDashboardData,
-  RealTimeMetrics
+  RealTimeMetrics,
+  ModelHealthMetrics
 } from '@/types/llm-monitoring';
 
 // Alert-specific filters
@@ -40,8 +41,8 @@ export const useLLMHealthStore = defineStore('llmHealth', () => {
   // System Health & Status
   const systemHealth = ref<SystemHealthMetrics | null>(null);
   const operationalStatus = ref<OperationalStatus | null>(null);
-  const modelHealthMetrics = ref<any[]>([]);
-  const memoryStats = ref<any>(null);
+  const modelHealthMetrics = ref<ModelHealthMetrics[]>([]);
+  const memoryStats = ref<SystemHealthMetrics['memoryStats'] | null>(null);
 
   // Alerts & Notifications
   const activeAlerts = ref<Alert[]>([]);
@@ -81,7 +82,7 @@ export const useLLMHealthStore = defineStore('llmHealth', () => {
   // Auto-refresh settings
   const autoRefreshEnabled = ref(false);
   const autoRefreshInterval = ref(30000); // 30 seconds
-  const autoRefreshTimer = ref<NodeJS.Timeout | null>(null);
+  const autoRefreshTimer = ref<ReturnType<typeof setInterval> | null>(null);
 
   // =====================================
   // COMPUTED
@@ -162,8 +163,8 @@ export const useLLMHealthStore = defineStore('llmHealth', () => {
         operationalStatus.value = statusResponse.data;
       }
 
-      modelHealthMetrics.value = modelHealthResponse.data || [];
-      memoryStats.value = memoryResponse.data || null;
+      modelHealthMetrics.value = modelHealthResponse;
+      memoryStats.value = memoryResponse;
 
       lastUpdated.value = new Date();
     } catch (err) {

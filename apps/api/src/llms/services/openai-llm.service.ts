@@ -15,6 +15,10 @@ import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import OpenAI from 'openai';
 import { getModelRestrictions } from '../config/model-restrictions.config';
+import type {
+  OpenAIChatCompletionRequest,
+  OpenAIChatCompletionResponse,
+} from '../types/provider-payload.types';
 
 /**
  * OpenAI-specific response metadata extension
@@ -121,7 +125,7 @@ export class OpenAILLMService extends BaseLLMService {
       );
 
       // Build API request parameters, respecting model restrictions
-      const apiParams: any = {
+      const apiParams: OpenAIChatCompletionRequest = {
         model: normalizedConfig.model,
         messages,
         stream: false,
@@ -165,7 +169,8 @@ export class OpenAILLMService extends BaseLLMService {
       }
 
       // Make OpenAI API call
-      const completion = await this.openai.chat.completions.create(apiParams);
+      const completion: OpenAIChatCompletionResponse =
+        await this.openai.chat.completions.create(apiParams);
 
       const choice = completion.choices[0];
       if (!choice?.message?.content) {
@@ -348,7 +353,7 @@ export class OpenAILLMService extends BaseLLMService {
    * Create OpenAI-specific metadata with provider-specific fields
    */
   private createOpenAIMetadata(
-    completion: OpenAI.Chat.Completions.ChatCompletion,
+    completion: OpenAIChatCompletionResponse,
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
@@ -389,7 +394,7 @@ export class OpenAILLMService extends BaseLLMService {
       status: 'completed',
       // OpenAI-specific fields
       providerSpecific: {
-        finish_reason: choice?.finish_reason as any,
+        finish_reason: choice?.finish_reason ?? null,
         system_fingerprint: completion.system_fingerprint,
         model_version: completion.model,
         logprobs: choice?.logprobs,

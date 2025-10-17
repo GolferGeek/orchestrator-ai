@@ -9,6 +9,24 @@ import type { SignupData, AuthError, isAuthError } from '@/types/auth';
 export type { SignupData, AuthError };
 export { isAuthError };
 
+const resolveErrorMessage = (error: unknown, fallback: string): string => (
+  error instanceof Error && error.message ? error.message : fallback
+);
+
+const getResponseStatus = (error: unknown): number | undefined => {
+  if (typeof error === 'object' && error && 'response' in error) {
+    const response = (error as { response?: { status?: number } }).response;
+    if (response && typeof response.status === 'number') {
+      return response.status;
+    }
+  }
+  return undefined;
+};
+
+const normalizeError = (error: unknown): Error => (
+  error instanceof Error ? error : new Error(String(error))
+);
+
 // Interface for the token data expected from authService login/signup
 interface TokenData {
   accessToken: string;
@@ -451,9 +469,9 @@ export const useAuthStore = defineStore('auth', () => {
       tokenManager.startMonitoring();
       isLoading.value = false;
       return true;
-    } catch (e: any) {
+    } catch (err) {
 
-      error.value = e.message || 'Login failed in store.';
+      error.value = resolveErrorMessage(err, 'Login failed in store.');
       clearAuthData();
       isLoading.value = false;
       return false;
@@ -470,23 +488,25 @@ export const useAuthStore = defineStore('auth', () => {
       tokenManager.startMonitoring();
       isLoading.value = false;
       return { success: true };
-    } catch (e: any) {
-      error.value = e.message || 'Signup failed in store.';
-      if (e.message && e.message.includes("confirm your account")) {
+    } catch (err) {
+      const message = resolveErrorMessage(err, 'Signup failed in store.');
+      error.value = message;
+      if (message.includes('confirm your account')) {
         isLoading.value = false;
-        return { success: false, emailConfirmationPending: true, message: e.message };
+        return { success: false, emailConfirmationPending: true, message };
       }
       clearAuthData();
       isLoading.value = false;
-      return { success: false, message: error.value };
+      return { success: false, message };
     }
   }
   async function logout() {
     // isLoading.value = true; // Logout is usually quick, maybe not needed
     try {
       await authService.logout();
-    } catch (e: any) {
+    } catch (err) {
       // Failed to logout from auth service
+      console.warn('Auth service logout failed', err);
     }
     // Stop token monitoring before clearing auth data
     tokenManager.stopMonitoring();
@@ -502,8 +522,8 @@ export const useAuthStore = defineStore('auth', () => {
       // Fetch updated user data
       await fetchCurrentUser();
       return true;
-    } catch (e: any) {
-      error.value = "Could not refresh authentication token.";
+    } catch (err) {
+      error.value = 'Could not refresh authentication token.';
       clearAuthData();
       return false;
     } finally {
@@ -523,10 +543,10 @@ export const useAuthStore = defineStore('auth', () => {
       // Store user data in localStorage for router access
       localStorage.setItem('userData', JSON.stringify(userData));
       error.value = null; // Clear previous errors if user fetch is successful
-    } catch (e: any) {
+    } catch (err) {
 
-      error.value = "Could not fetch user details.";
-      if ((e as any).response && (e as any).response.status === 401) {
+      error.value = 'Could not fetch user details.';
+      if (getResponseStatus(err) === 401) {
         clearAuthData(); 
       }
     }

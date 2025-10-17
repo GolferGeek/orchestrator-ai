@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { SupabaseService } from '@/supabase/supabase.service';
 import {
   AgentStreamChunkEvent,
@@ -8,28 +9,47 @@ import {
 } from '@/agent-platform/services/agent-runtime-stream.service';
 import { randomUUID } from 'crypto';
 
+export type TaskStatusState =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export type TaskType = 'long_running' | 'swarm' | 'ephemeral';
+
 export interface TaskStatus {
   taskId: string;
   userId: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: TaskStatusState;
   progress: number;
   progressMessage?: string;
-  result?: any;
+  result?: JsonValue;
   error?: string;
+  metadata?: JsonObject;
   createdAt: Date;
   updatedAt: Date;
-  // Agent-specific JSON data (flexible)
-  [key: string]: any;
+  taskType: TaskType;
 }
 
 export interface TaskStatusUpdate {
-  status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status?: TaskStatusState;
   progress?: number;
   progressMessage?: string;
-  result?: any;
+  result?: JsonValue;
   error?: string;
-  // Any additional JSON fields from agent
-  [key: string]: any;
+  metadata?: JsonObject;
+}
+
+interface TaskMessageRecord {
+  id: string;
+  taskId: string;
+  content: string;
+  messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
+  progressPercentage?: number;
+  metadata?: JsonObject;
+  createdAt: string;
+  expiresAt: string;
 }
 
 interface TaskStreamSession {
@@ -63,19 +83,7 @@ export class TaskStatusService {
   private activeTaskStatuses = new Map<string, TaskStatus>();
 
   // Live message cache for active tasks (for polling clients)
-  private activeTaskMessages = new Map<
-    string,
-    Array<{
-      id: string;
-      taskId: string;
-      content: string;
-      messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
-      progressPercentage?: number;
-      metadata?: Record<string, any>;
-      createdAt: string;
-      expiresAt: string;
-    }>
-  >();
+  private activeTaskMessages = new Map<string, TaskMessageRecord[]>();
 
   // Cleanup timers for completed tasks
   private cleanupTimers = new Map<string, NodeJS.Timeout>();
@@ -261,9 +269,7 @@ export class TaskStatusService {
     }
   }
 
-  private extractProgress(
-    metadata: Record<string, any> | undefined,
-  ): number | undefined {
+  private extractProgress(metadata: JsonObject | undefined): number | undefined {
     if (!metadata) {
       return undefined;
     }
@@ -307,17 +313,17 @@ export class TaskStatusService {
 
     this.touchStreamSession(session);
 
-    const metadata = {
+    const metadata: JsonObject = {
       streamId: event.streamId,
-      conversationId: event.conversationId,
-      orchestrationRunId: event.orchestrationRunId,
+      conversationId: event.conversationId ?? null,
+      orchestrationRunId: event.orchestrationRunId ?? null,
       organizationSlug: event.organizationSlug ?? null,
       agentSlug: event.agentSlug,
       mode: event.mode,
       chunkType: event.chunk.type,
-      chunkMetadata: event.chunk.metadata ?? {},
+      chunkMetadata: this.asJsonObject(event.chunk.metadata) ?? {},
       receivedAt: new Date().toISOString(),
-    };
+    } as JsonObject;
 
     const content =
       typeof event.chunk.content === 'string'
@@ -326,7 +332,9 @@ export class TaskStatusService {
 
     this.addTaskMessage(session.taskId, content, 'progress', metadata);
 
-    const progress = this.extractProgress(event.chunk.metadata);
+    const progress = this.extractProgress(
+      this.asJsonObject(event.chunk.metadata),
+    );
     const currentStatus = this.activeTaskStatuses.get(session.taskId);
 
     const update: TaskStatusUpdate = {
@@ -368,16 +376,16 @@ export class TaskStatusService {
 
     this.touchStreamSession(session);
 
-    const metadata = {
+    const metadata: JsonObject = {
       streamId: event.streamId,
-      conversationId: event.conversationId,
-      orchestrationRunId: event.orchestrationRunId,
+      conversationId: event.conversationId ?? null,
+      orchestrationRunId: event.orchestrationRunId ?? null,
       organizationSlug: event.organizationSlug ?? null,
       agentSlug: event.agentSlug,
       mode: event.mode,
       type: 'complete',
       receivedAt: new Date().toISOString(),
-    };
+    } as JsonObject;
 
     this.addTaskMessage(session.taskId, 'Stream completed', 'status', metadata);
 
@@ -418,16 +426,16 @@ export class TaskStatusService {
         ? event.error
         : JSON.stringify(event.error);
 
-    const metadata = {
+    const metadata: JsonObject = {
       streamId: event.streamId,
-      conversationId: event.conversationId,
-      orchestrationRunId: event.orchestrationRunId,
+      conversationId: event.conversationId ?? null,
+      orchestrationRunId: event.orchestrationRunId ?? null,
       organizationSlug: event.organizationSlug ?? null,
       agentSlug: event.agentSlug,
       mode: event.mode,
       type: 'error',
       receivedAt: new Date().toISOString(),
-    };
+    } as JsonObject;
 
     this.addTaskMessage(session.taskId, errorMessage, 'error', metadata);
 
@@ -539,7 +547,7 @@ export class TaskStatusService {
       currentStatus.taskType === 'ephemeral'
     ) {
       try {
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           status: newStatus.status,
           progress: newStatus.progress,
           progress_message: newStatus.progressMessage,
@@ -553,22 +561,23 @@ export class TaskStatusService {
               : JSON.stringify(newStatus.result);
 
           // Extract and store LLM metadata if present in the result
-          if (
-            typeof newStatus.result === 'object' &&
-            newStatus.result.metadata
-          ) {
-            const resultMetadata = newStatus.result.metadata;
+          if (this.isJsonObject(newStatus.result)) {
+            const resultMetadataValue = newStatus.result['metadata'];
+            const resultMetadata = this.asJsonObject(resultMetadataValue);
 
-            // Store general metadata
-            updateData.metadata = resultMetadata;
+            if (resultMetadata) {
+              // Store general metadata
+              updateData.metadata = resultMetadata;
 
-            // Extract and store LLM-specific metadata
-            if (resultMetadata.llmUsed) {
-              updateData.llm_metadata = resultMetadata.llmUsed;
+              // Extract and store LLM-specific metadata
+              const llmUsed = this.asJsonObject(resultMetadata.llmUsed);
+              if (llmUsed) {
+                updateData.llm_metadata = llmUsed;
+              }
+
+              // Store response metadata (for compatibility)
+              updateData.response_metadata = resultMetadata;
             }
-
-            // Store response metadata (for compatibility)
-            updateData.response_metadata = resultMetadata;
           }
         }
 
@@ -625,7 +634,7 @@ export class TaskStatusService {
       | 'info'
       | 'warning'
       | 'error' = 'progress',
-    metadata?: Record<string, any>,
+    metadata?: JsonObject,
   ): void {
     if (!this.activeTaskMessages.has(taskId)) {
       this.activeTaskMessages.set(taskId, []);
@@ -640,11 +649,13 @@ export class TaskStatusService {
     );
 
     const normalizedMetadata =
-      metadata !== undefined ? { ...metadata } : undefined;
+      metadata !== undefined
+        ? (this.cloneJsonValue(metadata) as JsonObject)
+        : undefined;
     const progressPercentage =
       this.extractProgress(normalizedMetadata) ?? undefined;
 
-    const newMessage = {
+    const newMessage: TaskMessageRecord = {
       id: `msg-${now}-${Math.random().toString(36).slice(2, 11)}`,
       taskId,
       content: messageContent,
@@ -662,19 +673,7 @@ export class TaskStatusService {
   /**
    * Get accumulated messages for a task (live cache first, for polling)
    */
-  getTaskMessages(
-    taskId: string,
-    userId: string,
-  ): Array<{
-    id: string;
-    taskId: string;
-    content: string;
-    messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
-    progressPercentage?: number;
-    metadata?: Record<string, any>;
-    createdAt: string;
-    expiresAt: string;
-  }> {
+  getTaskMessages(taskId: string, userId: string): TaskMessageRecord[] {
     // Check if user owns this task
     const taskStatus = this.getTaskStatus(taskId, userId);
     if (!taskStatus) {
@@ -685,7 +684,13 @@ export class TaskStatusService {
     this.pruneExpiredMessages(taskId);
     const messages = this.activeTaskMessages.get(taskId) || [];
 
-    return [...messages]; // Return copy to prevent mutations
+    return messages.map((message) => ({
+      ...message,
+      metadata:
+        message.metadata !== undefined
+          ? (this.cloneJsonValue(message.metadata) as JsonObject)
+          : undefined,
+    }));
   }
 
   /**
@@ -712,7 +717,7 @@ export class TaskStatusService {
   async completeTask(
     taskId: string,
     userId: string,
-    result: any,
+    result: JsonValue,
   ): Promise<void> {
     await this.updateTaskStatus(taskId, userId, {
       status: 'completed',
@@ -854,5 +859,32 @@ export class TaskStatusService {
       activeTaskCount: this.activeTaskStatuses.size,
       userTaskCounts,
     };
+  }
+
+  private cloneJsonValue<T extends JsonValue>(value: T): T {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    if (typeof value === 'object') {
+      try {
+        return JSON.parse(JSON.stringify(value));
+      } catch (_error) {
+        return value;
+      }
+    }
+
+    return value;
+  }
+
+  private asJsonObject(value: unknown): JsonObject | undefined {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as JsonObject;
+    }
+    return undefined;
+  }
+
+  private isJsonObject(value: JsonValue | undefined): value is JsonObject {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 }

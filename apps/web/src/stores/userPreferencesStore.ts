@@ -349,10 +349,25 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       preferences.value = { ...DEFAULT_PREFERENCES, ...data.preferences };
     }
     if (data.userProfile) {
-      currentUser.value = {
-        ...data.userProfile,
-        createdAt: new Date(data.userProfile.createdAt ?? new Date()),
+      const baseProfile: UserProfile = currentUser.value ?? {
+        id: generateUUID(),
+        name: 'Anonymous User',
+        role: 'user',
+        email: undefined,
+        preferences: { ...DEFAULT_PREFERENCES },
+        createdAt: new Date(),
         lastActive: new Date(),
+      };
+
+      currentUser.value = {
+        ...baseProfile,
+        ...data.userProfile,
+        preferences: {
+          ...DEFAULT_PREFERENCES,
+          ...(data.userProfile.preferences ?? baseProfile.preferences),
+        },
+        createdAt: new Date(data.userProfile.createdAt ?? baseProfile.createdAt),
+        lastActive: new Date(data.userProfile.lastActive ?? new Date()),
       };
     }
     savePreferences();
