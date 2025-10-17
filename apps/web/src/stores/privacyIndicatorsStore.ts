@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import { useLLMStore } from './llmStore';
 import { useLlmUsageStore } from './llmUsageStore';
-import { useAgentChatStore } from './agentChatStore';
+import { useConversationsStore } from './conversationsStore';
 
 // Types
 export interface MessagePrivacyState {
@@ -348,15 +348,15 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
    * Refresh privacy states for all messages in a conversation
    */
   async function refreshConversationPrivacyStates(conversationId: string): Promise<void> {
-    const agentChatStore = useAgentChatStore();
+    const conversationsStore = useConversationsStore();
     const llmStore = useLLMStore();
-    
+
     // Get conversation messages
-    const conversation = agentChatStore.conversations.find(c => c.id === conversationId);
-    if (!conversation) return;
-    
+    const messages = conversationsStore.messagesByConversation(conversationId);
+    if (!messages || messages.length === 0) return;
+
     // Update each message's privacy state
-    for (const message of conversation.messages) {
+    for (const message of messages) {
       if (message.role === 'assistant') {
         await updateMessagePrivacyFromSources(message.id, message);
       }

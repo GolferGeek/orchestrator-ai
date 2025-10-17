@@ -175,15 +175,15 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         return [];
       }
 
-      // Prime routing cache from local chat store if available (no network)
+      // Prime routing cache from conversations store if available (no network)
       try {
-        const { useAgentChatStore } = await import('@/stores/agentChatStore');
-        const chatStore = useAgentChatStore();
-        const conv = chatStore.getConversationById(conversationId.trim());
-        if (conv?.agent?.name && conv?.agent?.type) {
+        const { useConversationsStore } = await import('@/stores/conversationsStore');
+        const conversationsStore = useConversationsStore();
+        const conv = conversationsStore.conversationById(conversationId.trim());
+        if (conv?.agentName && conv?.agentType) {
           state.value.conversationAgentRouting.set(conversationId.trim(), {
-            agentName: conv.agent.name as any,
-            agentType: conv.agent.type as any,
+            agentName: conv.agentName as any,
+            agentType: conv.agentType as any,
           });
         }
       } catch (_) {
@@ -608,14 +608,14 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         agentType = cachedRouting.agentType;
       }
 
-      // 2b) Try local agentChatStore next to avoid network calls
+      // 2b) Try local conversationsStore next to avoid network calls
       try {
-        const { useAgentChatStore } = await import('@/stores/agentChatStore');
-        const chatStore = useAgentChatStore();
-        const conv = chatStore.getConversationById(conversationId);
-        if (conv?.agent?.name && conv?.agent?.type) {
-          agentName = conv.agent.name as any;
-          agentType = conv.agent.type as any;
+        const { useConversationsStore } = await import('@/stores/conversationsStore');
+        const conversationsStore = useConversationsStore();
+        const conv = conversationsStore.conversationById(conversationId);
+        if (conv?.agentName && conv?.agentType) {
+          agentName = conv.agentName as any;
+          agentType = conv.agentType as any;
           // Update cache for future lookups
           state.value.conversationAgentRouting.set(conversationId, {
             agentName: agentName as any,
@@ -667,14 +667,14 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       // Load conversation history to filter out the previous deliverable response
       let filteredConversationHistory: any[] = [];
       try {
-        const { useAgentChatStore } = await import('@/stores/agentChatStore');
-        const chatStore = useAgentChatStore();
-        const conversation = chatStore.getConversationById(conversationId);
+        const { useConversationsStore } = await import('@/stores/conversationsStore');
+        const conversationsStore = useConversationsStore();
+        const messages = conversationsStore.messagesByConversation(conversationId);
 
-        if (conversation?.messages) {
+        if (messages && messages.length > 0) {
           // Filter out any assistant messages that contain this deliverable
           // We want to exclude the previous deliverable response from the history
-          filteredConversationHistory = conversation.messages
+          filteredConversationHistory = messages
             .filter(msg => {
               // Keep all user messages
               if (msg.role === 'user') return true;

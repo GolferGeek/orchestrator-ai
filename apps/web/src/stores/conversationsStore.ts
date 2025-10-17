@@ -626,13 +626,13 @@ export const useConversationsStore = defineStore('conversations', () => {
       await agentConversationsService.deleteConversation(conversationId);
 
       // Close tabs and clean up deliverables
-      const { useAgentChatStore } = await import('./agentChatStore');
+      const { useChatUiStore } = await import('./ui/chatUiStore');
       const { useDeliverablesStore } = await import('./deliverablesStore');
 
-      const agentChatStore = useAgentChatStore();
+      const chatUiStore = useChatUiStore();
       const deliverablesStore = useDeliverablesStore();
 
-      agentChatStore.closeConversation(conversationId);
+      chatUiStore.closeConversationTab(conversationId);
 
       if (deliverablesStore.handleConversationDeleted) {
         deliverablesStore.handleConversationDeleted(conversationId);
