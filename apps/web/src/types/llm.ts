@@ -222,3 +222,14 @@ export interface StandardizedLLMError {
     [key: string]: any;
   };
 }
+
+/**
+ * System-level model selection configuration
+ * Loaded from server's model-config endpoint
+ */
+export interface SystemModelSelection {
+  providerName: string;
+  modelName: string;
+  temperature?: number;
+  maxTokens?: number;
+}

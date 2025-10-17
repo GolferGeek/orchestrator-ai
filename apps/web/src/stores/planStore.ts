@@ -214,7 +214,16 @@ export const usePlanStore = defineStore('plan', () => {
 
       // Add versions if they exist
       if (response.versions && Array.isArray(response.versions)) {
-        response.versions.forEach((versionData: any) => {
+        response.versions.forEach((versionData: {
+          id: string;
+          plan_id: string;
+          version_number: number;
+          content: string;
+          format?: string;
+          created_at: string;
+          is_current_version?: boolean;
+          metadata?: Record<string, unknown>;
+        }) => {
           const version: PlanVersionData = {
             id: versionData.id,
             planId: versionData.plan_id,

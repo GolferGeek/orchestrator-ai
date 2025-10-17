@@ -8,7 +8,7 @@
 // ============================================================================
 // SHARED ENUMS
 // ============================================================================
-export {
+export type {
   AgentTaskMode,
   JsonRpcMethod,
   JsonRpcErrorCode,
@@ -18,7 +18,7 @@ export {
 // ============================================================================
 // SHARED DATA TYPES
 // ============================================================================
-export {
+export type {
   PlanData,
   PlanVersionData,
   DeliverableData,
@@ -28,7 +28,7 @@ export {
 // ============================================================================
 // JSON-RPC 2.0 BASE TYPES
 // ============================================================================
-export {
+export type {
   JsonRpcRequest,
   JsonRpcSuccessResponse,
   JsonRpcErrorResponse,
@@ -39,7 +39,7 @@ export {
 // ============================================================================
 // REQUEST TYPES
 // ============================================================================
-export {
+export type {
   TaskMessage,
   TaskRequestParams,
   A2ATaskRequest,
@@ -48,7 +48,7 @@ export {
 // ============================================================================
 // RESPONSE TYPES
 // ============================================================================
-export {
+export type {
   TaskResponsePayload,
   TaskResponse,
   A2ATaskSuccessResponse,
@@ -61,7 +61,7 @@ export {
 // ============================================================================
 
 // Plan Mode
-export {
+export type {
   PlanAction,
   PlanCreatePayload,
   PlanReadPayload,
@@ -81,7 +81,7 @@ export {
 } from './modes/plan.types';
 
 // Build Mode
-export {
+export type {
   BuildAction,
   BuildCreatePayload,
   BuildReadPayload,
@@ -100,7 +100,7 @@ export {
 } from './modes/build.types';
 
 // Converse Mode
-export {
+export type {
   ConverseModePayload,
   ConverseRequestMetadata,
   ConverseResponseMetadata,
@@ -108,7 +108,7 @@ export {
 } from './modes/converse.types';
 
 // Orchestrate Mode
-export {
+export type {
   OrchestrateAction,
   OrchestrateCreatePayload,
   OrchestrateExecutePayload,
@@ -148,7 +148,7 @@ export {
 // ============================================================================
 // STREAMING (SSE) TYPES
 // ============================================================================
-export {
+export type {
   BaseSSEEvent,
   AgentStreamContext,
   AgentStreamChunkMetadata,

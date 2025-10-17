@@ -236,3 +236,123 @@ export interface PseudonymDictionaryBulkResult {
   affectedCount: number;
   errors?: string[];
 }
+
+// =====================================
+// PRIVACY DASHBOARD TYPES
+// =====================================
+
+/**
+ * Privacy metrics summary
+ */
+export interface PrivacyMetrics {
+  totalDetections: number;
+  totalSanitizations: number;
+  piiTypesDetected: Record<PIIDataType, number>;
+  averageProcessingTime: number;
+  detectionRate: number;
+  sanitizationRate: number;
+  totalDataProcessed: number;
+  activePatterns: number;
+  activeDictionaries: number;
+}
+
+/**
+ * Detection statistics by data type
+ */
+export interface DetectionStats {
+  dataType: PIIDataType;
+  count: number;
+  percentage: number;
+  trend: 'up' | 'down' | 'stable';
+  lastDetection?: string;
+  avgConfidence: number;
+}
+
+/**
+ * Pattern usage statistics
+ */
+export interface PatternUsageStats {
+  patternId: string;
+  patternName: string;
+  dataType: PIIDataType;
+  matchCount: number;
+  lastUsed: string;
+  accuracy: number;
+  avgProcessingTime: number;
+}
+
+/**
+ * Sanitization method statistics
+ */
+export interface SanitizationMethodStats {
+  method: 'redaction' | 'pseudonymization' | 'masking' | 'encryption';
+  usageCount: number;
+  successRate: number;
+  avgProcessingTime: number;
+  dataTypesUsed: PIIDataType[];
+}
+
+/**
+ * Performance data point
+ */
+export interface PerformanceDataPoint {
+  timestamp: string;
+  processingTime: number;
+  detectionCount: number;
+  dataSize: number;
+  operation: 'detection' | 'sanitization' | 'lookup';
+}
+
+/**
+ * System health indicators
+ */
+export interface SystemHealthIndicators {
+  status: 'healthy' | 'degraded' | 'critical';
+  uptime: number;
+  memoryUsage: number;
+  cpuUsage: number;
+  errorRate: number;
+  lastHealthCheck: string;
+  issues: Array<{
+    severity: 'info' | 'warning' | 'error' | 'critical';
+    message: string;
+    timestamp: string;
+  }>;
+}
+
+/**
+ * Recent activity log entry
+ */
+export interface RecentActivityEntry {
+  id: string;
+  timestamp: string;
+  type: 'detection' | 'sanitization' | 'pattern_update' | 'dictionary_update' | 'system_event';
+  description: string;
+  userId?: string;
+  dataType?: PIIDataType;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Complete privacy dashboard data
+ */
+export interface PrivacyDashboardData {
+  metrics: PrivacyMetrics;
+  detectionStats: DetectionStats[];
+  patternUsage: PatternUsageStats[];
+  sanitizationMethods: SanitizationMethodStats[];
+  performanceData: PerformanceDataPoint[];
+  systemHealth: SystemHealthIndicators;
+  recentActivity: RecentActivityEntry[];
+}
+
+/**
+ * Dashboard filters
+ */
+export interface DashboardFilters {
+  timeRange: 'hour' | 'day' | 'week' | 'month' | 'year' | 'custom';
+  customStartDate?: string;
+  customEndDate?: string;
+  dataType: PIIDataType[] | 'all';
+  includeSystemEvents: boolean;
+}

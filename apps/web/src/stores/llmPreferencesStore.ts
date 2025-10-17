@@ -23,6 +23,7 @@ import {
   CIDAFMOptions,
   UnifiedLLMResponse,
   StandardizedLLMError,
+  SystemModelSelection,
 } from '../types/llm';
 import type { AgentLLMRecommendation } from '../types/evaluation';
 import { apiService } from '../services/apiService';
@@ -60,7 +61,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
     lastStandardizedError: null as StandardizedLLMError | null,
     responseProcessing: false,
     // Cached system model selection from server model-config
-    _systemModelSelection: undefined as any,
+    _systemModelSelection: null as SystemModelSelection | null,
     _systemModelLoaded: false,
   }),
   getters: {
@@ -463,9 +464,15 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
         // Fallback to names endpoint if empty or unexpected
         if (!Array.isArray(providers) || providers.length === 0) {
           try {
-            const names = await apiService.get('/providers/names');
+            const names = await apiService.get<Array<{ name: string }>>('/providers/names');
             if (Array.isArray(names) && names.length) {
-              providers = names.map((n: any) => ({ name: n.name, authType: 'api_key', status: 'active', createdAt: '', updatedAt: '' }));
+              providers = names.map((n) => ({
+                name: n.name,
+                authType: 'api_key' as const,
+                status: 'active' as const,
+                createdAt: '',
+                updatedAt: ''
+              }));
             }
           } catch (secondaryError) {
             // Keep original error context
@@ -694,9 +701,9 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
     },
 
     // Unified response handling actions
-    processUnifiedResponse(response: any): {
+    processUnifiedResponse(response: UnifiedLLMResponse | StandardizedLLMError | unknown): {
       content: string;
-      metadata: any;
+      metadata: Record<string, unknown>;
       isError: boolean;
       isRetryable: boolean;
     } {

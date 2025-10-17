@@ -58,7 +58,7 @@ export interface EnhancedEvaluationMetadata {
     accuracyRating?: number;
     userNotes?: string;
     evaluationTimestamp: string;
-    evaluationDetails?: any;
+    evaluationDetails?: Record<string, unknown>;
   };
   task: {
     id: string;
@@ -70,7 +70,7 @@ export interface EnhancedEvaluationMetadata {
     createdAt: string;
     completedAt?: string;
     progress?: number;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   };
   workflowSteps?: {
     totalSteps: number;
@@ -82,7 +82,7 @@ export interface EnhancedEvaluationMetadata {
       status: string;
       duration?: number;
       error?: string;
-      metadata?: any;
+      metadata?: Record<string, unknown>;
       startTime?: string;
       endTime?: string;
     }>;
@@ -98,7 +98,7 @@ export interface EnhancedEvaluationMetadata {
       constraintImpact: string;
       overallEffectiveness?: number;
     };
-    processingNotes?: any;
+    processingNotes?: Record<string, unknown>;
   };
   llmInfo: {
     provider: string;
@@ -113,7 +113,7 @@ export interface EnhancedEvaluationMetadata {
     temperature?: number;
     maxTokens?: number;
   };
-  systemMetadata?: any;
+  systemMetadata?: Record<string, unknown>;
 }
 export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   const isLoading = ref(false);
@@ -126,8 +126,8 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
     totalPages: 0
   });
   const analytics = ref<EvaluationAnalytics | null>(null);
-  const workflowAnalytics = ref<any>(null);
-  const constraintAnalytics = ref<any>(null);
+  const workflowAnalytics = ref<Record<string, unknown> | null>(null);
+  const constraintAnalytics = ref<Record<string, unknown> | null>(null);
   /**
    * Fetch all evaluations with admin filters
    */

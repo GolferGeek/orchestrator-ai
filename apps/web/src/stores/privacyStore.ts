@@ -31,6 +31,15 @@ import type {
   PseudonymGenerateResponse,
   PseudonymLookupResponse,
   PIITestResponse,
+  PrivacyDashboardData,
+  PrivacyMetrics,
+  DetectionStats,
+  PatternUsageStats,
+  SanitizationMethodStats,
+  PerformanceDataPoint,
+  SystemHealthIndicators,
+  RecentActivityEntry,
+  DashboardFilters,
 } from '@/types/pii';
 
 // ============================================================================
@@ -98,21 +107,18 @@ export interface SovereignPolicy {
   requiresLocalProcessing: boolean;
 }
 
-export interface PrivacyDashboardData {
-  metrics: any;
-  detectionStats: any[];
-  patternUsage: any[];
-  sanitizationMethods: any[];
-  performanceData: any[];
-  systemHealth: any;
-  recentActivity: any[];
-}
-
-export interface DashboardFilters {
-  timeRange: string;
-  dataType: string[];
-  includeSystemEvents: boolean;
-}
+// Re-export dashboard types for backward compatibility
+export type {
+  PrivacyDashboardData,
+  PrivacyMetrics,
+  DetectionStats,
+  PatternUsageStats,
+  SanitizationMethodStats,
+  PerformanceDataPoint,
+  SystemHealthIndicators,
+  RecentActivityEntry,
+  DashboardFilters,
+};
 
 // ============================================================================
 // STORE DEFINITION
@@ -284,7 +290,8 @@ export const usePrivacyStore = defineStore('privacy', () => {
     }
 
     filtered.sort((a, b) => {
-      let aVal: any, bVal: any;
+      let aVal: number | Date | string;
+      let bVal: number | Date | string;
 
       switch (mappingSortOptions.value.field) {
         case 'usageCount':
@@ -364,17 +371,18 @@ export const usePrivacyStore = defineStore('privacy', () => {
 
     filtered.sort((a, b) => {
       const { field, direction } = dictionarySortOptions.value;
-      let aVal: any = a[field];
-      let bVal: any = b[field];
+      let aVal: number | Date | string | undefined = a[field];
+      let bVal: number | Date | string | undefined = b[field];
 
       if (field === 'wordsCount') {
         aVal = a.words.length;
         bVal = b.words.length;
       } else if (field === 'createdAt' && aVal && bVal) {
-        aVal = new Date(aVal);
-        bVal = new Date(bVal);
+        aVal = new Date(aVal as string);
+        bVal = new Date(bVal as string);
       }
 
+      if (aVal === undefined || bVal === undefined) return 0;
       if (aVal < bVal) return direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return direction === 'asc' ? 1 : -1;
       return 0;
@@ -438,14 +446,15 @@ export const usePrivacyStore = defineStore('privacy', () => {
 
     filtered.sort((a, b) => {
       const { field, direction } = patternSortOptions.value;
-      let aVal: any = a[field];
-      let bVal: any = b[field];
+      let aVal: Date | string | number | boolean | undefined = a[field];
+      let bVal: Date | string | number | boolean | undefined = b[field];
 
       if (field === 'createdAt' && aVal && bVal) {
-        aVal = new Date(aVal);
-        bVal = new Date(bVal);
+        aVal = new Date(aVal as string);
+        bVal = new Date(bVal as string);
       }
 
+      if (aVal === undefined || bVal === undefined) return 0;
       if (aVal < bVal) return direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return direction === 'asc' ? 1 : -1;
       return 0;
@@ -459,14 +468,14 @@ export const usePrivacyStore = defineStore('privacy', () => {
   );
 
   const patternsByDataType = computed(() => {
-    const grouped: Record<PIIDataType, PIIPattern[]> = {} as any;
+    const grouped: Partial<Record<PIIDataType, PIIPattern[]>> = {};
     patterns.value.forEach(pattern => {
       if (!grouped[pattern.dataType]) {
         grouped[pattern.dataType] = [];
       }
-      grouped[pattern.dataType].push(pattern);
+      grouped[pattern.dataType]!.push(pattern);
     });
-    return grouped;
+    return grouped as Record<PIIDataType, PIIPattern[]>;
   });
 
   // ==========================================================================
