@@ -16,7 +16,12 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/generative-ai';
-import type { GoogleGenerateContentResult } from '../types/provider-payload.types';
+import type {
+  GoogleGenerateContentResult,
+  GoogleGenerateContentResponse,
+  GoogleGenerateContentCandidate,
+  GoogleUsageMetadata,
+} from '../types/provider-payload.types';
 
 /**
  * Google-specific response metadata extension
@@ -147,14 +152,20 @@ export class GoogleLLMService extends BaseLLMService {
       const result: GoogleGenerateContentResult = await model.generateContent(
         prompt,
       );
-      const response = result.response;
+      const response = result.response as GoogleGenerateContentResponse;
 
-      if (!response.text()) {
+      if (typeof response?.text !== 'function') {
+        throw new Error('Unexpected Google response shape: missing text()');
+      }
+
+      const responseText = response.text();
+
+      if (!responseText) {
         throw new Error('No content in Google response');
       }
 
       // Do not reverse here; LLMService handles dictionary reversal consistently
-      const finalContent = response.text();
+      const finalContent = responseText;
 
       const endTime = Date.now();
 
@@ -213,15 +224,18 @@ export class GoogleLLMService extends BaseLLMService {
    * Create Google-specific metadata with provider-specific fields
    */
   private createGoogleMetadata(
-    result: any,
-    response: any,
+    result: GoogleGenerateContentResult,
+    response: GoogleGenerateContentResponse,
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
     requestId: string,
   ): GoogleResponseMetadata {
-    const usageMetadata = response.usageMetadata;
-    const candidate = response.candidates?.[0];
+    const usageMetadata: GoogleUsageMetadata | undefined =
+      response.usageMetadata ??
+      (result.response?.usageMetadata as GoogleUsageMetadata | undefined);
+    const candidate: GoogleGenerateContentCandidate | undefined =
+      response.candidates?.[0];
 
     return {
       provider: 'google',
@@ -248,8 +262,8 @@ export class GoogleLLMService extends BaseLLMService {
       status: 'completed',
       // Google-specific fields
       providerSpecific: {
-        finish_reason: candidate?.finishReason || 'STOP',
-        safety_ratings: candidate?.safetyRatings?.map((rating: any) => ({
+        finish_reason: candidate?.finishReason ?? 'STOP',
+        safety_ratings: candidate?.safetyRatings?.map((rating) => ({
           category: rating.category,
           probability: rating.probability,
         })),

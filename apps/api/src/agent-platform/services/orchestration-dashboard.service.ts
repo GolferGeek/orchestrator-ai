@@ -28,6 +28,7 @@ import {
   OrchestrationRunDetail,
   OrchestrationRunSummary,
 } from '../types/orchestration-dashboard.types';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { OrchestrationExecutionService } from './orchestration-execution.service';
 import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 import type {
@@ -69,14 +70,14 @@ export interface ResolveOrchestrationApprovalOptions {
   decision: OrchestrationCheckpointDecision;
   actorId?: string | null;
   notes?: string | null;
-  modifications?: Record<string, any>;
+  modifications?: JsonObject;
 }
 
 export interface ManualRetryOptions {
   runId: string;
   stepRecordId?: string;
   delaySeconds?: number;
-  modifications?: Record<string, any>;
+  modifications?: JsonObject;
   note?: string | null;
   actorId?: string | null;
 }
@@ -85,7 +86,7 @@ export interface ManualSkipOptions {
   runId: string;
   stepRecordId?: string;
   note?: string | null;
-  replacementOutput?: Record<string, any> | null;
+  replacementOutput?: JsonObject | null;
   actorId?: string | null;
 }
 
@@ -369,7 +370,7 @@ export class OrchestrationDashboardService {
       delayMs > 0 ? new Date(now.getTime() + delayMs).toISOString() : null;
 
     const metadata = this.mergeStepMetadata(
-      step.metadata as Record<string, any> | undefined,
+      step.metadata,
       {},
     );
     const runtime = this.asRecord(metadata.runtime) ?? {};
@@ -399,8 +400,8 @@ export class OrchestrationDashboardService {
       retryRuntime.maxAttempts =
         this.resolveConfiguredMaxAttempts(
           metadata,
-          step.metadata as Record<string, any> | undefined,
-        ) ?? nextAttempt;
+        step.metadata,
+      ) ?? nextAttempt;
     }
 
     runtime.retry = retryRuntime;
@@ -527,10 +528,7 @@ export class OrchestrationDashboardService {
       );
     }
 
-    const metadata = this.mergeStepMetadata(
-      step.metadata as Record<string, any> | undefined,
-      {},
-    );
+    const metadata = this.mergeStepMetadata(step.metadata, {});
     metadata.runtime = {
       ...(metadata.runtime ?? {}),
       skip: {
@@ -649,9 +647,8 @@ export class OrchestrationDashboardService {
       return null;
     }
 
-    const metadata = (run.metadata ?? {}) as Record<string, any>;
-    const agentMetadata =
-      (metadata.agent as Record<string, any> | undefined) ?? {};
+    const metadata = (run.metadata ?? {}) as OrchestrationRunMetadata;
+    const agentMetadata = metadata.agent ?? {};
 
     const definition =
       run.orchestration_definition_id !== null
@@ -881,31 +878,24 @@ export class OrchestrationDashboardService {
     };
   }
 
-  private mergeInto(
-    target: Record<string, any>,
-    patch: Record<string, any>,
-  ): void {
+  private mergeInto(target: JsonObject, patch: JsonObject): void {
     Object.entries(patch).forEach(([key, value]) => {
-      if (
-        value &&
-        typeof value === 'object' &&
-        !Array.isArray(value)
-      ) {
-        if (!target[key] || typeof target[key] !== 'object') {
-          target[key] = {};
+      if (this.isJsonObject(value)) {
+        if (!this.isJsonObject(target[key])) {
+          target[key] = {} as JsonObject;
         }
-        this.mergeInto(target[key], value);
+        this.mergeInto(target[key] as JsonObject, value);
       } else {
         target[key] = value;
       }
     });
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
-    if (!value || typeof value !== 'object') {
+  private asRecord(value: unknown): JsonObject | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    return { ...(value as JsonObject) };
   }
 
   private asString(value: unknown): string | null {
@@ -915,11 +905,11 @@ export class OrchestrationDashboardService {
     return null;
   }
 
-  private cloneRecord(source: Record<string, any>): Record<string, any> {
-    try {
-      return JSON.parse(JSON.stringify(source));
-    } catch (_error) {
-      return {};
-    }
+  private cloneRecord<T extends JsonObject>(source: T): T {
+    return JSON.parse(JSON.stringify(source));
+  }
+
+  private isJsonObject(value: JsonValue | undefined): value is JsonObject {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 }

@@ -1,4 +1,6 @@
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import type { AgentLLMRecommendation } from './evaluation';
+import type { SovereignPolicy } from '@/stores/privacyStore';
 
 // LLM Evaluation Types for Frontend
 export type AuthType = 'api_key' | 'oauth' | 'none';
@@ -48,7 +50,7 @@ export interface CIDAFMOptions {
   activeStateModifiers?: string[];
   responseModifiers?: string[];
   executedCommands?: string[];
-  customOptions?: Record<string, any>;
+  customOptions?: JsonObject;
 }
 export interface LLMSelection {
   providerName?: string;
@@ -87,7 +89,7 @@ export interface EnhancedMessage {
   content?: string;
   timestamp: string;
   order: number;
-  metadata?: any;
+  metadata?: JsonObject | null;
   // LLM fields
   providerName?: string;
   modelName?: string;
@@ -104,7 +106,7 @@ export interface EnhancedMessage {
   evaluation_timestamp?: string;
   // CIDAFM and additional data
   cidafm_options?: CIDAFMOptions;
-  evaluation_details?: any;
+  evaluation_details?: JsonObject;
   // Populated data
   provider?: Provider;
   model?: Model;
@@ -155,7 +157,7 @@ export interface LLMPreferencesState {
   agentRecommendationsError: string | null;
   // Sovereign mode state
   sovereignMode: boolean;
-  sovereignPolicy: any; // TODO: Define proper type
+  sovereignPolicy: SovereignPolicy | null;
   sovereignLoading: boolean;
   sovereignError: string | null;
   // Sanitization stats state
@@ -199,9 +201,9 @@ export interface UnifiedLLMResponse {
       duration: number;
     };
     status: 'started' | 'completed' | 'error';
-    [key: string]: any;
+    [key: string]: JsonValue | undefined;
   };
-  piiMetadata?: any;
+  piiMetadata?: JsonObject;
 }
 
 export interface StandardizedLLMError {
@@ -219,7 +221,7 @@ export interface StandardizedLLMError {
     retryAfterMs?: number;
     timestamp: string;
     requestId?: string;
-    [key: string]: any;
+    [key: string]: JsonValue | undefined;
   };
 }
 

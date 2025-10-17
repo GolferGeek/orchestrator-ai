@@ -9,6 +9,9 @@ import type {
 import type {
   GenerateContentRequest,
   GenerateContentResult,
+  EnhancedGenerateContentResponse,
+  GenerateContentCandidate,
+  UsageMetadata,
   HarmBlockThreshold,
   HarmCategory,
 } from '@google/generative-ai';
@@ -25,6 +28,9 @@ export type AnthropicMessageResponse = Message;
 
 export type GoogleGenerateContentRequest = GenerateContentRequest;
 export type GoogleGenerateContentResult = GenerateContentResult;
+export type GoogleGenerateContentResponse = EnhancedGenerateContentResponse;
+export type GoogleGenerateContentCandidate = GenerateContentCandidate;
+export type GoogleUsageMetadata = UsageMetadata;
 export type GoogleHarmCategory = HarmCategory;
 export type GoogleHarmBlockThreshold = HarmBlockThreshold;
 

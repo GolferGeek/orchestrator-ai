@@ -36,7 +36,7 @@ npm run build && npm test
 ## Phase 2 — LLM & Evaluation Layer Hardening
 - [x] Inventory every `any`/unsafe usage inside `apps/api/src/llms/**/*` and evaluation modules.
 - [x] Design DTO interfaces for provider requests/responses (OpenAI, Anthropic, Google, Ollama).
-- [ ] Add schema validation (e.g., Zod/TypeBox/Nest pipes) to enforce incoming payloads.
+- [x] Add schema validation (e.g., Zod/TypeBox/Nest pipes) to enforce incoming payloads.
 - [ ] Refactor centralized routing + evaluation services to use new types (no `any` casts).
 - [ ] Type error-handling utilities and logging metadata; eliminate unsafe member accesses.
 - [ ] Update or add unit tests covering newly typed branches or guards.

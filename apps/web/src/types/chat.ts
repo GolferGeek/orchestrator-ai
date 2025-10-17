@@ -1,3 +1,5 @@
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+
 export type MessageSender = 'user' | 'agent' | 'system';
 export type MessageDisplayType = 'text' | 'agentList' | 'workflow_progress' | 'deliverable';
 export interface ChatMessage {
@@ -7,7 +9,7 @@ export interface ChatMessage {
   agentName?: string;
   timestamp: Date;
   messageType?: MessageDisplayType;
-  data?: any;
+  data?: JsonValue;
   // Workflow-specific fields
   workflowStep?: string;
   stepIndex?: number;
@@ -22,7 +24,7 @@ export interface WorkflowProgressMessage {
   totalSteps: number;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   message?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   timestamp: Date;
 }
 // Interface for deliverable messages
@@ -31,7 +33,7 @@ export interface DeliverableMessage {
   content: string;
   deliverableType: 'document' | 'analysis' | 'report' | 'plan' | 'requirements';
   format: 'markdown' | 'text' | 'json' | 'html';
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   downloadable?: boolean;
   timestamp: Date;
 }
@@ -44,7 +46,7 @@ export interface WorkflowState {
   status: 'pending' | 'running' | 'completed' | 'failed';
   steps: WorkflowProgressMessage[];
   deliverables: DeliverableMessage[];
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 // Interface for an agent (relevant for agent store later, but good to think about types together)
 export interface AgentInfo {
@@ -60,11 +62,11 @@ export interface AgentInfo {
     can_build: boolean;
     requires_human_gate: boolean;
   };
-  plan_structure?: Record<string, any> | null;
-  deliverable_structure?: Record<string, any> | null;
+  plan_structure?: JsonObject | null;
+  deliverable_structure?: JsonObject | null;
   io_schema?: {
-    input?: Record<string, any>;
-    output?: Record<string, any>;
+    input?: JsonObject;
+    output?: JsonObject;
   } | null;
   // capabilities?: string[]; // Example
 }
@@ -81,25 +83,25 @@ export interface TaskCreationRequest {
   // skill and agent_id are removed as per user clarification
 }
 // Represents a part of a message (e.g., text, image)
-interface MessagePart {
+export interface TaskMessagePart {
   type: string; // e.g., 'text', 'image'
   text?: string; // For text parts
   url?: string;  // For image parts
   alt_text?: string;
-  content?: any; // For generic artifact parts
+  content?: JsonValue; // For generic artifact parts
   encoding?: string;
   // Allow other properties from backend
-  [key: string]: any; 
+  [key: string]: JsonValue; 
 }
 // Represents a message within a task (request or response)
-interface TaskMessage {
+export interface TaskMessage {
   role: string; // "user", "agent", "system"
-  parts: MessagePart[];
-  artifacts?: any[]; // Define more strictly if needed
+  parts: TaskMessagePart[];
+  artifacts?: JsonObject[];
   timestamp?: string; // ISO 8601
-  metadata?: Record<string, any> | null; // For agent_name or other info
+  metadata?: JsonObject | null; // For agent_name or other info
   // Allow other properties from backend
-  [key: string]: any; 
+  [key: string]: JsonValue; 
 }
 // Updated TaskResponse to closely match backend Pydantic Task model
 export interface TaskResponse {
@@ -112,9 +114,9 @@ export interface TaskResponse {
   request_message?: TaskMessage;
   response_message?: TaskMessage | null;
   history?: TaskMessage[]; 
-  artifacts?: any[]; 
+  artifacts?: JsonObject[]; 
   session_id?: string | null;
-  metadata?: Record<string, any> | null;
+  metadata?: JsonObject | null;
   created_at: string; 
   updated_at: string; 
   // A2A Protocol V2 fields
@@ -125,7 +127,7 @@ export interface TaskResponse {
     format?: string;
     data: string;
     encoding?: string;
-    metadata?: Record<string, any>;
+    metadata?: JsonObject;
     size?: number;
     checksum?: string;
   }>;
@@ -134,16 +136,16 @@ export interface TaskResponse {
     artifact_id: string;
     artifact_type: string;
     format?: string;
-    data: any;
+    data: JsonValue;
     encoding?: string;
-    metadata?: Record<string, any>;
+    metadata?: JsonObject;
     size?: number;
     checksum?: string;
   }>;
   error_details?: {
     code?: string;
     message?: string;
-    details?: Record<string, any>;
+    details?: JsonObject;
   };
   progress?: {
     percentage?: number;
@@ -164,7 +166,7 @@ export interface TaskResponse {
   actual_duration?: number;
   dependencies?: string[];
   tags?: string[];
-  context?: Record<string, any>;
+  context?: JsonObject;
   // Legacy fields for V1 compatibility
   task_id?: string;
   respondingAgentName?: string;

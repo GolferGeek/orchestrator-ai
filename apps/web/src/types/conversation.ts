@@ -5,6 +5,17 @@
  * Migrated from stores/agentChatStore/types.ts
  */
 
+import type {
+  DeliverableData,
+  DeliverableVersionData,
+  JsonObject,
+  JsonValue,
+  PlanData,
+  PlanVersionData,
+} from '@orchestrator-ai/transport-types';
+import type { LLMSelection } from './llm';
+import type { MessageMetadata } from './message';
+
 export const PRIMARY_CHAT_MODES = ['converse', 'plan', 'build'] as const;
 export type PrimaryChatMode = typeof PRIMARY_CHAT_MODES[number];
 
@@ -41,11 +52,11 @@ export interface Agent {
   execution_modes?: string[];
   execution_profile?: AgentExecutionProfile;
   execution_capabilities?: AgentExecutionCapabilities;
-  plan_structure?: Record<string, any> | null;
-  deliverable_structure?: Record<string, any> | null;
+  plan_structure?: JsonObject | null;
+  deliverable_structure?: JsonObject | null;
   io_schema?: {
-    input?: Record<string, any>;
-    output?: Record<string, any>;
+    input?: JsonObject;
+    output?: JsonObject;
   } | null;
 }
 
@@ -56,7 +67,7 @@ export interface ConversationPlanRecord {
   agent_slug: string;
   status: string;
   summary: string | null;
-  plan_json: Record<string, any>;
+  plan_json: JsonObject;
   version: number;
   created_at: string;
   updated_at: string;
@@ -70,12 +81,12 @@ export interface OrchestrationRunRecord {
   orchestration_slug: string | null;
   organization_slug: string | null;
   status: string;
-  prompt_inputs?: Record<string, any>;
+  prompt_inputs?: JsonObject;
   current_step_index?: number | null;
-  completed_steps?: any[];
-  step_state?: Record<string, any>;
+  completed_steps?: JsonObject[];
+  step_state?: JsonObject;
   human_checkpoint_id?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   started_at: string;
   completed_at: string | null;
 }
@@ -88,8 +99,8 @@ export interface AgentOrchestrationRecord {
   display_name: string;
   description: string | null;
   status: string;
-  orchestration_json: Record<string, any>;
-  prompt_templates?: any[];
+  orchestration_json: JsonObject;
+  prompt_templates?: JsonObject[];
   tags?: string[];
   version?: string | null;
   created_by?: string | null;
@@ -102,13 +113,46 @@ export interface AgentTaskResponse {
   success: boolean;
   mode: string;
   payload?: {
-    content?: any;
-    metadata?: Record<string, any>;
+    content?: JsonValue;
+    metadata?: JsonObject;
   };
   humanResponse?: {
     message: string;
     reason?: string;
   };
+}
+
+export interface AgentChatWorkflowStep {
+  stepName: string;
+  stepIndex: number;
+  totalSteps: number;
+  status: string;
+  message?: string;
+  timestamp?: string;
+}
+
+export interface AgentChatCompletedStepSummary {
+  name: string;
+  message: string;
+  index: number;
+  total: number;
+}
+
+export interface AgentChatMessageMetadata extends MessageMetadata {
+  isPlaceholder?: boolean;
+  isCompleted?: boolean;
+  processingCompletion?: boolean;
+  completedAt?: string;
+  completedSteps?: AgentChatCompletedStepSummary[];
+  workflow_steps_realtime?: AgentChatWorkflowStep[];
+  processing_type?: string;
+  lastUpdated?: string;
+  messageCount?: number;
+  allMessages?: AgentChatMessage[];
+  /**
+   * Container for auxiliary metadata that does not yet have a dedicated field.
+   */
+  extra?: JsonObject;
 }
 
 export interface AgentChatMessage {
@@ -117,31 +161,7 @@ export interface AgentChatMessage {
   content: string;
   timestamp: Date;
   taskId?: string;
-  metadata?: {
-    isPlaceholder?: boolean;
-    isCompleted?: boolean;
-    processingCompletion?: boolean;
-    completedAt?: string;
-    completedSteps?: Array<{
-      name: string;
-      message: string;
-      index: number;
-      total: number;
-    }>;
-    workflow_steps_realtime?: Array<{
-      stepName: string;
-      stepIndex: number;
-      totalSteps: number;
-      status: string;
-      message?: string;
-      timestamp: string;
-    }>;
-    processing_type?: string;
-    lastUpdated?: string;
-    messageCount?: number;
-    allMessages?: any[];
-    [key: string]: any;
-  };
+  metadata?: AgentChatMessageMetadata;
 }
 
 export interface AgentConversation {
@@ -163,10 +183,10 @@ export interface AgentConversation {
   latestPlan?: ConversationPlanRecord | null;
   plans?: ConversationPlanRecord[];
   // New mode × action architecture state
-  currentPlan?: any | null; // Plan from new architecture
-  planVersions?: any[]; // PlanVersion[] from new architecture
-  currentDeliverable?: any | null; // Deliverable from new architecture
-  deliverableVersions?: any[]; // DeliverableVersion[] from new architecture
+  currentPlan?: PlanData | null;
+  planVersions?: PlanVersionData[];
+  currentDeliverable?: DeliverableData | null;
+  deliverableVersions?: DeliverableVersionData[];
   orchestrationRuns?: OrchestrationRunRecord[];
   savedOrchestrations?: AgentOrchestrationRecord[];
   streamSubscriptions?: Record<string, { messageId: string; unsubscribe: () => void }>;
@@ -183,15 +203,15 @@ export interface TaskExecutionOptions {
   method: string;
   prompt: string;
   conversationId: string;
-  conversationHistory: any[];
-  llmSelection: any;
+  conversationHistory: ConversationHistoryEntry[];
+  llmSelection: LLMSelection;
   executionMode: ExecutionMode;
   agentType: string;
   agentName: string;
   taskId?: string;
   mode?: AgentChatMode;
   timeoutSeconds?: number;
-  metadata?: any; // Context metadata for version operations
+  metadata?: JsonObject; // Context metadata for version operations
   agentNamespace?: string | null;
 }
 
@@ -205,7 +225,7 @@ export interface DeliverableOptions {
   taskId: string;
   content: string;
   existingContent: string;
-  messageMetadata?: any;
+  messageMetadata?: AgentChatMessageMetadata;
 }
 
 export interface ProgressUpdate {
@@ -213,7 +233,7 @@ export interface ProgressUpdate {
   status: string;
   progress: number;
   progressMessage?: string;
-  data?: any;
+  data?: JsonObject;
 }
 
 export interface TaskCompletionEvent {
@@ -229,5 +249,11 @@ export interface WorkflowStepEvent {
   totalSteps: number;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   message?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
+}
+
+export interface ConversationHistoryEntry {
+  role: string;
+  content: string;
+  metadata?: AgentChatMessageMetadata;
 }

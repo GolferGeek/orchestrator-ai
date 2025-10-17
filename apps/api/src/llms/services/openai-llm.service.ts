@@ -38,7 +38,7 @@ interface OpenAIResponseMetadata extends ResponseMetadata {
       | null;
     system_fingerprint?: string;
     model_version?: string;
-    logprobs?: any;
+    logprobs?: unknown;
     // OpenAI usage details
     prompt_tokens?: number;
     completion_tokens?: number;

@@ -1,4 +1,8 @@
 // API Configuration Types
+import type { JsonValue } from '@orchestrator-ai/transport-types';
+import type { AgentInfo, TaskResponse } from './chat';
+import type { ConversationHistoryEntry } from './conversation';
+
 export type ApiVersion = 'v1' | 'v2';
 export type ApiTechnology = 'typescript-nestjs';
 export interface ApiEndpoint {
@@ -21,9 +25,9 @@ export interface ApiClient {
   postTaskToOrchestrator(
     userInputText: string, 
     sessionId?: string | null, 
-    conversationHistory?: Array<{role: string, content: string, metadata?: any}>
-  ): Promise<any>;
-  getAvailableAgents(): Promise<any[]>;
+    conversationHistory?: ConversationHistoryEntry[]
+  ): Promise<TaskResponse>;
+  getAvailableAgents(): Promise<AgentInfo[]>;
   // Authentication
   setAuthToken?(token: string | null): void;
   // Metadata
@@ -49,7 +53,7 @@ export interface ApiError {
   message: string;
   code?: string;
   statusCode?: number;
-  details?: any;
+  details?: JsonValue;
   endpoint?: string;
 }
 // Response wrapper for consistent error handling
