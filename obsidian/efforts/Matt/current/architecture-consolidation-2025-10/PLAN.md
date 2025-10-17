@@ -1086,9 +1086,9 @@ Privacy features (PII detection, pseudonymization, sanitization) violate archite
 ### Overall Progress
 
 **Phase 1 - Store Consolidation:**
-- [ ] Task 1.1: Create Unified Conversations Store
-- [ ] Task 1.2: Migrate Components
-- [ ] Task 1.3: Delete Old Stores
+- [x] Task 1.1: Create Unified Conversations Store ✅
+- [x] Task 1.2: Migrate Components ✅
+- [x] Task 1.3: Delete Old Stores ✅
 - [ ] Task 1.4: Consolidate Agent Stores
 - [ ] Task 1.5: Extract UI State
 - [ ] Task 1.6: Remove Duplication
