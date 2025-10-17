@@ -314,9 +314,9 @@ export const usePlanStore = defineStore('plan', () => {
       addVersion(plan.id, newVersion);
 
       return newVersion;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to rerun plan with different LLM:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 

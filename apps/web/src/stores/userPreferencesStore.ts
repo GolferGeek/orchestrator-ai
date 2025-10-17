@@ -69,6 +69,16 @@ interface UserProfile {
   createdAt: Date;
   lastActive: Date;
 }
+
+interface PreferencesImportData {
+  preferences?: Partial<UserPreferences>;
+  userProfile?: Partial<UserProfile> & {
+    createdAt?: string | Date;
+    lastActive?: string | Date;
+  };
+  version?: string;
+  exportedAt?: string;
+}
 const DEFAULT_PREFERENCES: UserPreferences = {
   // API Preferences
   preferredApiVersion: 'v1',
@@ -247,7 +257,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   };
   const resetToDefaults = (category?: keyof UserPreferences) => {
     if (category) {
-      (preferences.value as any)[category] = (DEFAULT_PREFERENCES as any)[category];
+      preferences.value[category] = DEFAULT_PREFERENCES[category];
     } else {
       preferences.value = { ...DEFAULT_PREFERENCES };
     }
@@ -334,14 +344,14 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       version: '1.0.0',
     };
   };
-  const importPreferences = (data: any) => {
+  const importPreferences = (data: PreferencesImportData) => {
     if (data.preferences) {
       preferences.value = { ...DEFAULT_PREFERENCES, ...data.preferences };
     }
     if (data.userProfile) {
       currentUser.value = {
         ...data.userProfile,
-        createdAt: new Date(data.userProfile.createdAt),
+        createdAt: new Date(data.userProfile.createdAt ?? new Date()),
         lastActive: new Date(),
       };
     }

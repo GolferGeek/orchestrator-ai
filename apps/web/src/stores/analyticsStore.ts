@@ -7,6 +7,7 @@ import {
   AnalyticsSortOptions,
   EvaluationAnalytics,
   WorkflowAnalytics,
+  ConstraintAnalytics,
   ProjectAnalytics,
   ProjectMetrics,
   UsageStats,
@@ -24,6 +25,7 @@ import {
   PerformanceMetric,
   MetricTrend
 } from '@/types/analytics';
+import type { UnknownRecord } from '@/types';
 
 export const useAnalyticsStore = defineStore('analytics', () => {
   // =====================================
@@ -37,7 +39,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   // Evaluation Analytics
   const evaluationAnalytics = ref<EvaluationAnalytics | null>(null);
   const workflowAnalytics = ref<WorkflowAnalytics | null>(null);
-  const constraintAnalytics = ref<any>(null);
+  const constraintAnalytics = ref<ConstraintAnalytics | null>(null);
   
   // Project Analytics
   const projectAnalytics = ref<Record<string, ProjectAnalytics>>({});
@@ -96,7 +98,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   // Auto-refresh settings
   const autoRefreshEnabled = ref(false);
   const autoRefreshInterval = ref(30000); // 30 seconds
-  const autoRefreshTimer = ref<NodeJS.Timeout | null>(null);
+  const autoRefreshTimer = ref<ReturnType<typeof setInterval> | null>(null);
 
   // =====================================
   // GETTERS
@@ -440,7 +442,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     action: string,
     label?: string,
     value?: number,
-    properties?: Record<string, any>
+    properties?: UnknownRecord
   ) {
     if (!eventTrackingEnabled.value) return;
     
@@ -450,7 +452,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
       action,
       label,
       value,
-      properties: properties || {},
+      properties: properties ?? {},
       context: {
         userAgent: navigator.userAgent,
         url: window.location.href,
@@ -477,7 +479,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   /**
    * Track page view
    */
-  async function trackPageView(pageName: string, additionalProperties?: Record<string, any>) {
+  async function trackPageView(pageName: string, additionalProperties?: UnknownRecord) {
     await trackEvent('page_view', 'navigation', 'view', pageName, undefined, {
       page: pageName,
       ...additionalProperties

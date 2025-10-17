@@ -1,8 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TaskResponsePayload } from '@orchestrator-ai/transport-types';
+import type {
+  JsonObject,
+  JsonValue,
+  TaskResponsePayload,
+} from '@orchestrator-ai/transport-types';
 
 export interface OrchestrationMappedOutput {
-  output: Record<string, any>;
+  output: JsonObject;
   deliverableId: string | null;
   deliverableVersionId: string | null;
 }
@@ -13,7 +17,7 @@ export class OrchestrationOutputMapper {
 
   map(
     payload: TaskResponsePayload | null | undefined,
-    mapping: Record<string, any> | null | undefined,
+    mapping: JsonObject | null | undefined,
   ): OrchestrationMappedOutput {
     const safePayload: TaskResponsePayload = payload ?? {
       content: null,
@@ -36,10 +40,10 @@ export class OrchestrationOutputMapper {
 
   private applyMapping(
     payload: TaskResponsePayload,
-    mapping: Record<string, any>,
-  ): Record<string, any> {
-    const result: Record<string, any> = {};
-    const root = payload as Record<string, any>;
+    mapping: JsonObject,
+  ): JsonObject {
+    const result: JsonObject = {};
+    const root = payload as unknown as JsonObject;
 
     Object.entries(mapping).forEach(([key, expression]) => {
       try {
@@ -59,7 +63,7 @@ export class OrchestrationOutputMapper {
     return result;
   }
 
-  private defaultProjection(payload: TaskResponsePayload): Record<string, any> {
+  private defaultProjection(payload: TaskResponsePayload): JsonObject {
     return {
       content: this.cloneValue(payload.content),
       metadata: this.cloneValue(payload.metadata ?? {}),
@@ -69,24 +73,32 @@ export class OrchestrationOutputMapper {
   private resolveDeliverableReference(
     payload: TaskResponsePayload,
   ): { id: string | null; versionId: string | null } | null {
-    const asAny = payload as any;
+    const candidate = payload as unknown as JsonObject;
 
-    if (Array.isArray(asAny?.deliverables) && asAny.deliverables.length > 0) {
-      const primary = asAny.deliverables[0] ?? {};
+    const deliverables = candidate.deliverables;
+    if (Array.isArray(deliverables) && deliverables.length > 0) {
+      const primary = (deliverables[0] ?? {}) as JsonObject;
       return {
-        id: primary.id ?? null,
-        versionId: primary.versionId ?? primary.version_id ?? null,
+        id: this.asString(primary.id) ?? null,
+        versionId:
+          this.asString(primary.versionId) ??
+          this.asString(primary.version_id) ??
+          null,
       };
     }
 
-    const contentDeliverable = asAny?.content?.deliverable;
-    if (contentDeliverable) {
+    const contentDeliverable =
+      (candidate.content as JsonObject | undefined)?.deliverable;
+    if (contentDeliverable && typeof contentDeliverable === 'object') {
+      const deliverable = contentDeliverable as JsonObject;
       return {
-        id: contentDeliverable.id ?? null,
+        id: this.asString(deliverable.id) ?? null,
         versionId:
-          contentDeliverable.versionId ??
-          contentDeliverable.version_id ??
-          contentDeliverable.currentVersion?.id ??
+          this.asString(deliverable.versionId) ??
+          this.asString(deliverable.version_id) ??
+          this.asString(
+            (deliverable.currentVersion as JsonObject | undefined)?.id,
+          ) ??
           null,
       };
     }
@@ -94,7 +106,7 @@ export class OrchestrationOutputMapper {
     return null;
   }
 
-  private resolveJsonPath(root: Record<string, any>, expression: string): any {
+  private resolveJsonPath(root: JsonObject, expression: string): JsonValue {
     let path = expression.trim();
     if (!path.startsWith('$')) {
       return null;
@@ -110,7 +122,7 @@ export class OrchestrationOutputMapper {
     }
 
     const segments = path.split('.');
-    let current: any = root;
+    let current: JsonValue = root;
 
     for (const segment of segments) {
       if (current === null || current === undefined) {
@@ -122,7 +134,7 @@ export class OrchestrationOutputMapper {
     return this.cloneValue(current);
   }
 
-  private accessSegment(target: any, segment: string): any {
+  private accessSegment(target: JsonValue, segment: string): JsonValue {
     if (segment.length === 0) {
       return target;
     }
@@ -133,7 +145,11 @@ export class OrchestrationOutputMapper {
     const fieldMatch = remainder.match(/^([^\[\]]+)/);
     if (fieldMatch?.[1]) {
       const fieldName = fieldMatch[1];
-      current = current?.[fieldName];
+      if (current && typeof current === 'object' && !Array.isArray(current)) {
+        current = (current as JsonObject)[fieldName];
+      } else {
+        current = undefined;
+      }
       remainder = remainder.slice(fieldName.length);
     }
 
@@ -150,7 +166,7 @@ export class OrchestrationOutputMapper {
     return current;
   }
 
-  private cloneValue<T>(value: T): T {
+  private cloneValue<T extends JsonValue>(value: T): T {
     if (value === null || value === undefined) {
       return value;
     }
@@ -165,5 +181,9 @@ export class OrchestrationOutputMapper {
     }
 
     return value;
+  }
+
+  private asString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined;
   }
 }

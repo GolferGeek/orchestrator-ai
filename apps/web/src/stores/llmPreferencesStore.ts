@@ -31,6 +31,24 @@ import { sovereignPolicyService } from '../services/sovereignPolicyService';
 import { useSovereignPolicyStore } from './sovereignPolicyStore';
 import evaluationService from '../services/evaluationService';
 
+const getStatusText = (error: unknown): string | undefined => {
+  if (typeof error === 'object' && error && 'response' in error) {
+    const response = (error as { response?: { statusText?: string } }).response;
+    if (response && typeof response.statusText === 'string') {
+      return response.statusText;
+    }
+  }
+  return undefined;
+};
+
+const resolveErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  const statusText = getStatusText(error);
+  return statusText ?? fallback;
+};
+
 export const useLLMPreferencesStore = defineStore('llmPreferences', {
   state: (): LLMPreferencesState => ({
     selectedProvider: undefined,
@@ -481,9 +499,9 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
 
         this.providers = providers;
         console.log(`Fetched ${this.providers.length} providers (filtering handled reactively)`);
-      } catch (error: any) {
-        const msg = error?.message || error?.response?.statusText || 'Failed to fetch providers';
-        this.providerError = msg;
+      } catch (error) {
+        const message = resolveErrorMessage(error, 'Failed to fetch providers');
+        this.providerError = message;
         console.error('Error fetching providers:', error);
       } finally {
         this.loadingProviders = false;
@@ -512,9 +530,9 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
       try {
         const response = await apiService.get('/cidafm/commands');
         this.cidafmCommands = Array.isArray(response) ? response : (response?.data ?? response ?? []);
-      } catch (error: any) {
-        const msg = error?.message || error?.response?.statusText || 'Failed to fetch CIDAFM commands';
-        this.commandError = msg;
+      } catch (error) {
+        const message = resolveErrorMessage(error, 'Failed to fetch CIDAFM commands');
+        this.commandError = message;
         console.error('Error fetching CIDAFM commands:', error);
       } finally {
         this.loadingCommands = false;

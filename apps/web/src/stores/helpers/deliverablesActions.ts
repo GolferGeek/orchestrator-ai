@@ -21,6 +21,12 @@ import { deliverablesService } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { Deliverable, DeliverableVersion, CreateVersionDto } from '@/services/deliverablesService';
 
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const normalizeError = (error: unknown): Error =>
+  (error instanceof Error ? error : new Error(String(error)));
+
 /**
  * Load all deliverables for the current user
  * Updates store and returns deliverables
@@ -60,9 +66,9 @@ export async function loadDeliverables(): Promise<Deliverable[]> {
     });
 
     return deliverables;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to load deliverables:', error);
-    store.setError(error.message);
+    store.setError(getErrorMessage(error));
     return [];
   } finally {
     store.setLoading(false);
@@ -95,9 +101,9 @@ export async function loadDeliverablesByConversation(conversationId: string): Pr
     });
 
     return deliverables;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to load deliverables for conversation:', error);
-    store.setError(error.message);
+    store.setError(getErrorMessage(error));
     return [];
   } finally {
     store.setLoading(false);
@@ -124,10 +130,10 @@ export async function loadDeliverableVersions(deliverableId: string): Promise<De
     });
 
     return versions;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to load deliverable versions:', error);
-    store.setError(error.message);
-    throw error;
+    store.setError(getErrorMessage(error));
+    throw normalizeError(error);
   } finally {
     store.setLoading(false);
   }
@@ -154,10 +160,10 @@ export async function createDeliverableVersion(
     store.addVersion(deliverableId, newVersion);
 
     return newVersion;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to create deliverable version:', error);
-    store.setError(error.message);
-    throw error;
+    store.setError(getErrorMessage(error));
+    throw normalizeError(error);
   } finally {
     store.setLoading(false);
   }
@@ -178,10 +184,10 @@ export async function deleteDeliverable(deliverableId: string): Promise<void> {
 
     // Update store via mutation
     store.removeDeliverable(deliverableId);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to delete deliverable:', error);
-    store.setError(error.message);
-    throw error;
+    store.setError(getErrorMessage(error));
+    throw normalizeError(error);
   } finally {
     store.setLoading(false);
   }
@@ -204,10 +210,10 @@ export async function setDeliverableCurrentVersion(versionId: string): Promise<D
     store.addVersion(version.deliverableId, version);
 
     return version;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to set current version:', error);
-    store.setError(error.message);
-    throw error;
+    store.setError(getErrorMessage(error));
+    throw normalizeError(error);
   } finally {
     store.setLoading(false);
   }
@@ -228,10 +234,10 @@ export async function deleteDeliverableVersion(versionId: string, deliverableId:
 
     // Update store via mutation
     store.removeVersion(deliverableId, versionId);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to delete version:', error);
-    store.setError(error.message);
-    throw error;
+    store.setError(getErrorMessage(error));
+    throw normalizeError(error);
   } finally {
     store.setLoading(false);
   }
@@ -266,10 +272,10 @@ export async function createEditingConversation(
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to create editing conversation:', error);
-    store.setError(error.message);
-    throw error;
+    store.setError(getErrorMessage(error));
+    throw normalizeError(error);
   } finally {
     store.setLoading(false);
   }
@@ -289,10 +295,10 @@ export async function getDeliverableVersion(versionId: string): Promise<Delivera
     const version = await deliverablesService.getVersion(versionId);
 
     return version;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to get version:', error);
-    store.setError(error.message);
-    throw error;
+    store.setError(getErrorMessage(error));
+    throw normalizeError(error);
   } finally {
     store.setLoading(false);
   }
