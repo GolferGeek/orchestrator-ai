@@ -1089,10 +1089,10 @@ Privacy features (PII detection, pseudonymization, sanitization) violate archite
 - [x] Task 1.1: Create Unified Conversations Store ✅
 - [x] Task 1.2: Migrate Components ✅
 - [x] Task 1.3: Delete Old Stores ✅
-- [ ] Task 1.4: Consolidate Agent Stores
-- [ ] Task 1.5: Extract UI State
-- [ ] Task 1.6: Remove Duplication
-- [ ] Task 1.7: Delete agentChatStore
+- [x] Task 1.4: Consolidate Agent Stores ✅
+- [x] Task 1.5: Extract UI State ✅
+- [ ] Task 1.6: Remove Duplication (⏭️ Deferred - requires component refactoring)
+- [ ] Task 1.7: Delete agentChatStore (⏭️ Deferred - depends on 1.6)
 
 **Phase 2 - Service Migration:**
 - [ ] Task 2.1: Create build.actions.ts
