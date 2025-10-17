@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useSovereignPolicyStore } from '../../stores/sovereignPolicyStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 
 interface Props {
   variant?: 'compact' | 'full' | 'minimal';
@@ -36,18 +36,18 @@ const emit = defineEmits<{
   click: [];
 }>();
 
-const sovereignPolicyStore = useSovereignPolicyStore();
+const privacyStore = usePrivacyStore();
 
 // Computed properties
 const shouldShow = computed(() => {
-  return props.forceShow || sovereignPolicyStore.effectiveSovereignMode;
+  return props.forceShow || privacyStore.effectiveSovereignMode;
 });
 
 const icon = computed(() => {
-  if (sovereignPolicyStore.policy?.enforced) {
+  if (privacyStore.sovereignPolicy?.enforced) {
     return '🔒';
   }
-  return sovereignPolicyStore.effectiveSovereignMode ? '🛡️' : '🌐';
+  return privacyStore.effectiveSovereignMode ? '🛡️' : '🌐';
 });
 
 const displayText = computed(() => {
@@ -62,46 +62,46 @@ const displayText = computed(() => {
 
 const statusText = computed(() => {
   if (!props.showStatus) return '';
-  return sovereignPolicyStore.effectiveSovereignMode ? 'ON' : 'OFF';
+  return privacyStore.effectiveSovereignMode ? 'ON' : 'OFF';
 });
 
 const badgeClasses = computed(() => {
   const classes = [];
-  
+
   // Variant classes
   classes.push(`sovereign-badge--${props.variant}`);
-  
+
   // Status classes
-  if (sovereignPolicyStore.effectiveSovereignMode) {
+  if (privacyStore.effectiveSovereignMode) {
     classes.push('sovereign-badge--active');
   } else {
     classes.push('sovereign-badge--inactive');
   }
-  
+
   // Policy classes
-  if (sovereignPolicyStore.policy?.enforced) {
+  if (privacyStore.sovereignPolicy?.enforced) {
     classes.push('sovereign-badge--enforced');
   }
-  
+
   // Interactive classes
   if (props.clickable) {
     classes.push('sovereign-badge--clickable');
   }
-  
+
   return classes;
 });
 
 const tooltipText = computed(() => {
   if (!props.showTooltip) return '';
-  
-  if (sovereignPolicyStore.policy?.enforced) {
+
+  if (privacyStore.sovereignPolicy?.enforced) {
     return 'Organization policy enforces sovereign mode - only local models are used';
   }
-  
-  if (sovereignPolicyStore.effectiveSovereignMode) {
+
+  if (privacyStore.effectiveSovereignMode) {
     return 'Sovereign mode active - using local models only for enhanced privacy';
   }
-  
+
   return 'Sovereign mode inactive - external AI providers may be used';
 });
 </script>

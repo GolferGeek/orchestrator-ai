@@ -316,36 +316,55 @@ import {
   statsChartOutline,
   alertCircleOutline
 } from 'ionicons/icons';
-import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
-import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
+import { privacyService } from '@/services/privacyService';
 import { useStoreAutoRefresh } from '@/composables/useStoreIntegration';
 import RecentLLMCalls from '@/components/PII/RecentLLMCalls.vue';
 
-// Store integration
-const piiPatternsStore = usePIIPatternsStore();
-const pseudonymStore = usePseudonymDictionariesStore();
+// Store integration - unified privacy store
+const privacyStore = usePrivacyStore();
+
+// Computed properties - aliased for backward compatibility
+const piiPatternsStore = computed(() => ({
+  isLoading: privacyStore.patternsLoading,
+  error: privacyStore.patternsError,
+  patterns: privacyStore.patterns,
+  enabledPatterns: privacyStore.enabledPatterns,
+  fetchPatterns: () => privacyService.loadPatterns(),
+  testPIIDetection: privacyService.testPIIDetection,
+  clearError: () => privacyStore.setPatternsError(null),
+}));
+
+const pseudonymStore = computed(() => ({
+  isLoading: privacyStore.dictionariesLoading,
+  error: privacyStore.dictionariesError,
+  dictionaries: privacyStore.dictionaries,
+  totalWords: privacyStore.dictionaries.reduce((sum, d) => sum + d.words.length, 0),
+  fetchDictionaries: () => privacyService.loadDictionaries(),
+  clearError: () => privacyStore.setDictionariesError(null),
+}));
 
 // Computed properties for unified interface
-const isLoading = computed(() => piiPatternsStore.isLoading || pseudonymStore.isLoading);
-const hasError = computed(() => !!piiPatternsStore.error || !!pseudonymStore.error);
-const firstError = computed(() => piiPatternsStore.error || pseudonymStore.error);
+const isLoading = computed(() => privacyStore.patternsLoading || privacyStore.dictionariesLoading);
+const hasError = computed(() => !!privacyStore.patternsError || !!privacyStore.dictionariesError);
+const firstError = computed(() => privacyStore.patternsError || privacyStore.dictionariesError);
 
 // Methods
 const refreshAll = async () => {
   await Promise.all([
-    piiPatternsStore.fetchPatterns(),
-    pseudonymStore.fetchDictionaries()
+    privacyService.loadPatterns(true),
+    privacyService.loadDictionaries(true)
   ]);
 };
 
 const clearAllErrors = () => {
-  piiPatternsStore.clearError();
-  pseudonymStore.clearError();
+  privacyStore.setPatternsError(null);
+  privacyStore.setDictionariesError(null);
 };
 
 // PII Tools functionality
 const detectPII = async (text: string) => {
-  return await piiPatternsStore.testPIIDetection({ text });
+  return await privacyService.testPIIDetection({ text });
 };
 
 const pseudonymizeText = async (text: string) => {
