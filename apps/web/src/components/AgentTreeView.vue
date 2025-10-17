@@ -457,7 +457,7 @@ import {
 import { formatAgentName } from '@/utils/caseConverter';
 import { storeToRefs } from 'pinia';
 import { useAgentsStore } from '@/stores/agentsStore';
-import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import ConversationDeleteModal from './ConversationDeleteModal.vue';
 
@@ -497,7 +497,7 @@ const icons = {
 // Stores
 const agentsStore = useAgentsStore();
 const { availableAgents, agentHierarchy, isLoading, error, hasAgents } = storeToRefs(agentsStore);
-const conversationsStore = useAgentConversationsStore();
+const conversationsStore = useConversationsStore();
 const { conversations: storeConversations } = storeToRefs(conversationsStore);
 const deliverablesStore = useDeliverablesStore();
 

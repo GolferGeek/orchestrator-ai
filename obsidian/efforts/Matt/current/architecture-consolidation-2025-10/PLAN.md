@@ -47,7 +47,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 - [x] 1.1.6 Implement getters (conversationById, messagesByConversation, tasksByConversation)
 - [x] 1.1.7 Implement mutations (addConversation, addMessage, addTask, removeConversation)
 - [x] 1.1.8 Implement computed properties (activeConversation, allConversations)
-- [ ] 1.1.9 Export store from stores/index.ts
+- [x] 1.1.9 Export store from stores/index.ts (N/A - no index.ts file, import directly)
 
 #### Unit Tests:
 - [x] 1.1.T1 Test addConversation mutation
