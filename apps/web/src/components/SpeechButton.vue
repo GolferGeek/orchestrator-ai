@@ -33,7 +33,9 @@ import { ref, computed, onUnmounted, onMounted, watch } from 'vue';
 import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { micOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { /* migrated */ } from '@/stores/agentChatStore';
 import { agentTaskService } from '@/services/agent-tasks';
 
 // Define speech states
@@ -51,7 +53,8 @@ const emit = defineEmits<{
 }>();
 
 // Stores
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 
 // State
 const speechState = ref<SpeechState>('idle');
@@ -60,8 +63,8 @@ const audioChunks = ref<Blob[]>([]);
 const currentAudio = ref<HTMLAudioElement | null>(null);
 
 // Computed
-const currentAgent = computed(() => agentChatStore.activeConversation?.agent);
-const conversationId = computed(() => agentChatStore.activeConversation?.id);
+const currentAgent = computed(() => chatUiStore.activeConversation?.agent);
+const conversationId = computed(() => chatUiStore.activeConversation?.id);
 
 const isListening = computed(() => speechState.value === 'listening');
 const isProcessing = computed(() => speechState.value === 'processing');
@@ -196,10 +199,10 @@ const processAudio = async () => {
     console.log('🎤 [SpeechButton] Transcribed text:', transcription.text);
 
     // Step 2: Mark that the next message was sent via speech (for TTS triggering)
-    agentChatStore.lastMessageWasSpeech = true;
+    chatUiStore.lastMessageWasSpeech = true;
 
     // Step 3: Send the transcribed text through normal chat flow
-    const conversation = agentChatStore.activeConversation;
+    const conversation = chatUiStore.activeConversation;
     if (conversation && conversation.agent) {
       const mode = conversation.chatMode || 'converse';
 

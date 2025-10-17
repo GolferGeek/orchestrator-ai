@@ -185,7 +185,9 @@ import {
   documentTextOutline,
 } from 'ionicons/icons';
 import { useContextStore } from '@/stores/contextStore';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { /* migrated */ } from '@/stores/agentChatStore';
 import type { DeliverableVersion } from '@/services/deliverablesService';
 // Props
 interface Props {
@@ -196,7 +198,8 @@ interface Props {
 const props = defineProps<Props>();
 // Stores
 const contextStore = useContextStore();
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 // Reactive state
 const selectedVersions = ref<string[]>([]);
 const mergeSelectedVersions = ref<string[]>([]);
@@ -262,14 +265,14 @@ const createNewVersion = () => {
 };
 const deleteVersion = async (versionId: string) => {
   // Single version deletion
-  await agentChatStore.sendMessageWithContext(
+  await chatUiStore.sendMessageWithContext(
     `Deleting version ${getVersionNumber(versionId)}`,
     contextStore.createDeleteMetadata([versionId])
   );
 };
 const executeDelete = async () => {
   if (selectedVersions.value.length === 0) return;
-  await agentChatStore.sendMessageWithContext(
+  await chatUiStore.sendMessageWithContext(
     `Deleting ${selectedVersions.value.length} selected version(s)`,
     contextStore.createDeleteMetadata(selectedVersions.value)
   );

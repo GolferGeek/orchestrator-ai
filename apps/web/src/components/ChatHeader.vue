@@ -21,7 +21,9 @@
 import { computed } from 'vue';
 import { IonIcon } from '@ionic/vue';
 import { chatbubblesOutline, documentTextOutline, hammerOutline } from 'ionicons/icons';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { /* migrated */ } from '@/stores/agentChatStore';
 
 const chatStore = useAgentChatStore();
 

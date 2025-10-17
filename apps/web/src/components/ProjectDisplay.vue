@@ -274,12 +274,13 @@ const submitProjectPrompt = async () => {
     // Import the agent chat store and context store
     const { useAgentChatStore } = await import('@/stores/agentChatStore');
     const { useContextStore } = await import('@/stores/contextStore');
-    const agentChatStore = useAgentChatStore();
+    const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
     const contextStore = useContextStore();
     // Set project context
     contextStore.setProjectContext(props.project.id);
     // Send context-aware message
-    await agentChatStore.sendContextAwareMessage(content);
+    await chatUiStore.sendContextAwareMessage(content);
   } catch (error) {
 
     // Restore the input text on error

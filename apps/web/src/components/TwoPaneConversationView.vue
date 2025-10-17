@@ -343,7 +343,9 @@ import {
   closeOutline,
   playOutline,
 } from 'ionicons/icons';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { /* migrated */ } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -376,7 +378,8 @@ interface Props {
 }
 const props = defineProps<Props>();
 // Stores
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const deliverablesStore = useDeliverablesStore();
 const planStore = usePlanStore();
 const authStore = useAuthStore();
@@ -424,15 +427,15 @@ const shouldShowAgentResources = computed(() => {
   // Show panel if we have a current agent and at least one video to display
   return currentAgent.value && (agentVideoIds.value.length > 0 || fallbackVideoIds.value.length > 0);
 });
-const isLoading = computed(() => agentChatStore.isLoading);
-const error = computed(() => agentChatStore.error);
-const isSendingMessage = computed(() => agentChatStore.isSendingMessage);
+const isLoading = computed(() => chatUiStore.isLoading);
+const error = computed(() => chatUiStore.error);
+const isSendingMessage = computed(() => chatUiStore.isSendingMessage);
 const canSend = computed(() => {
   return messageText.value.trim().length > 0 && 
          !isSendingMessage.value && 
          currentAgent.value;
 });
-const currentChatMode = computed(() => props.conversation?.chatMode || agentChatStore.activeChatMode);
+const currentChatMode = computed(() => props.conversation?.chatMode || chatUiStore.chatMode);
 const agentRecommendations = computed(() =>
   currentAgentIdentifier.value
     ? llmStore.getRecommendationsForAgent(currentAgentIdentifier.value)
@@ -526,7 +529,7 @@ const sendMessage = async (mode?: AgentChatMode) => {
 
   // If mode is provided, set it before sending
   if (mode) {
-    agentChatStore.setChatMode(mode);
+    chatUiStore.setChatMode(mode);
   }
 
   const conversationId = props.conversation?.id;
@@ -544,7 +547,7 @@ const sendMessage = async (mode?: AgentChatMode) => {
     }
 
     // Set loading state BEFORE sending
-    agentChatStore.setSendingMessage(conversationId, true);
+    chatUiStore.setSendingMessage(conversationId, true);
 
     const effectiveMode = mode || currentChatMode.value;
 
@@ -564,7 +567,7 @@ const sendMessage = async (mode?: AgentChatMode) => {
     messageText.value = content;
   } finally {
     // Clear loading state AFTER sending (or error)
-    agentChatStore.setSendingMessage(conversationId, false);
+    chatUiStore.setSendingMessage(conversationId, false);
   }
 };
 // Check if a recommendation matches the current selection
@@ -679,7 +682,7 @@ const applyRecommendation = (recommendation: AgentLLMRecommendation) => {
 };
 const clearError = () => {
   if (props.conversation?.id) {
-    agentChatStore.clearError(props.conversation.id);
+    conversationsStore.clearError(props.conversation.id);
   }
 };
 const scrollToBottom = async () => {
@@ -1100,7 +1103,7 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
         const loadedPlan = await planStore.loadPlansByConversation(newId);
         if (loadedPlan) {
           // Set the plan on the conversation so PlanDisplay can access it
-          agentChatStore.setPlan(newId, loadedPlan);
+          chatUiStore.setPlan(newId, loadedPlan);
           hasPlan = true;
           console.log('✅ [TwoPaneConversationView] Loaded plan from API and set on conversation:', loadedPlan.id);
         } else {
@@ -1112,7 +1115,7 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
     } else {
       // Plan already in store - get it and set on conversation
       const mostRecentPlan = conversationPlans[0]; // Already sorted by updatedAt DESC
-      agentChatStore.setPlan(newId, mostRecentPlan);
+      chatUiStore.setPlan(newId, mostRecentPlan);
       hasPlan = true;
       console.log('✅ [TwoPaneConversationView] Plan already in store, set on conversation:', mostRecentPlan.id);
     }

@@ -1,13 +1,13 @@
 <template>
   <div class="conversation-tabs-container">
     <!-- Tab Bar -->
-    <div class="conversation-tab-bar" v-if="agentChatStore.conversations.length > 0">
+    <div class="conversation-tab-bar" v-if="conversationsStore.allConversations.length > 0">
       <div class="tab-scroll-wrapper">
-        <div 
-          v-for="conversation in agentChatStore.conversations" 
+        <div
+          v-for="conversation in conversationsStore.allConversations"
           :key="conversation.id"
           class="conversation-tab"
-          :class="{ 'active': conversation.id === agentChatStore.activeConversationId }"
+          :class="{ 'active': conversation.id === chatUiStore.activeConversationId }"
           @click="switchToConversation(conversation.id)"
         >
           <span class="tab-title">{{ conversation.title }}</span>
@@ -52,14 +52,17 @@ import { computed } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
 import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
 import { useRoute } from 'vue-router';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { /* migrated */ } from '@/stores/agentChatStore';
 import { agentTaskService } from '@/services/agent-tasks';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';
 const route = useRoute();
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 // Computed
-const activeConversation = computed(() => agentChatStore.activeConversation);
+const activeConversation = computed(() => chatUiStore.activeConversation);
 
 const isOrchestratorConversation = computed(() => {
   const agentName = activeConversation.value?.agent?.name;
@@ -79,16 +82,16 @@ const shouldUseTwoPaneView = computed(() => {
 
 // Methods
 const switchToConversation = (conversationId: string) => {
-  agentChatStore.setActiveConversation(conversationId);
+  chatUiStore.setActiveConversation(conversationId);
 };
 
 const closeConversation = (conversationId: string) => {
   // Close conversation without confirmation dialog
-  agentChatStore.removeConversation(conversationId);
+  conversationsStore.removeConversation(conversationId);
 };
 
 const handleSendMessage = async (content: string) => {
-  const conversation = agentChatStore.activeConversation;
+  const conversation = chatUiStore.activeConversation;
   if (!conversation || !conversation.agent) {
     console.error('Cannot send message: no active conversation');
     return;

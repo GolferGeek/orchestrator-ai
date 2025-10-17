@@ -150,7 +150,9 @@ import {
   addOutline,
 } from 'ionicons/icons';
 import { useAgentsStore } from '@/stores/agentsStore';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { /* migrated */ } from '@/stores/agentChatStore';
 import { useContextStore } from '@/stores/contextStore';
 import { formatAgentDescription } from '@/utils/caseConverter';
 // Props
@@ -165,7 +167,8 @@ const emit = defineEmits<{
 }>();
 // Stores
 const agentsStore = useAgentsStore();
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const contextStore = useContextStore();
 // Reactive state
 const selectedAgent = ref<any>(null);
@@ -212,7 +215,7 @@ const createDeliverable = async () => {
       metadata.deliverableFormat = deliverableFormat.value;
     }
     // Send the creation request through the agent chat store
-    await agentChatStore.sendMessageWithContext(
+    await chatUiStore.sendMessageWithContext(
       initialPrompt.value.trim(),
       metadata
     );

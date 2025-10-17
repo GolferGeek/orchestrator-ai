@@ -85,7 +85,9 @@ import {
 import {
   alertCircleOutline,
 } from 'ionicons/icons';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { /* migrated */ } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { agentTaskService } from '@/services/agent-tasks';
 import { tasksService } from '@/services/tasksService';
@@ -105,7 +107,8 @@ interface Props {
 }
 const props = defineProps<Props>();
 // Stores
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 useModeSwitchShortcuts(agentChatStore);
 
@@ -116,24 +119,24 @@ const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 // Computed - use conversation data from props when available, otherwise use reactive store getter
 const currentAgent = computed(() =>
-  props.conversation?.agent || agentChatStore.activeConversation?.agent
+  props.conversation?.agent || chatUiStore.activeConversation?.agent
 );
 const messages = computed(() =>
-  props.conversation?.messages || agentChatStore.activeConversation?.messages || []
+  props.conversation?.messages || chatUiStore.activeConversation?.messages || []
 );
 const isLoading = computed(() =>
-  props.conversation?.isLoading || agentChatStore.activeConversation?.isLoading || false
+  props.conversation?.isLoading || chatUiStore.activeConversation?.isLoading || false
 );
 const error = computed(() =>
-  props.conversation?.error || agentChatStore.activeConversation?.error || null
+  props.conversation?.error || chatUiStore.activeConversation?.error || null
 );
 const isSendingMessage = computed(() =>
-  props.conversation?.isSendingMessage || agentChatStore.activeConversation?.isSendingMessage || false
+  props.conversation?.isSendingMessage || chatUiStore.activeConversation?.isSendingMessage || false
 );
 const canSend = computed(() =>
   messageText.value.trim().length > 0 && currentAgent.value && !isSendingMessage.value
 );
-const chatMode = computed(() => agentChatStore.activeChatMode);
+const chatMode = computed(() => chatUiStore.chatMode);
 const loadingMessage = computed(() => {
   const mode = (chatMode.value || '').toLowerCase();
   if (mode === 'plan') return 'Creating plan...';
@@ -143,7 +146,7 @@ const loadingMessage = computed(() => {
 const showCancelButton = computed(() => chatMode.value === 'build');
 
 const conversationId = computed(() =>
-  props.conversation?.id || agentChatStore.activeConversation?.id
+  props.conversation?.id || chatUiStore.activeConversation?.id
 );
 // Methods
 const sendMessage = async (mode?: AgentChatMode) => {
@@ -153,12 +156,12 @@ const sendMessage = async (mode?: AgentChatMode) => {
 
   // If mode is provided, set it before sending
   if (mode) {
-    agentChatStore.setChatMode(mode);
+    chatUiStore.setChatMode(mode);
   }
 
   try {
     // Send message using service layer (Vue reactivity handles UI updates)
-    const activeConversation = agentChatStore.activeConversation;
+    const activeConversation = chatUiStore.activeConversation;
     if (activeConversation && currentAgent.value) {
       await agentTaskService.sendTask({
         agentSlug: currentAgent.value.slug || currentAgent.value.name,
@@ -177,9 +180,9 @@ const sendMessage = async (mode?: AgentChatMode) => {
 };
 const clearError = () => {
   // Clear error using store mutation (Vue reactivity handles UI updates)
-  const activeConversation = agentChatStore.activeConversation;
+  const activeConversation = chatUiStore.activeConversation;
   if (activeConversation) {
-    agentChatStore.clearError(activeConversation.id);
+    conversationsStore.clearError(activeConversation.id);
   }
 };
 const scrollToBottom = async () => {
@@ -203,7 +206,7 @@ const handleSpeechError = (error: string) => {
 
 const cancelCurrentOperation = async () => {
   try {
-    const activeConversation = agentChatStore.activeConversation;
+    const activeConversation = chatUiStore.activeConversation;
     if (!activeConversation?.activeTaskId) {
       console.warn('No active task to cancel');
       return;

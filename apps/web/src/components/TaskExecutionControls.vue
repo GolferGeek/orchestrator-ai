@@ -77,14 +77,15 @@ import {
 import { useAgentChatStore } from '../stores/agentChatStore';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 // Store instances
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const userPreferencesStore = useUserPreferencesStore();
 // Local state
 const showModeSelector = ref(false);
 // Computed properties
 const userPreferences = computed(() => userPreferencesStore.preferences);
-const currentMode = computed(() => agentChatStore.effectiveExecutionMode);
-const activeConversation = computed(() => agentChatStore.activeConversation);
+const currentMode = computed(() => chatUiStore.effectiveExecutionMode);
+const activeConversation = computed(() => chatUiStore.activeConversation);
 const isExecutionModeOverride = computed(() => activeConversation.value?.isExecutionModeOverride || false);
 const supportedModes = computed(() => {
   return activeConversation.value?.supportedExecutionModes || ['immediate'];
@@ -126,11 +127,11 @@ const getModeLabel = (mode: string) => {
 // Event handlers
 const handleModeChange = (event: CustomEvent) => {
   const newMode = event.detail.value as 'immediate' | 'polling' | 'websocket';
-  agentChatStore.setExecutionMode(newMode);
+  chatUiStore.setExecutionMode(newMode);
   showModeSelector.value = false;
 };
 const resetToDefault = () => {
-  agentChatStore.resetExecutionMode();
+  chatUiStore.resetExecutionMode();
   showModeSelector.value = false;
 };
 </script>

@@ -111,18 +111,19 @@ const activeTab = ref<'model' | 'behavior'>('model');
 const showCostEstimate = ref(true);
 const uiStore = useUiStore();
 const llmStore = useLLMStore();
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 const validation = useValidation();
 
 // Get current conversation ID from props or store
 const currentConversationId = computed(() => {
-  return props.conversationId || agentChatStore.activeConversationId;
+  return props.conversationId || chatUiStore.activeConversationId;
 });
 
 // Get current conversation for agent info
 const currentConversation = computed(() => {
   if (!currentConversationId.value) return null;
-  return agentChatStore.activeConversation;
+  return chatUiStore.activeConversation;
 });
 
 // Setup validation rules
@@ -190,7 +191,7 @@ const sendMessage = async (mode?: AgentChatMode) => {
 
   // If mode is provided, set it before sending
   if (mode) {
-    agentChatStore.setChatMode(mode);
+    chatUiStore.setChatMode(mode);
   }
 
   emit('sendMessage', messageToSend, llmSelection);

@@ -1,7 +1,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useSanitizationStore } from '@/stores/sanitizationStore';
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import type { AgentChatMessage } from '@/stores/agentChatStore/types';
 
 export interface PrivacyStatus {
@@ -56,7 +56,7 @@ export function usePrivacyIndicators(options: PrivacyIndicatorOptions = {}) {
   
   const sanitizationStore = useSanitizationStore();
   const llmUsageStore = useLlmUsageStore();
-  const agentChatStore = useAgentChatStore();
+  const chatUiStore = useChatUiStore();
   
   // =====================================
   // STATE
@@ -91,7 +91,7 @@ export function usePrivacyIndicators(options: PrivacyIndicatorOptions = {}) {
   const currentMessage = computed((): AgentChatMessage | null => {
     if (!options.messageId) return null;
     
-    const conversation = agentChatStore.activeConversation;
+    const conversation = chatUiStore.activeConversation;
     if (!conversation) return null;
     
     return conversation.messages.find(msg => msg.id === options.messageId) || null;

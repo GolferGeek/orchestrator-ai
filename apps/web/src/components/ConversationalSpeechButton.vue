@@ -57,7 +57,8 @@ const emit = defineEmits<{
 
 const uiStore = useUiStore();
 const llmStore = useLLMStore();
-const agentChatStore = useAgentChatStore();
+const conversationsStore = useConversationsStore();
+const chatUiStore = useChatUiStore();
 
 // Component state
 const conversationState = ref<ConversationState>('idle');
@@ -564,10 +565,10 @@ const processRecordedAudio = async () => {
 
     // Step 2: Mark that the next message was sent via speech (for TTS triggering)
     console.log('🎤 [DEBUG] Setting lastMessageWasSpeech = true');
-    agentChatStore.lastMessageWasSpeech = true;
+    chatUiStore.lastMessageWasSpeech = true;
 
     // Step 3: Send the transcribed text through normal chat flow
-    const conversation = agentChatStore.activeConversation;
+    const conversation = chatUiStore.activeConversation;
     if (conversation && conversation.agent) {
       const mode = conversation.chatMode || 'converse';
 
