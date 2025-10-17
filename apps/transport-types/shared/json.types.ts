@@ -13,5 +13,5 @@ export type JsonValue =
 export type JsonArray = JsonValue[];
 
 export interface JsonObject {
-  [key: string]: JsonValue;
+  [key: string]: JsonValue | undefined;
 }

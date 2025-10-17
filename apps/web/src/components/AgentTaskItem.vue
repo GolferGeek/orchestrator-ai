@@ -227,34 +227,92 @@ import { usePlanStore } from '@/stores/planStore';
 import { usePrivacyStore } from '@/stores/privacyStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
-import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { useChatUiStore, type PendingAction } from '@/stores/ui/chatUiStore';
 import { sendMessage, createPlan, createDeliverable, setCurrentVersion } from '@/services/agent2agent/actions';
 import analyticsService from '@/services/analyticsService';
 import { apiService } from '@/services/apiService';
 import { toastController } from '@ionic/vue';
+import type {
+  Agent,
+  AgentChatMessage,
+  AgentChatWorkflowStep,
+  AgentChatCompletedStepSummary,
+} from '@/types/conversation';
+import type { Deliverable } from '@/services/deliverablesService';
+import type { JsonObject, JsonValue, PlanData } from '@orchestrator-ai/transport-types';
 
-export interface AgentTaskMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-  taskId?: string;
-  metadata?: Record<string, any>;
-  deliverableId?: string;
+interface LLMDisplayInfo {
+  providerName: string;
+  modelName: string;
+  temperature?: number;
+  maxTokens?: number;
+  responseTimeMs?: number;
 }
 
+interface LLMUsageSummary {
+  inputTokens: number;
+  outputTokens: number;
+  totalCost: number;
+  responseTimeMs: number;
+}
+
+interface LLMCostSummary {
+  inputTokens: number;
+  outputTokens: number;
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+  currency: string;
+}
+
+interface DeliverableImageAttachment extends JsonObject {
+  thumbnailUrl?: string;
+  url?: string;
+  altText?: string;
+}
+
+interface WorkflowDisplayStep {
+  stepName: string;
+  stepIndex: number;
+  totalSteps: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  message?: string;
+  timestamp: Date;
+}
+
+const isJsonObject = (value: JsonValue | undefined): value is JsonObject =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getJsonObject = (source: JsonObject | undefined, key: string): JsonObject | undefined => {
+  if (!source) return undefined;
+  const candidate = source[key];
+  return isJsonObject(candidate) ? candidate : undefined;
+};
+
+const getJsonString = (source: JsonObject | undefined, key: string): string | undefined => {
+  if (!source) return undefined;
+  const candidate = source[key];
+  return typeof candidate === 'string' ? candidate : undefined;
+};
+
+const getJsonNumber = (source: JsonObject | undefined, key: string): number | undefined => {
+  if (!source) return undefined;
+  const candidate = source[key];
+  return typeof candidate === 'number' ? candidate : undefined;
+};
+
 const props = defineProps<{
-  message: AgentTaskMessage;
+  message: AgentChatMessage;
   agentName?: string;
   conversationId?: string;
-  agent?: any;
+  agent?: Agent;
   showWorkProductPane?: boolean;
 }>();
 
 const emit = defineEmits<{
-  'deliverable-created': [deliverable: any];
-  'deliverable-updated': [deliverable: any];
-  'deliverable-selected': [deliverable: any];
+  'deliverable-created': [deliverable: Deliverable];
+  'deliverable-updated': [deliverable: Deliverable];
+  'deliverable-selected': [deliverable: Deliverable];
 }>();
 
 // Stores
@@ -282,7 +340,7 @@ const backendDeliverableId = computed(() => {
   return id;
 });
 
-const backendDeliverable = computed(() => {
+const backendDeliverable = computed<Deliverable | null>(() => {
   const deliverableId = backendDeliverableId.value;
   console.log('🔍 [AgentTaskItem.backendDeliverable] Computing for message:', props.message.id, 'deliverableId:', deliverableId);
 
@@ -301,12 +359,10 @@ const backendDeliverable = computed(() => {
     console.log('📋 [AgentTaskItem.backendDeliverable] Conversation deliverables count:', conversationDeliverables?.length || 0);
 
     // Also force reactivity on the deliverables store state
-    const storeState = deliverablesStore.$state;
-    // This line ensures we're reactive to any changes in the deliverables store
+    deliverablesStore.$state;
   }
 
-
-  return deliverable;
+  return deliverable ?? null;
 });
 
 const displayedDeliverable = computed(() => {
@@ -324,13 +380,13 @@ const backendPlanId = computed(() => {
          props.message.metadata?.planId;
 });
 
-const backendPlan = computed(() => {
+const backendPlan = computed<PlanData | null>(() => {
   const planId = backendPlanId.value;
   if (!planId) return null;
 
   // Get plan from store
   const plan = planStore.planById(planId);
-  return plan;
+  return plan ?? null;
 });
 
 const displayedPlan = computed(() => {
@@ -393,9 +449,10 @@ const formattedTimestamp = computed(() => {
 
 // Approval badge computed values
 const approvalStatus = computed(() => {
-  const meta: any = props.message.metadata || {};
-  if (meta.approvalStatus) return String(meta.approvalStatus);
-  if (meta.humanRequired === true) return 'pending';
+  const metadata = props.message.metadata;
+  if (!metadata) return '';
+  if (metadata.approvalStatus) return metadata.approvalStatus;
+  if (metadata.humanRequired) return 'pending';
   return '';
 });
 const approvalText = computed(() => {
@@ -435,14 +492,13 @@ const approvalColor = computed(() => {
   }
 });
 const approvalTime = computed(() => {
-  const meta: any = props.message.metadata || {};
-  const ts = meta.approvedAt || meta.decisionAt || props.message.timestamp?.toISOString?.();
-  if (!ts) return '';
-  try {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
+  const metadata = props.message.metadata;
+  const timestampSource = metadata?.approvedAt ?? metadata?.decisionAt ?? props.message.timestamp.toISOString();
+  if (!timestampSource) return '';
+  const parsed = new Date(timestampSource);
+  return Number.isNaN(parsed.getTime())
+    ? ''
+    : parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 });
 
 // Legend state
@@ -485,146 +541,155 @@ const emitSelectDeliverable = () => {
 
 // If this message requires human approval, set pending action so a simple "yes" continues
 onMounted(() => {
-  try {
-    const meta = props.message.metadata || {};
-    const needsHuman = meta.humanRequired === true || meta.approvalStatus === 'pending';
-    const mode = (meta.mode || '').toLowerCase();
-    if (needsHuman && (mode === 'build' || mode === 'plan')) {
-      chatUiStore.setPendingAction({ mode: mode as any, taskId: props.message.taskId });
-    }
-  } catch (_) {}
-});
+  const metadata = props.message.metadata;
+  if (!metadata) return;
 
-// Image attachments for associated deliverable (if any)
-const imageAssets = computed(() => {
-  try {
-    const dId = (props.message as any).deliverableId || props.message.metadata?.deliverableId;
-    if (!dId) return [] as any[];
-    const current = deliverablesStore.getCurrentVersion(String(dId));
-    const imgs = (current?.fileAttachments?.images || []) as any[];
-    return Array.isArray(imgs) ? imgs : [];
-  } catch {
-    return [] as any[];
+  const needsHuman = metadata.humanRequired === true || metadata.approvalStatus === 'pending';
+  const mode = (metadata.mode ?? '').toLowerCase();
+  if (!needsHuman || !props.conversationId) {
+    return;
+  }
+
+  if (mode === 'build' || mode === 'plan') {
+    const pendingAction: PendingAction = {
+      type: mode,
+      status: 'pending',
+      conversationId: props.conversationId,
+      metadata: props.message.taskId ? { taskId: props.message.taskId } : undefined,
+    };
+    chatUiStore.setPendingAction(pendingAction);
   }
 });
 
-// LLM Information computed properties
-        const llmUsed = computed(() => {
-          const metadata = props.message.metadata;
-          
-          // Debug: Log the full message structure to see what we're getting
-          console.log('🔍 AgentTaskItem - Full message object:', props.message);
-          console.log('🔍 AgentTaskItem - Message metadata:', metadata);
-          
-          // Check both possible locations for LLM metadata
-        // Prefer explicit provider/model from backend response metadata when available
-        // Fallback to llmMetadata (which typically contains originalLLMSelection)
-        const llmMeta =
-          (metadata && (metadata as any).provider && (metadata as any).model
-            ? { provider_name: (metadata as any).provider, model_name: (metadata as any).model, ...(metadata as any) }
-            : undefined) ||
-          metadata?.llmMetadata ||
-          metadata?.llmUsed;
-          console.log('🔍 AgentTaskItem - Extracted llmMeta:', llmMeta);
-          
-          if (!llmMeta) {
-            console.log('❌ AgentTaskItem - No LLM metadata found in message');
-            return null;
-          }
-          
-          // Debug: Log the actual LLM metadata structure
-          console.log('✅ AgentTaskItem - LLM Metadata received:', llmMeta);
-          console.log('✅ AgentTaskItem - Full message metadata:', metadata);
-  
-          // Handle different possible field structures from backend
-          // Check if data is in originalLLMSelection structure (new format)
-          const llmSelection = (llmMeta as any).originalLLMSelection || llmMeta;
-          
-          const providerName = (llmSelection as any).providerName || 
-                              (llmSelection as any).provider || 
-                              (llmMeta as any).provider_name ||
-                              'Unknown Provider';
-                              
-          const modelName = (llmSelection as any).modelName || 
-                           (llmSelection as any).model || 
-                           (llmMeta as any).model_name ||
-                           'Unknown Model';
-          
-          const result = {
-            providerName,
-            modelName,
-            temperature: llmSelection.temperature || llmMeta.temperature,
-            maxTokens: llmSelection.maxTokens || llmSelection.max_tokens || llmMeta.maxTokens || llmMeta.max_tokens,
-            responseTimeMs: llmMeta.responseTimeMs || llmMeta.response_time_ms || llmMeta.duration
-          };
-  
-  console.log('Processed LLM info:', result);
-  return result;
+// Image attachments for associated deliverable (if any)
+const imageAssets = computed<DeliverableImageAttachment[]>(() => {
+  const deliverableId = props.message.deliverableId ?? props.message.metadata?.deliverableId;
+  if (!deliverableId) {
+    return [];
+  }
+
+  const currentVersion = deliverablesStore.getCurrentVersion(deliverableId);
+  const attachments = currentVersion?.fileAttachments;
+  if (!attachments || typeof attachments !== 'object') {
+    return [];
+  }
+
+  const candidateImages = (attachments as { images?: unknown }).images;
+  if (!Array.isArray(candidateImages)) {
+    return [];
+  }
+
+  return candidateImages.filter((image): image is DeliverableImageAttachment => typeof image === 'object' && image !== null);
 });
 
-const usage = computed(() => {
+// LLM Information computed properties
+const llmUsed = computed<LLMDisplayInfo | null>(() => {
   const metadata = props.message.metadata;
-  if (!metadata?.usage) return null;
-  
+  if (!metadata) {
+    return null;
+  }
+
+  const llmMetadata = isJsonObject(metadata.llmMetadata) ? metadata.llmMetadata : undefined;
+  const llmUsedMetadata = isJsonObject(metadata.llmUsed) ? metadata.llmUsed : undefined;
+  const selection = getJsonObject(llmMetadata, 'originalLLMSelection')
+    ?? getJsonObject(llmUsedMetadata, 'originalLLMSelection')
+    ?? llmMetadata
+    ?? llmUsedMetadata;
+
+  const providerName = metadata.provider
+    ?? getJsonString(selection, 'providerName')
+    ?? getJsonString(selection, 'provider')
+    ?? getJsonString(llmMetadata, 'provider_name')
+    ?? 'Unknown Provider';
+
+  const modelName = metadata.model
+    ?? getJsonString(selection, 'modelName')
+    ?? getJsonString(selection, 'model')
+    ?? getJsonString(llmMetadata, 'model_name')
+    ?? 'Unknown Model';
+
+  const temperature = getJsonNumber(selection, 'temperature') ?? getJsonNumber(llmMetadata, 'temperature');
+  const maxTokens = getJsonNumber(selection, 'maxTokens') ?? getJsonNumber(selection, 'max_tokens');
+  const responseTimeMs =
+    getJsonNumber(llmMetadata, 'responseTimeMs') ??
+    getJsonNumber(llmMetadata, 'response_time_ms') ??
+    getJsonNumber(llmMetadata, 'duration') ??
+    getJsonNumber(llmUsedMetadata, 'responseTimeMs') ??
+    getJsonNumber(llmUsedMetadata, 'duration');
+
   return {
-    inputTokens: metadata.usage.inputTokens || 0,
-    outputTokens: metadata.usage.outputTokens || 0,
-    totalCost: metadata.usage.totalCost || 0,
-    responseTimeMs: metadata.usage.responseTimeMs || 0
+    providerName,
+    modelName,
+    temperature,
+    maxTokens,
+    responseTimeMs,
   };
 });
 
-const costCalculation = computed(() => {
-  const metadata = props.message.metadata;
-  if (!metadata?.costCalculation) return null;
-  
+const usage = computed<LLMUsageSummary | null>(() => {
+  const usageMeta = props.message.metadata?.usage;
+  if (!usageMeta) {
+    return null;
+  }
+
   return {
-    inputTokens: metadata.costCalculation.inputTokens || 0,
-    outputTokens: metadata.costCalculation.outputTokens || 0,
-    inputCost: metadata.costCalculation.inputCost || 0,
-    outputCost: metadata.costCalculation.outputCost || 0,
-    totalCost: metadata.costCalculation.totalCost || 0,
-    currency: metadata.costCalculation.currency || 'USD'
+    inputTokens: usageMeta.inputTokens ?? 0,
+    outputTokens: usageMeta.outputTokens ?? 0,
+    totalCost: usageMeta.totalCost ?? 0,
+    responseTimeMs: usageMeta.responseTimeMs ?? 0,
+  };
+});
+
+const costCalculation = computed<LLMCostSummary | null>(() => {
+  const costMeta = props.message.metadata?.costCalculation;
+  if (!costMeta) {
+    return null;
+  }
+
+  return {
+    inputTokens: costMeta.inputTokens ?? 0,
+    outputTokens: costMeta.outputTokens ?? 0,
+    inputCost: costMeta.inputCost ?? 0,
+    outputCost: costMeta.outputCost ?? 0,
+    totalCost: costMeta.totalCost ?? 0,
+    currency: costMeta.currency ?? 'USD',
   };
 });
 
 // Workflow progress computed properties
-const workflowSteps = computed(() => {
+const workflowSteps = computed<WorkflowDisplayStep[]>(() => {
   const metadata = props.message.metadata;
-  // Get workflow steps from either completedSteps or workflow_steps_realtime
-  const completedSteps = metadata?.completedSteps || [];
-  const realtimeSteps = metadata?.workflow_steps_realtime || [];
-  
+  if (!metadata) {
+    return [];
+  }
 
-  
-  // Merge and deduplicate steps, preferring realtime data
-  const stepMap = new Map();
-  
-  // Add completed steps first
-  completedSteps.forEach((step: any) => {
+  const completedSteps = metadata.completedSteps ?? [];
+  const realtimeSteps = metadata.workflow_steps_realtime ?? [];
+
+  const stepMap = new Map<number, WorkflowDisplayStep>();
+
+  completedSteps.forEach((step: AgentChatCompletedStepSummary) => {
     stepMap.set(step.index, {
       stepName: step.name,
       stepIndex: step.index,
       totalSteps: step.total,
       status: 'completed',
       message: step.message,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   });
-  
-  // Add/update with realtime steps
-  realtimeSteps.forEach((step: any) => {
+
+  realtimeSteps.forEach((step: AgentChatWorkflowStep) => {
     stepMap.set(step.stepIndex, {
       stepName: step.stepName,
       stepIndex: step.stepIndex,
       totalSteps: step.totalSteps,
       status: step.status,
       message: step.message,
-      timestamp: new Date(step.timestamp)
+      timestamp: step.timestamp ? new Date(step.timestamp) : new Date(),
     });
   });
-  
-  // Convert to array and sort by index
+
   return Array.from(stepMap.values()).sort((a, b) => a.stepIndex - b.stepIndex);
 });
 
@@ -905,7 +970,7 @@ async function handleBuildNow() {
 }
 
 // Workflow step styling methods
-const getWorkflowStepClass = (step: any) => {
+const getWorkflowStepClass = (step: WorkflowDisplayStep) => {
   return {
     'step-pending': step.status === 'pending',
     'step-in-progress': step.status === 'in_progress',
@@ -914,7 +979,7 @@ const getWorkflowStepClass = (step: any) => {
   };
 };
 
-const getWorkflowStepIcon = (step: any) => {
+const getWorkflowStepIcon = (step: WorkflowDisplayStep) => {
   switch (step.status) {
     case 'completed':
       return checkmarkCircleOutline;
@@ -927,7 +992,7 @@ const getWorkflowStepIcon = (step: any) => {
   }
 };
 
-const getWorkflowStepIconClass = (step: any) => {
+const getWorkflowStepIconClass = (step: WorkflowDisplayStep) => {
   return {
     'icon-completed': step.status === 'completed',
     'icon-in-progress': step.status === 'in_progress',
@@ -1127,10 +1192,11 @@ async function playAudio(audioData: string) {
   });
 }
 
-function openImage(img: any) {
-  try {
-    window.open(img.url, '_blank');
-  } catch {}
+function openImage(img: DeliverableImageAttachment) {
+  if (!img.url) {
+    return;
+  }
+  window.open(img.url, '_blank');
 }
 </script>
 

@@ -3,15 +3,17 @@
  * Comprehensive type definitions for secure input validation
  */
 
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+
 // =====================================
 // CORE VALIDATION TYPES
 // =====================================
 
-export interface ValidationResult {
+export interface ValidationResult<TValue = unknown> {
   isValid: boolean;
   errors: ValidationError[];
   warnings: ValidationWarning[];
-  sanitizedValue?: any;
+  sanitizedValue?: TValue;
   metadata?: ValidationMetadata;
 }
 
@@ -20,7 +22,7 @@ export interface ValidationError {
   code: string;
   message: string;
   severity: 'error' | 'critical';
-  context?: Record<string, any>;
+  context?: JsonObject;
 }
 
 export interface ValidationWarning {
@@ -41,9 +43,9 @@ export interface ValidationMetadata {
 // VALIDATION RULES
 // =====================================
 
-export interface ValidationRule {
+export interface ValidationRule<TValue = unknown> {
   name: string;
-  validator: (value: any, context?: ValidationContext) => ValidationResult;
+  validator: (value: TValue, context?: ValidationContext) => ValidationResult<TValue>;
   async?: boolean;
   priority: number;
   description: string;
@@ -51,7 +53,7 @@ export interface ValidationRule {
 
 export interface ValidationContext {
   field: string;
-  form?: Record<string, any>;
+  form?: JsonObject;
   component?: string;
   user?: {
     role: string;
@@ -67,15 +69,15 @@ export interface ValidationSchema {
 // FORM INPUT TYPES
 // =====================================
 
-export interface BaseFormInput {
+export interface BaseFormInput<TValue = unknown> {
   id?: string;
-  value: any;
+  value: TValue;
   required?: boolean;
   disabled?: boolean;
   readonly?: boolean;
 }
 
-export interface TextInput extends BaseFormInput {
+export interface TextInput extends BaseFormInput<string> {
   value: string;
   minLength?: number;
   maxLength?: number;
@@ -84,7 +86,7 @@ export interface TextInput extends BaseFormInput {
   allowEmpty?: boolean;
 }
 
-export interface NumericInput extends BaseFormInput {
+export interface NumericInput extends BaseFormInput<number> {
   value: number;
   min?: number;
   max?: number;
@@ -92,13 +94,13 @@ export interface NumericInput extends BaseFormInput {
   precision?: number;
 }
 
-export interface EmailInput extends BaseFormInput {
+export interface EmailInput extends BaseFormInput<string> {
   value: string;
   allowInternational?: boolean;
   requireTLD?: boolean;
 }
 
-export interface RegexInput extends BaseFormInput {
+export interface RegexInput extends BaseFormInput<string> {
   value: string;
   testString?: string;
   flags?: string;
@@ -174,7 +176,7 @@ export interface ValidationState {
 export interface ValidationHistoryEntry {
   timestamp: string;
   field: string;
-  value: any;
+  value: JsonValue;
   result: ValidationResult;
   component: string;
   userId?: string;
@@ -188,7 +190,7 @@ export interface ValidationEvent {
   type: 'validation:start' | 'validation:complete' | 'validation:error';
   field: string;
   timestamp: string;
-  data: any;
+  data: JsonObject;
 }
 
 export type ValidationEventHandler = (event: ValidationEvent) => void;
@@ -205,8 +207,8 @@ export interface UseValidationOptions {
 }
 
 export interface UseValidationReturn {
-  validate: (field: string, value: any) => Promise<ValidationResult>;
-  validateAll: (form: Record<string, any>) => Promise<Record<string, ValidationResult>>;
+  validate: (field: string, value: JsonValue) => Promise<ValidationResult>;
+  validateAll: (form: JsonObject) => Promise<Record<string, ValidationResult>>;
   clearErrors: (field?: string) => void;
   clearWarnings: (field?: string) => void;
   addRule: (field: string, rule: ValidationRule) => void;
@@ -221,7 +223,10 @@ export interface UseValidationReturn {
 // UTILITY TYPES
 // =====================================
 
-export type ValidationRuleFactory<T = any> = (options?: T) => ValidationRule;
+export type ValidationRuleFactory<
+  TOptions = JsonObject | undefined,
+  TValue = unknown
+> = (options?: TOptions) => ValidationRule<TValue>;
 
 export interface ValidationRuleOptions {
   message?: string;

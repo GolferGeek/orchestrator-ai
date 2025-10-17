@@ -28,7 +28,7 @@ import {
   OrchestrationRunDetail,
   OrchestrationRunSummary,
 } from '../types/orchestration-dashboard.types';
-import type { JsonObject } from '@orchestrator-ai/transport-types';
+type JsonRecord = Record<string, unknown>;
 import { OrchestrationExecutionService } from './orchestration-execution.service';
 import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 import type {
@@ -70,14 +70,14 @@ export interface ResolveOrchestrationApprovalOptions {
   decision: OrchestrationCheckpointDecision;
   actorId?: string | null;
   notes?: string | null;
-  modifications?: JsonObject;
+  modifications?: JsonRecord;
 }
 
 export interface ManualRetryOptions {
   runId: string;
   stepRecordId?: string;
   delaySeconds?: number;
-  modifications?: JsonObject;
+  modifications?: JsonRecord;
   note?: string | null;
   actorId?: string | null;
 }
@@ -86,7 +86,7 @@ export interface ManualSkipOptions {
   runId: string;
   stepRecordId?: string;
   note?: string | null;
-  replacementOutput?: JsonObject | null;
+  replacementOutput?: JsonRecord | null;
   actorId?: string | null;
 }
 
@@ -878,24 +878,24 @@ export class OrchestrationDashboardService {
     };
   }
 
-  private mergeInto(target: JsonObject, patch: JsonObject): void {
+  private mergeInto(target: JsonRecord, patch: JsonRecord): void {
     Object.entries(patch).forEach(([key, value]) => {
       if (this.isJsonObject(value)) {
         if (!this.isJsonObject(target[key])) {
-          target[key] = {} as JsonObject;
+          target[key] = {} as JsonRecord;
         }
-        this.mergeInto(target[key] as JsonObject, value);
+        this.mergeInto(target[key] as JsonRecord, value);
       } else {
         target[key] = value;
       }
     });
   }
 
-  private asRecord(value: unknown): JsonObject | null {
+  private asRecord(value: unknown): JsonRecord | null {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return null;
     }
-    return { ...(value as JsonObject) };
+    return { ...(value as JsonRecord) };
   }
 
   private asString(value: unknown): string | null {
@@ -905,11 +905,11 @@ export class OrchestrationDashboardService {
     return null;
   }
 
-  private cloneRecord<T extends JsonObject>(source: T): T {
+  private cloneRecord<T extends JsonRecord>(source: T): T {
     return JSON.parse(JSON.stringify(source));
   }
 
-  private isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  private isJsonObject(value: unknown): value is JsonRecord {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 }

@@ -1,6 +1,8 @@
 // PII Management Types
 // Based on backend PIIPatternService interfaces
 
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+
 export type PIIDataType = 'email' | 'phone' | 'name' | 'address' | 'ip_address' | 'username' | 'credit_card' | 'ssn' | 'custom';
 
 export interface PIIPattern {
@@ -185,7 +187,7 @@ export interface PseudonymStatsResponse {
 
 export interface ReversePseudonymizationRequest {
   sanitizedText: string;
-  reversalContext?: any;
+  reversalContext?: JsonObject;
   requestId?: string;
 }
 

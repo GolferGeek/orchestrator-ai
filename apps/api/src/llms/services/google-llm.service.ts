@@ -21,6 +21,8 @@ import type {
   GoogleGenerateContentResponse,
   GoogleGenerateContentCandidate,
   GoogleUsageMetadata,
+  GoogleFinishReason,
+  GoogleCitationSource,
 } from '../types/provider-payload.types';
 
 /**
@@ -237,6 +239,9 @@ export class GoogleLLMService extends BaseLLMService {
     const candidate: GoogleGenerateContentCandidate | undefined =
       response.candidates?.[0];
 
+    const normalizedFinishReason = this.mapFinishReason(candidate);
+    const citationMetadata = candidate?.citationMetadata;
+
     return {
       provider: 'google',
       model: params.config.model,
@@ -262,15 +267,21 @@ export class GoogleLLMService extends BaseLLMService {
       status: 'completed',
       // Google-specific fields
       providerSpecific: {
-        finish_reason: candidate?.finishReason ?? 'STOP',
+        finish_reason: normalizedFinishReason,
         safety_ratings: candidate?.safetyRatings?.map((rating) => ({
           category: rating.category,
           probability: rating.probability,
         })),
-        citation_metadata: candidate?.citationMetadata
+        citation_metadata: citationMetadata
           ? {
-              citation_sources:
-                candidate.citationMetadata.citationSources || [],
+              citation_sources: (citationMetadata.citationSources || []).map(
+                (source: GoogleCitationSource) => ({
+                  start_index: source.startIndex ?? 0,
+                  end_index: source.endIndex ?? 0,
+                  uri: source.uri ?? '',
+                  license: source.license ?? '',
+                }),
+              ),
             }
           : undefined,
         // Include actual token counts from Google
@@ -312,6 +323,26 @@ export class GoogleLLMService extends BaseLLMService {
       }
     }
     return undefined;
+  }
+
+  private mapFinishReason(
+    candidate?: GoogleGenerateContentCandidate,
+  ): GoogleResponseMetadata['providerSpecific']['finish_reason'] {
+    const reason = candidate?.finishReason;
+    switch (reason) {
+      case GoogleFinishReason.STOP:
+        return 'STOP';
+      case GoogleFinishReason.MAX_TOKENS:
+        return 'MAX_TOKENS';
+      case GoogleFinishReason.SAFETY:
+        return 'SAFETY';
+      case GoogleFinishReason.RECITATION:
+        return 'RECITATION';
+      case GoogleFinishReason.OTHER:
+        return 'OTHER';
+      default:
+        return 'OTHER';
+    }
   }
 
   /**

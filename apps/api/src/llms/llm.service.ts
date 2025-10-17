@@ -14,6 +14,7 @@ import { RunMetadataService } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { PIIService } from './pii/pii.service';
 import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
+import type { DictionaryPseudonymMapping } from './pii/dictionary-pseudonymizer.service';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
@@ -23,6 +24,7 @@ import {
   UnifiedGenerateResponseParams,
   LLMResponse,
   LLMServiceConfig,
+  LLMRequestOptions,
 } from './services/llm-interfaces';
 import {
   Provider,
@@ -34,6 +36,7 @@ import {
   SystemOperationType,
   UserLLMPreferences,
 } from '@/llms/types/llm-evaluation';
+import type { PIIProcessingMetadata } from './types/pii-metadata.types';
 import { mapProviderFromDb, mapModelFromDb } from '@/utils/case-converter';
 import { ModelConfigurationService } from './config/model-configuration.service';
 import type { EnvironmentName } from './config/model-configuration.service';
@@ -43,6 +46,12 @@ import {
   LLMErrorMapper,
   LLMErrorMonitor,
 } from './services/llm-error-handling';
+
+type GenerateResponseOptions = LLMRequestOptions & {
+  provider?: 'openai' | 'anthropic' | 'ollama' | 'google';
+  cidafmOptions?: CIDAFMOptions;
+  complexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
+};
 
 // Explicitly set LangSmith environment variables for automatic tracing
 // Support both the official LangSmith env vars and our custom ones for backward compatibility
@@ -110,44 +119,13 @@ export class LLMService {
   async generateResponse(
     systemPrompt: string,
     userMessage: string,
-    options?: {
-      temperature?: number;
-      maxTokens?: number;
-      provider?: 'openai' | 'anthropic' | 'ollama' | 'google';
-      // Support full LLM preferences from UI
-      providerName?: string;
-      modelName?: string;
-      cidafmOptions?: CIDAFMOptions;
-      authToken?: string;
-      sessionId?: string;
-      currentUser?: any; // User object with id, email, etc.
-      userId?: string; // Direct user ID for usage tracking
-      // Intelligent routing hints
-      complexity?: 'simple' | 'medium' | 'complex' | 'reasoning'; // Task complexity for routing decisions
-      quick?: boolean; // Skip PII processing/pseudonymization for fast local conversations
-      // Caller tracking for usage analytics
-      callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
-      callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
-      conversationId?: string; // Optional conversation/session context
-      dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
-      // Return format control
-      includeMetadata?: boolean; // If true, return object with metadata instead of just string
-      // PII metadata from routing decision
-      piiMetadata?: any; // PIIProcessingMetadata from centralized routing
-      routingDecision?: any; // Full routing decision for context
-    },
-  ): Promise<any> {
+    options?: GenerateResponseOptions,
+  ): Promise<string | LLMResponse> {
     if (this.debugEnabled) {
       this.logger.debug(
         `🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`,
       );
     }
-    
-    // DEBUG: Log all options being passed to generateResponse
-    console.log('🔍 [DEBUG] LLMService.generateResponse - Full options:', JSON.stringify(options, null, 2));
-    console.log('🔍 [DEBUG] LLMService.generateResponse - providerName:', options?.providerName);
-    console.log('🔍 [DEBUG] LLMService.generateResponse - modelName:', options?.modelName);
-    
     try {
       // Debug LLM options being received
 
@@ -167,11 +145,12 @@ export class LLMService {
 
         // === PII PROCESSING BEFORE FACTORY CALL ===
         let processedUserMessage = userMessage;
-        let dictionaryMappings: any[] = [];
-        let enhancedPiiMetadata = options?.piiMetadata;
+        let dictionaryMappings: DictionaryPseudonymMapping[] = [];
+        let enhancedPiiMetadata: PIIProcessingMetadata | undefined =
+          options?.piiMetadata ?? undefined;
 
         // Always apply dictionary pseudonymization for external providers (non-Ollama), unless quick bypass
-        const skipPII = (options as any)?.quick === true;
+        const skipPII = options?.quick === true;
         if (!skipPII && options.providerName.toLowerCase() !== 'ollama') {
           if (this.debugEnabled)
             console.log(
@@ -184,15 +163,15 @@ export class LLMService {
               userMessage,
               {
                 organizationSlug:
-                  (options as any)?.organizationSlug ||
-                  (options as any)?.routingDecision?.organizationSlug ||
-                  null,
-                agentSlug:
-                  (options as any)?.agentSlug ||
-                  (options as any)?.routingDecision?.agentSlug ||
-                  null,
-              },
-            );
+              options?.organizationSlug ||
+              options?.routingDecision?.organizationSlug ||
+              null,
+            agentSlug:
+              options?.agentSlug ||
+              options?.routingDecision?.agentSlug ||
+              null,
+            },
+          );
           processedUserMessage = pseudonymResult.pseudonymizedText;
           dictionaryMappings = pseudonymResult.mappings;
 

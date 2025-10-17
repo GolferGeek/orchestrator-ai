@@ -1,19 +1,15 @@
-import type {
-  JsonArray,
-  JsonObject,
-  JsonValue,
-} from '@orchestrator-ai/transport-types';
-
 export type OrchestrationCheckpointDecision = 'continue' | 'retry' | 'abort';
 
+type JsonMap = Record<string, unknown>;
 export interface OrchestrationCheckpointOptionState {
   action: OrchestrationCheckpointDecision;
   label: string;
   allowsModification?: boolean;
   description?: string;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationCheckpointMetadata extends JsonObject {
+export interface OrchestrationCheckpointMetadata {
   approvalId?: string | null;
   checkpointId?: string | null;
   question?: string | null;
@@ -28,11 +24,12 @@ export interface OrchestrationCheckpointMetadata extends JsonObject {
   decidedBy?: string | null;
   decision?: OrchestrationCheckpointDecision;
   notes?: string | null;
-  modifications?: JsonObject | null;
-  metadata?: JsonObject;
+  modifications?: JsonMap | null;
+  metadata?: JsonMap;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationLastCheckpointMetadata extends JsonObject {
+export interface OrchestrationLastCheckpointMetadata {
   approvalId?: string;
   checkpointId?: string;
   step?: {
@@ -46,17 +43,19 @@ export interface OrchestrationLastCheckpointMetadata extends JsonObject {
   decidedBy?: string | null;
   decision?: OrchestrationCheckpointDecision;
   notes?: string | null;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationApprovalDecisionMetadata extends JsonObject {
+export interface OrchestrationApprovalDecisionMetadata {
   action: OrchestrationCheckpointDecision;
   decidedAt: string;
   decidedBy: string | null;
   notes?: string | null;
-  modifications?: JsonObject | null;
+  modifications?: JsonMap | null;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationApprovalMetadata extends JsonObject {
+export interface OrchestrationApprovalMetadata {
   runId: string;
   checkpointId: string;
   step?: {
@@ -70,91 +69,96 @@ export interface OrchestrationApprovalMetadata extends JsonObject {
   requestedAt?: string;
   status?: string;
   decision?: OrchestrationApprovalDecisionMetadata;
-  metadata?: JsonObject;
+  metadata?: JsonMap;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationManualRecoveryMetadata extends JsonObject {
+export interface OrchestrationManualRecoveryMetadata {
   lastAction?: 'retry' | 'skip' | 'rollback' | string;
   requestedAt?: string;
   requestedBy?: string | null;
   stepId?: string | null;
   delaySeconds?: number;
   note?: string | null;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationAgentMetadata extends JsonObject {
+export interface OrchestrationAgentMetadata {
   id?: string | null;
   slug?: string;
   type?: string | null;
   displayName?: string | null;
   organizationSlug?: string | null;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationRunMetricsMetadata extends JsonObject {
+export interface OrchestrationRunMetricsMetadata {
   totalSteps?: number;
   completedSteps?: number;
   progressPercentage?: number;
-  [key: string]: JsonValue;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationTaskMetadata extends JsonObject {
+export interface OrchestrationTaskMetadata {
   id?: string | null;
   taskId?: string | null;
   userId?: string | null;
   ownerId?: string | null;
-  [key: string]: JsonValue;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationRunMetadata extends JsonObject {
+export interface OrchestrationRunMetadata {
   agent?: OrchestrationAgentMetadata;
   lastCheckpoint?: OrchestrationLastCheckpointMetadata;
   manualRecovery?: OrchestrationManualRecoveryMetadata;
   stats?: OrchestrationRunMetricsMetadata;
   task?: OrchestrationTaskMetadata;
   requestMetadata?: OrchestrationTaskMetadata;
-  [key: string]: JsonValue;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationStepRuntimeRetryState extends JsonObject {
+export interface OrchestrationStepRuntimeRetryState {
   attempt?: number;
-  history?: JsonArray;
+  history?: unknown[];
   nextRetryAt?: string | null;
   maxAttempts?: number | null;
   manual?: boolean;
   requestedAt?: string;
   requestedBy?: string | null;
-  lastError?: JsonObject;
+  lastError?: JsonMap;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationStepRuntimeState extends JsonObject {
+export interface OrchestrationStepRuntimeState {
   retry?: OrchestrationStepRuntimeRetryState;
-  [key: string]: JsonValue;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationStepBehaviorConfig extends JsonObject {
+export interface OrchestrationStepBehaviorConfig {
   retry?: {
     maxAttempts?: number | null;
     allowSkip?: boolean;
     delaySeconds?: number | null;
     exponentialBackoff?: boolean;
   };
-  rollback?: JsonObject;
-  [key: string]: JsonValue;
+  rollback?: JsonMap;
+  [key: string]: unknown;
 }
 
-export interface OrchestrationStepStateEntry extends JsonObject {
+export interface OrchestrationStepStateEntry {
   status?: string;
   attemptNumber?: number;
   checkpoint?: OrchestrationCheckpointMetadata;
-  metadata?: JsonObject;
+  metadata?: JsonMap;
   runtime?: OrchestrationStepRuntimeState;
   behavior?: OrchestrationStepBehaviorConfig;
   outputSummary?: string[];
+  [key: string]: unknown;
 }
 
 export type OrchestrationStepState = Record<string, OrchestrationStepStateEntry>;
 
-export type OrchestrationRunParameters = JsonObject;
-export type OrchestrationRunPlan = JsonObject;
-export type OrchestrationRunResults = JsonObject;
-export type OrchestrationRunErrorDetails = JsonObject;
+export type OrchestrationRunParameters = JsonMap;
+export type OrchestrationRunPlan = JsonMap;
+export type OrchestrationRunResults = JsonMap;
+export type OrchestrationRunErrorDetails = JsonMap;

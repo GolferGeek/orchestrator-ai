@@ -143,12 +143,39 @@ export interface AgentChatMessageMetadata extends MessageMetadata {
   isCompleted?: boolean;
   processingCompletion?: boolean;
   completedAt?: string;
+  approvalStatus?: 'approved' | 'rejected' | 'pending' | string;
+  approvedAt?: string;
+  decisionAt?: string;
+  humanRequired?: boolean;
+  mode?: AgentChatMode | string;
+  deliverableId?: string;
+  planId?: string;
+  enhancedDeliverableId?: string;
+  enhancedFromVersionId?: string;
   completedSteps?: AgentChatCompletedStepSummary[];
   workflow_steps_realtime?: AgentChatWorkflowStep[];
   processing_type?: string;
   lastUpdated?: string;
   messageCount?: number;
   allMessages?: AgentChatMessage[];
+  provider?: string;
+  model?: string;
+  usage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    totalCost?: number;
+    responseTimeMs?: number;
+  };
+  costCalculation?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    inputCost?: number;
+    outputCost?: number;
+    totalCost?: number;
+    currency?: string;
+  };
+  llmMetadata?: JsonObject;
+  llmUsed?: JsonObject;
   /**
    * Container for auxiliary metadata that does not yet have a dedicated field.
    */
@@ -161,6 +188,8 @@ export interface AgentChatMessage {
   content: string;
   timestamp: Date;
   taskId?: string;
+  deliverableId?: string;
+  planId?: string;
   metadata?: AgentChatMessageMetadata;
 }
 

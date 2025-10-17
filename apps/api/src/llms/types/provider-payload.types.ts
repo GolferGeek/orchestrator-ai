@@ -12,6 +12,8 @@ import type {
   EnhancedGenerateContentResponse,
   GenerateContentCandidate,
   UsageMetadata,
+  FinishReason,
+  CitationSource,
   HarmBlockThreshold,
   HarmCategory,
 } from '@google/generative-ai';
@@ -31,6 +33,8 @@ export type GoogleGenerateContentResult = GenerateContentResult;
 export type GoogleGenerateContentResponse = EnhancedGenerateContentResponse;
 export type GoogleGenerateContentCandidate = GenerateContentCandidate;
 export type GoogleUsageMetadata = UsageMetadata;
+export type GoogleFinishReason = FinishReason;
+export type GoogleCitationSource = CitationSource;
 export type GoogleHarmCategory = HarmCategory;
 export type GoogleHarmBlockThreshold = HarmBlockThreshold;
 

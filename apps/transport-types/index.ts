@@ -8,12 +8,12 @@
 // ============================================================================
 // SHARED ENUMS
 // ============================================================================
-export type {
+export {
   AgentTaskMode,
-  JsonRpcMethod,
   JsonRpcErrorCode,
   A2AErrorCode,
 } from './shared/enums';
+export type { JsonRpcMethod } from './shared/enums';
 
 // ============================================================================
 // SHARED DATA TYPES

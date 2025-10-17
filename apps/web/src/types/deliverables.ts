@@ -13,6 +13,8 @@ export {
 } from '@/services/deliverablesService';
 // Import types for use in interfaces
 import type { Deliverable, DeliverableVersion } from '@/services/deliverablesService';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type { ConversationHistoryEntry } from './conversation';
 // Additional frontend-specific types
 export interface DeliverableUIState {
   isViewing: boolean;
@@ -53,25 +55,22 @@ export interface AgentResponseWithDeliverable {
   response?: string;
   deliverableId?: string;
   enhancedFrom?: string;
-  metadata?: {
+  metadata?: (JsonObject & {
     agentName?: string;
     agentType?: string;
-    [key: string]: any;
-  };
+  });
 }
 // Task request interfaces that include deliverable context
-export interface TaskRequestWithDeliverable {
+export type TaskRequestWithDeliverable = JsonObject & {
   method: string;
   prompt: string;
-  params?: {
+  params?: (JsonObject & {
     deliverableId?: string;
     enhanceDeliverableId?: string;
     versionId?: string;
-    [key: string]: any;
-  };
+  });
   conversationId?: string;
-  conversationHistory?: any[];
-  [key: string]: any;
-}
+  conversationHistory?: ConversationHistoryEntry[];
+};
 // Legacy type aliases for backward compatibility
 export type DeliverableSearchItem = DeliverableSearchResult;
