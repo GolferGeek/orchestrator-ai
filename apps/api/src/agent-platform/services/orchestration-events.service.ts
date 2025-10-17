@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
 import {
@@ -11,6 +12,11 @@ import {
   OrchestrationStepSnapshot,
   OrchestrationTaskLink,
 } from '../types/orchestration-events.types';
+import type {
+  OrchestrationRunMetadata,
+  OrchestrationRunMetricsMetadata,
+  OrchestrationStepState,
+} from '../types/orchestration-run.types';
 
 interface RunEventContext {
   totalSteps?: number;
@@ -30,7 +36,7 @@ export class OrchestrationEventsService {
 
   emitRunUpdated(
     run: OrchestrationRunRecord,
-    data: Record<string, any> = {},
+    data: JsonObject = {},
     context?: RunEventContext,
   ): void {
     this.dispatch(
@@ -56,7 +62,7 @@ export class OrchestrationEventsService {
 
   emitRunFailed(
     run: OrchestrationRunRecord,
-    error: Record<string, any> = {},
+    error: JsonObject = {},
     context?: RunEventContext,
   ): void {
     this.dispatch(
@@ -122,7 +128,7 @@ export class OrchestrationEventsService {
   emitStepFailed(
     run: OrchestrationRunRecord,
     step: OrchestrationStepRecord,
-    error: Record<string, any> = {},
+    error: JsonObject = {},
     context?: RunEventContext,
   ): void {
     const payload = this.buildRunEventPayload(
@@ -163,7 +169,7 @@ export class OrchestrationEventsService {
     type: OrchestrationEventType,
     run: OrchestrationRunRecord,
     context?: RunEventContext,
-    data?: Record<string, any>,
+    data?: JsonObject,
   ): OrchestrationRunEventPayload {
     return {
       type,
@@ -177,7 +183,7 @@ export class OrchestrationEventsService {
     run: OrchestrationRunRecord,
     context?: RunEventContext,
   ): OrchestrationRunSnapshot {
-    const metadata = run.metadata ?? {};
+    const metadata = (run.metadata ?? {}) as OrchestrationRunMetadata;
     const stats = this.buildStats(run, context);
 
     return {
@@ -217,9 +223,18 @@ export class OrchestrationEventsService {
     step: OrchestrationStepRecord,
   ): OrchestrationStepSnapshot {
     const metadata = step.metadata ?? {};
-    const outputSummary = step.output
-      ? Object.keys(step.output)
-      : (metadata.outputPreview ?? []);
+    let outputSummary: string[] = [];
+    if (step.output) {
+      outputSummary = Object.keys(step.output);
+    } else if (Array.isArray(metadata.outputSummary)) {
+      outputSummary = [...metadata.outputSummary];
+    } else {
+      const nestedMetadata = metadata.metadata as JsonObject | undefined;
+      const preview = nestedMetadata?.outputPreview;
+      if (Array.isArray(preview)) {
+        outputSummary = preview.map((value) => String(value));
+      }
+    }
 
     return {
       id: step.step_id,
@@ -243,8 +258,9 @@ export class OrchestrationEventsService {
     run: OrchestrationRunRecord,
     context?: RunEventContext,
   ): OrchestrationRunStats {
-    const metadataStats =
-      (run.metadata?.stats as Record<string, any> | undefined) ?? {};
+    const metadataStats: OrchestrationRunMetricsMetadata =
+      (run.metadata?.stats as OrchestrationRunMetricsMetadata | undefined) ??
+      {};
 
     const totalSteps =
       this.extractNumber(context?.totalSteps ?? metadataStats.totalSteps) ??
@@ -269,9 +285,10 @@ export class OrchestrationEventsService {
     };
   }
 
-  private resolveAgent(metadata: Record<string, any>): OrchestrationAgentInfo {
-    const agentMetadata =
-      (metadata.agent as Record<string, any> | undefined) ?? {};
+  private resolveAgent(
+    metadata: OrchestrationRunMetadata,
+  ): OrchestrationAgentInfo {
+    const agentMetadata = metadata.agent ?? {};
     const slug =
       this.extractString(agentMetadata.slug) ??
       this.extractString(agentMetadata.agentSlug) ??
@@ -289,17 +306,20 @@ export class OrchestrationEventsService {
   }
 
   private resolveTaskLink(
-    metadata: Record<string, any>,
+    metadata: OrchestrationRunMetadata,
   ): OrchestrationTaskLink | undefined {
-    const task =
-      (metadata.task as Record<string, any> | undefined) ??
-      (metadata.requestMetadata as Record<string, any> | undefined) ??
-      {};
+    const taskMetadata = metadata.task ?? metadata.requestMetadata;
+
+    if (!taskMetadata) {
+      return undefined;
+    }
 
     const taskId =
-      this.extractString(task.id) ?? this.extractString(task.taskId);
+      this.extractString(taskMetadata.id) ??
+      this.extractString(taskMetadata.taskId);
     const userId =
-      this.extractString(task.userId) ?? this.extractString(task.ownerId);
+      this.extractString(taskMetadata.userId) ??
+      this.extractString(taskMetadata.ownerId);
 
     if (!taskId && !userId) {
       return undefined;
@@ -332,7 +352,7 @@ export class OrchestrationEventsService {
   }
 
   private estimateTotalSteps(run: OrchestrationRunRecord): number | undefined {
-    const stepState = run.step_state ?? {};
+    const stepState: OrchestrationStepState = run.step_state ?? {};
     const keys = Object.keys(stepState);
     if (keys.length > 0) {
       return keys.length;

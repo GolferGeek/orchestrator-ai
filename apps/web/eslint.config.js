@@ -50,16 +50,19 @@ export default tseslint.config(
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
     ],
-      languageOptions: {
-        globals: browserGlobals,
-        ecmaVersion: 2022,
-        sourceType: 'module',
-        parserOptions: {
-          projectService: true,
-          project: [tsconfigPath],
-          tsconfigRootDir: __dirname,
-        },
+    languageOptions: {
+      globals: browserGlobals,
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      parserOptions: {
+        projectService: true,
+        project: [tsconfigPath],
+        tsconfigRootDir: __dirname,
       },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
     rules: sharedTypeScriptRules,
   },
   {
@@ -79,6 +82,10 @@ export default tseslint.config(
       globals: browserGlobals,
       ecmaVersion: 2022,
       sourceType: 'module',
+    },
+    plugins: {
+      vue: pluginVue,
+      '@typescript-eslint': tseslint.plugin,
     },
     rules: {
       ...sharedTypeScriptRules,

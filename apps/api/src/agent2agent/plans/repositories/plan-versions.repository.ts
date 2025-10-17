@@ -1,6 +1,22 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { getTableName } from '@/supabase/supabase.config';
+
+export interface PlanVersionRecord {
+  id: string;
+  plan_id: string;
+  version_number: number;
+  content: string;
+  format: 'markdown' | 'json' | 'text';
+  created_by_type: 'agent' | 'user';
+  created_by_id: string | null;
+  task_id: string | null;
+  metadata: JsonObject;
+  is_current_version: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface CreatePlanVersionData {
   plan_id: string;
@@ -10,7 +26,7 @@ export interface CreatePlanVersionData {
   created_by_type: 'agent' | 'user';
   created_by_id?: string;
   task_id?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   is_current_version: boolean;
 }
 
@@ -23,7 +39,7 @@ export class PlanVersionsRepository {
   /**
    * Create a new plan version
    */
-  async create(data: CreatePlanVersionData) {
+  async create(data: CreatePlanVersionData): Promise<PlanVersionRecord> {
     const { data: versionData, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
@@ -37,13 +53,13 @@ export class PlanVersionsRepository {
       );
     }
 
-    return versionData;
+    return versionData as PlanVersionRecord;
   }
 
   /**
    * Find version by ID
    */
-  async findById(versionId: string) {
+  async findById(versionId: string): Promise<PlanVersionRecord | null> {
     const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
@@ -60,13 +76,13 @@ export class PlanVersionsRepository {
       );
     }
 
-    return data;
+    return (data as PlanVersionRecord | null) ?? null;
   }
 
   /**
    * Find all versions for a plan
    */
-  async findByPlanId(planId: string) {
+  async findByPlanId(planId: string): Promise<PlanVersionRecord[]> {
     const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
@@ -80,13 +96,15 @@ export class PlanVersionsRepository {
       );
     }
 
-    return data || [];
+    return (data as PlanVersionRecord[] | null) ?? [];
   }
 
   /**
    * Get current version for a plan
    */
-  async getCurrentVersion(planId: string) {
+  async getCurrentVersion(
+    planId: string,
+  ): Promise<PlanVersionRecord | null> {
     const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
@@ -101,7 +119,7 @@ export class PlanVersionsRepository {
       );
     }
 
-    return data;
+    return (data as PlanVersionRecord | null) ?? null;
   }
 
   /**
@@ -129,7 +147,7 @@ export class PlanVersionsRepository {
   /**
    * Mark a version as current
    */
-  async markAsCurrent(versionId: string) {
+  async markAsCurrent(versionId: string): Promise<PlanVersionRecord> {
     const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
@@ -144,7 +162,7 @@ export class PlanVersionsRepository {
       );
     }
 
-    return data;
+    return data as PlanVersionRecord;
   }
 
   /**

@@ -97,11 +97,21 @@ export interface OrchestrationRunMetricsMetadata extends JsonObject {
   [key: string]: JsonValue;
 }
 
+export interface OrchestrationTaskMetadata extends JsonObject {
+  id?: string | null;
+  taskId?: string | null;
+  userId?: string | null;
+  ownerId?: string | null;
+  [key: string]: JsonValue;
+}
+
 export interface OrchestrationRunMetadata extends JsonObject {
   agent?: OrchestrationAgentMetadata;
   lastCheckpoint?: OrchestrationLastCheckpointMetadata;
   manualRecovery?: OrchestrationManualRecoveryMetadata;
   stats?: OrchestrationRunMetricsMetadata;
+  task?: OrchestrationTaskMetadata;
+  requestMetadata?: OrchestrationTaskMetadata;
   [key: string]: JsonValue;
 }
 

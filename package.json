@@ -51,7 +51,8 @@
     "inventory:agents": "node scripts/agents/inventory-file-agents.js > docs/reports/filesystem-agent-inventory.md || node scripts/agents/inventory-file-agents.js",
     "agents:smoke": "API_BASE=http://localhost:7100 node scripts/agents/smoke-validate-seeds.mjs"
     ,
-    "test:assets": "node apps/api/testing/test-assets.js"
+    "test:assets": "node apps/api/testing/test-assets.js",
+    "lint:report": "node scripts/lint-report.mjs"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",

@@ -91,6 +91,9 @@ export default tseslint.config(
       // TODO(lint phase 6): include legacy E2E suite when converted to new tsconfig structure
       'testing/test/**',
     ],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
   },
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -99,6 +102,9 @@ export default tseslint.config(
       ...tseslint.configs.recommendedTypeChecked,
       eslintPluginPrettierRecommended,
     ],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
     languageOptions: {
       globals: {
         ...globals.node,

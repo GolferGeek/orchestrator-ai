@@ -1,4 +1,5 @@
 import Ajv from 'ajv';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import {
   Injectable,
   Logger,
@@ -7,10 +8,14 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { PlanVersionsRepository } from '../repositories/plan-versions.repository';
-import { PlansRepository } from '../repositories/plans.repository';
+import {
+  PlanVersionRecord,
+  PlanVersionsRepository,
+} from '../repositories/plan-versions.repository';
+import { PlansRepository, PlanRecord } from '../repositories/plans.repository';
 import { LLMService } from '@/llms/llm.service';
 import { TasksService } from '@/agent2agent/tasks/tasks.service';
+import type { Plan } from './plans.service';
 
 export interface PlanVersion {
   id: string;
@@ -21,7 +26,7 @@ export interface PlanVersion {
   createdByType: 'agent' | 'user';
   createdById?: string;
   taskId?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   isCurrentVersion: boolean;
   createdAt: Date;
 }
@@ -32,7 +37,7 @@ export interface CreatePlanVersionDto {
   createdByType: 'agent' | 'user';
   createdById?: string;
   taskId?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 @Injectable()
@@ -147,7 +152,7 @@ export class PlanVersionsService {
     versionId: string,
     userId: string,
     content: string,
-    metadata?: Record<string, any>,
+    metadata?: JsonObject,
   ): Promise<PlanVersion> {
     // Get the source version
     const sourceVersion = await this.findOne(versionId, userId);
@@ -157,12 +162,11 @@ export class PlanVersionsService {
       content,
       format: sourceVersion.format,
       createdByType: 'user',
-      metadata: {
-        ...sourceVersion.metadata,
+      metadata: this.mergeMetadata(sourceVersion.metadata, {
         ...metadata,
         editedFromVersionId: versionId,
         editedAt: new Date().toISOString(),
-      },
+      }),
     });
   }
 
@@ -248,11 +252,7 @@ export class PlanVersionsService {
   ): Promise<{
     newVersion: PlanVersion;
     conflictSummary?: string;
-    llmMetadata?: {
-      provider?: string;
-      model?: string;
-      usage?: Record<string, any>;
-    };
+    llmMetadata?: JsonObject;
   }> {
     // Verify plan exists
     const plan = await this.plansRepo.findById(planId, userId);
@@ -305,13 +305,7 @@ export class PlanVersionsService {
     );
 
     let llmResponseContent: string;
-    let llmResponseMetadata:
-      | {
-          provider?: string;
-          model?: string;
-          usage?: Record<string, any>;
-        }
-      | undefined;
+    let llmResponseMetadata: JsonObject | undefined;
 
     try {
       const response = await this.llmService.generateUnifiedResponse({
@@ -332,17 +326,17 @@ export class PlanVersionsService {
 
       if (typeof response === 'string') {
         llmResponseContent = response;
-        llmResponseMetadata = {
+        llmResponseMetadata = this.mergeMetadata(undefined, {
           provider: llmConfig.provider,
           model: llmConfig.model,
-        };
+        } as JsonObject);
       } else {
         llmResponseContent = response.content;
-        llmResponseMetadata = {
+        llmResponseMetadata = this.mergeMetadata(undefined, {
           provider: response.metadata?.provider ?? llmConfig.provider,
           model: response.metadata?.model ?? llmConfig.model,
-          usage: response.metadata?.usage ?? undefined,
-        };
+          usage: response.metadata?.usage as JsonObject | undefined,
+        } as JsonObject);
       }
     } catch (error) {
       this.logger.error(
@@ -365,25 +359,33 @@ export class PlanVersionsService {
     );
 
     // Create new version with merged content
+    const llmMergeInfo: JsonObject = {
+      provider: llmConfig.provider,
+      model: llmConfig.model,
+    } as JsonObject;
+    if (llmConfig.temperature !== undefined) {
+      llmMergeInfo.temperature = llmConfig.temperature;
+    }
+    if (llmConfig.maxTokens !== undefined) {
+      llmMergeInfo.maxTokens = llmConfig.maxTokens;
+    }
+
+    const versionMetadata = this.mergeMetadata(undefined, {
+      mergedFromVersionIds: versionIds,
+      mergePrompt,
+      mergedAt: new Date().toISOString(),
+      mergeStrategy: 'llm',
+      llmMergeInfo,
+      llmMetadata: llmResponseMetadata,
+      planStructureApplied: Boolean(normalizedPlanStructure),
+      targetFormat: normalizedContent.format,
+    } as JsonObject);
+
     const newVersion = await this.createVersion(planId, userId, {
       content: normalizedContent.content,
       format: normalizedContent.format,
       createdByType: 'agent',
-      metadata: {
-        mergedFromVersionIds: versionIds,
-        mergePrompt,
-        mergedAt: new Date().toISOString(),
-        mergeStrategy: 'llm',
-        llmMergeInfo: {
-          provider: llmConfig.provider,
-          model: llmConfig.model,
-          temperature: llmConfig.temperature,
-          maxTokens: llmConfig.maxTokens,
-        },
-        llmMetadata: llmResponseMetadata,
-        planStructureApplied: Boolean(normalizedPlanStructure),
-        targetFormat: normalizedContent.format,
-      },
+      metadata: versionMetadata,
     });
 
     return {
@@ -394,7 +396,7 @@ export class PlanVersionsService {
   }
 
   // Helper methods
-  private mapToVersion(data: any): PlanVersion {
+  private mapToVersion(data: PlanVersionRecord): PlanVersion {
     return {
       id: data.id,
       planId: data.plan_id,
@@ -402,22 +404,36 @@ export class PlanVersionsService {
       content: data.content,
       format: data.format,
       createdByType: data.created_by_type,
-      createdById: data.created_by_id,
-      taskId: data.task_id,
-      metadata: data.metadata || {},
+      createdById: data.created_by_id ?? undefined,
+      taskId: data.task_id ?? undefined,
+      metadata: data.metadata ?? {},
       isCurrentVersion: data.is_current_version,
       createdAt: new Date(data.created_at),
     };
   }
 
-  private normalizePlanStructure(value: unknown): Record<string, any> | null {
+  private mergeMetadata(
+    base: JsonObject | undefined,
+    patch: JsonObject | undefined,
+  ): JsonObject {
+    return {
+      ...(base ?? {}),
+      ...(patch ?? {}),
+    } as JsonObject;
+  }
+
+  private normalizePlanStructure(value: unknown): JsonObject | null {
     if (!value) {
       return null;
     }
 
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed as JsonObject;
+        }
+        return null;
       } catch (error) {
         this.logger.warn(
           `Failed to parse planStructure string: ${
@@ -428,8 +444,8 @@ export class PlanVersionsService {
       }
     }
 
-    if (typeof value === 'object') {
-      return value as Record<string, any>;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      return value as JsonObject;
     }
 
     return null;
@@ -438,7 +454,7 @@ export class PlanVersionsService {
   private resolveTargetFormat(
     versions: PlanVersion[],
     preferred?: 'markdown' | 'json' | 'text',
-    planStructure?: Record<string, any> | null,
+    planStructure?: JsonObject | null,
   ): 'markdown' | 'json' | 'text' {
     if (preferred) {
       return preferred;
@@ -534,7 +550,7 @@ export class PlanVersionsService {
   private buildMergeUserMessage(
     versions: PlanVersion[],
     mergePrompt: string,
-    planStructure: Record<string, any> | null,
+    planStructure: JsonObject | null,
     format: 'markdown' | 'json' | 'text',
   ): string {
     const header = `We have ${versions.length} plan versions that need to be merged into a single ${
@@ -562,7 +578,7 @@ export class PlanVersionsService {
   private normalizeMergedContent(
     rawContent: string,
     format: 'markdown' | 'json' | 'text',
-    planStructure: Record<string, any> | null,
+    planStructure: JsonObject | null,
   ): { content: string; format: 'markdown' | 'json' | 'text' } {
     if (!rawContent || !rawContent.trim()) {
       throw new BadRequestException('Merged plan content was empty');
@@ -612,8 +628,8 @@ export class PlanVersionsService {
   }
 
   private validateAgainstStructure(
-    content: any,
-    schema: Record<string, any>,
+    content: unknown,
+    schema: JsonObject,
   ): void {
     try {
       const ajv = new Ajv({
