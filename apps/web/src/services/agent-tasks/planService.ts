@@ -30,7 +30,7 @@ import {
   extractErrorCode,
 } from './types';
 import { tasksService } from '../tasksService';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAuthStore } from '@/stores/authStore';
 import { usePlanStore } from '@/stores/planStore';
@@ -390,7 +390,7 @@ export class PlanService {
     debugLog(this.config, 'handleSuccess', { response, conversationId });
 
     try {
-      const chatStore = useAgentChatStore();
+      const conversationsStore = useConversationsStore();
       const planStore = usePlanStore();
 
       // Extract plan data from response
@@ -409,10 +409,6 @@ export class PlanService {
         // Associate plan with conversation
         console.log('[planService.handleSuccess] Associating plan with conversation');
         planStore.associatePlanWithConversation(planId, conversationId);
-
-        console.log('[planService.handleSuccess] Adding plan to chatStore');
-        // Also update chat store for backward compatibility
-        chatStore.setPlan(conversationId, plan);
       } else {
         console.warn('[planService.handleSuccess] No plan or planId found in response');
       }
@@ -428,12 +424,12 @@ export class PlanService {
       }
 
       if (message) {
-        console.log('[planService.handleSuccess] Adding message to chatStore');
+        console.log('[planService.handleSuccess] Adding message to conversationsStore');
 
         // Extract LLM metadata from response
         const llmMetadata = response.metadata || response.payload?.metadata;
 
-        chatStore.addMessage(conversationId, {
+        conversationsStore.addMessage(conversationId, {
           id: crypto.randomUUID(),
           role: 'assistant',
           content: message,
@@ -490,8 +486,8 @@ export class PlanService {
     });
 
     // Update store with error state (Vue reactivity handles UI updates)
-    const chatStore = useAgentChatStore();
-    chatStore.setError(conversationId, errorMessage);
+    const conversationsStore = useConversationsStore();
+    conversationsStore.setError(conversationId, errorMessage);
 
     throw createServiceError(errorCode, errorMessage, errorDetails);
   }
@@ -518,8 +514,8 @@ export class PlanService {
     });
 
     // Update store with error state (Vue reactivity handles UI updates)
-    const chatStore = useAgentChatStore();
-    chatStore.setError(conversationId, errorMessage);
+    const conversationsStore = useConversationsStore();
+    conversationsStore.setError(conversationId, errorMessage);
 
     // Re-throw for caller to handle
     throw createServiceError(errorCode, errorMessage, error);

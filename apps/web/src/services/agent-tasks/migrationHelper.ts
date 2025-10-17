@@ -14,7 +14,7 @@
  */
 
 import { agentTaskService } from './agentTaskService';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import type { AgentTaskMode } from './types';
 
@@ -153,8 +153,8 @@ import type { AgentTaskMode } from './types';
  * Helper function: Send a message in converse mode
  */
 export async function sendMessage(message: string, conversationId: string): Promise<void> {
-  const chatStore = useAgentChatStore();
-  const conv = chatStore.getConversationById(conversationId);
+  const conversationsStore = useConversationsStore();
+  const conv = conversationsStore.conversationById(conversationId);
 
   if (!conv) {
     throw new Error(`Conversation ${conversationId} not found`);
@@ -177,8 +177,8 @@ export async function executeFromLastUserMessage(
   conversationId: string,
   mode: 'plan' | 'build'
 ): Promise<void> {
-  const chatStore = useAgentChatStore();
-  const conv = chatStore.getConversationById(conversationId);
+  const conversationsStore = useConversationsStore();
+  const conv = conversationsStore.conversationById(conversationId);
 
   if (!conv) {
     throw new Error(`Conversation ${conversationId} not found`);
@@ -214,8 +214,8 @@ export async function executeFromLastUserMessage(
  * Helper function: Get last user message from conversation
  */
 export function getLastUserMessage(conversationId: string): string | undefined {
-  const chatStore = useAgentChatStore();
-  const conv = chatStore.getConversationById(conversationId);
+  const conversationsStore = useConversationsStore();
+  const conv = conversationsStore.conversationById(conversationId);
 
   if (!conv) return undefined;
 

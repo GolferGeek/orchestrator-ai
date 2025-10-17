@@ -30,7 +30,7 @@ import {
   extractErrorCode,
 } from './types';
 import { tasksService } from '../tasksService';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
@@ -691,7 +691,7 @@ export class DeliverableService {
     debugLog(this.config, 'handleSuccess', { response, conversationId });
 
     try {
-      const chatStore = useAgentChatStore();
+      const conversationsStore = useConversationsStore();
       const deliverableStore = useDeliverablesStore();
 
       // Extract deliverable data from response
@@ -724,9 +724,6 @@ export class DeliverableService {
           deliverableStore.addVersion(deliverableId, version);
         }
 
-        // Also update chat store for backward compatibility
-        chatStore.setDeliverable(conversationId, deliverable);
-
         console.log('[deliverableService.handleSuccess] Deliverable added to stores, ID:', deliverableId);
       } else {
         console.warn('[deliverableService.handleSuccess] No deliverable or deliverableId found in response');
@@ -745,8 +742,8 @@ export class DeliverableService {
       // NOW add the message AFTER the deliverable is in the store
       // This ensures the AgentTaskItem watcher can immediately find the deliverable
       if (message && deliverableId) {
-        console.log('[deliverableService.handleSuccess] Adding message to chatStore with deliverableId:', deliverableId);
-        chatStore.addMessage(conversationId, {
+        console.log('[deliverableService.handleSuccess] Adding message to conversationsStore with deliverableId:', deliverableId);
+        conversationsStore.addMessage(conversationId, {
           id: crypto.randomUUID(),
           role: 'assistant',
           content: message,
@@ -758,11 +755,11 @@ export class DeliverableService {
             mode: 'build', // Ensure mode is set for callout detection
           },
         });
-        console.log('[deliverableService.handleSuccess] Message added to chatStore');
+        console.log('[deliverableService.handleSuccess] Message added to conversationsStore');
       } else if (message) {
         // Message without deliverable (shouldn't happen for build.create, but handle it)
         console.log('[deliverableService.handleSuccess] Adding message without deliverable');
-        chatStore.addMessage(conversationId, {
+        conversationsStore.addMessage(conversationId, {
           id: crypto.randomUUID(),
           role: 'assistant',
           content: message,
@@ -804,8 +801,8 @@ export class DeliverableService {
     const errorDetails = response.error?.details;
 
     // Update store with error state (Vue reactivity handles UI updates)
-    const chatStore = useAgentChatStore();
-    chatStore.setError(conversationId, errorMessage);
+    const conversationsStore = useConversationsStore();
+    conversationsStore.setError(conversationId, errorMessage);
 
     throw createServiceError(errorCode, errorMessage, errorDetails);
   }
@@ -824,8 +821,8 @@ export class DeliverableService {
     const errorMessage = extractErrorMessage(error);
 
     // Update store with error state (Vue reactivity handles UI updates)
-    const chatStore = useAgentChatStore();
-    chatStore.setError(conversationId, errorMessage);
+    const conversationsStore = useConversationsStore();
+    conversationsStore.setError(conversationId, errorMessage);
 
     // Re-throw for caller to handle
     throw createServiceError(errorCode, errorMessage, error);

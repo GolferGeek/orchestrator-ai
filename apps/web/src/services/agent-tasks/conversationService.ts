@@ -31,7 +31,7 @@ import {
   extractErrorCode,
 } from './types';
 import { tasksService } from '../tasksService';
-import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAuthStore } from '@/stores/authStore';
 import { usePlanStore } from '@/stores/planStore';
@@ -199,8 +199,8 @@ export class ConversationService {
       };
 
       // Update store with new message (Vue reactivity handles UI updates)
-      const chatStore = useAgentChatStore();
-      chatStore.addMessage(conversationId, {
+      const conversationsStore = useConversationsStore();
+      conversationsStore.addMessage(conversationId, {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: message,
@@ -265,8 +265,8 @@ export class ConversationService {
     };
 
     // Update store with error state (Vue reactivity handles UI updates)
-    const chatStore = useAgentChatStore();
-    chatStore.setError(conversationId, errorMessage);
+    const conversationsStore = useConversationsStore();
+    conversationsStore.setError(conversationId, errorMessage);
 
     return converseResponse;
   }
@@ -309,8 +309,8 @@ export class ConversationService {
     };
 
     // Update store with error state (Vue reactivity handles UI updates)
-    const chatStore = useAgentChatStore();
-    chatStore.setError(conversationId, errorMessage);
+    const conversationsStore = useConversationsStore();
+    conversationsStore.setError(conversationId, errorMessage);
 
     // Re-throw for caller to handle if needed
     throw createServiceError(errorCode, errorMessage, error);
@@ -325,11 +325,11 @@ export class ConversationService {
   async createConversation(agent: any): Promise<string> {
     debugLog(this.config, 'createConversation', agent);
 
-    const chatStore = useAgentChatStore();
+    const conversationsStore = useConversationsStore();
     const conversationId = crypto.randomUUID();
 
     // Add conversation to store (Vue reactivity handles UI updates)
-    chatStore.addConversation({
+    conversationsStore.addConversation({
       id: conversationId,
       agent,
       messages: [],
@@ -355,10 +355,11 @@ export class ConversationService {
   async loadConversation(conversationId: string): Promise<void> {
     debugLog(this.config, 'loadConversation', conversationId);
 
-    const chatStore = useAgentChatStore();
+    const { useChatUiStore } = await import('@/stores/ui/chatUiStore');
+    const chatUiStore = useChatUiStore();
 
     // Set active conversation (Vue reactivity handles UI updates)
-    chatStore.setActiveConversation(conversationId);
+    chatUiStore.setActiveConversation(conversationId);
   }
 
   /**
@@ -369,10 +370,10 @@ export class ConversationService {
   async deleteConversation(conversationId: string): Promise<void> {
     debugLog(this.config, 'deleteConversation', conversationId);
 
-    const chatStore = useAgentChatStore();
+    const conversationsStore = useConversationsStore();
 
     // Remove conversation from store (Vue reactivity handles UI updates)
-    chatStore.removeConversation(conversationId);
+    conversationsStore.removeConversation(conversationId);
   }
 }
 
