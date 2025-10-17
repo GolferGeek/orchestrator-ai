@@ -1,7 +1,7 @@
 // Export the main store
 export { useAgentChatStore } from './store';
 // Export services for advanced usage
-export { messageFormatting } from './messageFormatting';
+export { messageFormatting } from '@/utils/messaging/messageFormatting';
 export { deliverable } from './deliverable';
 export { createPlansService } from './plans';
 export { createBuildsService } from './builds';

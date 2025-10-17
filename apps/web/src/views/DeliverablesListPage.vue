@@ -363,6 +363,7 @@ import { useRouter } from 'vue-router';
 import { useDeliverables } from '@/composables/useDeliverables';
 import { DeliverableType, type Deliverable, type DeliverableSearchResult } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { agentTaskService } from '@/services/agent-tasks';
 import NewDeliverableDialog from '@/components/NewDeliverableDialog.vue';
 const router = useRouter();
 const deliverables = useDeliverables();
@@ -610,7 +611,11 @@ const confirmDelete = async (deliverable: any) => {
 };
 const deleteDeliverable = async (deliverable: any) => {
   try {
-    await deliverablesStore.deleteDeliverable(deliverable.id);
+    await agentTaskService.deliverables.delete({
+      agentSlug: deliverable.agentName || 'blog_post_writer',
+      conversationId: deliverable.conversationId,
+      deliverableId: deliverable.id,
+    });
     // Show success toast
     const toast = await toastController.create({
       message: 'Deliverable deleted successfully',
@@ -707,8 +712,18 @@ const makeCurrentVersion = async (version: any) => {
           role: 'confirm',
           handler: async () => {
             try {
-              // Set the selected version as the current version
-              const updatedVersion = await deliverablesStore.setCurrentVersion(version.id);
+              // Get deliverable to find agentSlug
+              const deliverable = deliverablesStore.getDeliverableById(selectedDeliverableId.value!);
+              if (!deliverable) throw new Error('Deliverable not found');
+
+              // Set the selected version as the current version using service
+              await agentTaskService.deliverables.setCurrent({
+                agentSlug: deliverable.agentName || 'blog_post_writer',
+                conversationId: deliverable.conversationId,
+                deliverableId: selectedDeliverableId.value!,
+                versionId: version.id,
+              });
+
               // Refresh the deliverables list to show the new current version
               await loadDeliverables();
               // Refresh the versions list in the modal

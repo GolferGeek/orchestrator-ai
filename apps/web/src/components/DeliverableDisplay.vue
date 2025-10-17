@@ -533,6 +533,7 @@ import {
   hardwareChipOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { agentTaskService } from '@/services/agent-tasks';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import TaskRating from './TaskRating.vue';
@@ -1076,8 +1077,18 @@ const selectAndDisplayVersion = async (version: any) => {
 const makeCurrentVersion = async () => {
   if (!selectedVersion.value) return;
   try {
-    // Call the backend to set this version as current
-    await deliverablesStore.setCurrentVersion(selectedVersion.value.id);
+    // Get deliverable to find agentSlug and conversationId
+    const deliverable = deliverablesStore.getDeliverableById(actualDeliverableId.value);
+    if (!deliverable) throw new Error('Deliverable not found');
+
+    // Call the backend to set this version as current using service
+    await agentTaskService.deliverables.setCurrent({
+      agentSlug: deliverable.agentName || 'blog_post_writer',
+      conversationId: deliverable.conversationId,
+      deliverableId: actualDeliverableId.value,
+      versionId: selectedVersion.value.id,
+    });
+
     // Reload versions to get updated current version status
     await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
     // Update local state

@@ -973,19 +973,20 @@ const executeRerunWithConfig = async (
         }
       );
     } else if (isDeliverable) {
-      // Call the rerunWithDifferentLLM action from deliverablesStore
-      // NOTE: This should eventually be moved to deliverableService, but the service method is not implemented yet
-      const newVersion = await deliverablesStore.rerunWithDifferentLLM(
-        capturedRerunData.version.id,
-        {
+      // Call the deliverableService.rerun() method
+      const deliverableService = agentTaskService.deliverables;
+      result = await deliverableService.rerun({
+        agentSlug: deliverable.agentName,
+        conversationId: deliverable.conversationId,
+        deliverableId: deliverable.id,
+        versionId: capturedRerunData.version.id,
+        llmConfig: {
           provider: llmConfig.provider,
           model: llmConfig.model,
           temperature: llmConfig.temperature,
           maxTokens: llmConfig.maxTokens,
-        }
-      );
-      // Format result to match plan result structure
-      result = { version: newVersion };
+        },
+      });
     }
 
     // Create assistant response message with the new version

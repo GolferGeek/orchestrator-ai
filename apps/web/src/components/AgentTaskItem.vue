@@ -459,8 +459,18 @@ const showUndoEnhancement = computed(() => {
 });
 const undoEnhancement = async () => {
   try {
-    if (!enhancedFromVersionId.value) return;
-    await deliverablesStore.setCurrentVersion(enhancedFromVersionId.value);
+    if (!enhancedFromVersionId.value || !enhancedDeliverableId.value) return;
+
+    // Get deliverable to find agentSlug and conversationId
+    const deliverable = deliverablesStore.getDeliverableById(enhancedDeliverableId.value);
+    if (!deliverable) throw new Error('Deliverable not found');
+
+    await agentTaskService.deliverables.setCurrent({
+      agentSlug: deliverable.agentName || 'blog_post_writer',
+      conversationId: deliverable.conversationId,
+      deliverableId: enhancedDeliverableId.value,
+      versionId: enhancedFromVersionId.value,
+    });
   } catch (e) {
     console.warn('Failed to undo enhancement', e);
   }

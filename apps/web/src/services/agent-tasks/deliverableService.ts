@@ -293,46 +293,291 @@ export class DeliverableService {
   /**
    * Edits a deliverable
    */
-  async edit(params: any): Promise<any> {
+  async edit(params: {
+    agentSlug: string;
+    conversationId: string;
+    deliverableId: string;
+    editInstructions: string;
+    namespace?: string;
+  }): Promise<any> {
     debugLog(this.config, 'edit', params);
-    // TODO: Implement edit action
-    throw createServiceError('NOT_IMPLEMENTED', 'Edit action not yet implemented');
+
+    try {
+      validateRequired(params, ['agentSlug', 'conversationId', 'deliverableId', 'editInstructions']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      // Build request metadata
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      // Build edit payload
+      const payload = {
+        action: 'edit' as const,
+        deliverableId: params.deliverableId,
+        editInstructions: params.editInstructions,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: params.editInstructions,
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'edit',
+            payload,
+          },
+          metadata,
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
   }
 
   /**
-   * Reruns a deliverable build
+   * Reruns a deliverable build with different LLM
    */
-  async rerun(params: any): Promise<any> {
+  async rerun(params: {
+    agentSlug: string;
+    conversationId: string;
+    deliverableId: string;
+    versionId: string;
+    llmConfig: {
+      provider: string;
+      model: string;
+      temperature?: number;
+      maxTokens?: number;
+    };
+    namespace?: string;
+  }): Promise<any> {
     debugLog(this.config, 'rerun', params);
-    // TODO: Implement rerun action
-    throw createServiceError('NOT_IMPLEMENTED', 'Rerun action not yet implemented');
+
+    try {
+      validateRequired(params, ['agentSlug', 'conversationId', 'deliverableId', 'versionId', 'llmConfig']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      // Build request metadata with LLM selection
+      const metadata = {
+        ...buildRequestMetadata(userId, params.conversationId),
+        llmSelection: {
+          providerName: params.llmConfig.provider,
+          modelName: params.llmConfig.model,
+          temperature: params.llmConfig.temperature,
+          maxTokens: params.llmConfig.maxTokens,
+        },
+      };
+
+      // Build deliverable rerun payload
+      const payload = {
+        action: 'rerun' as const,
+        deliverableId: params.deliverableId,
+        versionId: params.versionId,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: '', // Rerun uses original prompt from task
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'rerun',
+            payload,
+          },
+          metadata,
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
   }
 
   /**
    * Sets current deliverable version
    */
-  async setCurrent(params: any): Promise<any> {
+  async setCurrent(params: {
+    agentSlug: string;
+    conversationId: string;
+    deliverableId: string;
+    versionId: string;
+    namespace?: string;
+  }): Promise<any> {
     debugLog(this.config, 'setCurrent', params);
-    // TODO: Implement set-current action
-    throw createServiceError('NOT_IMPLEMENTED', 'Set-current action not yet implemented');
+
+    try {
+      validateRequired(params, ['agentSlug', 'conversationId', 'deliverableId', 'versionId']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      // Build request metadata
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      // Build set-current payload
+      const payload = {
+        action: 'set_current' as const,
+        deliverableId: params.deliverableId,
+        versionId: params.versionId,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: '',
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'set_current',
+            payload,
+          },
+          metadata,
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
   }
 
   /**
    * Deletes a deliverable version
    */
-  async deleteVersion(params: any): Promise<any> {
+  async deleteVersion(params: {
+    agentSlug: string;
+    conversationId: string;
+    deliverableId: string;
+    versionId: string;
+    namespace?: string;
+  }): Promise<any> {
     debugLog(this.config, 'deleteVersion', params);
-    // TODO: Implement delete-version action
-    throw createServiceError('NOT_IMPLEMENTED', 'Delete-version action not yet implemented');
+
+    try {
+      validateRequired(params, ['agentSlug', 'conversationId', 'deliverableId', 'versionId']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      const payload = {
+        action: 'delete_version' as const,
+        deliverableId: params.deliverableId,
+        versionId: params.versionId,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: '',
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'delete_version',
+            payload,
+          },
+          metadata,
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
   }
 
   /**
    * Merges deliverable versions
    */
-  async mergeVersions(params: any): Promise<any> {
+  async mergeVersions(params: {
+    agentSlug: string;
+    conversationId: string;
+    deliverableId: string;
+    sourceVersionIds: string[];
+    namespace?: string;
+  }): Promise<any> {
     debugLog(this.config, 'mergeVersions', params);
-    // TODO: Implement merge-versions action
-    throw createServiceError('NOT_IMPLEMENTED', 'Merge-versions action not yet implemented');
+
+    try {
+      validateRequired(params, ['agentSlug', 'conversationId', 'deliverableId', 'sourceVersionIds']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      const payload = {
+        action: 'merge_versions' as const,
+        deliverableId: params.deliverableId,
+        sourceVersionIds: params.sourceVersionIds,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: '',
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'merge_versions',
+            payload,
+          },
+          metadata,
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
   }
 
   /**
@@ -347,10 +592,53 @@ export class DeliverableService {
   /**
    * Deletes a deliverable
    */
-  async delete(params: any): Promise<any> {
+  async delete(params: {
+    agentSlug: string;
+    conversationId: string;
+    deliverableId: string;
+    namespace?: string;
+  }): Promise<any> {
     debugLog(this.config, 'delete', params);
-    // TODO: Implement delete action
-    throw createServiceError('NOT_IMPLEMENTED', 'Delete action not yet implemented');
+
+    try {
+      validateRequired(params, ['agentSlug', 'conversationId', 'deliverableId']);
+
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id;
+      if (!userId) {
+        throw createServiceError('AUTH_ERROR', 'User not authenticated');
+      }
+
+      const metadata = buildRequestMetadata(userId, params.conversationId);
+
+      const payload = {
+        action: 'delete' as const,
+        deliverableId: params.deliverableId,
+      };
+
+      const response = await tasksService.createAgentTask(
+        'agent',
+        params.agentSlug,
+        {
+          method: 'agent.build',
+          prompt: '',
+          conversationId: params.conversationId,
+          params: {
+            mode: 'build',
+            action: 'delete',
+            payload,
+          },
+          metadata,
+        },
+        {
+          namespace: params.namespace || 'demo',
+        }
+      );
+
+      return await this.handleResponse(response, params.conversationId);
+    } catch (error) {
+      return this.handleError(error, params.conversationId);
+    }
   }
 
   /**
