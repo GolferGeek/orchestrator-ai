@@ -1,275 +1,132 @@
-# PRD: Agent Stack Progressive Testing
+# PRD: Front-End Architecture Consolidation & Agent Stack Validation
 
-**Effort Type**: front-end-testing
-**Branch**: test-agent-stack
-**Started**: 2025-10-14
+**Effort Type**: architecture-improvement  
+**Branch**: architecture-consolidation  
+**Start Date**: 2025-10-14  
 **Owner**: Matt (GolferGeek)
 
 ---
 
 ## Problem Statement
 
-The Orchestrator AI system has a complex agent stack (Context Agent, Deliverables, API Agents, Function Agents, Orchestrator) that needs comprehensive front-end and API testing to validate end-to-end functionality.
-
-**Current Challenge**:
-- Multiple components interact in complex ways
-- Need to verify each layer works independently before testing integration
-- Must validate UI, API, and database interactions
-- Testing requires monitoring multiple consoles (web, API, browser)
+The current Vue front-end and supporting services evolved organically and now duplicate state across multiple Pinia stores, mix UI state with domain entities, and call legacy service layers that bypass the newer action abstractions. This fragmentation creates inconsistent reactivity, higher maintenance costs, and makes it hard to validate the agent stack end to end. We need a consolidated architecture that keeps stores focused on synchronous state management, moves side effects into dedicated actions/services, and ensures the testing workflow can exercise the full stack without fighting the client architecture.
 
 ---
 
-## Solution Overview
+## Goals
 
-Progressive testing approach where each phase builds on previous phases:
-
-1. **Phase 1**: Context Agent (Blog Post Writer) - Base plan CRUD operations
-2. **Phase 2**: Deliverables System - Deliverable creation and management
-3. **Phase 3**: Plan + Deliverables Integration - Combined functionality
-4. **Phase 4**: API Agents (Real-Time) - SSE, webhooks, polling, invocation
-5. **Phase 5**: API Agents + Plan + Deliverables - Full build workflow
-6. **Phase 6**: Function Agents - Global pool image writers
-7. **Phase 7**: Orchestrator - Multi-agent coordination with real-time updates
-
-**Testing Method**: Front-end testing with live console monitoring and browser automation
+1. **Consolidate domain stores** so that conversations, plans, deliverables, and agents each have a single, well-typed Pinia store with synchronous mutations only.
+2. **Separate UI state** (view preferences, ephemeral flags) from domain data via lightweight UI stores.
+3. **Adopt action-based services** (e.g., `agent2agent/actions/*`) as the single entry point for async operations, removing legacy `agent-tasks` services.
+4. **Migrate “Projects” concepts to “Orchestrations”** across API, database, and front-end layers to match current terminology.
+5. **Provide progressive testing coverage** that validates the refactored front-end, action layer, and backend orchestration flows from unit to E2E.
+6. **Complete store type-safety overhaul (incremental improvement)** so every store, getter, and mutation exposes precise TypeScript definitions without regressions.
 
 ---
 
-## Testing Environment
+## Non-Goals
 
-**Web Server**: http://localhost:7102 (Vite dev server with hot reload)
-**API Server**: http://localhost:7100 (NestJS with hot reload)
-**Browser**: Playwright @ localhost:7102
-**Database**: PostgreSQL (localhost:7012)
-
-**Console Monitoring**:
-- Web server console (HMR updates, build warnings)
-- API server console (requests, queries, errors, SSE events, webhooks)
-- Browser console (JavaScript errors, network issues, SSE connections)
-
-**Real-Time Infrastructure**:
-- SSE endpoint for streaming agent progress events
-- Webhook endpoints for agent callbacks
-- Polling fallback for environments without SSE support
+- Introducing new user-facing features beyond the renamed orchestration terminology.
+- Expanding real-time infrastructure beyond existing SSE/webhook mechanisms.
+- Performing performance benchmarking beyond the agreed verification checks.
 
 ---
 
-## Success Criteria
+## Users & Impact
 
-### Per Phase
-- All tests in phase pass completely
-- No errors in any console (web, API, browser)
-- UI correctly reflects backend state
-- Data persists correctly in database
-
-### Overall
-- All 7 phases complete with passing tests
-- System demonstrates full agent stack functionality with real-time updates
-- SSE, webhooks, and polling mechanisms validated
-- Test tracking document fully updated
-- Any bugs found during testing are fixed
+- **Front-end engineers** gain a clearer mental model and faster iteration cycle.
+- **QA & Release** teams inherit deterministic testing flows aligned with the architecture.
+- **Operators** see fewer regression risks due to reduced duplication and improved typing.
 
 ---
 
-## Test Phases
+## Solution Overview (Phased)
 
-### Phase 1: Context Agent (Blog Post Writer)
-**Focus**: Base plan operations
+1. **Store Consolidation**  
+   - Create unified conversations, plans, deliverables, and agents stores.  
+   - Extract UI-only state into dedicated UI stores.  
+   - Remove the legacy `agentChatStore` and redundant project stores.
 
-**Tests** (5 total):
-1. Create Plan - Can agent create a new plan?
-2. Update Plan - Can agent update existing plan?
-3. Merge Plan - Can agent merge plan changes?
-4. View Plan - Can user see plan in UI?
-5. Delete Plan - Can agent/user delete plan?
+2. **Service Migration to Actions**  
+   - Implement deliverable and conversation actions following the existing `plan.actions.ts` pattern.  
+   - Update Vue components to call actions instead of legacy services.  
+   - Delete the `agent-tasks` directory once no call sites remain.
 
-**Dependencies**: None
-**Deliverable**: Phase 1 test results
+3. **Projects → Orchestrations Migration**  
+   - Update database schema, backend entities, DTOs, and APIs.  
+   - Reflect the new naming in front-end services, components, and routing.  
+   - Remove obsolete project UI/pages.
 
----
+4. **Store Method Migration**  
+   - Ensure all Pinia stores expose synchronous mutations only.  
+   - Move async logic to services/actions and adjust components accordingly.  
+   - Apply incremental type-safety improvements to stores, strengthening types without breaking existing behavior.
 
-### Phase 2: Deliverables System
-**Focus**: Deliverable CRUD operations
-
-**Tests** (5 total):
-1. Create Deliverable - Can agent create deliverable?
-2. Update Deliverable - Can agent update content?
-3. Link to Plan - Is deliverable linked to correct plan?
-4. View Deliverables - Can user see deliverables in UI?
-5. Delete Deliverable - Can agent/user delete?
-
-**Dependencies**: Phase 1 complete
-**Deliverable**: Phase 2 test results
+5. **Validation, Documentation & Release Readiness**  
+   - Raise automated and manual test coverage across the agent stack.  
+   - Execute integration and E2E runs aligned with the progressive testing plan.  
+   - Update architecture docs, ADRs, and contribution guidelines before sign-off.
 
 ---
 
-### Phase 3: Plan + Deliverables Integration
-**Focus**: Combined plan and deliverable workflows
+## Functional Requirements
 
-**Tests** (5 total):
-1. Create Plan with Deliverables - End-to-end flow
-2. Update Plan Updates Deliverables - Cascading changes
-3. Delete Plan Handles Deliverables - Cascade delete or orphan?
-4. Deliverable Status Reflects Plan State
-5. UI Shows Plan-Deliverable Relationship
-
-**Dependencies**: Phases 1 & 2 complete
-**Deliverable**: Phase 3 test results
+- **R1. Unified Stores**: Conversations, plans, deliverables, and agents each live in a single Pinia store backed by typed interfaces and Maps where appropriate for O(1) lookups.
+- **R2. UI Store Isolation**: UI state (active conversation, pending actions, display modes) resides in dedicated UI stores with no domain data bleed.
+- **R3. Action Layer**: All async CRUD and orchestration logic routes through `agent2agent/actions/*` modules that dispatch synchronous store mutations.
+- **R4. Terminology Migration**: Database, API, and front-end code refer to “orchestrations” instead of “projects,” with migrations deployed safely across environments.
+- **R5. Testing Workflow**: Progressive testing artifacts (phase plans, tracking docs) reflect the new architecture and confirm cross-phase dependencies.
+- **R6. Documentation**: `DOMAIN_ARCHITECTURE_ANALYSIS.md`, ADRs, and READMEs detail the finalized store/service architecture and workflows.
+- **R7. Type Safety**: Store modules, selectors, and actions expose strict TypeScript types (no `any` or implicit casts) backed by shared domain models.
 
 ---
 
-### Phase 4: API Agents (Real-Time Communication)
-**Focus**: External agent invocation, SSE, webhooks, and polling mechanisms
+## Success Metrics
 
-**Tests** (8 total):
-1. Invoke API Agent - Can system call external API agent?
-2. SSE Real-Time Updates - Does SSE stream agent progress events?
-3. Webhook Callback Handling - Does webhook receive and process agent completion?
-4. Polling Fallback - Does polling work when real-time fails?
-5. Agent Response Handling - Does system process response correctly?
-6. Agent Error Handling - What happens on agent failure?
-7. Agent Timeout - Does system handle slow agents?
-8. Agent Authentication - Are credentials passed correctly?
-
-**Dependencies**: Phases 1-3 complete
-**Deliverable**: Phase 4 test results (validates SSE, webhooks, polling infrastructure)
+- Store count reduced from >10 to ≤7 consolidated stores.  
+- Zero async methods remain within Pinia stores.  
+- Zero imports from deprecated `agent-tasks` services.  
+- ≥1,454 lines of legacy project-related code removed.  
+- ≥80% test coverage for newly introduced or modified stores, actions, and services.  
+- 100% of Pinia store APIs rely on explicit, strongly typed interfaces with no unchecked casts.
+- Front-end bundle size and key load times are equal to or better than pre-refactor baselines.  
+- End-to-end test suite validates the agent stack (plan → deliverable → orchestration) without regressions.
 
 ---
 
-### Phase 5: API Agents + Plan + Deliverables (Build Step)
-**Focus**: Full build workflow with agent execution
+## Testing Strategy
 
-**Tests** (5 total):
-1. Agent Executes Plan - API agent reads and follows plan
-2. Agent Creates Deliverables - Output becomes deliverable
-3. Agent Updates Plan Status - Plan reflects agent progress
-4. Agent Failures Don't Break Plan - Graceful degradation
-5. Complete Build Flow - End-to-end with all components
+1. **Unit Tests**: Pinia stores, action modules, and backend services gain thorough coverage with Jest/Vitest.  
+2. **Integration Tests**: Vue component flows for conversations, plans, deliverables, and orchestrations are exercised via Vitest/JSDOM.  
+3. **Progressive Agent Stack Runs**: Phased manual/automated checks ensure each layer (plans, deliverables, actions, orchestration) behaves correctly after refactors.  
+4. **End-to-End Verification**: Cypress or Playwright runs cover critical conversations → plan → deliverable flows, including real-time updates.  
+5. **Regression & Performance Sanity**: Smoke tests for major features plus baseline comparisons for load time and bundle size.
 
-**Dependencies**: Phases 1-4 complete
-**Deliverable**: Phase 5 test results
+Testing artifacts live in `obsidian/efforts/Matt/current/agent-stack-testing/` and must be updated as phases complete.
 
 ---
 
-### Phase 6: Function Agents (Image Writers - Global Pool)
-**Focus**: Global function agent discovery and invocation
+## Dependencies & Risks
 
-**Tests** (5 total):
-1. Discover Function Agents - System finds global agents
-2. Invoke Image Writer - Can generate images
-3. Image Deliverable Created - Output stored correctly
-4. Function Agent Error Handling
-5. Function Agent in Build Flow - Works with plan/deliverables
-
-**Dependencies**: Phases 1-5 complete
-**Deliverable**: Phase 6 test results
+- Coordinating API/database migrations requires tight sequencing across environments.  
+- Refactoring large Vue components may surface hidden coupling; incremental commits and feature flags mitigate rollout risk.  
+- Test automation updates must keep pace with store/action changes to avoid false regressions.
 
 ---
 
-### Phase 7: Orchestrator
-**Focus**: Multi-agent coordination with real-time updates and workflow management
+## Assumptions & Decisions
 
-**Tests** (8 total):
-1. Orchestrator Starts Multi-Agent Flow
-2. Orchestrator Real-Time Progress (SSE) - Live updates as agents execute
-3. Orchestrator Webhook Coordination - Agents report back via webhooks
-4. Orchestrator Coordinates Agent Sequence
-5. Orchestrator Handles Agent Dependencies
-6. Orchestrator Aggregates Results
-7. Orchestrator Error Recovery
-8. Complete Orchestration End-to-End with Real-Time Monitoring
-
-**Dependencies**: Phases 1-6 complete (Phase 4 validates SSE/webhook foundation)
-**Deliverable**: Phase 7 test results - **System fully validated with real-time orchestration**
+1. **Database Management**: Reset between major phases only; reuse seeded data within a phase to observe state transitions.  
+2. **Test Evidence**: Execution logs and written results in the tracking document suffice; video capture is optional.  
+3. **Deliverable Lifecycle**: When a plan is deleted, related deliverables persist but become orphaned artefacts accessible via orchestration history.  
+4. **Failure Handling**: Any failed test blocks phase completion until resolved; defects are logged and fixed before progressing.
 
 ---
 
-## Testing Workflow
+## Exit Criteria
 
-### Environment Setup
-1. Verify web server running on 7102
-2. Verify API server running on 7100
-3. Verify browser accessible at localhost:7102
-4. Verify Playwright configured
-5. Create test tracking document
-
-### Progressive Execution
-1. Start with Phase 1, Test 1
-2. Execute test, monitor all consoles
-3. Verify results (UI, API logs, browser console)
-4. Fix any issues found
-5. Mark test as passed
-6. Move to next test
-7. After phase complete, move to next phase
-8. Repeat until all phases complete
-
-### Documentation
-- Update test tracking document after each test
-- Record issues found and fixes applied
-- Note any deviations or blockers
-- Keep context for future sessions
-
----
-
-## Out of Scope
-
-- Performance testing
-- Load testing
-- Security testing
-- New feature development (only fix bugs found during testing)
-
----
-
-## Key Assumptions
-
-1. Testing agent has access to:
-   - Web server console via BashOutput
-   - API server console via BashOutput
-   - Browser automation via Playwright
-   - Code editor for fixing issues
-
-2. Hot reload works for both web and API:
-   - Code changes trigger automatic reload
-   - No manual restart needed
-
-3. Test environment is isolated:
-   - Tests don't affect production
-   - Database can be reset if needed
-
----
-
-## Open Questions for GolferGeek
-
-1. Should database be reset between phases or between tests?
-2. Should we record test execution videos/screenshots?
-3. What should happen to deliverables when plan is deleted?
-4. Should failed tests block phase completion or just be noted?
-
----
-
-## Effort Structure
-
-```
-obsidian/efforts/Matt/current/agent-stack-testing/
-├── PRD.md (this file)
-├── phase-1-context-agent.md
-├── phase-1-plan.md
-├── phase-2-deliverables.md
-├── phase-2-plan.md
-├── phase-3-integration.md
-├── phase-3-plan.md
-├── phase-4-api-agents.md
-├── phase-4-plan.md
-├── phase-5-build-flow.md
-├── phase-5-plan.md
-├── phase-6-function-agents.md
-├── phase-6-plan.md
-├── phase-7-orchestrator.md
-├── phase-7-plan.md
-├── test-progress.md (live tracking document)
-└── progress.md (phase completion tracking)
-```
-
----
-
-**Next Step**: Review this PRD with GolferGeek for approval before creating phase files.
+- All functional requirements met and verified.  
+- Success metrics satisfied with documented evidence.  
+- Testing strategy executed with results in the tracking repository.  
+- Documentation updated and reviewed.  
+- Stakeholders (Matt, front-end, QA) approve release readiness.

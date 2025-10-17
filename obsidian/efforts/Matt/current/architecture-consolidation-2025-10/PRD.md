@@ -107,11 +107,13 @@ The system evolved rapidly to meet business needs without architectural oversigh
 
 **Quantitative:**
 - ✅ Reduce store count from 10+ to 7 core domain stores
-- ✅ Eliminate 65+ store business logic violations
+- ✅ Eliminate 65+ store business logic violations (including 5+ in privacy stores)
 - ✅ Remove 1,454 lines of projects code
 - ✅ Consolidate 3 conversation stores → 1
 - ✅ Delete 4+ duplicate/overlapping service files
 - ✅ 100% of components use actions (not old services)
+- ✅ Organize privacy services into services/privacy/ folder
+- ✅ ≥80% automated test coverage across stores and services
 
 **Qualitative:**
 - ✅ New developers can find code in <5 minutes
@@ -127,6 +129,7 @@ The system evolved rapidly to meet business needs without architectural oversigh
 - ❌ UI/UX redesign
 - ❌ Backend refactoring (frontend only, except projects cleanup)
 - ❌ Performance optimization (architectural cleanup may improve performance, but not primary goal)
+- ❌ Infrastructure services refactoring (authService, userManagementService, llmMonitoringService, llmUsageService, modelCatalogService, videoService, etc. are correctly structured for their purposes and excluded from this effort)
 
 ---
 
@@ -192,7 +195,7 @@ services/agent2agent/actions/
 ```
 services/
   ├─ deliverablesService.ts         → Deliverable CRUD
-  ├─ agentConversationsService.ts   → Conversation CRUD
+  ├─ conversationsService.ts        → Conversation CRUD (renamed from agentConversationsService after Phase 5.7)
   ├─ tasksService.ts                → Task CRUD
   └─ apiService.ts                  → HTTP client
 ```
@@ -499,6 +502,8 @@ apps/web/src/services/agent-tasks/
 
 ### 4.3 Projects → Orchestrations Migration
 
+**Cutover Approach:** We assume the legacy `projects` and `project_steps` tables contain no critical data. We will execute a single hard migration—add the new orchestration column and immediately drop the legacy schema with no backups or staged rollouts.
+
 #### 4.3.1 Database Migration
 
 **Current Tables:**
@@ -512,32 +517,25 @@ apps/web/src/services/agent-tasks/
 - `orchestration_steps` (exists)
 - `deliverables.orchestration_step_id` (new column)
 
-**Migration SQL:**
+**Migration SQL (hard cutover):**
 ```sql
 -- 1. Add new column
 ALTER TABLE deliverables
 ADD COLUMN orchestration_step_id UUID;
 
--- 2. Migrate data (if any project deliverables exist)
--- Note: Likely few/zero records, projects were experimental
-UPDATE deliverables
-SET orchestration_step_id = project_step_id
-WHERE project_step_id IS NOT NULL;
-
--- 3. Drop old column
+-- 2. Drop old column immediately (no data migration)
 ALTER TABLE deliverables
-DROP COLUMN project_step_id;
+DROP COLUMN IF EXISTS project_step_id;
 
--- 4. Drop old tables (after backup)
+-- 3. Drop legacy tables (no backups required)
 DROP TABLE IF EXISTS project_steps;
 DROP TABLE IF EXISTS projects;
 ```
 
 **Acceptance Criteria:**
-- ✅ Backup created before migration
-- ✅ Data migrated (if any exists)
-- ✅ Old tables dropped
-- ✅ deliverables use orchestration_step_id
+- ✅ Schema updated with orchestration_step_id
+- ✅ Projects tables removed with no backups
+- ✅ No lingering references to project_step_id
 
 #### 4.3.2 Backend Code Cleanup
 
@@ -624,12 +622,87 @@ async loadDeliverables() {
 - planStore: 1 violation
 - llmUsageStore: 15+ violations
 - pseudonymDictionariesStore: 9 violations
+- pseudonymMappingsStore: 5 violations (fetchMappings, fetchMappingsFiltered, fetchMapping, fetchStats, getMappingsByRunId)
+- privacyIndicatorsStore: violations (audit needed)
+- piiPatternsStore: violations (audit needed)
 
 **Acceptance Criteria:**
 - ✅ Zero async methods in stores
 - ✅ All async operations in services
 - ✅ Stores have only simple mutations
 - ✅ Components call services, not store methods
+
+### 4.5 Privacy/Sanitization Architecture Cleanup
+
+**Context:** Privacy features (PII detection, pseudonymization, sanitization) currently exist with stores and services, but violate architectural standards.
+
+**Current State:**
+- **6 Privacy Stores:** pseudonymMappingsStore, pseudonymDictionariesStore, privacyIndicatorsStore, privacyDashboardStore, piiPatternsStore, sovereignPolicyStore
+- **4 Privacy Services:** piiService, pseudonymService, sanitizationAnalyticsService, sovereignPolicyService
+- **Problem 1:** Stores contain async/API call violations (same as domain stores)
+- **Problem 2:** Services don't follow new structural patterns (not in organized folders)
+
+**Privacy Data in A2A Responses:**
+- **Requirement:** Privacy metadata (PII flags, pseudonyms, sanitization info) MUST be returned in A2A response metadata
+- **Example:**
+  ```typescript
+  // A2A Response Structure
+  {
+    success: true,
+    mode: 'build',
+    action: 'create',
+    result: { deliverable: {...} },
+    metadata: {
+      taskId: 'abc123',
+      privacy: {
+        piiDetected: ['email', 'phone'],
+        pseudonyms: [
+          { original: 'john@example.com', pseudonym: 'USER_EMAIL_001', type: 'email' }
+        ],
+        sanitizationApplied: true,
+        indicators: [...]
+      }
+    }
+  }
+  ```
+- **Implementation:** Backend agents include privacy metadata in responses; frontend A2A handlers extract and use it
+
+**Privacy Services Refactoring:**
+- **Keep Separate from A2A Actions:** Privacy management (CRUD for PII patterns, pseudonym dictionaries, etc.) is NOT an agent mode
+- **Follow Structure:** Organize privacy services like other supporting services
+  ```
+  services/
+    ├─ privacy/
+    │   ├─ piiService.ts              → PII pattern management
+    │   ├─ pseudonymService.ts        → Pseudonym operations
+    │   ├─ sanitizationService.ts     → Sanitization analytics
+    │   └─ sovereignPolicyService.ts  → Data sovereignty policies
+  ```
+- **Services Call Store Mutations:** Services handle async/API, stores hold state only
+
+**Privacy Stores Refactoring:**
+- **Move All Async to Services:**
+  - pseudonymMappingsStore: Remove 5 async methods (fetchMappings, etc.) → Move to pseudonymService
+  - pseudonymDictionariesStore: Remove 9 async methods → Move to pseudonymService
+  - piiPatternsStore: Audit and remove async methods → Move to piiService
+  - privacyIndicatorsStore: Audit and remove async methods → Move to privacy services
+  - privacyDashboardStore: Audit and remove async methods → Move to sanitizationService
+  - sovereignPolicyStore: Audit and remove async methods → Move to sovereignPolicyService
+- **Stores = State Only:** Simple mutations (setPseudonyms, addPIIPattern, etc.)
+
+**Consolidation Opportunity:**
+- **Consider:** Merge related stores
+  - pseudonymMappingsStore + pseudonymDictionariesStore → pseudonymStore?
+  - piiPatternsStore + privacyIndicatorsStore → privacyStore?
+- **Decision:** Defer consolidation to Phase 1 if it simplifies architecture, otherwise handle in Phase 4
+
+**Acceptance Criteria:**
+- ✅ All privacy stores have zero async methods
+- ✅ Privacy services organized in services/privacy/
+- ✅ Privacy metadata correctly returned in A2A responses
+- ✅ Components call privacy services, not store async methods
+- ✅ Privacy stores follow same patterns as domain stores (state only)
+- ✅ Privacy services follow same patterns as other supporting services
 
 ---
 
@@ -674,6 +747,7 @@ DELETE Conversation:
 - Mock HTTP requests
 - Verify correct endpoints called
 - Test response handling
+- Ensure combined store + service coverage meets or exceeds 80%
 
 ### 6.2 Integration Tests
 
@@ -710,6 +784,7 @@ DELETE Conversation:
 - All tests pass
 - No console errors
 - Performance equivalent or better
+- No partial migrations remain (legacy tables/services fully removed)
 
 ---
 

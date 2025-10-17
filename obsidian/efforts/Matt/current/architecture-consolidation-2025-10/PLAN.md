@@ -2,14 +2,16 @@
 ## Detailed Execution Plan with Tasks, Subtasks & Testing
 
 **Effort:** Architecture Consolidation & Domain Model Cleanup
+**PRD Reference:** `obsidian/efforts/Matt/current/agent-stack-testing/PRD.md`
 **Created:** 2025-10-17
-**Status:** Ready for Review
+**Owner:** Matt (GolferGeek)
+**Status:** Ready for Execution
 
 ---
 
 ## Plan Overview
 
-This plan breaks down the architecture consolidation effort into **5 phases**, each with specific tasks, subtasks, and testing requirements. Each item can be checked off as completed, allowing progress tracking across contexts.
+This plan breaks down the architecture consolidation effort into **5 phases**, each with specific tasks, subtasks, and testing requirements. Each item can be checked off as completed, allowing progress tracking across contexts. Phases align directly with the solution overview in the PRD to keep implementation and validation tightly coupled.
 
 **Phases:**
 1. Store Consolidation (1.5 weeks)
@@ -32,7 +34,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 1.1: Create New Unified Conversations Store
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 2 days
 **Priority:** High
 
@@ -70,7 +72,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 1.2: Migrate Components to New Conversations Store
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 2 days
 **Priority:** High
 **Depends On:** Task 1.1
@@ -108,7 +110,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 1.3: Delete Old Conversation Stores
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 **Depends On:** Task 1.2
@@ -139,7 +141,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 1.4: Consolidate Agent Stores
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 1 day
 **Priority:** Medium
 
@@ -170,7 +172,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 1.5: Extract UI State to chatUiStore
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 1.5 days
 **Priority:** High
 
@@ -204,7 +206,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 1.6: Remove Plan/Deliverable Duplication from agentChatStore
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 2 days
 **Priority:** High
 **Depends On:** Task 1.5
@@ -240,7 +242,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 1.7: Delete agentChatStore
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 0.5 days
 **Priority:** High
 **Depends On:** Task 1.6
@@ -293,7 +295,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 2.1: Create build.actions.ts
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 2 days
 **Priority:** High
 
@@ -330,7 +332,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 2.2: Create converse.actions.ts
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 1 day
 **Priority:** High
 
@@ -357,7 +359,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 2.3: Update Components to Use Actions (Deliverables)
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 1 day
 **Priority:** High
 **Depends On:** Task 2.1
@@ -390,7 +392,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 2.4: Update Components to Use Actions (Conversations)
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 **Depends On:** Task 2.2
@@ -412,7 +414,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 2.5: Update Components to Use Actions (Plans)
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 
@@ -434,7 +436,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 2.6: Delete Old agent-tasks Services
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 **Depends On:** Tasks 2.3, 2.4, 2.5
@@ -490,30 +492,27 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 **Goal:** Remove legacy projects system, use orchestrations exclusively.
 
-### Task 3.1: Assess Current Project Usage
+### Task 3.1: Confirm No-Data Assumption & Proceed
 
-**Owner:** TBD
-**Estimated Time:** 0.5 days
+**Owner:** Backend Team (API & Data)
+**Estimated Time:** 0.25 days
 **Priority:** Critical
 
 #### Subtasks:
-- [ ] 3.1.1 Query database: `SELECT COUNT(*) FROM projects`
-- [ ] 3.1.2 Query database: `SELECT COUNT(*) FROM project_steps`
-- [ ] 3.1.3 Query database: `SELECT COUNT(*) FROM deliverables WHERE project_step_id IS NOT NULL`
-- [ ] 3.1.4 Document findings
-- [ ] 3.1.5 Decide migration strategy based on data volume
-- [ ] 3.1.6 Create backup of projects data (if any exists)
+- [ ] 3.1.1 Document assumption that `projects` and `project_steps` contain no critical data
+- [ ] 3.1.2 Notify stakeholders that tables will be dropped without backup
+- [ ] 3.1.3 Update runbook/notes to reflect the assumption
 
 #### Acceptance Criteria:
-- ✅ Data volume documented
-- ✅ Backup created (if needed)
-- ✅ Migration strategy decided
+- ✅ Assumption captured in project notes
+- ✅ Stakeholders acknowledge no-backup approach
+- ✅ Ready to execute schema changes without data safeguards
 
 ---
 
 ### Task 3.2: Database Migration - Add Orchestration Column
 
-**Owner:** TBD
+**Owner:** Backend Team (API & Data)
 **Estimated Time:** 0.5 days
 **Priority:** High
 **Depends On:** Task 3.1
@@ -521,7 +520,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 #### Subtasks:
 - [ ] 3.2.1 Create migration file: `add_orchestration_step_id_to_deliverables.sql`
 - [ ] 3.2.2 Write SQL: `ALTER TABLE deliverables ADD COLUMN orchestration_step_id UUID;`
-- [ ] 3.2.3 Write data migration SQL (if project data exists)
+- [ ] 3.2.3 Note: skip data migration (assumed unused)
 - [ ] 3.2.4 Test migration on dev database
 - [ ] 3.2.5 Run migration on staging database
 - [ ] 3.2.6 Verify migration successful
@@ -536,15 +535,15 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 #### Acceptance Criteria:
 - ✅ New column added
-- ✅ Data migrated (if needed)
-- ✅ No data loss
+- ✅ No data migration required (documented)
+- ✅ No schema errors
 - ✅ Migration tested on all environments
 
 ---
 
 ### Task 3.3: Database Migration - Remove Project Columns
 
-**Owner:** TBD
+**Owner:** Backend Team (API & Data)
 **Estimated Time:** 0.5 days
 **Priority:** High
 **Depends On:** Task 3.2
@@ -572,21 +571,20 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 3.4: Database Migration - Drop Project Tables
 
-**Owner:** TBD
+**Owner:** Backend Team (API & Data)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 **Depends On:** Task 3.3
 
 #### Subtasks:
-- [ ] 3.4.1 Create final backup of projects tables
-- [ ] 3.4.2 Create migration file: `drop_project_tables.sql`
-- [ ] 3.4.3 Write SQL: `DROP TABLE IF EXISTS project_steps;`
-- [ ] 3.4.4 Write SQL: `DROP TABLE IF EXISTS projects;`
-- [ ] 3.4.5 Test on dev
-- [ ] 3.4.6 Run on staging
-- [ ] 3.4.7 Verify staging
-- [ ] 3.4.8 Run on production
-- [ ] 3.4.9 Verify production
+- [ ] 3.4.1 Create migration file: `drop_project_tables.sql`
+- [ ] 3.4.2 Write SQL: `DROP TABLE IF EXISTS project_steps;`
+- [ ] 3.4.3 Write SQL: `DROP TABLE IF EXISTS projects;`
+- [ ] 3.4.4 Test on dev
+- [ ] 3.4.5 Run on staging
+- [ ] 3.4.6 Verify staging
+- [ ] 3.4.7 Run on production
+- [ ] 3.4.8 Verify production
 
 #### Verification Tests:
 - [ ] 3.4.T1 Tables dropped: `\dt` shows no projects/project_steps
@@ -595,14 +593,13 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 #### Acceptance Criteria:
 - ✅ Tables dropped
-- ✅ Backup exists
 - ✅ No application errors
 
 ---
 
 ### Task 3.5: Backend Code - Update Deliverable Entity
 
-**Owner:** TBD
+**Owner:** Backend Team (API & Data)
 **Estimated Time:** 0.5 days
 **Priority:** High
 **Depends On:** Task 3.2
@@ -630,7 +627,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 3.6: Backend Code - Delete Projects Services
 
-**Owner:** TBD
+**Owner:** Backend Team (API & Data)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 **Depends On:** Task 3.4
@@ -662,7 +659,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 3.7: Frontend Code - Update Deliverable Service
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 0.5 days
 **Priority:** High
 **Depends On:** Task 3.5
@@ -689,7 +686,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 3.8: Frontend Code - Delete Project Pages/Components
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 1 day
 **Priority:** Medium
 **Depends On:** Task 3.6
@@ -738,13 +735,13 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ---
 
-## Phase 4: Store Method Migration (0.5 week)
+## Phase 4: Store Method Migration (1 week)
 
-**Goal:** Move all async operations from stores to services.
+**Goal:** Move all async operations from stores to services, refactor privacy/sanitization architecture, and harden type safety across Pinia modules.
 
 ### Task 4.1: Refactor deliverablesStore
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 1 day
 **Priority:** High
 
@@ -770,7 +767,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 4.2: Refactor agentsStore
 
-**Owner:** TBD
+**Owner:** Front-end Team (Lead: Matt)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 
@@ -787,23 +784,89 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ---
 
-### Task 4.3: Refactor Other Stores (As Needed)
+### Task 4.3: Refactor Privacy/Sanitization Stores & Services
 
-**Owner:** TBD
-**Estimated Time:** 1 day
+**Owner:** Front-end Team (Lead: Matt)
+**Estimated Time:** 2 days
+**Priority:** Medium
+
+#### Context:
+Privacy features (PII detection, pseudonymization, sanitization) violate architectural standards. Stores contain async methods; services aren't organized. Privacy metadata must be returned in A2A response metadata, but privacy management itself is NOT an A2A action.
+
+#### Subtasks:
+- [ ] 4.3.1 Audit all 6 privacy stores for async violations (pseudonymMappingsStore, pseudonymDictionariesStore, privacyIndicatorsStore, privacyDashboardStore, piiPatternsStore, sovereignPolicyStore)
+- [ ] 4.3.2 Create services/privacy/ folder structure
+- [ ] 4.3.3 Move piiService.ts → services/privacy/piiService.ts
+- [ ] 4.3.4 Move pseudonymService.ts → services/privacy/pseudonymService.ts
+- [ ] 4.3.5 Move sanitizationAnalyticsService.ts → services/privacy/sanitizationService.ts
+- [ ] 4.3.6 Move sovereignPolicyService.ts → services/privacy/sovereignPolicyService.ts
+- [ ] 4.3.7 Extract async methods from pseudonymMappingsStore → pseudonymService (5 methods: fetchMappings, fetchMappingsFiltered, fetchMapping, fetchStats, getMappingsByRunId)
+- [ ] 4.3.8 Extract async methods from pseudonymDictionariesStore → pseudonymService (9 methods)
+- [ ] 4.3.9 Extract async methods from piiPatternsStore → piiService
+- [ ] 4.3.10 Extract async methods from privacyIndicatorsStore → privacy services
+- [ ] 4.3.11 Extract async methods from privacyDashboardStore → sanitizationService
+- [ ] 4.3.12 Extract async methods from sovereignPolicyStore → sovereignPolicyService
+- [ ] 4.3.13 Update privacy stores to have only simple mutations (setState, addItem, removeItem)
+- [ ] 4.3.14 Update components to call privacy services (not store async methods)
+- [ ] 4.3.15 Verify A2A handlers extract privacy metadata from responses correctly
+- [ ] 4.3.16 Run TypeScript compilation
+- [ ] 4.3.17 Run privacy feature tests
+
+#### Unit Tests:
+- [ ] 4.3.T1 Test each privacy store mutation (synchronous only)
+- [ ] 4.3.T2 Test pseudonymService methods call correct APIs
+- [ ] 4.3.T3 Test piiService methods call correct APIs
+- [ ] 4.3.T4 Test privacy stores update correctly from service calls
+- [ ] 4.3.T5 Test A2A response handlers extract privacy metadata
+
+#### Acceptance Criteria:
+- ✅ All 6 privacy stores have zero async methods
+- ✅ Privacy services organized in services/privacy/
+- ✅ All privacy stores follow "state only" pattern
+- ✅ Components call privacy services, not store methods
+- ✅ A2A handlers correctly extract privacy metadata from response.metadata.privacy
+- ✅ Tests pass
+
+---
+
+### Task 4.4: Refactor Other Stores (As Needed)
+
+**Owner:** Front-end Team (Lead: Matt)
+**Estimated Time:** 0.5 days
 **Priority:** Low
 
 #### Subtasks:
-- [ ] 4.3.1 Review llmUsageStore (15+ violations)
-- [ ] 4.3.2 Review pseudonymDictionariesStore (9 violations)
-- [ ] 4.3.3 Prioritize critical stores
-- [ ] 4.3.4 Refactor selected stores
-- [ ] 4.3.5 Update components
+- [ ] 4.4.1 Review llmUsageStore (15+ violations)
+- [ ] 4.4.2 Prioritize critical stores beyond privacy
+- [ ] 4.4.3 Refactor selected stores if time permits
+- [ ] 4.4.4 Update components
 
 #### Acceptance Criteria:
 - ✅ Critical stores refactored
 - ✅ Violations reduced
 - ✅ Tests pass
+
+---
+
+### Task 4.5: Incremental Store Type-Safety Hardening
+
+**Owner:** Front-end Team (Lead: Matt)
+**Estimated Time:** 1 day
+**Priority:** High
+
+#### Subtasks:
+- [ ] 4.5.1 Audit all Pinia stores for `any`, implicit `as` casts, or untyped payloads
+- [ ] 4.5.2 Introduce shared store interface definitions aligned with domain models
+- [ ] 4.5.3 Update store state, getters, and mutations to use explicit types
+- [ ] 4.5.4 Replace untyped component interactions with typed helpers/selectors
+- [ ] 4.5.5 Add TypeScript assertion tests or `satisfies` checks for critical stores
+- [ ] 4.5.6 Run TypeScript compilation and affected unit tests
+
+#### Acceptance Criteria:
+- ✅ No remaining `any` or implicit casts in Pinia stores
+- ✅ Stores rely on shared typed interfaces
+- ✅ Components compile with updated types
+- ✅ Unit/type assertion tests pass
 
 ---
 
@@ -813,6 +876,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 - [ ] P4.U1 All store mutations are synchronous
 - [ ] P4.U2 All services update stores correctly
 - [ ] P4.U3 All services handle errors correctly
+- [ ] P4.U4 Store type assertions/TS satisfies checks succeed
 
 #### Integration Tests:
 - [ ] P4.I1 Components call services, not stores
@@ -827,7 +891,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 5.1: Unit Test Coverage
 
-**Owner:** TBD
+**Owner:** QA & Automation Team (Matt + QA)
 **Estimated Time:** 2 days
 **Priority:** High
 
@@ -851,7 +915,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 5.2: Integration Testing
 
-**Owner:** TBD
+**Owner:** QA & Front-end Team
 **Estimated Time:** 2 days
 **Priority:** High
 
@@ -864,6 +928,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 - [ ] 5.2.6 Test task execution and status updates
 - [ ] 5.2.7 Test orchestration workflows (if applicable)
 - [ ] 5.2.8 Test error scenarios (network failures, validation errors)
+- [ ] 5.2.9 Update `obsidian/efforts/Matt/current/agent-stack-testing/test-progress.md` with results
 
 #### Acceptance Criteria:
 - ✅ All critical workflows tested
@@ -874,7 +939,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 5.3: End-to-End Testing
 
-**Owner:** TBD
+**Owner:** QA Team (Automation)
 **Estimated Time:** 1 day
 **Priority:** High
 
@@ -887,6 +952,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 - [ ] 5.3.6 Test with backend errors (mock 500 responses)
 - [ ] 5.3.7 Test concurrent operations (open multiple tabs)
 - [ ] 5.3.8 Performance test (check load times, bundle size)
+- [ ] 5.3.9 Publish E2E execution notes to `obsidian/efforts/Matt/current/agent-stack-testing/progress.md`
 
 #### Acceptance Criteria:
 - ✅ Works in all browsers
@@ -898,7 +964,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 5.4: Update Architecture Documentation
 
-**Owner:** TBD
+**Owner:** Architecture & Docs (Matt)
 **Estimated Time:** 1 day
 **Priority:** Medium
 
@@ -922,7 +988,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 5.5: Performance Verification
 
-**Owner:** TBD
+**Owner:** Front-end Team (Performance)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 
@@ -945,7 +1011,7 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ### Task 5.6: Final Code Review
 
-**Owner:** TBD
+**Owner:** Engineering Leads (Matt + API Lead)
 **Estimated Time:** 0.5 days
 **Priority:** Medium
 
@@ -967,6 +1033,28 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 
 ---
 
+### Task 5.7: Legacy Service Naming Cleanup
+
+**Owner:** Front-end Team (Lead: Matt)
+**Estimated Time:** 0.25 days
+**Priority:** Low
+**Depends On:** Task 2.6
+
+#### Subtasks:
+- [ ] 5.7.1 Confirm all components use `agent2agent/actions/converse.actions`
+- [ ] 5.7.2 Rename `apps/web/src/services/agentConversationsService.ts` → `conversationsService.ts`
+- [ ] 5.7.3 Update default export and imports to `conversationsService`
+- [ ] 5.7.4 Run TypeScript compilation
+- [ ] 5.7.5 Spot-check affected UI flows
+
+#### Acceptance Criteria:
+- ✅ File renamed and imports updated
+- ✅ No references to `agentConversationsService` remain
+- ✅ TypeScript build passes
+- ✅ Conversations UI unaffected
+
+---
+
 ### Phase 5 Testing Summary
 
 #### Regression Testing:
@@ -981,6 +1069,15 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 - [ ] P5.A3 All tests pass
 - [ ] P5.A4 Documentation complete
 - [ ] P5.A5 Team sign-off
+
+#### Progressive Agent Stack Validation:
+- [ ] PA1 Context Agent (plans CRUD) scenarios pass
+- [ ] PA2 Deliverables CRUD scenarios pass
+- [ ] PA3 Plan + Deliverables integration scenarios pass
+- [ ] PA4 API Agents real-time (SSE/webhook/polling) scenarios pass
+- [ ] PA5 API Agents + Plan + Deliverables build workflow scenarios pass
+- [ ] PA6 Function Agents (image writers) scenarios pass
+- [ ] PA7 Orchestrator multi-agent coordination scenarios pass
 
 ---
 
@@ -1018,7 +1115,9 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 **Phase 4 - Store Method Migration:**
 - [ ] Task 4.1: Refactor deliverablesStore
 - [ ] Task 4.2: Refactor agentsStore
-- [ ] Task 4.3: Refactor Other Stores
+- [ ] Task 4.3: Refactor Privacy/Sanitization Stores & Services
+- [ ] Task 4.4: Refactor Other Stores
+- [ ] Task 4.5: Incremental Store Type-Safety Hardening
 
 **Phase 5 - Final Testing:**
 - [ ] Task 5.1: Unit Test Coverage
@@ -1027,12 +1126,13 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 - [ ] Task 5.4: Update Documentation
 - [ ] Task 5.5: Performance Verification
 - [ ] Task 5.6: Final Code Review
+- [ ] Task 5.7: Legacy Service Naming Cleanup
 
 ---
 
 ## Risk Mitigation Checklist
 
-- [ ] Full database backup before any migrations
+- [ ] Stakeholder confirmation captured before destructive migrations (backups optional)
 - [ ] Staging environment tested before production
 - [ ] Rollback plan documented for each phase
 - [ ] Incremental commits (one task at a time)
@@ -1045,14 +1145,14 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 ## Success Metrics
 
 **Target Metrics (from PRD):**
-- [ ] Store count reduced from 10+ to 7
-- [ ] Zero async methods in stores
-- [ ] Zero duplicate services
-- [ ] Zero imports of old services
-- [ ] 1,454 lines of projects code deleted
-- [ ] 80%+ test coverage
-- [ ] Build size equivalent or smaller
-- [ ] Load time equivalent or faster
+- [ ] Store count reduced from >10 to ≤7 consolidated domain stores
+- [ ] Zero async methods remain inside Pinia stores
+- [ ] Zero imports from deprecated `agent-tasks` services
+- [ ] ≥1,454 lines of legacy project-related code deleted
+- [ ] ≥80% coverage across new/modified stores, actions, and services
+- [ ] Front-end bundle size and key load metrics match or beat baseline
+- [ ] End-to-end test suite passes for plan → deliverable → orchestration flows
+- [ ] 100% of Pinia store APIs expose strict, explicit TypeScript types (no unchecked casts)
 
 ---
 
