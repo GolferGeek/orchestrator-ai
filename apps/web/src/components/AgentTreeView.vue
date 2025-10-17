@@ -53,21 +53,12 @@
                 >
                   <ion-icon :icon="icons.chatbubbleOutline" />
                 </ion-button>
-                <ion-button
-                  fill="clear"
-                  size="small"
-                  @click="startNewProject(group.agents[0], 'ceo')"
-                  title="Start new project"
-                  class="header-action-btn project-btn"
-                >
-                  <span class="project-icon">P</span>
-                </ion-button>
               </div>
             </ion-item>
 
-            <!-- Accordion content: CEO's conversations and projects -->
+            <!-- Accordion content: CEO's conversations -->
             <div slot="content" class="accordion-content">
-              <!-- CEO's Conversations and Projects -->
+              <!-- CEO's Conversations -->
               <div v-if="group.agents[0]" class="ceo-content">
                 <!-- CEO's Conversations -->
                 <div v-if="group.agents[0].conversations && group.agents[0].conversations.length > 0" class="ceo-conversations">
@@ -100,29 +91,6 @@
                       >
                         <ion-icon :icon="icons.trashOutline" />
                       </ion-button>
-                    </ion-item>
-                  </div>
-                </div>
-
-                <!-- CEO's Projects -->
-                <div v-if="group.agents[0].projects && group.agents[0].projects.length > 0" class="ceo-projects">
-                  <h5 class="section-title">CEO Projects</h5>
-                  <div class="projects-list">
-                    <ion-item
-                      v-for="project in group.agents[0].projects"
-                      :key="project.id"
-                      @click="selectProject(project)"
-                      button
-                      class="project-item ceo-project"
-                    >
-                      <ion-icon :icon="icons.folderOutline" slot="start" color="secondary" />
-                      <ion-label>
-                        <h6>{{ project.name || 'Untitled Project' }}</h6>
-                        <p>{{ project.description || 'No description' }}</p>
-                      </ion-label>
-                      <ion-badge :color="getProjectStatusColor(project.status)" slot="end">
-                        {{ project.status }}
-                      </ion-badge>
                     </ion-item>
                   </div>
                 </div>
@@ -216,22 +184,13 @@
                 >
                   <ion-icon :icon="icons.chatbubbleOutline" />
                 </ion-button>
-                <ion-button
-                  fill="clear"
-                  size="small"
-                  @click="startNewProject(group.agents[0], group.type)"
-                  title="Start new project"
-                  class="header-action-btn project-btn"
-                >
-                  <span class="project-icon">P</span>
-                </ion-button>
               </div>
             </ion-item>
-            
-            <!-- Accordion content: Manager's conversations/projects first, then team members -->
+
+            <!-- Accordion content: Manager's conversations first, then team members -->
             <div slot="content" class="accordion-content">
 
-              <!-- Manager's Conversations and Projects (first agent in the group) -->
+              <!-- Manager's Conversations (first agent in the group) -->
               <div v-if="group.agents[0]" class="manager-content">
                 <!-- Manager's Conversations -->
                 <div v-if="group.agents[0].conversations && group.agents[0].conversations.length > 0" class="manager-conversations">
@@ -264,29 +223,6 @@
                       >
                         <ion-icon :icon="icons.trashOutline" />
                       </ion-button>
-                    </ion-item>
-                  </div>
-                </div>
-
-                <!-- Manager's Projects -->
-                <div v-if="group.agents[0].projects && group.agents[0].projects.length > 0" class="manager-projects">
-                  <h5 class="section-title">Manager Projects</h5>
-                  <div class="projects-list">
-                    <ion-item
-                      v-for="project in group.agents[0].projects"
-                      :key="project.id"
-                      @click="selectProject(project)"
-                      button
-                      class="project-item manager-project"
-                    >
-                      <ion-icon :icon="icons.folderOutline" slot="start" color="secondary" />
-                      <ion-label>
-                        <h6>{{ project.name || 'Untitled Project' }}</h6>
-                        <p>{{ project.description || 'No description' }}</p>
-                      </ion-label>
-                      <ion-badge :color="getProjectStatusColor(project.status)" slot="end">
-                        {{ project.status }}
-                      </ion-badge>
                     </ion-item>
                   </div>
                 </div>
@@ -474,7 +410,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'agent-selected': [agent: any];
   'conversation-selected': [conversation: any];
-  'project-selected': [project: any];
 }>();
 
 // Reactive state
@@ -550,29 +485,6 @@ const formatDate = (date: string | Date) => {
 
 const selectConversation = (conversation: any) => {
   emit('conversation-selected', conversation);
-};
-
-const selectProject = (project: any) => {
-  emit('project-selected', project);
-};
-
-const getProjectStatusColor = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case 'active':
-    case 'in progress':
-      return 'primary';
-    case 'completed':
-    case 'done':
-      return 'success';
-    case 'paused':
-    case 'on hold':
-      return 'warning';
-    case 'cancelled':
-    case 'failed':
-      return 'danger';
-    default:
-      return 'medium';
-  }
 };
 
 const getConversationStatusColor = (status: string) => {
@@ -852,7 +764,6 @@ const hierarchyGroups = computed(() => {
         description: topOrchestrator.metadata?.description || topOrchestrator.description || '',
         execution_modes: [],
         conversations: orchestratorConversations,
-        projects: topOrchestrator.projects || [],
         activeConversations: orchestratorConversations.filter(c => !c.endedAt).length,
         totalConversations: orchestratorConversations.length, // Will be updated after child agents are processed
       }];
@@ -1088,15 +999,6 @@ const createNewConversation = async (agent: any) => {
   }
 };
 
-const createNewProject = async (agent: any) => {
-  try {
-    // Emit event for parent to handle project creation
-    emit('agent-selected', { ...agent, createProject: true });
-  } catch (err) {
-    console.error('Failed to create project:', err);
-  }
-};
-
 // Wrapper methods for header buttons that also expand the accordion
 const startNewConversation = async (agent: any, groupType: string) => {
   try {
@@ -1108,19 +1010,6 @@ const startNewConversation = async (agent: any, groupType: string) => {
     await createNewConversation(agent);
   } catch (err) {
     console.error('Failed to start conversation:', err);
-  }
-};
-
-const startNewProject = async (agent: any, groupType: string) => {
-  try {
-    // Expand the accordion if not already expanded
-    if (!expandedAccordions.value.includes(groupType)) {
-      expandedAccordions.value.push(groupType);
-    }
-    // Create the project
-    await createNewProject(agent);
-  } catch (err) {
-    console.error('Failed to start project:', err);
   }
 };
 
@@ -1310,19 +1199,6 @@ onMounted(async () => {
   font-size: 18px;
 }
 
-.project-btn .project-icon {
-  font-weight: bold;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  line-height: 1;
-}
-
 /* Prevent accordion toggle when clicking buttons */
 .header-actions {
   z-index: 10;
@@ -1367,13 +1243,11 @@ onMounted(async () => {
   padding: 0;
 }
 
-.ceo-conversations,
-.ceo-projects {
+.ceo-conversations {
   margin-bottom: 12px;
 }
 
-.ceo-conversation,
-.ceo-project {
+.ceo-conversation {
   --background: var(--ion-color-step-50);
 }
 
