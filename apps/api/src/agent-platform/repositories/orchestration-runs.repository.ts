@@ -5,6 +5,7 @@ import {
   OrchestrationRunStartInput,
   OrchestrationRunUpdateInput,
 } from '../interfaces/orchestration-run-record.interface';
+import type { OrchestrationStepState } from '../types/orchestration-run.types';
 
 interface SupabaseSelectResponse<T> {
   data: T | null;
@@ -73,7 +74,7 @@ export class OrchestrationRunsRepository {
       current_step_index: null,
       current_step_id: input.current_step_id ?? null,
       completed_steps: [],
-      step_state: {},
+      step_state: (input.step_state ?? {}) as OrchestrationStepState,
       human_checkpoint_id: null,
       plan: input.plan ?? {},
       results: input.results ?? {},
@@ -108,15 +109,20 @@ export class OrchestrationRunsRepository {
     id: string,
     patch: OrchestrationRunUpdateInput,
   ): Promise<OrchestrationRunRecord> {
-    const payload: Record<string, any> = {
+    const payload: Partial<OrchestrationRunUpdateInput> & {
+      updated_at: string;
+    } = {
       updated_at: new Date().toISOString(),
     };
 
-    Object.entries(patch).forEach(([key, value]) => {
-      if (value !== undefined) {
-        payload[key] = value;
-      }
-    });
+    (Object.keys(patch) as Array<keyof OrchestrationRunUpdateInput>).forEach(
+      (key) => {
+        const value = patch[key];
+        if (value !== undefined) {
+          payload[key] = value;
+        }
+      },
+    );
 
     const { data, error } = (await this.client()
       .from(TABLE)

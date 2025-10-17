@@ -1,3 +1,5 @@
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+
 /**
  * Base types for the mode × action architecture
  * Used across all agent-to-agent task operations
@@ -43,22 +45,23 @@ export interface BaseTaskRequest {
   agentSlug?: string;
 }
 
+export interface TaskMetadata extends JsonObject {
+  taskId?: string;
+  executionTime?: number;
+  timestamp?: string;
+}
+
 /**
  * Standardized response structure for all task operations
  * @template TResult - The specific result type for this task
  */
-export interface TaskResponse<TResult = any> {
+export interface TaskResponse<TResult = JsonValue> {
   success: boolean;
   mode: TaskMode;
   action: TaskAction;
   result?: TResult;
   error?: TaskError;
-  metadata?: {
-    taskId?: string;
-    executionTime?: number;
-    timestamp?: string;
-    [key: string]: any;
-  };
+  metadata?: TaskMetadata;
 }
 
 /**
@@ -67,6 +70,6 @@ export interface TaskResponse<TResult = any> {
 export interface TaskError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: JsonObject;
   stack?: string;
 }

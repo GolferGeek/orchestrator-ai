@@ -4,8 +4,9 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PlansRepository } from '../repositories/plans.repository';
+import { PlansRepository, PlanRecord } from '../repositories/plans.repository';
 import { PlanVersionsService } from './plan-versions.service';
+import type { JsonObject, PlanVersionData } from '@orchestrator-ai/transport-types';
 import {
   IActionHandler,
   ActionExecutionContext,
@@ -22,8 +23,48 @@ export interface Plan {
   currentVersionId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  currentVersion?: any;
+  currentVersion?: PlanVersionData | null;
 }
+
+type PlanCreateParams = {
+  title: string;
+  content: string;
+  format?: 'markdown' | 'json' | 'text';
+  agentName?: string;
+  namespace?: string;
+  taskId?: string;
+  metadata?: JsonObject;
+};
+
+type PlanEditParams = {
+  content: string;
+  metadata?: JsonObject;
+};
+
+type PlanRerunParams = {
+  versionId: string;
+  rerunConfig: {
+    provider: string;
+    model: string;
+    temperature?: number;
+    maxTokens?: number;
+  };
+};
+
+type PlanSetCurrentParams = { versionId: string };
+type PlanTargetVersionParams = { versionId: string };
+
+type PlanMergeParams = {
+  versionIds: string[];
+  mergePrompt: string;
+  planStructure?: unknown;
+  llmConfig?: JsonObject | null;
+  preferredFormat?: 'markdown' | 'json' | 'text';
+};
+
+type PlanCopyParams = {
+  versionId: string;
+};
 
 /**
  * PlansService - Implements the mode × action architecture for plan operations
@@ -52,23 +93,28 @@ export class PlansService implements IActionHandler {
    * Main entry point for all plan operations
    * Implements IActionHandler interface for mode × action routing
    */
-  async executeAction<T = any>(
+  async executeAction<TResult = JsonObject | null>(
     action: string,
-    params: any,
+    params: unknown,
     context: ActionExecutionContext,
-  ): Promise<ActionResult<T>> {
+  ): Promise<ActionResult<TResult>> {
     try {
       this.logger.debug(
         `Executing plan action: ${action}`,
         JSON.stringify({ action, context }),
       );
 
-      let result: any;
+      let result: unknown;
 
       switch (action) {
-        case 'create':
-          result = await this.createOrRefine(params, context);
+        case 'create': {
+          const createParams = this.ensureObject<PlanCreateParams>(
+            params,
+            action,
+          );
+          result = await this.createOrRefine(createParams, context);
           break;
+        }
 
         case 'read':
           result = await this.getCurrentPlan(context);
@@ -78,29 +124,59 @@ export class PlansService implements IActionHandler {
           result = await this.getVersionHistory(context);
           break;
 
-        case 'edit':
-          result = await this.saveManualEdit(params, context);
+        case 'edit': {
+          const editParams = this.ensureObject<PlanEditParams>(
+            params,
+            action,
+          );
+          result = await this.saveManualEdit(editParams, context);
           break;
+        }
 
-        case 'rerun':
-          result = await this.rerunWithDifferentLLM(params, context);
+        case 'rerun': {
+          const rerunParams = this.ensureObject<PlanRerunParams>(
+            params,
+            action,
+          );
+          result = await this.rerunWithDifferentLLM(rerunParams, context);
           break;
+        }
 
-        case 'set_current':
-          result = await this.setCurrentVersion(params, context);
+        case 'set_current': {
+          const setCurrentParams = this.ensureObject<PlanSetCurrentParams>(
+            params,
+            action,
+          );
+          result = await this.setCurrentVersion(setCurrentParams, context);
           break;
+        }
 
-        case 'delete_version':
-          result = await this.deleteVersion(params, context);
+        case 'delete_version': {
+          const deleteParams = this.ensureObject<PlanTargetVersionParams>(
+            params,
+            action,
+          );
+          result = await this.deleteVersion(deleteParams, context);
           break;
+        }
 
-        case 'merge_versions':
-          result = await this.mergeVersions(params, context);
+        case 'merge_versions': {
+          const mergeParams = this.ensureObject<PlanMergeParams>(
+            params,
+            action,
+          );
+          result = await this.mergeVersions(mergeParams, context);
           break;
+        }
 
-        case 'copy_version':
-          result = await this.copyVersion(params, context);
+        case 'copy_version': {
+          const copyParams = this.ensureObject<PlanCopyParams>(
+            params,
+            action,
+          );
+          result = await this.copyVersion(copyParams, context);
           break;
+        }
 
         case 'delete':
           result = await this.deletePlan(context);
@@ -112,7 +188,7 @@ export class PlansService implements IActionHandler {
 
       return {
         success: true,
-        data: result as T,
+        data: result as TResult,
       };
     } catch (error) {
       this.logger.error(`Failed to execute plan action ${action}:`, error);
@@ -132,6 +208,18 @@ export class PlansService implements IActionHandler {
     }
   }
 
+  private ensureObject<T extends object>(
+    params: unknown,
+    action: string,
+  ): T {
+    if (!params || typeof params !== 'object') {
+      throw new BadRequestException(
+        `Invalid payload for plan action "${action}"`,
+      );
+    }
+    return params as T;
+  }
+
   // ============================================================================
   // ACTION HANDLERS (Private methods - only executeAction is public)
   // ============================================================================
@@ -141,15 +229,7 @@ export class PlansService implements IActionHandler {
    * Create a new plan or refine existing plan (creates new version)
    */
   private async createOrRefine(
-    params: {
-      title: string;
-      content: string;
-      format?: 'markdown' | 'json' | 'text';
-      agentName?: string;
-      namespace?: string;
-      taskId?: string;
-      metadata?: Record<string, any>;
-    },
+    params: PlanCreateParams,
     context: ActionExecutionContext,
   ) {
     // Check if plan already exists for this conversation
@@ -262,10 +342,7 @@ export class PlansService implements IActionHandler {
    * Save manual edit as new version
    */
   private async saveManualEdit(
-    params: {
-      content: string;
-      metadata?: Record<string, any>;
-    },
+    params: PlanEditParams,
     context: ActionExecutionContext,
   ) {
     const plan = await this.plansRepo.findByConversationId(
@@ -311,15 +388,7 @@ export class PlansService implements IActionHandler {
    * Rerun plan generation with different LLM settings
    */
   private async rerunWithDifferentLLM(
-    params: {
-      versionId: string;
-      rerunConfig: {
-        provider: string;
-        model: string;
-        temperature?: number;
-        maxTokens?: number;
-      };
-    },
+    params: PlanRerunParams,
     context: ActionExecutionContext,
   ) {
     const { provider, model, temperature, maxTokens } = params.rerunConfig;
@@ -452,7 +521,7 @@ export class PlansService implements IActionHandler {
    * Duplicate a version as a new version
    */
   private async copyVersion(
-    params: { versionId: string },
+    params: PlanCopyParams,
     context: ActionExecutionContext,
   ) {
     const sourceVersion = await this.versionsService.findOne(
@@ -565,7 +634,7 @@ export class PlansService implements IActionHandler {
   /**
    * Map database record to Plan entity
    */
-  private mapToPlan(data: any): Plan {
+  private mapToPlan(data: PlanRecord): Plan {
     return {
       id: data.id,
       conversationId: data.conversation_id,

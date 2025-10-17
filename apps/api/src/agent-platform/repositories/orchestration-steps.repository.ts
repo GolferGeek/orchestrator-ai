@@ -5,6 +5,7 @@ import {
   OrchestrationStepRecord,
   OrchestrationStepUpdateInput,
 } from '../interfaces/orchestration-step-record.interface';
+import type { OrchestrationStepStateEntry } from '../types/orchestration-run.types';
 
 interface SupabaseSingleResponse<T> {
   data: T | null;
@@ -52,13 +53,13 @@ export class OrchestrationStepsRepository {
       invalidated_reason: input.invalidated_reason ?? null,
       input: input.input ?? {},
       output: input.output ?? null,
-      metadata: input.metadata ?? {},
+      metadata: (input.metadata ?? {}) as OrchestrationStepStateEntry,
       error_details: input.error_details ?? null,
       started_at: input.started_at ?? null,
       completed_at: input.completed_at ?? null,
       created_at: now,
       updated_at: now,
-    };
+    } satisfies OrchestrationStepInsertInput;
 
     const { data, error } = (await this.client()
       .from(TABLE)
@@ -84,15 +85,20 @@ export class OrchestrationStepsRepository {
     id: string,
     patch: OrchestrationStepUpdateInput,
   ): Promise<OrchestrationStepRecord> {
-    const payload: Record<string, any> = {
+    const payload: Partial<OrchestrationStepUpdateInput> & {
+      updated_at: string;
+    } = {
       updated_at: new Date().toISOString(),
     };
 
-    Object.entries(patch).forEach(([key, value]) => {
-      if (value !== undefined) {
-        payload[key] = value;
-      }
-    });
+    (Object.keys(patch) as Array<keyof OrchestrationStepUpdateInput>).forEach(
+      (key) => {
+        const value = patch[key];
+        if (value !== undefined) {
+          payload[key] = value;
+        }
+      },
+    );
 
     const { data, error } = (await this.client()
       .from(TABLE)

@@ -2,6 +2,18 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { getTableName } from '@/supabase/supabase.config';
 
+export interface PlanRecord {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  agent_name: string;
+  namespace: string;
+  title: string;
+  current_version_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CreatePlanData {
   conversation_id: string;
   user_id: string;
@@ -27,7 +39,7 @@ export class PlansRepository {
   /**
    * Create a new plan
    */
-  async create(data: CreatePlanData) {
+  async create(data: CreatePlanData): Promise<PlanRecord> {
     const { data: planData, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
@@ -39,13 +51,16 @@ export class PlansRepository {
       throw new BadRequestException(`Failed to create plan: ${error.message}`);
     }
 
-    return planData;
+    return planData as PlanRecord;
   }
 
   /**
    * Find plan by conversation ID
    */
-  async findByConversationId(conversationId: string, userId: string) {
+  async findByConversationId(
+    conversationId: string,
+    userId: string,
+  ): Promise<PlanRecord | null> {
     const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
@@ -60,13 +75,13 @@ export class PlansRepository {
       );
     }
 
-    return data;
+    return (data as PlanRecord | null) ?? null;
   }
 
   /**
    * Find plan by ID
    */
-  async findById(id: string, userId: string) {
+  async findById(id: string, userId: string): Promise<PlanRecord | null> {
     const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
@@ -82,13 +97,17 @@ export class PlansRepository {
       throw new BadRequestException(`Failed to find plan: ${error.message}`);
     }
 
-    return data;
+    return data as PlanRecord;
   }
 
   /**
    * Update plan metadata
    */
-  async update(id: string, userId: string, data: UpdatePlanData) {
+  async update(
+    id: string,
+    userId: string,
+    data: UpdatePlanData,
+  ): Promise<PlanRecord> {
     const updateData = {
       ...data,
       updated_at: new Date().toISOString(),
@@ -107,13 +126,13 @@ export class PlansRepository {
       throw new BadRequestException(`Failed to update plan: ${error.message}`);
     }
 
-    return planData;
+    return planData as PlanRecord;
   }
 
   /**
    * Delete plan (CASCADE will delete all versions)
    */
-  async delete(id: string, userId: string) {
+  async delete(id: string, userId: string): Promise<void> {
     const { error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
@@ -129,7 +148,11 @@ export class PlansRepository {
   /**
    * Set current version
    */
-  async setCurrentVersion(id: string, userId: string, versionId: string) {
+  async setCurrentVersion(
+    id: string,
+    userId: string,
+    versionId: string,
+  ): Promise<PlanRecord> {
     return this.update(id, userId, { current_version_id: versionId });
   }
 }

@@ -3,6 +3,8 @@
  * All domain services (PlansService, DeliverablesService, etc.) implement this
  */
 
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+
 /**
  * Context passed to action handlers containing request metadata
  */
@@ -11,29 +13,29 @@ export interface ActionExecutionContext {
   userId: string;
   agentSlug?: string;
   taskId?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 /**
  * Result returned by action handlers
- * @template T - The specific result type for this action
+ * @template TData - The specific result type for this action
  */
-export interface ActionResult<T = any> {
+export interface ActionResult<TData = JsonValue, TMetadata extends JsonObject | undefined = JsonObject | undefined> {
   success: boolean;
-  data?: T;
+  data?: TData;
   error?: {
     code: string;
     message: string;
-    details?: Record<string, any>;
+    details?: JsonObject;
   };
-  metadata?: Record<string, any>;
+  metadata?: TMetadata;
 }
 
 /**
  * Interface that all domain services must implement
  * Provides a unified entry point for executing mode-specific actions
  */
-export interface IActionHandler {
+export interface IActionHandler<DefaultParams = JsonObject | undefined> {
   /**
    * Execute a specific action with the given parameters
    * @param action - The action to execute (e.g., 'create', 'read', 'merge_versions')
@@ -41,9 +43,9 @@ export interface IActionHandler {
    * @param context - Execution context (user, conversation, etc.)
    * @returns ActionResult with typed data
    */
-  executeAction<T = any>(
+  executeAction<TResult = JsonValue, TParams = DefaultParams>(
     action: string,
-    params: any,
+    params: TParams,
     context: ActionExecutionContext,
-  ): Promise<ActionResult<T>>;
+  ): Promise<ActionResult<TResult>>;
 }

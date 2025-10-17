@@ -51,6 +51,7 @@ export interface OrchestrationRunStartInput {
   organization_slug: string | null;
   user_id?: string | null;
   current_step_id?: string | null;
+  step_state?: OrchestrationStepState;
   plan?: OrchestrationRunPlan;
   results?: OrchestrationRunResults;
   error_details?: OrchestrationRunErrorDetails;

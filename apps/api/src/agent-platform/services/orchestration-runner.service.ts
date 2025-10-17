@@ -10,6 +10,15 @@ import {
   OrchestrationStepRecord,
   OrchestrationStepUpdateInput,
 } from '../interfaces/orchestration-step-record.interface';
+import type {
+  OrchestrationAgentMetadata,
+  OrchestrationRunErrorDetails,
+  OrchestrationRunMetadata,
+  OrchestrationRunParameters,
+  OrchestrationRunPlan,
+  OrchestrationRunResults,
+  OrchestrationStepState,
+} from '../types/orchestration-run.types';
 
 export interface OrchestrationStartInput {
   planId?: string | null;
@@ -18,14 +27,14 @@ export interface OrchestrationStartInput {
   conversationId?: string | null;
   parentOrchestrationRunId?: string | null;
   organizationSlug: string | null;
-  metadata?: Record<string, any>;
+  metadata?: OrchestrationRunMetadata;
   originType?: 'plan' | 'saved_orchestration' | 'ad_hoc';
   originId?: string | null;
   orchestrationSlug?: string | null;
-  parameters?: Record<string, any>;
-  plan?: Record<string, any>;
-  results?: Record<string, any>;
-  errorDetails?: Record<string, any>;
+  parameters?: OrchestrationRunParameters;
+  plan?: OrchestrationRunPlan;
+  results?: OrchestrationRunResults;
+  errorDetails?: OrchestrationRunErrorDetails;
   agentId?: string | null;
   agentSlug?: string | null;
   agentType?: string | null;
@@ -40,14 +49,14 @@ export type OrchestrationProgressUpdate = {
   currentStepIndex?: number | null;
   currentStepId?: string | null;
   completedSteps?: string[];
-  stepState?: Record<string, any>;
+  stepState?: OrchestrationStepState;
   humanCheckpointId?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: OrchestrationRunMetadata;
   completedAt?: string | null;
-  parameters?: Record<string, any>;
-  plan?: Record<string, any>;
-  results?: Record<string, any>;
-  errorDetails?: Record<string, any>;
+  parameters?: OrchestrationRunParameters;
+  plan?: OrchestrationRunPlan;
+  results?: OrchestrationRunResults;
+  errorDetails?: OrchestrationRunErrorDetails;
 };
 
 @Injectable()
@@ -68,7 +77,7 @@ export class OrchestrationRunnerService {
     const originType = input.originType ?? (input.planId ? 'plan' : 'ad_hoc');
     const originId =
       input.originId ?? (originType === 'plan' ? (input.planId ?? null) : null);
-    const metadata: Record<string, any> = {
+    const metadata: OrchestrationRunMetadata = {
       ...(input.metadata ?? {}),
     };
     if (
@@ -83,7 +92,7 @@ export class OrchestrationRunnerService {
         type: input.agentType ?? null,
         displayName: input.agentDisplayName ?? null,
         organizationSlug: input.organizationSlug ?? null,
-      };
+      } satisfies OrchestrationAgentMetadata;
     }
     return this.runsRepository.start({
       plan_id: input.planId,

@@ -87,6 +87,7 @@ export interface OrchestrationAgentMetadata extends JsonObject {
   slug?: string;
   type?: string | null;
   displayName?: string | null;
+  organizationSlug?: string | null;
 }
 
 export interface OrchestrationRunMetricsMetadata extends JsonObject {

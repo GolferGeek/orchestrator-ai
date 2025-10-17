@@ -86,6 +86,10 @@ export default tseslint.config(
       'node_modules/**',
       'coverage/**',
       'eslint.config.mjs',
+      // TODO(lint phase 6): bring scripts back once TypeScript project setup covers utility scripts
+      'scripts/**',
+      // TODO(lint phase 6): include legacy E2E suite when converted to new tsconfig structure
+      'testing/test/**',
     ],
   },
   {

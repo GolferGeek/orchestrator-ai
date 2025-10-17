@@ -29,7 +29,7 @@ npm run build && npm test
 - [x] Update parser options (`projectService`, `tsconfigRootDir`) and confirm TypeScript project references.
 - [x] Introduce rule allowlists/overrides for temporary hotspots (document each case).
 - [x] Migrate `apps/web/.eslintrc.json` to `eslint.config.js` with matching parser versions.
-- [ ] Ensure `npm run lint` exits on warnings; add `--max-warnings=0` guard.
+- [x] Ensure `npm run lint` exits on warnings; add `--max-warnings=0` guard.
 - [ ] Produce baseline lint metrics script (`lint:report`) storing counts for tracked rules.
 - [ ] Update CI definitions to surface lint artifacts/dashboards without failing builds yet.
 
