@@ -1,6 +1,8 @@
 // LLM Monitoring and Usage Tracking Types
 // Based on backend monitoring services and usage analytics
 
+import type { JsonValue, UnknownRecord } from './index';
+
 // =====================================
 // BASIC LLM MONITORING TYPES
 // =====================================
@@ -100,7 +102,7 @@ export interface Alert {
   type: 'response_time' | 'error_rate' | 'memory_usage' | 'model_unavailable' | 'system_health';
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
-  details?: any;
+  details?: UnknownRecord;
   timestamp: string;
   resolved: boolean;
   resolvedAt?: string;
@@ -170,7 +172,7 @@ export interface ComplianceMetrics {
     recentEvents: {
       timestamp: string;
       event: string;
-      details: any;
+      details: UnknownRecord;
     }[];
   };
   complianceScore: number; // 0-100
@@ -382,6 +384,6 @@ export interface RealTimeMetrics {
 
 export interface RealTimeUpdate {
   type: 'metrics' | 'alert' | 'status' | 'usage';
-  data: any;
+  data: JsonValue;
   timestamp: string;
 }

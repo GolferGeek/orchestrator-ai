@@ -31,7 +31,7 @@ npm run build && npm test
 - [x] Migrate `apps/web/.eslintrc.json` to `eslint.config.js` with matching parser versions.
 - [x] Ensure `npm run lint` exits on warnings; add `--max-warnings=0` guard.
 - [x] Produce baseline lint metrics script (`lint:report`) storing counts for tracked rules.
-- [ ] Update CI definitions to surface lint artifacts/dashboards without failing builds yet.
+- [x] Update CI definitions to surface lint artifacts/dashboards without failing builds yet.
 
 ## Phase 2 — LLM & Evaluation Layer Hardening
 - [ ] Inventory every `any`/unsafe usage inside `apps/api/src/llms/**/*` and evaluation modules.

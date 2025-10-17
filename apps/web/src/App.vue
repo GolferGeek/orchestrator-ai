@@ -30,15 +30,24 @@ import { useGlobalErrorHandler } from '@/composables/useGlobalErrorHandler';
 const isDevelopment = import.meta.env.DEV;
 
 // Set up global error handling
-const { 
-  errorStore, 
+const {
+  errorStore,
   handleVueError,
   getErrorSummary,
   testErrorHandling 
 } = useGlobalErrorHandler();
 
+type ErrorBoundaryInfo = Record<string, unknown>;
+
+interface ErrorDebugContext {
+  store: typeof errorStore;
+  handler: { handleVueError: typeof handleVueError };
+  summary: typeof getErrorSummary;
+  test: typeof testErrorHandling;
+}
+
 // Global error event handlers
-const onGlobalError = (error: Error, errorInfo: any) => {
+const onGlobalError = (error: Error, _errorInfo: ErrorBoundaryInfo) => {
   console.log('🚨 App-level error captured:', error);
   
   // Error is already handled by ErrorBoundary and added to store
@@ -52,7 +61,7 @@ const onErrorRetry = (attempt: number) => {
   // For example, clearing caches, refreshing auth tokens, etc.
 };
 
-const onErrorReport = (error: Error, errorInfo: any) => {
+const onErrorReport = (error: Error, _errorInfo: ErrorBoundaryInfo) => {
   console.log('🐛 App-level error report requested:', error);
   
   // Additional reporting logic could go here
@@ -75,7 +84,7 @@ onMounted(() => {
 
 // Expose error handling for debugging
 if (isDevelopment) {
-  (window as any).errorDebug = {
+  (window as Window & { errorDebug?: ErrorDebugContext }).errorDebug = {
     store: errorStore,
     handler: { handleVueError },
     summary: getErrorSummary,

@@ -1,6 +1,8 @@
 // Analytics and Reporting Types
 // Based on backend analytics endpoints and evaluation services
 
+import type { JsonValue, UnknownRecord } from './index';
+
 // =====================================
 // BASIC ANALYTICS TYPES
 // =====================================
@@ -223,7 +225,7 @@ export interface CostSummary {
 }
 
 export interface ModelPerformance {
-  model: any; // Model details from backend
+  model: UnknownRecord;
   metrics: {
     usageCount: number;
     avgUserRating: number;
@@ -420,7 +422,7 @@ export interface RealTimeAnalytics {
     type: 'success' | 'error' | 'warning' | 'info';
     message: string;
     timestamp: string;
-    details?: any;
+    details?: UnknownRecord;
   }>;
   alerts: Array<{
     id: string;
@@ -442,10 +444,7 @@ export interface ReportConfig {
   type: 'usage' | 'performance' | 'cost' | 'evaluation' | 'project' | 'custom';
   filters: AnalyticsFilters;
   metrics: string[];
-  visualizations: Array<{
-    type: 'chart' | 'table' | 'metric' | 'trend';
-    config: any;
-  }>;
+  visualizations: VisualizationConfig[];
   schedule?: {
     frequency: 'daily' | 'weekly' | 'monthly';
     recipients: string[];
@@ -462,7 +461,7 @@ export interface GeneratedReport {
   name: string;
   generatedAt: string;
   period: TimeRange;
-  data: any;
+  data: JsonValue;
   fileUrl?: string;
   status: 'generating' | 'completed' | 'failed';
   error?: string;
@@ -482,7 +481,7 @@ export interface AnalyticsEvent {
   userId?: string;
   sessionId?: string;
   timestamp: string;
-  properties: Record<string, any>;
+  properties: UnknownRecord;
   context: {
     userAgent?: string;
     ip?: string;
@@ -515,7 +514,7 @@ export interface AnalyticsRequest {
   offset?: number;
 }
 
-export interface AnalyticsResponse<T = any> {
+export interface AnalyticsResponse<T = UnknownRecord> {
   success: boolean;
   data: T;
   metadata: {
@@ -584,6 +583,30 @@ export interface ChartData {
   }>;
 }
 
+export interface ChartTooltipCallbacks {
+  label?(context: unknown): string | number | undefined;
+  title?(context: unknown[]): string | undefined;
+  [key: string]: ((...args: unknown[]) => unknown) | undefined;
+}
+
+export interface ChartScaleOptions {
+  type?: string;
+  display?: boolean;
+  stacked?: boolean;
+  min?: number;
+  max?: number;
+  title?: {
+    display?: boolean;
+    text?: string;
+  };
+  grid?: {
+    display?: boolean;
+  };
+  ticks?: UnknownRecord;
+}
+
+export type ChartScales = Record<string, ChartScaleOptions>;
+
 export interface ChartOptions {
   responsive: boolean;
   maintainAspectRatio: boolean;
@@ -598,10 +621,10 @@ export interface ChartOptions {
     };
     tooltip: {
       enabled: boolean;
-      callbacks?: any;
+      callbacks?: ChartTooltipCallbacks;
     };
   };
-  scales?: any;
+  scales?: ChartScales;
 }
 
 export interface VisualizationConfig {

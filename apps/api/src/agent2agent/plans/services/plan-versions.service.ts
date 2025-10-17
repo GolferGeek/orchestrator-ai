@@ -332,10 +332,11 @@ export class PlanVersionsService {
         } as JsonObject);
       } else {
         llmResponseContent = response.content;
+        const usageMetadata = response.metadata?.usage as JsonObject | undefined;
         llmResponseMetadata = this.mergeMetadata(undefined, {
           provider: response.metadata?.provider ?? llmConfig.provider,
           model: response.metadata?.model ?? llmConfig.model,
-          usage: response.metadata?.usage as JsonObject | undefined,
+          ...(usageMetadata ? { usage: usageMetadata } : {}),
         } as JsonObject);
       }
     } catch (error) {
@@ -376,7 +377,7 @@ export class PlanVersionsService {
       mergedAt: new Date().toISOString(),
       mergeStrategy: 'llm',
       llmMergeInfo,
-      llmMetadata: llmResponseMetadata,
+      llmMetadata: llmResponseMetadata ?? null,
       planStructureApplied: Boolean(normalizedPlanStructure),
       targetFormat: normalizedContent.format,
     } as JsonObject);
@@ -749,12 +750,12 @@ export class PlanVersionsService {
               runId: responseMetadata.requestId,
               provider: responseMetadata.provider,
               model: responseMetadata.model,
-              inputTokens: responseMetadata.usage?.inputTokens,
-              outputTokens: responseMetadata.usage?.outputTokens,
-              cost: responseMetadata.usage?.cost,
-              duration: responseMetadata.timing?.duration,
+              inputTokens: responseMetadata.usage?.inputTokens ?? null,
+              outputTokens: responseMetadata.usage?.outputTokens ?? null,
+              cost: responseMetadata.usage?.cost ?? null,
+              duration: responseMetadata.timing?.duration ?? null,
             }
-          : undefined,
+          : null,
       } as JsonObject);
 
       const newVersion = await this.createVersion(plan.id, userId, {
