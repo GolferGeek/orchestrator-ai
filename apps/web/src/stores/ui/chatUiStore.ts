@@ -44,6 +44,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
   // ============================================================================
 
   const activeConversationId = ref<string | null>(null);
+  const openConversationTabs = ref<string[]>([]); // Array of open conversation tab IDs
   const pendingAction = ref<PendingAction | null>(null);
   const chatMode = ref<ChatMode>('conversational');
   const lastMessageWasSpeech = ref(false);
@@ -79,6 +80,41 @@ export const useChatUiStore = defineStore('chatUi', () => {
    */
   function setActiveConversation(conversationId: string | null): void {
     activeConversationId.value = conversationId;
+
+    // Add to open tabs if not already there
+    if (conversationId && !openConversationTabs.value.includes(conversationId)) {
+      openConversationTabs.value.push(conversationId);
+    }
+  }
+
+  /**
+   * Open conversation tab
+   */
+  function openConversationTab(conversationId: string): void {
+    if (!openConversationTabs.value.includes(conversationId)) {
+      openConversationTabs.value.push(conversationId);
+    }
+    setActiveConversation(conversationId);
+  }
+
+  /**
+   * Close conversation tab
+   */
+  function closeConversationTab(conversationId: string): void {
+    const index = openConversationTabs.value.indexOf(conversationId);
+    if (index > -1) {
+      openConversationTabs.value.splice(index, 1);
+    }
+
+    // If closing active tab, switch to another open tab or null
+    if (activeConversationId.value === conversationId) {
+      if (openConversationTabs.value.length > 0) {
+        // Switch to the last tab
+        activeConversationId.value = openConversationTabs.value[openConversationTabs.value.length - 1];
+      } else {
+        activeConversationId.value = null;
+      }
+    }
   }
 
   /**
@@ -161,6 +197,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
    */
   function clearAll(): void {
     activeConversationId.value = null;
+    openConversationTabs.value = [];
     pendingAction.value = null;
     chatMode.value = 'conversational';
     lastMessageWasSpeech.value = false;
@@ -176,6 +213,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
   return {
     // State (read-only exposure)
     activeConversationId: readonly(activeConversationId),
+    openConversationTabs: readonly(openConversationTabs),
     pendingAction: readonly(pendingAction),
     chatMode: readonly(chatMode),
     lastMessageWasSpeech: readonly(lastMessageWasSpeech),
@@ -194,6 +232,8 @@ export const useChatUiStore = defineStore('chatUi', () => {
 
     // Mutations
     setActiveConversation,
+    openConversationTab,
+    closeConversationTab,
     setPendingAction,
     updatePendingActionStatus,
     clearPendingAction,
