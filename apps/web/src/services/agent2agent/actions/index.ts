@@ -9,11 +9,25 @@
 // Plan actions
 export { createPlan, rerunPlan } from './plan.actions';
 
-// Build actions (TODO)
-// export { createBuild, rerunBuild } from './build.actions';
+// Build actions (Deliverables)
+export {
+  createDeliverable,
+  readDeliverable,
+  editDeliverable,
+  listDeliverables,
+  rerunDeliverable,
+  setCurrentVersion,
+  deleteVersion,
+  deleteDeliverable,
+} from './build.actions';
 
-// Converse actions (TODO)
-// export { sendMessage } from './converse.actions';
+// Converse actions
+export {
+  sendMessage,
+  createConversation,
+  loadConversation,
+  deleteConversation,
+} from './converse.actions';
 
-// Orchestrate actions (TODO)
-// export { createOrchestration } from './orchestrate.actions';
+// Orchestrate actions
+export { createOrchestration, executeOrchestration } from './orchestrate.actions';
