@@ -84,13 +84,15 @@ export function testRegexPerformance(pattern: string, testString = 'a'.repeat(10
  */
 export function isDangerousRegex(pattern: string): boolean {
   const dangerousPatterns = [
-    /\([^)]*\+[^)]*\)\+/,  // Nested quantifiers like (a+)+
-    /\([^)]*\*[^)]*\)\*/,  // Nested star quantifiers like (.*)*
-    /\([^)]*\+[^)]*\)\$/, // Nested quantifiers at end
+    /\([^)]*\+\)\+/,  // Nested quantifiers like (a+)+
+    /\([^)]*\*\)\*/,  // Nested star quantifiers like (.*)*
+    /\([^)]*\|\1\)\*/,  // Backreference with quantifier like (a|a)*
+    /\([^)]+\)\*$/,  // Quantifier at end like ([a-zA-Z]+)*
+    /\([^)]+\{[^}]+\}\)\+/,  // Nested counted quantifiers like (a{1,10})+
     /\(\?!.*\)\+/,  // Negative lookahead with quantifiers
     /\(\?:.\+\)\+/, // Non-capturing group with nested quantifiers
   ];
-  
+
   return dangerousPatterns.some(dangerous => dangerous.test(pattern));
 }
 
@@ -123,12 +125,15 @@ export function containsSQLInjection(value: string): boolean {
   const sqlPatterns = [
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
     /(UNION\s+SELECT)/gi,
-    /(';\s*(DROP|DELETE|INSERT|UPDATE))/gi,
-    /(\|\||--|\/\*|\*\/)/gi,
+    /(';\s*(DROP|DELETE|INSERT|UPDATE|EXEC))/gi,
+    /('\s*(OR|AND)\s*['"]?\d+['"]?\s*=\s*['"]?\d+)/gi, // ' OR '1'='1 or ' OR 1=1
+    /('\s*(OR|AND)\s*['"]?[a-z]+['"]?\s*=\s*['"]?[a-z]+)/gi, // ' OR 'a'='a
+    /(--|\|\||\/\*|\*\/|#)/g, // Comment injection
+    /('--)/g, // admin'--
     /(WAITFOR\s+DELAY)/gi,
     /(CONVERT\s*\()/gi,
   ];
-  
+
   return sqlPatterns.some(pattern => pattern.test(value));
 }
 
@@ -138,13 +143,15 @@ export function containsSQLInjection(value: string): boolean {
 export function containsPathTraversal(value: string): boolean {
   const pathTraversalPatterns = [
     /\.\.[/\\]/,
+    /%2e%2e%2f/gi, // URL-encoded ../
     /%2e%2e[/\\]/gi,
     /\.\.%2f/gi,
     /\.\.%5c/gi,
+    /\.\.%252f/gi, // Double-encoded
+    /\.\.%c0%af/gi, // UTF-8 encoded
     /\.\.\\/,
-    /\.\.%252f/gi,
   ];
-  
+
   return pathTraversalPatterns.some(pattern => pattern.test(value));
 }
 

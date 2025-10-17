@@ -61,7 +61,7 @@ function sanitizeInput(value: any, options?: SanitizationOptions): any {
  */
 function detectSecurityIssues(value: string): ValidationError[] {
   const errors: ValidationError[] = [];
-  
+
   // XSS patterns
   const xssPatterns = [
     /<script[^>]*>.*?<\/script>/gi,
@@ -70,7 +70,7 @@ function detectSecurityIssues(value: string): ValidationError[] {
     /<iframe[^>]*>/gi,
     /eval\s*\(/gi,
   ];
-  
+
   for (const pattern of xssPatterns) {
     if (pattern.test(value)) {
       errors.push({
@@ -83,14 +83,18 @@ function detectSecurityIssues(value: string): ValidationError[] {
       break; // Don't report multiple XSS issues
     }
   }
-  
-  // SQL injection patterns
+
+  // SQL injection patterns - improved to catch more variations
   const sqlPatterns = [
-    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b)/gi,
+    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
     /(UNION\s+SELECT)/gi,
-    /(';\s*(DROP|DELETE|INSERT|UPDATE))/gi,
+    /(';\s*(DROP|DELETE|INSERT|UPDATE|EXEC))/gi,
+    /('\s*(OR|AND)\s*['"]?\d+['"]?\s*=\s*['"]?\d+)/gi, // ' OR '1'='1 or ' OR 1=1
+    /('\s*(OR|AND)\s*['"]?[a-z]+['"]?\s*=\s*['"]?[a-z]+)/gi, // ' OR 'a'='a
+    /(--|\|\||\/\*|\*\/|#)/g, // Comment injection
+    /('--)/g, // admin'--
   ];
-  
+
   for (const pattern of sqlPatterns) {
     if (pattern.test(value)) {
       errors.push({
@@ -103,17 +107,32 @@ function detectSecurityIssues(value: string): ValidationError[] {
       break;
     }
   }
-  
-  // Path traversal
-  if (/\\.\\.[/\\\\]/.test(value)) {
-    errors.push({
-      field: 'security',
-      code: ValidationCodes.PATH_TRAVERSAL,
-      message: 'Path traversal attempt detected',
-      severity: 'critical',
-    });
+
+  // Path traversal - improved to catch URL-encoded versions
+  const pathTraversalPatterns = [
+    /\.\.[/\\]/,
+    /%2e%2e%2f/gi, // URL-encoded ../
+    /%2e%2e[/\\]/gi,
+    /\.\.%2f/gi,
+    /\.\.%5c/gi,
+    /\.\.%252f/gi, // Double-encoded
+    /\.\.%c0%af/gi, // UTF-8 encoded
+    /\.\.\\/,
+  ];
+
+  for (const pattern of pathTraversalPatterns) {
+    if (pattern.test(value)) {
+      errors.push({
+        field: 'security',
+        code: ValidationCodes.PATH_TRAVERSAL,
+        message: 'Path traversal attempt detected',
+        severity: 'critical',
+        context: { pattern: pattern.toString() }
+      });
+      break;
+    }
   }
-  
+
   return errors;
 }
 
@@ -293,16 +312,37 @@ export const ValidationRules = {
     }
   }),
 
-  security: (message = 'Security violation detected'): ValidationRule => ({
+  security: (options?: {
+    enableXSSProtection?: boolean;
+    enableSQLInjectionProtection?: boolean;
+    enablePathTraversalProtection?: boolean;
+    message?: string;
+  }): ValidationRule => ({
     name: 'security',
     priority: 0, // Highest priority
     description: 'Security validation',
     validator: (value: string) => {
       if (!value) return { isValid: true, errors: [], warnings: [] };
-      const securityErrors = detectSecurityIssues(value);
+
+      // If no options provided, enable all protections
+      const enableAll = !options || (!options.enableXSSProtection && !options.enableSQLInjectionProtection && !options.enablePathTraversalProtection);
+      const enableXSS = enableAll || options?.enableXSSProtection;
+      const enableSQL = enableAll || options?.enableSQLInjectionProtection;
+      const enablePath = enableAll || options?.enablePathTraversalProtection;
+
+      const allErrors = detectSecurityIssues(value);
+
+      // Filter errors based on enabled protections
+      const errors = allErrors.filter(error => {
+        if (error.code === ValidationCodes.XSS_DETECTED && !enableXSS) return false;
+        if (error.code === ValidationCodes.SQL_INJECTION && !enableSQL) return false;
+        if (error.code === ValidationCodes.PATH_TRAVERSAL && !enablePath) return false;
+        return true;
+      });
+
       return {
-        isValid: securityErrors.length === 0,
-        errors: securityErrors,
+        isValid: errors.length === 0,
+        errors,
         warnings: []
       };
     }
@@ -404,6 +444,57 @@ export const ValidationRules = {
           sanitizationProfile: 'richText'
         }
       };
+    }
+  }),
+
+  detectPII: (options?: { mode?: 'error' | 'warning' }): ValidationRule => ({
+    name: 'detectPII',
+    priority: 5,
+    description: 'Detect potential PII (Personally Identifiable Information)',
+    validator: (value: string) => {
+      if (!value) return { isValid: true, errors: [], warnings: [] };
+
+      const piiPatterns = [
+        { type: 'email', pattern: ValidationPatterns.EMAIL },
+        { type: 'phone', pattern: ValidationPatterns.PHONE },
+        { type: 'ssn', pattern: /\b\d{3}-?\d{2}-?\d{4}\b/ },
+        { type: 'credit_card', pattern: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/ },
+      ];
+
+      const detected: Array<{type: string; match: string}> = [];
+      for (const { type, pattern } of piiPatterns) {
+        const matches = value.match(new RegExp(pattern, 'g'));
+        if (matches) {
+          matches.forEach(match => detected.push({ type, match }));
+        }
+      }
+
+      const mode = options?.mode || 'warning';
+      if (detected.length === 0) {
+        return { isValid: true, errors: [], warnings: [] };
+      }
+
+      const message = `Detected potential PII: ${detected.map(d => d.type).join(', ')}`;
+      const piiItem = {
+        field: 'pii',
+        code: ValidationCodes.PII_DETECTED,
+        message,
+        context: { detected }
+      };
+
+      if (mode === 'error') {
+        return {
+          isValid: false,
+          errors: [{ ...piiItem, severity: 'error' as const }],
+          warnings: []
+        };
+      } else {
+        return {
+          isValid: true,
+          errors: [],
+          warnings: [{ ...piiItem, severity: 'warning' as const, suggestion: 'Consider sanitizing PII before processing' }]
+        };
+      }
     }
   }),
 };
