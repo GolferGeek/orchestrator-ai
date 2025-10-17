@@ -14,7 +14,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { llmAnalyticsService } from '@/services/llmAnalyticsService';
+import { llmAnalyticsService, type ActiveRun } from '@/services/llmAnalyticsService';
 import {
   LLMUsageStats,
   LLMUsageRecord,
@@ -46,7 +46,7 @@ export const useLLMAnalyticsStore = defineStore('llmAnalytics', () => {
   // Analytics Data
   const analytics = ref<LlmAnalytics[]>([]);
   const stats = ref<LlmStats | null>(null);
-  const activeRuns = ref<any[]>([]);
+  const activeRuns = ref<ActiveRun[]>([]);
 
   // Usage Statistics
   const usageStats = ref<LLMUsageStats | null>(null);
@@ -257,22 +257,36 @@ export const useLLMAnalyticsStore = defineStore('llmAnalytics', () => {
 
       if (response.success) {
         // Map new format to legacy format for compatibility
-        usageRecords.value = response.data.records.map(record => ({
+        usageRecords.value = response.data.records.map((record): LlmUsageRecord => ({
           id: record.id,
-          caller_type: record.callerType || '',
-          caller_name: record.callerName || '',
+          run_id: record.id,
+          user_id: record.userId ?? null,
+          caller_type: record.callerType ?? '',
+          caller_name: record.callerName ?? '',
+          conversation_id: record.sessionId ?? null,
           provider_name: record.metrics.provider,
           model_name: record.metrics.model,
-          total_cost: record.metrics.cost,
-          input_tokens: record.metrics.inputTokens,
-          output_tokens: record.metrics.outputTokens,
-          total_tokens: record.metrics.totalTokens,
-          duration_ms: record.metrics.responseTime,
+          is_local: record.metrics.provider.toLowerCase().includes('ollama'),
+          model_tier: null,
+          route: null,
+          fallback_used: false,
+          routing_reason: null,
+          complexity_level: null,
+          complexity_score: null,
+          data_classification: record.dataClassification ?? null,
           status: record.status,
-          created_at: record.createdAt,
+          input_tokens: record.metrics.inputTokens ?? null,
+          output_tokens: record.metrics.outputTokens ?? null,
+          input_cost: null,
+          output_cost: null,
+          total_cost: record.metrics.cost ?? null,
+          duration_ms: record.metrics.responseTime ?? null,
+          started_at: record.createdAt,
           completed_at: record.completedAt,
-          error_message: record.errorMessage
-        })) as any;
+          error_message: record.errorMessage ?? null,
+          created_at: record.createdAt,
+          updated_at: record.completedAt ?? record.createdAt,
+        }));
         usageRecordsTotal.value = response.data.total;
         lastUpdated.value = new Date();
       }

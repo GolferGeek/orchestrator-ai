@@ -6,20 +6,20 @@ Generated: 2025-10-17T22:12:09Z
 
 | Rule | Hits |
 | --- | ---: |
-| -eslint/no-unsafe-member-access | 907 |
-| -eslint/no-unsafe-assignment | 639 |
-| -eslint/no-explicit-any | 365 |
-| -eslint/no-unsafe-argument | 140 |
-| -eslint/no-unused-vars | 106 |
-| -eslint/no-unsafe-call | 70 |
-| -eslint/no-unsafe-return | 70 |
-| -eslint/require-await | 28 |
+| @typescript-eslint/no-unsafe-member-access | 907 |
+| @typescript-eslint/no-unsafe-assignment | 639 |
+| @typescript-eslint/no-explicit-any | 365 |
+| @typescript-eslint/no-unsafe-argument | 140 |
+| @typescript-eslint/no-unused-vars | 106 |
+| @typescript-eslint/no-unsafe-call | 70 |
+| @typescript-eslint/no-unsafe-return | 70 |
+| @typescript-eslint/require-await | 28 |
 | no-useless-escape | 15 |
 | no-case-declarations | 7 |
 | prettier/prettier | 5 |
 | no-empty | 3 |
-| -eslint/no-unsafe-enum-comparison | 2 |
-| -eslint/no-base-to-string | 1 |
+| @typescript-eslint/no-unsafe-enum-comparison | 2 |
+| @typescript-eslint/no-base-to-string | 1 |
 
 ## Top Offending Files
 
@@ -46,4 +46,3 @@ Generated: 2025-10-17T22:12:09Z
 - llm.service.ts and usage.service.ts are the next largest clusters; both rely on dynamic metadata objects.
 - DTO coverage gaps: evaluation results, routing decisions, usage logging payloads, error envelopes.
 - Schema/validation gaps: provider responses (OpenAI, Anthropic, Google) and centralized routing decision payloads currently pass through as raw objects.
-

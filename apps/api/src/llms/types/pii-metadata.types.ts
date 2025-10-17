@@ -175,6 +175,16 @@ export interface PIIProcessingMetadata {
   processingSteps: string[];
   /** Timing information for performance monitoring */
   timestamps: ProcessingTimestamps;
+  /** Flattened flaggings array for downstream analytics */
+  flaggings?: unknown[];
+  /** Applied pseudonyms for transparency/debugging */
+  pseudonymsApplied?: Array<{
+    original: string;
+    pseudonym: string;
+    type: string;
+  }>;
+  /** Sanitization level applied to the request */
+  sanitizationLevel?: 'none' | 'basic' | 'standard' | 'strict';
 }
 
 /**

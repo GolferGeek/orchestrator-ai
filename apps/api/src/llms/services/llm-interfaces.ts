@@ -7,7 +7,8 @@
  */
 
 import { PIIProcessingMetadata } from '../types/pii-metadata.types';
-import { LLMUsageMetrics } from '../types/llm-evaluation';
+import { LLMUsageMetrics, CIDAFMOptions } from '../types/llm-evaluation';
+import type { DictionaryPseudonymMapping } from '../pii/dictionary-pseudonymizer.service';
 
 /**
  * Configuration interface for LLM services
@@ -25,6 +26,57 @@ export interface LLMServiceConfig {
 /**
  * Standardized parameters for LLM response generation
  */
+export type LLMCallerType = 'agent' | 'api' | 'user' | 'system' | 'service';
+
+export interface LLMCurrentUserContext extends Record<string, unknown> {
+  id?: string;
+  email?: string;
+  name?: string;
+  roles?: string[];
+}
+
+export type LLMRequestHeaders = Record<string, string | number | boolean | string[] | undefined>;
+
+export interface LLMRequestOptions extends Record<string, unknown> {
+  temperature?: number;
+  maxTokens?: number;
+  stream?: boolean;
+  preferLocal?: boolean;
+  maxComplexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
+  authToken?: string;
+  currentUser?: LLMCurrentUserContext;
+  callerType?: string;
+  callerName?: string;
+  organizationSlug?: string | null;
+  organizationId?: string;
+  agentSlug?: string | null;
+  conversationId?: string;
+  sessionId?: string;
+  userId?: string;
+  dataClassification?: string;
+  dataClass?: string;
+  policyProfile?: string;
+  sovereignMode?: string;
+  noTrain?: boolean;
+  noRetain?: boolean;
+  includeMetadata?: boolean;
+  quick?: boolean;
+  providerName?: string;
+  modelName?: string;
+  provider?: string;
+  model?: string;
+  max_tokens?: number;
+  top_p?: number;
+  top_k?: number;
+  requestId?: string;
+  context?: string;
+  dataTypes?: string[];
+  dictionaryMappings?: DictionaryPseudonymMapping[];
+  piiMetadata?: PIIProcessingMetadata;
+  routingDecision?: RoutingDecision;
+  cidafmOptions?: CIDAFMOptions;
+}
+
 export interface GenerateResponseParams {
   systemPrompt: string;
   userMessage: string;
@@ -32,27 +84,8 @@ export interface GenerateResponseParams {
   conversationId?: string;
   sessionId?: string;
   userId?: string;
-  headers?: Record<string, any>;
-  options?: {
-    temperature?: number;
-    maxTokens?: number;
-    stream?: boolean;
-    // Additional options from existing LLMService
-    preferLocal?: boolean;
-    maxComplexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
-    authToken?: string;
-    currentUser?: any;
-    callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
-    callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
-    // Org/Agent context for policy + dictionary scoping
-    organizationSlug?: string | null;
-    agentSlug?: string | null;
-    dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
-    // PII metadata from routing decision
-    piiMetadata?: any; // PIIProcessingMetadata from centralized routing
-    routingDecision?: any; // Full routing decision for context
-    [key: string]: any;
-  };
+  headers?: LLMRequestHeaders;
+  options?: LLMRequestOptions;
 }
 
 /**
@@ -63,29 +96,7 @@ export interface UnifiedGenerateResponseParams {
   model: string;
   systemPrompt: string;
   userMessage: string;
-  options?: {
-    temperature?: number;
-    maxTokens?: number;
-    stream?: boolean;
-    // Caller tracking for usage analytics
-    callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
-    callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
-    // Org/Agent context for policy + dictionary scoping
-    organizationSlug?: string | null;
-    agentSlug?: string | null;
-    conversationId?: string; // Optional conversation/session context
-    sessionId?: string;
-    userId?: string;
-    authToken?: string;
-    currentUser?: any;
-    dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
-    // Return format control
-    includeMetadata?: boolean; // If true, return LLMResponse object, otherwise just string
-    // PII metadata from routing decision
-    piiMetadata?: any; // PIIProcessingMetadata from centralized routing
-    routingDecision?: any; // Full routing decision for context
-    [key: string]: any;
-  };
+  options?: LLMRequestOptions;
 }
 
 /**
@@ -115,23 +126,7 @@ export interface ResponseMetadata {
   langsmithRunId?: string;
   thinking?: string; // Optional thinking/reasoning process from the model
   // Provider-specific fields (e.g., from LocalLLMResponse)
-  providerSpecific?: {
-    // Ollama/Local specific
-    total_duration?: number;
-    load_duration?: number;
-    prompt_eval_count?: number;
-    prompt_eval_duration?: number;
-    eval_count?: number;
-    eval_duration?: number;
-    // OpenAI specific
-    finish_reason?: string;
-    system_fingerprint?: string;
-    // Anthropic specific
-    stop_reason?: string;
-    stop_sequence?: string;
-    // Generic provider data
-    [key: string]: any;
-  };
+  providerSpecific?: Record<string, unknown>;
 }
 
 /**
@@ -140,11 +135,11 @@ export interface ResponseMetadata {
 export interface LLMResponse {
   content: string;
   metadata: ResponseMetadata;
-  piiMetadata?: PIIProcessingMetadata;
+  piiMetadata?: PIIProcessingMetadata | null;
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 
@@ -162,9 +157,7 @@ export interface PiiOptions {
  * Provider-specific extension interface
  * Providers can extend this to add their own specific metadata
  */
-export interface ProviderSpecificMetadata {
-  [key: string]: any;
-}
+export type ProviderSpecificMetadata = Record<string, unknown>;
 
 /**
  * Extended response metadata for providers that need additional fields
@@ -219,7 +212,7 @@ export interface ToolDefinition {
     description: string;
     parameters: {
       type: 'object';
-      properties: Record<string, any>;
+      properties: Record<string, unknown>;
       required?: string[];
     };
   };
@@ -267,7 +260,7 @@ export interface ProviderHealthStatus {
   latency?: number;
   lastChecked: string;
   error?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 /**

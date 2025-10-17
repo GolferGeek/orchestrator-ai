@@ -16,6 +16,7 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/generative-ai';
+import type { GoogleGenerateContentResult } from '../types/provider-payload.types';
 
 /**
  * Google-specific response metadata extension
@@ -143,7 +144,9 @@ export class GoogleLLMService extends BaseLLMService {
       const prompt = `${params.systemPrompt}\n\nUser: ${processedText}\n\nAssistant:`;
 
       // Make Google API call
-      const result = await model.generateContent(prompt);
+      const result: GoogleGenerateContentResult = await model.generateContent(
+        prompt,
+      );
       const response = result.response;
 
       if (!response.text()) {

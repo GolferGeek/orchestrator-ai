@@ -31,7 +31,7 @@ export interface PendingAction {
   type: 'plan' | 'build' | 'orchestration';
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   conversationId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================

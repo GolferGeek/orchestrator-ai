@@ -19,6 +19,10 @@ import type {
   OpenAIChatCompletionRequest,
   OpenAIChatCompletionResponse,
 } from '../types/provider-payload.types';
+import {
+  openAIChatCompletionSchema,
+} from '../types/provider-schemas';
+import type { OpenAIChatCompletionParsed } from '../types/provider-schemas';
 
 /**
  * OpenAI-specific response metadata extension
@@ -30,7 +34,8 @@ interface OpenAIResponseMetadata extends ResponseMetadata {
       | 'length'
       | 'function_call'
       | 'content_filter'
-      | 'null';
+      | 'tool_calls'
+      | null;
     system_fingerprint?: string;
     model_version?: string;
     logprobs?: any;
@@ -169,8 +174,10 @@ export class OpenAILLMService extends BaseLLMService {
       }
 
       // Make OpenAI API call
-      const completion: OpenAIChatCompletionResponse =
-        await this.openai.chat.completions.create(apiParams);
+      const completion: OpenAIChatCompletionParsed =
+        openAIChatCompletionSchema.parse(
+          await this.openai.chat.completions.create(apiParams),
+        );
 
       const choice = completion.choices[0];
       if (!choice?.message?.content) {
@@ -353,7 +360,7 @@ export class OpenAILLMService extends BaseLLMService {
    * Create OpenAI-specific metadata with provider-specific fields
    */
   private createOpenAIMetadata(
-    completion: OpenAIChatCompletionResponse,
+    completion: OpenAIChatCompletionParsed,
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,

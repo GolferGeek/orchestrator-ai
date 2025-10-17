@@ -93,6 +93,26 @@ export interface ApiResponse<T> {
   filters?: any;
 }
 
+export interface ActiveRun {
+  runId: string;
+  startTime: number;
+  provider: string;
+  model: string;
+  tier: 'local' | 'centralized' | 'external';
+  inputTokens?: number;
+  userId?: string;
+  callerType?: string;
+  callerName?: string;
+  conversationId?: string;
+  complexityLevel?: string;
+  complexityScore?: number;
+  dataClassification?: string;
+  isLocal?: boolean;
+  modelTier?: string;
+  fallbackUsed?: boolean;
+  routingReason?: string;
+}
+
 class LLMAnalyticsService {
   // =====================================
   // USAGE RECORDS & ANALYTICS
@@ -215,8 +235,8 @@ class LLMAnalyticsService {
   /**
    * Get active/running LLM requests
    */
-  async getActiveRuns(): Promise<any[]> {
-    const response = await apiService.get<ApiResponse<any[]>>('/api/llm-usage/active');
+  async getActiveRuns(): Promise<ActiveRun[]> {
+    const response = await apiService.get<ApiResponse<ActiveRun[]>>('/api/llm-usage/active');
     return response.data;
   }
 

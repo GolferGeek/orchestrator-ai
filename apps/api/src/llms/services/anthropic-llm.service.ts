@@ -12,18 +12,20 @@ import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import Anthropic from '@anthropic-ai/sdk';
 import { LLMErrorMapper } from './llm-error-handling';
+import { anthropicMessageSchema } from '../types/provider-schemas';
+import type { AnthropicMessageParsed } from '../types/provider-schemas';
 
 /**
  * Anthropic-specific response metadata extension
  */
 interface AnthropicResponseMetadata extends ResponseMetadata {
   providerSpecific: {
-    stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
+    stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | null;
     stop_sequence?: string;
     model_version?: string;
     // Anthropic usage details
-    input_tokens?: number;
-    output_tokens?: number;
+    input_tokens: number;
+    output_tokens: number;
     // Anthropic-specific fields
     usage?: {
       input_tokens: number;
@@ -185,15 +187,17 @@ export class AnthropicLLMService extends BaseLLMService {
       ];
 
       // Make Anthropic API call
-      const completion = await this.anthropic.messages.create({
-        model: params.config.model,
-        messages,
-        system: params.systemPrompt,
-        temperature:
-          params.options?.temperature ?? params.config.temperature ?? 0.7,
-        max_tokens:
-          params.options?.maxTokens ?? params.config.maxTokens ?? 1000,
-      });
+      const completion: AnthropicMessageParsed = anthropicMessageSchema.parse(
+        await this.anthropic.messages.create({
+          model: params.config.model,
+          messages,
+          system: params.systemPrompt,
+          temperature:
+            params.options?.temperature ?? params.config.temperature ?? 0.7,
+          max_tokens:
+            params.options?.maxTokens ?? params.config.maxTokens ?? 1000,
+        }),
+      );
 
       if (!completion.content || completion.content.length === 0) {
         throw new Error('No content in Anthropic response');
@@ -201,11 +205,8 @@ export class AnthropicLLMService extends BaseLLMService {
 
       // Extract text content (Anthropic returns array of content blocks)
       const rawContent = completion.content
-        .filter(
-          (block): block is Anthropic.Messages.TextBlock =>
-            block.type === 'text',
-        )
-        .map((block) => block.text)
+        .filter((block) => block.type === 'text' && typeof block.text === 'string')
+        .map((block) => block.text ?? '')
         .join('');
 
       if (!rawContent) {
@@ -276,14 +277,16 @@ export class AnthropicLLMService extends BaseLLMService {
    * Create Anthropic-specific metadata with provider-specific fields
    */
   private createAnthropicMetadata(
-    completion: Anthropic.Messages.Message,
+    completion: AnthropicMessageParsed,
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
     requestId: string,
     thinking?: string,
   ): AnthropicResponseMetadata {
-    const usage = completion.usage;
+    const usage = completion.usage ?? { input_tokens: 0, output_tokens: 0 };
+    const inputTokens = usage.input_tokens ?? 0;
+    const outputTokens = usage.output_tokens ?? 0;
 
     return {
       provider: 'anthropic',
@@ -291,14 +294,14 @@ export class AnthropicLLMService extends BaseLLMService {
       requestId,
       timestamp: new Date().toISOString(),
       usage: {
-        inputTokens: usage.input_tokens,
-        outputTokens: usage.output_tokens,
-        totalTokens: usage.input_tokens + usage.output_tokens,
+        inputTokens,
+        outputTokens,
+        totalTokens: inputTokens + outputTokens,
         cost: this.calculateCost(
           'anthropic',
           completion.model,
-          usage.input_tokens,
-          usage.output_tokens,
+          inputTokens,
+          outputTokens,
         ),
       },
       timing: {
@@ -311,15 +314,15 @@ export class AnthropicLLMService extends BaseLLMService {
       thinking,
       // Anthropic-specific fields
       providerSpecific: {
-        stop_reason: completion.stop_reason as any,
-        stop_sequence: completion.stop_sequence || undefined,
+        stop_reason: completion.stop_reason ?? null,
+        stop_sequence: undefined,
         model_version: completion.model,
         // Include actual token counts from Anthropic
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
         usage: {
-          input_tokens: usage.input_tokens,
-          output_tokens: usage.output_tokens,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
         },
       },
     };

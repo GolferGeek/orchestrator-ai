@@ -8,13 +8,14 @@ import {
   LLMServiceConfig,
   ResponseMetadata,
   LocalLLMRequest,
-  LocalLLMResponse,
 } from './llm-interfaces';
 import { PIIService } from '../pii/pii.service';
 import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMErrorMapper } from './llm-error-handling';
+import { ollamaResponseSchema } from '../types/provider-schemas';
+import type { OllamaResponseParsed } from '../types/provider-schemas';
 
 /**
  * Ollama-specific response metadata extension
@@ -132,13 +133,16 @@ export class OllamaLLMService extends BaseLLMService {
       );
       const apiDuration = Date.now() - apiStartTime;
 
-      if (!response.data.response) {
+      const parsedResponse: OllamaResponseParsed =
+        ollamaResponseSchema.parse(response.data);
+
+      if (!parsedResponse.response) {
         throw new Error('No response from Ollama model');
       }
 
       // Handle PII in output (usually not needed for local models)
       const finalContent = await this.handlePiiOutput(
-        response.data.response,
+        parsedResponse.response,
         requestId,
       );
 
@@ -146,7 +150,7 @@ export class OllamaLLMService extends BaseLLMService {
 
       // Create Ollama-specific metadata
       const metadata = this.createOllamaMetadata(
-        response.data,
+        parsedResponse,
         params,
         startTime,
         endTime,
@@ -256,7 +260,7 @@ export class OllamaLLMService extends BaseLLMService {
    * Create Ollama-specific metadata with local model performance metrics
    */
   private createOllamaMetadata(
-    ollamaResponse: LocalLLMResponse,
+    ollamaResponse: OllamaResponseParsed,
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,

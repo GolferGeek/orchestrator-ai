@@ -20,7 +20,7 @@ export interface LLMUsageMetrics {
 
 export interface LLMUsageRecord {
   id: string;
-  userId: string;
+  userId: string | null;
   taskId?: string;
   sessionId?: string;
   callerType?: string;

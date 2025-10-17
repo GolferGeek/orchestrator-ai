@@ -28,7 +28,7 @@ npm run build && npm test
 - [x] Audit `apps/api/src/agent-platform/**/*` and `agent2agent/**/*` for `any`/unsafe lint hits. _(Primary hotspots: orchestration records/metadata, checkpoint services, action handler contracts, task DTOs, Supabase repositories.)_
 - [ ] Define TypeScript interfaces for orchestration payloads, run artifacts, and Supabase records. _(Run/step records + plan version records now typed; continuing with remaining agent platform records.)_
 - [ ] Replace controller/service signatures that return `any` with typed DTOs/results. _(Agent2Agent plan services + orchestration output/progress handlers now typed; remaining dashboard/state services in progress.)_
-- [ ] Introduce typed repository helpers (factories/builders) instead of `as any` in tests/specs. _(Supabase repositories for runs and plan versions now emit typed records.)_
+- [ ] Introduce typed repository helpers (factories/builders) instead of `as any` in tests/specs. _(Supabase repositories for runs and plan versions now emit typed records; TaskStatus cache migrating to JSON-safe helpers.)_
 - [ ] Update Supabase client usage to rely on typed query builders or wrappers.
 - [ ] Refresh Jest specs to align with new types; add coverage for critical flows (approvals, runtime execution).
 - [ ] Re-run lint metrics ensuring ≥50% reduction of rule hits across agent modules.

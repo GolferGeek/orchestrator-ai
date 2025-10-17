@@ -480,6 +480,13 @@ export class TaskStatusService {
       ...initialData,
     };
 
+    if (taskStatus.metadata) {
+      taskStatus.metadata = this.cloneJsonValue(taskStatus.metadata) as JsonObject;
+    }
+    if (taskStatus.result) {
+      taskStatus.result = this.cloneJsonValue(taskStatus.result);
+    }
+
     // Store in hot cache
     this.activeTaskStatuses.set(taskId, taskStatus);
 
@@ -537,6 +544,13 @@ export class TaskStatusService {
       updatedAt: new Date(),
     };
 
+    if (newStatus.metadata) {
+      newStatus.metadata = this.cloneJsonValue(newStatus.metadata) as JsonObject;
+    }
+    if (newStatus.result) {
+      newStatus.result = this.cloneJsonValue(newStatus.result);
+    }
+
     // Update hot cache
     this.activeTaskStatuses.set(taskId, newStatus);
 
@@ -567,16 +581,16 @@ export class TaskStatusService {
 
             if (resultMetadata) {
               // Store general metadata
-              updateData.metadata = resultMetadata;
+              updateData.metadata = this.cloneJsonValue(resultMetadata);
 
               // Extract and store LLM-specific metadata
               const llmUsed = this.asJsonObject(resultMetadata.llmUsed);
               if (llmUsed) {
-                updateData.llm_metadata = llmUsed;
+                updateData.llm_metadata = this.cloneJsonValue(llmUsed);
               }
 
               // Store response metadata (for compatibility)
-              updateData.response_metadata = resultMetadata;
+              updateData.response_metadata = this.cloneJsonValue(resultMetadata);
             }
           }
         }
@@ -705,7 +719,15 @@ export class TaskStatusService {
         status.status !== 'failed' &&
         status.status !== 'cancelled'
       ) {
-        userTasks.push({ ...status });
+        userTasks.push({
+          ...status,
+          metadata: status.metadata
+            ? (this.cloneJsonValue(status.metadata) as JsonObject)
+            : undefined,
+          result: status.result
+            ? this.cloneJsonValue(status.result)
+            : status.result,
+        });
       }
     }
     return userTasks;
