@@ -748,10 +748,10 @@ import {
 } from 'ionicons/icons';
 
 import { PseudonymMapping, PIIDataType } from '@/types/pii';
-import { usePseudonymMappingsStore } from '@/stores/pseudonymMappingsStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 
 // Pinia store
-const mappingsStore = usePseudonymMappingsStore();
+const mappingsStore = usePrivacyStore();
 
 // Local component state
 const searchTerm = ref('');

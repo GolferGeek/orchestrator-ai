@@ -553,7 +553,7 @@ import {
 } from 'ionicons/icons';
 import Papa from 'papaparse';
 
-import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 import type { 
   PseudonymDictionaryEntry, 
   PseudonymDictionaryImportData,
@@ -561,7 +561,7 @@ import type {
 } from '@/types/pii';
 
 // Store
-const store = usePseudonymDictionariesStore();
+const store = usePrivacyStore();
 
 // Reactive state
 const searchQuery = ref('');

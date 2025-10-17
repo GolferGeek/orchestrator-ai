@@ -526,7 +526,7 @@ import LineChart from '@/components/Charts/LineChart.vue';
 import DoughnutChart from '@/components/Charts/DoughnutChart.vue';
 
 // Store
-import { usePrivacyDashboardStore } from '@/stores/privacyDashboardStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 
 // Props
 interface Props {
@@ -547,7 +547,7 @@ const emit = defineEmits<{
 }>();
 
 // Store
-const dashboardStore = usePrivacyDashboardStore();
+const dashboardStore = usePrivacyStore();
 
 // Local reactive state
 const showFilters = ref(false);

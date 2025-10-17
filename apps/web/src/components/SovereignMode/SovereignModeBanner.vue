@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useSovereignPolicyStore } from '../../stores/sovereignPolicyStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 
 interface Props {
   variant?: 'info' | 'warning' | 'enforced' | 'success';
@@ -53,7 +53,7 @@ const emit = defineEmits<{
   dismiss: [];
 }>();
 
-const sovereignPolicyStore = useSovereignPolicyStore();
+const sovereignPolicyStore = usePrivacyStore();
 
 // Computed properties
 const shouldShow = computed(() => {

@@ -224,7 +224,7 @@ import LLMInfo from './LLMInfo.vue';
 import UserPrivacyIndicators from './UserPrivacyIndicators.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePlanStore } from '@/stores/planStore';
-import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
@@ -260,7 +260,7 @@ const emit = defineEmits<{
 // Stores
 const deliverablesStore = useDeliverablesStore();
 const planStore = usePlanStore();
-const privacyIndicatorsStore = usePrivacyIndicatorsStore();
+const privacyIndicatorsStore = usePrivacyStore();
 const llmStore = useLLMStore();
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();

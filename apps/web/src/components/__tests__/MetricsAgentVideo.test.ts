@@ -19,7 +19,7 @@ vi.mock('@/stores/agentChatStore', () => ({
 }));
 
 vi.mock('@/stores/privacyIndicatorsStore', () => ({
-  usePrivacyIndicatorsStore: () => ({
+  usePrivacyStore: () => ({
     initialize: vi.fn(),
     setConversationSettings: vi.fn(),
     stopConversationRealTimeUpdates: vi.fn()

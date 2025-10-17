@@ -244,7 +244,7 @@ import {
   toastController
 } from '@ionic/vue';
 import { closeOutline } from 'ionicons/icons';
-import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 import type { PIIPattern, PIIPatternCreate, PIIPatternUpdate } from '@/types/pii';
 
 // Props
@@ -264,7 +264,7 @@ const emit = defineEmits<{
 }>();
 
 // Store
-const piiStore = usePIIPatternsStore();
+const piiStore = usePrivacyStore();
 
 // Reactive state
 const isLoading = ref(false);

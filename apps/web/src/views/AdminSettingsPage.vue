@@ -636,10 +636,9 @@ import {
   settingsOutline
 } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
-import { usePrivacyDashboardStore } from '@/stores/privacyDashboardStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
-import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
-import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
+// Privacy stores consolidated into usePrivacyStore
 import { useAnalyticsStore } from '@/stores/analyticsStore';
 import { fetchGlobalModelConfig, updateGlobalModelConfig } from '@/services/systemSettingsService';
 import { fetchProvidersWithModels, type ProviderWithModels } from '@/services/modelCatalogService';
@@ -649,10 +648,8 @@ const auth = useAuthStore();
 const router = useRouter();
 
 // Initialize all stores for reactive data
-const privacyDashboardStore = usePrivacyDashboardStore();
+const privacyStore = usePrivacyStore();
 const llmUsageStore = useLlmUsageStore();
-const piiPatternsStore = usePIIPatternsStore();
-const pseudonymDictionariesStore = usePseudonymDictionariesStore();
 const analyticsStore = useAnalyticsStore();
 
 // Reactive state (UI only)
@@ -798,9 +795,9 @@ async function saveModelConfig() {
 
 // Reactive computed properties from stores (no mock data)
 const privacySettings = computed(() => ({
-  enablePIIDetection: piiPatternsStore.patterns.filter(p => p.isActive).length > 0,
-  enableRedaction: privacyDashboardStore.sanitizationMethods?.redaction?.enabled || false,
-  enablePseudonymization: privacyDashboardStore.sanitizationMethods?.pseudonymization?.enabled || true,
+  enablePIIDetection: privacyStore.patterns.filter(p => p.enabled).length > 0,
+  enableRedaction: privacyStore.dashboardData?.sanitizationMethods?.find(m => m.method === 'redaction')?.enabled || false,
+  enablePseudonymization: privacyStore.dashboardData?.sanitizationMethods?.find(m => m.method === 'pseudonymization')?.enabled || true,
   defaultSanitizationLevel: 'standard', // TODO: Get from settings store when available
   autoClassifyData: true,
   defaultClassification: 'internal',
@@ -814,8 +811,8 @@ const privacySettings = computed(() => ({
 
 // Reactive computed properties from stores (no mock data)
 const auditSettings = computed(() => ({
-  enableAuditLogging: privacyDashboardStore.systemHealth?.auditLogging || true,
-  logPrivacyOperations: privacyDashboardStore.systemHealth?.privacyLogging || true,
+  enableAuditLogging: privacyStore.dashboardData?.systemHealth?.apiStatus === 'operational' || true,
+  logPrivacyOperations: true,
   logAccessAttempts: true, // TODO: Get from audit store when available
   retentionPeriodDays: 365 // TODO: Get from settings store when available
 }));
@@ -837,27 +834,27 @@ const llmStats = computed(() => ({
 }));
 
 const piiStats = computed(() => ({
-  patterns: piiPatternsStore.patterns.length || 0,
-  active: piiPatternsStore.patterns.filter(p => p.isActive).length || 0,
-  detections: piiPatternsStore.patterns.reduce((sum, p) => sum + (p.usageCount || 0), 0) || 0
+  patterns: privacyStore.patterns.length || 0,
+  active: privacyStore.patterns.filter(p => p.enabled).length || 0,
+  detections: 0 // TODO: Get from privacy stats when available
 }));
 
 const dictionaryStats = computed(() => ({
-  dictionaries: pseudonymDictionariesStore.dictionaries.length || 0,
-  totalWords: pseudonymDictionariesStore.dictionaries.reduce((sum, d) => sum + d.words.length, 0) || 0,
-  activeWords: pseudonymDictionariesStore.dictionaries.filter(d => d.isActive).reduce((sum, d) => sum + d.words.length, 0) || 0
+  dictionaries: privacyStore.dictionaries.length || 0,
+  totalWords: privacyStore.dictionaries.reduce((sum, d) => sum + d.words.length, 0) || 0,
+  activeWords: privacyStore.dictionaries.filter(d => d.isActive).reduce((sum, d) => sum + d.words.length, 0) || 0
 }));
 
 const systemHealth = computed(() => ({
-  healthy: privacyDashboardStore.systemHealth?.apiStatus === 'healthy' && privacyDashboardStore.systemHealth?.dbStatus === 'healthy',
-  uptime: privacyDashboardStore.systemHealth?.uptime || 0,
-  issues: (privacyDashboardStore.systemHealth?.apiStatus !== 'healthy' ? 1 : 0) + (privacyDashboardStore.systemHealth?.dbStatus !== 'healthy' ? 1 : 0)
+  healthy: privacyStore.dashboardData?.systemHealth?.apiStatus === 'operational' && privacyStore.dashboardData?.systemHealth?.dbStatus === 'operational',
+  uptime: privacyStore.dashboardData?.systemHealth?.uptime || 0,
+  issues: (privacyStore.dashboardData?.systemHealth?.apiStatus !== 'operational' ? 1 : 0) + (privacyStore.dashboardData?.systemHealth?.dbStatus !== 'operational' ? 1 : 0)
 }));
 
 const systemStats = computed(() => ({
   activeUsers: auth.users?.filter(u => u.isActive).length || 0,
   dailyConversations: analyticsStore.dailyConversations || 0,
-  privacyProtectionRate: privacyDashboardStore.metrics?.protectionRate || 0
+  privacyProtectionRate: privacyStore.dashboardMetrics?.protectionRate || 0
 }));
 
 // Methods
@@ -978,10 +975,7 @@ const loadStats = async () => {
 onMounted(async () => {
   try {
     await Promise.all([
-      privacyDashboardStore.fetchDashboardData(),
       llmUsageStore.initialize(),
-      piiPatternsStore.fetchPatterns(),
-      pseudonymDictionariesStore.fetchDictionaries(),
       analyticsStore.initialize?.() || Promise.resolve()
     ]);
     await loadGlobalModelConfig();

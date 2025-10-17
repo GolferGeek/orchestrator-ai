@@ -340,7 +340,7 @@ import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
 import { videoService } from '@/services/videoService';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
-import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
@@ -372,7 +372,7 @@ const chatUiStore = useChatUiStore();
 const deliverablesStore = useDeliverablesStore();
 const planStore = usePlanStore();
 const authStore = useAuthStore();
-const sovereignPolicyStore = useSovereignPolicyStore();
+const sovereignPolicyStore = usePrivacyStore();
 const llmStore = useLLMStore();
 const uiStore = useUiStore();
 // Reactive state

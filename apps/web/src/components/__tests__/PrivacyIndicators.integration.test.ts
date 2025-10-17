@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import { IonicVue } from '@ionic/vue';
 import AgentTaskItem from '../AgentTaskItem.vue';
-import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 
 // Mock the deliverables store
 vi.mock('@/stores/deliverablesStore', () => ({
@@ -73,11 +73,11 @@ const createWrapper = (messageProps = {}, componentProps = {}) => {
 };
 
 describe('Privacy Indicators Integration', () => {
-  let privacyStore: ReturnType<typeof usePrivacyIndicatorsStore>;
+  let privacyStore: ReturnType<typeof usePrivacyStore>;
 
   beforeEach(async () => {
     setActivePinia(createPinia());
-    privacyStore = usePrivacyIndicatorsStore();
+    privacyStore = usePrivacyStore();
     await privacyStore.initialize();
   });
 

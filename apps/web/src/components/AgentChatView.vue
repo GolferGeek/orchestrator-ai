@@ -87,7 +87,7 @@ import {
 } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 import { tasksService } from '@/services/tasksService';
 // TTS is now handled directly in AgentTaskItem when messages are displayed
@@ -108,7 +108,7 @@ const props = defineProps<Props>();
 // Stores
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
-const privacyIndicatorsStore = usePrivacyIndicatorsStore();
+const privacyIndicatorsStore = usePrivacyStore();
 useModeSwitchShortcuts(chatUiStore);
 
 // TTS is now handled directly in AgentTaskItem components

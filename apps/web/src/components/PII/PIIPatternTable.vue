@@ -344,11 +344,11 @@ import {
   chevronDownOutline,
   addOutline
 } from 'ionicons/icons';
-import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 import { PIIPattern, PIIDataType } from '@/types/pii';
 
 // Store
-const piiStore = usePIIPatternsStore();
+const piiStore = usePrivacyStore();
 
 // Reactive state
 const searchQuery = ref('');

@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useSovereignPolicyStore } from '../../stores/sovereignPolicyStore';
+import { usePrivacyStore } from '@/stores/privacyStore';
 
 interface Props {
   position?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
@@ -61,7 +61,7 @@ const props = withDefaults(defineProps<Props>(), {
   delay: 500
 });
 
-const sovereignPolicyStore = useSovereignPolicyStore();
+const sovereignPolicyStore = usePrivacyStore();
 
 // Reactive state
 const isVisible = ref(false);
