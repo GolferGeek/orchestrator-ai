@@ -4,7 +4,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { firstValueFrom } from 'rxjs';
 import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
-import { OrchestrationCheckpointDecision } from './orchestration-checkpoint.service';
+import { OrchestrationCheckpointDecision } from '../types/orchestration-run.types';
 
 interface CheckpointRequestedEvent {
   runId: string;

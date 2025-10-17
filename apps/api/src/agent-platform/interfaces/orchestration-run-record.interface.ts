@@ -1,3 +1,13 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type {
+  OrchestrationRunMetadata,
+  OrchestrationRunParameters,
+  OrchestrationRunPlan,
+  OrchestrationRunResults,
+  OrchestrationRunErrorDetails,
+  OrchestrationStepState,
+} from '../types/orchestration-run.types';
+
 export interface OrchestrationRunRecord {
   id: string;
   plan_id: string | null;
@@ -8,19 +18,19 @@ export interface OrchestrationRunRecord {
   origin_type: string;
   origin_id: string | null;
   orchestration_slug: string | null;
-  parameters: Record<string, any>;
+  parameters: OrchestrationRunParameters;
   organization_slug: string | null;
   user_id: string | null;
   status: string;
   current_step_index: number | null;
   current_step_id: string | null;
   completed_steps: string[];
-  step_state: Record<string, any>;
+  step_state: OrchestrationStepState;
   human_checkpoint_id: string | null;
-  plan: Record<string, any>;
-  results: Record<string, any>;
-  error_details: Record<string, any>;
-  metadata: Record<string, any>;
+  plan: OrchestrationRunPlan;
+  results: OrchestrationRunResults;
+  error_details: OrchestrationRunErrorDetails;
+  metadata: OrchestrationRunMetadata;
   created_at: string;
   updated_at: string;
   started_at: string | null;
@@ -37,14 +47,14 @@ export interface OrchestrationRunStartInput {
   origin_type?: string;
   origin_id?: string | null;
   orchestration_slug?: string | null;
-  parameters?: Record<string, any>;
+  parameters?: OrchestrationRunParameters;
   organization_slug: string | null;
   user_id?: string | null;
   current_step_id?: string | null;
-  plan?: Record<string, any>;
-  results?: Record<string, any>;
-  error_details?: Record<string, any>;
-  metadata?: Record<string, any>;
+  plan?: OrchestrationRunPlan;
+  results?: OrchestrationRunResults;
+  error_details?: OrchestrationRunErrorDetails;
+  metadata?: OrchestrationRunMetadata;
   created_by?: string | null;
   started_at?: string | null;
 }
@@ -54,12 +64,12 @@ export interface OrchestrationRunUpdateInput {
   current_step_index?: number | null;
   current_step_id?: string | null;
   completed_steps?: string[];
-  step_state?: Record<string, any>;
+  step_state?: OrchestrationStepState;
   human_checkpoint_id?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: OrchestrationRunMetadata;
   completed_at?: string | null;
-  parameters?: Record<string, any>;
-  plan?: Record<string, any>;
-  results?: Record<string, any>;
-  error_details?: Record<string, any>;
+  parameters?: OrchestrationRunParameters;
+  plan?: OrchestrationRunPlan;
+  results?: OrchestrationRunResults;
+  error_details?: OrchestrationRunErrorDetails;
 }

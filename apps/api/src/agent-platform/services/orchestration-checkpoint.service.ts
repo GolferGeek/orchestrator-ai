@@ -4,12 +4,19 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
 import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
-
-export type OrchestrationCheckpointDecision = 'continue' | 'retry' | 'abort';
+import type {
+  OrchestrationApprovalMetadata,
+  OrchestrationCheckpointDecision,
+  OrchestrationCheckpointMetadata,
+  OrchestrationCheckpointOptionState,
+  OrchestrationStepState,
+  OrchestrationStepStateEntry,
+} from '../types/orchestration-run.types';
 
 export interface RequestOrchestrationCheckpointOptions {
   runId: string;
@@ -22,13 +29,8 @@ export interface RequestOrchestrationCheckpointOptions {
   stepIndex?: number | null;
   conversationId?: string | null;
   organizationSlug?: string | null;
-  options?: Array<{
-    action: OrchestrationCheckpointDecision;
-    label: string;
-    allowsModification?: boolean;
-    description?: string;
-  }>;
-  metadata?: Record<string, any>;
+  options?: OrchestrationCheckpointOptionState[];
+  metadata?: JsonObject;
 }
 
 export interface ResolveOrchestrationCheckpointOptions {
@@ -36,13 +38,7 @@ export interface ResolveOrchestrationCheckpointOptions {
   decision: OrchestrationCheckpointDecision;
   actorId?: string | null;
   notes?: string | null;
-  modifications?: Record<string, any>;
-}
-
-interface StepStateEntry {
-  status?: string;
-  checkpoint?: Record<string, any>;
-  [key: string]: any;
+  modifications?: JsonObject;
 }
 
 @Injectable()
@@ -64,7 +60,7 @@ export class OrchestrationCheckpointService {
     const run = await this.ensureRun(options.runId);
 
     const requestedAt = new Date().toISOString();
-    const checkpointMetadata = {
+    const checkpointMetadata: OrchestrationCheckpointMetadata = {
       ...(options.metadata ?? {}),
       runId: run.id,
       checkpointId: options.checkpointId,
@@ -149,7 +145,7 @@ export class OrchestrationCheckpointService {
 
     const metadata = {
       ...(approval.metadata ?? {}),
-    };
+    } as OrchestrationApprovalMetadata;
 
     const runId = metadata.runId;
     if (!runId) {
@@ -227,8 +223,8 @@ export class OrchestrationCheckpointService {
   private buildUpdatedStepState(
     run: OrchestrationRunRecord,
     approvalId: string,
-    checkpointPatch: Record<string, any>,
-  ): Record<string, StepStateEntry> {
+    checkpointPatch: OrchestrationCheckpointMetadata,
+  ): OrchestrationStepState {
     const stepDefinitionId =
       checkpointPatch.stepDefinitionId ??
       (run.metadata?.lastCheckpoint?.step?.definitionId as string | null) ??
@@ -238,7 +234,7 @@ export class OrchestrationCheckpointService {
       (run.metadata?.lastCheckpoint?.step?.recordId as string | null) ??
       null;
     const key = stepDefinitionId ?? stepRecordId ?? 'plan';
-    const existingState: StepStateEntry = {
+    const existingState: OrchestrationStepStateEntry = {
       ...(run.step_state?.[key] ?? {}),
     };
 
@@ -259,9 +255,9 @@ export class OrchestrationCheckpointService {
 
   private async buildRunUpdatePayload(
     run: OrchestrationRunRecord,
-    metadata: Record<string, any>,
+    metadata: OrchestrationApprovalMetadata,
     options: ResolveOrchestrationCheckpointOptions,
-    stepState: Record<string, StepStateEntry>,
+    stepState: OrchestrationStepState,
     timestamp: string,
   ) {
     const update = {

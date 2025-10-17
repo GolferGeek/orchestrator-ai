@@ -1,10 +1,15 @@
+import type {
+  JsonObject,
+  JsonValue,
+} from '@orchestrator-ai/transport-types';
+
 export interface OrchestrationParameterDefinition {
   name: string;
   type: string;
   required?: boolean;
   description?: string;
-  default?: any;
-  enum?: any[];
+  default?: JsonValue;
+  enum?: JsonValue[];
 }
 
 export interface OrchestrationCheckpointOption {
@@ -25,9 +30,9 @@ export interface OrchestrationSubDefinition {
   name: string;
   owner?: string;
   version?: string;
-  parameters?: Record<string, any>;
+  parameters?: JsonObject;
   inherit_conversation?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 export interface OrchestrationStepDefinition {
@@ -36,11 +41,11 @@ export interface OrchestrationStepDefinition {
   agent?: string;
   mode?: string;
   depends_on?: string[];
-  input?: Record<string, any>;
-  context?: Record<string, any>;
-  output_mapping?: Record<string, any>;
+  input?: JsonObject;
+  context?: JsonObject;
+  output_mapping?: JsonObject;
   checkpoint_after?: OrchestrationCheckpointConfig;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   type?: OrchestrationStepType;
   orchestration?: OrchestrationSubDefinition;
 }
@@ -56,8 +61,8 @@ export interface OrchestrationDefinitionSchema {
   orchestration: {
     steps: OrchestrationStepDefinition[];
     parameters?: OrchestrationParameterDefinition[];
-    error_handling?: Record<string, any>;
-    execution?: Record<string, any>;
+    error_handling?: JsonObject;
+    execution?: JsonObject;
   };
 }
 
@@ -71,7 +76,7 @@ export interface OrchestrationResolvedDefinition {
   description?: string | null;
   steps: OrchestrationStepDefinition[];
   parameters: OrchestrationParameterDefinition[];
-  rawDefinition: Record<string, any>;
+  rawDefinition: JsonObject;
   execution?: OrchestrationExecutionConfig | null;
 }
 

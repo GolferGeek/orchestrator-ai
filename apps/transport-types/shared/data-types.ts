@@ -1,3 +1,5 @@
+import type { JsonObject } from './json.types';
+
 /**
  * Shared Data Types
  * Common data structures used across the application
@@ -31,7 +33,7 @@ export interface PlanVersionData {
   createdById: string | null;
   // Optional: task that produced this version (present for agent-created versions)
   taskId?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   isCurrentVersion: boolean;
   createdAt: string;
 }
@@ -63,7 +65,7 @@ export interface DeliverableVersionData {
   format: 'markdown' | 'json' | 'html';
   createdByType: 'agent' | 'user';
   createdById: string | null;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   isCurrentVersion: boolean;
   createdAt: string;
 }

@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrchestrationCheckpointDecision } from '../services/orchestration-checkpoint.service';
+import { OrchestrationCheckpointDecision } from '../types/orchestration-run.types';
 
 export class ListOrchestrationsQueryDto {
   @ApiPropertyOptional({

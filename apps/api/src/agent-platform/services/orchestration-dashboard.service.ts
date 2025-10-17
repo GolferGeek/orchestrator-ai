@@ -15,10 +15,7 @@ import {
 import { OrchestrationEventsService } from './orchestration-events.service';
 import { OrchestrationStatusService } from './orchestration-status.service';
 import { OrchestrationRunnerService } from './orchestration-runner.service';
-import {
-  OrchestrationCheckpointDecision,
-  OrchestrationCheckpointService,
-} from './orchestration-checkpoint.service';
+import { OrchestrationCheckpointService } from './orchestration-checkpoint.service';
 import { OrchestrationDefinitionService } from './orchestration-definition.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
@@ -33,6 +30,13 @@ import {
 } from '../types/orchestration-dashboard.types';
 import { OrchestrationExecutionService } from './orchestration-execution.service';
 import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
+import type {
+  OrchestrationCheckpointDecision,
+  OrchestrationCheckpointMetadata,
+  OrchestrationRunMetadata,
+  OrchestrationStepState,
+  OrchestrationStepStateEntry,
+} from '../types/orchestration-run.types';
 
 export interface OrchestrationDashboardListOptions {
   organizationSlug?: string | null;

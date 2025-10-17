@@ -8,6 +8,14 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type {
+  OrchestrationRunErrorDetails,
+  OrchestrationRunMetadata,
+  OrchestrationRunParameters,
+  OrchestrationRunPlan,
+  OrchestrationRunResults,
+  OrchestrationStepState,
+} from '../types/orchestration-run.types';
 import { OrchestrationDefinitionEntity } from './orchestration-definition.entity';
 
 @Entity({ name: 'orchestration_runs' })
@@ -56,7 +64,7 @@ export class OrchestrationRunEntity {
   orchestrationSlug!: string | null;
 
   @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
-  parameters!: Record<string, any>;
+  parameters!: OrchestrationRunParameters;
 
   @Column({ name: 'organization_slug', type: 'text', nullable: true })
   organizationSlug!: string | null;
@@ -78,26 +86,26 @@ export class OrchestrationRunEntity {
   completedSteps!: string[];
 
   @Column({ name: 'step_state', type: 'jsonb', default: () => "'{}'::jsonb" })
-  stepState!: Record<string, any>;
+  stepState!: OrchestrationStepState;
 
   @Column({ name: 'human_checkpoint_id', type: 'text', nullable: true })
   humanCheckpointId!: string | null;
 
   @Column({ name: 'plan', type: 'jsonb', default: () => "'{}'::jsonb" })
-  plan!: Record<string, any>;
+  plan!: OrchestrationRunPlan;
 
   @Column({ name: 'results', type: 'jsonb', default: () => "'{}'::jsonb" })
-  results!: Record<string, any>;
+  results!: OrchestrationRunResults;
 
   @Column({
     name: 'error_details',
     type: 'jsonb',
     default: () => "'{}'::jsonb",
   })
-  errorDetails!: Record<string, any>;
+  errorDetails!: OrchestrationRunErrorDetails;
 
   @Column({ name: 'metadata', type: 'jsonb', default: () => "'{}'::jsonb" })
-  metadata!: Record<string, any>;
+  metadata!: OrchestrationRunMetadata;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

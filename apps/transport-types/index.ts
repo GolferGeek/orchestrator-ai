@@ -24,6 +24,12 @@ export type {
   DeliverableData,
   DeliverableVersionData,
 } from './shared/data-types';
+export type {
+  JsonPrimitive,
+  JsonValue,
+  JsonArray,
+  JsonObject,
+} from './shared/json.types';
 
 // ============================================================================
 // JSON-RPC 2.0 BASE TYPES
