@@ -39,26 +39,26 @@ This plan breaks down the architecture consolidation effort into **5 phases**, e
 **Priority:** High
 
 #### Subtasks:
-- [ ] 1.1.1 Create `stores/conversationsStore.ts` file
-- [ ] 1.1.2 Define Conversation interface (merge from existing stores)
-- [ ] 1.1.3 Define Message interface
-- [ ] 1.1.4 Define Task interface (or import from taskStore)
-- [ ] 1.1.5 Implement state (conversations, messages, tasks Maps)
-- [ ] 1.1.6 Implement getters (conversationById, messagesByConversation, tasksByConversation)
-- [ ] 1.1.7 Implement mutations (addConversation, addMessage, addTask, removeConversation)
-- [ ] 1.1.8 Implement computed properties (activeConversation, allConversations)
+- [x] 1.1.1 Create `stores/conversationsStore.ts` file
+- [x] 1.1.2 Define Conversation interface (merge from existing stores)
+- [x] 1.1.3 Define Message interface
+- [x] 1.1.4 Define Task interface (or import from taskStore)
+- [x] 1.1.5 Implement state (conversations, messages, tasks Maps)
+- [x] 1.1.6 Implement getters (conversationById, messagesByConversation, tasksByConversation)
+- [x] 1.1.7 Implement mutations (addConversation, addMessage, addTask, removeConversation)
+- [x] 1.1.8 Implement computed properties (activeConversation, allConversations)
 - [ ] 1.1.9 Export store from stores/index.ts
 
 #### Unit Tests:
-- [ ] 1.1.T1 Test addConversation mutation
-- [ ] 1.1.T2 Test addMessage mutation
-- [ ] 1.1.T3 Test addTask mutation
-- [ ] 1.1.T4 Test removeConversation (cascade deletes messages/tasks)
-- [ ] 1.1.T5 Test conversationById getter
-- [ ] 1.1.T6 Test messagesByConversation getter
-- [ ] 1.1.T7 Test tasksByConversation getter
-- [ ] 1.1.T8 Test activeConversation computed
-- [ ] 1.1.T9 Test store initialization (empty state)
+- [x] 1.1.T1 Test addConversation mutation
+- [x] 1.1.T2 Test addMessage mutation
+- [x] 1.1.T3 Test addTask mutation
+- [x] 1.1.T4 Test removeConversation (cascade deletes messages/tasks)
+- [x] 1.1.T5 Test conversationById getter
+- [x] 1.1.T6 Test messagesByConversation getter
+- [x] 1.1.T7 Test tasksByConversation getter
+- [x] 1.1.T8 Test activeConversation computed
+- [x] 1.1.T9 Test store initialization (empty state)
 
 #### Acceptance Criteria:
 - ✅ Store file created and compiles without errors

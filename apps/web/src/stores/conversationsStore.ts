@@ -1,0 +1,591 @@
+/**
+ * Unified Conversations Store
+ * Consolidates: conversationStore.ts + agentConversationsStore.ts
+ *
+ * Manages ALL conversation data (messages, tasks, metadata) in a single domain store.
+ *
+ * Architecture:
+ * - State ONLY (no async, no API calls, no business logic)
+ * - Uses Maps for O(1) lookups
+ * - Synchronous mutations only
+ * - Services call mutations after API success
+ * - Vue reactivity updates UI automatically
+ */
+
+import { defineStore } from 'pinia';
+import { ref, computed, readonly } from 'vue';
+import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Agent types supported in the system
+ */
+export type AgentType =
+  | 'context'
+  | 'function'
+  | 'api'
+  | 'orchestrator'
+  | 'custom';
+
+/**
+ * Unified Conversation interface
+ * Combines conversation metadata with agent-specific data
+ */
+export interface Conversation {
+  // Core identity
+  id: string;
+  userId: string;
+  title: string;
+
+  // Agent information
+  agentName?: string;
+  agentType?: AgentType;
+  organizationSlug?: string | null;
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string;
+  endedAt?: string;
+  lastActiveAt?: string;
+
+  // Task tracking
+  taskCount?: number;
+  completedTasks?: number;
+  failedTasks?: number;
+  activeTasks?: number;
+
+  // Metadata
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Message in a conversation
+ */
+export interface Message {
+  id: string;
+  conversationId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Task status
+ */
+export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * Task associated with a conversation
+ */
+export interface Task {
+  id: string;
+  conversationId: string;
+  mode: AgentTaskMode;
+  action: string;
+  status: TaskStatus;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Task execution result
+ */
+export interface TaskResult {
+  taskId: string;
+  success: boolean;
+  data?: any;
+  error?: string;
+  completedAt: string;
+}
+
+// ============================================================================
+// Store Definition
+// ============================================================================
+
+export const useConversationsStore = defineStore('conversations', () => {
+  // ============================================================================
+  // STATE - Pure reactive data using Maps for O(1) lookups
+  // ============================================================================
+
+  const conversations = ref<Map<string, Conversation>>(new Map());
+  const messages = ref<Map<string, Message[]>>(new Map()); // conversationId -> messages[]
+  const tasks = ref<Map<string, Task>>(new Map()); // taskId -> task
+  const taskResults = ref<Map<string, TaskResult>>(new Map()); // taskId -> result
+  const tasksByConversation = ref<Map<string, string[]>>(new Map()); // conversationId -> taskIds[]
+
+  const activeConversationId = ref<string | null>(null);
+  const loadingStates = ref<Map<string, boolean>>(new Map());
+  const error = ref<string | null>(null);
+
+  // ============================================================================
+  // GETTERS - Computed properties for data access
+  // ============================================================================
+
+  /**
+   * Get active conversation
+   */
+  const activeConversation = computed(() => {
+    if (!activeConversationId.value) return null;
+    return conversations.value.get(activeConversationId.value) || null;
+  });
+
+  /**
+   * Get messages for active conversation
+   */
+  const activeMessages = computed(() => {
+    if (!activeConversationId.value) return [];
+    return messages.value.get(activeConversationId.value) || [];
+  });
+
+  /**
+   * Get all conversations as sorted array
+   */
+  const allConversations = computed(() => {
+    return Array.from(conversations.value.values())
+      .sort((a, b) => {
+        const dateA = a.lastActiveAt || a.updatedAt;
+        const dateB = b.lastActiveAt || b.updatedAt;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+  });
+
+  /**
+   * Get active conversations (not ended)
+   */
+  const activeConversations = computed(() => {
+    return Array.from(conversations.value.values())
+      .filter(conv => !conv.endedAt)
+      .sort((a, b) => {
+        const dateA = a.lastActiveAt || a.updatedAt;
+        const dateB = b.lastActiveAt || b.updatedAt;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+  });
+
+  /**
+   * Get running tasks
+   */
+  const runningTasks = computed(() => {
+    return Array.from(tasks.value.values())
+      .filter(task => task.status === 'running')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  });
+
+  /**
+   * Get completed tasks
+   */
+  const completedTasks = computed(() => {
+    return Array.from(tasks.value.values())
+      .filter(task => task.status === 'completed')
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  });
+
+  /**
+   * Get failed tasks
+   */
+  const failedTasks = computed(() => {
+    return Array.from(tasks.value.values())
+      .filter(task => task.status === 'failed')
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  });
+
+  // ============================================================================
+  // GETTER FUNCTIONS - Functions that return computed data
+  // ============================================================================
+
+  /**
+   * Get conversation by ID
+   */
+  const conversationById = (id: string): Conversation | undefined => {
+    return conversations.value.get(id);
+  };
+
+  /**
+   * Get messages by conversation ID
+   */
+  const messagesByConversation = (conversationId: string): Message[] => {
+    return messages.value.get(conversationId) || [];
+  };
+
+  /**
+   * Get tasks by conversation ID
+   */
+  const tasksByConversationId = (conversationId: string): Task[] => {
+    const taskIds = tasksByConversation.value.get(conversationId) || [];
+    return taskIds
+      .map(id => tasks.value.get(id))
+      .filter((task): task is Task => task !== undefined)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  };
+
+  /**
+   * Get conversations by agent name
+   */
+  const conversationsByAgent = (agentName: string, organizationSlug?: string | null): Conversation[] => {
+    return Array.from(conversations.value.values())
+      .filter(conv => {
+        if (conv.agentName !== agentName) return false;
+        if (organizationSlug !== undefined) {
+          return conv.organizationSlug === organizationSlug;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const dateA = a.lastActiveAt || a.updatedAt;
+        const dateB = b.lastActiveAt || b.updatedAt;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+  };
+
+  /**
+   * Get conversations by agent type
+   */
+  const conversationsByAgentType = (agentType: AgentType): Conversation[] => {
+    return Array.from(conversations.value.values())
+      .filter(conv => conv.agentType === agentType)
+      .sort((a, b) => {
+        const dateA = a.lastActiveAt || a.updatedAt;
+        const dateB = b.lastActiveAt || b.updatedAt;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+  };
+
+  /**
+   * Get task by ID
+   */
+  const taskById = (id: string): Task | undefined => {
+    return tasks.value.get(id);
+  };
+
+  /**
+   * Get task result by task ID
+   */
+  const resultByTaskId = (id: string): TaskResult | undefined => {
+    return taskResults.value.get(id);
+  };
+
+  /**
+   * Check if conversation is loading
+   */
+  const isLoading = (conversationId: string): boolean => {
+    return loadingStates.value.get(conversationId) || false;
+  };
+
+  // ============================================================================
+  // MUTATIONS - ONLY way to mutate state (synchronous only)
+  // ============================================================================
+
+  // --------------------------------------------------------------------------
+  // Conversation Mutations
+  // --------------------------------------------------------------------------
+
+  /**
+   * Add or update a conversation
+   * Called by services after API success
+   */
+  function setConversation(conversation: Conversation): void {
+    conversations.value.set(conversation.id, conversation);
+
+    // Initialize messages and tasks arrays if not exists
+    if (!messages.value.has(conversation.id)) {
+      messages.value.set(conversation.id, []);
+    }
+    if (!tasksByConversation.value.has(conversation.id)) {
+      tasksByConversation.value.set(conversation.id, []);
+    }
+  }
+
+  /**
+   * Add multiple conversations at once
+   * Used when loading conversations from API
+   */
+  function setConversations(conversationList: Conversation[]): void {
+    conversationList.forEach(conv => setConversation(conv));
+  }
+
+  /**
+   * Update conversation data
+   */
+  function updateConversation(conversationId: string, updates: Partial<Conversation>): void {
+    const existing = conversations.value.get(conversationId);
+    if (existing) {
+      conversations.value.set(conversationId, {
+        ...existing,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Update conversation task counts
+   */
+  function updateConversationTaskCounts(
+    conversationId: string,
+    taskCounts: Partial<Pick<Conversation, 'taskCount' | 'completedTasks' | 'failedTasks' | 'activeTasks'>>
+  ): void {
+    const existing = conversations.value.get(conversationId);
+    if (existing) {
+      conversations.value.set(conversationId, {
+        ...existing,
+        ...taskCounts,
+        lastActiveAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Delete a conversation
+   * Also removes associated messages and tasks
+   */
+  function removeConversation(conversationId: string): void {
+    conversations.value.delete(conversationId);
+    messages.value.delete(conversationId);
+    loadingStates.value.delete(conversationId);
+
+    // Remove all tasks for this conversation
+    const taskIds = tasksByConversation.value.get(conversationId) || [];
+    taskIds.forEach(taskId => {
+      tasks.value.delete(taskId);
+      taskResults.value.delete(taskId);
+    });
+    tasksByConversation.value.delete(conversationId);
+
+    // Clear active conversation if it was deleted
+    if (activeConversationId.value === conversationId) {
+      activeConversationId.value = null;
+    }
+  }
+
+  /**
+   * Set active conversation
+   */
+  function setActiveConversation(conversationId: string | null): void {
+    if (conversationId === null || conversations.value.has(conversationId)) {
+      activeConversationId.value = conversationId;
+    }
+  }
+
+  /**
+   * Set loading state for a conversation
+   */
+  function setLoading(conversationId: string, loading: boolean): void {
+    loadingStates.value.set(conversationId, loading);
+  }
+
+  // --------------------------------------------------------------------------
+  // Message Mutations
+  // --------------------------------------------------------------------------
+
+  /**
+   * Add a message to a conversation
+   */
+  function addMessage(conversationId: string, message: Omit<Message, 'id'>): Message {
+    const newMessage: Message = {
+      ...message,
+      id: crypto.randomUUID(),
+      conversationId,
+    };
+
+    const conversationMessages = messages.value.get(conversationId) || [];
+    messages.value.set(conversationId, [...conversationMessages, newMessage]);
+
+    // Update conversation's updatedAt and lastActiveAt
+    updateConversation(conversationId, {
+      updatedAt: newMessage.timestamp,
+      lastActiveAt: newMessage.timestamp,
+    });
+
+    return newMessage;
+  }
+
+  /**
+   * Set all messages for a conversation
+   * Used when loading messages from API
+   */
+  function setMessages(conversationId: string, messageList: Message[]): void {
+    messages.value.set(conversationId, messageList);
+  }
+
+  /**
+   * Clear all messages for a conversation
+   */
+  function clearMessages(conversationId: string): void {
+    messages.value.set(conversationId, []);
+  }
+
+  // --------------------------------------------------------------------------
+  // Task Mutations
+  // --------------------------------------------------------------------------
+
+  /**
+   * Add a task
+   */
+  function addTask(task: Task): void {
+    tasks.value.set(task.id, task);
+
+    // Track task by conversation
+    const conversationTasks = tasksByConversation.value.get(task.conversationId) || [];
+    if (!conversationTasks.includes(task.id)) {
+      tasksByConversation.value.set(task.conversationId, [...conversationTasks, task.id]);
+    }
+  }
+
+  /**
+   * Update task status
+   */
+  function updateTaskStatus(taskId: string, status: TaskStatus): void {
+    const task = tasks.value.get(taskId);
+    if (task) {
+      tasks.value.set(taskId, {
+        ...task,
+        status,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Update task metadata
+   */
+  function updateTaskMetadata(taskId: string, metadata: Record<string, any>): void {
+    const task = tasks.value.get(taskId);
+    if (task) {
+      tasks.value.set(taskId, {
+        ...task,
+        metadata: { ...task.metadata, ...metadata },
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Set task result
+   */
+  function setTaskResult(taskId: string, result: Omit<TaskResult, 'taskId'>): void {
+    const taskResult: TaskResult = {
+      taskId,
+      ...result,
+    };
+
+    taskResults.value.set(taskId, taskResult);
+
+    // Update task status based on result
+    updateTaskStatus(taskId, result.success ? 'completed' : 'failed');
+  }
+
+  /**
+   * Clear tasks for a conversation
+   */
+  function clearTasksByConversation(conversationId: string): void {
+    const taskIds = tasksByConversation.value.get(conversationId) || [];
+
+    taskIds.forEach(taskId => {
+      tasks.value.delete(taskId);
+      taskResults.value.delete(taskId);
+    });
+
+    tasksByConversation.value.delete(conversationId);
+  }
+
+  // --------------------------------------------------------------------------
+  // Error Mutations
+  // --------------------------------------------------------------------------
+
+  /**
+   * Set global error
+   */
+  function setError(errorMessage: string | null): void {
+    error.value = errorMessage;
+  }
+
+  /**
+   * Clear global error
+   */
+  function clearError(): void {
+    error.value = null;
+  }
+
+  // --------------------------------------------------------------------------
+  // Clear All
+  // --------------------------------------------------------------------------
+
+  /**
+   * Clear all data (used on logout)
+   */
+  function clearAll(): void {
+    conversations.value.clear();
+    messages.value.clear();
+    tasks.value.clear();
+    taskResults.value.clear();
+    tasksByConversation.value.clear();
+    loadingStates.value.clear();
+    activeConversationId.value = null;
+    error.value = null;
+  }
+
+  // ============================================================================
+  // RETURN PUBLIC API
+  // ============================================================================
+
+  return {
+    // State (read-only exposure)
+    conversations: readonly(conversations),
+    activeConversationId: readonly(activeConversationId),
+    error: readonly(error),
+
+    // Computed getters
+    activeConversation,
+    activeMessages,
+    allConversations,
+    activeConversations,
+    runningTasks,
+    completedTasks,
+    failedTasks,
+
+    // Getter functions
+    conversationById,
+    messagesByConversation,
+    tasksByConversationId,
+    conversationsByAgent,
+    conversationsByAgentType,
+    taskById,
+    resultByTaskId,
+    isLoading,
+
+    // Conversation mutations
+    setConversation,
+    setConversations,
+    updateConversation,
+    updateConversationTaskCounts,
+    removeConversation,
+    setActiveConversation,
+    setLoading,
+
+    // Message mutations
+    addMessage,
+    setMessages,
+    clearMessages,
+
+    // Task mutations
+    addTask,
+    updateTaskStatus,
+    updateTaskMetadata,
+    setTaskResult,
+    clearTasksByConversation,
+
+    // Error mutations
+    setError,
+    clearError,
+
+    // Clear all
+    clearAll,
+  };
+});
