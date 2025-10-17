@@ -10,6 +10,7 @@ export interface OrchestrationRunRecord {
   orchestration_slug: string | null;
   parameters: Record<string, any>;
   organization_slug: string | null;
+  user_id: string | null;
   status: string;
   current_step_index: number | null;
   current_step_id: string | null;
@@ -38,6 +39,7 @@ export interface OrchestrationRunStartInput {
   orchestration_slug?: string | null;
   parameters?: Record<string, any>;
   organization_slug: string | null;
+  user_id?: string | null;
   current_step_id?: string | null;
   plan?: Record<string, any>;
   results?: Record<string, any>;

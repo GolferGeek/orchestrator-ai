@@ -21,6 +21,7 @@ const TABLE = 'orchestration_runs';
 
 export interface OrchestrationRunListOptions {
   organizationSlug?: string | null;
+  userId?: string | null;
   statuses?: string[];
   parentRunId?: string | null;
   definitionId?: string | null;
@@ -67,6 +68,7 @@ export class OrchestrationRunsRepository {
       orchestration_slug: input.orchestration_slug ?? null,
       parameters: input.parameters ?? {},
       organization_slug: input.organization_slug,
+      user_id: input.user_id ?? null,
       status: 'pending',
       current_step_index: null,
       current_step_id: input.current_step_id ?? null,
@@ -173,6 +175,10 @@ export class OrchestrationRunsRepository {
       query = query.eq('organization_slug', options.organizationSlug);
     } else if (options.includeUnassigned === false) {
       query = query.not('organization_slug', 'is', null);
+    }
+
+    if (options.userId) {
+      query = query.eq('user_id', options.userId);
     }
 
     if (options.statuses && options.statuses.length > 0) {
