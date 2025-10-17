@@ -210,6 +210,42 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     state.value.conversationDeliverables.delete(conversationId);
   }
 
+  function setCurrentVersion(deliverableId: string, versionId: string) {
+    // Find the version and mark it as current
+    const versions = state.value.deliverableVersions[deliverableId] || [];
+    const version = versions.find(v => v.id === versionId);
+
+    if (version) {
+      // Mark all versions as not current
+      versions.forEach(v => {
+        v.isCurrentVersion = false;
+      });
+
+      // Mark this version as current
+      version.isCurrentVersion = true;
+      state.value.currentVersions.set(deliverableId, version);
+
+      // Update the deliverable's currentVersion if it exists
+      const deliverable = state.value.deliverables.get(deliverableId);
+      if (deliverable) {
+        deliverable.currentVersion = version;
+      }
+
+      versionsUpdateCounter.value++;
+    }
+  }
+
+  function associateDeliverableWithConversation(deliverableId: string, conversationId: string) {
+    const existing = state.value.conversationDeliverables.get(conversationId) || [];
+    if (!existing.includes(deliverableId)) {
+      state.value.conversationDeliverables.set(conversationId, [...existing, deliverableId]);
+    }
+  }
+
+  function deliverablesByConversation(conversationId: string): Deliverable[] {
+    return getDeliverablesByConversation(conversationId);
+  }
+
   // ============================================================================
   // RETURN (Public API)
   // ============================================================================
@@ -240,5 +276,8 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     removeVersion,
     clearAll,
     handleConversationDeleted,
+    setCurrentVersion,
+    associateDeliverableWithConversation,
+    deliverablesByConversation,
   };
 });

@@ -1103,14 +1103,15 @@ Privacy features (PII detection, pseudonymization, sanitization) violate archite
 - [ ] Task 2.6: Delete Old Services
 
 **Phase 3 - Projects Migration:**
-- [ ] Task 3.1: Assess Usage
-- [ ] Task 3.2: Add Orchestration Column
-- [ ] Task 3.3: Remove Project Column
-- [ ] Task 3.4: Drop Project Tables
-- [ ] Task 3.5: Update Backend Entity
-- [ ] Task 3.6: Delete Backend Services
-- [ ] Task 3.7: Update Frontend Service
-- [ ] Task 3.8: Delete Frontend Pages
+- [x] Task 3.1: Assess Usage ✅ (confirmed 0 rows in projects/project_steps/deliverables.project_step_id)
+- [x] Task 3.2: Add Orchestration Column ✅ (added then rolled back - redundant architecture)
+- [x] Task 3.3: Remove Project Column ✅ (removed deliverables.project_step_id)
+- [x] Task 3.4: Drop Project Tables ✅ (dropped projects and project_steps tables)
+- [x] Task 3.5: Update Backend Entity ✅ (corrected to use conversation-based relationships)
+- [x] Task 3.6: Delete Backend Services ✅ (no project services existed - all clean)
+- [x] Task 3.7: Update Frontend Service ✅ (no project terminology found in frontend)
+- [x] Task 3.8: Delete Frontend Pages ✅ (no project pages existed)
+- [x] **BONUS**: Added user_id to orchestration_runs for efficient user queries ✅
 
 **Phase 4 - Store Method Migration:**
 - [ ] Task 4.1: Refactor deliverablesStore

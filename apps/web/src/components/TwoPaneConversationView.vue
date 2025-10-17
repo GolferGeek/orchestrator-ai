@@ -346,6 +346,7 @@ import {
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { deliverablesService } from '@/services/deliverablesService';
 import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
 import { videoService } from '@/services/videoService';
@@ -723,12 +724,14 @@ const selectDeliverable = async (deliverable: any) => {
   const versions = deliverablesStore.getDeliverableVersionsSync(deliverable.id);
   if (!versions || versions.length === 0) {
     try {
-      await deliverablesStore.loadDeliverableVersions(deliverable.id);
+      const versionList = await deliverablesService.getVersionHistory(deliverable.id);
+      versionList.forEach(v => {
+        deliverablesStore.addVersion(deliverable.id, v);
+      });
     } catch (error) {
-
+      console.error('Failed to load deliverable versions:', error);
       // Don't let version loading failure block deliverable selection
     }
-  } else {
   }
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
   // Always open the work product pane when a deliverable is selected
@@ -760,7 +763,10 @@ const handleDeliverableCreated = async (deliverable: any) => {
   // Load versions for the newly created deliverable
   try {
     console.log('📥 [TwoPaneConversationView.handleDeliverableCreated] Loading deliverable versions...');
-    await deliverablesStore.loadDeliverableVersions(deliverable.id);
+    const versionList = await deliverablesService.getVersionHistory(deliverable.id);
+    versionList.forEach(v => {
+      deliverablesStore.addVersion(deliverable.id, v);
+    });
     console.log('✅ [TwoPaneConversationView.handleDeliverableCreated] Versions loaded');
   } catch (error) {
     console.error('❌ [TwoPaneConversationView.handleDeliverableCreated] Error loading versions:', error);
@@ -814,7 +820,10 @@ const handleVersionCreated = async (newVersion: any) => {
   }
   // Reload the deliverables for this conversation to update the list
   if (props.conversation?.id) {
-    await deliverablesStore.loadDeliverablesByConversation(props.conversation.id);
+    const deliverablesList = await deliverablesService.getConversationDeliverables(props.conversation.id);
+    deliverablesList.forEach(d => {
+      deliverablesStore.addDeliverable(d);
+    });
   }
 };
 const handleMergeRequested = (deliverable: any) => {
@@ -1130,7 +1139,10 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
       // Load deliverables first
       console.log('📡 [TwoPaneConversationView] Loading deliverables from API...');
       try {
-        const loadedDeliverables = await deliverablesStore.loadDeliverablesByConversation(newId);
+        const loadedDeliverables = await deliverablesService.getConversationDeliverables(newId);
+        loadedDeliverables.forEach(d => {
+          deliverablesStore.addDeliverable(d);
+        });
         conversationDeliverables = loadedDeliverables || [];
         console.log('✅ [TwoPaneConversationView] Loaded deliverables from API:', conversationDeliverables.length);
       } catch (error) {
@@ -1152,7 +1164,10 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
 
       // Step 3: Load versions for the selected deliverable
       try {
-        await deliverablesStore.loadDeliverableVersions(mostRecentDeliverable.id);
+        const versionList = await deliverablesService.getVersionHistory(mostRecentDeliverable.id);
+        versionList.forEach(v => {
+          deliverablesStore.addVersion(mostRecentDeliverable.id, v);
+        });
         console.log('✅ [TwoPaneConversationView] Loaded deliverable versions');
       } catch (error) {
         console.error('❌ [TwoPaneConversationView] Error loading deliverable versions:', error);
@@ -1190,9 +1205,12 @@ watch(() => props.conversation?.id, async (newId, oldId) => {
   }
 }, { immediate: true }); // Add immediate: true to ensure it runs on component mount
 // Watch for authentication state changes and load deliverables when user logs in
-watch(() => authStore.isAuthenticated, (isAuthenticated) => {
+watch(() => authStore.isAuthenticated, async (isAuthenticated) => {
   if (isAuthenticated && props.conversation?.id) {
-    deliverablesStore.loadDeliverablesByConversation(props.conversation.id);
+    const deliverablesList = await deliverablesService.getConversationDeliverables(props.conversation.id);
+    deliverablesList.forEach(d => {
+      deliverablesStore.addDeliverable(d);
+    });
   }
 });
 

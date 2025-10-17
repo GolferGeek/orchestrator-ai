@@ -459,6 +459,7 @@ import { storeToRefs } from 'pinia';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { deliverablesService } from '@/services/deliverablesService';
 import ConversationDeleteModal from './ConversationDeleteModal.vue';
 
 // Props
@@ -601,7 +602,10 @@ const deleteConversation = async (conversation: any, event: Event) => {
   // Check if conversation has deliverables before showing modal
   let hasDeliverables = false;
   try {
-    const deliverables = await deliverablesStore.loadDeliverablesByConversation(conversation.id);
+    const deliverables = await deliverablesService.getConversationDeliverables(conversation.id);
+    deliverables.forEach(d => {
+      deliverablesStore.addDeliverable(d);
+    });
     hasDeliverables = deliverables && deliverables.length > 0;
   } catch (error) {
     console.warn('Failed to check deliverables for conversation:', error);

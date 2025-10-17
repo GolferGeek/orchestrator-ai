@@ -534,6 +534,7 @@ import {
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { setCurrentVersion } from '@/services/agent2agent/actions';
+import { deliverablesService } from '@/services/deliverablesService';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import TaskRating from './TaskRating.vue';
@@ -843,8 +844,13 @@ const saveEdits = async () => {
         previousVersionNumber: currentVersion.value?.versionNumber
       }
     });
+
     // Reload the versions to get the updated list
-    await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
+    const versionList = await deliverablesService.getVersionHistory(actualDeliverableId.value);
+    versionList.forEach(v => {
+      deliverablesStore.addVersion(actualDeliverableId.value, v);
+    });
+
     // The versions computed property will automatically update from the store
     // Update the display to show the new version
     displayVersion.value = newVersion;
@@ -946,18 +952,19 @@ const formatJson = (content: string) => {
 };
 const loadVersions = async () => {
   try {
-    if (props.deliverable.parent_deliverable_id) {
-      // This is a version, load all versions of the parent
-      await deliverablesStore.loadDeliverableVersions(
-        props.deliverable.parent_deliverable_id
-      );
-    } else {
-      // This is the parent, load all its versions
-      await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
-    }
+    const deliverableId = props.deliverable.parent_deliverable_id || actualDeliverableId.value;
+
+    // Load versions from service
+    const versionList = await deliverablesService.getVersionHistory(deliverableId);
+
+    // Update store
+    versionList.forEach(v => {
+      deliverablesStore.addVersion(deliverableId, v);
+    });
+
     // The versions computed property will automatically update from the store
   } catch (error) {
-
+    console.error('Failed to load versions:', error);
     // The computed property will handle the fallback through the store
   }
 };
@@ -1022,8 +1029,12 @@ async function submitGenerate() {
       payload: { size: genSize.value, n: genN.value, deliverableId: (props.deliverable as any).id, providers: genProviders.value },
     });
     showGenerateModal.value = false;
+
     // Refresh versions
-    await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
+    const versionList = await deliverablesService.getVersionHistory(actualDeliverableId.value);
+    versionList.forEach(v => {
+      deliverablesStore.addVersion(actualDeliverableId.value, v);
+    });
   } catch (e: any) {
     alert(`Image generation failed: ${e?.message || e}`);
   }
@@ -1089,7 +1100,11 @@ const makeCurrentVersion = async () => {
     );
 
     // Reload versions to get updated current version status
-    await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
+    const versionList = await deliverablesService.getVersionHistory(actualDeliverableId.value);
+    versionList.forEach(v => {
+      deliverablesStore.addVersion(actualDeliverableId.value, v);
+    });
+
     // Update local state
     selectedVersion.value.isCurrentVersion = true;
     emit('current-version-changed', selectedVersion.value);
