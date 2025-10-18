@@ -249,61 +249,61 @@ const highestPiiSeverity = computed(() => {
   return 'unknown';
 });
 
-const piiSeverityClass = computed(() => ({
-  'pii-showstopper': highestPiiSeverity.value === 'showstopper',
-  'pii-pseudonymizer': highestPiiSeverity.value === 'pseudonymizer',
-  'pii-flagger': highestPiiSeverity.value === 'flagger',
-  'pii-unknown': highestPiiSeverity.value === 'unknown'
-}));
+// const piiSeverityClass = computed(() => ({
+//   'pii-showstopper': highestPiiSeverity.value === 'showstopper',
+//   'pii-pseudonymizer': highestPiiSeverity.value === 'pseudonymizer',
+//   'pii-flagger': highestPiiSeverity.value === 'flagger',
+//   'pii-unknown': highestPiiSeverity.value === 'unknown'
+// }));
 
-const piiSeverityIcon = computed(() => {
-  switch (highestPiiSeverity.value) {
-    case 'showstopper': return stopCircleOutline;
-    case 'pseudonymizer': return swapHorizontalOutline;
-    case 'flagger': return flagOutline;
-    default: return eyeOffOutline;
-  }
-});
+// const piiSeverityIcon = computed(() => {
+//   switch (highestPiiSeverity.value) {
+//     case 'showstopper': return stopCircleOutline;
+//     case 'pseudonymizer': return swapHorizontalOutline;
+//     case 'flagger': return flagOutline;
+//     default: return eyeOffOutline;
+//   }
+// });
 
-const piiDetectionText = computed(() => {
-  const count = props.piiDetectionCount || 0;
-  const types = props.piiSeverityTypes || [];
-  const severity = highestPiiSeverity.value;
-  
-  if (count === 0) return 'No PII';
-  
-  let text = `${count} PII item${count > 1 ? 's' : ''}`;
-  
-  // Add severity indicator
-  switch (severity) {
-    case 'showstopper':
-      text += ' (Blocked)';
-      break;
-    case 'pseudonymizer':
-      text += ' (Sanitized)';
-      break;
-    case 'flagger':
-      text += ' (Flagged)';
-      break;
-  }
-  
-  // Add types if available and not too many
-  if (types.length > 0 && types.length <= 2) {
-    const typeNames = types.map(type => {
-      switch (type) {
-        case 'ssn': return 'SSN';
-        case 'creditCard': return 'Card';
-        case 'email': return 'Email';
-        case 'phone': return 'Phone';
-        case 'ipAddress': return 'IP';
-        default: return type;
-      }
-    });
-    text += ` (${typeNames.join(', ')})`;
-  }
-  
-  return text;
-});
+// const piiDetectionText = computed(() => {
+//   const count = props.piiDetectionCount || 0;
+//   const types = props.piiSeverityTypes || [];
+//   const severity = highestPiiSeverity.value;
+//   
+//   if (count === 0) return 'No PII';
+//   
+//   let text = `${count} PII item${count > 1 ? 's' : ''}`;
+//   
+//   // Add severity indicator
+//   switch (severity) {
+//     case 'showstopper':
+//       text += ' (Blocked)';
+//       break;
+//     case 'pseudonymizer':
+//       text += ' (Sanitized)';
+//       break;
+//     case 'flagger':
+//       text += ' (Flagged)';
+//       break;
+//   }
+//   
+//   // Add types if available and not too many
+//   if (types.length > 0 && types.length <= 2) {
+//     const typeNames = types.map(type => {
+//       switch (type) {
+//         case 'ssn': return 'SSN';
+//         case 'creditCard': return 'Card';
+//         case 'email': return 'Email';
+//         case 'phone': return 'Phone';
+//         case 'ipAddress': return 'IP';
+//         default: return type;
+//       }
+//     });
+//     text += ` (${typeNames.join(', ')})`;
+//   }
+//   
+//   return text;
+// });
 </script>
 
 <style scoped>

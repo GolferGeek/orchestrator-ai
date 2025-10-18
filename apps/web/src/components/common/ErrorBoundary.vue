@@ -139,9 +139,13 @@ interface ErrorInfo {
 
 // Props with defaults
 const props = withDefaults(defineProps<ErrorBoundaryProps>(), {
+  fallbackComponent: undefined,
   showDetails: import.meta.env.DEV,
   showNavigateHome: true,
-  maxRetries: 3
+  maxRetries: 3,
+  onError: undefined,
+  onRetry: undefined,
+  onClear: undefined
 });
 
 // Emits

@@ -89,8 +89,7 @@ import {
   closeCircleOutline,
   documentTextOutline,
   eyeOutline,
-  downloadOutline,
-  timeOutline
+  downloadOutline
 } from 'ionicons/icons';
 interface WorkflowStep {
   stepName: string;

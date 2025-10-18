@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { IonicVue } from '@ionic/vue';
 import UserPrivacyIndicators from '../UserPrivacyIndicators.vue';

@@ -78,8 +78,7 @@ import {
   closeOutline,
   reloadOutline,
   bugOutline,
-  checkmarkOutline,
-  warningOutline
+  checkmarkOutline
 } from 'ionicons/icons';
 import { useErrorStore } from '@/stores/errorStore';
 

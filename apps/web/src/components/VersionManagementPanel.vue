@@ -185,7 +185,6 @@ import {
   documentTextOutline,
 } from 'ionicons/icons';
 import { useContextStore } from '@/stores/contextStore';
-import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import type { DeliverableVersion } from '@/services/deliverablesService';
 // Props
@@ -197,7 +196,6 @@ interface Props {
 const props = defineProps<Props>();
 // Stores
 const contextStore = useContextStore();
-const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 // Reactive state
 const selectedVersions = ref<string[]>([]);

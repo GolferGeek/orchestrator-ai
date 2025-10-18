@@ -105,6 +105,9 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  errors: () => [],
+  warnings: () => [],
+  isValidating: false,
   showIcon: true,
   showDetails: false,
   showActions: false,
