@@ -1,9 +1,8 @@
 import { registerAs } from '@nestjs/config';
 
 // Helper function to get schema-aware table name
-// Returns just the table name since Supabase client handles schema via .schema() method
-export function getTableName(tableName: string, schema?: string): string {
-  // Just return the table name - schema will be handled by the client
+export function getTableName(tableName: string, _schema?: string): string {
+  // Schema selection is handled via Supabase client's .schema() method
   return tableName;
 }
 
@@ -12,12 +11,6 @@ export function getSchemaForTable(
   tableName: string,
   explicitSchema?: string,
 ): string {
-  // Since we've consolidated everything to public schema, always use public
-  // Environment variables are kept for backward compatibility but both default to 'public'
-  const getCoreSchema = () => process.env.SUPABASE_CORE_SCHEMA || 'public';
-  const getCompanySchema = () =>
-    process.env.SUPABASE_COMPANY_SCHEMA || 'public';
-
   // Use explicit schema if provided
   if (explicitSchema) {
     return explicitSchema;
@@ -30,13 +23,8 @@ export function getSchemaForTable(
 
 // Lazy configuration loading - defer all environment access
 export default registerAs('supabase', () => {
-  const getEnvValue = (key: string, defaultValue: string) => {
-    try {
-      return process.env[key] || defaultValue;
-    } catch (_error) {
-      return defaultValue;
-    }
-  };
+  const getEnvValue = (key: string, defaultValue: string) =>
+    process.env[key] || defaultValue;
 
   return {
     url: getEnvValue('SUPABASE_URL', 'http://localhost:9010'),

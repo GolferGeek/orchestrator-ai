@@ -57,38 +57,28 @@ export class SupabaseService implements OnModuleInit {
 
     // Initialize anonymous client (for RLS-compliant operations)
     if (anonKey) {
-      try {
-        this.anonClient = createClient(url, anonKey, {
-          global: {
-            fetch: (url, options = {}) => {
-              return fetch(url, {
-                ...options,
-                signal: AbortSignal.timeout(60000), // 60 second timeout
-              });
-            },
-          },
-        });
-      } catch (error) {
-        throw error;
-      }
+      this.anonClient = createClient(url, anonKey, {
+        global: {
+          fetch: (requestUrl, options = {}) =>
+            fetch(requestUrl, {
+              ...options,
+              signal: AbortSignal.timeout(60000), // 60 second timeout
+            }),
+        },
+      });
     }
 
     // Initialize service client (bypasses RLS - use with caution)
     if (serviceKey) {
-      try {
-        this.serviceClient = createClient(url, serviceKey, {
-          global: {
-            fetch: (url, options = {}) => {
-              return fetch(url, {
-                ...options,
-                signal: AbortSignal.timeout(60000), // 60 second timeout
-              });
-            },
-          },
-        });
-      } catch (error) {
-        throw error;
-      }
+      this.serviceClient = createClient(url, serviceKey, {
+        global: {
+          fetch: (requestUrl, options = {}) =>
+            fetch(requestUrl, {
+              ...options,
+              signal: AbortSignal.timeout(60000), // 60 second timeout
+            }),
+        },
+      });
     }
   }
 
@@ -151,8 +141,13 @@ export class SupabaseService implements OnModuleInit {
       return authenticatedClient;
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Could not create authenticated client.';
-      this.logger.error(message, error instanceof Error ? error.stack : undefined);
+        error instanceof Error
+          ? error.message
+          : 'Could not create authenticated client.';
+      this.logger.error(
+        message,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new HttpException(
         'Could not create authenticated client.',
         HttpStatus.UNAUTHORIZED,
@@ -259,13 +254,12 @@ export class SupabaseService implements OnModuleInit {
 
       return { status: 'ok', message: 'Database connection successful' };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
         'Supabase health check failed',
         error instanceof Error ? error.stack : undefined,
       );
-      return { status: 'error', message: message };
+      return { status: 'error', message };
     }
   }
 }

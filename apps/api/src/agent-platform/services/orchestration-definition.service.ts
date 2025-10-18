@@ -1,9 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import type {
-  JsonArray,
-  JsonObject,
-  JsonValue,
-} from '@orchestrator-ai/transport-types';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { OrchestrationDefinitionsRepository } from '../repositories/orchestration-definitions.repository';
 import {
   OrchestrationDefinitionCreateInput,
@@ -11,6 +7,9 @@ import {
   OrchestrationDefinitionUpdateInput,
 } from '../interfaces/orchestration-definition.interface';
 import {
+  OrchestrationCachingConfig,
+  OrchestrationCachingStepConfig,
+  OrchestrationConcurrencyConfig,
   OrchestrationDefinitionSchema,
   OrchestrationExecutionConfig,
   OrchestrationResolvedDefinition,
@@ -137,9 +136,7 @@ export class OrchestrationDefinitionService {
   private normalizeDefinition(
     definition: OrchestrationDefinitionSchema,
   ): OrchestrationDefinitionSchema {
-    const clone = JSON.parse(
-      JSON.stringify(definition),
-    ) as OrchestrationDefinitionSchema;
+    const clone = this.deepClone(definition);
 
     if (!clone.orchestration) {
       clone.orchestration = {
@@ -160,15 +157,12 @@ export class OrchestrationDefinitionService {
     clone.orchestration.steps = clone.orchestration.steps.map(
       (step: OrchestrationStepDefinition, index: number) => {
         const normalizedType =
-          typeof step.type === 'string'
-            ? (step.type as string).toLowerCase()
-            : 'agent';
+          typeof step.type === 'string' ? step.type.toLowerCase() : 'agent';
 
-        const orchestrationConfig = step.orchestration
-          ? (JSON.parse(
-              JSON.stringify(step.orchestration),
-            ) as OrchestrationSubDefinition)
-          : undefined;
+        const orchestrationConfig: OrchestrationSubDefinition | undefined =
+          step.orchestration !== undefined
+            ? this.deepClone(step.orchestration)
+            : undefined;
 
         return {
           ...step,
@@ -181,7 +175,7 @@ export class OrchestrationDefinitionService {
       },
     );
 
-    return clone as OrchestrationDefinitionSchema;
+    return clone;
   }
 
   private validateDefinition(definition: OrchestrationDefinitionSchema): void {
@@ -290,9 +284,7 @@ export class OrchestrationDefinitionService {
 
   private validateStepConfiguration(step: OrchestrationStepDefinition): void {
     const stepType =
-      typeof step.type === 'string'
-        ? (step.type as string).toLowerCase()
-        : 'agent';
+      typeof step.type === 'string' ? step.type.toLowerCase() : 'agent';
 
     if (!['agent', 'orchestration'].includes(stepType)) {
       throw new BadRequestException(
@@ -368,11 +360,11 @@ export class OrchestrationDefinitionService {
     }
 
     const concurrency = this.normalizeConcurrencyConfig(
-      this.toJsonObject(executionRaw['concurrency']) ??
-        this.toJsonObject(executionRaw['parallelism']),
+      this.toJsonObject(executionRaw.concurrency) ??
+        this.toJsonObject(executionRaw.parallelism),
     );
     const caching = this.normalizeCachingConfig(
-      this.toJsonObject(executionRaw['caching']),
+      this.toJsonObject(executionRaw.caching),
     );
 
     if (!concurrency && !caching) {
@@ -392,13 +384,15 @@ export class OrchestrationDefinitionService {
       return null;
     }
 
+    const result: OrchestrationConcurrencyConfig = {};
+
     const maxParallel = this.coerceNumber(
-      raw['maxParallel'] as JsonValue | undefined,
-      raw['max_parallel'] as JsonValue | undefined,
-      raw['maxParallelSteps'] as JsonValue | undefined,
-      raw['max_parallel_steps'] as JsonValue | undefined,
-      raw['maxConcurrent'] as JsonValue | undefined,
-      raw['max_concurrent'] as JsonValue | undefined,
+      raw['maxParallel'],
+      raw['max_parallel'],
+      raw['maxParallelSteps'],
+      raw['max_parallel_steps'],
+      raw['maxConcurrent'],
+      raw['max_concurrent'],
     );
 
     const queueStrategyRaw = this.coerceString(
@@ -407,25 +401,18 @@ export class OrchestrationDefinitionService {
       raw['strategy'],
     );
 
-    const normalized: JsonObject = {};
-
     if (maxParallel !== null) {
-      normalized.maxParallel = Math.max(
-        1,
-        Math.floor(Number(maxParallel ?? 1)),
-      );
+      result.maxParallel = Math.max(1, Math.floor(Number(maxParallel ?? 1)));
     }
 
     if (queueStrategyRaw) {
       const lowered = queueStrategyRaw.toLowerCase();
-      if (['fifo', 'dependency'].includes(lowered)) {
-        normalized.queueStrategy = lowered as 'fifo' | 'dependency';
+      if (this.isQueueStrategy(lowered)) {
+        result.queueStrategy = lowered;
       }
     }
 
-    return Object.keys(normalized).length > 0
-      ? (normalized as OrchestrationExecutionConfig['concurrency'])
-      : null;
+    return Object.keys(result).length > 0 ? result : null;
   }
 
   private normalizeCachingConfig(
@@ -441,16 +428,17 @@ export class OrchestrationDefinitionService {
       raw['isEnabled'],
     );
     const ttl = this.coerceNumber(
-      raw['ttlSeconds'] as JsonValue | undefined,
-      raw['ttl_seconds'] as JsonValue | undefined,
-      raw['ttl'] as JsonValue | undefined,
-      raw['stepTtl'] as JsonValue | undefined,
-      raw['step_ttl'] as JsonValue | undefined,
+      raw['ttlSeconds'],
+      raw['ttl_seconds'],
+      raw['ttl'],
+      raw['stepTtl'],
+      raw['step_ttl'],
     );
     const strategyRaw = this.coerceString(raw['strategy'], raw['mode']);
 
-    const stepsArray = Array.isArray(raw['steps'])
-      ? (raw['steps'] as JsonArray)
+    const stepsCandidate = raw['steps'];
+    const stepsArray = Array.isArray(stepsCandidate)
+      ? stepsCandidate
       : undefined;
 
     const steps = stepsArray
@@ -469,11 +457,11 @@ export class OrchestrationDefinitionService {
           stepObject['isEnabled'],
         );
         const ttlValue = this.coerceNumber(
-          stepObject['ttlSeconds'] as JsonValue | undefined,
-          stepObject['ttl_seconds'] as JsonValue | undefined,
-          stepObject['ttl'] as JsonValue | undefined,
+          stepObject['ttlSeconds'],
+          stepObject['ttl_seconds'],
+          stepObject['ttl'],
         );
-        const normalizedStep: JsonObject = { id };
+        const normalizedStep: OrchestrationCachingStepConfig = { id };
         if (stepEnabledRaw !== null) {
           normalizedStep.enabled = stepEnabledRaw;
         }
@@ -482,9 +470,11 @@ export class OrchestrationDefinitionService {
         }
         return normalizedStep;
       })
-      .filter((entry): entry is JsonObject => Boolean(entry));
+      .filter((entry): entry is OrchestrationCachingStepConfig =>
+        Boolean(entry),
+      );
 
-    const normalized: JsonObject = {};
+    const normalized: OrchestrationCachingConfig = {};
 
     if (enabledRaw !== null) {
       normalized.enabled = enabledRaw;
@@ -502,12 +492,10 @@ export class OrchestrationDefinitionService {
     }
 
     if (steps && steps.length > 0) {
-      normalized.steps = steps as JsonArray;
+      normalized.steps = steps;
     }
 
-    return Object.keys(normalized).length > 0
-      ? (normalized as OrchestrationExecutionConfig['caching'])
-      : null;
+    return Object.keys(normalized).length > 0 ? normalized : null;
   }
 
   private coerceNumber(...values: Array<JsonValue | undefined>): number | null {
@@ -566,9 +554,21 @@ export class OrchestrationDefinitionService {
   }
 
   private toJsonObject(value: unknown): JsonObject | null {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    if (!this.isJsonObjectValue(value)) {
       return null;
     }
-    return value as JsonObject;
+    return value;
+  }
+
+  private deepClone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T;
+  }
+
+  private isQueueStrategy(value: string): value is 'fifo' | 'dependency' {
+    return value === 'fifo' || value === 'dependency';
+  }
+
+  private isJsonObjectValue(value: unknown): value is JsonObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 }

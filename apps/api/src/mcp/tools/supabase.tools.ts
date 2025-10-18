@@ -270,10 +270,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       }
 
       const data = await this.parseJsonValue(response, 'Supabase schema query');
-      const schema = this.ensureJsonCollection(
-        data,
-        'Supabase schema query',
-      );
+      const schema = this.ensureJsonCollection(data, 'Supabase schema query');
 
       return {
         content: [
@@ -318,11 +315,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         throw new Error(`SQL execution failed: ${response.statusText}`);
       }
 
-      const data = await this.parseJsonValue(response, 'Supabase SQL execution');
-      const results = this.ensureJsonCollection(
-        data,
+      const data = await this.parseJsonValue(
+        response,
         'Supabase SQL execution',
       );
+      const results = this.ensureJsonCollection(data, 'Supabase SQL execution');
 
       return {
         content: [
@@ -433,8 +430,14 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         throw new Error(`Query execution failed: ${response.statusText}`);
       }
 
-      const data = await this.parseJsonValue(response, 'Supabase query execution');
-      const payload = this.ensureJsonCollection(data, 'Supabase query execution');
+      const data = await this.parseJsonValue(
+        response,
+        'Supabase query execution',
+      );
+      const payload = this.ensureJsonCollection(
+        data,
+        'Supabase query execution',
+      );
 
       return {
         content: [
