@@ -92,7 +92,9 @@ export class DatabaseTestHelper {
    * @param appInstance - NestJS app instance (for HTTP-based auth)
    * @returns JWT authentication token
    */
-  static async authenticateTestUser(appInstance?: INestApplication): Promise<string> {
+  static async authenticateTestUser(
+    appInstance?: INestApplication,
+  ): Promise<string> {
     // If we already have a token, reuse it
     if (DatabaseTestHelper.authToken) {
       return DatabaseTestHelper.authToken;
@@ -100,7 +102,10 @@ export class DatabaseTestHelper {
 
     // Authenticate via HTTP API if app instance provided
     if (appInstance) {
-      const response = await request(appInstance.getHttpServer())
+      const httpServer = appInstance.getHttpServer() as Parameters<
+        typeof request
+      >[0];
+      const response = await request(httpServer)
         .post('/auth/login')
         .send({
           username: TEST_DB_CONFIG.testUser,
@@ -108,7 +113,8 @@ export class DatabaseTestHelper {
         })
         .expect(200);
 
-      const accessToken = response.body.access_token as string;
+      const body = response.body as { access_token: string };
+      const accessToken = body.access_token;
       DatabaseTestHelper.authToken = accessToken;
       return DatabaseTestHelper.authToken;
     }
@@ -284,16 +290,16 @@ export class DatabaseTestHelper {
     // Use Supabase RPC for raw SQL execution
     // Note: This requires a database function to be set up
     // For now, we'll use the REST API directly
-    const { data, error } = await client.rpc('exec_sql', {
+    const result = await client.rpc('exec_sql', {
       query: sql,
       params: params,
     });
 
-    if (error) {
-      throw new Error(`Raw query failed: ${error.message}`);
+    if (result.error) {
+      throw new Error(`Raw query failed: ${result.error.message}`);
     }
 
-    return data as T[];
+    return result.data as T[];
   }
 
   /**
@@ -304,7 +310,10 @@ export class DatabaseTestHelper {
    * @param params - Command parameters
    * @returns Number of affected rows
    */
-  static async rawCommand(sql: string, params: unknown[] = []): Promise<number> {
+  static async rawCommand(
+    sql: string,
+    params: unknown[] = [],
+  ): Promise<number> {
     const result = await DatabaseTestHelper.rawQuery(sql, params);
     return result ? result.length : 0;
   }
@@ -379,7 +388,7 @@ export class DatabaseTestHelper {
     DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
-    const { data, error } = await client
+    const result = await client
       .from('agents')
       .upsert(agentData, {
         onConflict: 'organization_slug,slug',
@@ -387,11 +396,11 @@ export class DatabaseTestHelper {
       .select()
       .single();
 
-    if (error) {
-      throw new Error(`Failed to seed test agent: ${error.message}`);
+    if (result.error) {
+      throw new Error(`Failed to seed test agent: ${result.error.message}`);
     }
 
-    return data as Agent;
+    return result.data as Agent;
   }
 
   /**
@@ -400,11 +409,13 @@ export class DatabaseTestHelper {
    * @param definitionData - Orchestration definition data
    * @returns Seeded definition
    */
-  static async seedTestOrchestration(definitionData: Partial<OrchestrationDefinition>): Promise<OrchestrationDefinition> {
+  static async seedTestOrchestration(
+    definitionData: Partial<OrchestrationDefinition>,
+  ): Promise<OrchestrationDefinition> {
     DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
-    const { data, error } = await client
+    const result = await client
       .from('orchestration_definitions')
       .upsert(definitionData, {
         onConflict: 'organization_slug,slug',
@@ -412,10 +423,12 @@ export class DatabaseTestHelper {
       .select()
       .single();
 
-    if (error) {
-      throw new Error(`Failed to seed test orchestration: ${error.message}`);
+    if (result.error) {
+      throw new Error(
+        `Failed to seed test orchestration: ${result.error.message}`,
+      );
     }
 
-    return data as OrchestrationDefinition;
+    return result.data as OrchestrationDefinition;
   }
 }

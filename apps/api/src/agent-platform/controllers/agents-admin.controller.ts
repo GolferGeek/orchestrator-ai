@@ -10,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { AdminOnly } from '@/auth/decorators/roles.decorator';
-import { CreateAgentDto, UpdateAgentDto, AgentType } from '../dto/agent-admin.dto';
+import {
+  CreateAgentDto,
+  UpdateAgentDto,
+  AgentType,
+} from '../dto/agent-admin.dto';
 import { AgentValidationService } from '../services/agent-validation.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { AgentDryRunService } from '../services/agent-dry-run.service';
@@ -25,6 +29,27 @@ interface AuthenticatedRequest {
     id?: string;
     userId?: string;
   };
+}
+
+interface AgentRecord {
+  id: string;
+  organization_slug: string;
+  slug: string;
+  display_name: string;
+  agent_type: string;
+  mode_profile: string;
+  yaml: string;
+  description: string | null;
+  agent_card: Record<string, unknown> | null;
+  context: Record<string, unknown> | null;
+  config: Record<string, unknown> | null;
+}
+
+interface SmokeRunResult {
+  file: string;
+  success: boolean;
+  issues: Array<{ message: string }>;
+  dryRun?: { ok: boolean; error?: string };
 }
 
 @Controller('api/admin/agents')
@@ -102,8 +127,12 @@ export class AgentsAdminController {
     const wantsDryRun = (dryRun || '').toString().toLowerCase() === 'true';
     if (validation.ok && wantsDryRun && type === AgentType.FUNCTION) {
       const config = dto.config as Record<string, unknown> | undefined;
-      const configuration = config?.configuration as Record<string, unknown> | undefined;
-      const functionConfig = configuration?.function as Record<string, unknown> | undefined;
+      const configuration = config?.configuration as
+        | Record<string, unknown>
+        | undefined;
+      const functionConfig = configuration?.function as
+        | Record<string, unknown>
+        | undefined;
       const code = functionConfig?.code as string | undefined;
       const timeout = Number(functionConfig?.timeout_ms) || 2000;
       if (code && code.length < 50000) {
@@ -117,12 +146,21 @@ export class AgentsAdminController {
     }
     if (validation.ok && wantsDryRun && type === AgentType.API) {
       const config = dto.config as Record<string, unknown> | undefined;
-      const configuration = config?.configuration as Record<string, unknown> | undefined;
-      const apiConfig = configuration?.api as Record<string, unknown> | undefined;
+      const configuration = config?.configuration as
+        | Record<string, unknown>
+        | undefined;
+      const apiConfig = configuration?.api as
+        | Record<string, unknown>
+        | undefined;
       const apiCfg = apiConfig?.api_configuration;
       if (apiCfg) {
-        const sampleInput = apiConfig?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' };
-        const sampleResp = apiConfig?.sample_response || { output: 'dry-run-ok' };
+        const sampleInput = apiConfig?.sample_input || {
+          sessionId: 'dryrun',
+          userMessage: 'hello',
+        };
+        const sampleResp = apiConfig?.sample_response || {
+          output: 'dry-run-ok',
+        };
         response.dryRun = this.dryRun.runApiTransform(
           apiCfg,
           sampleInput,
@@ -142,14 +180,16 @@ export class AgentsAdminController {
   @AdminOnly()
   async patch(@Param('id') id: string, @Body() body: UpdateAgentDto) {
     // Load current to determine type for validation
-    const { data: current, error } = await this.supabase
+    const result = await this.supabase
       .getServiceClient()
       .from('agents')
       .select('*')
       .eq('id', id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!current) throw new Error('Agent not found');
+    if (result.error) throw new Error(result.error.message);
+    if (!result.data) throw new Error('Agent not found');
+
+    const current = result.data as AgentRecord;
 
     const next = {
       display_name: body.display_name ?? current.display_name,
@@ -187,15 +227,15 @@ export class AgentsAdminController {
       };
     }
 
-    const { data: updated, error: uerr } = await this.supabase
+    const updateResult = await this.supabase
       .getServiceClient()
       .from('agents')
       .update(next)
       .eq('id', id)
       .select('*')
       .maybeSingle();
-    if (uerr) throw new Error(uerr.message);
-    return { success: true, data: updated };
+    if (updateResult.error) throw new Error(updateResult.error.message);
+    return { success: true, data: updateResult.data };
   }
 
   @Post('smoke-run')
@@ -211,24 +251,30 @@ export class AgentsAdminController {
       ),
     ];
 
-    const results: any[] = [];
+    const results: SmokeRunResult[] = [];
     for (const f of files) {
       try {
         const raw = await readFile(f, 'utf8');
-        const dto = JSON.parse(raw);
+        const dto = JSON.parse(raw) as CreateAgentDto;
         const type = dto.agent_type;
         const validation = this.validator.validateByType(type, dto);
         const policyIssues = this.policy.check(dto);
-        const item: any = {
+        const item: SmokeRunResult = {
           file: f,
           success: validation.ok && policyIssues.length === 0,
           issues: [...validation.issues, ...policyIssues],
         };
         if (item.success) {
-          if (type === 'function') {
-            const code = dto?.config?.configuration?.function?.code as
-              | string
+          if (type === AgentType.FUNCTION) {
+            const config = dto.config as Record<string, unknown> | undefined;
+            const configuration = config?.configuration as
+              | Record<string, unknown>
               | undefined;
+            const functionConfig = configuration?.function as
+              | Record<string, unknown>
+              | undefined;
+            const code = functionConfig?.code as string | undefined;
+            const timeout = Number(functionConfig?.timeout_ms) || 1000;
             if (code) {
               item.dryRun = await this.dryRun.runFunction(
                 code,
@@ -236,20 +282,26 @@ export class AgentsAdminController {
                   title: 'Smoke Test',
                   outline: ['Intro', 'Body', 'Conclusion'],
                 },
-                Number(dto?.config?.configuration?.function?.timeout_ms) ||
-                  1000,
+                timeout,
               );
             }
-          } else if (type === 'api') {
-            const apiCfg = dto?.config?.configuration?.api?.api_configuration;
+          } else if (type === AgentType.API) {
+            const config = dto.config as Record<string, unknown> | undefined;
+            const configuration = config?.configuration as
+              | Record<string, unknown>
+              | undefined;
+            const apiConfig = configuration?.api as
+              | Record<string, unknown>
+              | undefined;
+            const apiCfg = apiConfig?.api_configuration;
             if (apiCfg) {
               item.dryRun = this.dryRun.runApiTransform(
                 apiCfg,
-                dto?.config?.configuration?.api?.sample_input || {
+                apiConfig?.sample_input || {
                   sessionId: 'dryrun',
                   userMessage: 'hello',
                 },
-                dto?.config?.configuration?.api?.sample_response || {
+                apiConfig?.sample_response || {
                   output: 'ok',
                 },
               );
@@ -257,11 +309,12 @@ export class AgentsAdminController {
           }
         }
         results.push(item);
-      } catch (e: any) {
+      } catch (e) {
+        const error = e as Error;
         results.push({
           file: f,
           success: false,
-          issues: [{ message: e?.message || String(e) }],
+          issues: [{ message: error.message || String(e) }],
         });
       }
     }
