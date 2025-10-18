@@ -513,7 +513,7 @@ watch(() => props.isOpen, (isOpen) => {
       loadPattern(props.pattern);
     } else {
       resetForm();
-      sampleText.value = sampleTexts.email;
+      sampleText.value = sampleTexts.value.email;
     }
   }
 });

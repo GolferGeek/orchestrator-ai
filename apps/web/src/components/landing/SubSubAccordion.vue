@@ -63,7 +63,8 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   isExpanded: false,
-  lazyLoad: false
+  lazyLoad: false,
+  id: undefined
 });
 
 // Generate a more predictable ID for this sub-sub-accordion

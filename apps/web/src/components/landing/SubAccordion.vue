@@ -48,7 +48,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  isExpanded: false
+  isExpanded: false,
+  id: undefined
 });
 
 // Generate a more predictable ID for this sub-accordion

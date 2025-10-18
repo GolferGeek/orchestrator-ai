@@ -57,6 +57,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   position: 'auto',
   showDataFlow: true,
+  customTitle: undefined,
+  customDescription: undefined,
   showCompliance: true,
   delay: 500
 });

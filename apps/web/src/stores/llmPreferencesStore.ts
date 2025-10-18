@@ -29,7 +29,6 @@ import type { AgentLLMRecommendation } from '../types/evaluation';
 import { apiService } from '../services/apiService';
 import { sovereignPolicyService } from '../services/sovereignPolicyService';
 import evaluationService from '../services/evaluationService';
-import type { JsonObject } from '@/types';
 
 const getStatusText = (error: unknown): string | undefined => {
   if (typeof error === 'object' && error && 'response' in error) {

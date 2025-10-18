@@ -33,6 +33,10 @@
 import { computed } from 'vue';
 import { usePrivacyStore } from '@/stores/privacyStore';
 
+const emit = defineEmits<{
+  dismiss: [];
+}>();
+
 interface Props {
   variant?: 'info' | 'warning' | 'enforced' | 'success';
   showStatus?: boolean;
