@@ -24,6 +24,7 @@ import type {
   DeliverableData,
   DeliverableVersionData,
 } from '@orchestrator-ai/transport-types/shared/data-types';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import {
   fetchExistingDeliverable,
   buildResponseMetadata,
@@ -1128,7 +1129,7 @@ function buildBuildActionContext(
     userId: string;
     agentSlug: string;
     taskId?: string;
-    metadata: Record<string, unknown>;
+    metadata: JsonObject;
   };
 } {
   const userId = resolveUserId(request);
@@ -1153,9 +1154,53 @@ function buildBuildActionContext(
       userId,
       agentSlug: definition.slug,
       taskId,
-      metadata: request.metadata ?? {},
+      metadata: sanitizeMetadata(request.metadata),
     },
   };
+}
+
+function sanitizeMetadata(value: Record<string, unknown> | undefined): JsonObject {
+  if (!value) {
+    return {};
+  }
+
+  const jsonValue = toJsonValue(value);
+  return jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)
+    ? (jsonValue as JsonObject)
+    : {};
+}
+
+function toJsonValue(value: unknown): JsonValue | undefined {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    const mapped = value
+      .map((entry) => toJsonValue(entry))
+      .filter((entry): entry is JsonValue => entry !== undefined);
+    return mapped as JsonValue;
+  }
+
+  if (typeof value === 'object') {
+    const result: JsonObject = {};
+    Object.entries(value as Record<string, unknown>).forEach(
+      ([key, entry]) => {
+        const jsonEntry = toJsonValue(entry);
+        if (jsonEntry !== undefined) {
+          result[key] = jsonEntry;
+        }
+      },
+    );
+    return result;
+  }
+
+  return undefined;
 }
 
 function serializeDeliverable(

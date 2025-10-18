@@ -386,11 +386,15 @@ export async function callLLM(
       options as any,
     );
 
-    if (!response || typeof response.content !== 'string') {
+    if (
+      !response ||
+      typeof response !== 'object' ||
+      typeof (response as LLMResponse).content !== 'string'
+    ) {
       throw new Error('LLM returned an unexpected response');
     }
 
-    return response;
+    return response as LLMResponse;
   } catch (error) {
     if (error instanceof Error) {
       throw error;

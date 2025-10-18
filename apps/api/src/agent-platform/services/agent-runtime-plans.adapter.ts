@@ -179,8 +179,8 @@ export class AgentRuntimePlansAdapter {
   private resolveUserId(request: TaskRequestDto): string | undefined {
     const fromTop = request.metadata?.userId ?? request.metadata?.createdBy;
     const fromPayload =
-      (request.payload as Record<string, unknown> | undefined)?.metadata?.userId ??
-      (request.payload as Record<string, unknown> | undefined)?.metadata?.createdBy;
+      this.extractPayloadMetadataString(request.payload, 'userId') ??
+      this.extractPayloadMetadataString(request.payload, 'createdBy');
 
     const candidate = fromTop ?? fromPayload;
     return typeof candidate === 'string' && candidate.length > 0
@@ -193,6 +193,23 @@ export class AgentRuntimePlansAdapter {
     return typeof candidate === 'string' && candidate.length > 0
       ? candidate
       : undefined;
+  }
+
+  private extractPayloadMetadataString(
+    payload: TaskRequestDto['payload'],
+    key: string,
+  ): string | undefined {
+    if (!payload || typeof payload !== 'object') {
+      return undefined;
+    }
+
+    const metadata = (payload as Record<string, unknown>).metadata;
+    if (!metadata || typeof metadata !== 'object') {
+      return undefined;
+    }
+
+    const value = (metadata as Record<string, unknown>)[key];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
   private extractString(object: unknown, field: string): string | undefined {

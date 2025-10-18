@@ -7,6 +7,27 @@ import { useApiSanitization } from '@/composables/useApiSanitization';
 import { useErrorStore } from '@/stores/errorStore';
 import { trackAPI } from '../utils/performanceMonitor';
 
+const extractLLMContent = (payload: unknown, fallback = 'Task completed'): string => {
+  if (!payload || typeof payload !== 'object') {
+    return fallback;
+  }
+
+  const candidates = [
+    (payload as any)?.content,
+    (payload as any)?.response,
+    (payload as any)?.message,
+    (payload as any)?.result,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+
+  return fallback;
+};
+
 // Extend Axios types to include our custom metadata
 declare module 'axios' {
   interface InternalAxiosRequestConfig {

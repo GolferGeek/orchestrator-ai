@@ -22,10 +22,8 @@ import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agen
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 import { HumanApprovalsRepository } from '@agent-platform/repositories/human-approvals.repository';
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
-import {
-  OrchestrationCheckpointDecision,
-  OrchestrationCheckpointService,
-} from '@agent-platform/services/orchestration-checkpoint.service';
+import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
+import type { OrchestrationCheckpointDecision } from '@agent-platform/types/orchestration-run.types';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
 

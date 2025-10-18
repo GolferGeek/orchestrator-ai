@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PlansRepository, PlanRecord } from '../repositories/plans.repository';
 import { PlanVersionsService } from './plan-versions.service';
+import type { PlanVersion } from './plan-versions.service';
 import type { JsonObject, PlanVersionData } from '@orchestrator-ai/transport-types';
 import {
   IActionHandler,
@@ -450,6 +451,9 @@ export class PlansService implements IActionHandler {
       version.planId,
       context.userId,
     );
+    if (!planData) {
+      throw new NotFoundException(`Plan not found: ${version.planId}`);
+    }
     const remainingVersions = await this.versionsService.getVersionHistory(
       version.planId,
       context.userId,
@@ -538,6 +542,9 @@ export class PlansService implements IActionHandler {
       copiedVersion.planId,
       context.userId,
     );
+    if (!planData) {
+      throw new NotFoundException(`Plan not found: ${copiedVersion.planId}`);
+    }
 
     // Return in strict A2A protocol format for PlanCopyVersionResponse
     return {
@@ -602,7 +609,7 @@ export class PlansService implements IActionHandler {
         userId,
       );
       if (currentVersion) {
-        plan.currentVersion = currentVersion;
+        plan.currentVersion = this.mapPlanVersion(currentVersion);
       }
     } catch (error) {
       // Continue without current version
@@ -645,6 +652,30 @@ export class PlansService implements IActionHandler {
       currentVersionId: data.current_version_id,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
+      currentVersion: null,
+    };
+  }
+
+  private mapPlanVersion(version: PlanVersion | null): PlanVersionData | null {
+    if (!version) {
+      return null;
+    }
+
+    const format: 'markdown' | 'json' =
+      version.format === 'json' ? 'json' : 'markdown';
+
+    return {
+      id: version.id,
+      planId: version.planId,
+      versionNumber: version.versionNumber,
+      content: version.content,
+      format,
+      createdByType: version.createdByType,
+      createdById: version.createdById ?? null,
+      taskId: version.taskId,
+      metadata: version.metadata,
+      isCurrentVersion: version.isCurrentVersion,
+      createdAt: version.createdAt.toISOString(),
     };
   }
 }

@@ -22,10 +22,8 @@ import { TaskResponseDto } from '../dto/task-response.dto';
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '@agent-platform/interfaces/orchestration-step-record.interface';
 import { OrchestrationStepUpdateInput } from '@agent-platform/interfaces/orchestration-step-record.interface';
-import {
-  OrchestrationCheckpointDecision,
-  RequestOrchestrationCheckpointOptions,
-} from '@agent-platform/services/orchestration-checkpoint.service';
+import { RequestOrchestrationCheckpointOptions } from '@agent-platform/services/orchestration-checkpoint.service';
+import type { OrchestrationCheckpointDecision } from '@agent-platform/types/orchestration-run.types';
 import { OrchestrationDefinitionService } from '@agent-platform/services/orchestration-definition.service';
 import { OrchestrationRunFactoryService } from '@agent-platform/services/orchestration-run-factory.service';
 import {

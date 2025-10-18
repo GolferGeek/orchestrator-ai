@@ -30,6 +30,7 @@ import { apiService } from '../services/apiService';
 import { sovereignPolicyService } from '../services/sovereignPolicyService';
 import { useSovereignPolicyStore } from './sovereignPolicyStore';
 import evaluationService from '../services/evaluationService';
+import type { JsonObject } from '@/types';
 
 const getStatusText = (error: unknown): string | undefined => {
   if (typeof error === 'object' && error && 'response' in error) {
@@ -48,6 +49,28 @@ const resolveErrorMessage = (error: unknown, fallback: string): string => {
   const statusText = getStatusText(error);
   return statusText ?? fallback;
 };
+
+const isJsonObject = (value: unknown): value is JsonObject => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const ensureJsonObject = (value: unknown): JsonObject => (
+  isJsonObject(value) ? value : {} as JsonObject
+);
+
+const isStandardizedError = (value: unknown): value is StandardizedLLMError => (
+  isJsonObject(value)
+  && value.error === true
+  && typeof value.userMessage === 'string'
+  && isJsonObject(value.technical)
+);
+
+const isUnifiedResponse = (value: unknown): value is UnifiedLLMResponse => (
+  isJsonObject(value)
+  && typeof value.content === 'string'
+  && isJsonObject(value.metadata)
+  && typeof value.metadata.provider === 'string'
+);
 
 export const useLLMPreferencesStore = defineStore('llmPreferences', {
   state: (): LLMPreferencesState => ({

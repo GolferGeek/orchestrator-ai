@@ -140,13 +140,13 @@ export class OrchestrationOutputMapper {
     }
 
     let remainder = segment;
-    let current = target;
+    let current: JsonValue | undefined = target;
 
     const fieldMatch = remainder.match(/^([^\[\]]+)/);
     if (fieldMatch?.[1]) {
       const fieldName = fieldMatch[1];
       if (current && typeof current === 'object' && !Array.isArray(current)) {
-        current = (current as JsonObject)[fieldName];
+        current = (current as JsonObject)[fieldName] ?? null;
       } else {
         current = null;
       }
@@ -160,7 +160,7 @@ export class OrchestrationOutputMapper {
       if (!Array.isArray(current)) {
         return null;
       }
-      current = current[index];
+      current = current[index] ?? null;
     }
 
     return current ?? null;

@@ -58,6 +58,13 @@ interface CheckpointStatePatch {
   stepIndex?: number | null;
 }
 
+type CheckpointStepMetadata = {
+  recordId?: string | null;
+  definitionId?: string | null;
+  label?: string | null;
+  index?: number | null;
+};
+
 @Injectable()
 export class OrchestrationCheckpointService {
   private readonly logger = new Logger(OrchestrationCheckpointService.name);
@@ -335,8 +342,12 @@ export class OrchestrationCheckpointService {
     requestedAt: string,
   ): OrchestrationCheckpointMetadata {
     const base = this.cloneCheckpointMetadata(options.metadata);
-    const step = {
-      ...(base.step ?? {}),
+    const baseStep: CheckpointStepMetadata =
+      base.step && typeof base.step === 'object'
+        ? ({ ...base.step } as CheckpointStepMetadata)
+        : {};
+    const step: CheckpointStepMetadata = {
+      ...(baseStep ?? {}),
       recordId: options.stepRecordId ?? null,
       definitionId: options.stepId ?? null,
       label: options.stepLabel ?? null,
@@ -347,7 +358,7 @@ export class OrchestrationCheckpointService {
       ...base,
       runId: run.id,
       checkpointId: options.checkpointId,
-      step,
+      step: step as OrchestrationCheckpointMetadata['step'],
       question: options.question,
       options: this.normalizeCheckpointOptions(options.options ?? base.options ?? []),
       status: 'pending',
@@ -427,14 +438,14 @@ export class OrchestrationCheckpointService {
       result.modifications = patch.modifications ?? null;
     }
     if (patch.options !== undefined) {
-      result.options = this.normalizeCheckpointOptions(
-        patch.options ?? existing?.options ?? [],
-      );
+      result.options = this.normalizeCheckpointOptions(patch.options);
     }
 
-    const step = {
-      ...(existing?.step ?? {}),
-    } as OrchestrationCheckpointMetadata['step'];
+    const existingStep: CheckpointStepMetadata =
+      existing?.step && typeof existing.step === 'object'
+        ? ({ ...existing.step } as CheckpointStepMetadata)
+        : {};
+    const step: CheckpointStepMetadata = { ...existingStep };
 
     if (patch.stepRecordId !== undefined) {
       step.recordId = patch.stepRecordId;
@@ -449,8 +460,8 @@ export class OrchestrationCheckpointService {
       step.index = patch.stepIndex;
     }
 
-    if (Object.keys(step ?? {}).length > 0) {
-      result.step = step;
+    if (Object.keys(step).length > 0) {
+      result.step = step as OrchestrationCheckpointMetadata['step'];
     }
 
     return result;

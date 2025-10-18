@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../../../llms/llm.service';
+import { isLLMResponse } from '@/llms/services/llm-interfaces';
 import {
   IMCPServer,
   MCPServerInfo,
@@ -800,35 +801,34 @@ Return ONLY the SQL query, no explanation or formatting.`;
         llmParams,
       );
 
+      const responseIsLLM = isLLMResponse(response);
+
       console.log(
         '[MCP-SQL-DEBUG] LLM response received - type:',
         typeof response,
       );
-      console.log('[MCP-SQL-DEBUG] Response has content:', !!response?.content);
+      console.log(
+        '[MCP-SQL-DEBUG] Response has content:',
+        responseIsLLM ? !!response.content : false,
+      );
       console.log(
         '[MCP-SQL-DEBUG] Response content type:',
-        typeof response?.content,
+        responseIsLLM ? typeof response.content : typeof response,
       );
 
       // Extract the actual response text from the LLM service response
       // The response is now an LLMResponse object with content and metadata
-      let responseText;
+      let responseText: string;
       if (typeof response === 'string') {
         responseText = response;
         console.log('[MCP-SQL-DEBUG] Using string response directly');
-      } else if (response && typeof response === 'object' && response.content) {
+      } else if (responseIsLLM) {
         responseText = response.content;
         console.log(
           '[MCP-SQL-DEBUG] Extracted content from LLM response object',
         );
-      } else if (response && typeof response === 'object') {
-        // Fallback to other possible properties
-        responseText = response.response || response.text || String(response);
-        console.log(
-          '[MCP-SQL-DEBUG] Using fallback extraction from response object',
-        );
       } else {
-        responseText = String(response || '');
+        responseText = String(response ?? '');
         console.log('[MCP-SQL-DEBUG] Using fallback string conversion');
       }
 
@@ -1071,10 +1071,13 @@ Format your response as a structured JSON object with these sections.`;
 
       // Extract the actual response text from the LLM service response
       // The response is now an LLMResponse object with content and metadata
+      const analysisIsLLM = isLLMResponse(response);
       const responseText =
         typeof response === 'string'
           ? response
-          : response?.content || response?.response || JSON.stringify(response);
+          : analysisIsLLM
+            ? response.content
+            : JSON.stringify(response ?? '');
 
       // Ensure we have a string to work with
       if (typeof responseText !== 'string') {

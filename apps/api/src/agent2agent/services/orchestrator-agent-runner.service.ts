@@ -12,10 +12,8 @@ import { OrchestrationDefinitionService } from '@agent-platform/services/orchest
 import { OrchestrationStateService } from '@agent-platform/services/orchestration-state.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
-import {
-  OrchestrationCheckpointService,
-  OrchestrationCheckpointDecision,
-} from '@agent-platform/services/orchestration-checkpoint.service';
+import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
+import type { OrchestrationCheckpointDecision } from '@agent-platform/types/orchestration-run.types';
 import { OrchestrationResolvedDefinition } from '@agent-platform/types/orchestration-definition.types';
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
 import { OrchestrationEventsService } from '@agent-platform/services/orchestration-events.service';

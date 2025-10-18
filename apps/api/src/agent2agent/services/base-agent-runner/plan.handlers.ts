@@ -57,6 +57,36 @@ const EMPTY_PLAN_METADATA: PlanResponseMetadata = {
   usage: EMPTY_USAGE,
 };
 
+interface DeleteVersionActionResult {
+  deletedVersionId: string;
+  plan: Plan;
+  remainingVersions: PlanVersion[];
+}
+
+interface DeletePlanActionResult {
+  deletedPlanId: string;
+  deletedVersionCount: number;
+}
+
+interface MergeVersionsActionResult {
+  plan: Plan;
+  mergedVersion: PlanVersion;
+  sourceVersions: PlanVersion[];
+  llmMetadata?: Record<string, unknown> | null;
+}
+
+interface CopyVersionActionResult {
+  sourcePlan: Plan;
+  sourceVersion: PlanVersion;
+  targetPlan: Plan;
+  copiedVersion: PlanVersion;
+}
+
+interface ListVersionsActionResult {
+  plan: Plan;
+  versions: PlanVersion[];
+}
+
 export async function handlePlanCreate(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
@@ -579,11 +609,9 @@ export async function handlePlanDeleteVersion(
       request,
     );
 
-    const deleteResult = await services.plansService.executeAction(
-      'delete_version',
-      payload,
-      executionContext,
-    );
+    const deleteResult = await services.plansService.executeAction<
+      DeleteVersionActionResult
+    >('delete_version', payload, executionContext);
 
     if (!deleteResult.success || !deleteResult.data) {
       return TaskResponseDto.failure(
@@ -650,7 +678,9 @@ export async function handlePlanMergeVersions(
     );
 
     const planFormat = resolvePlanFormat(definition);
-    const mergeResult = await services.plansService.executeAction(
+    const mergeResult = await services.plansService.executeAction<
+      MergeVersionsActionResult
+    >(
       'merge_versions',
       {
         versionIds: payload.versionIds,
@@ -725,11 +755,9 @@ export async function handlePlanCopyVersion(
       request,
     );
 
-    const copyResult = await services.plansService.executeAction(
-      'copy_version',
-      payload,
-      executionContext,
-    );
+    const copyResult = await services.plansService.executeAction<
+      CopyVersionActionResult
+    >('copy_version', payload, executionContext);
 
     if (!copyResult.success || !copyResult.data) {
       return TaskResponseDto.failure(
@@ -773,11 +801,9 @@ export async function handlePlanDelete(
       request,
     );
 
-    const deleteResult = await services.plansService.executeAction(
-      'delete',
-      {},
-      executionContext,
-    );
+    const deleteResult = await services.plansService.executeAction<
+      DeletePlanActionResult
+    >('delete', {}, executionContext);
 
     if (!deleteResult.success || !deleteResult.data) {
       return TaskResponseDto.failure(

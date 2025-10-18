@@ -137,12 +137,11 @@ export class OrchestrationRunsRepository {
     return data;
   }
 
-  private filterUndefined<T extends Record<string, unknown>>(
-    value: T,
-  ): Partial<T> {
-    return Object.fromEntries(
-      Object.entries(value).filter(([, entry]) => entry !== undefined),
-    ) as Partial<T>;
+  private filterUndefined<T extends object>(value: T): Partial<T> {
+    const pairs = Object.entries(value as Record<string, unknown>).filter(
+      ([, entry]) => entry !== undefined,
+    );
+    return Object.fromEntries(pairs) as Partial<T>;
   }
 
   async getById(id: string): Promise<OrchestrationRunRecord | null> {
