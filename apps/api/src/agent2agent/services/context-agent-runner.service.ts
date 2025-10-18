@@ -721,7 +721,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     _deliverableStructure: unknown,
   ): string {
     // Try to parse as JSON
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(rawContent);
     } catch {
@@ -734,6 +734,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       return rawContent;
     }
 
+    const parsedObj = parsed as Record<string, unknown>;
+
     // Look for common wrapper keys that contain the actual deliverable
     const wrapperKeys = [
       'blog_post',
@@ -744,8 +746,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     ];
 
     for (const key of wrapperKeys) {
-      if (key in parsed && parsed[key] && typeof parsed[key] === 'object') {
-        const deliverableData = parsed[key];
+      if (key in parsedObj && parsedObj[key] && typeof parsedObj[key] === 'object') {
+        const deliverableData = parsedObj[key] as Record<string, unknown>;
 
         // If the deliverable has a 'content' field, extract just that (the markdown)
         if (
@@ -761,8 +763,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     }
 
     // If no wrapper found, check if this object itself has a content field
-    if ('content' in parsed && typeof parsed.content === 'string') {
-      return parsed.content;
+    if ('content' in parsedObj && typeof parsedObj.content === 'string') {
+      return parsedObj.content;
     }
 
     // Fallback: return the original content
@@ -853,10 +855,12 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
    */
   private extractDeliverableTitle(rawContent: string): string | null {
     try {
-      const parsed = JSON.parse(rawContent);
+      const parsed = JSON.parse(rawContent) as unknown;
       if (!parsed || typeof parsed !== 'object') {
         return null;
       }
+
+      const parsedObj = parsed as Record<string, unknown>;
 
       // Look for common wrapper keys
       const wrapperKeys = [
@@ -868,8 +872,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       ];
 
       for (const key of wrapperKeys) {
-        if (key in parsed && parsed[key] && typeof parsed[key] === 'object') {
-          const deliverableData = parsed[key];
+        if (key in parsedObj && parsedObj[key] && typeof parsedObj[key] === 'object') {
+          const deliverableData = parsedObj[key] as Record<string, unknown>;
           if (
             'title' in deliverableData &&
             typeof deliverableData.title === 'string' &&
@@ -882,11 +886,11 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       // Check top-level title
       if (
-        'title' in parsed &&
-        typeof parsed.title === 'string' &&
-        parsed.title.trim().length > 0
+        'title' in parsedObj &&
+        typeof parsedObj.title === 'string' &&
+        parsedObj.title.trim().length > 0
       ) {
-        return parsed.title.trim();
+        return parsedObj.title.trim();
       }
 
       return null;

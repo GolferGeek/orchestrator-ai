@@ -52,17 +52,18 @@ export async function fetchConversationHistory(
     }
 
     const normalizedHistory = metadataHistory
-      .map((item: any): ConversationMessage | null => {
+      .map((item: unknown): ConversationMessage | null => {
         if (!item || typeof item !== 'object') {
           return null;
         }
 
-        const role = typeof item.role === 'string' ? item.role : null;
+        const itemRec = item as Record<string, unknown>;
+        const role = typeof itemRec.role === 'string' ? itemRec.role : null;
         const content =
-          typeof item.content === 'string'
-            ? item.content
-            : typeof item.content !== 'undefined'
-              ? JSON.stringify(item.content)
+          typeof itemRec.content === 'string'
+            ? itemRec.content
+            : typeof itemRec.content !== 'undefined'
+              ? JSON.stringify(itemRec.content)
               : null;
         if (!role || !content) {
           return null;
@@ -72,12 +73,12 @@ export async function fetchConversationHistory(
           role,
           content,
           timestamp:
-            typeof item.timestamp === 'string'
-              ? item.timestamp
+            typeof itemRec.timestamp === 'string'
+              ? itemRec.timestamp
               : new Date().toISOString(),
           metadata:
-            item.metadata && typeof item.metadata === 'object'
-              ? item.metadata
+            itemRec.metadata && typeof itemRec.metadata === 'object'
+              ? (itemRec.metadata as Record<string, unknown>)
               : undefined,
         };
       })
@@ -104,12 +105,14 @@ export async function fetchExistingPlan(
     return null;
   }
 
+  const payload = request.payload as Record<string, unknown> | undefined;
+  const metadata = request.metadata as Record<string, unknown> | undefined;
   const planIdCandidates: Array<unknown> = [
     request.planId,
-    (request.payload as any)?.planId,
-    (request.payload as any)?.plan?.id,
-    (request.metadata as any)?.planId,
-    (request.metadata as any)?.plan_id,
+    payload?.planId,
+    (payload?.plan as Record<string, unknown> | undefined)?.id,
+    metadata?.planId,
+    metadata?.plan_id,
   ];
 
   const planId = planIdCandidates.find(
@@ -151,11 +154,13 @@ export async function fetchExistingDeliverable(
     return null;
   }
 
+  const payload = request.payload as Record<string, unknown> | undefined;
+  const metadata = request.metadata as Record<string, unknown> | undefined;
   const deliverableIdCandidates: Array<unknown> = [
-    (request.payload as any)?.deliverableId,
-    (request.payload as any)?.deliverable?.id,
-    (request.metadata as any)?.deliverableId,
-    (request.metadata as any)?.deliverable_id,
+    payload?.deliverableId,
+    (payload?.deliverable as Record<string, unknown> | undefined)?.id,
+    metadata?.deliverableId,
+    metadata?.deliverable_id,
   ];
 
   const deliverableId = deliverableIdCandidates.find(
@@ -237,15 +242,20 @@ export async function optimizeContext(
     return [];
   }
 
+  const config = definition.config as Record<string, unknown> | undefined;
+  const plan = config?.plan as Record<string, unknown> | undefined;
+  const planning = config?.planning as Record<string, unknown> | undefined;
+  const configContext = config?.context as Record<string, unknown> | undefined;
+  const defContext = definition.context as Record<string, unknown> | undefined;
   const tokenBudgetCandidates: Array<unknown> = [
-    (definition.config as any)?.plan?.tokenBudget,
-    (definition.config as any)?.plan?.token_budget,
-    (definition.config as any)?.planning?.tokenBudget,
-    (definition.config as any)?.planning?.token_budget,
-    (definition.config as any)?.context?.tokenBudget,
-    (definition.config as any)?.context?.token_budget,
-    (definition.context as any)?.tokenBudget,
-    (definition.context as any)?.token_budget,
+    plan?.tokenBudget,
+    plan?.token_budget,
+    planning?.tokenBudget,
+    planning?.token_budget,
+    configContext?.tokenBudget,
+    configContext?.token_budget,
+    defContext?.tokenBudget,
+    defContext?.token_budget,
   ];
 
   const resolvedBudget =

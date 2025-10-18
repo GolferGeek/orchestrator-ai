@@ -69,11 +69,12 @@ export async function executeConverse(
 
     // Extract LLM configuration from payload (required from frontend)
     // Frontend sends currentProvider and currentModel in the payload
-    const payloadAny = payload as any; // Temporary until transport types fully integrated
+    const payloadRec = payload as Record<string, unknown>;
+    const llmSelection = payloadRec.llmSelection as Record<string, unknown> | undefined;
     const providerName =
-      payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
+      payloadRec.currentProvider ?? llmSelection?.providerName;
     const modelName =
-      payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
+      payloadRec.currentModel ?? llmSelection?.modelName;
 
     // Validate LLM configuration (no fallbacks - frontend must provide)
     if (!providerName || !modelName) {
@@ -86,8 +87,8 @@ export async function executeConverse(
     const llmConfig = {
       providerName,
       modelName,
-      temperature: payloadAny.llmSelection?.temperature ?? payload.temperature,
-      maxTokens: payloadAny.llmSelection?.maxTokens ?? payload.maxTokens,
+      temperature: llmSelection?.temperature ?? payload.temperature,
+      maxTokens: llmSelection?.maxTokens ?? payload.maxTokens,
       conversationId: conversation.id,
       sessionId: request.sessionId,
       userId,

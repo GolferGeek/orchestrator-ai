@@ -1,4 +1,5 @@
 import Ajv from 'ajv';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { LLMService } from '@llm/llm.service';
 import type { LLMResponse } from '@llm/services/llm-interfaces';
@@ -89,6 +90,7 @@ export async function handlePlanCreate(
 ): Promise<TaskResponseDto> {
   try {
     const payload = (request.payload ?? {}) as Partial<PlanCreatePayload>;
+    const payloadRec = payload as Record<string, unknown>;
     const { userId, conversationId, taskId, executionContext } =
       buildPlanActionContext(definition, request);
 
@@ -169,8 +171,8 @@ export async function handlePlanCreate(
         {
           providerName,
           modelName,
-          temperature: payloadAny.temperature,
-          maxTokens: payloadAny.maxTokens,
+          temperature: payloadRec.temperature,
+          maxTokens: payloadRec.maxTokens,
           conversationId,
           sessionId: request.sessionId,
           userId,
@@ -1167,13 +1169,13 @@ function serializePlan(
 }
 
 function serializePlanVersion(
-  version: PlanVersion | Record<string, any> | null | undefined,
+  version: PlanVersion | Record<string, unknown> | unknown | null | undefined,
 ): PlanCreateResponseContent['version'] | null {
   if (!version) {
     return null;
   }
 
-  const record = version as Record<string, any>;
+  const record = version as Record<string, unknown>;
   const rawFormat =
     typeof record.format === 'string' ? record.format : 'markdown';
   const format: 'json' | 'markdown' =
@@ -1184,16 +1186,16 @@ function serializePlanVersion(
         : 'markdown';
 
   return {
-    id: record.id,
-    planId: record.planId ?? record.plan_id,
+    id: record.id as string,
+    planId: (record.planId ?? record.plan_id) as string,
     versionNumber: numberOrZero(
       record.versionNumber ?? record.version_number ?? 1,
       1,
     ),
-    content: record.content ?? '',
+    content: (record.content ?? '') as string,
     format,
-    createdByType: record.createdByType ?? record.created_by_type ?? 'agent',
-    createdById: record.createdById ?? record.created_by_id ?? null,
+    createdByType: (record.createdByType ?? record.created_by_type ?? 'agent') as 'agent' | 'user',
+    createdById: (record.createdById ?? record.created_by_id ?? null) as string | null,
     metadata: record.metadata ?? undefined,
     isCurrentVersion: Boolean(
       record.isCurrentVersion ?? record.is_current_version,
