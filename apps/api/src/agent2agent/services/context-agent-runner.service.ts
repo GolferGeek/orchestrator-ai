@@ -165,7 +165,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         userId,
         agentSlug: definition.slug,
         taskId,
-        metadata: (request.metadata ?? {}) as any,
+        metadata: (request.metadata ?? {}) as Record<string, unknown>,
       };
 
       const requestedPlanVersionId =

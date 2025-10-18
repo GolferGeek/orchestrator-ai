@@ -774,7 +774,7 @@ export class OrchestrationStepExecutorService {
     return clone;
   }
 
-  private normalizeBoolean(value: any): boolean {
+  private normalizeBoolean(value: unknown): boolean {
     if (typeof value === 'boolean') {
       return value;
     }
@@ -796,7 +796,7 @@ export class OrchestrationStepExecutorService {
   }
 
   private checkUnsupportedMode(
-    definition: any,
+    definition: Record<string, unknown>,
     mode: AgentTaskMode,
   ): TaskResponseDto | null {
     const definitionAny = definition as unknown as {
@@ -1442,7 +1442,7 @@ export class OrchestrationStepExecutorService {
 
     await new Promise<void>((resolve) => {
       let resolved = false;
-      const handlers: Array<(payload: any) => void> = [];
+      const handlers: Array<(payload: unknown) => void> = [];
 
       const cleanup = () => {
         handlers.forEach((handler, index) => {
@@ -1590,7 +1590,7 @@ export class OrchestrationStepExecutorService {
     };
   }
 
-  private interpolateValues(value: any, run: OrchestrationRunRecord): any {
+  private interpolateValues(value: unknown, run: OrchestrationRunRecord): unknown {
     if (typeof value === 'string') {
       return this.interpolateString(value, run);
     }
@@ -1648,7 +1648,7 @@ export class OrchestrationStepExecutorService {
       return undefined;
     }
 
-    let current: any;
+    let current: unknown;
     const [first, ...rest] = tokens;
 
     switch (first) {
@@ -1688,7 +1688,7 @@ export class OrchestrationStepExecutorService {
       .filter((token) => token.length > 0);
   }
 
-  private accessSegment(target: any, segment: string): any {
+  private accessSegment(target: unknown, segment: string): unknown {
     if (segment.length === 0) {
       return target;
     }
@@ -1746,7 +1746,7 @@ export class OrchestrationStepExecutorService {
       (baseMetadata.runtime as Record<string, any> | undefined) ?? {};
 
     const snapshot: {
-      content: any;
+      content: unknown;
       metadata: Record<string, any>;
       deliverables?: Array<{
         id: string | null;

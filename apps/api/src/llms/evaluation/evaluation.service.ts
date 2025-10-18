@@ -221,7 +221,7 @@ export class EvaluationService {
     averageAccuracyRating: number;
     evaluationDistribution: Record<string, number>;
     modelPerformance: Array<{
-      model: any;
+      model: string;
       avgRating: number;
       evaluationCount: number;
     }>;
@@ -354,7 +354,7 @@ export class EvaluationService {
     filters: ModelComparisonFilters = {},
   ): Promise<{
     comparison: Array<{
-      model: any;
+      model: string;
       metrics: {
         avgOverallRating: number;
         avgSpeedRating: number;
@@ -977,7 +977,7 @@ export class EvaluationService {
       task.response_metadata?.agent_name ??
       task.response_metadata?.agentName ??
       task.metadata?.agent_name ??
-      (task.metadata as any)?.agentName ??
+      (task.metadata as Record<string, unknown> | undefined)?.agentName ??
       task.llm_metadata?.agent_name ??
       task.llm_metadata?.agentName ??
       null;
@@ -1003,7 +1003,7 @@ export class EvaluationService {
       : 0;
   }
 
-  private convertFeedbackToCSV(feedback: any[]): string {
+  private convertFeedbackToCSV(feedback: unknown[]): string {
     if (feedback.length === 0) return '';
 
     const headers = Object.keys(feedback[0] as Record<string, unknown>).join(
@@ -1804,7 +1804,7 @@ export class EvaluationService {
         ? workflowTasks.reduce((sum, task) => {
             const steps = task.response_metadata.workflow_steps_completed || [];
             const completedCount = steps.filter(
-              (step: any) => step.status === 'completed',
+              (step: unknown) => (step as Record<string, unknown>).status === 'completed',
             ).length;
             return sum + (completedCount / steps.length) * 100;
           }, 0) / workflowTasks.length
@@ -2494,13 +2494,13 @@ export class EvaluationService {
     return value as Record<string, unknown>;
   }
 
-  private calculateAgentPerformance(tasks: any[]): Array<{
+  private calculateAgentPerformance(tasks: unknown[]): Array<{
     agentName: string;
     averageRating: number;
     evaluationCount: number;
   }> {
     const agentGroups = tasks.reduce(
-      (groups, task) => {
+      (groups, task: any) => {
         let agentName = 'AI Assistant';
         if (task.response_metadata?.agent_name) {
           agentName = task.response_metadata.agent_name;
@@ -2541,7 +2541,7 @@ export class EvaluationService {
     );
   }
 
-  private extractProviderModelInfo(task: any): {
+  private extractProviderModelInfo(task: unknown): {
     providerId?: string;
     providerName?: string;
     modelId?: string;
@@ -2655,7 +2655,7 @@ export class EvaluationService {
       .trim();
   }
 
-  private extractAgentIdentifiers(task: any): string[] {
+  private extractAgentIdentifiers(task: unknown): string[] {
     const names = new Set<string>();
 
     const candidateValues = [
@@ -2702,7 +2702,7 @@ export class EvaluationService {
     return Array.from(names);
   }
 
-  private recordMatchesAgent(record: any, normalizedTarget: string): boolean {
+  private recordMatchesAgent(record: unknown, normalizedTarget: string): boolean {
     if (!normalizedTarget) {
       return false;
     }
@@ -2729,7 +2729,7 @@ export class EvaluationService {
     }
   }
 
-  private calculateConstraintEffectiveness(tasks: any[]): Array<{
+  private calculateConstraintEffectiveness(tasks: unknown[]): Array<{
     constraintName: string;
     effectivenessScore: number;
     usageCount: number;
@@ -2774,7 +2774,7 @@ export class EvaluationService {
     );
   }
 
-  private calculateWorkflowFailurePoints(tasks: any[]): Array<{
+  private calculateWorkflowFailurePoints(tasks: unknown[]): Array<{
     stepName: string;
     failureRate: number;
     averageDuration: number;
@@ -2788,7 +2788,7 @@ export class EvaluationService {
       const steps = task.response_metadata?.workflow_steps_completed;
       if (!steps) return;
 
-      steps.forEach((step: any) => {
+      steps.forEach((step: unknown) => {
         if (!stepStats.has(step.name as string)) {
           stepStats.set(step.name as string, {
             total: 0,
@@ -2821,7 +2821,7 @@ export class EvaluationService {
     }));
   }
 
-  private calculateWorkflowStepPerformance(tasks: any[]): Array<{
+  private calculateWorkflowStepPerformance(tasks: unknown[]): Array<{
     stepName: string;
     averageDuration: number;
     successRate: number;
@@ -2842,7 +2842,7 @@ export class EvaluationService {
       const steps = task.response_metadata?.workflow_steps_completed;
       if (!steps) return;
 
-      steps.forEach((step: any) => {
+      steps.forEach((step: unknown) => {
         if (!stepStats.has(step.name as string)) {
           stepStats.set(step.name as string, {
             total: 0,
@@ -2880,7 +2880,7 @@ export class EvaluationService {
     }));
   }
 
-  private identifyWorkflowFailurePatterns(tasks: any[]): Array<{
+  private identifyWorkflowFailurePatterns(tasks: unknown[]): Array<{
     pattern: string;
     occurrences: number;
     impactRating: number;
@@ -2894,12 +2894,12 @@ export class EvaluationService {
       const steps = task.response_metadata?.workflow_steps_completed;
       if (!steps) return;
 
-      const failedSteps = steps.filter((step: any) => step.status === 'failed');
+      const failedSteps = steps.filter((step: unknown) => (step as Record<string, unknown>).status === 'failed');
       if (failedSteps.length === 0) return;
 
       // Create patterns based on failure sequences
       const failureSequence = failedSteps
-        .map((step: any) => step.name)
+        .map((step: unknown) => (step as Record<string, unknown>).name)
         .join(' -> ');
       const userRating = task.evaluation?.user_rating || 3;
       const impactScore = 5 - userRating + 1; // Higher impact for lower ratings
@@ -2923,7 +2923,7 @@ export class EvaluationService {
     }));
   }
 
-  private calculateWorkflowEfficiencyTrends(tasks: any[]): Array<{
+  private calculateWorkflowEfficiencyTrends(tasks: unknown[]): Array<{
     date: string;
     averageSteps: number;
     averageDuration: number;
@@ -2960,13 +2960,13 @@ export class EvaluationService {
       if (!stats) return;
       stats.totalSteps += steps.length;
       stats.totalDuration += steps.reduce(
-        (sum: number, step: any) => sum + (step.duration || 0),
+        (sum: number, step: unknown) => sum + ((step as Record<string, unknown>).duration as number || 0),
         0,
       );
       stats.totalTasks++;
 
       const successfulSteps = steps.filter(
-        (step: any) => step.status === 'completed',
+        (step: unknown) => (step as Record<string, unknown>).status === 'completed',
       ).length;
       if (successfulSteps === steps.length) {
         stats.successfulTasks++;
@@ -2988,7 +2988,7 @@ export class EvaluationService {
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  private calculateConstraintUsageStats(tasks: any[]): Array<{
+  private calculateConstraintUsageStats(tasks: unknown[]): Array<{
     constraintName: string;
     usageCount: number;
     averageEffectiveness: number;
@@ -3056,7 +3056,7 @@ export class EvaluationService {
     );
   }
 
-  private analyzeConstraintCombinations(tasks: any[]): Array<{
+  private analyzeConstraintCombinations(tasks: unknown[]): Array<{
     combination: string[];
     usageCount: number;
     effectivenessScore: number;
@@ -3125,7 +3125,7 @@ export class EvaluationService {
       .sort((a, b) => b.effectivenessScore - a.effectivenessScore);
   }
 
-  private calculateConstraintPerformanceImpact(tasks: any[]): Array<{
+  private calculateConstraintPerformanceImpact(tasks: unknown[]): Array<{
     constraintName: string;
     withConstraint: {
       averageRating: number;
@@ -3240,7 +3240,7 @@ export class EvaluationService {
     return `${anonymizedUsername}@${domain}`;
   }
 
-  private convertToCSV(data: any[]): string {
+  private convertToCSV(data: unknown[]): string {
     if (data.length === 0) return '';
 
     const headers = Object.keys(data[0] as Record<string, unknown>).join(',');

@@ -294,7 +294,7 @@ export class TasksService {
 
     // Convert camelCase to snake_case for database columns
     // Type assertion needed because we're converting between camelCase DTO and snake_case DB
-    const anyUpdateData = updateData as any as {
+    const anyUpdateData = updateData as unknown as {
       responseMetadata?: Record<string, unknown>;
       errorData?: Record<string, unknown>;
       progressMessage?: string;
@@ -344,7 +344,7 @@ export class TasksService {
 
     // Sync with TaskStatusService for live tracking
     await this.taskStatusService.updateTaskStatus(taskId, userId, {
-      status: updates.status as any,
+      status: updates.status as string,
       progress: updates.progress,
       progressMessage: updates.progressMessage,
       result: updates.response
@@ -606,7 +606,7 @@ export class TasksService {
    * Add deliverable ID to task response
    */
   private addDeliverableIdToResponse(
-    response: any,
+    response: unknown,
     deliverableId: string,
   ): string {
     try {
@@ -633,7 +633,7 @@ export class TasksService {
   /**
    * Map database record to Task type
    */
-  private mapToTask(data: any): Task {
+  private mapToTask(data: unknown): Task {
     // Use the case converter to handle snake_case to camelCase conversion
     const converted = snakeToCamel(data) as Record<string, unknown>;
 

@@ -966,13 +966,13 @@ export class DeliverablesService implements IActionHandler {
       // Get current versions for each deliverable
       const deliverables = data || [];
       const deliverableResults = await Promise.all(
-        deliverables.map(async (deliverableData) => {
+        deliverables.map(async (deliverableData: unknown) => {
           const deliverable = this.mapToDeliverable(deliverableData);
 
           // Get current version using the versions service
           try {
             const currentVersion = await this.versionsService.getCurrentVersion(
-              deliverableData.id as string,
+              deliverableData.id,
               userId,
             );
             if (currentVersion) {
