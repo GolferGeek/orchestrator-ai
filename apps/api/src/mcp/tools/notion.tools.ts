@@ -22,7 +22,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Get all Notion tools available
    */
-  async getTools(): Promise<MCPToolDefinition[]> {
+  getTools(): MCPToolDefinition[] {
     return [
       {
         name: 'create-page',

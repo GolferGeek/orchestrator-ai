@@ -52,7 +52,7 @@ export class MCPService {
    * MCP initialize method (replaces get_server_info)
    * Returns server capabilities and information
    */
-  async initialize(): Promise<MCPServerInfo> {
+  initialize(): MCPServerInfo {
     return {
       protocolVersion: '2025-03-26',
       serverInfo: {

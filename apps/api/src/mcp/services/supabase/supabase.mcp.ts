@@ -95,7 +95,7 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * Initialize the MCP server
    */
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (this.initialized) return;
 
     // Mark as initialized - connection will be tested when first used
@@ -106,7 +106,7 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * Get server information (MCP standard method)
    */
-  async getServerInfo(): Promise<MCPServerInfo> {
+  getServerInfo(): MCPServerInfo {
     return {
       protocolVersion: '2025-03-26',
       serverInfo: {
@@ -134,7 +134,7 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * List available tools (MCP standard method)
    */
-  async listTools(): Promise<MCPToolDefinition[]> {
+  listTools(): MCPToolDefinition[] {
     return [
       {
         name: 'get-schema',
@@ -326,9 +326,7 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * Handle get-schema tool
    */
-  private async handleGetSchema(
-    args: SupabaseSchemaRequest,
-  ): Promise<MCPToolResponse> {
+  private handleGetSchema(args: SupabaseSchemaRequest): MCPToolResponse {
     const { tables, domain } = args || {};
 
     try {
@@ -679,10 +677,7 @@ export class SupabaseMCPServer implements IMCPServer {
     return filtered.join('\n');
   }
 
-  private async buildSchemaContext(
-    tables: string[],
-    domain_hint?: string,
-  ): Promise<string> {
+  private buildSchemaContext(tables: string[], domain_hint?: string): string {
     console.log(
       '[MCP-SQL-DEBUG] buildSchemaContext - tables:',
       tables,

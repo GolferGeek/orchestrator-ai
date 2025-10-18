@@ -180,7 +180,7 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
 /**
  * Infer relationships from column naming conventions (fallback)
  */
-async function inferRelationshipsFromNaming(): Promise<SchemaRelationship[]> {
+function inferRelationshipsFromNaming(): SchemaRelationship[] {
   const relationships: SchemaRelationship[] = [];
 
   // This will be called after tables are processed, so we need to implement this later

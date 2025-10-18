@@ -239,7 +239,7 @@ export class MCPController {
    * Get server configuration (debug endpoint)
    */
   @Post('debug/config')
-  async getServerConfig(): Promise<any> {
+  getServerConfig(): any {
     try {
       return this.mcpService.getServerConfig();
     } catch (error) {

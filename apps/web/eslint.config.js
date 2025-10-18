@@ -18,7 +18,7 @@ const browserGlobals = {
 
 const sharedTypeScriptRules = {
   '@typescript-eslint/no-unused-vars': [
-    'off',
+    'warn',
     {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',

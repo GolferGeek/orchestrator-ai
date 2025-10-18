@@ -22,7 +22,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Get all Supabase tools available
    */
-  async getTools(): Promise<MCPToolDefinition[]> {
+  getTools(): MCPToolDefinition[] {
     return [
       {
         name: 'get-schema',
@@ -457,7 +457,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Generate SQL from natural language
    */
-  private async generateSql(args: any): Promise<MCPToolResponse> {
+  private generateSql(args: any): MCPToolResponse {
     const { description, table_context = [], query_type = 'select' } = args;
 
     try {

@@ -64,7 +64,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Clean up resources on module shutdown
    */
-  async onModuleDestroy(): Promise<void> {
+  onModuleDestroy(): void {
     // MCP server cleanup if needed
     this.isReady = false;
     this.logger.log('🔌 Supabase MCP Service shut down');
@@ -73,7 +73,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Health check for the MCP server
    */
-  async healthCheck(): Promise<boolean> {
+  healthCheck(): boolean {
     return this.isReady;
   }
 
@@ -291,7 +291,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Health check for this tool handler (for MCPService compatibility)
    */
-  async ping(): Promise<boolean> {
+  ping(): boolean {
     return this.isReady;
   }
 

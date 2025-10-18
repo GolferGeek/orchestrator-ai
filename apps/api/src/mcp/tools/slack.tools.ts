@@ -22,7 +22,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get all Slack tools available
    */
-  async getTools(): Promise<MCPToolDefinition[]> {
+  getTools(): MCPToolDefinition[] {
     return [
       {
         name: 'send-message',
