@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { Agent2AgentModule } from '../agent2agent.module';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
+import { TaskResponseDto } from '../dto/task-response.dto';
 
 /**
  * Phase 6: Backend Integration Testing
@@ -60,13 +61,14 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(converseRequest)
         .expect(201);
 
-      expect(converse1.body).toHaveProperty('mode', AgentTaskMode.CONVERSE);
-      expect(converse1.body).toHaveProperty('content');
-      expect(converse1.body.content).toHaveProperty('message');
-      expect(converse1.body).toHaveProperty('metadata');
-      expect(converse1.body.metadata).toHaveProperty('provider');
-      expect(converse1.body.metadata).toHaveProperty('model');
-      expect(converse1.body.metadata).toHaveProperty('usage');
+      const response1 = converse1.body as TaskResponseDto;
+      expect(response1).toHaveProperty('mode', AgentTaskMode.CONVERSE);
+      expect(response1).toHaveProperty('payload');
+      expect(response1.payload.content).toHaveProperty('message');
+      expect(response1.payload).toHaveProperty('metadata');
+      expect(response1.payload.metadata).toHaveProperty('provider');
+      expect(response1.payload.metadata).toHaveProperty('model');
+      expect(response1.payload.metadata).toHaveProperty('usage');
 
       // 2. Continue conversation
       const converse2Request: TaskRequestDto = {
@@ -83,8 +85,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(converse2Request)
         .expect(201);
 
-      expect(converse2.body).toHaveProperty('mode', AgentTaskMode.CONVERSE);
-      expect(converse2.body.content).toHaveProperty('message');
+      const response2 = converse2.body as TaskResponseDto;
+      expect(response2).toHaveProperty('mode', AgentTaskMode.CONVERSE);
+      expect(response2.payload.content).toHaveProperty('message');
 
       // 3. Create plan
       const planCreateRequest: TaskRequestDto = {
@@ -103,12 +106,13 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(planCreateRequest)
         .expect(201);
 
-      expect(planCreate.body).toHaveProperty('mode', AgentTaskMode.PLAN);
-      expect(planCreate.body.content).toHaveProperty('plan');
-      expect(planCreate.body.content).toHaveProperty('version', 1);
-      expect(planCreate.body.content).toHaveProperty('isNew', true);
+      const planCreateResponse = planCreate.body as TaskResponseDto;
+      expect(planCreateResponse).toHaveProperty('mode', AgentTaskMode.PLAN);
+      expect(planCreateResponse.payload.content).toHaveProperty('plan');
+      expect(planCreateResponse.payload.content).toHaveProperty('version', 1);
+      expect(planCreateResponse.payload.content).toHaveProperty('isNew', true);
 
-      const planId: string = planCreate.body.content.plan.id as string;
+      const planId: string = (planCreateResponse.payload.content as any).plan.id as string;
 
       // 4. Read plan
       const planReadRequest: TaskRequestDto = {
@@ -124,9 +128,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(planReadRequest)
         .expect(201);
 
-      expect(planRead.body).toHaveProperty('mode', AgentTaskMode.PLAN);
-      expect(planRead.body.content).toHaveProperty('plan');
-      expect(planRead.body.content.plan.id).toBe(planId);
+      const planReadResponse = planRead.body as TaskResponseDto;
+      expect(planReadResponse).toHaveProperty('mode', AgentTaskMode.PLAN);
+      expect(planReadResponse.payload.content).toHaveProperty('plan');
+      expect((planReadResponse.payload.content as any).plan.id).toBe(planId);
 
       // 5. Edit plan
       const planEditRequest: TaskRequestDto = {
@@ -149,9 +154,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(planEditRequest)
         .expect(201);
 
-      expect(planEdit.body).toHaveProperty('mode', AgentTaskMode.PLAN);
-      expect(planEdit.body.content).toHaveProperty('version', 2);
-      expect(planEdit.body.content).toHaveProperty('isNew', false);
+      const planEditResponse = planEdit.body as TaskResponseDto;
+      expect(planEditResponse).toHaveProperty('mode', AgentTaskMode.PLAN);
+      expect(planEditResponse.payload.content).toHaveProperty('version', 2);
+      expect(planEditResponse.payload.content).toHaveProperty('isNew', false);
 
       // 6. Build deliverable
       const buildCreateRequest: TaskRequestDto = {
@@ -171,10 +177,11 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(buildCreateRequest)
         .expect(201);
 
-      expect(buildCreate.body).toHaveProperty('mode', AgentTaskMode.BUILD);
-      expect(buildCreate.body.content).toHaveProperty('deliverable');
-      expect(buildCreate.body.content).toHaveProperty('version', 1);
-      expect(buildCreate.body.content).toHaveProperty('isNew', true);
+      const buildCreateResponse = buildCreate.body as TaskResponseDto;
+      expect(buildCreateResponse).toHaveProperty('mode', AgentTaskMode.BUILD);
+      expect(buildCreateResponse.payload.content).toHaveProperty('deliverable');
+      expect(buildCreateResponse.payload.content).toHaveProperty('version', 1);
+      expect(buildCreateResponse.payload.content).toHaveProperty('isNew', true);
 
       // 7. Read deliverable
       const buildReadRequest: TaskRequestDto = {
@@ -190,9 +197,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(buildReadRequest)
         .expect(201);
 
-      expect(buildRead.body).toHaveProperty('mode', AgentTaskMode.BUILD);
-      expect(buildRead.body.content).toHaveProperty('deliverable');
-      expect(buildRead.body.content.deliverable).toHaveProperty(
+      const buildReadResponse = buildRead.body as TaskResponseDto;
+      expect(buildReadResponse).toHaveProperty('mode', AgentTaskMode.BUILD);
+      expect(buildReadResponse.payload.content).toHaveProperty('deliverable');
+      expect((buildReadResponse.payload.content as any).deliverable).toHaveProperty(
         'title',
         'Kubernetes Best Practices',
       );

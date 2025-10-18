@@ -111,7 +111,7 @@ export async function handleBuildRead(
         );
       }
 
-      const versions = ((listResult.data as any).versions ?? []) as any[];
+      const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as any[];
       const targetVersion = versions.find(
         (version) => version.id === payload.versionId,
       );
@@ -152,13 +152,13 @@ export async function handleBuildRead(
     }
 
     const responseDeliverable =
-      (readResult.data as any).deliverable ?? deliverableRecord;
+      (readResult.data as Record<string, unknown>).deliverable ?? deliverableRecord;
     const responseVersion =
-      (readResult.data as any).version ?? deliverableRecord.currentVersion ?? null;
+      (readResult.data as Record<string, any>).version ?? deliverableRecord.currentVersion ?? null;
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        responseVersion?.content ?? '',
+        (responseVersion as any)?.content ?? '',
       ),
       conversationId,
     });
@@ -221,7 +221,7 @@ export async function handleBuildList(
     }
 
     const deliverable = serializeDeliverable(
-      (listResult.data as any).deliverable,
+      (listResult.data as Record<string, unknown>).deliverable,
       definition,
       userId,
     );
@@ -324,9 +324,10 @@ export async function handleBuildEdit(
       );
     }
 
+    const editResultData = editResult.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        (editResult.data as any).version?.content ?? '',
+        ((editResultData.version as Record<string, unknown> | undefined)?.content as string | undefined) ?? '',
       ),
       source: 'manual-edit',
     });
@@ -334,12 +335,12 @@ export async function handleBuildEdit(
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: {
         deliverable: serializeDeliverable(
-          (editResult.data as any).deliverable,
+          editResultData.deliverable,
           definition,
           userId,
         ),
         version:
-          serializeDeliverableVersion((editResult.data as any).version) ?? undefined,
+          serializeDeliverableVersion(editResultData.version) ?? undefined,
       },
       metadata,
     });
