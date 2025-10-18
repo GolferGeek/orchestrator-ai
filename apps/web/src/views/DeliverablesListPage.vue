@@ -377,12 +377,12 @@ const currentOffset = ref(0);
 const pageSize = 20;
 // Versions modal state
 const showVersionsModal = ref(false);
-const versions = ref<any[]>([]);
+const versions = ref<Record<string, unknown>[]>([]);
 const isLoadingVersions = ref(false);
 const selectedDeliverableId = ref<string | null>(null);
 // Computed properties
 const displayedDeliverables = computed(() => {
-  let filtered = deliverables.recentDeliverables.value.map((d: any) => d);
+  let filtered = deliverables.recentDeliverables.value.map((d: Record<string, unknown>) => d);
   // Apply search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
@@ -401,7 +401,7 @@ const displayedDeliverables = computed(() => {
   // Apply sorting
   const [sortField, sortOrder] = sortBy.value.split('_');
   filtered.sort((a, b) => {
-    let aValue: any, bValue: any;
+    let aValue: unknown, bValue: unknown;
     switch (sortField) {
       case 'created':
         aValue = new Date(a.createdAt).getTime();
@@ -466,7 +466,7 @@ const loadDeliverables = async () => {
     loadedDeliverables.forEach((deliverable) => {
       deliverablesStore.addDeliverable(deliverable);
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to load deliverables:', err);
     deliverablesStore.setError(err.message);
   } finally {
@@ -532,7 +532,7 @@ const handleDeliverableCreated = (deliverableId: string) => {
   showNewDeliverableDialog.value = false;
 };
 
-function getImageAssets(deliverable: any) {
+function getImageAssets(deliverable: Record<string, unknown>) {
   try {
     const current = deliverablesStore.getCurrentVersion(deliverable.id);
     const images = (current?.fileAttachments?.images || []) as any[];
@@ -541,12 +541,12 @@ function getImageAssets(deliverable: any) {
     return [];
   }
 }
-function openImage(img: any) {
+function openImage(img: Record<string, unknown>) {
   try {
     window.open(img.url, '_blank');
   } catch {}
 }
-const viewDeliverable = async (deliverable: any) => {
+const viewDeliverable = async (deliverable: Record<string, unknown>) => {
   // Create a viewing conversation for this deliverable
   try {
     deliverablesStore.setLoading(true);
@@ -590,7 +590,7 @@ const viewDeliverable = async (deliverable: any) => {
     await toast.present();
   }
 };
-const editDeliverable = async (deliverable: any) => {
+const editDeliverable = async (deliverable: Record<string, unknown>) => {
   try {
     // Create editing conversation for this deliverable
     const result = await deliverablesService.createEditingConversation(
@@ -610,7 +610,7 @@ const editDeliverable = async (deliverable: any) => {
         mode: 'edit'
       }
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
 
     // Show error toast
     const toast = await toastController.create({
@@ -622,7 +622,7 @@ const editDeliverable = async (deliverable: any) => {
     await toast.present();
   }
 };
-const viewVersions = async (deliverable: any) => {
+const viewVersions = async (deliverable: Record<string, unknown>) => {
   try {
     isLoadingVersions.value = true;
     selectedDeliverableId.value = deliverable.id;
@@ -643,7 +643,7 @@ const viewVersions = async (deliverable: any) => {
     isLoadingVersions.value = false;
   }
 };
-const confirmDelete = async (deliverable: any) => {
+const confirmDelete = async (deliverable: Record<string, unknown>) => {
   const alert = await alertController.create({
     header: 'Delete Deliverable',
     message: `Are you sure you want to delete "${deliverable.title}"? This action cannot be undone.`,
@@ -658,7 +658,7 @@ const confirmDelete = async (deliverable: any) => {
   });
   await alert.present();
 };
-const deleteDeliverable = async (deliverable: any) => {
+const deleteDeliverable = async (deliverable: Record<string, unknown>) => {
   try {
     await deleteDeliverableAction(
       deliverable.agentName || 'blog_post_writer',
@@ -687,16 +687,16 @@ const deleteDeliverable = async (deliverable: any) => {
   }
 };
 // Helper functions for new data structure
-const getVersionNumber = (deliverable: any): number => {
+const getVersionNumber = (deliverable: Record<string, unknown>): number => {
   return deliverable.currentVersion?.versionNumber || 1;
 };
-const getDeliverableContent = (deliverable: any): string => {
+const getDeliverableContent = (deliverable: Record<string, unknown>): string => {
   return deliverable.currentVersion?.content || '';
 };
-const getCreatedByAgent = (deliverable: any): string | null => {
+const getCreatedByAgent = (deliverable: Record<string, unknown>): string | null => {
   return deliverable.currentVersion?.metadata?.createdByAgent || null;
 };
-const getDeliverableTags = (deliverable: any): string[] => {
+const getDeliverableTags = (deliverable: Record<string, unknown>): string[] => {
   return deliverable.currentVersion?.metadata?.tags || [];
 };
 // Utility methods
@@ -744,7 +744,7 @@ const viewVersion = async (versionId: string) => {
 
   }
 };
-const makeCurrentVersion = async (version: any) => {
+const makeCurrentVersion = async (version: Record<string, unknown>) => {
   try {
     // Show confirmation dialog
     const alert = await alertController.create({
