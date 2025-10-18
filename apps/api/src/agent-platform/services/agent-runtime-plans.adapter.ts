@@ -116,7 +116,7 @@ export class AgentRuntimePlansAdapter {
     conversationId: string,
     userId: string,
     editedContent: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<EditPlanActionResult> {
     const result = await this.plansService.executeAction<EditPlanActionResult>(
       'edit',
@@ -217,7 +217,7 @@ export class AgentRuntimePlansAdapter {
     return typeof value === 'string' ? value : undefined;
   }
 
-  private buildMetadataObject(value: Record<string, any>): JsonObject {
+  private buildMetadataObject(value: Record<string, unknown>): JsonObject {
     const parsed = this.toJsonValue(value);
     if (parsed !== undefined && this.isJsonObject(parsed)) {
       return parsed;

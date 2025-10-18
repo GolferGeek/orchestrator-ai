@@ -263,7 +263,7 @@ export class OrchestrationCacheService {
     return createHash('sha256').update(serialized).digest('hex');
   }
 
-  private stableSerialize(value: any): string {
+  private stableSerialize(value: unknown): string {
     if (value === null || value === undefined) {
       return 'null';
     }
@@ -276,7 +276,8 @@ export class OrchestrationCacheService {
       const entries = Object.keys(value)
         .sort()
         .map(
-          (key) => `${JSON.stringify(key)}:${this.stableSerialize(value[key])}`,
+          (key) =>
+            `${JSON.stringify(key)}:${this.stableSerialize((value as Record<string, unknown>)[key])}`,
         );
       return `{${entries.join(',')}}`;
     }

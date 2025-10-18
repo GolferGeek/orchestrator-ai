@@ -10,9 +10,27 @@ import {
 @Injectable()
 export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name);
-  private discoveredAgents: any[] = [];
-  private agentInstances: any[] = [];
-  private agentRecords: Array<{ agent: any; instance: any }> = [];
+  private discoveredAgents: Array<{
+    name: string;
+    namespace: string;
+    type?: string;
+    path?: string;
+    namespacedPath?: string;
+    metadata?: unknown;
+  }> = [];
+  private agentInstances: unknown[] = [];
+  private agentRecords: Array<{
+    agent: {
+      name: string;
+      namespace?: string;
+      type?: string;
+      path?: string;
+      namespacedPath?: string;
+      serviceClass?: { name: string };
+      metadata?: unknown;
+    };
+    instance: unknown;
+  }> = [];
 
   constructor(
     private readonly llmService: LLMService,
@@ -48,8 +66,8 @@ export class AppService implements OnModuleInit {
         let executionCapabilities = { ...DEFAULT_EXECUTION_CAPABILITIES };
 
         try {
-          if (instance && typeof instance.getAgentCard === 'function') {
-            agentCard = await instance.getAgentCard();
+          if (instance && typeof (instance as Record<string, unknown>).getAgentCard === 'function') {
+            agentCard = await (instance as { getAgentCard: () => Promise<any> }).getAgentCard();
 
             if (agentCard?.configuration?.execution_modes) {
               executionModes = agentCard.configuration.execution_modes;
@@ -73,12 +91,12 @@ export class AppService implements OnModuleInit {
         return {
           id: this.generateAgentId(
             agent.name,
-            agent.namespacedPath || agent.path,
+            agent.namespacedPath || agent.path || '',
           ),
           name: agent.name,
           displayName: agentCard?.name || agent.name,
           type: agent.type,
-          namespace: agent.namespace,
+          namespace: agent.namespace ?? undefined,
           description:
             agentCard?.description ||
             `${agent.name} - A specialized agent for handling specific tasks`,
@@ -143,11 +161,25 @@ export class AppService implements OnModuleInit {
   /**
    * Get discovered agents (for other services to access)
    */
-  getDiscoveredAgents(): any[] {
+  getDiscoveredAgents(): Array<{
+    name: string;
+    namespace: string;
+    type?: string;
+    path?: string;
+    namespacedPath?: string;
+    metadata?: unknown;
+  }> {
     return this.discoveredAgents;
   }
 
-  getDiscoveredAgentsByNamespaces(namespaces?: string[]): any[] {
+  getDiscoveredAgentsByNamespaces(namespaces?: string[]): Array<{
+    name: string;
+    namespace: string;
+    type?: string;
+    path?: string;
+    namespacedPath?: string;
+    metadata?: unknown;
+  }> {
     if (!namespaces || namespaces.length === 0) {
       return this.discoveredAgents;
     }
@@ -161,17 +193,17 @@ export class AppService implements OnModuleInit {
   /**
    * Get agent instances (for other services to access)
    */
-  getAgentInstances(): any[] {
+  getAgentInstances(): unknown[] {
     return this.agentInstances;
   }
 
-  getAgentInstancesByNamespaces(namespaces?: string[]): any[] {
+  getAgentInstancesByNamespaces(namespaces?: string[]): unknown[] {
     if (!namespaces || namespaces.length === 0) {
       return this.agentInstances;
     }
 
     const allowed = new Set(namespaces);
-    const filtered: any[] = [];
+    const filtered: unknown[] = [];
 
     this.discoveredAgents.forEach((agent, index) => {
       if (allowed.has(agent.namespace)) {
@@ -235,9 +267,9 @@ export class AppService implements OnModuleInit {
       name: record.slug,
       displayName: record.display_name,
       type: isTool ? 'tool' : record.agent_type,
-      namespace: record.organization_slug ?? null,
+      namespace: record.organization_slug ?? undefined,
       description: record.description ?? record.display_name,
-      serviceClass: null,
+      serviceClass: undefined,
       hasInstance: true,
       execution_modes: ['immediate'],
       execution_profile: this.deriveExecutionProfile(record.mode_profile),

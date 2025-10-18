@@ -369,7 +369,7 @@ export async function handleBuildRerun(
   void services.conversationsService;
 
   try {
-    const payload = (request.payload ?? {}) as BuildRerunPayload;
+    const payload = (request.payload ?? {}) as unknown as BuildRerunPayload;
     if (!payload.versionId || !payload.rerunConfig) {
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
@@ -517,7 +517,7 @@ export async function handleBuildSetCurrent(
   void services.conversationsService;
 
   try {
-    const payload = (request.payload ?? {}) as BuildSetCurrentPayload;
+    const payload = (request.payload ?? {}) as unknown as BuildSetCurrentPayload;
     if (!payload.versionId) {
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
@@ -588,7 +588,7 @@ export async function handleBuildDeleteVersion(
   void services.conversationsService;
 
   try {
-    const payload = (request.payload ?? {}) as BuildDeleteVersionPayload;
+    const payload = (request.payload ?? {}) as unknown as BuildDeleteVersionPayload;
     if (!payload.versionId) {
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
@@ -671,7 +671,7 @@ export async function handleBuildMergeVersions(
   void services.conversationsService;
 
   try {
-    const payload = (request.payload ?? {}) as BuildMergeVersionsPayload;
+    const payload = (request.payload ?? {}) as unknown as BuildMergeVersionsPayload;
     if (!payload.versionIds || payload.versionIds.length < 2) {
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
@@ -828,7 +828,7 @@ export async function handleBuildCopyVersion(
   void services.conversationsService;
 
   try {
-    const payload = (request.payload ?? {}) as BuildCopyVersionPayload;
+    const payload = (request.payload ?? {}) as unknown as BuildCopyVersionPayload;
     if (!payload.versionId) {
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
@@ -908,7 +908,7 @@ export async function handleBuildDelete(
   void services.conversationsService;
 
   try {
-    const payload = (request.payload ?? {}) as BuildDeletePayload;
+    const payload = (request.payload ?? {}) as unknown as BuildDeletePayload;
     void payload;
 
     const { userId, executionContext } = buildBuildActionContext(

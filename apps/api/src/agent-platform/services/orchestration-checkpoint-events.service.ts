@@ -47,7 +47,8 @@ export class OrchestrationCheckpointEventsService {
   async handleCheckpointRequested(event: CheckpointRequestedEvent) {
     try {
       const run = await this.ensureRun(event.runId);
-      const stepFromMetadata = this.extractStepFromMetadata(run);
+      const stepFromMetadata: Record<string, unknown> | null =
+        this.extractStepFromMetadata(run);
       const payload = {
         event: 'orchestration.checkpoint.requested',
         runId: run.id,
@@ -161,7 +162,9 @@ export class OrchestrationCheckpointEventsService {
     return rawCheckpoint as Record<string, any>;
   }
 
-  private extractStepFromMetadata(run: OrchestrationRunRecord) {
+  private extractStepFromMetadata(
+    run: OrchestrationRunRecord,
+  ): Record<string, unknown> | null {
     const lastCheckpoint = this.extractLastCheckpoint(run);
     if (!lastCheckpoint) {
       return null;
@@ -170,7 +173,7 @@ export class OrchestrationCheckpointEventsService {
     if (!stepInfo || typeof stepInfo !== 'object') {
       return null;
     }
-    return stepInfo;
+    return stepInfo as Record<string, unknown>;
   }
 
   private emitStreamChunk(

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { AdminOnly } from '@/auth/decorators/roles.decorator';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import {
   CreateAgentDto,
   UpdateAgentDto,
@@ -78,8 +79,8 @@ export class AgentsAdminController {
   async upsert(@Body() dto: CreateAgentDto) {
     // Run JSON-schema validation by type
     const type = dto.agent_type;
-    const { ok, issues } = this.validator.validateByType(type, dto);
-    const policyIssues = this.policy.check(dto);
+    const { ok, issues } = this.validator.validateByType(type, dto as unknown as Parameters<typeof this.validator.validateByType>[1]);
+    const policyIssues = this.policy.check(dto as unknown as Parameters<typeof this.policy.check>[0]);
     if (!ok || policyIssues.length) {
       return { success: false, issues: [...issues, ...policyIssues] };
     }
@@ -98,15 +99,9 @@ export class AgentsAdminController {
       status: dto.status ?? null,
       yaml: dto.yaml ?? '',
       function_code: dto.function_code ?? null,
-      context: dto.context as Record<string, unknown> | null,
-      plan_structure: dto.plan_structure as
-        | string
-        | Record<string, unknown>
-        | null,
-      deliverable_structure: dto.deliverable_structure as
-        | string
-        | Record<string, unknown>
-        | null,
+      context: dto.context as unknown as JsonObject | null,
+      plan_structure: dto.plan_structure as unknown as string | JsonObject | null,
+      deliverable_structure: dto.deliverable_structure as unknown as string | JsonObject | null,
     });
 
     return { success: true, data: record };
@@ -119,8 +114,8 @@ export class AgentsAdminController {
     @Query('dryRun') dryRun?: string,
   ) {
     const type = dto.agent_type;
-    const validation = this.validator.validateByType(type, dto);
-    const policyIssues = this.policy.check(dto);
+    const validation = this.validator.validateByType(type, dto as unknown as Parameters<typeof this.validator.validateByType>[1]);
+    const policyIssues = this.policy.check(dto as unknown as Parameters<typeof this.policy.check>[0]);
 
     const response: {
       success: boolean;
@@ -223,9 +218,9 @@ export class AgentsAdminController {
 
     const validation = this.validator.validateByType(
       current.agent_type as AgentType,
-      createLike,
+      createLike as unknown as Parameters<typeof this.validator.validateByType>[1],
     );
-    const policyIssues = this.policy.check(createLike);
+    const policyIssues = this.policy.check(createLike as unknown as Parameters<typeof this.policy.check>[0]);
     if (!validation.ok || policyIssues.length) {
       return {
         success: false,
@@ -263,8 +258,8 @@ export class AgentsAdminController {
         const raw = await readFile(f, 'utf8');
         const dto = JSON.parse(raw) as CreateAgentDto;
         const type = dto.agent_type;
-        const validation = this.validator.validateByType(type, dto);
-        const policyIssues = this.policy.check(dto);
+        const validation = this.validator.validateByType(type, dto as unknown as Parameters<typeof this.validator.validateByType>[1]);
+        const policyIssues = this.policy.check(dto as unknown as Parameters<typeof this.policy.check>[0]);
         const item: SmokeRunResult = {
           file: f,
           success: validation.ok && policyIssues.length === 0,

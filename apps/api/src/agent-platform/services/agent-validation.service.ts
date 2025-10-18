@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import * as AjvNS from 'ajv';
+import Ajv, { ErrorObject } from 'ajv';
 import {
   AgentType,
   schemaFor,
@@ -13,11 +13,10 @@ export type ValidationIssue = {
 
 @Injectable()
 export class AgentValidationService {
-  private ajv: any;
+  private ajv: Ajv;
 
   constructor() {
-    const AjvCtor: any = (AjvNS as any).default ?? (AjvNS as any);
-    this.ajv = new AjvCtor({ allErrors: true, strict: false } as any);
+    this.ajv = new Ajv({ allErrors: true, strict: false });
   }
 
   validateByType(
@@ -29,8 +28,10 @@ export class AgentValidationService {
   } {
     const schema = schemaFor(type);
     const validate = this.ajv.compile(schema);
-    const valid = validate(payload as any);
-    const issues = (validate.errors || []).map(this.formatAjvError);
+    const valid = validate(payload);
+    const issues = (validate.errors || []).map((err) =>
+      this.formatAjvError(err),
+    );
 
     // Additional runtime checks per type
     if (type === 'function') {
@@ -71,10 +72,9 @@ export class AgentValidationService {
     return { ok: issues.length === 0 && !!valid, issues };
   }
 
-  private formatAjvError(err: any): ValidationIssue {
-    const msg = err?.message || 'validation error';
-    const instancePath =
-      (err && (err.instancePath || err.dataPath)) || undefined;
+  private formatAjvError(err: ErrorObject): ValidationIssue {
+    const msg = err.message || 'validation error';
+    const instancePath = err.instancePath || undefined;
     return { message: msg, instancePath };
   }
 }

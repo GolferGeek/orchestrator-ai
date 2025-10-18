@@ -422,12 +422,13 @@ export function resolveUserId(request: TaskRequestDto): string | null {
     return String(fromMetadata);
   }
 
-  const payload = request.payload ?? {};
+  const payload = (request.payload ?? {}) as Record<string, unknown>;
+  const payloadMetadata = payload.metadata as Record<string, unknown> | undefined;
   const fromPayload =
     payload.userId ??
     payload.createdBy ??
-    payload.metadata?.userId ??
-    payload.metadata?.createdBy;
+    payloadMetadata?.userId ??
+    payloadMetadata?.createdBy;
   if (fromPayload) {
     return String(fromPayload);
   }
@@ -455,9 +456,11 @@ export function resolveConversationId(request: TaskRequestDto): string | null {
     return request.conversationId;
   }
 
+  const payload = request.payload as Record<string, unknown> | undefined;
+  const payloadMeta = payload?.metadata as Record<string, unknown> | undefined;
   const payloadConversation =
-    request.payload?.conversationId ??
-    request.payload?.metadata?.conversationId;
+    payload?.conversationId ??
+    payloadMeta?.conversationId;
   if (typeof payloadConversation === 'string') {
     return payloadConversation;
   }
@@ -533,8 +536,10 @@ export function handleError(
  * @returns True when streaming is requested
  */
 export function shouldStreamResponse(request: TaskRequestDto): boolean {
+  const payload = request.payload as Record<string, unknown> | undefined;
+  const options = payload?.options as Record<string, unknown> | undefined;
   const payloadStream =
-    request.payload?.options?.stream ?? request.payload?.stream;
+    options?.stream ?? payload?.stream;
   if (typeof payloadStream === 'boolean') {
     return payloadStream;
   }

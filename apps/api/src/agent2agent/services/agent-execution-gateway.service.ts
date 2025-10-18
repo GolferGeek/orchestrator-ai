@@ -186,11 +186,14 @@ export class AgentExecutionGateway {
     const createdBy =
       typeof createdByValue === 'string' ? createdByValue : null;
 
+    const summaryValue = request.payload?.summary;
+    const summary = typeof summaryValue === 'string' ? summaryValue : null;
+
     const planRecord = await this.planEngine.generateDraft({
       conversationId,
       organizationSlug,
       agentSlug: agent.slug,
-      summary: request.payload?.summary ?? null,
+      summary,
       draftPlan,
       createdBy,
       agentMetadata,
@@ -264,15 +267,20 @@ export class AgentExecutionGateway {
         request.payload?.action === 'resume_after_approval' &&
         request.payload.approvalId
       ) {
-        const actorId =
-          request.metadata?.actorId ?? request.metadata?.userId ?? null;
+        const actorIdValue = request.metadata?.actorId ?? request.metadata?.userId;
+        const actorId = typeof actorIdValue === 'string' ? actorIdValue : null;
+
+        const approvalId = request.payload.approvalId;
+        const decision = request.payload.decision;
+        const notesValue = request.payload.notes;
+        const notes = typeof notesValue === 'string' ? notesValue : null;
 
         const resolutionResult = await this.resolveCheckpointAndMaybeResume({
-          approvalId: request.payload.approvalId,
-          decision: request.payload.decision,
+          approvalId: typeof approvalId === 'string' ? approvalId : '',
+          decision: decision as unknown as Parameters<typeof this.resolveCheckpointAndMaybeResume>[0]['decision'],
           actorId,
-          notes: request.payload.notes ?? null,
-          modifications: request.payload.modifications ?? undefined,
+          notes,
+          modifications: request.payload.modifications as unknown as Record<string, unknown> | undefined,
         });
 
         this.publishStreamChunk(streamSession, {
@@ -350,7 +358,7 @@ export class AgentExecutionGateway {
           agentSlug: agentMetadata.slug,
           agentType: agentMetadata.type,
           agentDisplayName: agentMetadata.displayName,
-          parameters: promptInputs,
+          parameters: promptInputs as unknown as Parameters<typeof this.orchestrationRunner.startRun>[0]['parameters'],
           metadata: runMetadata,
         });
 
@@ -383,7 +391,7 @@ export class AgentExecutionGateway {
               planVersion: plan.version,
               conversationId: plan.conversation_id,
               promptInputs,
-            },
+            } as unknown as Parameters<typeof this.runtimeExecution.buildRunMetadata>[0],
             agentMetadata,
           ),
           streamSession,
@@ -418,7 +426,7 @@ export class AgentExecutionGateway {
         const orchestration = await this.agentOrchestrations.findBySlug(
           organizationSlug,
           agentSlug,
-          orchestrationSlug,
+          typeof orchestrationSlug === 'string' ? orchestrationSlug : '',
         );
 
         if (!orchestration) {
@@ -632,18 +640,21 @@ export class AgentExecutionGateway {
     agent: AgentRecord,
     mode: AgentTaskMode,
   ) {
+    const payloadOptions = request.payload?.options as Record<string, unknown> | undefined;
+    const metadata = request.metadata as Record<string, unknown> | undefined;
+    const payloadMetadata = request.payload?.metadata as Record<string, unknown> | undefined;
+
     const wantsStream = Boolean(
-      request.payload?.options?.stream || request.metadata?.stream,
+      payloadOptions?.stream || metadata?.stream,
     );
 
     if (!wantsStream) {
       return null;
     }
 
-    const providedStreamId =
-      request.metadata?.streamId ||
-      request.payload?.metadata?.streamId ||
-      undefined;
+    const streamIdValue = metadata?.streamId || payloadMetadata?.streamId;
+    const providedStreamId = typeof streamIdValue === 'string' ? streamIdValue : undefined;
+
     return this.streamService.start(
       {
         conversationId: request.conversationId,

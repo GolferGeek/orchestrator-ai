@@ -50,8 +50,8 @@ export class AgentBuilderService {
    */
   async validateAgent(payload: JsonObject): Promise<ValidationResult> {
     const type = payload.agent_type as AgentType;
-    const validation = this.validator.validateByType(type, payload);
-    const policyIssues = this.policy.check(payload);
+    const validation = this.validator.validateByType(type, payload as unknown as Parameters<typeof this.validator.validateByType>[1]);
+    const policyIssues = this.policy.check(payload as unknown as Parameters<typeof this.policy.check>[0]);
 
     const response: ValidationResult = {
       ok: validation.ok && policyIssues.length === 0,

@@ -1,4 +1,5 @@
 import { AgentValidationService } from './agent-validation.service';
+import type { CreateAgentPayload } from '@/agent-platform/dto/agent.dto';
 
 describe('AgentValidationService', () => {
   const svc = new AgentValidationService();
@@ -10,7 +11,7 @@ describe('AgentValidationService', () => {
       agent_type: 'function',
       mode_profile: 'draft',
       config: { configuration: { function: {} } },
-    } as any);
+    } as unknown as CreateAgentPayload);
     expect(res.ok).toBe(false);
     expect(res.issues.some((i) => i.message.includes('function_code'))).toBe(
       true,
@@ -28,7 +29,7 @@ describe('AgentValidationService', () => {
           function: { code: 'module.exports=async()=>({ok:true})' },
         },
       },
-    } as any);
+    } as unknown as CreateAgentPayload);
     expect(res.ok).toBe(true);
   });
 });
