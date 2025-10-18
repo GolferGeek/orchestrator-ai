@@ -25,7 +25,9 @@ export class AgentApprovalsController {
     @Query('agentSlug') agentSlug?: string,
   ) {
     // Fallback to repository direct query pattern
-    const c = (this.approvals as unknown as { client: () => SupabaseClient }).client();
+    const c = (
+      this.approvals as unknown as { client: () => SupabaseClient }
+    ).client();
     let q = c.from('human_approvals').select('*');
     if (status) q = q.eq('status', status);
     if (conversationId) q = q.eq('conversation_id', conversationId);

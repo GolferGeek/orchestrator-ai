@@ -88,13 +88,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, defineEmits, defineProps, onUnmounted, watch, onMounted } from 'vue';
+import { ref, computed, defineEmits, defineProps, watch, onMounted } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
 import { chevronUpOutline, checkmarkOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
-import { useAgentChatStore } from '@/services/conversationHelpers';
-import { Capacitor } from '@capacitor/core';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
 import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
@@ -111,8 +109,6 @@ const activeTab = ref<'model' | 'behavior'>('model');
 const showCostEstimate = ref(true);
 const uiStore = useUiStore();
 const llmStore = useLLMPreferencesStore();
-const conversationsStore = useConversationsStore();
-const chatUiStore = useChatUiStore();
 const validation = useValidation();
 
 // Get current conversation ID from props or store

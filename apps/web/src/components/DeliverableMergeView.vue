@@ -179,7 +179,7 @@
   </ion-content>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   IonHeader,
   IonToolbar,
@@ -275,8 +275,7 @@ const loadVersions = async () => {
   try {
     const parentId = currentVersion.value.parent_deliverable_id || currentVersion.value.id;
     versions.value = await deliverablesStore.getDeliverableVersions(parentId);
-  } catch (error) {
-
+  } catch {
     versions.value = [currentVersion.value];
   }
 };
@@ -359,12 +358,7 @@ const parseContentIntoSections = (content: string) => {
     }));
   }
 };
-const renderSection = (section: { type: string; content: string; lines: string[]; level?: number }) => {
-  if (currentVersion.value.format === 'markdown') {
-    return marked(section.content);
-  }
-  return `<pre>${section.content}</pre>`;
-};
+// renderSection function removed - not used in template
 const getSectionClass = (section: { type: string; content: string; lines: string[]; level?: number }, pane: 'base' | 'compare') => {
   const key = `${pane}-${section.type}-${section.content.substring(0, 50)}`;
   const isSelected = selectedSections.value.get(key);
@@ -507,8 +501,7 @@ const completeMerge = async () => {
       }
     );
     emit('merge-completed', newVersion);
-  } catch (error) {
-
+  } catch {
     // TODO: Show error toast
   }
 };

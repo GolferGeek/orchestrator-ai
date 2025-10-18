@@ -274,7 +274,7 @@ const createTask = async () => {
     if (parametersJson.value.trim()) {
       try {
         params = JSON.parse(parametersJson.value);
-      } catch (err) {
+      } catch {
         throw new Error('Invalid JSON in parameters');
       }
     }

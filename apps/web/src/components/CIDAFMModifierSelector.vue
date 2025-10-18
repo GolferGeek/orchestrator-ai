@@ -72,7 +72,7 @@ interface Props {
 interface Emits {
   (e: 'add-modifier', modifierName: string): void;
 }
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   loadingCommands: false,
   commandError: undefined,
 });

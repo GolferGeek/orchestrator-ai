@@ -206,8 +206,6 @@
 import { ref, computed, onMounted } from 'vue';
 import {
   IonBadge,
-  IonSegment,
-  IonSegmentButton,
   IonLabel,
   IonIcon,
   IonChip,
@@ -228,7 +226,7 @@ import {
 } from 'ionicons/icons';
 import { useApiConfigStore } from '../stores/apiConfigStore';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
-import { ApiEndpoint, API_FEATURES } from '../types/api';
+import { ApiEndpoint } from '../types/api';
 // Props
 interface Props {
   showAdvanced?: boolean;
@@ -266,12 +264,7 @@ const availableEndpoints = computed(() => {
   // This allows users to see and test endpoints even if health checks haven't run
   return apiConfigStore.allEndpoints;
 });
-const healthyEndpoints = computed(() => apiConfigStore.healthyEndpoints);
 const preferences = computed(() => userPreferencesStore.preferences);
-const availableVersions = computed(() => {
-  const versions = new Set(availableEndpoints.value.map(ep => ep.version));
-  return Array.from(versions).sort();
-});
 const currentEndpointHealth = computed(() => 
   apiConfigStore.getEndpointHealth(currentEndpoint.value.name)
 );
@@ -301,13 +294,7 @@ const getStatusColor = (endpoint: ApiEndpoint) => {
   if (health?.isHealthy) return 'success';
   return 'danger';
 };
-const getVersionIcon = (version: string) => {
-  switch (version) {
-    case 'v1': return cloudDone;
-    case 'v2': return settings;
-    default: return cloudDone;
-  }
-};
+// Removed unused function
 const formatFeatureName = (feature: string) => {
   return feature.split('_').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -322,13 +309,7 @@ const formatLastChecked = (date: Date | undefined) => {
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return date.toLocaleDateString();
 };
-const handleVersionChange = async (event: CustomEvent) => {
-  const version = event.detail.value;
-  const healthyEndpoints = getHealthyEndpointsForVersion(version);
-  if (healthyEndpoints.length > 0) {
-    await selectEndpoint(healthyEndpoints[0]);
-  }
-};
+// Removed unused function
 const selectEndpoint = async (endpoint: ApiEndpoint) => {
   if (!endpoint.isAvailable) return;
   try {
@@ -338,7 +319,7 @@ const selectEndpoint = async (endpoint: ApiEndpoint) => {
     if (preferences.value.rememberApiSelection) {
       await userPreferencesStore.setApiVersion(endpoint.version);
     }
-  } catch (error) {
+  } catch {
     // Could show toast notification here
   }
 };
@@ -351,7 +332,7 @@ const performHealthCheck = async () => {
   try {
     await apiConfigStore.performHealthChecks();
     emit('healthCheckCompleted', apiConfigStore.state.endpointHealthStatus);
-  } catch (error) {
+  } catch {
   } finally {
     healthCheckInProgress.value = false;
   }

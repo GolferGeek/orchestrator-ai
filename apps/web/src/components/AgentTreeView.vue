@@ -436,7 +436,7 @@ const icons = {
 
 // Stores
 const agentsStore = useAgentsStore();
-const { availableAgents, agentHierarchy, isLoading, error, hasAgents } = storeToRefs(agentsStore);
+const { agentHierarchy, isLoading, error } = storeToRefs(agentsStore);
 const conversationsStore = useConversationsStore();
 const { conversations: storeConversations } = storeToRefs(conversationsStore);
 const deliverablesStore = useDeliverablesStore();
@@ -480,35 +480,8 @@ const formatLastActive = (date: Date) => {
   return date.toLocaleDateString();
 };
 
-const formatDate = (date: string | Date) => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return dateObj.toLocaleDateString();
-};
-
 const selectConversation = (conversation: AgentConversation) => {
   emit('conversation-selected', conversation);
-};
-
-const getConversationStatusColor = (status: string) => {
-  switch (status?.toLowerCase()) {
-    case 'active':
-    case 'ongoing':
-      return 'primary';
-    case 'completed':
-    case 'done':
-      return 'success';
-    case 'paused':
-    case 'on hold':
-      return 'warning';
-    case 'archived':
-    case 'closed':
-      return 'medium';
-    case 'error':
-    case 'failed':
-      return 'danger';
-    default:
-      return 'tertiary';
-  }
 };
 
 const deleteConversation = async (conversation: AgentConversation, event: Event) => {
@@ -915,22 +888,7 @@ const hierarchyGroups = computed(() => {
   return groups;
 });
 
-// Flat list of all agents for display
-const flatAgentList = computed(() => {
-  const allAgents: Agent[] = [];
-  
-  hierarchyGroups.value.forEach(group => {
-    group.agents.forEach((agent: Agent) => {
-      allAgents.push({
-        ...agent,
-        isManager: group.isManager || group.isCEOAgent,
-        isCEO: group.isCEOAgent
-      });
-    });
-  });
-  
-  return allAgents;
-});
+// Removed unused computed property
 
 // Methods
 const refreshData = async () => {

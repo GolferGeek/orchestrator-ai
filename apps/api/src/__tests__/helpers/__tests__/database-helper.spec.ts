@@ -326,7 +326,9 @@ describe('DatabaseTestHelper', () => {
           display_name: 'Updated Name',
         });
 
-        expect((updated as { display_name: string }).display_name).toBe('Updated Name');
+        expect((updated as { display_name: string }).display_name).toBe(
+          'Updated Name',
+        );
 
         // Cleanup
         await DatabaseTestHelper.cleanupTestData(TEST_PREFIX);

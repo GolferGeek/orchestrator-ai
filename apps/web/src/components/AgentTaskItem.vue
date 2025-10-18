@@ -228,7 +228,7 @@ import { usePrivacyStore } from '@/stores/privacyStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore, type PendingAction } from '@/stores/ui/chatUiStore';
-import { sendMessage, createPlan, createDeliverable, setCurrentVersion } from '@/services/agent2agent/actions';
+import { createPlan, createDeliverable } from '@/services/agent2agent/actions';
 import analyticsService from '@/services/analyticsService';
 import { apiService } from '@/services/apiService';
 import { toastController } from '@ionic/vue';
@@ -415,43 +415,7 @@ const willHideForDeliverable = computed(() => {
   return hasWorkProduct && isAssistantMessage && (mode === 'build' || mode === 'plan');
 });
 
-const renderedContent = computed(() => {
-  if (!props.message.content || props.message.role !== 'assistant') {
-    return '';
-  }
-  
-  try {
-    // Parse markdown to HTML - use synchronous parsing
-    let html: string;
-    try {
-      // Force synchronous parsing by using marked with older API style
-      html = marked(props.message.content, { 
-        breaks: true, 
-        gfm: true
-      }) as string;
-    } catch (error) {
-
-      html = `<p>${props.message.content}</p>`;
-    }
-    
-    // Basic validation to ensure it's valid HTML
-    if (typeof html !== 'string' || html.trim() === '') {
-
-      return null; // This will trigger the fallback
-    }
-    
-    // Check for problematic patterns that might cause DOM issues
-    if (html.includes('<html') || html.includes('<body') || html.includes('<head')) {
-
-      return null; // This will trigger the fallback
-    }
-    
-    return html;
-  } catch (error) {
-console.error('Error parsing markdown content:', error);
-    return null; // This will trigger the fallback
-  }
-});
+// Removed unused computed property
 
 const formattedTimestamp = computed(() => {
   return props.message.timestamp.toLocaleTimeString([], { 
@@ -517,40 +481,10 @@ const approvalTime = computed(() => {
 // Legend state
 const legendOpen = ref(false);
 
-// Enhancement undo CTA bindings
-const enhancedDeliverableId = computed(() => props.message.metadata?.enhancedDeliverableId || null);
-const enhancedFromVersionId = computed(() => props.message.metadata?.enhancedFromVersionId || null);
-const showUndoEnhancement = computed(() => {
-  const dId = enhancedDeliverableId.value;
-  const prevId = enhancedFromVersionId.value;
-  if (!dId || !prevId) return false;
-  const current = deliverablesStore.getCurrentVersion(dId);
-  if (current?.id === prevId) return false; // gate: previous already current
-  return true;
-});
-const undoEnhancement = async () => {
-  try {
-    if (!enhancedFromVersionId.value || !enhancedDeliverableId.value) return;
-
-    // Get deliverable to find agentSlug and conversationId
-    const deliverable = deliverablesStore.getDeliverableById(enhancedDeliverableId.value);
-    if (!deliverable) throw new Error('Deliverable not found');
-
-    await setCurrentVersion(
-      deliverable.agentName || 'blog_post_writer',
-      enhancedDeliverableId.value,
-      enhancedFromVersionId.value
-    );
-  } catch (e) {
-    console.warn('Failed to undo enhancement', e);
-  }
-};
-const emitSelectDeliverable = () => {
-  const id = enhancedDeliverableId.value;
-  if (!id) return;
-  const d = deliverablesStore.getDeliverableById(id);
-  if (d) emit('deliverable-selected', d);
-};
+// Removed unused computed properties
+// Removed unused computed property
+// Removed unused function
+// Removed unused function
 
 // If this message requires human approval, set pending action so a simple "yes" continues
 onMounted(() => {
@@ -867,49 +801,7 @@ const sanitizationStatus = computed(() => {
   return 'none';
 });
 
-const currentPiiDetectionCount = computed(() => {
-  const piiMetadata = props.message.metadata?.piiMetadata;
-  if (piiMetadata?.detectionResults?.totalMatches) {
-    return piiMetadata.detectionResults.totalMatches;
-  }
-  
-  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
-  if (sanitizationMetadata?.piiDetectionCount !== undefined) {
-    return sanitizationMetadata.piiDetectionCount;
-  }
-  
-  return 0;
-});
-
-const currentPiiSeverityTypes = computed(() => {
-  // Extract PII types from message metadata
-  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
-  if (sanitizationMetadata?.piiTypes) {
-    return sanitizationMetadata.piiTypes;
-  }
-  
-  // Fallback to privacy state or empty array
-  return privacyState.value?.piiTypes || [];
-});
-
-const currentPiiSeverityLevels = computed(() => {
-  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
-  if (sanitizationMetadata?.piiSeverityLevels) {
-    return sanitizationMetadata.piiSeverityLevels;
-  }
-
-  const piiMetadata = props.message.metadata?.piiMetadata;
-  if (piiMetadata?.detectionResults?.flaggedMatches) {
-    const severities = piiMetadata.detectionResults.flaggedMatches.map(match => {
-      // Convert 'info' severity from backend to 'flagger' for UI
-      if (match.severity === 'info') return 'flagger';
-      return match.severity;
-    });
-    return [...new Set(severities)];
-  }
-
-  return [];
-});
+// Removed unused computed properties
 
 // Methods
 
@@ -926,12 +818,10 @@ const handleCalloutClick = () => {
 const contentText = computed(() => (props.message.content || '').toLowerCase());
 const suggestsPlan = computed(() => {
   // Simple regex-based detection - assume modes are allowed (no permission check here)
-  const c = contentText.value;
   return /would you like.*plan|should i.*plan|plan (it|this)|create (a|the) (plan|prd)|requirements|spec/i.test(props.message.content || '');
 });
 const suggestsBuild = computed(() => {
   // Simple regex-based detection - assume modes are allowed (no permission check here)
-  const c = contentText.value;
   return /would you like.*build|should i.*build|build (it|this)|proceed to build|execute (now|this)/i.test(props.message.content || '');
 });
 
@@ -1089,20 +979,20 @@ watch(() => backendDeliverable.value, (newVal, oldVal) => {
 }, { immediate: true });
 
 // Watch for deliverable ID being added to message metadata (from task completion)
-watch(() => backendDeliverableId.value, (newId, oldId) => {
-  if (newId && !oldId) {
+watch(() => backendDeliverableId.value, (_newId, _oldId) => {
+  if (_newId && !_oldId) {
 
     // The backendDeliverable watcher will handle the emission when the deliverable loads
   }
 }, { immediate: true });
 
 // Debug: Watch message metadata changes
-watch(() => props.message.metadata, (newMetadata, oldMetadata) => {
+watch(() => props.message.metadata, (_newMetadata, _oldMetadata) => {
 
 }, { deep: true, immediate: true });
 
 // Debug: Watch message deliverableId changes  
-watch(() => props.message.deliverableId, (newId, oldId) => {
+watch(() => props.message.deliverableId, (_newId, _oldId) => {
 
 }, { immediate: true });
 

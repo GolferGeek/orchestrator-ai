@@ -43,8 +43,6 @@ import {
   documentTextOutline,
   hammerOutline
 } from 'ionicons/icons';
-import { useConversationsStore } from '@/stores/conversationsStore';
-import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import type { PrimaryChatMode, AgentChatMode } from '@/types/conversation';
 import { DEFAULT_CHAT_MODES } from '@/types/conversation';
 
@@ -87,11 +85,9 @@ const allowedModes = computed(() => {
   return conversation?.allowedChatModes?.length ? conversation.allowedChatModes : DEFAULT_CHAT_MODES;
 });
 
-const agent = computed(() => chatStore.activeConversation?.agent);
-
 const modes = computed(() => {
   // Show all modes that are allowed for this conversation
-  let filtered = baseModes.filter(mode => allowedModes.value.includes(mode.value));
+  const filtered = baseModes.filter(mode => allowedModes.value.includes(mode.value));
 
   // Don't filter out plan mode - agent should handle it gracefully if not supported
   // The backend will return an error if plan mode isn't available

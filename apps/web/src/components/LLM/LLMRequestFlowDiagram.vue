@@ -321,7 +321,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { 
   IonButton, 
   IonIcon 
@@ -334,7 +334,6 @@ import {
 } from 'ionicons/icons';
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService } from '@/services/llmUsageService';
-import { analyticsService } from '@/services/analyticsService';
 
 // Component Props
 interface RequestData {
@@ -358,9 +357,11 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  requestData: undefined,
   autoStart: false,
   animationSpeed: 2000, // 2 seconds per step
   liveMode: false,
+  requestId: undefined,
   refreshInterval: 5000, // 5 seconds
 });
 

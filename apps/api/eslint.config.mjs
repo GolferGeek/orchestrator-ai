@@ -18,49 +18,21 @@ const testFilePatterns = [
 ];
 
 const temporaryTypeSafetyAllowlist = {
-  '@typescript-eslint/no-explicit-any': {
-    level: 'off',
-    reason: 'Phase 2–4 will reintroduce strict typing across LLM and agent services.',
-  },
-  '@typescript-eslint/no-unsafe-argument': {
-    level: 'off',
-    reason: 'Awaiting typed adapters for provider payloads (Phase 2).',
-  },
-  '@typescript-eslint/no-unsafe-assignment': {
-    level: 'off',
-    reason: 'Current Supabase/LLM responses remain untyped until Phase 2–3.',
-  },
-  '@typescript-eslint/no-unsafe-member-access': {
-    level: 'off',
-    reason: 'Dependent on DTO rollout for runtime artifacts (Phase 2–3).',
-  },
-  '@typescript-eslint/no-unsafe-call': {
-    level: 'off',
-    reason: 'Legacy dynamic invocation patterns to be replaced in Phase 3.',
-  },
-  '@typescript-eslint/no-unsafe-return': {
-    level: 'off',
-    reason: 'Service return types require DTO normalization (Phase 2–3).',
-  },
-  '@typescript-eslint/no-floating-promises': {
-    level: 'off',
-    reason: 'Async strategy under review; will move to error post Phase 6.',
-  },
-  // REMOVED: '@typescript-eslint/await-thenable' - Now enabled
-  // REMOVED: '@typescript-eslint/require-await' - Now enabled
-  '@typescript-eslint/restrict-template-expressions': {
-    level: 'off',
-    reason: 'String interpolation refactors scheduled for Phase 6.',
-  },
-  '@typescript-eslint/no-misused-promises': {
-    level: 'off',
-    reason: 'Promise utilities to be hardened alongside agent runtime updates (Phase 3).',
-  },
-  // REMOVED: '@typescript-eslint/no-redundant-type-constituents' - Now enabled
-  '@typescript-eslint/unbound-method': {
-    level: 'off',
-    reason: 'Transitioning to arrow functions/binds during cleanup (Phase 6).',
-  },
+  // All rules now enabled - this allowlist is now empty
+  // Previously disabled rules that are now enforced:
+  // - '@typescript-eslint/await-thenable' ✅
+  // - '@typescript-eslint/require-await' ✅
+  // - '@typescript-eslint/no-redundant-type-constituents' ✅
+  // - '@typescript-eslint/no-explicit-any' ✅
+  // - '@typescript-eslint/no-unsafe-argument' ✅
+  // - '@typescript-eslint/no-unsafe-assignment' ✅
+  // - '@typescript-eslint/no-unsafe-member-access' ✅
+  // - '@typescript-eslint/no-unsafe-call' ✅
+  // - '@typescript-eslint/no-unsafe-return' ✅
+  // - '@typescript-eslint/no-floating-promises' ✅
+  // - '@typescript-eslint/restrict-template-expressions' ✅
+  // - '@typescript-eslint/no-misused-promises' ✅
+  // - '@typescript-eslint/unbound-method' ✅
 };
 
 const allowlistedTypeSafetyRules = Object.fromEntries(

@@ -28,7 +28,7 @@ const inputText = ref('');
 const isRecording = ref(false);
 const uiStore = useUiStore();
 // --- Web Speech API --- 
-// @ts-ignore: next-line 
+// @ts-expect-error: SpeechRecognition may not be available in all browsers 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition: SpeechRecognition | null = null;
 const presentToast = async (message: string, duration: number = 2000, color: string = 'warning') => {
@@ -145,7 +145,7 @@ const togglePtt = async () => {
         inputText.value = '';
         recognition.start();
         // onstart will set isRecording.value = true and emit
-      } catch (e) {
+      } catch {
         isRecording.value = false; // Ensure consistent state
         emit('pttToggle', false);
         uiStore.setPttRecording(false);

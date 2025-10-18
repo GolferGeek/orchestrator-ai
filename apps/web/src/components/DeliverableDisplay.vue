@@ -500,8 +500,6 @@ import {
   IonPopover,
   IonContent,
   IonList,
-  IonFab,
-  IonFabButton,
   IonSegment,
   IonSegmentButton,
   IonModal,
@@ -526,15 +524,12 @@ import {
   chatboxOutline,
   removeOutline,
   settingsOutline,
-  sendOutline,
   ellipsisVerticalOutline,
   hardwareChipOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { setCurrentVersion } from '@/services/agent2agent/actions';
 import { deliverablesService } from '@/services/deliverablesService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 import TaskRating from './TaskRating.vue';
 import VersionManagementPanel from './VersionManagementPanel.vue';
 import type { Deliverable, DeliverableVersion } from '@/types/deliverables';
@@ -580,7 +575,6 @@ const showVersionControls = ref(true);
 const showActionsMenu = ref(false);
 const showFooterMenu = ref(false);
 const selectedVersion = ref<DeliverableVersion | null>(null);
-const lastVersionCount = ref(0);
 const selectedVersionIndex = ref(0);
 const isEditing = ref(false);
 const editedContent = ref('');
@@ -645,55 +639,7 @@ const hasUnsavedChanges = computed(() => {
     editedTitle.value !== displayTitle.value
   );
 });
-const renderedMarkdown = computed(() => {
-  if (displayVersion.value?.format !== 'markdown') return '';
-  if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
-    return '';
-  }
-  try {
-    let contentToRender = displayVersion.value.content;
-
-    // Check if content is wrapped in JSON structure from io_schema output
-    // Different agents may use different wrapper keys (blog_post, image_description, etc.)
-    try {
-      const parsed = JSON.parse(contentToRender);
-
-      // Try to extract content from wrapper structures
-      // Look for any object with a 'content' field
-      let extracted = false;
-
-      // First, check if there's a nested object with content
-      for (const key of Object.keys(parsed)) {
-        if (parsed[key] && typeof parsed[key] === 'object' && parsed[key].content && typeof parsed[key].content === 'string') {
-          console.log(`[DeliverableDisplay] Unwrapping content from io_schema wrapper key: ${key}`);
-          contentToRender = parsed[key].content;
-          extracted = true;
-          break;
-        }
-      }
-
-      // If not found, check for top-level content field
-      if (!extracted && parsed.content && typeof parsed.content === 'string') {
-        console.log('[DeliverableDisplay] Using top-level content field');
-        contentToRender = parsed.content;
-      }
-    } catch {
-      // Not JSON or parsing failed - use original content
-    }
-
-    // Configure marked with options
-    marked.setOptions({
-      breaks: true,
-      gfm: true,
-    });
-    return marked(contentToRender);
-  } catch (error) {
-    console.error('Markdown rendering error:', error);
-    console.log('Content that failed to render:', displayVersion.value.content);
-    // Return raw content as fallback
-    return displayVersion.value.content || '';
-  }
-});
+// renderedMarkdown computed property removed - not used in template
 
 // Simple line-by-line diff for markdown/text
 const diffLines = computed(() => {
@@ -713,48 +659,12 @@ const diffLines = computed(() => {
   }
   return out;
 });
-const sanitizedHtml = computed(() => {
-  if (displayVersion.value?.format !== 'html') return '';
-  if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
-    return '';
-  }
-  return DOMPurify.sanitize(displayVersion.value.content);
-});
+// sanitizedHtml computed property removed - not used in template
 // Methods
 // Version controls are always visible; no toggle needed
 
+// getTypeColor, getFormatColor, and formatType functions removed - not used in template
 
-const getTypeColor = (type: string) => {
-  if (!type || typeof type !== 'string') {
-    return 'medium'; // Default fallback
-  }
-  const colors = {
-    document: 'primary',
-    analysis: 'secondary',
-    report: 'tertiary',
-    plan: 'warning',
-    requirements: 'success',
-  };
-  return colors[type as keyof typeof colors] || 'medium';
-};
-const getFormatColor = (format: string) => {
-  if (!format || typeof format !== 'string') {
-    return 'medium'; // Default fallback
-  }
-  const colors = {
-    markdown: 'primary',
-    html: 'secondary',
-    json: 'tertiary',
-    text: 'medium',
-  };
-  return colors[format as keyof typeof colors] || 'medium';
-};
-const formatType = (type: string) => {
-  if (!type || typeof type !== 'string') {
-    return 'Document'; // Default fallback
-  }
-  return type.charAt(0).toUpperCase() + type.slice(1);
-};
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -944,7 +854,7 @@ const formatJson = (content: string) => {
   try {
     const parsed = JSON.parse(content);
     return JSON.stringify(parsed, null, 2);
-  } catch (error) {
+  } catch {
     return content;
   }
 };
@@ -961,8 +871,7 @@ const loadVersions = async () => {
     });
 
     // The versions computed property will automatically update from the store
-  } catch (error) {
-    console.error('Failed to load versions:', error);
+  } catch {
     // The computed property will handle the fallback through the store
   }
 };
@@ -1020,7 +929,7 @@ async function submitGenerate() {
     const { agentExecutionService } = await import('@/services/agentExecutionService');
     const convId = (props as Props).conversationId || (await import('@/stores/ui/chatUiStore')).useChatUiStore().activeConversationId;
     if (!convId) throw new Error('No conversation available');
-    const response = await agentExecutionService.executeAgentTask(orgSlug, agentSlug, {
+    await agentExecutionService.executeAgentTask(orgSlug, agentSlug, {
       mode: 'build',
       conversationId: convId,
       userMessage: genPrompt.value || 'Generate image',
@@ -1078,8 +987,8 @@ const selectAndDisplayVersion = async (version: DeliverableVersion) => {
         displayVersion.value = fullVersion;
         selectedVersion.value = fullVersion;
       }
-    } catch (error) {
-
+    } catch {
+      // Failed to load full version
     }
   }
 };
@@ -1107,26 +1016,11 @@ const makeCurrentVersion = async () => {
     selectedVersion.value.isCurrentVersion = true;
     emit('current-version-changed', selectedVersion.value);
   } catch (error) {
-
-    alert(`Failed to set current version: ${error.message || 'Unknown error'}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    alert(`Failed to set current version: ${errorMessage}`);
   }
 };
-const loadAndEmitFullVersion = async (versionId: string) => {
-  try {
-    // Fetch the full deliverable for this version
-    const fullVersion = await deliverablesStore.getDeliverable(versionId);
-    if (fullVersion) {
-      emit('version-changed', fullVersion);
-    }
-  } catch (error) {
-
-    // Fallback: still emit the limited version data
-    const limitedVersion = versions.value.find(v => v.id === versionId);
-    if (limitedVersion) {
-      emit('version-changed', limitedVersion);
-    }
-  }
-};
+// loadAndEmitFullVersion function removed - not used
 const downloadDeliverable = () => {
   const content = displayVersion.value?.content || '';
   const filename = `${displayTitle.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${getFileExtension()}`;
@@ -1247,8 +1141,8 @@ watch(() => props.deliverable?.id, async () => {
       const { useContextStore } = await import('@/stores/contextStore');
       const contextStore = useContextStore();
       contextStore.setDeliverableContext(actualDeliverableId.value);
-    } catch (error) {
-
+    } catch {
+      // Failed to set deliverable context
     }
   }
 }, { immediate: true });

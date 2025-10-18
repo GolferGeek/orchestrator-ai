@@ -417,9 +417,7 @@ import {
   calculateSanitizationBreakdown,
   calculateTrend,
   generateAnalyticsInsights,
-  sanitizeUsageRecords,
-  type LlmUsageRecord,
-  type LlmAnalyticsRecord
+  sanitizeUsageRecords
 } from '@/utils/analyticsTransformations';
 
 // Props
@@ -471,10 +469,7 @@ const error = computed(() => llmUsageStore.error);
 const totalRequests = computed(() => llmUsageStore.usageRecords.length);
 const avgResponseTime = computed(() => Math.round(llmUsageStore.avgDuration));
 const totalCost = computed(() => llmUsageStore.totalCost);
-const successRate = computed(() => llmUsageStore.successRate);
-
 // Provider data
-const providers = computed(() => llmUsageStore.providers);
 const analytics = computed(() => llmUsageStore.analytics);
 const usageRecords = computed(() => llmUsageStore.usageRecords);
 

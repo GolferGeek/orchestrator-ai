@@ -28,7 +28,7 @@ interface Props {
 interface Emits {
   (e: 'remove-modifier', modifierName: string): void;
 }
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits<Emits>();
 const removeModifier = (modifierName: string) => {
   emit('remove-modifier', modifierName);
