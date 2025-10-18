@@ -199,7 +199,7 @@
             @error="onBoundaryError"
             @retry="onBoundaryRetry"
           >
-            <template #error="{ error, errorInfo, retry, clear }">
+            <template #error="{ error, retry, clear }">
               <!-- Custom error UI -->
               <div class="custom-error-ui">
                 <ion-icon :icon="alertCircleOutline" color="danger" />

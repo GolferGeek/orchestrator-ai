@@ -7,7 +7,7 @@
       </div>
       <div class="disclosure-buttons">
         <button 
-          v-for="(section, index) in sections" 
+          v-for="section in sections" 
           :key="section.id"
           class="disclosure-trigger"
           :class="{ active: activeSections.includes(section.id) }"
@@ -25,7 +25,7 @@
         </div>
         <div class="progress-dots">
           <div 
-            v-for="(section, index) in sections"
+            v-for="section in sections"
             :key="section.id"
             class="progress-dot"
             :class="{ active: activeSections.includes(section.id) }"

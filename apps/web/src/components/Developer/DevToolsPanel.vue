@@ -121,7 +121,7 @@
                 <h4>Recent Requests</h4>
                 <div class="history-list">
                   <div 
-                    v-for="(metadata, index) in metadataHistory.slice(0, 5)" 
+                    v-for="metadata in metadataHistory.slice(0, 5)" 
                     :key="metadata.runId"
                     class="history-item"
                     :class="{ active: metadata.runId === currentMetadata?.runId }"

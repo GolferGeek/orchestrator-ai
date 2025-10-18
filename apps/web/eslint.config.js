@@ -98,7 +98,7 @@ export default tseslint.config(
       'vue/first-attribute-linebreak': 'off',
       'vue/html-closing-bracket-newline': 'off',
       'vue/no-deprecated-slot-attribute': 'off',
-      'vue/no-unused-vars': 'off',
+      'vue/no-unused-vars': 'warn',
       'vue/no-mutating-props': 'off',
       'vue/no-ref-as-operand': 'off',
       'vue/require-default-prop': 'off',

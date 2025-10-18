@@ -70,7 +70,7 @@
           </div>
           <div class="workflow-steps">
             <div 
-              v-for="(step, index) in displayedWorkflowSteps" 
+              v-for="step in displayedWorkflowSteps" 
               :key="`${step.stepName}-${step.stepIndex}`"
               class="workflow-step"
               :class="getWorkflowStepClass(step)"
