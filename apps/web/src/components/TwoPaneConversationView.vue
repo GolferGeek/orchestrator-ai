@@ -314,23 +314,13 @@ import {
   IonSegment,
   IonSegmentButton,
   IonLabel,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonContent,
 } from '@ionic/vue';
 import {
   alertCircleOutline,
-  sendOutline,
   chatbubbleOutline,
   documentTextOutline,
   eyeOutline,
   eyeOffOutline,
-  linkOutline,
-  arrowForwardOutline,
-  closeOutline,
-  playOutline,
 } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
@@ -361,7 +351,6 @@ import DeliverableDisplay from './DeliverableDisplay.vue';
 import PlanDisplay from './PlanDisplay.vue';
 // ProjectDisplay removed - projects deprecated
 import DeliverableMergeView from './DeliverableMergeView.vue';
-import LLMSelector from './LLMSelector.vue';
 import LLMSelectorModal from './LLMSelectorModal.vue';
 import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
 import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
@@ -458,9 +447,9 @@ const shouldShowRecommendations = computed(
     !!recommendationsError.value,
 );
 
-// Current LLM selection for display
-const currentLLMProvider = computed(() => llmStore.selectedProvider?.name || 'No provider selected');
-const currentLLMModel = computed(() => llmStore.selectedModel?.modelName || 'No model selected');
+// Current LLM selection for display (commented out as unused)
+// const currentLLMProvider = computed(() => llmStore.selectedProvider?.name || 'No provider selected');
+// const currentLLMModel = computed(() => llmStore.selectedModel?.modelName || 'No model selected');
 // Informal thinking message for converse/plan/build
 const thinkingMessage = computed(() => {
   const mode = (currentChatMode.value || '').toLowerCase();
@@ -715,10 +704,10 @@ const getWorkProductLabel = () => {
 const messageHasDeliverable = (message: AgentChatMessage) => {
   return Boolean(message.deliverableId || message.metadata?.deliverableId);
 };
-const getMessageDeliverable = (message: AgentChatMessage) => {
-  const deliverableId = message.deliverableId || message.metadata?.deliverableId;
-  return deliverableId ? deliverablesStore.getDeliverableById(deliverableId) : null;
-};
+// const getMessageDeliverable = (message: AgentChatMessage) => {
+//   const deliverableId = message.deliverableId || message.metadata?.deliverableId;
+//   return deliverableId ? deliverablesStore.getDeliverableById(deliverableId) : null;
+// };
 const selectDeliverable = async (deliverable: Deliverable | null) => {
   if (!deliverable) {
     return;
@@ -743,11 +732,15 @@ const selectDeliverable = async (deliverable: Deliverable | null) => {
   try {
     // Set enhancement context so user composer enhancements route to versioning
     await deliverablesStore.startEnhancement(deliverable.id);
-  } catch (_) {}
+  } catch {
+    // Ignore enhancement errors
+  }
 };
 
 const cancelEnhancement = async () => {
-  try { await deliverablesStore.stopEnhancement(); } catch (_) {}
+  try { await deliverablesStore.stopEnhancement(); } catch {
+    // Ignore enhancement errors
+  }
 };
 const handleDeliverableCreated = async (deliverable: Deliverable) => {
   console.log('🎉 [TwoPaneConversationView.handleDeliverableCreated] Called with deliverable:', deliverable.id, 'title:', deliverable.title);
@@ -839,10 +832,10 @@ const handleMergeRequested = (deliverable: Deliverable) => {
   mergeDeliverable.value = deliverable;
   showMergeModal.value = true;
 };
-const handleEditRequested = (workProduct: { type: 'deliverable'; data: Deliverable }) => {
+const handleEditRequested = (_workProduct: { type: 'deliverable'; data: Deliverable }) => {
   // Navigate to edit view or open edit modal
   // Implementation depends on editing strategy
-  const productType = activeWorkProduct.value?.type || 'deliverable';
+  // const productType = activeWorkProduct.value?.type || 'deliverable';
 };
 // Project handlers removed - projects deprecated
 const closeMergeModal = () => {
@@ -904,12 +897,12 @@ const handleLLMExecute = async (llmConfig: LLMRunConfiguration) => {
   await executeRerunWithConfig(capturedRerunData, llmConfig);
 };
 
-const canExecuteRerun = computed(() => {
-  return llmStore.selectedProvider && 
-         llmStore.selectedModel && 
-         rerunDeliverableData.value && 
-         rerunDeliverableData.value.version?.id;
-});
+// const canExecuteRerun = computed(() => {
+//   return llmStore.selectedProvider && 
+//          llmStore.selectedModel && 
+//          rerunDeliverableData.value && 
+//          rerunDeliverableData.value.version?.id;
+// });
 
 const executeRerunWithConfig = async (
   capturedRerunData: RerunContext,
@@ -959,13 +952,15 @@ const executeRerunWithConfig = async (
     };
 
     if (props.conversation) {
-      props.conversation.messages.push(userMessage);
+      // Use store method instead of direct prop mutation
+      conversationsStore.addMessage(props.conversation.id, userMessage);
     }
 
     // Set conversation loading state
     if (props.conversation) {
-      props.conversation.isSendingMessage = true;
-      props.conversation.error = undefined;
+      // Use store methods instead of direct prop mutation
+      conversationsStore.setConversationSending(props.conversation.id, true);
+      conversationsStore.clearConversationError(props.conversation.id);
     }
 
     console.log('🔄 LLM Rerun Config:', llmConfig, 'isPlan:', isPlan, 'isDeliverable:', isDeliverable);
@@ -1017,7 +1012,8 @@ const executeRerunWithConfig = async (
     };
 
     if (props.conversation) {
-      props.conversation.messages.push(assistantMessage);
+      // Use store method instead of direct prop mutation
+      conversationsStore.addMessage(props.conversation.id, assistantMessage);
     }
 
     // For plans, the store is already updated by the rerunPlan action
@@ -1041,12 +1037,14 @@ const executeRerunWithConfig = async (
 
     // Add error message to conversation
     if (props.conversation) {
-      props.conversation.messages.push(errorMessage);
+      // Use store method instead of direct prop mutation
+      conversationsStore.addMessage(props.conversation.id, errorMessage);
     }
   } finally {
     // Clear loading state
     if (props.conversation) {
-      props.conversation.isSendingMessage = false;
+      // Use store method instead of direct prop mutation
+      conversationsStore.setConversationSending(props.conversation.id, false);
     }
   }
 };
@@ -1093,7 +1091,7 @@ watch(() => messages.value.length, () => {
   scrollToBottom();
 });
 // Watch for conversation changes and handle deliverable/plan loading properly
-watch(() => props.conversation?.id, async (newId, oldId) => {
+watch(() => props.conversation?.id, async (newId, _oldId) => {
   if (newId && authStore.isAuthenticated) {
     console.log('🔍 [TwoPaneConversationView] Conversation changed to:', newId);
 
