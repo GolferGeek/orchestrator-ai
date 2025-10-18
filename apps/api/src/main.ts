@@ -8,7 +8,7 @@ import { join } from 'path';
 
 async function bootstrap() {
   // Suppress punycode deprecation warning until dependencies are updated
-  (process as any).noDeprecation = true;
+  (process as NodeJS.Process & { noDeprecation?: boolean }).noDeprecation = true;
   // Load custom environment file if ENV_FILE is specified
   if (process.env.ENV_FILE) {
     const envFilePath = process.env.ENV_FILE.startsWith('/')

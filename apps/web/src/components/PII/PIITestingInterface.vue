@@ -305,7 +305,7 @@ import {
 } from 'ionicons/icons';
 
 import { piiService } from '@/services/piiService';
-import type { PIITestRequest, PIITestResponse, PIIDetectionResult, PIIMatch, PIIDataType } from '@/types/pii';
+import type { PIITestRequest, PIITestResponse, PIIDetectionResult, PIIDataType } from '@/types/pii';
 
 // Reactive state
 const inputText = ref('');
@@ -326,27 +326,27 @@ const testOptions = ref({
 let detectionTimeout: NodeJS.Timeout | null = null;
 
 // Computed
-const highlightedText = computed(() => {
-  if (!inputText.value || !detectionResult.value?.matches.length) {
-    return inputText.value.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
-  }
+// const highlightedText = computed(() => {
+//   if (!inputText.value || !detectionResult.value?.matches.length) {
+//     return inputText.value.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+//   }
 
-  let highlighted = inputText.value;
-  const matches = [...detectionResult.value.matches].sort((a, b) => b.startIndex - a.startIndex);
+//   let highlighted = inputText.value;
+//   const matches = [...detectionResult.value.matches].sort((a, b) => b.startIndex - a.startIndex);
 
-  matches.forEach(match => {
-    const before = highlighted.slice(0, match.startIndex);
-    const matchText = highlighted.slice(match.startIndex, match.endIndex);
-    const after = highlighted.slice(match.endIndex);
+//   matches.forEach(match => {
+//     const before = highlighted.slice(0, match.startIndex);
+//     const matchText = highlighted.slice(match.startIndex, match.endIndex);
+//     const after = highlighted.slice(match.endIndex);
     
-    const color = getDataTypeColor(match.dataType);
-    highlighted = before + 
-      `<mark class="pii-highlight pii-${match.dataType}" style="background-color: var(--ion-color-${color}-tint); border-bottom: 2px solid var(--ion-color-${color});" title="${match.patternName} (${Math.round(match.confidence * 100)}%)">${matchText}</mark>` + 
-      after;
-  });
+//     const color = getDataTypeColor(match.dataType);
+//     highlighted = before + 
+//       `<mark class="pii-highlight pii-${match.dataType}" style="background-color: var(--ion-color-${color}-tint); border-bottom: 2px solid var(--ion-color-${color});" title="${match.patternName} (${Math.round(match.confidence * 100)}%)">${matchText}</mark>` + 
+//       after;
+//   });
 
-  return highlighted.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
-});
+//   return highlighted.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+// });
 
 // Watch for input changes with proper debouncing
 watch(inputText, () => {

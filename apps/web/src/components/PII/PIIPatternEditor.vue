@@ -394,8 +394,8 @@ const validateRegex = () => {
     delete validationErrors.value.regex;
     isRegexValid.value = true;
     updatePreview();
-  } catch (error) {
-    validationErrors.value.regex = `Invalid regex: ${error.message}`;
+  } catch {
+    validationErrors.value.regex = `Invalid regex`;
     isRegexValid.value = false;
     previewMatches.value = [];
     highlightedText.value = '';
@@ -443,7 +443,7 @@ const updatePreview = () => {
     } else {
       highlightedText.value = sampleText.value;
     }
-  } catch (error) {
+  } catch {
     previewMatches.value = [];
     highlightedText.value = sampleText.value;
   }
@@ -489,8 +489,8 @@ const handleSubmit = async () => {
 
     emit('saved', savedPattern);
     handleClose();
-  } catch (error) {
-    console.error('Error saving pattern:', error);
+  } catch {
+    console.error('Error saving pattern');
     await presentToast(
       `Failed to ${isEditMode.value ? 'update' : 'create'} pattern. Please try again.`,
       'danger'

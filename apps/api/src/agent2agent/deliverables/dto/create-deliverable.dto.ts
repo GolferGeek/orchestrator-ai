@@ -53,7 +53,7 @@ function RequireConversationId(validationOptions?: ValidationOptions) {
       constraints: [],
       options: validationOptions,
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: unknown, args: ValidationArguments) {
           const obj = args.object as CreateDeliverableDto;
           return !!obj.conversationId;
         },
@@ -135,7 +135,7 @@ export class CreateDeliverableDto {
   })
   @IsOptional()
   @IsObject()
-  initialMetadata?: Record<string, any>;
+  initialMetadata?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'Initial file attachments for the first version',
@@ -144,5 +144,5 @@ export class CreateDeliverableDto {
   })
   @IsOptional()
   @IsObject()
-  initialFileAttachments?: Record<string, any>;
+  initialFileAttachments?: Record<string, unknown>;
 }

@@ -4,14 +4,32 @@ import { AgentPolicyService } from './agent-policy.service';
 import { AgentDryRunService } from './agent-dry-run.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { LLMService } from '@/llms/llm.service';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+
+interface ValidationIssue {
+  message: string;
+  [key: string]: unknown;
+}
+
+interface ValidationResult {
+  ok: boolean;
+  issues: ValidationIssue[];
+  dryRun?: unknown;
+}
+
+interface CreateResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
 
 export interface AgentBuilderContext {
   validate: (
-    config: any,
-  ) => Promise<{ ok: boolean; issues: any[]; dryRun?: any }>;
+    config: JsonObject,
+  ) => Promise<ValidationResult>;
   create: (
-    config: any,
-  ) => Promise<{ success: boolean; data?: any; error?: string }>;
+    config: JsonObject,
+  ) => Promise<CreateResult>;
   generateFunctionCode: (
     description: string,
     inputModes: string[],
@@ -34,13 +52,13 @@ export class AgentBuilderService {
    * Validate an agent configuration
    */
   async validateAgent(
-    payload: any,
-  ): Promise<{ ok: boolean; issues: any[]; dryRun?: any }> {
+    payload: JsonObject,
+  ): Promise<ValidationResult> {
     const type = payload.agent_type;
     const validation = this.validator.validateByType(type, payload);
     const policyIssues = this.policy.check(payload);
 
-    const response: any = {
+    const response: ValidationResult = {
       ok: validation.ok && policyIssues.length === 0,
       issues: [...validation.issues, ...policyIssues],
     };
@@ -78,8 +96,8 @@ export class AgentBuilderService {
    * Create an agent after validation
    */
   async createAgent(
-    payload: any,
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    payload: JsonObject,
+  ): Promise<CreateResult> {
     try {
       // Validate first
       const validation = await this.validateAgent(payload);

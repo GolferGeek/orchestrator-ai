@@ -48,7 +48,7 @@ export class CreateVersionDto {
   })
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'File attachments for this version',
@@ -57,5 +57,5 @@ export class CreateVersionDto {
   })
   @IsOptional()
   @IsObject()
-  fileAttachments?: Record<string, any>;
+  fileAttachments?: Record<string, unknown>;
 }

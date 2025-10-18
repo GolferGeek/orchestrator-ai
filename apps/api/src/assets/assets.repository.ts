@@ -32,11 +32,11 @@ export class AssetsRepository {
   }
 
   async get(id: string): Promise<AssetRecord | null> {
-    const { data, error } = await this.client()
+    const { data, error } = (await this.client()
       .from(this.table)
       .select('*')
       .eq('id', id)
-      .maybeSingle();
+      .maybeSingle()) as { data: AssetRecord | null; error: { message: string } | null };
     if (error) throw new Error(`Failed to fetch asset: ${error.message}`);
     return (data as AssetRecord) || null;
   }
@@ -44,11 +44,11 @@ export class AssetsRepository {
   async create(
     input: Omit<AssetRecord, 'id' | 'created_at' | 'updated_at'>,
   ): Promise<AssetRecord> {
-    const { data, error } = await this.client()
+    const { data, error } = (await this.client()
       .from(this.table)
       .insert(input)
       .select('*')
-      .single();
+      .single()) as { data: AssetRecord | null; error: { message: string } | null };
     if (error) throw new Error(`Failed to create asset: ${error.message}`);
     return data as AssetRecord;
   }

@@ -2480,7 +2480,7 @@ export class EvaluationService {
       {} as Record<string, { ratings: number[]; count: number }>,
     );
 
-    return Object.entries(agentGroups).map(
+    return Object.entries(agentGroups as Record<string, unknown>).map(
       ([agentName, data]: [string, { ratings: number[]; count: number }]) => ({
         agentName,
         averageRating:
@@ -2636,7 +2636,7 @@ export class EvaluationService {
     ];
 
     candidateValues.forEach((value) => {
-      const normalized = this.normalizeAgentIdentifier(value);
+      const normalized = this.normalizeAgentIdentifier(value as string | null | undefined);
       if (normalized) {
         names.add(normalized);
       }
@@ -2703,12 +2703,12 @@ export class EvaluationService {
       ];
 
       allConstraints.forEach((constraint) => {
-        if (!constraintStats.has(constraint)) {
-          constraintStats.set(constraint, { ratings: [], count: 0 });
+        if (!constraintStats.has(constraint as string)) {
+          constraintStats.set(constraint as string, { ratings: [], count: 0 });
         }
 
-        const stats = constraintStats.get(constraint)!;
-        stats.ratings.push(task.evaluation.user_rating);
+        const stats = constraintStats.get(constraint as string)!;
+        stats.ratings.push(task.evaluation.user_rating as number);
         stats.count++;
       });
     });
@@ -2741,11 +2741,11 @@ export class EvaluationService {
       if (!steps) return;
 
       steps.forEach((step: any) => {
-        if (!stepStats.has(step.name)) {
-          stepStats.set(step.name, { total: 0, failed: 0, durations: [] });
+        if (!stepStats.has(step.name as string)) {
+          stepStats.set(step.name as string, { total: 0, failed: 0, durations: [] });
         }
 
-        const stats = stepStats.get(step.name)!;
+        const stats = stepStats.get(step.name as string)!;
         stats.total++;
 
         if (step.status === 'failed') {
@@ -2753,7 +2753,7 @@ export class EvaluationService {
         }
 
         if (step.duration) {
-          stats.durations.push(step.duration);
+          stats.durations.push(step.duration as number);
         }
       });
     });
@@ -2791,8 +2791,8 @@ export class EvaluationService {
       if (!steps) return;
 
       steps.forEach((step: any) => {
-        if (!stepStats.has(step.name)) {
-          stepStats.set(step.name, {
+        if (!stepStats.has(step.name as string)) {
+          stepStats.set(step.name as string, {
             total: 0,
             successful: 0,
             failed: 0,
@@ -2800,7 +2800,7 @@ export class EvaluationService {
           });
         }
 
-        const stats = stepStats.get(step.name)!;
+        const stats = stepStats.get(step.name as string)!;
         stats.total++;
 
         if (step.status === 'completed') {
@@ -2810,7 +2810,7 @@ export class EvaluationService {
         }
 
         if (step.duration) {
-          stats.durations.push(step.duration);
+          stats.durations.push(step.duration as number);
         }
       });
     });
@@ -2852,11 +2852,11 @@ export class EvaluationService {
       const userRating = task.evaluation?.user_rating || 3;
       const impactScore = 5 - userRating + 1; // Higher impact for lower ratings
 
-      if (!failurePatterns.has(failureSequence)) {
-        failurePatterns.set(failureSequence, { count: 0, totalImpact: 0 });
+      if (!failurePatterns.has(failureSequence as string)) {
+        failurePatterns.set(failureSequence as string, { count: 0, totalImpact: 0 });
       }
 
-      const pattern = failurePatterns.get(failureSequence)!;
+      const pattern = failurePatterns.get(failureSequence as string)!;
       pattern.count++;
       pattern.totalImpact += impactScore;
     });
@@ -2889,7 +2889,7 @@ export class EvaluationService {
       const steps = task.response_metadata?.workflow_steps_completed;
       if (!steps) return;
 
-      const date = new Date(task.created_at).toISOString().split('T')[0];
+      const date = new Date(task.created_at as string | number | Date).toISOString().split('T')[0];
       if (date && !dailyStats.has(date)) {
         dailyStats.set(date, {
           totalSteps: 0,
@@ -2958,19 +2958,19 @@ export class EvaluationService {
       ];
 
       allConstraints.forEach((constraint) => {
-        if (!constraintStats.has(constraint)) {
-          constraintStats.set(constraint, {
+        if (!constraintStats.has(constraint as string)) {
+          constraintStats.set(constraint as string, {
             usage: 0,
             ratings: [],
             effectivenessScores: [],
           });
         }
 
-        const stats = constraintStats.get(constraint)!;
+        const stats = constraintStats.get(constraint as string)!;
         stats.usage++;
 
         if (task.evaluation?.user_rating) {
-          stats.ratings.push(task.evaluation.user_rating);
+          stats.ratings.push(task.evaluation.user_rating as number);
         }
 
         // Mock effectiveness score - could be enhanced with actual tracking
@@ -3041,10 +3041,10 @@ export class EvaluationService {
       stats.usage++;
 
       if (task.evaluation?.user_rating) {
-        stats.ratings.push(task.evaluation.user_rating);
+        stats.ratings.push(task.evaluation.user_rating as number);
         // Mock effectiveness calculation
         const effectivenessScore =
-          task.evaluation.user_rating * 0.9 + Math.random() * 0.2;
+          (task.evaluation.user_rating as number) * 0.9 + Math.random() * 0.2;
         stats.effectivenessScores.push(effectivenessScore);
       }
     });
@@ -3106,7 +3106,7 @@ export class EvaluationService {
         [
           ...(cidafmOptions.activeStateModifiers || []),
           ...(cidafmOptions.responseModifiers || []),
-        ].forEach((constraint) => allConstraints.add(constraint));
+        ].forEach((constraint) => allConstraints.add(constraint as string));
       }
     });
 
@@ -3142,9 +3142,9 @@ export class EvaluationService {
         const targetStats = hasConstraint
           ? stats.withConstraint
           : stats.withoutConstraint;
-        targetStats.ratings.push(rating);
-        if (responseTime) targetStats.responseTimes.push(responseTime);
-        if (cost) targetStats.costs.push(cost);
+        targetStats.ratings.push(rating as number);
+        if (responseTime) targetStats.responseTimes.push(responseTime as number);
+        if (cost) targetStats.costs.push(cost as number);
       });
     });
 
@@ -3185,9 +3185,9 @@ export class EvaluationService {
   private convertToCSV(data: any[]): string {
     if (data.length === 0) return '';
 
-    const headers = Object.keys(data[0]).join(',');
+    const headers = Object.keys(data[0] as Record<string, unknown>).join(',');
     const rows = data.map((item) =>
-      Object.values(item)
+      Object.values(item as Record<string, unknown>)
         .map((val) => {
           if (typeof val === 'string' && val.includes(',')) {
             return `"${val.replace(/"/g, '""')}"`;

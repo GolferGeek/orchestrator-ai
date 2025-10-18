@@ -464,8 +464,8 @@ const processingError = computed(() => sanitizationStore.error);
 
 // Reactive data from store (no mock/demo data)
 const currentResult = computed(() => sanitizationStore.currentResult);
-const processingHistory = computed(() => sanitizationStore.processingHistory);
-const hasResult = computed(() => sanitizationStore.hasResult);
+// const processingHistory = computed(() => sanitizationStore.processingHistory);
+// const hasResult = computed(() => sanitizationStore.hasResult);
 const processingStats = computed(() => sanitizationStore.processingStats);
 
 // Computed properties

@@ -812,7 +812,7 @@ const parseCSVFile = (file: File): Promise<void> => {
           const data = results.data as Record<string, unknown>[];
           const dictionaries: PseudonymDictionaryImportData[] = [];
           
-          data.forEach((row, index) => {
+          data.forEach((row) => {
             const dict: PseudonymDictionaryImportData = {
               category: row.category || '',
               dataType: row.dataType || row.data_type || 'custom',

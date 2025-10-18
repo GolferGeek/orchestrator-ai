@@ -508,10 +508,10 @@ import {
   trendingUpOutline,
   heartOutline,
   checkmarkCircleOutline,
-  warningOutline,
+  // warningOutline,
   alertCircleOutline,
   serverOutline,
-  bugOutline,
+  // bugOutline,
   flashOutline,
   listOutline,
   arrowUpOutline,
@@ -559,9 +559,9 @@ const metrics = computed(() => dashboardStore.metrics);
 const detectionStats = computed(() => dashboardStore.detectionStats);
 const isLoading = computed(() => dashboardStore.isLoading);
 const error = computed(() => dashboardStore.error);
-const hasData = computed(() => dashboardStore.hasData);
+// const hasData = computed(() => dashboardStore.hasData);
 
-const patternUsage = computed(() => dashboardStore.patternUsage);
+// const patternUsage = computed(() => dashboardStore.patternUsage);
 const sanitizationMethods = computed(() => dashboardStore.sanitizationMethods);
 const performanceData = computed(() => dashboardStore.performanceData);
 const systemHealth = computed(() => dashboardStore.systemHealth);
@@ -624,9 +624,9 @@ const refreshData = async () => {
   }
 };
 
-const onFilterChange = () => {
-  refreshData();
-};
+// const onFilterChange = () => {
+//   refreshData();
+// };
 
 // Use store utility methods
 const formatNumber = (num: number): string => dashboardStore.formatNumber(num);

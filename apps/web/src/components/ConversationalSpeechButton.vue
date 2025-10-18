@@ -30,12 +30,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineEmits, defineProps, onUnmounted, onMounted } from 'vue';
+import { ref, computed, defineEmits, onUnmounted, onMounted } from 'vue';
 import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { radioButtonOnOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
-import { useUiStore } from '../stores/uiStore';
-import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
+// import { useUiStore } from '../stores/uiStore';
+// import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
 // import { useAgentChatStore } from '@/services/conversationHelpers';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 

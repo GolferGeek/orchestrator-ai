@@ -39,6 +39,16 @@ export interface PIIDetectionResult {
   patternsChecked: number;
 }
 
+interface RedactionPatternRow {
+  name: string;
+  data_type: string;
+  pattern_regex: string;
+  description: string | null;
+  priority: number | null;
+  severity: string;
+  is_active: boolean;
+}
+
 @Injectable()
 export class PIIPatternService {
   private readonly logger = new Logger(PIIPatternService.name);
@@ -266,7 +276,7 @@ export class PIIPatternService {
 
       if (data) {
         // Load ALL patterns from database (built-in and custom)
-        this.databasePatterns = data.map((row) => ({
+        this.databasePatterns = (data as RedactionPatternRow[]).map((row) => ({
           name: row.name,
           dataType: row.data_type as PIIDataType,
           pattern: new RegExp(row.pattern_regex, 'g'),

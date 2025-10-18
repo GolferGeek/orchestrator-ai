@@ -54,16 +54,16 @@ export class AgentRuntimeNormalizationService {
     definition: AgentRuntimeDefinition,
     mode: AgentTaskMode,
   ): { input?: string; output?: string; strict?: boolean } | null {
-    const cfg = (definition.config as any) || {};
-    const transforms = cfg.transforms || {};
-    const expected = transforms.expected || {};
-    const byMode = transforms.by_mode || {};
-    const forMode = byMode[this.modeKey(mode)] || {};
+    const cfg = (definition.config as unknown) as Record<string, unknown> | null || {};
+    const transforms = (cfg?.transforms as Record<string, unknown>) || {};
+    const expected = (transforms?.expected as Record<string, unknown>) || {};
+    const byMode = (transforms?.by_mode as Record<string, unknown>) || {};
+    const forMode = (byMode?.[this.modeKey(mode)] as Record<string, unknown>) || {};
 
-    const input = forMode.input?.content_type || expected.input?.content_type;
+    const input = (forMode?.input as Record<string, unknown>)?.content_type as string | undefined || (expected?.input as Record<string, unknown>)?.content_type as string | undefined;
     const output =
-      forMode.output?.content_type || expected.output?.content_type;
-    const strict = Boolean(forMode.input?.strict ?? expected.input?.strict);
+      (forMode?.output as Record<string, unknown>)?.content_type as string | undefined || (expected?.output as Record<string, unknown>)?.content_type as string | undefined;
+    const strict = Boolean((forMode?.input as Record<string, unknown>)?.strict ?? (expected?.input as Record<string, unknown>)?.strict);
     if (!input && !output && !strict) return null;
     return { input, output, strict };
   }

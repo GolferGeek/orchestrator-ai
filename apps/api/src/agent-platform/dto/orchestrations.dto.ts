@@ -165,7 +165,7 @@ export class ResolveOrchestrationApprovalDto {
   })
   @IsOptional()
   @IsObject()
-  modifications?: Record<string, any>;
+  modifications?: Record<string, unknown>;
 }
 
 export class RetryOrchestrationStepDto {
@@ -198,7 +198,7 @@ export class RetryOrchestrationStepDto {
   })
   @IsOptional()
   @IsObject()
-  modifications?: Record<string, any>;
+  modifications?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'Optional note recorded alongside the manual retry request.',
@@ -231,7 +231,7 @@ export class SkipOrchestrationStepDto {
   })
   @IsOptional()
   @IsObject()
-  replacementOutput?: Record<string, any>;
+  replacementOutput?: Record<string, unknown>;
 }
 
 export class AbortOrchestrationRunDto {

@@ -169,7 +169,7 @@ const emit = defineEmits<{
 }>();
 // Stores
 const agentsStore = useAgentsStore();
-const conversationsStore = useConversationsStore();
+// const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const contextStore = useContextStore();
 // Reactive state
@@ -229,7 +229,7 @@ const createDeliverable = async () => {
     // Emit success and close
     emit('created', 'pending'); // Will be updated when the task completes
     emit('dismiss');
-  } catch (error) {
+  } catch {
 
     // TODO: Show error toast or notification
   }
@@ -252,8 +252,8 @@ onMounted(async () => {
         agentsStore.setAvailableAgents(filteredAgents);
       }
     }
-  } catch (error) {
-    console.error('Failed to load agents:', error);
+  } catch {
+    console.error('Failed to load agents');
   }
 });
 // Watch for dialog open/close to reset form

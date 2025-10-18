@@ -319,7 +319,7 @@ import {
 import { usePrivacyStore } from '@/stores/privacyStore';
 import { privacyService } from '@/services/privacyService';
 import { useStoreAutoRefresh } from '@/composables/useStoreIntegration';
-import RecentLLMCalls from '@/components/PII/RecentLLMCalls.vue';
+// import RecentLLMCalls from '@/components/PII/RecentLLMCalls.vue';
 
 // Store integration - unified privacy store
 const privacyStore = usePrivacyStore();
@@ -345,7 +345,7 @@ const pseudonymStore = computed(() => ({
 }));
 
 // Computed properties for unified interface
-const isLoading = computed(() => privacyStore.patternsLoading || privacyStore.dictionariesLoading);
+// const isLoading = computed(() => privacyStore.patternsLoading || privacyStore.dictionariesLoading);
 const hasError = computed(() => !!privacyStore.patternsError || !!privacyStore.dictionariesError);
 const firstError = computed(() => privacyStore.patternsError || privacyStore.dictionariesError);
 

@@ -12,7 +12,7 @@ import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
  */
 describe('Agent Modes Integration Tests (Phase 6)', () => {
   let app: INestApplication;
-  let httpServer: any;
+  let httpServer: ReturnType<INestApplication['getHttpServer']>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({

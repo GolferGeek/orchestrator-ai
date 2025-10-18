@@ -2,7 +2,7 @@ import { AgentRecord } from '../interfaces/agent.interface';
 
 const EPOCH = '1970-01-01T00:00:00.000Z';
 
-type Descriptor = Record<string, any>;
+type Descriptor = Record<string, unknown>;
 
 interface AgentFixture {
   descriptor: Descriptor;

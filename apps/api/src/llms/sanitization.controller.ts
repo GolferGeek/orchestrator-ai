@@ -18,6 +18,15 @@ export class SanitizationController {
   async getStats() {
     try {
       const patternStats = await this.pseudonymizationService.getStats();
+      const stats = patternStats.patternServiceStats as {
+        totalPatterns: number;
+        enabledPatterns: number;
+        showstopperPatterns: number;
+        flaggerPatterns: number;
+        patternsLoaded: boolean;
+        builtInPatterns?: number;
+        customPatterns?: number;
+      };
 
       const client = this.supabaseService.getServiceClient();
       const { count: dictCount } = await client
@@ -29,21 +38,16 @@ export class SanitizationController {
           productionMode: patternStats.productionMode,
           pseudonymizationStats: {
             patternServiceStats: {
-              totalPatterns:
-                patternStats.patternServiceStats?.totalPatterns || 0,
-              builtInPatterns:
-                patternStats.patternServiceStats?.builtInPatterns || 0,
-              customPatterns:
-                patternStats.patternServiceStats?.customPatterns || 0,
-              enabledPatterns:
-                patternStats.patternServiceStats?.enabledPatterns || 0,
+              totalPatterns: stats.totalPatterns || 0,
+              builtInPatterns: stats.builtInPatterns || 0,
+              customPatterns: stats.customPatterns || 0,
+              enabledPatterns: stats.enabledPatterns || 0,
               lastRefresh: new Date().toISOString(),
             },
           },
           redactionStats: {
-            totalPatterns: patternStats.patternServiceStats?.totalPatterns || 0,
-            customPatterns:
-              patternStats.patternServiceStats?.customPatterns || 0,
+            totalPatterns: stats.totalPatterns || 0,
+            customPatterns: stats.customPatterns || 0,
           },
           verboseLogging: false,
         },

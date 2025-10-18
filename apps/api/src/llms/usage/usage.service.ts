@@ -32,6 +32,58 @@ interface ExportOptions {
   includeDetails?: boolean;
 }
 
+interface LLMUsageMetadata {
+  input_tokens?: number;
+  output_tokens?: number;
+}
+
+interface LLMMetadata {
+  usage?: LLMUsageMetadata;
+  cost?: number;
+  total_cost?: number;
+  response_time_ms?: number;
+  user_rating?: number;
+  user_id?: string;
+  provider?: string;
+  model?: string;
+  timestamp?: string;
+}
+
+interface TaskWithMetadata {
+  llm_metadata?: LLMMetadata;
+  started_at?: string;
+  completed_at?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_cost?: number;
+  user_rating?: number;
+  provider?: { id?: string; [key: string]: unknown };
+  model?: { id?: string; [key: string]: unknown };
+  timestamp?: string;
+}
+
+interface ProviderGroup {
+  provider: { id?: string; [key: string]: unknown } | undefined;
+  requests: number;
+  tokens: number;
+  cost: number;
+}
+
+interface ModelGroup {
+  model: { id?: string; [key: string]: unknown } | undefined;
+  requests: number;
+  tokens: number;
+  cost: number;
+  avg_rating: number;
+}
+
+interface DateGroup {
+  date: string;
+  requests: number;
+  tokens: number;
+  cost: number;
+}
+
 @Injectable()
 export class UsageService {
   constructor(private readonly supabaseService: SupabaseService) {}
@@ -80,7 +132,7 @@ export class UsageService {
       let responseTimeCount = 0;
 
       completedTasks.forEach((task) => {
-        const metadata = task.llm_metadata;
+        const metadata = (task as TaskWithMetadata).llm_metadata;
         if (metadata) {
           // Extract token usage if available
           if (metadata.usage) {
@@ -420,7 +472,7 @@ export class UsageService {
 
   // Helper methods
   private calculateStats(
-    messages: any[],
+    messages: TaskWithMetadata[],
     startDate: string,
     endDate: string,
   ): UsageStatsResponseDto {
@@ -435,17 +487,18 @@ export class UsageService {
     );
     const avgResponseTime =
       messages.length > 0
-        ? messages.reduce((sum, msg) => sum + (msg.response_time_ms || 0), 0) /
+        ? messages.reduce((sum, msg) => sum + (msg.llm_metadata?.response_time_ms || 0), 0) /
           messages.length
         : 0;
     const avgUserRating =
-      messages.filter((msg) => msg.user_rating).length > 0
-        ? messages.reduce((sum, msg) => sum + (msg.user_rating || 0), 0) /
-          messages.filter((msg) => msg.user_rating).length
+      messages.filter((msg) => msg.llm_metadata?.user_rating).length > 0
+        ? messages.reduce((sum, msg) => sum + (msg.llm_metadata?.user_rating || 0), 0) /
+          messages.filter((msg) => msg.llm_metadata?.user_rating).length
         : undefined;
 
+    const firstMessage = messages[0];
     return {
-      userId: messages[0]?.user_id || '',
+      userId: firstMessage?.llm_metadata?.user_id || '',
       dateRange: { startDate: startDate, endDate: endDate },
       totalRequests: totalRequests,
       totalTokens: totalTokens,
@@ -455,8 +508,8 @@ export class UsageService {
     };
   }
 
-  private groupByProvider(messages: any[]): any[] {
-    const grouped = messages.reduce((acc, msg) => {
+  private groupByProvider(messages: TaskWithMetadata[]): ProviderGroup[] {
+    const grouped = messages.reduce((acc: Record<string, ProviderGroup>, msg) => {
       const providerId = msg.provider?.id || 'unknown';
       if (!acc[providerId]) {
         acc[providerId] = {
@@ -476,8 +529,8 @@ export class UsageService {
     return Object.values(grouped);
   }
 
-  private groupByModel(messages: any[]): any[] {
-    const grouped = messages.reduce((acc, msg) => {
+  private groupByModel(messages: TaskWithMetadata[]): ModelGroup[] {
+    const grouped = messages.reduce((acc: Record<string, ModelGroup>, msg) => {
       const modelId = msg.model?.id || 'unknown';
       if (!acc[modelId]) {
         acc[modelId] = {
@@ -497,9 +550,10 @@ export class UsageService {
     return Object.values(grouped);
   }
 
-  private groupByDate(messages: any[], _granularity: string): any[] {
-    const grouped = messages.reduce((acc: Record<string, any>, msg) => {
-      const date = new Date(msg.timestamp).toISOString().split('T')[0]!;
+  private groupByDate(messages: TaskWithMetadata[], _granularity: string): DateGroup[] {
+    const grouped = messages.reduce((acc: Record<string, DateGroup>, msg) => {
+      const timestamp = msg.llm_metadata?.timestamp || msg.timestamp || new Date().toISOString();
+      const date = new Date(timestamp).toISOString().split('T')[0]!;
       if (!acc[date]) {
         acc[date] = {
           date,
@@ -514,7 +568,7 @@ export class UsageService {
       return acc;
     }, {});
 
-    return Object.values(grouped).sort((a: any, b: any) =>
+    return Object.values(grouped).sort((a, b) =>
       a.date.localeCompare(b.date),
     );
   }
@@ -527,7 +581,7 @@ export class UsageService {
     return [];
   }
 
-  private createTrends(dailyStats: any[]): any[] {
+  private createTrends(dailyStats: DateGroup[]): DateGroup[] {
     return dailyStats.map((day) => ({
       date: day.date,
       cost: day.cost,
@@ -536,12 +590,12 @@ export class UsageService {
     }));
   }
 
-  private calculateCostEfficiency(model: any): number {
+  private calculateCostEfficiency(model: ModelGroup | ProviderGroup): number {
     // Simple cost efficiency score based on cost per token
     return model.tokens > 0 ? 1 / (model.cost / model.tokens) : 0;
   }
 
-  private calculatePerformanceScore(model: any): number {
+  private calculatePerformanceScore(model: ModelGroup): number {
     // Composite score based on rating and cost efficiency
     return (
       (model.avg_rating || 0) * 0.7 + this.calculateCostEfficiency(model) * 0.3
@@ -551,7 +605,13 @@ export class UsageService {
   private calculateSpendingSummary(
     stats: UsageStatsResponseDto,
     days: number,
-  ): any {
+  ): {
+    totalSpent: number;
+    dailyAverage: number;
+    projectedMonthly: number;
+    mostExpensiveDay: string;
+    mostExpensiveAmount: number;
+  } {
     return {
       totalSpent: stats.totalCost,
       dailyAverage: stats.totalCost / days,
@@ -561,7 +621,12 @@ export class UsageService {
     };
   }
 
-  private analyzeUsagePatterns(stats: UsageStatsResponseDto): any {
+  private analyzeUsagePatterns(stats: UsageStatsResponseDto): {
+    peakHours: number[];
+    busiestDayOfWeek: string;
+    avgRequestsPerDay: number;
+    avgTokensPerRequest: number;
+  } {
     return {
       peakHours: [9, 10, 14, 15], // Mock data
       busiestDayOfWeek: 'Tuesday',
@@ -570,7 +635,12 @@ export class UsageService {
     };
   }
 
-  private analyzeModelInsights(_stats: UsageStatsResponseDto): any {
+  private analyzeModelInsights(_stats: UsageStatsResponseDto): {
+    mostUsedModel: string;
+    mostExpensiveModel: string;
+    bestValueModel: string;
+    underutilizedModels: string[];
+  } {
     return {
       mostUsedModel: 'GPT-4o',
       mostExpensiveModel: 'Claude 3 Opus',
@@ -580,10 +650,10 @@ export class UsageService {
   }
 
   private generateRecommendations(
-    _stats: any,
-    spending: any,
-    _insights: any,
-  ): any[] {
+    _stats: UsageStatsResponseDto,
+    spending: { totalSpent: number; dailyAverage: number; projectedMonthly: number; mostExpensiveDay: string; mostExpensiveAmount: number },
+    _insights: { mostUsedModel: string; mostExpensiveModel: string; bestValueModel: string; underutilizedModels: string[] },
+  ): Array<{ type: string; title: string; description: string; potentialSavings: number; priority: string }> {
     return [
       {
         type: 'cost_optimization',

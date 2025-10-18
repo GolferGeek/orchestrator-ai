@@ -54,7 +54,7 @@ export class TaskMessageDto {
   role!: string;
 
   @IsOptional()
-  content?: any;
+  content?: unknown;
 }
 
 export class TaskRequestDto {
@@ -92,11 +92,11 @@ export class TaskRequestDto {
 
   @IsOptional()
   @IsObject()
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
 
   @IsOptional()
   @IsObject()
-  promptParameters?: Record<string, any>;
+  promptParameters?: Record<string, unknown>;
 
   @IsOptional()
   @IsString()
@@ -110,7 +110,7 @@ export class TaskRequestDto {
 
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
