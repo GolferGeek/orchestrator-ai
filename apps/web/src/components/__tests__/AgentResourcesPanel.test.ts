@@ -29,7 +29,7 @@ const mockVideos: Video[] = [
 ];
 
 describe('AgentResourcesPanel', () => {
-  let pinia: any;
+  let pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
     pinia = createPinia();

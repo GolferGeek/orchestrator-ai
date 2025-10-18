@@ -113,7 +113,7 @@ export function useComponentPerformance(componentName?: string) {
 /**
  * Performance tracking decorator for Vue components
  */
-export function withPerformanceTracking<T extends Record<string, any>>(
+export function withPerformanceTracking<T extends Record<string, unknown>>(
   component: T,
   componentName?: string
 ): T {
@@ -124,7 +124,7 @@ export function withPerformanceTracking<T extends Record<string, any>>(
 
   return {
     ...component,
-    setup(props: any, context: any) {
+    setup(props: Record<string, unknown>, context: Record<string, unknown>) {
       const { trackComponentRender } = useComponentPerformance(name);
       
       // Track renders on updates

@@ -24,7 +24,7 @@ export interface ApiSanitizationOptions {
 }
 
 export interface SanitizationResult {
-  sanitized: any;
+  sanitized: Record<string, unknown>;
   modified: boolean;
   modifiedFields: string[];
   profile: string;
@@ -41,7 +41,7 @@ export function useApiSanitization() {
    * Sanitize data before sending to API
    */
   function sanitizeApiData(
-    data: any,
+    data: Record<string, unknown>,
     options: ApiSanitizationOptions = {}
   ): SanitizationResult {
     const {
@@ -55,7 +55,7 @@ export function useApiSanitization() {
     const modifiedFields: string[] = [];
     let modified = false;
 
-    function sanitizeValue(value: any, key?: string): any {
+    function sanitizeValue(value: unknown, key?: string): unknown {
       // Skip excluded fields
       if (key && excludeFields.includes(key)) {
         return value;
@@ -85,7 +85,7 @@ export function useApiSanitization() {
       }
 
       if (deep && value && typeof value === 'object') {
-        const sanitizedObj: any = {};
+        const sanitizedObj: Record<string, unknown> = {};
         for (const [objKey, objValue] of Object.entries(value)) {
           const fullKey = key ? `${key}.${objKey}` : objKey;
           sanitizedObj[objKey] = sanitizeValue(objValue, fullKey);
@@ -134,8 +134,8 @@ export function useApiSanitization() {
   function sanitizeOrchestratorRequest(payload: {
     message: string;
     session_id?: string;
-    conversation_history?: Array<{ role: string; content: string; metadata?: any }>;
-    [key: string]: any;
+    conversation_history?: Array<{ role: string; content: string; metadata?: Record<string, unknown> }>;
+    [key: string]: unknown;
   }): typeof payload {
     const result = sanitizeApiData(payload, {
       fieldProfiles: {
@@ -155,8 +155,8 @@ export function useApiSanitization() {
   function sanitizeTaskRequest(request: {
     method: string;
     prompt: string;
-    params?: any;
-    [key: string]: any;
+    params?: Record<string, unknown>;
+    [key: string]: unknown;
   }): typeof request {
     const result = sanitizeApiData(request, {
       fieldProfiles: {
@@ -175,7 +175,7 @@ export function useApiSanitization() {
    */
   function sanitizePIIRequest(request: {
     text: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }): typeof request {
     const result = sanitizeApiData(request, {
       fieldProfiles: {
@@ -191,11 +191,11 @@ export function useApiSanitization() {
    * Sanitize error report payload
    */
   function sanitizeErrorReport(payload: {
-    error: any;
+    error: Error | Record<string, unknown>;
     userFeedback?: string;
     reproductionSteps?: string;
     expectedBehavior?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }): typeof payload {
     const result = sanitizeApiData(payload, {
       fieldProfiles: {
@@ -213,7 +213,7 @@ export function useApiSanitization() {
   /**
    * Sanitize form data before API submission
    */
-  function sanitizeFormData(formData: Record<string, any>, fieldTypes: Record<string, string> = {}): Record<string, any> {
+  function sanitizeFormData(formData: Record<string, unknown>, fieldTypes: Record<string, string> = {}): Record<string, unknown> {
     const result = sanitizeApiData(formData, {
       fieldProfiles: fieldTypes,
       logSanitization: true
@@ -225,7 +225,7 @@ export function useApiSanitization() {
   /**
    * Create a sanitized API wrapper function
    */
-  function createSanitizedApiCall<T extends (...args: any[]) => Promise<any>>(
+  function createSanitizedApiCall<T extends (...args: unknown[]) => Promise<unknown>>(
     apiFunction: T,
     sanitizationOptions: ApiSanitizationOptions = {}
   ): T {
@@ -248,10 +248,10 @@ export function useApiSanitization() {
   /**
    * Validate that data has been sanitized
    */
-  function validateSanitization(data: any): { isValid: boolean; issues: string[] } {
+  function validateSanitization(data: unknown): { isValid: boolean; issues: string[] } {
     const issues: string[] = [];
 
-    function checkValue(value: any, path: string = ''): void {
+    function checkValue(value: unknown, path: string = ''): void {
       if (typeof value === 'string') {
         // Check for common XSS patterns
         if (/<script|javascript:|on\w+\s*=/i.test(value)) {

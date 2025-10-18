@@ -21,9 +21,16 @@ vi.mock('vue-router', () => ({
   })
 }));
 
+interface MockVideoService {
+  getAllVideos: ReturnType<typeof vi.fn>;
+  getAgentVideoIds: ReturnType<typeof vi.fn>;
+  getDefaultVideoIds: ReturnType<typeof vi.fn>;
+  getVideosByIds: ReturnType<typeof vi.fn>;
+}
+
 describe('Agent Conversation Video Flow Integration', () => {
-  let pinia: any;
-  const mockVideoService = videoService as any;
+  let pinia: ReturnType<typeof createPinia>;
+  const mockVideoService = videoService as MockVideoService;
 
   beforeEach(() => {
     pinia = createPinia();

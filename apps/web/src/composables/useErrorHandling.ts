@@ -27,13 +27,13 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
    * Handle an error with user-friendly messaging and recovery options
    */
   const handleError = async (
-    error: Error | AppError | any,
+    error: Error | AppError | Record<string, unknown>,
     context?: {
       operation?: string;
       url?: string;
       userId?: string;
       sessionId?: string;
-      additionalContext?: Record<string, any>;
+      additionalContext?: Record<string, unknown>;
     }
   ): Promise<void> => {
     isHandlingError.value = true;
@@ -85,11 +85,11 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
    * Handle API errors specifically
    */
   const handleApiError = async (
-    error: any,
+    error: Record<string, unknown>,
     context?: {
       method?: string;
       url?: string;
-      requestData?: any;
+      requestData?: Record<string, unknown>;
       operation?: string;
     }
   ): Promise<void> => {
@@ -114,7 +114,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
    * Handle network errors specifically
    */
   const handleNetworkError = async (
-    error: any,
+    error: Record<string, unknown>,
     context?: {
       operation?: string;
       url?: string;
@@ -242,7 +242,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
     );
   };
 
-  const getApiErrorMessage = (error: any): string => {
+  const getApiErrorMessage = (error: Record<string, unknown>): string => {
     const status = error.response?.status;
     
     if (!error.response) {

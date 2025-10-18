@@ -159,7 +159,7 @@ export function useGlobalErrorHandler() {
           additionalContext: {
             source: 'resource-error',
             tagName: element.tagName,
-            src: (element as any).src || (element as any).href
+            src: (element as HTMLImageElement).src || (element as HTMLAnchorElement).href
           }
         });
       }
@@ -279,7 +279,7 @@ export function useGlobalErrorHandler() {
     
     // Store interval for cleanup
     if (instance) {
-      (instance as any).cleanupInterval = cleanupInterval;
+      (instance as Record<string, unknown>).cleanupInterval = cleanupInterval;
     }
   });
 
@@ -288,8 +288,8 @@ export function useGlobalErrorHandler() {
     removeGlobalListeners();
     
     // Clear cleanup interval
-    if (instance && (instance as any).cleanupInterval) {
-      clearInterval((instance as any).cleanupInterval);
+    if (instance && (instance as Record<string, unknown>).cleanupInterval) {
+      clearInterval((instance as Record<string, unknown>).cleanupInterval as NodeJS.Timeout);
     }
   });
 

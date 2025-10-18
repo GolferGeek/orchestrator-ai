@@ -3,8 +3,8 @@ import { getIonColor, withFallback } from '@/utils/themeColors';
 import type { ChartConfiguration, ChartType, ChartData, ChartOptions } from 'chart.js';
 
 // Lazy-loaded Chart.js for better performance
-let Chart: any = null;
-let chartComponents: any = null;
+let Chart: typeof import('chart.js').Chart | null = null;
+let chartComponents: Record<string, unknown> | null = null;
 
 const loadChartJS = async () => {
   if (Chart) return Chart;
@@ -66,7 +66,7 @@ export interface ChartConfig {
 }
 
 export const useChart = (canvasRef: Ref<HTMLCanvasElement | null>, config: Ref<ChartConfig>) => {
-  const chartInstance = ref<any>(null);
+  const chartInstance = ref<import('chart.js').Chart | null>(null);
   const isLoading = ref(true);
   const error = ref<string | null>(null);
 

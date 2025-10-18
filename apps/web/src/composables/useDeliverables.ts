@@ -39,7 +39,7 @@ export function useDeliverables() {
    * Call this when agents return responses with deliverable IDs
    */
   async function processAgentResponse(
-    response: any,
+    response: Record<string, unknown>,
     conversationId: string,
     messageId?: string
   ): Promise<void> {
@@ -75,7 +75,7 @@ export function useDeliverables() {
    * Get enhancement parameters for agent requests
    * Returns parameters to include in agent task requests
    */
-  function getEnhancementParams(): Record<string, any> {
+  function getEnhancementParams(): Record<string, unknown> {
     // Enhancement context disabled for now
     // if (store.enhancementContext?.isEnhancing && store.enhancementContext?.sourceDeliverableId) {
     //   return {
@@ -99,7 +99,7 @@ export function useDeliverables() {
       messageId?: string;
       agentName?: string;
       tags?: string[];
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
   ): Promise<Deliverable | null> {
     const data: CreateDeliverableDto = {
@@ -133,9 +133,9 @@ export function useDeliverables() {
     newContent: string,
     options: {
       agentName?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     } = {}
-  ): Promise<any> {
+  ): Promise<Deliverable | null> {
     const versionData: CreateVersionDto = {
       content: newContent,
       format: DeliverableFormat.MARKDOWN,

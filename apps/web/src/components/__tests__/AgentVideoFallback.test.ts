@@ -27,7 +27,7 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('Agent Video Fallback Behavior', () => {
-  let pinia: any;
+  let pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
     pinia = createPinia();
@@ -66,8 +66,8 @@ describe('Agent Video Fallback Behavior', () => {
   it('should handle null or undefined agent slug gracefully', () => {
     // Test framework - verify graceful handling of invalid agent slugs
     const videoIds1 = videoService.getAgentVideoIds('');
-    const videoIds2 = videoService.getAgentVideoIds(null as any);
-    const videoIds3 = videoService.getAgentVideoIds(undefined as any);
+    const videoIds2 = videoService.getAgentVideoIds(null as unknown as string);
+    const videoIds3 = videoService.getAgentVideoIds(undefined as unknown as string);
     
     expect(videoIds1).toEqual([]);
     expect(videoIds2).toEqual([]);

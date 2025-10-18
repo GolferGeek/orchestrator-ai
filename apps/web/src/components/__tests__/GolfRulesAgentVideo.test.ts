@@ -32,7 +32,7 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('Golf Rules Agent Video Display', () => {
-  let pinia: any;
+  let pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
     pinia = createPinia();

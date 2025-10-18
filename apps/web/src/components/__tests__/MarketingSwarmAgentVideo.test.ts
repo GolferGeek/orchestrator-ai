@@ -32,7 +32,7 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('Marketing Swarm Agent Video Display', () => {
-  let pinia: any;
+  let pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
     pinia = createPinia();

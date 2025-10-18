@@ -33,7 +33,7 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('Metrics Agent Video Display', () => {
-  let pinia: any;
+  let pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
     pinia = createPinia();
