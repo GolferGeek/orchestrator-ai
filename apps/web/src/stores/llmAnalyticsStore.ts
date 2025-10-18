@@ -17,7 +17,6 @@ import { ref, computed } from 'vue';
 import { llmAnalyticsService, type ActiveRun } from '@/services/llmAnalyticsService';
 import {
   LLMUsageStats,
-  LLMUsageRecord,
   PerformanceMetrics,
   CostAnalysis,
   LLMUsageStatsRequest,

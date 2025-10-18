@@ -37,7 +37,7 @@ export const useLandingStore = defineStore('landing', () => {
     foundingPartnerCount.value < maxFoundingPartners.value
   );
   // Actions
-  function trackPageView(page: string) {
+  function trackPageView(_page: string) {
     // Analytics tracking
     // Track with your analytics service
     // gtag('event', 'page_view', { page_title: page });

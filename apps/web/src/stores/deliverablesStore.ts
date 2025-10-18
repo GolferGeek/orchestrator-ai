@@ -12,7 +12,6 @@ import { ref, computed } from 'vue';
 import type {
   Deliverable,
   DeliverableVersion,
-  DeliverableType,
 } from '@/services/deliverablesService';
 
 interface DeliverablesState {

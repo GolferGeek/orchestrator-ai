@@ -16,13 +16,10 @@ import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
 import type {
-  Message as MessageType,
   MessageMetadata,
-  Conversation as ConversationType,
   ConversationMetadata,
 } from '@/types/message';
 import type {
-  Task as TaskType,
   TaskStatus,
   TaskMetadata,
   TaskData,
@@ -588,7 +585,7 @@ export const useConversationsStore = defineStore('conversations', () => {
    * @deprecated Phase 2: Move to converse.actions.ts
    * Fetch conversations from API and update store
    */
-  async function fetchConversations(force = false): Promise<void> {
+  async function fetchConversations(_force = false): Promise<void> {
     const agent2AgentConversationsService = await import('@/services/agent2AgentConversationsService').then(m => m.default);
 
     setLoading('_global', true);
@@ -638,7 +635,6 @@ export const useConversationsStore = defineStore('conversations', () => {
 
     try {
       // Optimistically remove from store
-      const conversation = conversationById(conversationId);
       removeConversation(conversationId);
 
       // Make API call
