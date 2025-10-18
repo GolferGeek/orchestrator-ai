@@ -409,9 +409,14 @@ const maxRequests = computed(() => {
   return Math.max(...(analytics.value?.map(item => item.total_requests) || []), 1);
 });
 
+interface AnalyticsDataPoint {
+  date: string;
+  [key: string]: unknown;
+}
+
 // Route trend data (client-side fetch of local/remote analytics)
-const localAnalytics = ref<any[]>([]);
-const remoteAnalytics = ref<any[]>([]);
+const localAnalytics = ref<AnalyticsDataPoint[]>([]);
+const remoteAnalytics = ref<AnalyticsDataPoint[]>([]);
 
 const routeLocalCounts = computed<Record<string, number>>(() => {
   const map: Record<string, number> = {};

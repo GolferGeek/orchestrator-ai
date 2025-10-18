@@ -99,10 +99,10 @@ import ChatModeSendButton from './ChatModeSendButton.vue';
 import ChatHeader from './ChatHeader.vue';
 import ChatModeControl from './ChatModeControl.vue';
 import { useModeSwitchShortcuts } from '@/composables/useKeyboardShortcuts';
-import type { AgentChatMode } from '@/types/conversation';
+import type { AgentChatMode, AgentConversation } from '@/types/conversation';
 // Define emits
 interface Props {
-  conversation?: any; // The conversation object from the store
+  conversation?: AgentConversation; // The conversation object from the store
 }
 const props = defineProps<Props>();
 // Stores

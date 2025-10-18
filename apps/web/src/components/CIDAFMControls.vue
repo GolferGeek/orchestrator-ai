@@ -103,10 +103,12 @@ onMounted(async () => {
     await llmStore.fetchCIDAFMCommands();
   }
 });
+import type { CIDAFMCommand } from '@/types/llm';
+
 // Computed properties
 const filteredCommandsByType = computed(() => {
   // Only show ^ (caret) commands - per-prompt modifiers
-  const filtered: { [key: string]: any[] } = {};
+  const filtered: { [key: string]: CIDAFMCommand[] } = {};
   for (const [type, commands] of Object.entries(llmStore.builtinCommandsByType)) {
     if (type === '^') {
       filtered[type] = commands;

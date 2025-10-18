@@ -32,7 +32,6 @@ import type {
   PlanRerunPayload,
   PlanCreateResponseContent,
   PlanListResponseContent,
-  PlanReadResponseContent,
   PlanRerunResponseContent,
   PlanResponseMetadata,
 } from '@orchestrator-ai/transport-types/modes/plan.types';
@@ -80,11 +79,6 @@ interface CopyVersionActionResult {
   sourceVersion: PlanVersion;
   targetPlan: Plan;
   copiedVersion: PlanVersion;
-}
-
-interface ListVersionsActionResult {
-  plan: Plan;
-  versions: PlanVersion[];
 }
 
 export async function handlePlanCreate(
@@ -1244,10 +1238,35 @@ function normalizePlanContent(
     };
   }
 
-  return {
-    content:
-      rawContent === undefined || rawContent === null ? '' : String(rawContent),
-  };
+  if (rawContent === undefined || rawContent === null) {
+    return { content: '' };
+  }
+
+  if (
+    typeof rawContent === 'number' ||
+    typeof rawContent === 'boolean' ||
+    typeof rawContent === 'bigint'
+  ) {
+    return { content: rawContent.toString() };
+  }
+
+  if (
+    typeof rawContent === 'symbol' ||
+    typeof rawContent === 'function' ||
+    (typeof rawContent === 'string' && rawContent.length === 0)
+  ) {
+    return { content: rawContent.toString() };
+  }
+
+  try {
+    return {
+      content: JSON.stringify(rawContent, null, 2),
+    };
+  } catch (error) {
+    const reason =
+      error instanceof Error ? error.message : 'Unable to stringify content';
+    return { content: `Failed to stringify content: ${reason}` };
+  }
 }
 
 function resolvePlanFormat(
@@ -1313,16 +1332,6 @@ function extractCodeFenceContent(value: string): string {
     return fencedMatch[1].trim();
   }
   return value;
-}
-
-function parseJsonSafely(value: string, errorMessage: string): any {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    const reason =
-      error instanceof Error ? error.message : 'Unable to parse JSON';
-    throw new Error(`${errorMessage}: ${reason}`);
-  }
 }
 
 function toIsoString(value: unknown): string {

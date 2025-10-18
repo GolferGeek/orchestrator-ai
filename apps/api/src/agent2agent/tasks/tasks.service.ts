@@ -63,117 +63,113 @@ export class TasksService {
     agentType: AgentType,
     dto: CreateTaskDto,
   ): Promise<Task> {
-    try {
-      // Handle conversation - always ensure it exists
-      let conversationId: string | null = dto.conversationId || null;
+    // Handle conversation - always ensure it exists
+    let conversationId: string | null = dto.conversationId || null;
 
-      // Always validate/create conversation to avoid foreign key violations
-      const conversation =
-        await this.agentConversationsService.getOrCreateConversation(
+    // Always validate/create conversation to avoid foreign key violations
+    const conversation =
+      await this.agentConversationsService.getOrCreateConversation(
+        userId,
+        agentName,
+        agentType,
+        conversationId, // Pass existing ID for validation/reuse
+      );
+    conversationId = conversation.id;
+
+    // Prepare task data with proper ID handling
+    const taskData: any = {
+      conversation_id: conversationId,
+      user_id: userId,
+      method: dto.method,
+      prompt: dto.prompt,
+      params: dto.params || {},
+      status: 'pending',
+      progress: 0,
+      timeout_seconds:
+        dto.timeoutSeconds ||
+        parseInt(process.env.AGENT_TASK_TIMEOUT_SECONDS || '120', 10),
+      metadata: dto.metadata || {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Use provided task ID if available, otherwise generate new one
+    if (dto.taskId) {
+      taskData.id = dto.taskId;
+    } else {
+      taskData.id = this.generateTaskId();
+    }
+
+    // Store LLM selection metadata if provided
+    if (dto.llmSelection) {
+      taskData.llm_metadata = {
+        originalLLMSelection: dto.llmSelection,
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    let finalTaskData = taskData;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        const { data, error } = await this.supabaseService
+          .getAnonClient()
+          .from('tasks')
+          .insert(finalTaskData)
+          .select()
+          .single();
+
+        if (error) {
+          // If it's a duplicate key error and we have attempts left, generate new ID
+          if (error.code === '23505' && attempts < maxAttempts - 1) {
+            finalTaskData = {
+              ...taskData,
+              id: this.generateTaskId(), // Generate new unique ID
+            };
+            attempts++;
+            continue;
+          }
+
+          throw new Error(`Failed to create task: ${error.message}`);
+        }
+
+        // Success - continue with task setup
+        const createdTask = data;
+
+        // Legacy TaskLifecycleService archived - task tracking now handled via database
+
+        // Register task with TaskStatusService for live tracking
+        await this.taskStatusService.createTask(
+          createdTask.id,
+          userId,
+          `${agentType}/${agentName}`, // Use the constructed task type for status service
+          {
+            status: 'pending',
+            progress: 0,
+            progressMessage: 'Task created, waiting for execution...',
+          },
+        );
+
+        // Emit task created event
+        this.eventEmitter.emit('task.created', {
+          taskId: createdTask.id,
+          conversationId,
           userId,
           agentName,
-          agentType,
-          conversationId, // Pass existing ID for validation/reuse
-        );
-      conversationId = conversation.id;
+        });
 
-      // Prepare task data with proper ID handling
-      const taskData: any = {
-        conversation_id: conversationId,
-        user_id: userId,
-        method: dto.method,
-        prompt: dto.prompt,
-        params: dto.params || {},
-        status: 'pending',
-        progress: 0,
-        timeout_seconds:
-          dto.timeoutSeconds ||
-          parseInt(process.env.AGENT_TASK_TIMEOUT_SECONDS || '120', 10),
-        metadata: dto.metadata || {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      // Use provided task ID if available, otherwise generate new one
-      if (dto.taskId) {
-        taskData.id = dto.taskId;
-      } else {
-        taskData.id = this.generateTaskId();
-      }
-
-      // Store LLM selection metadata if provided
-      if (dto.llmSelection) {
-        taskData.llm_metadata = {
-          originalLLMSelection: dto.llmSelection,
-          createdAt: new Date().toISOString(),
-        };
-      }
-
-      let finalTaskData = taskData;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (attempts < maxAttempts) {
-        try {
-          const { data, error } = await this.supabaseService
-            .getAnonClient()
-            .from('tasks')
-            .insert(finalTaskData)
-            .select()
-            .single();
-
-          if (error) {
-            // If it's a duplicate key error and we have attempts left, generate new ID
-            if (error.code === '23505' && attempts < maxAttempts - 1) {
-              finalTaskData = {
-                ...taskData,
-                id: this.generateTaskId(), // Generate new unique ID
-              };
-              attempts++;
-              continue;
-            }
-
-            throw new Error(`Failed to create task: ${error.message}`);
-          }
-
-          // Success - continue with task setup
-          const createdTask = data;
-
-          // Legacy TaskLifecycleService archived - task tracking now handled via database
-
-          // Register task with TaskStatusService for live tracking
-          await this.taskStatusService.createTask(
-            createdTask.id,
-            userId,
-            `${agentType}/${agentName}`, // Use the constructed task type for status service
-            {
-              status: 'pending',
-              progress: 0,
-              progressMessage: 'Task created, waiting for execution...',
-            },
-          );
-
-          // Emit task created event
-          this.eventEmitter.emit('task.created', {
-            taskId: createdTask.id,
-            conversationId,
-            userId,
-            agentName,
-          });
-
-          return this.mapToTask(createdTask);
-        } catch (error) {
-          if (attempts >= maxAttempts - 1) {
-            throw error;
-          }
-          attempts++;
+        return this.mapToTask(createdTask);
+      } catch (error) {
+        if (attempts >= maxAttempts - 1) {
+          throw error;
         }
+        attempts++;
       }
-
-      throw new Error(`Failed to create task after ${maxAttempts} attempts`);
-    } catch (error) {
-      throw error;
     }
+
+    throw new Error(`Failed to create task after ${maxAttempts} attempts`);
   }
 
   /**
@@ -209,43 +205,39 @@ export class TasksService {
   async listTasks(
     params: TaskQueryParams,
   ): Promise<{ tasks: Task[]; total: number }> {
-    try {
-      let query = this.supabaseService
-        .getAnonClient()
-        .from('tasks')
-        .select('*', { count: 'exact' });
+    let query = this.supabaseService
+      .getAnonClient()
+      .from('tasks')
+      .select('*', { count: 'exact' });
 
-      // Apply filters
-      if (params.conversationId) {
-        query = query.eq('conversation_id', params.conversationId);
-      }
-      if (params.userId) {
-        query = query.eq('user_id', params.userId);
-      }
-      if (params.status) {
-        query = query.eq('status', params.status);
-      }
-
-      // Apply pagination
-      const limit = params.limit || 50;
-      const offset = params.offset || 0;
-      query = query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        throw new Error(`Failed to list tasks: ${error.message}`);
-      }
-
-      return {
-        tasks: data.map((item) => this.mapToTask(item)),
-        total: count || 0,
-      };
-    } catch (error) {
-      throw error;
+    // Apply filters
+    if (params.conversationId) {
+      query = query.eq('conversation_id', params.conversationId);
     }
+    if (params.userId) {
+      query = query.eq('user_id', params.userId);
+    }
+    if (params.status) {
+      query = query.eq('status', params.status);
+    }
+
+    // Apply pagination
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      throw new Error(`Failed to list tasks: ${error.message}`);
+    }
+
+    return {
+      tasks: data.map((item) => this.mapToTask(item)),
+      total: count || 0,
+    };
   }
 
   /**
@@ -256,96 +248,92 @@ export class TasksService {
     userId: string,
     updates: UpdateTaskDto,
   ): Promise<Task> {
-    try {
-      const updateData: any = {
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
+    const updateData: any = {
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
 
-      // Handle status transitions
-      if (updates.status === 'running' && !updateData.started_at) {
-        updateData.started_at = new Date().toISOString();
-      }
-      if (
-        updates.status === 'completed' ||
-        updates.status === 'failed' ||
-        updates.status === 'cancelled'
-      ) {
-        updateData.completed_at = new Date().toISOString();
-      }
-
-      // Convert camelCase to snake_case for database columns
-      if (updateData.responseMetadata !== undefined) {
-        updateData.response_metadata = updateData.responseMetadata;
-        delete updateData.responseMetadata;
-      }
-      if (updateData.errorData !== undefined) {
-        updateData.error_data = updateData.errorData;
-        delete updateData.errorData;
-      }
-      if (updateData.progressMessage !== undefined) {
-        updateData.progress_message = updateData.progressMessage;
-        delete updateData.progressMessage;
-      }
-      if (updateData.errorCode !== undefined) {
-        updateData.error_code = updateData.errorCode;
-        delete updateData.errorCode;
-      }
-      if (updateData.errorMessage !== undefined) {
-        updateData.error_message = updateData.errorMessage;
-        delete updateData.errorMessage;
-      }
-      if (updateData.llmMetadata !== undefined) {
-        updateData.llm_metadata = updateData.llmMetadata;
-        delete updateData.llmMetadata;
-      }
-
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('tasks')
-        .update(updateData)
-        .eq('id', taskId)
-        .eq('user_id', userId)
-        .select()
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to update task: ${error.message}`);
-      }
-
-      // Sync with TaskStatusService for live tracking
-      await this.taskStatusService.updateTaskStatus(taskId, userId, {
-        status: updates.status as any,
-        progress: updates.progress,
-        progressMessage: updates.progressMessage,
-        result: updates.response
-          ? typeof updates.response === 'string'
-            ? updates.response
-            : JSON.stringify(updates.response)
-          : undefined,
-        error: updates.errorMessage,
-      });
-
-      // Emit progress event
-      if (updates.progress !== undefined || updates.progressMessage) {
-        const progressEvent: TaskProgressEvent = {
-          taskId,
-          progress: updates.progress ?? data.progress,
-          message: updates.progressMessage,
-          status: updates.status,
-        };
-        this.eventEmitter.emit('task.progress', progressEvent);
-      }
-
-      // Deliverable creation is now handled via event listeners in DeliverablesService
-
-      // Note: Completion events are now emitted by TaskStatusService.emitStatusChange()
-      // to avoid duplicate emissions that cause multiple deliverable versions
-
-      return this.mapToTask(data);
-    } catch (error) {
-      throw error;
+    // Handle status transitions
+    if (updates.status === 'running' && !updateData.started_at) {
+      updateData.started_at = new Date().toISOString();
     }
+    if (
+      updates.status === 'completed' ||
+      updates.status === 'failed' ||
+      updates.status === 'cancelled'
+    ) {
+      updateData.completed_at = new Date().toISOString();
+    }
+
+    // Convert camelCase to snake_case for database columns
+    if (updateData.responseMetadata !== undefined) {
+      updateData.response_metadata = updateData.responseMetadata;
+      delete updateData.responseMetadata;
+    }
+    if (updateData.errorData !== undefined) {
+      updateData.error_data = updateData.errorData;
+      delete updateData.errorData;
+    }
+    if (updateData.progressMessage !== undefined) {
+      updateData.progress_message = updateData.progressMessage;
+      delete updateData.progressMessage;
+    }
+    if (updateData.errorCode !== undefined) {
+      updateData.error_code = updateData.errorCode;
+      delete updateData.errorCode;
+    }
+    if (updateData.errorMessage !== undefined) {
+      updateData.error_message = updateData.errorMessage;
+      delete updateData.errorMessage;
+    }
+    if (updateData.llmMetadata !== undefined) {
+      updateData.llm_metadata = updateData.llmMetadata;
+      delete updateData.llmMetadata;
+    }
+
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update task: ${error.message}`);
+    }
+
+    // Sync with TaskStatusService for live tracking
+    await this.taskStatusService.updateTaskStatus(taskId, userId, {
+      status: updates.status as any,
+      progress: updates.progress,
+      progressMessage: updates.progressMessage,
+      result: updates.response
+        ? typeof updates.response === 'string'
+          ? updates.response
+          : JSON.stringify(updates.response)
+        : undefined,
+      error: updates.errorMessage,
+    });
+
+    // Emit progress event
+    if (updates.progress !== undefined || updates.progressMessage) {
+      const progressEvent: TaskProgressEvent = {
+        taskId,
+        progress: updates.progress ?? data.progress,
+        message: updates.progressMessage,
+        status: updates.status,
+      };
+      this.eventEmitter.emit('task.progress', progressEvent);
+    }
+
+    // Deliverable creation is now handled via event listeners in DeliverablesService
+
+    // Note: Completion events are now emitted by TaskStatusService.emitStatusChange()
+    // to avoid duplicate emissions that cause multiple deliverable versions
+
+    return this.mapToTask(data);
   }
 
   /**

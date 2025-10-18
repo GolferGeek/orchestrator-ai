@@ -48,8 +48,8 @@ const handleLogin = async () => {
     // Real implementation would:
     // const response = await authService.login({ email: email.value, password: password.value });
     // emit('login-success', response);
-  } catch (e: any) {
-    error.value = e.message || 'An unexpected error occurred.';
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'An unexpected error occurred.';
     emit('login-failed', error.value);
   } finally {
     loading.value = false;

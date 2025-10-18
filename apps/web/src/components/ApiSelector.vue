@@ -238,10 +238,18 @@ const props = withDefaults(defineProps<Props>(), {
   showAdvanced: false,
   compact: false
 });
+interface HealthCheckResult {
+  endpoint: string;
+  status: 'success' | 'error';
+  responseTime?: number;
+  error?: string;
+  [key: string]: unknown;
+}
+
 // Emits
 const emit = defineEmits<{
   endpointChanged: [endpoint: ApiEndpoint];
-  healthCheckCompleted: [results: any];
+  healthCheckCompleted: [results: HealthCheckResult[]];
   close: [];
 }>();
 // Stores

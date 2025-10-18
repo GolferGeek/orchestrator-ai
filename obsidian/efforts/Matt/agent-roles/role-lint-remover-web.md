@@ -346,7 +346,73 @@ Fix errors in this priority order for Web:
 1. **`no-explicit-any`** - Replace with proper interfaces
 2. **`no-unsafe-*`** - Add Zod schemas for API responses
 3. **`vue/no-deprecated-*`** - Update to Vue 3 patterns
-4. **`no-unused-vars`** - Remove unused imports/variables
+4. **`no-unused-vars`** - Follow decision tree below (prefer removal!)
+
+### Fixing `no-unused-vars` - Decision Tree
+
+When you encounter an unused variable/parameter, follow this order:
+
+**1. FIRST: Try to Remove It**
+```typescript
+// ❌ Before: Unused import
+import { computed, ref, watch } from 'vue';
+
+const count = ref(0);
+const doubled = computed(() => count.value * 2);
+
+// ✅ After: Removed unused import
+import { computed, ref } from 'vue';
+
+const count = ref(0);
+const doubled = computed(() => count.value * 2);
+```
+
+**2. SECOND: Should You Actually Use It?**
+```typescript
+// ❌ Before: Ignoring useful prop
+interface Props {
+  agentId: string;
+  showDetails: boolean;
+}
+
+const props = defineProps<Props>();
+
+// Only using agentId, ignoring showDetails
+
+// ✅ After: Use it properly
+const props = defineProps<Props>();
+
+const detailsVisible = computed(() => props.showDetails);
+```
+
+**3. THIRD: Prefix with `_` ONLY if Required**
+
+Use underscore prefix ONLY when the variable is:
+- Required by interface/function signature
+- Part of Vue event handler signature but not used
+- Required by TypeScript but not needed in logic
+
+```typescript
+// ✅ Required by emit signature
+const emit = defineEmits<{
+  update: [id: string, value: string];
+}>();
+
+// Only need the value, not the id
+function handleUpdate(_id: string, value: string) {
+  console.log('Updated to:', value);
+}
+
+// ✅ Required by composable return but not used
+const { data, _loading, _error } = useAgent(props.agentId);
+```
+
+**Decision Priority:**
+1. **Remove** (best) → Not required by anything
+2. **Use properly** (better) → Contains useful data being ignored
+3. **Underscore** (last resort) → Required by signature but not needed
+
+**Never underscore just to silence the linter!**
 
 ### Medium Priority
 5. **`vue/valid-v-slot`** - Fix slot syntax

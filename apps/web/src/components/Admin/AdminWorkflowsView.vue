@@ -366,8 +366,10 @@ import {
   warningOutline,
   downloadOutline
 } from 'ionicons/icons';
+import type { WorkflowAnalytics } from '@/types/analytics';
+
 interface Props {
-  workflowAnalytics: any;
+  workflowAnalytics: WorkflowAnalytics;
   isLoading: boolean;
 }
 const props = defineProps<Props>();
@@ -380,7 +382,7 @@ const workflowFilters = reactive({
   status: ''
 });
 const showFailureModal = ref(false);
-const selectedFailure = ref<any>(null);
+const selectedFailure = ref<WorkflowAnalytics['commonFailurePatterns'][0] | null>(null);
 let filterTimeout: NodeJS.Timeout | null = null;
 function debounceFilter() {
   if (filterTimeout) {
@@ -402,7 +404,7 @@ function truncateError(error: string): string {
   if (!error) return 'No error details available';
   return error.length > 100 ? error.substring(0, 100) + '...' : error;
 }
-function showFailureDetails(failure: any) {
+function showFailureDetails(failure: WorkflowAnalytics['commonFailurePatterns'][0]) {
   selectedFailure.value = failure;
   showFailureModal.value = true;
 }

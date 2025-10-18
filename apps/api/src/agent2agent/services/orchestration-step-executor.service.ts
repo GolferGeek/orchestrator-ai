@@ -105,7 +105,7 @@ export class OrchestrationStepExecutorService {
 
       let concurrencyLimit =
         this.executionService.getConcurrencyLimit(initialRun);
-      let start = await this.executionService.startExecution(runId, {
+      const start = await this.executionService.startExecution(runId, {
         maxParallel: concurrencyLimit,
       });
       let run = start.run;
@@ -1129,7 +1129,7 @@ export class OrchestrationStepExecutorService {
         delete (clone as Record<string, any>).runtime;
       }
       return clone;
-    } catch (_error) {
+    } catch {
       const fallback = { ...(config as OrchestrationSubDefinition) };
       delete (fallback as Record<string, any>).runtime;
       return fallback;
@@ -1607,7 +1607,7 @@ export class OrchestrationStepExecutorService {
       if (typeof value === 'object') {
         try {
           return JSON.stringify(value);
-        } catch (_error) {
+        } catch {
           return '';
         }
       }
@@ -1772,7 +1772,7 @@ export class OrchestrationStepExecutorService {
     if (typeof value === 'object') {
       try {
         return JSON.parse(JSON.stringify(value));
-      } catch (_error) {
+      } catch {
         return value;
       }
     }

@@ -351,21 +351,30 @@ import {
   chevronForwardOutline
 } from 'ionicons/icons';
 import AdminEvaluationDetailsModal from './AdminEvaluationDetailsModal.vue';
+import type { EvaluationWithMessage, AllEvaluationsFilters } from '@/types/evaluation';
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 interface Props {
-  evaluations: any[];
-  pagination: any;
+  evaluations: EvaluationWithMessage[];
+  pagination: PaginationInfo;
   isLoading: boolean;
-  filters: any;
+  filters: AllEvaluationsFilters;
 }
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  filterChange: [filters: any];
+  filterChange: [filters: AllEvaluationsFilters];
   pageChange: [page: number];
   refresh: [];
 }>();
 const localFilters = reactive({ ...props.filters });
 const showDetailsModal = ref(false);
-const selectedEvaluation = ref(null);
+const selectedEvaluation = ref<EvaluationWithMessage | null>(null);
 let filterTimeout: NodeJS.Timeout | null = null;
 const starIcon = computed(() => star);
 function onFilterChange() {
@@ -401,7 +410,7 @@ function nextPage() {
     emit('pageChange', props.pagination.page + 1);
   }
 }
-function openEvaluationDetails(evaluation: any) {
+function openEvaluationDetails(evaluation: EvaluationWithMessage) {
   selectedEvaluation.value = evaluation;
   showDetailsModal.value = true;
 }
@@ -421,7 +430,7 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
-function getTotalConstraints(constraints: any): number {
+function getTotalConstraints(constraints: Record<string, unknown>): number {
   if (!constraints) return 0;
   return (constraints.activeStateModifiers?.length || 0) + 
          (constraints.responseModifiers?.length || 0) + 

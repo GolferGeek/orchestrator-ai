@@ -44,9 +44,11 @@ const props = defineProps({
   }
 });
 
+import type { Chart } from 'chart.js';
+
 // Emits
 const emit = defineEmits<{
-  'chart-ready': [chart: any];
+  'chart-ready': [chart: Chart];
   'chart-error': [error: string];
 }>();
 

@@ -671,7 +671,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     if (typeof content === 'object') {
       try {
         return JSON.stringify(content, null, 2);
-      } catch (_error) {
+      } catch {
         return String(content);
       }
     }
@@ -986,7 +986,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     try {
       JSON.parse(trimmed);
       return true;
-    } catch (_error) {
+    } catch {
       return false;
     }
   }
@@ -1012,7 +1012,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
     try {
       return JSON.stringify(value, null, 2);
-    } catch (_error) {
+    } catch {
       return String(value);
     }
   }

@@ -237,8 +237,10 @@ import {
   analyticsOutline,
   downloadOutline
 } from 'ionicons/icons';
+import type { EvaluationAnalytics } from '@/types/analytics';
+
 interface Props {
-  analytics: any;
+  analytics: EvaluationAnalytics;
   isLoading: boolean;
 }
 defineProps<Props>();

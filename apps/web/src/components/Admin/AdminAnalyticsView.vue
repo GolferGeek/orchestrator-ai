@@ -310,10 +310,12 @@ import {
   trendingUpOutline,
   downloadOutline
 } from 'ionicons/icons';
+import type { EvaluationAnalytics, WorkflowAnalytics, ConstraintAnalytics } from '@/types/analytics';
+
 interface Props {
-  analytics: any;
-  workflowAnalytics: any;
-  constraintAnalytics: any;
+  analytics: EvaluationAnalytics;
+  workflowAnalytics: WorkflowAnalytics;
+  constraintAnalytics: ConstraintAnalytics;
   isLoading: boolean;
 }
 const props = defineProps<Props>();

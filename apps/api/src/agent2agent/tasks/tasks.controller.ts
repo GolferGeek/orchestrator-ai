@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Put,
   Delete,
   Body,
@@ -12,19 +11,16 @@ import {
   HttpCode,
   HttpStatus,
   Res,
-  Sse,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { Observable } from 'rxjs';
 import { TasksService } from './tasks.service';
 import { TaskStatusService } from './task-status.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '@/auth/dto/auth.dto';
 import {
-  CreateTaskDto,
   UpdateTaskDto,
   TaskQueryParams,
 } from '@/agent2agent/types/agent-conversations.types';

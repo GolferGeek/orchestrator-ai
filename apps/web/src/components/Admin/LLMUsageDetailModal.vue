@@ -363,9 +363,24 @@ interface Props {
 const props = defineProps<Props>();
 const emit = defineEmits(['update:isOpen', 'dismiss']);
 
+interface UsageDetails {
+  run_id: string;
+  status: string;
+  pii_detected: boolean;
+  pseudonyms_used: number;
+  redactions_applied: number;
+  [key: string]: unknown;
+}
+
+interface PseudonymMapping {
+  original: string;
+  pseudonym: string;
+  [key: string]: unknown;
+}
+
 const loading = ref(false);
-const usageDetails = ref<any>(null);
-const pseudonymMappings = ref<any[]>([]);
+const usageDetails = ref<UsageDetails | null>(null);
+const pseudonymMappings = ref<PseudonymMapping[]>([]);
 
 const hasPIIData = computed(() => {
   return usageDetails.value?.pii_detected || 

@@ -233,7 +233,7 @@ function navigateToVideos() {
   router.push('/videos');
 }
 
-function handleTabChange(event: any) {
+function handleTabChange(event: CustomEvent) {
   currentTab.value = event.detail.value;
   
   if (currentTab.value === 'transcript' && !transcriptContent.value && !transcriptError.value) {

@@ -298,13 +298,15 @@ import {
   trashOutline,
   businessOutline
 } from 'ionicons/icons';
+import type { ExportConfig } from '@/types/analytics';
+
 interface Props {
   isOpen: boolean;
 }
 defineProps<Props>();
 const emit = defineEmits<{
   dismiss: [];
-  export: [options: any];
+  export: [options: ExportConfig];
 }>();
 const exportOptions = reactive({
   format: 'json',

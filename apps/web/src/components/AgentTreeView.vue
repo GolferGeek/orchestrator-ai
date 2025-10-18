@@ -406,10 +406,12 @@ const props = defineProps<{
   searchQuery?: string;
 }>();
 
+import type { Agent, AgentConversation } from '@/types/conversation';
+
 // Emits
 const emit = defineEmits<{
-  'agent-selected': [agent: any];
-  'conversation-selected': [conversation: any];
+  'agent-selected': [agent: Agent];
+  'conversation-selected': [conversation: AgentConversation];
 }>();
 
 // Reactive state
@@ -418,7 +420,7 @@ const expandedAccordions = ref<string[]>([]);
 
 // Delete modal state
 const showDeleteModal = ref(false);
-const conversationToDelete = ref<any>(null);
+const conversationToDelete = ref<AgentConversation | null>(null);
 
 // Icons (make them reactive for template access)
 const icons = {
@@ -440,7 +442,7 @@ const { conversations: storeConversations } = storeToRefs(conversationsStore);
 const deliverablesStore = useDeliverablesStore();
 
 // Helper functions (defined before computed properties)
-const formatAgentDisplayName = (agent: any, removeOrchestrator = false) => {
+const formatAgentDisplayName = (agent: Agent, removeOrchestrator = false) => {
   // If displayName exists and is different from name, use it as-is
   if (agent.displayName && agent.displayName !== agent.name) {
     return agent.displayName;
@@ -454,7 +456,7 @@ const formatAgentDisplayName = (agent: any, removeOrchestrator = false) => {
   return formatted;
 };
 
-const formatConversationTitle = (conversation: any) => {
+const formatConversationTitle = (conversation: AgentConversation) => {
   // Use metadata title if available, otherwise just show the relative time
   if (conversation.metadata?.title) {
     return conversation.metadata.title;
@@ -483,7 +485,7 @@ const formatDate = (date: string | Date) => {
   return dateObj.toLocaleDateString();
 };
 
-const selectConversation = (conversation: any) => {
+const selectConversation = (conversation: AgentConversation) => {
   emit('conversation-selected', conversation);
 };
 
@@ -509,7 +511,7 @@ const getConversationStatusColor = (status: string) => {
   }
 };
 
-const deleteConversation = async (conversation: any, event: Event) => {
+const deleteConversation = async (conversation: AgentConversation, event: Event) => {
   // Prevent the conversation selection when clicking delete
   event.stopPropagation();
   
@@ -582,9 +584,9 @@ const hierarchyGroups = computed(() => {
   const hierarchy = agentHierarchy.value;
   if (!hierarchy?.data) return [];
   
-  const groups: any[] = [];
+  const groups: Agent[] = [];
   
-  const processNode = (node: any) => {
+  const processNode = (node: Agent) => {
     // Debug: Log the raw node data to see if namespace exists
     if (node.name === 'blog_post_writer') {
       console.log('🔍 [AgentTreeView.processNode] Raw node data for blog_post_writer:', {
@@ -611,7 +613,7 @@ const hierarchyGroups = computed(() => {
     // Check if any children match the search
     let hasMatchingChildren = false;
     if (node.children) {
-      hasMatchingChildren = node.children.some((child: any) =>
+      hasMatchingChildren = node.children.some((child: Agent) =>
         !searchQuery.value ||
         child.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
         child.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||

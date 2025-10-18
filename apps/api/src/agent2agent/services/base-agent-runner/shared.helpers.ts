@@ -84,7 +84,7 @@ export async function fetchConversationHistory(
       .filter((message): message is ConversationMessage => Boolean(message));
 
     return normalizedHistory.length > 0 ? normalizedHistory : inlineMessages;
-  } catch (_error) {
+  } catch {
     return inlineMessages;
   }
 }
@@ -271,7 +271,7 @@ export async function optimizeContext(
       fullHistory: conversationHistory,
       tokenBudget: resolvedBudget,
     });
-  } catch (_error) {
+  } catch {
     return conversationHistory;
   }
 }

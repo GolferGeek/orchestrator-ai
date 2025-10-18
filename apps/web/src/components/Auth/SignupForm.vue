@@ -66,8 +66,8 @@ const handleSignup = async () => {
     // Real implementation would:
     // const response = await authService.signup({ email: email.value, password: password.value, displayName: displayName.value });
     // emit('signup-success', response);
-  } catch (e: any) {
-    error.value = e.message || 'An unexpected error occurred during signup.';
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'An unexpected error occurred during signup.';
     emit('signup-failed', error.value);
   } finally {
     loading.value = false;

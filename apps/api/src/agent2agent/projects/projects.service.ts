@@ -312,21 +312,17 @@ export class ProjectsService {
   async getProjectSteps(projectId: string): Promise<ProjectStep[]> {
     const client = this.supabaseService.getServiceClient();
 
-    try {
-      const { data, error } = await client
-        .from(getTableName('project_steps'))
-        .select('*')
-        .eq('project_id', projectId)
-        .order('step_index', { ascending: true });
+    const { data, error } = await client
+      .from(getTableName('project_steps'))
+      .select('*')
+      .eq('project_id', projectId)
+      .order('step_index', { ascending: true });
 
-      if (error) {
-        throw new Error(`Failed to get project steps: ${error.message}`);
-      }
-
-      return (data || []).map(this.mapDatabaseToProjectStep);
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to get project steps: ${error.message}`);
     }
+
+    return (data || []).map(this.mapDatabaseToProjectStep);
   }
 
   /**
@@ -335,23 +331,18 @@ export class ProjectsService {
   async getSubprojects(projectId: string): Promise<Project[]> {
     const client = this.supabaseService.getServiceClient();
 
-    try {
-      const { data, error } = await client
-        .from(getTableName('projects'))
-        .select('*')
-        .eq('parent_project_id', projectId)
-        .order('created_at', { ascending: false });
+    const { data, error } = await client
+      .from(getTableName('projects'))
+      .select('*')
+      .eq('parent_project_id', projectId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        this.logger.error(`Failed to get subprojects: ${error.message}`);
-        return [];
-      }
-
-      return (data || []).map((row) => this.mapDatabaseToProject(row));
-    } catch (error) {
-      this.logger.error('Failed to get subprojects', error);
+    if (error) {
+      this.logger.error(`Failed to get subprojects: ${error.message}`);
       return [];
     }
+
+    return (data || []).map((row) => this.mapDatabaseToProject(row));
   }
 
   /**
@@ -367,84 +358,79 @@ export class ProjectsService {
       details: Record<string, any>;
     }>;
   }> {
-    try {
-      const project = await this.getProject(projectId);
-      if (!project) {
-        throw new NotFoundException(`Project ${projectId} not found`);
-      }
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new NotFoundException(`Project ${projectId} not found`);
+    }
 
-      const steps = await this.getProjectSteps(projectId);
+    const steps = await this.getProjectSteps(projectId);
 
-      // Build timeline from project and step events
-      const timeline: Array<{
-        timestamp: string;
-        type: 'project' | 'step';
-        event: string;
-        details: Record<string, any>;
-      }> = [];
+    // Build timeline from project and step events
+    const timeline: Array<{
+      timestamp: string;
+      type: 'project' | 'step';
+      event: string;
+      details: Record<string, any>;
+    }> = [];
 
-      // Add project events
+    // Add project events
+    timeline.push({
+      timestamp: project.createdAt.toISOString(),
+      type: 'project',
+      event: 'Project created',
+      details: {
+        name: project.name,
+        status: 'planning',
+      },
+    });
+
+    if (project.planJson) {
       timeline.push({
-        timestamp: project.createdAt.toISOString(),
+        timestamp: project.updatedAt.toISOString(),
         type: 'project',
-        event: 'Project created',
+        event: 'Plan created',
         details: {
-          name: project.name,
-          status: 'planning',
+          stepCount: project.planJson.steps.length,
         },
       });
+    }
 
-      if (project.planJson) {
+    // Add step events
+    steps.forEach((step) => {
+      if (step.startedAt) {
         timeline.push({
-          timestamp: project.updatedAt.toISOString(),
-          type: 'project',
-          event: 'Plan created',
+          timestamp: step.startedAt.toISOString(),
+          type: 'step',
+          event: 'Step started',
           details: {
-            stepCount: project.planJson.steps.length,
+            stepId: step.stepId,
+            stepName: step.stepName,
+            agentName: step.agentName,
           },
         });
       }
 
-      // Add step events
-      steps.forEach((step) => {
-        if (step.startedAt) {
-          timeline.push({
-            timestamp: step.startedAt.toISOString(),
-            type: 'step',
-            event: 'Step started',
-            details: {
-              stepId: step.stepId,
-              stepName: step.stepName,
-              agentName: step.agentName,
-            },
-          });
-        }
+      if (step.completedAt) {
+        timeline.push({
+          timestamp: step.completedAt.toISOString(),
+          type: 'step',
+          event: step.status === 'completed' ? 'Step completed' : 'Step failed',
+          details: {
+            stepId: step.stepId,
+            stepName: step.stepName,
+            status: step.status,
+          },
+        });
+      }
+    });
 
-        if (step.completedAt) {
-          timeline.push({
-            timestamp: step.completedAt.toISOString(),
-            type: 'step',
-            event:
-              step.status === 'completed' ? 'Step completed' : 'Step failed',
-            details: {
-              stepId: step.stepId,
-              stepName: step.stepName,
-              status: step.status,
-            },
-          });
-        }
-      });
+    // Sort timeline by timestamp
+    timeline.sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
 
-      // Sort timeline by timestamp
-      timeline.sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
-
-      return { project, steps, timeline };
-    } catch (error) {
-      throw error;
-    }
+    return { project, steps, timeline };
   }
 
   /**
@@ -454,19 +440,15 @@ export class ProjectsService {
     projectId: string,
     params: ProjectRecoveryParams,
   ): Promise<void> {
-    try {
-      await this.updateProject(projectId, {
-        status: 'running',
-        errorDetails: undefined,
-        metadata: {
-          resumedAt: new Date().toISOString(),
-          resumeReason: params.reason || 'Manual resume',
-          ...params.metadata,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+    await this.updateProject(projectId, {
+      status: 'running',
+      errorDetails: undefined,
+      metadata: {
+        resumedAt: new Date().toISOString(),
+        resumeReason: params.reason || 'Manual resume',
+        ...params.metadata,
+      },
+    });
   }
 
   /**
@@ -476,28 +458,24 @@ export class ProjectsService {
     projectId: string,
     params: ProjectRecoveryParams,
   ): Promise<void> {
-    try {
-      const project = await this.getProject(projectId);
-      if (!project) {
-        throw new NotFoundException(`Project ${projectId} not found`);
-      }
-
-      // Reset to the target step or current step
-      const targetStepId = params.targetStepId || project.currentStepId;
-
-      await this.updateProject(projectId, {
-        status: 'running',
-        currentStepId: targetStepId,
-        errorDetails: undefined,
-        metadata: {
-          retriedAt: new Date().toISOString(),
-          retryReason: params.reason || 'Manual retry',
-          ...params.metadata,
-        },
-      });
-    } catch (error) {
-      throw error;
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new NotFoundException(`Project ${projectId} not found`);
     }
+
+    // Reset to the target step or current step
+    const targetStepId = params.targetStepId || project.currentStepId;
+
+    await this.updateProject(projectId, {
+      status: 'running',
+      currentStepId: targetStepId,
+      errorDetails: undefined,
+      metadata: {
+        retriedAt: new Date().toISOString(),
+        retryReason: params.reason || 'Manual retry',
+        ...params.metadata,
+      },
+    });
   }
 
   /**
@@ -507,25 +485,21 @@ export class ProjectsService {
     projectId: string,
     params: ProjectRecoveryParams & { newName?: string },
   ): Promise<Project> {
-    try {
-      const originalProject = await this.getProject(projectId);
-      if (!originalProject) {
-        throw new NotFoundException(`Project ${projectId} not found`);
-      }
-
-      // Create new project as a fork
-      const forkedProject = await this.createProject({
-        name: params.newName || `${originalProject.name} (Fork)`,
-        description: `Fork of ${originalProject.name}${params.reason ? ` - ${params.reason}` : ''}`,
-        conversationId: originalProject.conversationId,
-        userId: originalProject.metadata.createdBy,
-        planJson: originalProject.planJson,
-      });
-
-      return forkedProject;
-    } catch (error) {
-      throw error;
+    const originalProject = await this.getProject(projectId);
+    if (!originalProject) {
+      throw new NotFoundException(`Project ${projectId} not found`);
     }
+
+    // Create new project as a fork
+    const forkedProject = await this.createProject({
+      name: params.newName || `${originalProject.name} (Fork)`,
+      description: `Fork of ${originalProject.name}${params.reason ? ` - ${params.reason}` : ''}`,
+      conversationId: originalProject.conversationId,
+      userId: originalProject.metadata.createdBy,
+      planJson: originalProject.planJson,
+    });
+
+    return forkedProject;
   }
 
   /**
@@ -535,18 +509,14 @@ export class ProjectsService {
     projectId: string,
     params: ProjectRecoveryParams,
   ): Promise<void> {
-    try {
-      await this.updateProject(projectId, {
-        status: 'aborted',
-        metadata: {
-          abortedAt: new Date().toISOString(),
-          abortReason: params.reason || 'Manual abort',
-          ...params.metadata,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+    await this.updateProject(projectId, {
+      status: 'aborted',
+      metadata: {
+        abortedAt: new Date().toISOString(),
+        abortReason: params.reason || 'Manual abort',
+        ...params.metadata,
+      },
+    });
   }
 
   /**
@@ -693,116 +663,110 @@ export class ProjectsService {
     }>;
     recommendations: string[];
   }> {
-    try {
-      const project = await this.getProject(projectId);
-      if (!project) {
-        throw new NotFoundException(`Project ${projectId} not found`);
-      }
-
-      const steps = await this.getProjectSteps(projectId);
-
-      // Calculate step progress
-      const stepProgress = steps.map((step) => ({
-        stepId: step.stepId,
-        stepName: step.stepName,
-        status: step.status,
-        duration:
-          step.startedAt && step.completedAt
-            ? new Date(step.completedAt).getTime() -
-              new Date(step.startedAt).getTime()
-            : undefined,
-        startedAt: step.startedAt?.toISOString(),
-        completedAt: step.completedAt?.toISOString(),
-      }));
-
-      // Calculate overall progress
-      const completedSteps = steps.filter(
-        (s) => s.status === 'completed',
-      ).length;
-      const overallProgress =
-        steps.length > 0 ? (completedSteps / steps.length) * 100 : 0;
-
-      // Calculate performance metrics
-      const durations = stepProgress
-        .filter((s) => s.duration !== undefined)
-        .map((s) => s.duration!);
-
-      const avgStepDuration =
-        durations.length > 0
-          ? durations.reduce((sum, d) => sum + d, 0) / durations.length
-          : 0;
-
-      const totalDuration =
-        project.createdAt && project.updatedAt
-          ? new Date(project.updatedAt).getTime() -
-            new Date(project.createdAt).getTime()
-          : 0;
-
-      const failedSteps = steps.filter((s) => s.status === 'failed').length;
-      const errorRate =
-        steps.length > 0 ? (failedSteps / steps.length) * 100 : 0;
-
-      const throughput =
-        totalDuration > 0
-          ? completedSteps / (totalDuration / (1000 * 60 * 60))
-          : 0; // steps per hour
-
-      // Identify bottlenecks
-      const bottlenecks: Array<{
-        stepId: string;
-        stepName: string;
-        issue: string;
-        impact: 'low' | 'medium' | 'high';
-      }> = [];
-
-      steps.forEach((step) => {
-        if (step.status === 'failed') {
-          bottlenecks.push({
-            stepId: step.stepId,
-            stepName: step.stepName,
-            issue: 'Step failed',
-            impact: 'high',
-          });
-        }
-      });
-
-      // Generate recommendations
-      const recommendations: string[] = [];
-
-      if (errorRate > 20) {
-        recommendations.push(
-          'High error rate detected. Review step configurations and agent capabilities.',
-        );
-      }
-
-      if (avgStepDuration > 300000) {
-        // 5 minutes
-        recommendations.push(
-          'Steps are taking longer than expected. Consider optimizing agent prompts.',
-        );
-      }
-
-      if (bottlenecks.length > 2) {
-        recommendations.push(
-          'Multiple bottlenecks identified. Review project plan and dependencies.',
-        );
-      }
-
-      return {
-        overallProgress,
-        stepProgress,
-        performance: {
-          avgStepDuration,
-          totalDuration,
-          errorRate,
-          throughput,
-        },
-        bottlenecks,
-        recommendations,
-      };
-    } catch (error) {
-      throw error;
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw new NotFoundException(`Project ${projectId} not found`);
     }
+
+    const steps = await this.getProjectSteps(projectId);
+
+    // Calculate step progress
+    const stepProgress = steps.map((step) => ({
+      stepId: step.stepId,
+      stepName: step.stepName,
+      status: step.status,
+      duration:
+        step.startedAt && step.completedAt
+          ? new Date(step.completedAt).getTime() -
+            new Date(step.startedAt).getTime()
+          : undefined,
+      startedAt: step.startedAt?.toISOString(),
+      completedAt: step.completedAt?.toISOString(),
+    }));
+
+    // Calculate overall progress
+    const completedSteps = steps.filter((s) => s.status === 'completed').length;
+    const overallProgress =
+      steps.length > 0 ? (completedSteps / steps.length) * 100 : 0;
+
+    // Calculate performance metrics
+    const durations = stepProgress
+      .filter((s) => s.duration !== undefined)
+      .map((s) => s.duration!);
+
+    const avgStepDuration =
+      durations.length > 0
+        ? durations.reduce((sum, d) => sum + d, 0) / durations.length
+        : 0;
+
+    const totalDuration =
+      project.createdAt && project.updatedAt
+        ? new Date(project.updatedAt).getTime() -
+          new Date(project.createdAt).getTime()
+        : 0;
+
+    const failedSteps = steps.filter((s) => s.status === 'failed').length;
+    const errorRate =
+      steps.length > 0 ? (failedSteps / steps.length) * 100 : 0;
+
+    const throughput =
+      totalDuration > 0
+        ? completedSteps / (totalDuration / (1000 * 60 * 60))
+        : 0; // steps per hour
+
+    // Identify bottlenecks
+    const bottlenecks: Array<{
+      stepId: string;
+      stepName: string;
+      issue: string;
+      impact: 'low' | 'medium' | 'high';
+    }> = [];
+
+    steps.forEach((step) => {
+      if (step.status === 'failed') {
+        bottlenecks.push({
+          stepId: step.stepId,
+          stepName: step.stepName,
+          issue: 'Step failed',
+          impact: 'high',
+        });
+      }
+    });
+
+    // Generate recommendations
+    const recommendations: string[] = [];
+
+    if (errorRate > 20) {
+      recommendations.push(
+        'High error rate detected. Review step configurations and agent capabilities.',
+      );
+    }
+
+    if (avgStepDuration > 300000) {
+      // 5 minutes
+      recommendations.push(
+        'Steps are taking longer than expected. Consider optimizing agent prompts.',
+      );
+    }
+
+    if (bottlenecks.length > 2) {
+      recommendations.push(
+        'Multiple bottlenecks identified. Review project plan and dependencies.',
+      );
+    }
+
+    return {
+      overallProgress,
+      stepProgress,
+      performance: {
+        avgStepDuration,
+        totalDuration,
+        errorRate,
+        throughput,
+      },
+      bottlenecks,
+      recommendations,
+    };
   }
 
   /**

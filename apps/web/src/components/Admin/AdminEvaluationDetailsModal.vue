@@ -478,9 +478,11 @@ import {
   informationCircleOutline,
   documentOutline
 } from 'ionicons/icons';
+import type { EvaluationWithMessage } from '@/types/evaluation';
+
 interface Props {
   isOpen: boolean;
-  evaluation: any;
+  evaluation: EvaluationWithMessage;
 }
 const props = defineProps<Props>();
 defineEmits<{
