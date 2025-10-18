@@ -73,7 +73,6 @@ import {
   chevronDown,
 } from 'ionicons/icons';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
-import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 // Store instances
 const chatUiStore = useChatUiStore();
