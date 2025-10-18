@@ -26,6 +26,33 @@ import {
   MessageEmitter,
   TaskMessageEmitter,
 } from './message-emitter.interface';
+
+// Database row type for tasks table (snake_case)
+interface TaskRow {
+  id?: string;
+  conversation_id: string;
+  user_id: string;
+  method: string;
+  prompt: string;
+  params?: Record<string, unknown>;
+  response?: string;
+  response_metadata?: Record<string, unknown>;
+  status: string;
+  progress: number;
+  progress_message?: string;
+  evaluation?: Record<string, unknown>;
+  llm_metadata?: Record<string, unknown>;
+  pii_metadata?: Record<string, unknown>;
+  error_code?: string;
+  error_message?: string;
+  error_data?: Record<string, unknown>;
+  started_at?: string;
+  completed_at?: string;
+  timeout_seconds: number;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
 @Injectable()
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
@@ -77,7 +104,7 @@ export class TasksService {
     conversationId = conversation.id;
 
     // Prepare task data with proper ID handling
-    const taskData: any = {
+    const taskData: TaskRow = {
       conversation_id: conversationId,
       user_id: userId,
       method: dto.method,
@@ -136,7 +163,7 @@ export class TasksService {
         }
 
         // Success - continue with task setup
-        const createdTask = data;
+        const createdTask = data as TaskRow;
 
         // Legacy TaskLifecycleService archived - task tracking now handled via database
 
@@ -248,8 +275,8 @@ export class TasksService {
     userId: string,
     updates: UpdateTaskDto,
   ): Promise<Task> {
-    const updateData: any = {
-      ...updates,
+    const updateData: Partial<TaskRow> = {
+      ...(updates as unknown as Partial<TaskRow>),
       updated_at: new Date().toISOString(),
     };
 
@@ -304,6 +331,8 @@ export class TasksService {
       throw new Error(`Failed to update task: ${error.message}`);
     }
 
+    const updatedTask = data as TaskRow;
+
     // Sync with TaskStatusService for live tracking
     await this.taskStatusService.updateTaskStatus(taskId, userId, {
       status: updates.status as any,
@@ -321,7 +350,7 @@ export class TasksService {
     if (updates.progress !== undefined || updates.progressMessage) {
       const progressEvent: TaskProgressEvent = {
         taskId,
-        progress: updates.progress ?? data.progress,
+        progress: updates.progress ?? updatedTask.progress,
         message: updates.progressMessage,
         status: updates.status,
       };
@@ -333,7 +362,7 @@ export class TasksService {
     // Note: Completion events are now emitted by TaskStatusService.emitStatusChange()
     // to avoid duplicate emissions that cause multiple deliverable versions
 
-    return this.mapToTask(data);
+    return this.mapToTask(updatedTask);
   }
 
   /**

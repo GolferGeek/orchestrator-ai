@@ -443,8 +443,8 @@ export async function handleBuildRerun(
         deliverableRecord.title ??
         'Deliverable',
       type:
-        (request.payload as any)?.type ?? deliverableRecord.type ?? 'document',
-      planVersionId: (request.payload as any)?.planVersionId,
+        ((request.payload as Record<string, unknown>)?.type as string | undefined) ?? deliverableRecord.type ?? 'document',
+      planVersionId: (request.payload as Record<string, unknown>)?.planVersionId,
       deliverableId: deliverableRecord.id,
       rerunConfig: payload.rerunConfig,
       rerunContext: {
@@ -759,8 +759,8 @@ export async function handleBuildMergeVersions(
         deliverableRecord.title ??
         'Deliverable',
       type:
-        (request.payload as any)?.type ?? deliverableRecord.type ?? 'document',
-      planVersionId: (request.payload as any)?.planVersionId,
+        ((request.payload as Record<string, unknown>)?.type as string | undefined) ?? deliverableRecord.type ?? 'document',
+      planVersionId: (request.payload as Record<string, unknown>)?.planVersionId,
       deliverableId: deliverableRecord.id,
       mergeContext: {
         versionIds: payload.versionIds,
@@ -772,7 +772,7 @@ export async function handleBuildMergeVersions(
 
     const mergeRequest: TaskRequestDto = {
       ...request,
-      payload: mergePayload as Record<string, any>,
+      payload: mergePayload as Record<string, unknown>,
       metadata: {
         ...(request.metadata ?? {}),
         buildMerge: {
@@ -865,15 +865,16 @@ export async function handleBuildCopyVersion(
       );
     }
 
+    const copyResultData = copyResult.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       sourceVersionId: payload.versionId,
-      copiedVersionId: (copyResult.data as any).copiedVersion?.id,
+      copiedVersionId: (copyResultData.copiedVersion as Record<string, unknown> | undefined)?.id,
     });
 
     const targetDeliverable =
-      (copyResult.data as any).targetDeliverable ??
-      (copyResult.data as any).sourceDeliverable ??
-      (copyResult.data as any).deliverable ??
+      copyResultData.targetDeliverable ??
+      copyResultData.sourceDeliverable ??
+      copyResultData.deliverable ??
       {};
 
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
@@ -884,10 +885,10 @@ export async function handleBuildCopyVersion(
           userId,
         ),
         version:
-          serializeDeliverableVersion((copyResult.data as any).copiedVersion) ??
+          serializeDeliverableVersion(copyResultData.copiedVersion) ??
           undefined,
         sourceVersion:
-          serializeDeliverableVersion((copyResult.data as any).sourceVersion) ??
+          serializeDeliverableVersion(copyResultData.sourceVersion) ??
           undefined,
       },
       metadata,
@@ -938,21 +939,22 @@ export async function handleBuildDelete(
       );
     }
 
+    const deleteResultData = deleteResult.data as Record<string, unknown>;
     const deletedDeliverableId =
-      (deleteResult.data as any).deletedDeliverableId ??
-      (deleteResult.data as any).deletedPlanId ??
+      deleteResultData.deletedDeliverableId ??
+      deleteResultData.deletedPlanId ??
       '';
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deletedDeliverableId,
-      deletedVersionCount: (deleteResult.data as any).deletedVersionCount ?? 0,
+      deletedVersionCount: deleteResultData.deletedVersionCount ?? 0,
     });
 
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: {
         deleted: true,
         deliverableId: deletedDeliverableId,
-        deletedVersionCount: (deleteResult.data as any).deletedVersionCount ?? 0,
+        deletedVersionCount: deleteResultData.deletedVersionCount ?? 0,
         userId,
       },
       metadata,
@@ -996,8 +998,8 @@ export function validateDeliverableStructure(
     const message = ajv.errorsText(validate.errors, { separator: '; ' });
     const error = new Error(
       `Deliverable does not conform to agent structure: ${message}`,
-    );
-    (error as any).details = validate.errors;
+    ) as Error & { details?: unknown };
+    error.details = validate.errors;
     throw error;
   }
 }
@@ -1045,8 +1047,8 @@ export function validateDeliverableSchema(
     const message = ajv.errorsText(validate.errors, { separator: '; ' });
     const error = new Error(
       `Deliverable output does not conform to io_schema: ${message}`,
-    );
-    (error as any).details = validate.errors;
+    ) as Error & { details?: unknown };
+    error.details = validate.errors;
     throw error;
   }
 }
@@ -1208,79 +1210,81 @@ function toJsonValue(value: unknown): JsonValue | undefined {
 }
 
 function serializeDeliverable(
-  deliverable: any,
+  deliverable: unknown,
   definition: AgentRuntimeDefinition,
   fallbackUserId: string,
 ): DeliverableData {
+  const d = deliverable as Record<string, any>;
   const createdAt = toIsoString(
-    deliverable.createdAt ?? deliverable.created_at ?? new Date().toISOString(),
+    d.createdAt ?? d.created_at ?? new Date().toISOString(),
   );
   const updatedAt = toIsoString(
-    deliverable.updatedAt ?? deliverable.updated_at ?? createdAt,
+    d.updatedAt ?? d.updated_at ?? createdAt,
   );
 
-  const userId = deliverable.userId ?? deliverable.user_id ?? fallbackUserId;
+  const userId = d.userId ?? d.user_id ?? fallbackUserId;
 
   const namespace =
-    deliverable.namespace ??
+    d.namespace ??
     definition.organizationSlug ??
     definition.context?.namespace ??
     'global';
 
   const currentVersionId =
-    deliverable.currentVersionId ??
-    deliverable.current_version_id ??
-    deliverable.currentVersion?.id ??
+    d.currentVersionId ??
+    d.current_version_id ??
+    (d.currentVersion as Record<string, unknown> | undefined)?.id ??
     '';
 
   return {
-    id: deliverable.id,
+    id: d.id as string,
     conversationId:
-      deliverable.conversationId ?? deliverable.conversation_id ?? '',
-    userId,
+      (d.conversationId ?? d.conversation_id ?? '') as string,
+    userId: userId as string,
     agentName:
-      deliverable.agentName ??
-      deliverable.agent_name ??
+      (d.agentName ??
+      d.agent_name ??
       definition.displayName ??
-      definition.slug,
-    namespace,
-    title: deliverable.title ?? 'Deliverable',
-    type: deliverable.type ?? deliverable.deliverableType ?? 'document',
-    currentVersionId,
+      definition.slug) as string,
+    namespace: namespace as string,
+    title: (d.title ?? 'Deliverable') as string,
+    type: (d.type ?? d.deliverableType ?? 'document') as string,
+    currentVersionId: currentVersionId as string,
     createdAt,
     updatedAt,
   };
 }
 
 function serializeDeliverableVersion(
-  version: any,
+  version: unknown,
 ): DeliverableVersionData | null {
   if (!version) {
     return null;
   }
 
-  const formatRaw = version.format ?? version.deliverableFormat ?? 'markdown';
+  const v = version as Record<string, any>;
+  const formatRaw = v.format ?? v.deliverableFormat ?? 'markdown';
   const normalizedFormat =
     typeof formatRaw === 'string'
       ? normalizeDeliverableFormat(formatRaw)
       : 'markdown';
 
   return {
-    id: version.id,
-    deliverableId: version.deliverableId ?? version.deliverable_id ?? '',
+    id: v.id as string,
+    deliverableId: (v.deliverableId ?? v.deliverable_id ?? '') as string,
     versionNumber: numberOrZero(
-      version.versionNumber ?? version.version_number ?? 1,
+      v.versionNumber ?? v.version_number ?? 1,
       1,
     ),
-    content: version.content ?? '',
+    content: (v.content ?? '') as string,
     format: normalizedFormat,
-    createdByType: version.createdByType ?? version.created_by_type ?? 'agent',
-    createdById: version.createdById ?? version.created_by_id ?? null,
-    metadata: version.metadata ?? undefined,
+    createdByType: (v.createdByType ?? v.created_by_type ?? 'agent') as 'agent' | 'user',
+    createdById: (v.createdById ?? v.created_by_id ?? null) as string | null,
+    metadata: (v.metadata ?? undefined) as JsonObject | undefined,
     isCurrentVersion: Boolean(
-      version.isCurrentVersion ?? version.is_current_version,
+      v.isCurrentVersion ?? v.is_current_version,
     ),
-    createdAt: toIsoString(version.createdAt ?? version.created_at),
+    createdAt: toIsoString(v.createdAt ?? v.created_at),
   };
 }
 
@@ -1361,7 +1365,7 @@ function coerceDeliverableContent(content: unknown): unknown {
 
   if (content && typeof content === 'object') {
     // Check if this is an io_schema wrapped object
-    const obj = content as any;
+    const obj = content as Record<string, unknown>;
     if ('blog_post' in obj) {
       console.log(
         '[coerceDeliverableContent] Unwrapping blog_post from object',
@@ -1384,7 +1388,7 @@ function coerceDeliverableContent(content: unknown): unknown {
   return content ?? '';
 }
 
-function tryParseJson(value: string): any {
+function tryParseJson(value: string): unknown {
   if (!value) {
     return null;
   }
@@ -1466,7 +1470,7 @@ function numberOrZero(value: unknown, fallback = 0): number {
   return fallback;
 }
 
-function parseJsonSafely(value: string, errorMessage: string): any {
+function parseJsonSafely(value: string, errorMessage: string): unknown {
   try {
     return JSON.parse(value);
   } catch (error) {
