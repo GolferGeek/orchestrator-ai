@@ -249,7 +249,7 @@ export class DeliverablesService implements IActionHandler {
       type?: string;
       agentName?: string;
       taskId?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
       deliverableId?: string;
     },
     context: ActionExecutionContext,
@@ -408,7 +408,7 @@ export class DeliverablesService implements IActionHandler {
   private async saveManualEdit(
     params: {
       content: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     },
     context: ActionExecutionContext,
   ) {

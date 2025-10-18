@@ -24,12 +24,12 @@ export class Agent2AgentTaskStatusService {
       status?: string;
       progress?: number;
       progressMessage?: string;
-      metadata?: Record<string, any>;
-      [key: string]: any;
+      metadata?: Record<string, unknown>;
+      [key: string]: unknown;
     },
   ): Promise<void> {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
 
@@ -99,7 +99,7 @@ export class Agent2AgentTaskStatusService {
   async completeTask(
     taskId: string,
     userId: string,
-    response: any,
+    response: unknown,
   ): Promise<void> {
     try {
       const updateData = {
@@ -135,7 +135,7 @@ export class Agent2AgentTaskStatusService {
     taskId: string,
     userId: string,
     errorMessage: string,
-    errorDetails?: any,
+    errorDetails?: unknown,
   ): Promise<void> {
     try {
       const updateData = {
@@ -177,9 +177,9 @@ export class Agent2AgentTaskStatusService {
     status: string;
     progress?: number;
     progressMessage?: string;
-    response?: any;
+    response?: unknown;
     error?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   } | null> {
     try {
       const { data: task, error } = await this.supabaseService

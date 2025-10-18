@@ -24,7 +24,7 @@ export class Agent2AgentConversationsService {
     namespace: string, // Database namespace (my-org, etc.)
     options?: {
       title?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
       conversationId?: string;
     },
   ): Promise<{
@@ -33,12 +33,12 @@ export class Agent2AgentConversationsService {
     agentName: string;
     namespace: string;
     title: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     createdAt: Date;
   }> {
     try {
       const now = new Date().toISOString();
-      const conversationData: any = {
+      const conversationData: Record<string, unknown> = {
         user_id: userId,
         agent_name: agentName,
         agent_type: namespace, // Store namespace in agent_type column
@@ -102,7 +102,7 @@ export class Agent2AgentConversationsService {
     agentName: string;
     namespace: string;
     title: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     createdAt: Date;
     updatedAt: Date;
   } | null> {
@@ -153,7 +153,7 @@ export class Agent2AgentConversationsService {
     agentName: string;
     namespace: string;
     title: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     createdAt: Date;
   }> {
     // If conversationId provided, try to get it
@@ -189,11 +189,11 @@ export class Agent2AgentConversationsService {
     userId: string,
     updates: {
       title?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     },
   ): Promise<void> {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
 
@@ -247,7 +247,7 @@ export class Agent2AgentConversationsService {
     userId: string,
     agentName?: string,
     namespace?: string,
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     try {
       let query = this.supabaseService
         .getServiceClient()

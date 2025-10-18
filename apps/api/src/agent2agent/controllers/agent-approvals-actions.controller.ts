@@ -6,6 +6,7 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { AgentExecutionGateway } from '../services/agent-execution-gateway.service';
 import { HumanApprovalsRepository } from '@/agent-platform/repositories/human-approvals.repository';
 import { TaskRequestDto } from '../dto/task-request.dto';
@@ -13,8 +14,8 @@ import { TaskRequestDto } from '../dto/task-request.dto';
 interface StoredRequest {
   conversationId?: string;
   userMessage?: string;
-  payload?: Record<string, any>;
-  [key: string]: any;
+  payload?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 @Controller('agent-to-agent')
@@ -33,12 +34,12 @@ export class AgentApprovalsActionsController {
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,
     @Param('id') id: string,
-    @Req() req: any,
+    @Req() req: Request,
     @Body()
     body?: {
-      options?: Record<string, any>;
-      payload?: Record<string, any>;
-      metadata?: Record<string, any>;
+      options?: Record<string, unknown>;
+      payload?: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
     },
   ) {
     const record = await this.approvals.get(id);
@@ -54,14 +55,14 @@ export class AgentApprovalsActionsController {
       );
     }
 
-    const userId = (req.user?.sub ||
-      req.user?.id ||
-      req.user?.userId ||
+    const userId = ((req as any).user?.sub ||
+      (req as any).user?.id ||
+      (req as any).user?.userId ||
       null) as string | null;
     await this.approvals.setStatus(id, 'approved', userId);
 
     // Rehydrate the stored request and allow minimal overrides
-    const metadata = record.metadata as Record<string, any> | null | undefined;
+    const metadata = record.metadata as Record<string, unknown> | null | undefined;
     const stored: StoredRequest = (metadata?.request as StoredRequest) || {};
     const request = {
       mode: 'build' as const,

@@ -13,7 +13,7 @@ export interface AgentExecutionContext {
   agent?: AgentRecord;
   definition?: AgentRuntimeDefinition;
   request: TaskRequestDto;
-  routingMetadata?: Record<string, any>;
+  routingMetadata?: Record<string, unknown>;
 }
 
 type HydratedExecutionContext = AgentExecutionContext & {

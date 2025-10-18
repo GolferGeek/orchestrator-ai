@@ -215,7 +215,7 @@ export class AgentExecutionGateway {
     definition: AgentRuntimeDefinition,
     agentMetadata: AgentRuntimeAgentMetadata,
     request: TaskRequestDto,
-    routingMetadata?: Record<string, any>,
+    routingMetadata?: Record<string, unknown>,
   ): Promise<TaskResponseDto> {
     const orchestrationResponse = await this.startOrchestrationFromRequest(
       organizationSlug,
@@ -444,7 +444,7 @@ export class AgentExecutionGateway {
 
         const resolvedInputs = this.validatePromptInputs(
           orchestration,
-          promptInputs,
+          (promptInputs ?? {}) as Record<string, unknown>,
         );
 
         const run = await this.orchestrationRunner.startRun({
@@ -452,7 +452,7 @@ export class AgentExecutionGateway {
           originType: 'saved_orchestration',
           originId: orchestration.id,
           orchestrationSlug: orchestration.slug,
-          parameters: resolvedInputs,
+          parameters: resolvedInputs as JsonObject,
           agentId: agentMetadata.id,
           agentSlug: agentMetadata.slug,
           agentType: agentMetadata.type,
@@ -491,7 +491,7 @@ export class AgentExecutionGateway {
                 id: orchestration.id,
                 slug: orchestration.slug,
               },
-              promptInputs: resolvedInputs,
+              promptInputs: resolvedInputs as JsonObject,
             },
             agentMetadata,
           ),
@@ -535,18 +535,18 @@ export class AgentExecutionGateway {
 
   private validatePromptInputs(
     orchestration: AgentOrchestrationRecord,
-    provided: Record<string, any> | undefined,
-  ): Record<string, any> {
+    provided: Record<string, unknown> | undefined,
+  ): Record<string, unknown> {
     const templates = orchestration.prompt_templates ?? [];
     if (!templates.length) {
       return provided ?? {};
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const template of templates) {
       const supplied = (provided ?? {})[template.name] ?? {};
       const params = template.parameters ?? [];
-      const resolved: Record<string, any> = { ...supplied };
+      const resolved: Record<string, unknown> = { ...supplied };
 
       for (const param of params) {
         const suppliedRecord = supplied as Record<string, unknown>;
@@ -601,9 +601,9 @@ export class AgentExecutionGateway {
   }
 
   private attachAgentMetadata(
-    draft: Record<string, any>,
+    draft: Record<string, unknown>,
     definition: AgentRuntimeDefinition,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     if (!draft || typeof draft !== 'object') {
       return draft;
     }
@@ -628,7 +628,7 @@ export class AgentExecutionGateway {
     return enriched;
   }
 
-  private collectMetadata(request: TaskRequestDto): Record<string, any> {
+  private collectMetadata(request: TaskRequestDto): Record<string, unknown> {
     return {
       ...(request.payload?.metadata ?? {}),
       ...(request.metadata ?? {}),
@@ -717,9 +717,9 @@ export class AgentExecutionGateway {
   }
 
   private attachStreamId(
-    metadata: Record<string, any>,
+    metadata: Record<string, unknown>,
     session: ReturnType<AgentRuntimeStreamService['start']> | null,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     if (!session) {
       return metadata;
     }
@@ -742,7 +742,7 @@ export class AgentExecutionGateway {
     decision: OrchestrationCheckpointDecision;
     actorId?: string | null;
     notes?: string | null;
-    modifications?: Record<string, any> | undefined;
+    modifications?: Record<string, unknown> | undefined;
   }): Promise<{
     decision: OrchestrationCheckpointDecision;
     run: OrchestrationRunRecord;
@@ -756,7 +756,7 @@ export class AgentExecutionGateway {
       decision: options.decision,
       actorId: options.actorId ?? null,
       notes: options.notes ?? null,
-      modifications: options.modifications ?? undefined,
+      modifications: (options.modifications ?? undefined) as JsonObject | undefined,
     });
 
     if (resolution.decision === 'abort') {

@@ -70,8 +70,8 @@ describe('AgentPromotionService', () => {
       expect(result.success).toBe(true);
       expect(result.newStatus).toBe('active');
       expect(result.requiresApproval).toBeUndefined();
-      const updateStatusSpy = agentsRepo.updateStatus;
-      expect(updateStatusSpy).toHaveBeenCalledWith('agent-1', 'active');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(agentsRepo.updateStatus).toHaveBeenCalledWith('agent-1', 'active');
     });
 
     it('should require approval for complex function agent', async () => {
@@ -106,10 +106,10 @@ describe('AgentPromotionService', () => {
       expect(result.newStatus).toBe('draft'); // Still draft, pending approval
       expect(result.requiresApproval).toBe(true);
       expect(result.approvalId).toBe('approval-1');
-      const createSpy = approvalsRepo.create;
-      expect(createSpy).toHaveBeenCalled();
-      const updateStatusSpy = agentsRepo.updateStatus;
-      expect(updateStatusSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(approvalsRepo.create).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(agentsRepo.updateStatus).not.toHaveBeenCalled();
     });
 
     it('should require approval for API agent', async () => {
@@ -132,8 +132,8 @@ describe('AgentPromotionService', () => {
       const result = await service.requestPromotion('agent-3');
 
       expect(result.requiresApproval).toBe(true);
-      const createSpy = approvalsRepo.create;
-      expect(createSpy).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(approvalsRepo.create).toHaveBeenCalled();
     });
 
     it('should fail if agent is already active', async () => {
@@ -189,10 +189,10 @@ describe('AgentPromotionService', () => {
 
       await service.requestPromotion('agent-6', { skipValidation: true });
 
-      const validateByTypeSpy = validator.validateByType;
-      expect(validateByTypeSpy).not.toHaveBeenCalled();
-      const updateStatusSpy = agentsRepo.updateStatus;
-      expect(updateStatusSpy).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(validator.validateByType).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(agentsRepo.updateStatus).toHaveBeenCalled();
     });
   });
 
@@ -223,8 +223,8 @@ describe('AgentPromotionService', () => {
 
       expect(result.success).toBe(true);
       expect(result.newStatus).toBe('active');
-      const updateStatusSpy = agentsRepo.updateStatus;
-      expect(updateStatusSpy).toHaveBeenCalledWith('agent-1', 'active');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(agentsRepo.updateStatus).toHaveBeenCalledWith('agent-1', 'active');
     });
 
     it('should fail if approval is not approved', async () => {
@@ -262,8 +262,8 @@ describe('AgentPromotionService', () => {
       expect(result.success).toBe(true);
       expect(result.previousStatus).toBe('active');
       expect(result.newStatus).toBe('draft');
-      const updateStatusSpy = agentsRepo.updateStatus;
-      expect(updateStatusSpy).toHaveBeenCalledWith('agent-7', 'draft');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(agentsRepo.updateStatus).toHaveBeenCalledWith('agent-7', 'draft');
     });
 
     it('should fail if agent is not active', async () => {

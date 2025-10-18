@@ -7,7 +7,7 @@ export interface ConversationMessage {
   role: string;
   content: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()
