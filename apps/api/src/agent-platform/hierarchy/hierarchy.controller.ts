@@ -103,7 +103,7 @@ export class HierarchyController {
     const roots: any[] = [];
 
     // Build hierarchy for each namespace
-    byNamespace.forEach((namespaceAgents, namespace) => {
+    byNamespace.forEach((namespaceAgents, _namespace) => {
       const agentMap = new Map<string, any>();
 
       // Create nodes for all agents

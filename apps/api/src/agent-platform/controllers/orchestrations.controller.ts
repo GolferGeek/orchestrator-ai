@@ -8,7 +8,12 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { OrchestrationStatusService } from '../services/orchestration-status.service';
 import { OrchestrationDashboardService } from '../services/orchestration-dashboard.service';
 import {
@@ -62,9 +67,7 @@ export class OrchestrationsController {
   @ApiOkResponse({
     description: 'Paginated orchestration approvals with run context.',
   })
-  async listApprovals(
-    @Query() query: ListOrchestrationApprovalsQueryDto,
-  ) {
+  async listApprovals(@Query() query: ListOrchestrationApprovalsQueryDto) {
     const result = await this.dashboardService.listApprovals({
       organizationSlug: query.organizationSlug ?? undefined,
       status: query.status,
@@ -117,7 +120,8 @@ export class OrchestrationsController {
     summary: 'Manually retry the most recent failed orchestration step.',
   })
   @ApiOkResponse({
-    description: 'Updated orchestration run summary after scheduling the retry.',
+    description:
+      'Updated orchestration run summary after scheduling the retry.',
   })
   async retryFailedStep(
     @Param('runId') runId: string,
@@ -148,7 +152,8 @@ export class OrchestrationsController {
 
   @Post(':runId/actions/skip')
   @ApiOperation({
-    summary: 'Manually skip a failed orchestration step and continue execution.',
+    summary:
+      'Manually skip a failed orchestration step and continue execution.',
   })
   @ApiOkResponse({
     description: 'Updated orchestration summary reflecting the skipped step.',

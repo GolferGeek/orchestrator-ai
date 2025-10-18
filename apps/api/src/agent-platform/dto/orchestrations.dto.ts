@@ -134,7 +134,8 @@ export class ListOrchestrationApprovalsQueryDto {
   @ApiPropertyOptional({
     minimum: 0,
     default: 0,
-    description: 'Number of approvals to skip from the beginning of the result.',
+    description:
+      'Number of approvals to skip from the beginning of the result.',
   })
   @IsOptional()
   @Type(() => Number)

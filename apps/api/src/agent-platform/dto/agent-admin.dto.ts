@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsString,
   Matches,
-  ValidateNested,
 } from 'class-validator';
 
 export enum AgentType {
@@ -105,7 +104,8 @@ export class CreateAgentDto {
   plan_structure?: string | Record<string, any> | null;
 
   @ApiProperty({
-    description: 'Deliverable structure template (markdown string or JSON schema)',
+    description:
+      'Deliverable structure template (markdown string or JSON schema)',
     required: false,
   })
   @IsOptional()

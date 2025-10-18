@@ -4,14 +4,13 @@
     "src/**/*.ts",
     "test/**/*.ts",
     "testing/**/*.ts",
-    "scripts/**/*.ts",
     "src/**/*.d.ts",
     "test/**/*.d.ts",
-    "testing/**/*.d.ts",
-    "scripts/**/*.d.ts"
+    "testing/**/*.d.ts"
   ],
   "exclude": [
     "dist",
-    "node_modules"
+    "node_modules",
+    "scripts"
   ]
 }

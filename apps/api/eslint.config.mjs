@@ -10,6 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const tsconfigPath = path.join(__dirname, 'tsconfig.eslint.json');
+const scriptsTsconfigPath = path.join(__dirname, 'tsconfig.scripts.json');
 const testFilePatterns = [
   '**/*.spec.ts',
   '**/*.spec.tsx',
@@ -113,7 +114,7 @@ export default tseslint.config(
       sourceType: 'module',
       parserOptions: {
         projectService: true,
-        project: [tsconfigPath],
+        project: [tsconfigPath, scriptsTsconfigPath],
         tsconfigRootDir: __dirname,
       },
     },
