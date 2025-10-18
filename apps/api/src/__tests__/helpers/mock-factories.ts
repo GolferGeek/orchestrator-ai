@@ -87,7 +87,13 @@ export interface OrchestrationStep {
   conversation_id: string | null;
   task_id: string | null;
   deliverable_id: string | null;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'cancelled';
+  status:
+    | 'pending'
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'skipped'
+    | 'cancelled';
   depends_on: number[];
   checkpoint_after: boolean;
   attempt: number;

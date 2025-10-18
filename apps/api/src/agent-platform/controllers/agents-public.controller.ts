@@ -75,7 +75,7 @@ export class AgentsPublicController {
     const roots: any[] = [];
 
     // Build hierarchy for each namespace
-    byNamespace.forEach((namespaceAgents, namespace) => {
+    byNamespace.forEach((namespaceAgents, _namespace) => {
       const agentMap = new Map<string, any>();
 
       // Create nodes for all agents
@@ -112,7 +112,7 @@ export class AgentsPublicController {
           try {
             const yamlData = yamlLoad(agent.yaml) as any;
             reportsTo = yamlData?.reports_to || yamlData?.reportsTo || null;
-          } catch (err) {
+          } catch {
             // YAML parse error - reportsTo remains null
           }
         }

@@ -153,7 +153,6 @@ export class DatabaseTestHelper {
    */
   static async withTransaction<T>(fn: () => Promise<T>): Promise<T> {
     await DatabaseTestHelper.setupTestDatabase();
-    const client = DatabaseTestHelper.supabaseClient!;
 
     // Note: Supabase client doesn't expose transaction control directly
     // For true transaction support, tests should use raw SQL via rawQuery()

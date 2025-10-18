@@ -235,7 +235,11 @@ describe('OrchestrationsController', () => {
       const body = { decision: 'continue', notes: 'Approved' };
       const req = { user: { sub: 'user-123' } };
 
-      const result = await controller.resolveApproval('approval-1', body as any, req);
+      const result = await controller.resolveApproval(
+        'approval-1',
+        body as any,
+        req,
+      );
 
       expect(result.success).toBe(true);
       expect(result.data.approval.status).toBe('approved');
@@ -338,7 +342,9 @@ describe('OrchestrationsController', () => {
       expect(result.success).toBe(true);
       expect(result.data.runId).toBe('run-replay');
       expect(result.data.parameters).toEqual({ param1: 'value1' });
-      expect(dashboardService.getReplayContext).toHaveBeenCalledWith('run-replay');
+      expect(dashboardService.getReplayContext).toHaveBeenCalledWith(
+        'run-replay',
+      );
     });
 
     it('throws NotFoundException if run not found', async () => {
@@ -359,7 +365,12 @@ describe('OrchestrationsController', () => {
         run: { id: 'run-1', status: 'running' },
         steps: [{ id: 'step-1', status: 'completed' }],
         currentStep: { id: 'step-2', status: 'running' },
-        summary: { totalSteps: 3, completedSteps: 1, progressPercentage: 33, pendingApprovals: 1 },
+        summary: {
+          totalSteps: 3,
+          completedSteps: 1,
+          progressPercentage: 33,
+          pendingApprovals: 1,
+        },
         pendingApprovals: [{ id: 'approval-1', status: 'pending' }],
         approvals: { items: [], total: 0 },
         relatedRuns: { parent: null, children: [] },

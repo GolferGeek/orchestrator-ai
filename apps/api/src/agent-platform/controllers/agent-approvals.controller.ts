@@ -15,7 +15,6 @@ export class AgentApprovalsController {
     @Query('conversationId') conversationId?: string,
     @Query('agentSlug') agentSlug?: string,
   ) {
-    const client = (this.approvals as any).client?.() || null;
     // Fallback to repository direct query pattern
     const c = (this.approvals as any).client();
     let q = c.from('human_approvals').select('*');

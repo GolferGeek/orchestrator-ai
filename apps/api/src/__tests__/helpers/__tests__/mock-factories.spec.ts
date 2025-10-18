@@ -389,13 +389,9 @@ describe('MockFactories', () => {
       const createdAt = new Date(agent.created_at);
       const updatedAt = new Date(agent.updated_at);
 
-      expect(createdAt.getTime()).toBeGreaterThanOrEqual(
-        before.getTime(),
-      );
+      expect(createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
       expect(createdAt.getTime()).toBeLessThanOrEqual(after.getTime());
-      expect(updatedAt.getTime()).toBeGreaterThanOrEqual(
-        createdAt.getTime(),
-      );
+      expect(updatedAt.getTime()).toBeGreaterThanOrEqual(createdAt.getTime());
     });
   });
 });
