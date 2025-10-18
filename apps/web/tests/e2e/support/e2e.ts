@@ -78,7 +78,7 @@ Cypress.config('responseTimeout', testConfig.apiTimeout);
 // Note: video, screenshotOnRunFailure, and screenshotsFolder are configured in cypress.config.ts
 
 // Global error handling
-Cypress.on('uncaught:exception', (err, runnable) => {
+Cypress.on('uncaught:exception', (err, _runnable) => {
   // Don't fail tests on unhandled promise rejections from external libraries
   if (err.message.includes('ResizeObserver loop limit exceeded')) {
     return false;

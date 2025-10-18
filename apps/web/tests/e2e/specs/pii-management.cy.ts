@@ -8,7 +8,7 @@ describe('PII Management Workflow E2E Tests', () => {
     password: 'admin123'
   };
 
-  const testPIIData = {
+  const _testPIIData = {
     emails: ['john.doe@company.com', 'jane.smith@example.org'],
     phones: ['(555) 123-4567', '+1-800-555-0199'],
     names: ['John Doe', 'Jane Smith', 'Michael Johnson'],

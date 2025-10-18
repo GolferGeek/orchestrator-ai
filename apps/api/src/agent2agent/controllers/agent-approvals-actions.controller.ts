@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { AgentExecutionGateway } from '../services/agent-execution-gateway.service';
 import { HumanApprovalsRepository } from '@/agent-platform/repositories/human-approvals.repository';
-import { TaskRequestDto } from '../dtos/task-request.dto';
+import { TaskRequestDto } from '../dto/task-request.dto';
 
 @Controller('agent-to-agent')
 export class AgentApprovalsActionsController {

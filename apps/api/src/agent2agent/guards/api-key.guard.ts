@@ -111,7 +111,7 @@ export class ApiKeyGuard implements CanActivate {
     return true;
   }
 
-  private extractOrgSlug(params: Record<string, any> | undefined): string {
+  private extractOrgSlug(params: Record<string, unknown> | undefined): string {
     const raw = params?.orgSlug ?? params?.organizationSlug ?? 'global';
     if (typeof raw !== 'string' || !raw.trim()) {
       throw new UnauthorizedException(
@@ -122,7 +122,7 @@ export class ApiKeyGuard implements CanActivate {
   }
 
   private extractAlias(
-    headers: Record<string, any> | undefined,
+    headers: Record<string, unknown> | undefined,
   ): string | null {
     const candidate =
       headers?.['x-agent-key-alias'] || headers?.['x-agent-keyalias'];
@@ -229,7 +229,7 @@ export class ApiKeyGuard implements CanActivate {
 
   private hash(
     apiKey: string,
-    metadata: Record<string, any>,
+    metadata: Record<string, unknown>,
     algorithm: string,
     encoding: BufferEncodingOption,
   ): string {
@@ -343,7 +343,7 @@ export class ApiKeyGuard implements CanActivate {
     fingerprint: string;
     alias: string | null;
     status: 'success' | 'credential_missing' | 'mismatch' | 'rate_limited';
-    extra?: Record<string, any>;
+    extra?: Record<string, unknown>;
   }) {
     const payload = {
       event: 'agent_api_key_check',

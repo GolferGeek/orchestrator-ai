@@ -15,6 +15,10 @@ import {
   SupabaseAuthUserDto,
   UserProfileDto,
 } from './dto/auth.dto';
+import {
+  CreateUserDto,
+  CreateUserResponseDto,
+} from './dto/admin-user-management.dto';
 import { UserRole } from './decorators/roles.decorator';
 import { getTableName } from '../supabase/supabase.config';
 
@@ -539,7 +543,10 @@ export class AuthService {
    * Create new user (admin only)
    * Creates both auth user and profile record
    */
-  async createUser(createUserDto: any, _adminUserId: string): Promise<any> {
+  async createUser(
+    createUserDto: CreateUserDto,
+    _adminUserId: string,
+  ): Promise<CreateUserResponseDto> {
     try {
       const serviceClient = this.supabaseService.getServiceClient();
 

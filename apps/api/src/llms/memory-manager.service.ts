@@ -113,7 +113,11 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       this.threeTierModels.clear();
-      data?.forEach((model) => this.threeTierModels.add(model.model_name));
+      data?.forEach((model) => {
+        if (typeof model.model_name === 'string') {
+          this.threeTierModels.add(model.model_name);
+        }
+      });
 
       this.logger.debug(
         `Loaded ${this.threeTierModels.size} three-tier models: ${Array.from(this.threeTierModels).join(', ')}`,

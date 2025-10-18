@@ -4,6 +4,7 @@ import { OrchestrationEventsService } from './orchestration-events.service';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
+import { OrchestrationRunSnapshot } from '../types/orchestration-events.types';
 
 const createRun = (
   overrides: Partial<OrchestrationRunRecord> = {},
@@ -65,6 +66,37 @@ const createStep = (
   completed_at: new Date().toISOString(),
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
+  ...overrides,
+});
+
+const createRunSnapshot = (
+  overrides: Partial<OrchestrationRunSnapshot> = {},
+): OrchestrationRunSnapshot => ({
+  id: 'run-1',
+  status: 'running',
+  definitionId: 'def-1',
+  name: 'test-orchestration',
+  planId: null,
+  conversationId: 'conv-1',
+  parentRunId: null,
+  organizationSlug: 'org-1',
+  currentStepId: 'step-1',
+  currentStepIndex: 1,
+  completedSteps: ['step-0'],
+  humanCheckpointId: null,
+  plan: {},
+  results: {},
+  parameters: {},
+  errorDetails: {},
+  metadata: { agent: { slug: 'test-agent' } },
+  stats: { totalSteps: 3, completedSteps: 1, progressPercentage: 33 },
+  timings: {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    startedAt: new Date().toISOString(),
+    completedAt: null,
+  },
+  agent: { slug: 'test-agent', id: '', type: 'specialist', displayName: '' },
   ...overrides,
 });
 
@@ -150,7 +182,7 @@ describe('OrchestrationStatusService', () => {
         status: 'running',
         currentStepId: 'step-1',
         stats: { totalSteps: 2, completedSteps: 1, progressPercentage: 50 },
-      } as any);
+      } as never);
 
       events.snapshotStep.mockImplementation(
         (r, s) =>
@@ -180,7 +212,7 @@ describe('OrchestrationStatusService', () => {
         id: 'run-1',
         currentStepId: 'index_1',
         stats: { totalSteps: 2, completedSteps: 0, progressPercentage: 0 },
-      } as any);
+      } as never);
 
       events.snapshotStep.mockImplementation(
         (r, s) =>
@@ -206,11 +238,13 @@ describe('OrchestrationStatusService', () => {
       runner.getRun.mockResolvedValue(run);
       runner.listSteps.mockResolvedValue(steps);
 
-      events.snapshotRun.mockReturnValue({
-        id: 'run-1',
-        currentStepId: 'unknown-step',
-        stats: { totalSteps: 2, completedSteps: 1, progressPercentage: 50 },
-      } as any);
+      events.snapshotRun.mockReturnValue(
+        createRunSnapshot({
+          id: 'run-1',
+          currentStepId: 'unknown-step',
+          stats: { totalSteps: 2, completedSteps: 1, progressPercentage: 50 },
+        }),
+      );
 
       events.snapshotStep.mockImplementation(
         (r, s) =>
@@ -232,19 +266,25 @@ describe('OrchestrationStatusService', () => {
       const pendingApprovals = [
         {
           id: 'approval-1',
-          status: 'pending',
+          status: 'pending' as const,
           mode: 'orchestration_checkpoint',
+          agent_slug: 'test-agent',
           orchestration_step_id: 'step-1',
+          orchestration_run_id: 'run-1',
+          task_id: null,
           created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           metadata: { checkpointId: 'review' },
           conversation_id: 'conv-1',
           organization_slug: 'org-1',
+          approved_by: null,
+          decision_at: null,
         },
       ];
 
       runner.getRun.mockResolvedValue(run);
       runner.listSteps.mockResolvedValue(steps);
-      approvals.listPendingByRun.mockResolvedValue(pendingApprovals as any);
+      approvals.listPendingByRun.mockResolvedValue(pendingApprovals);
 
       const result = await service.getRunStatus('run-1');
 

@@ -84,7 +84,7 @@ export async function handleBuildRead(
     }
 
     const deliverableRecord = await services.deliverablesService.findOne(
-      existingDeliverable.id,
+      existingDeliverable.id as string,
       userId,
     );
 
@@ -393,7 +393,7 @@ export async function handleBuildRerun(
     }
 
     const deliverableRecord = await services.deliverablesService.findOne(
-      existingDeliverable.id,
+      existingDeliverable.id as string,
       userId,
     );
 
@@ -702,7 +702,7 @@ export async function handleBuildMergeVersions(
     }
 
     const deliverableRecord = await services.deliverablesService.findOne(
-      existingDeliverable.id,
+      existingDeliverable.id as string,
       userId,
     );
 

@@ -14,6 +14,10 @@ import {
   MCPErrorCode,
   MCPInitializeParams,
   MCPCallToolParams,
+  MCPServerInfo,
+  MCPListToolsResult,
+  MCPToolResponse,
+  MCPPingResult,
 } from './interfaces/mcp.interface';
 
 /**
@@ -39,8 +43,12 @@ export class MCPController {
   ): Promise<MCPJsonRpcResponse> {
     // Validate JSON-RPC 2.0 request format
     if (!this.isValidJsonRpcRequest(request)) {
+      const requestId =
+        request && typeof request === 'object' && 'id' in request
+          ? (request as { id: string | number | null }).id
+          : null;
       return this.createErrorResponse(
-        (request as any).id || null,
+        requestId,
         MCPErrorCode.INVALID_REQUEST,
         'Invalid JSON-RPC 2.0 request format',
       );
@@ -50,20 +58,34 @@ export class MCPController {
     this.logger.debug(`Handling MCP method: ${method}`);
 
     try {
-      let result: any;
+      let result: unknown;
 
       switch (method) {
-        case 'initialize':
-          result = await this.handleInitialize(params || {});
+        case 'initialize': {
+          const initParams: MCPInitializeParams =
+            params && typeof params === 'object'
+              ? (params as MCPInitializeParams)
+              : ({
+                  protocolVersion: '',
+                  clientInfo: { name: '', version: '' },
+                  capabilities: {},
+                } as MCPInitializeParams);
+          result = this.handleInitialize(initParams);
           break;
+        }
 
         case 'tools/list':
           result = await this.handleListTools(params);
           break;
 
-        case 'tools/call':
-          result = await this.handleCallTool(params || { name: '', arguments: {} });
+        case 'tools/call': {
+          const callParams: MCPCallToolParams =
+            params && typeof params === 'object'
+              ? (params as MCPCallToolParams)
+              : { name: '', arguments: {} };
+          result = await this.handleCallTool(callParams);
           break;
+        }
 
         case 'ping':
           result = await this.handlePing(params);
@@ -99,7 +121,7 @@ export class MCPController {
   /**
    * Handle MCP initialize method
    */
-  private handleInitialize(params: MCPInitializeParams): any {
+  private handleInitialize(params: MCPInitializeParams): MCPServerInfo {
     this.logger.log('MCP client initializing connection');
 
     // Validate client protocol version
@@ -124,7 +146,7 @@ export class MCPController {
   /**
    * Handle tools/list method
    */
-  private async handleListTools(_params: any): Promise<any> {
+  private async handleListTools(_params: unknown): Promise<MCPListToolsResult> {
     this.logger.debug('Listing available MCP tools');
 
     const toolsResult = await this.mcpService.listTools();
@@ -137,7 +159,9 @@ export class MCPController {
   /**
    * Handle tools/call method
    */
-  private async handleCallTool(params: MCPCallToolParams): Promise<any> {
+  private async handleCallTool(
+    params: MCPCallToolParams,
+  ): Promise<MCPToolResponse> {
     if (!params.name) {
       throw new Error('Tool name is required');
     }
@@ -154,7 +178,7 @@ export class MCPController {
     // If the tool returned an error, throw it to be handled by JSON-RPC error response
     if (result.isError) {
       const errorContent = result.content[0]?.text || 'Tool execution failed';
-      let errorData: any;
+      let errorData: unknown;
 
       try {
         errorData = JSON.parse(errorContent);
@@ -162,7 +186,13 @@ export class MCPController {
         errorData = { message: errorContent };
       }
 
-      throw new Error(errorData.error || errorData.message || errorContent);
+      const errorMessage =
+        typeof errorData === 'object' && errorData !== null
+          ? ((errorData as { error?: string }).error as string | undefined) ||
+            ((errorData as { message?: string }).message as string | undefined) ||
+            errorContent
+          : errorContent;
+      throw new Error(errorMessage);
     }
 
     this.logger.debug(`Successfully executed tool: ${params.name}`);
@@ -173,7 +203,7 @@ export class MCPController {
   /**
    * Handle ping method
    */
-  private async handlePing(_params: any): Promise<any> {
+  private async handlePing(_params: unknown): Promise<MCPPingResult> {
     this.logger.debug('MCP ping request');
 
     const pingResult = await this.mcpService.ping();

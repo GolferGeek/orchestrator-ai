@@ -519,7 +519,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Fetch updated user data
       await fetchCurrentUser();
       return true;
-    } catch (_err) {
+    } catch {
       error.value = 'Could not refresh authentication token.';
       clearAuthData();
       return false;

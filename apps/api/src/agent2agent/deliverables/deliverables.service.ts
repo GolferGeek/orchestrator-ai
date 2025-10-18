@@ -11,6 +11,8 @@ import {
   DeliverableFiltersDto,
   CreateEditingConversationDto,
   DeliverableVersionCreationType,
+  DeliverableType,
+  DeliverableFormat,
 } from './dto';
 import {
   Deliverable,
@@ -247,7 +249,8 @@ export class DeliverablesService implements IActionHandler {
         existingDeliverable.id,
         {
           content: params.content,
-          format: (params.format as any) || 'markdown',
+          format:
+            (params.format as DeliverableFormat) || DeliverableFormat.MARKDOWN,
           createdByType: DeliverableVersionCreationType.AI_RESPONSE,
           taskId: params.taskId ?? context.taskId ?? undefined,
           metadata: params.metadata || {},
@@ -265,10 +268,11 @@ export class DeliverablesService implements IActionHandler {
       const createDto: CreateDeliverableDto = {
         conversationId: context.conversationId,
         title: params.title,
-        type: params.type as any,
+        type: params.type as DeliverableType,
         agentName: params.agentName ?? context.agentSlug ?? undefined,
         initialContent: params.content,
-        initialFormat: (params.format as any) || 'markdown',
+        initialFormat:
+          (params.format as DeliverableFormat) || DeliverableFormat.MARKDOWN,
         initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
         initialTaskId: params.taskId ?? context.taskId ?? undefined,
         initialMetadata: params.metadata || {},
@@ -623,7 +627,7 @@ export class DeliverablesService implements IActionHandler {
     try {
       // First, create the deliverable record
       const { data: deliverableData, error: deliverableError } =
-        await this.supabaseService
+        (await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .insert([
@@ -636,7 +640,7 @@ export class DeliverablesService implements IActionHandler {
             },
           ])
           .select('*')
-          .single();
+          .single()) as { data: { id: string } | null; error: Error | null };
 
       if (deliverableError || !deliverableData) {
         throw new BadRequestException(
@@ -645,9 +649,9 @@ export class DeliverablesService implements IActionHandler {
       }
 
       // Always create an initial version
-      await this.createInitialVersion(deliverableData.id as string, createDto);
+      await this.createInitialVersion(deliverableData.id, createDto);
 
-      return await this.findOne(deliverableData.id as string, userId);
+      return await this.findOne(deliverableData.id, userId);
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -727,29 +731,48 @@ export class DeliverablesService implements IActionHandler {
       }
 
       const deliverables = data || [];
-      const items = deliverables.map((deliverable: any) => {
-        // Get the current version or the first version if no current version is marked
-        const currentVersion =
-          deliverable.deliverable_versions?.find(
-            (v: any) => v.is_current_version,
-          ) || deliverable.deliverable_versions?.[0];
+      const items = deliverables.map(
+        (deliverable: {
+          id: string;
+          user_id: string;
+          conversation_id?: string;
+          title: string;
+          type?: string;
+          created_at: string | Date;
+          updated_at: string | Date;
+          metadata?: Record<string, unknown>;
+          deliverable_versions?: Array<{
+            id: string;
+            is_current_version: boolean;
+            format?: string;
+            content?: string;
+            metadata?: Record<string, unknown>;
+            version_number?: number;
+          }>;
+        }) => {
+          // Get the current version or the first version if no current version is marked
+          const currentVersion =
+            deliverable.deliverable_versions?.find(
+              (v) => v.is_current_version,
+            ) || deliverable.deliverable_versions?.[0];
 
-        return {
-          id: deliverable.id,
-          userId: deliverable.user_id,
-          conversationId: deliverable.conversation_id,
-          title: deliverable.title,
-          type: deliverable.type,
-          createdAt: new Date(deliverable.created_at),
-          updatedAt: new Date(deliverable.updated_at),
-          format: currentVersion?.format || null,
-          content: currentVersion?.content || null,
-          metadata: currentVersion?.metadata || deliverable.metadata || {},
-          versionNumber: currentVersion?.version_number || null,
-          isCurrentVersion: currentVersion?.is_current_version || false,
-          versionId: currentVersion?.id || null,
-        } as DeliverableSearchResult;
-      });
+          return {
+            id: deliverable.id,
+            userId: deliverable.user_id,
+            conversationId: deliverable.conversation_id,
+            title: deliverable.title,
+            type: deliverable.type,
+            createdAt: new Date(deliverable.created_at),
+            updatedAt: new Date(deliverable.updated_at),
+            format: currentVersion?.format || null,
+            content: currentVersion?.content || null,
+            metadata: currentVersion?.metadata || deliverable.metadata || {},
+            versionNumber: currentVersion?.version_number || null,
+            isCurrentVersion: currentVersion?.is_current_version || false,
+            versionId: currentVersion?.id || null,
+          } as DeliverableSearchResult;
+        },
+      );
 
       const limit = filters.limit || 50;
       const offset = filters.offset || 0;
@@ -790,7 +813,20 @@ export class DeliverablesService implements IActionHandler {
       );
     }
 
-    return data?.map((item) => this.mapToDeliverable(item)) || [];
+    return (
+      data?.map(
+        (item: {
+          id: string;
+          user_id: string;
+          conversation_id?: string;
+          agent_name?: string;
+          title: string;
+          type?: string;
+          created_at: string | Date;
+          updated_at: string | Date;
+        }) => this.mapToDeliverable(item),
+      ) || []
+    );
   }
 
   /**
@@ -800,21 +836,33 @@ export class DeliverablesService implements IActionHandler {
     try {
       // Get the deliverable record
       const { data: deliverableData, error: deliverableError } =
-        await this.supabaseService
+        (await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .select('*')
           .eq('id', id)
           .eq('user_id', userId)
-          .single();
+          .single()) as {
+          data: {
+            id: string;
+            user_id: string;
+            conversation_id?: string;
+            agent_name?: string;
+            title: string;
+            type?: string;
+            created_at: string | Date;
+            updated_at: string | Date;
+          } | null;
+          error: Error | null;
+        };
 
-      if (deliverableError) {
-        if (deliverableError.code === 'PGRST116') {
+      if (deliverableError || !deliverableData) {
+        if ((deliverableError as { code?: string })?.code === 'PGRST116') {
           throw new NotFoundException(`Deliverable not found: ${id}`);
         }
 
         throw new BadRequestException(
-          `Failed to find deliverable: ${deliverableError.message}`,
+          `Failed to find deliverable: ${deliverableError?.message || 'No data returned'}`,
         );
       }
 
@@ -914,17 +962,23 @@ export class DeliverablesService implements IActionHandler {
   /**
    * Extract content from task response
    */
-  private extractContentFromResponse(response: any): string | null {
-    let result = response;
+  private extractContentFromResponse(response: unknown): string | null {
+    let result: unknown = response;
     if (typeof response === 'string') {
       try {
-        result = JSON.parse(response);
+        result = JSON.parse(response) as unknown;
       } catch {
         return response.length > 100 ? response : null;
       }
     }
 
-    return result?.response || result?.message || result?.content || null;
+    const obj = result as Record<string, unknown> | null | undefined;
+    return (
+      (obj?.response as string) ||
+      (obj?.message as string) ||
+      (obj?.content as string) ||
+      null
+    );
   }
 
   /**
@@ -1148,7 +1202,7 @@ export class DeliverablesService implements IActionHandler {
     deliverableId: string,
     createDto: CreateDeliverableDto,
   ): Promise<DeliverableVersion> {
-    const { data, error } = await this.supabaseService
+    const { data, error } = (await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverable_versions'))
       .insert([
@@ -1168,7 +1222,10 @@ export class DeliverablesService implements IActionHandler {
         },
       ])
       .select('*')
-      .single();
+      .single()) as {
+      data: Record<string, unknown> | null;
+      error: Error | null;
+    };
 
     if (error) {
       throw new BadRequestException(
@@ -1176,7 +1233,10 @@ export class DeliverablesService implements IActionHandler {
       );
     }
 
-    return this.mapToVersion(data);
+    if (!data) {
+      throw new BadRequestException('Failed to create initial version: No data returned');
+    }
+    return this.mapToVersion(data as unknown as Parameters<typeof this.mapToVersion>[0]);
   }
 
   /**
@@ -1258,28 +1318,50 @@ export class DeliverablesService implements IActionHandler {
   }
 
   // Helper methods for mapping database results to entities
-  private mapToDeliverable(data: any): Deliverable {
+  private mapToDeliverable(data: {
+    id: string;
+    user_id: string;
+    conversation_id?: string;
+    agent_name?: string;
+    title: string;
+    type?: string;
+    created_at: string | Date;
+    updated_at: string | Date;
+  }): Deliverable {
     return {
       id: data.id,
       userId: data.user_id,
       conversationId: data.conversation_id,
       agentName: data.agent_name,
       title: data.title,
-      type: data.type,
+      type: data.type as DeliverableType | undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
   }
 
-  private mapToVersion(data: any): DeliverableVersion {
+  private mapToVersion(data: {
+    id: string;
+    deliverable_id: string;
+    version_number: number;
+    content?: string;
+    format?: string;
+    is_current_version: boolean;
+    created_by_type: string;
+    task_id?: string;
+    metadata?: Record<string, unknown>;
+    file_attachments?: Record<string, unknown>;
+    created_at: string | Date;
+    updated_at: string | Date;
+  }): DeliverableVersion {
     return {
       id: data.id,
       deliverableId: data.deliverable_id,
       versionNumber: data.version_number,
       content: data.content,
-      format: data.format,
+      format: data.format as DeliverableFormat | undefined,
       isCurrentVersion: data.is_current_version,
-      createdByType: data.created_by_type,
+      createdByType: data.created_by_type as DeliverableVersionCreationType,
       taskId: data.task_id,
       metadata: data.metadata || {},
       fileAttachments: data.file_attachments || {},
@@ -1288,16 +1370,31 @@ export class DeliverablesService implements IActionHandler {
     };
   }
 
-  private mapToSearchResult(data: any): DeliverableSearchResult {
+  private mapToSearchResult(data: {
+    id: string;
+    user_id: string;
+    conversation_id?: string;
+    title: string;
+    type?: string;
+    created_at: string | Date;
+    updated_at: string | Date;
+    format?: string;
+    content?: string;
+    version_metadata?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    version_number?: number;
+    is_current_version?: boolean;
+    version_id?: string;
+  }): DeliverableSearchResult {
     return {
       id: data.id,
       userId: data.user_id,
       conversationId: data.conversation_id,
       title: data.title,
-      type: data.type,
+      type: data.type as DeliverableType | undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
-      format: data.format,
+      format: data.format as DeliverableFormat | undefined,
       content: data.content,
       metadata: data.version_metadata || data.metadata || {},
       versionNumber: data.version_number,

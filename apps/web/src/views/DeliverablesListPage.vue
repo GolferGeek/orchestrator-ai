@@ -347,7 +347,6 @@ import {
   refreshOutline,
   sparklesOutline,
   calendarOutline,
-  chatbubbleOutline,
   eyeOutline,
   createOutline,
   gitBranchOutline,
@@ -361,7 +360,7 @@ import {
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useDeliverables } from '@/composables/useDeliverables';
-import { DeliverableType, type Deliverable, type DeliverableSearchResult, deliverablesService } from '@/services/deliverablesService';
+import { DeliverableType, type Deliverable, deliverablesService } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { deleteDeliverable as deleteDeliverableAction, setCurrentVersion } from '@/services/agent2agent/actions';
 import NewDeliverableDialog from '@/components/NewDeliverableDialog.vue';
@@ -526,7 +525,7 @@ const showNewDeliverableDialog = ref(false);
 const createNewDeliverable = () => {
   showNewDeliverableDialog.value = true;
 };
-const handleDeliverableCreated = (deliverableId: string) => {
+const handleDeliverableCreated = (_deliverableId: string) => {
   // Refresh the deliverables list
   loadDeliverables();
   showNewDeliverableDialog.value = false;
@@ -674,7 +673,7 @@ const deleteDeliverable = async (deliverable: Record<string, unknown>) => {
     await toast.present();
     // Refresh the list
     await loadDeliverables();
-  } catch (err) {
+  } catch (_err) {
 
     // Show error toast
     const toast = await toastController.create({
@@ -734,13 +733,13 @@ const hideVersionsModal = () => {
   versions.value = [];
   selectedDeliverableId.value = null;
 };
-const viewVersion = async (versionId: string) => {
+const viewVersion = async (_versionId: string) => {
   try {
     // Navigate to view the specific version
     // TODO: Implement navigation to version view
     // router.push(`/deliverables/version/${versionId}`);
     hideVersionsModal();
-  } catch (err) {
+  } catch (_err) {
 
   }
 };
@@ -788,7 +787,7 @@ const makeCurrentVersion = async (version: Record<string, unknown>) => {
                 color: 'success'
               });
               await toast.present();
-            } catch (error) {
+            } catch (_error) {
 
               // Show error toast
               const toast = await toastController.create({
@@ -804,7 +803,7 @@ const makeCurrentVersion = async (version: Record<string, unknown>) => {
       ]
     });
     await alert.present();
-  } catch (err) {
+  } catch (_err) {
 
   }
 };

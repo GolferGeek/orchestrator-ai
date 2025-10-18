@@ -9,6 +9,7 @@ import {
 import { PIIService } from './pii/pii.service';
 import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
 import { PIIProcessingMetadata } from './types/pii-metadata.types';
+import { DictionaryPseudonymMapping } from './pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from './run-metadata.service';
 import { createHash } from 'crypto';
 
@@ -144,7 +145,7 @@ export class CentralizedRoutingService {
           const reversalResult =
             await this.dictionaryPseudonymizerService.reversePseudonyms(
               agentResponse,
-              requestId,
+              requestId as unknown as DictionaryPseudonymMapping[],
             );
 
           processedResponse = reversalResult.originalText;

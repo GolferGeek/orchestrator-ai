@@ -23,7 +23,7 @@ export function snakeToCamel(obj: unknown): unknown {
   const camelObj: Record<string, unknown> = {};
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
+      const camelKey = key.replace(/_([a-z])/g, (_: string, letter: string) =>
         letter.toUpperCase(),
       );
       camelObj[camelKey] = snakeToCamel((obj as Record<string, unknown>)[key]);
@@ -125,11 +125,16 @@ export function mapModelToDb(model: Partial<Model>): Record<string, unknown> {
 }
 
 // New mapping function specifically for llm_models table structure
-export function mapLLMModelFromDb(dbModel: Record<string, unknown>): ModelResponseDto {
+export function mapLLMModelFromDb(
+  dbModel: Record<string, unknown>,
+): ModelResponseDto {
   // Extract pricing info from JSON
-  const pricingInfo = (dbModel.pricing_info_json as Record<string, unknown>) || {};
-  const inputCostPer1k = ((pricingInfo.input_cost_per_token as number) || 0) * 1000;
-  const outputCostPer1k = ((pricingInfo.output_cost_per_token as number) || 0) * 1000;
+  const pricingInfo =
+    (dbModel.pricing_info_json as Record<string, unknown>) || {};
+  const inputCostPer1k =
+    ((pricingInfo.input_cost_per_token as number) || 0) * 1000;
+  const outputCostPer1k =
+    ((pricingInfo.output_cost_per_token as number) || 0) * 1000;
 
   return {
     providerName: dbModel.provider_name as string,
@@ -137,7 +142,8 @@ export function mapLLMModelFromDb(dbModel: Record<string, unknown>): ModelRespon
     modelName: dbModel.model_name as string, // Use model_name as the technical ID
     pricingInputPer1k: inputCostPer1k,
     pricingOutputPer1k: outputCostPer1k,
-    supportsThinking: (dbModel.capabilities as string[])?.includes('reasoning') || false,
+    supportsThinking:
+      (dbModel.capabilities as string[])?.includes('reasoning') || false,
     maxTokens: dbModel.max_output_tokens as number,
     contextWindow: dbModel.context_window as number,
     strengths: [], // Not available in llm_models structure
@@ -153,12 +159,17 @@ export function mapLLMModelFromDb(dbModel: Record<string, unknown>): ModelRespon
 }
 
 // New mapping function specifically for llm_providers table structure
-export function mapLLMProviderFromDb(dbProvider: Record<string, unknown>): Provider {
+export function mapLLMProviderFromDb(
+  dbProvider: Record<string, unknown>,
+): Provider {
   return {
     id: dbProvider.id as string,
     name:
-      (dbProvider.provider_name as string) || (dbProvider.name as string) || (dbProvider.display_name as string),
-    apiBaseUrl: (dbProvider.api_base_url as string) || (dbProvider.base_url as string),
+      (dbProvider.provider_name as string) ||
+      (dbProvider.name as string) ||
+      (dbProvider.display_name as string),
+    apiBaseUrl:
+      (dbProvider.api_base_url as string) || (dbProvider.base_url as string),
     authType: (dbProvider.auth_type as Provider['authType']) || 'api_key',
     status: (dbProvider.is_active as boolean) ? 'active' : 'inactive',
     createdAt: dbProvider.created_at as string,
@@ -166,7 +177,9 @@ export function mapLLMProviderFromDb(dbProvider: Record<string, unknown>): Provi
   };
 }
 
-export function mapCIDAFMCommandFromDb(dbCommand: Record<string, unknown>): CIDAFMCommand {
+export function mapCIDAFMCommandFromDb(
+  dbCommand: Record<string, unknown>,
+): CIDAFMCommand {
   return {
     id: dbCommand.id as string,
     type: dbCommand.type as CIDAFMCommand['type'],
@@ -179,7 +192,9 @@ export function mapCIDAFMCommandFromDb(dbCommand: Record<string, unknown>): CIDA
   };
 }
 
-export function mapCIDAFMCommandToDb(command: Partial<CIDAFMCommand>): any {
+export function mapCIDAFMCommandToDb(
+  command: Partial<CIDAFMCommand>,
+): Record<string, unknown> {
   return {
     id: command.id,
     type: command.type,
@@ -192,7 +207,9 @@ export function mapCIDAFMCommandToDb(command: Partial<CIDAFMCommand>): any {
   };
 }
 
-export function mapEnhancedMessageFromDb(dbMessage: Record<string, unknown>): EnhancedMessage {
+export function mapEnhancedMessageFromDb(
+  dbMessage: Record<string, unknown>,
+): EnhancedMessage {
   return {
     id: dbMessage.id as string,
     sessionId: dbMessage.session_id as string,
@@ -211,19 +228,28 @@ export function mapEnhancedMessageFromDb(dbMessage: Record<string, unknown>): En
     langsmithRunId: dbMessage.langsmith_run_id as string | undefined,
     userRating: dbMessage.user_rating as EnhancedMessage['userRating'],
     speedRating: dbMessage.speed_rating as EnhancedMessage['speedRating'],
-    accuracyRating: dbMessage.accuracy_rating as EnhancedMessage['accuracyRating'],
+    accuracyRating:
+      dbMessage.accuracy_rating as EnhancedMessage['accuracyRating'],
     userNotes: dbMessage.user_notes as string | undefined,
     evaluationTimestamp: dbMessage.evaluation_timestamp as string | undefined,
-    cidafmOptions: dbMessage.cidafm_options as Record<string, unknown> | undefined,
-    evaluationDetails: dbMessage.evaluation_details as Record<string, unknown> | undefined,
+    cidafmOptions: dbMessage.cidafm_options as
+      | Record<string, unknown>
+      | undefined,
+    evaluationDetails: dbMessage.evaluation_details as
+      | Record<string, unknown>
+      | undefined,
     provider: dbMessage.provider
       ? mapProviderFromDb(dbMessage.provider as Record<string, unknown>)
       : undefined,
-    model: dbMessage.model ? mapModelFromDb(dbMessage.model as Record<string, unknown>) : undefined,
+    model: dbMessage.model
+      ? mapModelFromDb(dbMessage.model as Record<string, unknown>)
+      : undefined,
   };
 }
 
-export function mapEnhancedMessageToDb(message: Partial<EnhancedMessage>): any {
+export function mapEnhancedMessageToDb(
+  message: Partial<EnhancedMessage>,
+): Record<string, unknown> {
   return {
     id: message.id,
     sessionId: message.sessionId,
@@ -250,7 +276,9 @@ export function mapEnhancedMessageToDb(message: Partial<EnhancedMessage>): any {
   };
 }
 
-export function mapUserUsageStatsFromDb(dbStats: Record<string, unknown>): UserUsageStats {
+export function mapUserUsageStatsFromDb(
+  dbStats: Record<string, unknown>,
+): UserUsageStats {
   return {
     id: dbStats.id as string,
     userId: dbStats.user_id as string,
@@ -267,11 +295,15 @@ export function mapUserUsageStatsFromDb(dbStats: Record<string, unknown>): UserU
     provider: dbStats.provider
       ? mapProviderFromDb(dbStats.provider as Record<string, unknown>)
       : undefined,
-    model: dbStats.model ? mapModelFromDb(dbStats.model as Record<string, unknown>) : undefined,
+    model: dbStats.model
+      ? mapModelFromDb(dbStats.model as Record<string, unknown>)
+      : undefined,
   };
 }
 
-export function mapUserUsageStatsToDb(stats: Partial<UserUsageStats>): any {
+export function mapUserUsageStatsToDb(
+  stats: Partial<UserUsageStats>,
+): Record<string, unknown> {
   return {
     id: stats.id,
     user_id: stats.userId,

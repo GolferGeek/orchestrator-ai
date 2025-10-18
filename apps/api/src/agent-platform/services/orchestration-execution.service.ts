@@ -136,8 +136,9 @@ export class OrchestrationExecutionService {
 
         const runtime = this.asRecord(metadata.runtime);
         if (runtime?.retry) {
+          const retryConfig = runtime.retry as Record<string, unknown>;
           runtime.retry = {
-            ...runtime.retry,
+            ...retryConfig,
             nextRetryAt: null,
             lastQueuedAt: now,
           };
@@ -545,7 +546,10 @@ export class OrchestrationExecutionService {
   }
 
   private computeQueueDuration(step: OrchestrationStepRecord): number | null {
-    const metadata = this.asRecord(step.metadata);
+    const metadata = this.asRecord(step.metadata) as Record<
+      string,
+      unknown
+    > | null;
     const queuedAtRaw = metadata?.queuedAt;
     if (!queuedAtRaw || !step.started_at) {
       return null;
@@ -609,7 +613,7 @@ export class OrchestrationExecutionService {
       return undefined;
     }
 
-    const value = stats.totalSteps;
+    const value: unknown = stats.totalSteps;
     if (typeof value === 'number' && Number.isFinite(value)) {
       return value;
     }

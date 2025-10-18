@@ -16,10 +16,6 @@
 import { computed } from 'vue';
 import { usePrivacyStore } from '@/stores/privacyStore';
 
-const emit = defineEmits<{
-  click: [];
-}>();
-
 interface Props {
   variant?: 'compact' | 'full' | 'minimal';
   showStatus?: boolean;
@@ -36,9 +32,9 @@ const props = withDefaults(defineProps<Props>(), {
   forceShow: false
 });
 
-// const emit = defineEmits<{
-//   click: [];
-// }>();
+const emit = defineEmits<{
+  click: [];
+}>();
 
 const privacyStore = usePrivacyStore();
 

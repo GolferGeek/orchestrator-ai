@@ -60,7 +60,7 @@ class TokenManager {
     try {
       await authService.refreshToken();
       success = true;
-    } catch (_error) {
+    } catch {
       success = false;
     } finally {
       this.isRefreshing = false;

@@ -10,8 +10,8 @@ import { OrganizationCredentialRecord } from '@agent-platform/interfaces/organiz
 import { ConfigService } from '@nestjs/config';
 
 const createContext = (
-  headers: Record<string, any>,
-  params: Record<string, any> = { orgSlug: 'acme' },
+  headers: Record<string, unknown>,
+  params: Record<string, unknown> = { orgSlug: 'acme' },
 ): ExecutionContext =>
   ({
     switchToHttp: () => ({
@@ -43,7 +43,7 @@ describe('ApiKeyGuard', () => {
   let config: jest.Mocked<ConfigService>;
   let guard: ApiKeyGuard;
 
-  const createConfigMock = (overrides: Record<string, any> = {}) => {
+  const createConfigMock = (overrides: Record<string, unknown> = {}) => {
     return {
       get: jest.fn((key: string) => overrides[key]),
     } as unknown as jest.Mocked<ConfigService>;

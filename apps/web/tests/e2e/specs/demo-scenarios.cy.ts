@@ -2,7 +2,7 @@
 // Comprehensive tests for stakeholder presentation demos and business value validation
 // Following CLAUDE.md principles: Real API integration, no mocks, robust demonstrations
 
-import { testConfig } from '../support/e2e';
+import { testConfig as _testConfig } from '../support/e2e';
 
 describe('Demo Scenarios for Stakeholder Presentations', () => {
   

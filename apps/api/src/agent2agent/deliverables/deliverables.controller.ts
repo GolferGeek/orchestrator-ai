@@ -55,7 +55,7 @@ export class DeliverablesController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async create(
     @Body() createDeliverableDto: CreateDeliverableDto,
-    @Req() req: any,
+    @Req() req: { user?: { sub?: string; id?: string; userId?: string } },
   ): Promise<Deliverable> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
@@ -129,7 +129,7 @@ export class DeliverablesController {
   })
   async findAll(
     @Query() filters: DeliverableFiltersDto,
-    @Req() req: any,
+    @Req() req: { user?: { sub?: string; id?: string; userId?: string } },
   ): Promise<{
     items: DeliverableSearchResult[];
     total: number;
@@ -159,7 +159,7 @@ export class DeliverablesController {
   @ApiResponse({ status: 404, description: 'Deliverable not found' })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: any,
+    @Req() req: { user?: { sub?: string; id?: string; userId?: string } },
   ): Promise<Deliverable> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {

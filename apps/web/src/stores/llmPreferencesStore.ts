@@ -333,7 +333,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
         }
         this._systemModelLoaded = true;
         return this._systemModelSelection;
-      } catch (_e) {
+      } catch {
         this._systemModelLoaded = true;
         this._systemModelSelection = null;
         return null;
@@ -491,7 +491,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
                 updatedAt: ''
               }));
             }
-          } catch (_secondaryError) {
+          } catch {
             // Keep original error context
           }
         }
@@ -696,7 +696,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
           this.temperature = preferences.temperature ?? 0.7;
           this.maxTokens = preferences.maxTokens;
         }
-      } catch (_error) {
+      } catch {
         // Failed to load LLM preferences from localStorage
       }
     },
@@ -712,7 +712,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
           maxTokens: this.maxTokens,
         };
         localStorage.setItem('llm-preferences', JSON.stringify(preferences));
-      } catch (_error) {
+      } catch {
         // Failed to save LLM preferences to localStorage
       }
     },

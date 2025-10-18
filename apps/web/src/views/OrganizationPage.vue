@@ -91,7 +91,7 @@ import { conversation } from '@/services/conversationHelpers';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useAgentsStore } from '@/stores/agentsStore';
-const conversationsStore = useConversationsStore();
+const _conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const agentsStore = useAgentsStore();
 const handleConversationSelected = async (conv: { id: string }) => {
@@ -99,14 +99,14 @@ const handleConversationSelected = async (conv: { id: string }) => {
     // TODO: Load conversation messages if not already loaded
     // await conversation.loadConversationMessages(conv.id);
     chatUiStore.setActiveConversation(conv.id);
-  } catch (error) {
+  } catch (_error) {
 
   }
 };
 const handleAgentSelected = async (agent: { type: string }) => {
   try {
     await conversation.createConversation(agent);
-  } catch (error) {
+  } catch (_error) {
 
   }
 };

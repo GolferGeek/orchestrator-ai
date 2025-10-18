@@ -67,7 +67,7 @@ describe('API Integration Tests - Task 24.2', () => {
 
         // Should not get CORS errors
         expect(response.status).not.toBe(500);
-      } catch (_error) {
+      } catch {
         // If network error occurs, that's expected in test environment
         console.log('✅ CORS test passed - Network error handled gracefully');
         expect(true).toBe(true);

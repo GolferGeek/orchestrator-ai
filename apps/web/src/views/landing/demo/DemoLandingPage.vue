@@ -339,34 +339,10 @@ import { IonPage, IonContent, IonButton, IonIcon, IonCard, IonCardHeader, IonCar
 import { 
   playCircleOutline,
   peopleOutline,
-  gitNetworkOutline,
   flashOutline,
-  analyticsOutline,
-  micOutline,
-  documentOutline,
-  flaskOutline,
-  serverOutline,
-  linkOutline,
-  playOutline,
-  rocketOutline,
-  megaphoneOutline,
-  settingsOutline,
-  codeSlashOutline,
   trendingUpOutline,
   callOutline,
-  peopleCircleOutline,
-  searchOutline,
   bulbOutline,
-  documentTextOutline,
-  videocamOutline,
-  checkmarkCircleOutline,
-  shieldCheckmarkOutline,
-  handLeftOutline,
-  closeCircleOutline,
-  heartOutline,
-  shieldOutline,
-  leafOutline,
-  calendarOutline,
   mailOutline,
   flagOutline,
   schoolOutline,
@@ -394,7 +370,7 @@ interface VideoPlayerVideo {
 
 const landingStore = useLandingStore();
 const router = useRouter();
-const authStore = useAuthStore();
+const _authStore = useAuthStore();
 
 // Video modal state
 const isVideoModalOpen = ref(false);
@@ -407,7 +383,7 @@ const featuredVideos = computed(() => {
   // Get all categories in order
   const categoriesInOrder = videoService.getCategoriesInOrder();
   
-  categoriesInOrder.forEach(({ key, category }) => {
+  categoriesInOrder.forEach(({ key: _key, category }) => {
     // Get all featured videos from this category
     const featuredVideosInCategory = category.videos.filter(video => video.featured);
     
@@ -437,11 +413,11 @@ function goToDemo() {
 }
 
 // Video modal functions
-function openWhatWeBuiltVideoModal() {
+function _openWhatWeBuiltVideoModal() {
   handleSectionVideoModal('what-we-built');
 }
 
-function openCTAVideoModal() {
+function _openCTAVideoModal() {
   handleSectionVideoModal('how-we-work');
 }
 
@@ -462,14 +438,14 @@ function openEmailForm() {
 }
 
 // Scroll functions
-function handleScrollToPricing() {
+function _handleScrollToPricing() {
   const pricingElement = document.getElementById('pricing');
   if (pricingElement) {
     pricingElement.scrollIntoView({ behavior: 'smooth' });
   }
 }
 
-function handleScheduleCall() {
+function _handleScheduleCall() {
   openCalendly();
 }
 

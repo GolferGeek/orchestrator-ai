@@ -5,6 +5,7 @@ import {
   GenerateResponseParams,
   LLMResponse,
   LLMServiceConfig,
+  RoutingDecision as LLMRoutingDecision,
 } from '@llm/services/llm-interfaces';
 import { RoutingDecision } from '@llm/centralized-routing.service';
 import { AgentRuntimeDefinition } from '../interfaces/agent.interface';
@@ -31,7 +32,7 @@ export interface AgentRuntimeDispatchOptions {
 export interface AgentRuntimeStreamChunk {
   type: 'partial' | 'final';
   content: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentRuntimeDispatchResult {
@@ -50,7 +51,7 @@ export interface AgentRuntimeStreamingResult {
 interface StreamController {
   push: (chunk: AgentRuntimeStreamChunk) => void;
   close: () => void;
-  error: (error: any) => void;
+  error: (error: unknown) => void;
   iterator: AsyncIterable<AgentRuntimeStreamChunk>;
 }
 
@@ -88,7 +89,7 @@ export class AgentRuntimeDispatchService {
       options.onStreamChunk({
         type: 'final',
         content: response.content,
-        metadata: response.metadata,
+        metadata: response.metadata as unknown as Record<string, unknown>,
       });
     }
 
@@ -112,7 +113,7 @@ export class AgentRuntimeDispatchService {
           controller.push({
             type: 'final',
             content: result.response.content,
-            metadata: result.response.metadata,
+            metadata: result.response.metadata as unknown as Record<string, unknown>,
           });
           controller.close();
           return result;
@@ -166,7 +167,7 @@ export class AgentRuntimeDispatchService {
     decision: RoutingDecision,
     overrides: Partial<LLMServiceConfig> | undefined,
   ): LLMServiceConfig {
-    const decisionExtras = decision as Record<string, any>;
+    const decisionExtras = decision as unknown as Record<string, unknown>;
 
     return {
       provider: decision.provider ?? definition.llm?.provider ?? 'openai',
@@ -194,27 +195,39 @@ export class AgentRuntimeDispatchService {
   ): GenerateResponseParams {
     const { request, prompt, routingDecision, overrides } = options;
     const payload = request.payload ?? {};
-    const rawOptions: any = { ...(payload.options ?? {}) };
-    const { metadata: _ignoredMetadata, stream, ...restOptions } = rawOptions;
+    const rawOptions: Record<string, unknown> = { ...(payload.options ?? {}) };
+    const { metadata: _ignoredMetadata, stream, maxComplexity: _rawMaxComplexity, ...restOptions } = rawOptions;
 
     const overrideOptions = overrides?.options ?? {};
+    const { maxComplexity: overrideMaxComplexity, stream: overrideStream, ...otherOverrides } = overrideOptions;
+
+    // Determine maxComplexity value early to avoid type issues
+    const finalMaxComplexity: 'simple' | 'medium' | 'complex' | 'reasoning' | undefined =
+      typeof overrideMaxComplexity === 'string'
+        ? (overrideMaxComplexity as 'simple' | 'medium' | 'complex' | 'reasoning')
+        : (typeof prompt.metadata?.maxComplexity === 'string'
+          ? (prompt.metadata.maxComplexity as 'simple' | 'medium' | 'complex' | 'reasoning')
+          : undefined);
 
     const finalOptions: NonNullable<GenerateResponseParams['options']> = {
       callerType: 'agent',
       callerName: options.definition.displayName ?? options.definition.slug,
       temperature: config.temperature,
       piiMetadata: routingDecision.piiMetadata,
-      routingDecision: routingDecision as any,
+      routingDecision: {
+        provider: routingDecision.provider,
+        model: routingDecision.model,
+        tier: routingDecision.isLocal ? 'local' : 'centralized',
+        reason: 'agent-dispatch',
+        confidence: 1.0,
+      } as LLMRoutingDecision,
       preferLocal: routingDecision.isLocal,
       organizationSlug: options.definition.organizationSlug ?? null,
       agentSlug: options.definition.slug,
-      maxComplexity:
-        overrideOptions.maxComplexity ??
-        prompt.metadata?.maxComplexity ??
-        undefined,
+      stream: (overrideStream as boolean | undefined) ?? options.stream ?? (stream as boolean | undefined) ?? false,
+      maxComplexity: finalMaxComplexity,
       ...restOptions,
-      ...overrideOptions,
-      stream: overrideOptions.stream ?? options.stream ?? stream ?? false,
+      ...otherOverrides,
       metadata: {
         ...prompt.optionMetadata,
       },
@@ -235,10 +248,10 @@ export class AgentRuntimeDispatchService {
     const queue: AgentRuntimeStreamChunk[] = [];
     const pending: Array<{
       resolve: (value: IteratorResult<AgentRuntimeStreamChunk>) => void;
-      reject: (error: any) => void;
+      reject: (error: unknown) => void;
     }> = [];
     let closed = false;
-    let error: any = null;
+    let error: unknown = null;
 
     const flush = () => {
       while (queue.length && pending.length) {
@@ -258,7 +271,10 @@ export class AgentRuntimeDispatchService {
       if (closed) {
         while (pending.length) {
           const { resolve } = pending.shift()!;
-          resolve({ value: undefined as any, done: true });
+          resolve({
+            value: undefined as unknown as AgentRuntimeStreamChunk,
+            done: true,
+          });
         }
       }
     };
@@ -278,7 +294,10 @@ export class AgentRuntimeDispatchService {
           return Promise.resolve({ value: chunk, done: false });
         }
         if (closed) {
-          return Promise.resolve({ value: undefined as any, done: true });
+          return Promise.resolve({
+            value: undefined as unknown as AgentRuntimeStreamChunk,
+            done: true,
+          });
         }
         return new Promise((resolve, reject) => {
           pending.push({ resolve, reject });
@@ -324,14 +343,14 @@ export class AgentRuntimeDispatchService {
     const payloadOptions = options.request.payload?.options as
       | Record<string, unknown>
       | undefined;
-    const mergedHeaders: Record<string, any> = {
+    const mergedHeaders: Record<string, unknown> = {
       'content-type': 'application/json',
       ...(api.headers ?? {}),
-      ...((payloadOptions?.headers as Record<string, any>) || {}),
+      ...((payloadOptions?.headers as Record<string, unknown>) || {}),
     };
     const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
-    const body = this.buildApiRequestBody(api, options);
+    const body: unknown = this.buildApiRequestBody(api, options);
 
     const start = Date.now();
     const defaultTimeout = this.resolveDefaultTimeout('api');
@@ -340,14 +359,14 @@ export class AgentRuntimeDispatchService {
       res = await this.performWithRetry(() =>
         this.http.axiosRef.request({
           url,
-          method: method as any,
-          headers,
+          method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+          headers: headers as Record<string, string>,
           timeout: api.timeout ?? defaultTimeout,
           data: body,
           validateStatus: () => true,
         }),
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       const end = Date.now();
       const errObj = err as { response?: { status?: number } };
       const status = Number(errObj?.response?.status ?? -1);
@@ -371,7 +390,7 @@ export class AgentRuntimeDispatchService {
       metadata: {
         provider: 'external_api',
         model: 'api_endpoint',
-        requestId: res.headers['x-request-id'] || '',
+        requestId: (res.headers['x-request-id'] as string | undefined) || '',
         timestamp: new Date(end).toISOString(),
         usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         timing: { startTime: start, endTime: end, duration: end - start },
@@ -398,7 +417,7 @@ export class AgentRuntimeDispatchService {
       options.onStreamChunk({
         type: 'final',
         content: response.content,
-        metadata: response.metadata,
+        metadata: response.metadata as unknown as Record<string, unknown>,
       });
     }
 
@@ -461,12 +480,12 @@ export class AgentRuntimeDispatchService {
     try {
       res = await this.performWithRetry(() =>
         this.http.axiosRef.post(url, body, {
-          headers,
+          headers: headers as Record<string, string>,
           timeout: external.timeout ?? defaultTimeout,
           validateStatus: () => true,
         }),
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       const end = Date.now();
       const errObj = err as { response?: { status?: number } };
       const status = Number(errObj?.response?.status ?? -1);
@@ -501,7 +520,7 @@ export class AgentRuntimeDispatchService {
       metadata: {
         provider: 'external_a2a',
         model: 'a2a',
-        requestId: res.headers['x-request-id'] || String(id),
+        requestId: (res.headers['x-request-id'] as string | undefined) || String(id),
         timestamp: new Date(end).toISOString(),
         usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         timing: { startTime: start, endTime: end, duration: end - start },
@@ -512,7 +531,7 @@ export class AgentRuntimeDispatchService {
           ? {}
           : {
               errorMessage: this.buildRpcErrorMessage(
-                res.data?.error,
+                (res.data as Record<string, unknown> | undefined)?.error,
                 res.status,
               ),
             }),
@@ -533,7 +552,7 @@ export class AgentRuntimeDispatchService {
       options.onStreamChunk({
         type: 'final',
         content: response.content,
-        metadata: response.metadata,
+        metadata: response.metadata as unknown as Record<string, unknown>,
       });
     }
 
@@ -567,14 +586,15 @@ export class AgentRuntimeDispatchService {
     }
   }
 
-  private stringifyContent(value: any): string {
+  private stringifyContent(value: unknown): string {
     if (typeof value === 'string') return value;
     if (value && typeof value === 'object') {
-      if (typeof value.message === 'string' && value.message.trim()) {
-        return value.message;
+      const objValue = value as Record<string, unknown>;
+      if (typeof objValue.message === 'string' && objValue.message.trim()) {
+        return objValue.message;
       }
-      if (typeof value.response === 'string' && value.response.trim()) {
-        return value.response;
+      if (typeof objValue.response === 'string' && objValue.response.trim()) {
+        return objValue.response;
       }
       try {
         return JSON.stringify(value);
@@ -586,15 +606,15 @@ export class AgentRuntimeDispatchService {
   }
 
   private sanitizeForwardHeaders(
-    source: Record<string, any>,
-  ): Record<string, any> {
+    source: Record<string, unknown>,
+  ): Record<string, unknown> {
     const allow = this.resolveHeaderAllowlist();
-    const out: Record<string, any> = {};
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(source)) {
       const key = String(k).toLowerCase();
       if (!allow.has(key)) continue;
       if (v === undefined || v === null) continue;
-      out[key] = v;
+      out[key] = v as unknown;
     }
     return out;
   }
@@ -629,14 +649,14 @@ export class AgentRuntimeDispatchService {
     retries = 2,
   ): Promise<T> {
     let attempt = 0;
-    let lastError: any;
+    let lastError: unknown;
     while (attempt <= retries) {
       try {
         return await fn();
-      } catch (err: any) {
-        lastError = err;
+      } catch (err: unknown) {
+        lastError = err as unknown;
         // Axios/network errors: retry on ECONNRESET/ETIMEDOUT/5xx indicated by response
-        const status = err?.response?.status as number | undefined;
+        const status = (err as { response?: { status?: number } })?.response?.status as number | undefined;
         const retriable = status ? status >= 500 : true;
         if (attempt === retries || !retriable) {
           throw err;
@@ -648,7 +668,7 @@ export class AgentRuntimeDispatchService {
     throw lastError;
   }
 
-  private buildHttpErrorMessage(status: number, data: any): string {
+  private buildHttpErrorMessage(status: number, data: unknown): string {
     const base = `HTTP ${status}`;
     if (!data) return base;
     try {
@@ -662,13 +682,14 @@ export class AgentRuntimeDispatchService {
     }
   }
 
-  private buildRpcErrorMessage(error: any, status?: number): string {
+  private buildRpcErrorMessage(error: unknown, status?: number): string {
     const statusText = status ? ` (HTTP ${status})` : '';
     if (!error) return `External A2A error${statusText}`;
-    const code = error.code !== undefined ? ` [code ${error.code}]` : '';
+    const errorObj = error as { code?: unknown; message?: unknown };
+    const code = errorObj.code !== undefined ? ` [code ${String(errorObj.code)}]` : '';
     const raw: string =
-      typeof error.message === 'string'
-        ? error.message
+      typeof errorObj.message === 'string'
+        ? errorObj.message
         : this.stringifyContent(error);
     const msg = this.redactString(raw);
     const snippet = msg.length > 160 ? msg.slice(0, 160) + '…' : msg;
@@ -723,7 +744,7 @@ export class AgentRuntimeDispatchService {
   private buildApiRequestBody(
     api: NonNullable<AgentRuntimeDefinition['transport']>['api'],
     options: AgentRuntimeDispatchOptions,
-  ): any {
+  ): unknown {
     const t = api?.requestTransform;
     const sessionId =
       options.request.sessionId ?? options.request.conversationId ?? null;
@@ -774,7 +795,7 @@ export class AgentRuntimeDispatchService {
 
   private extractApiResponseContent(
     api: NonNullable<AgentRuntimeDefinition['transport']>['api'],
-    data: any,
+    data: unknown,
   ): string {
     const rt = api?.responseTransform;
     if (
@@ -786,11 +807,12 @@ export class AgentRuntimeDispatchService {
       const fieldPath = rt.field.trim();
       try {
         // Support dotted/bracket paths like "a.b[0].c"
-        const tryExtract = (obj: any, path: string): any => {
+        const tryExtract = (obj: unknown, path: string): unknown => {
           if (!obj || typeof obj !== 'object') return undefined;
+          const objRecord = obj as Record<string | number, unknown>;
           // direct field hit
-          if (Object.prototype.hasOwnProperty.call(obj, path)) {
-            return obj[path];
+          if (Object.prototype.hasOwnProperty.call(objRecord, path)) {
+            return objRecord[path];
           }
           // dotted/bracket notation
           const normalized = path.replace(/\[(\d+)\]/g, '.$1');
@@ -801,12 +823,13 @@ export class AgentRuntimeDispatchService {
               const numeric = Number(segment);
               return Number.isNaN(numeric) ? segment : numeric;
             });
-          let cur: any = obj;
+          let cur: unknown = obj;
           for (const p of parts) {
             if (cur == null) return undefined;
-            cur = typeof p === 'number' ? cur[p] : cur[p];
+            const curRecord = cur as Record<string | number, unknown>;
+            cur = curRecord[p] as unknown;
           }
-          return cur;
+          return cur as unknown;
         };
 
         const fromRoot = tryExtract(data, fieldPath);
@@ -815,8 +838,9 @@ export class AgentRuntimeDispatchService {
             ? fromRoot
             : this.stringifyContent(fromRoot);
         }
-        if (data && typeof data === 'object' && data.result) {
-          const fromResult = tryExtract(data.result, fieldPath);
+        const dataRecord = data as Record<string, unknown> | undefined;
+        if (dataRecord && typeof dataRecord === 'object' && dataRecord.result) {
+          const fromResult = tryExtract(dataRecord.result, fieldPath);
           if (fromResult !== undefined) {
             return typeof fromResult === 'string'
               ? fromResult

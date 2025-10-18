@@ -77,7 +77,7 @@ export class DeliverableVersionsService {
 
       if (insertError) {
         throw new BadRequestException(
-          `Failed to create version: ${insertError.message}`,
+          `Failed to create version: ${insertError && typeof insertError === 'object' && 'message' in insertError ? (insertError as Error).message : String(insertError)}`,
         );
       }
 
@@ -154,17 +154,24 @@ export class DeliverableVersionsService {
           .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if ((error as { code?: string }).code === 'PGRST116') {
           throw new NotFoundException(`Version not found: ${versionId}`);
         }
 
         throw new BadRequestException(
-          `Failed to find version: ${error.message}`,
+          `Failed to find version: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
         );
       }
 
+      if (!data) {
+        throw new NotFoundException(`Version not found: ${versionId}`);
+      }
+
       // Verify the deliverable belongs to the user
-      await this.verifyDeliverableOwnership(data.deliverable_id, userId);
+      await this.verifyDeliverableOwnership(
+        data.deliverable_id as string,
+        userId,
+      );
 
       return this.mapToVersion(data);
     } catch (error) {
@@ -275,7 +282,7 @@ export class DeliverableVersionsService {
 
       if (error) {
         throw new BadRequestException(
-          `Failed to set current version: ${error.message}`,
+          `Failed to set current version: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
         );
       }
 
@@ -400,10 +407,16 @@ export class DeliverableVersionsService {
     });
 
     const content = typeof response === 'string' ? response : response.content;
-    const metadata =
-      typeof response === 'string' ? undefined : (response as any).metadata;
-    const piiMetadata =
-      typeof response === 'string' ? undefined : (response as any).piiMetadata;
+    const responseObj =
+      typeof response === 'string'
+        ? undefined
+        : (response as unknown as Record<string, unknown>);
+    const metadata = responseObj?.metadata as
+      | Record<string, unknown>
+      | undefined;
+    const piiMetadata = responseObj?.piiMetadata as
+      | Record<string, unknown>
+      | undefined;
 
     const createVersionDto: CreateVersionDto = {
       content,
@@ -417,12 +430,18 @@ export class DeliverableVersionsService {
         enhancementInstruction: dto.instruction,
         llmMetadata: metadata
           ? {
-              provider: metadata.provider,
-              model: metadata.model,
-              inputTokens: metadata.usage?.inputTokens,
-              outputTokens: metadata.usage?.outputTokens,
-              cost: metadata.usage?.cost,
-              duration: metadata.timing?.duration,
+              provider: metadata.provider as string | undefined,
+              model: metadata.model as string | undefined,
+              inputTokens: (
+                metadata.usage as Record<string, unknown> | undefined
+              )?.inputTokens as number | undefined,
+              outputTokens: (
+                metadata.usage as Record<string, unknown> | undefined
+              )?.outputTokens as number | undefined,
+              cost: (metadata.usage as Record<string, unknown> | undefined)
+                ?.cost as number | undefined,
+              duration: (metadata.timing as Record<string, unknown> | undefined)
+                ?.duration as number | undefined,
             }
           : undefined,
         piiMetadata,
@@ -679,7 +698,9 @@ export class DeliverableVersionsService {
           userId: userId,
           callerType: 'deliverable_rerun',
           callerName: `${agentName}_rerun`,
-          conversationId: (sourceVersion.metadata as any)?.conversationId as string | undefined,
+          conversationId: (sourceVersion.metadata as any)?.conversationId as
+            | string
+            | undefined,
           includeMetadata: true, // We need the full response object
         },
       });

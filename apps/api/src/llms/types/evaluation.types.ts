@@ -85,6 +85,8 @@ export interface TaskRecord {
   session_id?: string | null;
   user_id?: string | null;
   created_at?: string | null;
+  updated_at?: string | null;
+  completed_at?: string | null;
   type?: string | null;
   progress_message?: string | null;
   deliverable_metadata?: Record<string, unknown> | null;
@@ -92,6 +94,24 @@ export interface TaskRecord {
   response_metadata?: TaskResponseMetadata | null;
   llm_metadata?: TaskLLMMetadata | null;
   evaluation?: TaskEvaluationRecord | null;
+}
+
+export interface MessageRecord {
+  id: string;
+  user_rating?: number | null;
+  evaluation_timestamp?: string | null;
+  timestamp?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+  provider?: {
+    id: string;
+    provider_name: string;
+  } | null;
+  model?: {
+    id: string;
+    model_name: string;
+  } | null;
+  [key: string]: unknown;
 }
 
 export interface UserProfileRecord {

@@ -40,6 +40,7 @@ import type {
   EvaluationStatsRow,
   ModelComparisonMessageRow,
   TaskRecord,
+  MessageRecord,
   UserProfileRecord,
 } from '@/llms/types/evaluation.types';
 import type { Provider, UserRatingScale } from '@/llms/types/llm-evaluation';
@@ -447,7 +448,7 @@ export class EvaluationService {
         .from('tasks')
         .select('*')
         .not('evaluation', 'is', null)
-        .not('llm_metadata', 'is', null),
+        .not('llm_metadata', 'is', null) as unknown as Promise<{ data: TaskRecord[] | null; error: unknown }>,
       client
         .from('messages')
         .select(
@@ -457,12 +458,12 @@ export class EvaluationService {
             model:llm_models(*)
           `,
         )
-        .not('user_rating', 'is', null),
+        .not('user_rating', 'is', null) as unknown as Promise<{ data: MessageRecord[] | null; error: unknown }>,
     ]);
 
     if (taskError) {
       this.logger.warn(
-        `[EvaluationService] Failed to fetch task evaluations for agent ${agentIdentifier}: ${taskError.message}`,
+        `[EvaluationService] Failed to fetch task evaluations for agent ${agentIdentifier}: ${taskError && typeof taskError === 'object' && 'message' in taskError ? (taskError as Error).message : String(taskError)}`,
       );
     }
 
@@ -470,18 +471,18 @@ export class EvaluationService {
 
     if (messageError) {
       this.logger.warn(
-        `[EvaluationService] Failed to fetch message evaluations for agent ${agentIdentifier}: ${messageError.message}`,
+        `[EvaluationService] Failed to fetch message evaluations for agent ${agentIdentifier}: ${messageError && typeof messageError === 'object' && 'message' in messageError ? (messageError as Error).message : String(messageError)}`,
       );
 
       if (!isServiceClient) {
-        const { data: fallbackMessages, error: fallbackError } = await client
+        const { data: fallbackMessages, error: fallbackError } = (await client
           .from('messages')
           .select('*')
-          .not('user_rating', 'is', null);
+          .not('user_rating', 'is', null)) as { data: MessageRecord[] | null; error: unknown };
 
         if (fallbackError) {
           this.logger.warn(
-            `[EvaluationService] Fallback message query also failed for agent ${agentIdentifier}: ${fallbackError.message}`,
+            `[EvaluationService] Fallback message query also failed for agent ${agentIdentifier}: ${fallbackError && typeof fallbackError === 'object' && 'message' in fallbackError ? (fallbackError as Error).message : String(fallbackError)}`,
           );
         } else {
           effectiveMessages = fallbackMessages || [];
@@ -602,7 +603,8 @@ export class EvaluationService {
           task.evaluation?.evaluation_timestamp ||
           task.completed_at ||
           task.updated_at ||
-          task.created_at,
+          task.created_at ||
+          undefined,
       });
     });
 
@@ -626,7 +628,8 @@ export class EvaluationService {
           message.evaluation_timestamp ||
           message.timestamp ||
           message.updated_at ||
-          message.created_at,
+          message.created_at ||
+          undefined,
       });
     });
 

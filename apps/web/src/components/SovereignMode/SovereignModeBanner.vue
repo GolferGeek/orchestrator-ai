@@ -33,10 +33,6 @@
 import { computed } from 'vue';
 import { usePrivacyStore } from '@/stores/privacyStore';
 
-const emit = defineEmits<{
-  dismiss: [];
-}>();
-
 interface Props {
   variant?: 'info' | 'warning' | 'enforced' | 'success';
   showStatus?: boolean;
@@ -55,9 +51,9 @@ const props = withDefaults(defineProps<Props>(), {
   customDescription: ''
 });
 
-// const emit = defineEmits<{
-//   dismiss: [];
-// }>();
+const emit = defineEmits<{
+  dismiss: [];
+}>();
 
 const sovereignPolicyStore = usePrivacyStore();
 

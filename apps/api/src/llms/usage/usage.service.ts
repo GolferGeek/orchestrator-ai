@@ -154,11 +154,17 @@ export class UsageService {
           }
           // Calculate response time from timestamps
           if (task.started_at && task.completed_at) {
-            const responseTime =
-              new Date(task.completed_at).getTime() -
-              new Date(task.started_at).getTime();
-            totalResponseTime += responseTime;
-            responseTimeCount++;
+            const startedAt = task.started_at;
+            const completedAt = task.completed_at;
+            if (
+              typeof startedAt === 'string' &&
+              typeof completedAt === 'string'
+            ) {
+              const responseTime =
+                new Date(completedAt).getTime() - new Date(startedAt).getTime();
+              totalResponseTime += responseTime;
+              responseTimeCount++;
+            }
           }
         }
       });
@@ -268,23 +274,33 @@ export class UsageService {
 
     const modelMetrics = (stats.byModel || [])
       .filter((model) => model.requests >= options.minUsage)
-      .map((model) => ({
-        model: model.model,
-        metrics: {
-          usageCount: model.requests,
-          avgUserRating: model.avgRating || 0,
-          avgSpeedRating: 0, // Would need to calculate from message data
-          avgAccuracyRating: 0, // Would need to calculate from message data
-          avgResponseTimeMs: 0, // Would need to calculate from message data
-          avgCostPerRequest:
-            model.requests > 0 ? model.cost / model.requests : 0,
-          totalCost: model.cost,
-          totalTokens: model.tokens,
-          costEfficiencyScore: this.calculateCostEfficiency({ ...model, avg_rating: model.avgRating || 0 } as any),
-          performanceScore: this.calculatePerformanceScore({ ...model, avg_rating: model.avgRating || 0 } as any),
-        },
-        rank: 0, // Will be assigned after sorting
-      }));
+      .map((model) => {
+        const modelGroup: ModelGroup = {
+          model: model.model as unknown as { id?: string; [key: string]: unknown },
+          requests: model.requests,
+          tokens: model.tokens,
+          cost: model.cost,
+          avg_rating: model.avgRating || 0,
+        };
+
+        return {
+          model: model.model,
+          metrics: {
+            usageCount: model.requests,
+            avgUserRating: model.avgRating || 0,
+            avgSpeedRating: 0, // Would need to calculate from message data
+            avgAccuracyRating: 0, // Would need to calculate from message data
+            avgResponseTimeMs: 0, // Would need to calculate from message data
+            avgCostPerRequest:
+              model.requests > 0 ? model.cost / model.requests : 0,
+            totalCost: model.cost,
+            totalTokens: model.tokens,
+            costEfficiencyScore: this.calculateCostEfficiency(modelGroup),
+            performanceScore: this.calculatePerformanceScore(modelGroup),
+          },
+          rank: 0, // Will be assigned after sorting
+        };
+      });
 
     // Sort by specified metric
     modelMetrics.sort((a, b) => {

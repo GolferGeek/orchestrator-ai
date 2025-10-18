@@ -22,7 +22,7 @@ export interface OrchestrateHandlerDependencies {
  * Runner Context Interface
  * Defines methods available on the runner instance
  */
-interface RunnerContext {
+export interface RunnerContext {
   handlePlan(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
@@ -67,7 +67,7 @@ export async function handleOrchestrateAction(
   organizationSlug: string | null,
   _services: OrchestrateHandlerDependencies,
   // Pass runner instance for access to existing methods
-  runnerContext: any,
+  runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   const payload = (request.payload ?? {}) as unknown as OrchestrateModePayload;
   const action = payload.action;
@@ -232,7 +232,7 @@ function handleOrchestrateSaveRecipe(
   _definition: AgentRuntimeDefinition,
   _request: TaskRequestDto,
   _organizationSlug: string | null,
-  _runnerContext: any,
+  _runnerContext: RunnerContext,
 ): TaskResponseDto {
   return TaskResponseDto.failure(
     AgentTaskMode.ORCHESTRATE,
@@ -279,7 +279,10 @@ async function handleRunHumanResponse(
   runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   const payload = (request.payload ?? {}) as unknown as OrchestrateModePayload;
-  const { approvalId, decision, notes, modifications } = payload as any;
+  const { approvalId, decision, notes, modifications } = payload as unknown as Record<
+    string,
+    unknown
+  >;
 
   if (!approvalId) {
     return TaskResponseDto.failure(
@@ -288,7 +291,10 @@ async function handleRunHumanResponse(
     );
   }
 
-  if (!decision || !['continue', 'retry', 'abort'].includes(decision)) {
+  if (
+    !decision ||
+    !['continue', 'retry', 'abort'].includes(decision as string)
+  ) {
     return TaskResponseDto.failure(
       AgentTaskMode.ORCHESTRATE,
       'decision must be one of: continue, retry, abort',
@@ -307,11 +313,11 @@ async function handleRunHumanResponse(
   try {
     // Resolve the checkpoint
     const result = await checkpointService.resolveCheckpoint({
-      approvalId,
-      decision,
+      approvalId: approvalId as string,
+      decision: decision as string,
       actorId: (request.metadata as any)?.userId ?? null,
-      notes: notes ?? null,
-      modifications: modifications ?? null,
+      notes: (notes as string | null) ?? null,
+      modifications: (modifications as Record<string, unknown> | null) ?? null,
     });
 
     // If decision is 'continue' or 'retry', resume the orchestration run

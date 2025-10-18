@@ -22,6 +22,7 @@ import { OrchestrationRunFactoryService } from '@agent-platform/services/orchest
 import {
   handleOrchestrateAction,
   OrchestrateHandlerDependencies,
+  RunnerContext,
 } from './base-agent-runner/orchestrate.handlers';
 
 interface OrchestratorStartPayload {
@@ -90,7 +91,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       request,
       organizationSlug,
       services,
-      this, // Pass runner context for access to existing methods
+      this as unknown as RunnerContext, // Pass runner context for access to existing methods
     );
   }
 

@@ -65,29 +65,40 @@ export class OrchestrationStateService {
         outputMapping: stepDefinition.output_mapping ?? null,
         type: stepType === 'orchestration' ? 'orchestration' : 'agent',
         orchestration: stepDefinition.orchestration
-          ? JSON.parse(JSON.stringify(stepDefinition.orchestration))
+          ? (JSON.parse(
+              JSON.stringify(stepDefinition.orchestration),
+            ) as unknown)
           : null,
       };
 
       if (retryBehavior) {
+        const existingBehavior = metadata.behavior as
+          | Record<string, unknown>
+          | undefined;
         metadata.behavior = {
-          ...(metadata.behavior ?? {}),
+          ...(existingBehavior ?? {}),
           retry: retryBehavior,
         };
+        const existingRuntime = metadata.runtime as
+          | Record<string, unknown>
+          | undefined;
         metadata.runtime = {
-          ...(metadata.runtime ?? {}),
+          ...(existingRuntime ?? {}),
           retry: {
             attempt: 1,
             history: [],
             nextRetryAt: null,
-            maxAttempts: retryBehavior.maxAttempts,
+            maxAttempts: retryBehavior.maxAttempts as number,
           },
         };
       }
 
       if (rollbackBehavior) {
+        const existingBehavior = metadata.behavior as
+          | Record<string, unknown>
+          | undefined;
         metadata.behavior = {
-          ...(metadata.behavior ?? {}),
+          ...(existingBehavior ?? {}),
           rollback: rollbackBehavior,
         };
       }
@@ -183,7 +194,10 @@ export class OrchestrationStateService {
           (step.metadata as Record<string, any> | undefined)?.runtime,
         );
         const retryState = this.asRecord(runtime?.retry);
-        if (retryState?.nextRetryAt && typeof retryState.nextRetryAt === 'string') {
+        if (
+          retryState?.nextRetryAt &&
+          typeof retryState.nextRetryAt === 'string'
+        ) {
           const scheduled = Date.parse(retryState.nextRetryAt);
           if (!Number.isNaN(scheduled) && scheduled > now) {
             return false;
@@ -221,7 +235,10 @@ export class OrchestrationStateService {
               return `{{ ${expression} }}`;
             }
 
-            const paramValue = this.lookupParameter(expression, parameters);
+            const paramValue: unknown = this.lookupParameter(
+              expression,
+              parameters,
+            );
             return paramValue !== undefined ? String(paramValue) : '';
           },
         );
@@ -234,7 +251,7 @@ export class OrchestrationStateService {
       if (value && typeof value === 'object') {
         const resolved: Record<string, any> = {};
         Object.entries(value as Record<string, any>).forEach(([key, entry]) => {
-          resolved[key] = resolveValue(entry);
+          resolved[key] = resolveValue(entry) as unknown;
         });
         return resolved;
       }
@@ -392,7 +409,7 @@ export class OrchestrationStateService {
       return {};
     }
 
-    const onFailureRaw = raw.on_step_failure;
+    const onFailureRaw: unknown = raw.on_step_failure;
     if (!onFailureRaw) {
       return {};
     }
@@ -458,7 +475,7 @@ export class OrchestrationStateService {
     }
     if (Array.isArray(value)) {
       return value.reduce<Record<string, any>>((acc, entry, index) => {
-        acc[index] = entry;
+        acc[index] = entry as unknown;
         return acc;
       }, {});
     }
@@ -470,7 +487,7 @@ export class OrchestrationStateService {
 
     const result: Record<string, any> = {};
     for (const [key, entry] of entries) {
-      result[key] = entry;
+      result[key] = entry as unknown;
     }
     return result;
   }

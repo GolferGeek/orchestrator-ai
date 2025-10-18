@@ -362,11 +362,6 @@ import {
   serverOutline,
   cloudOutline,
   desktopOutline,
-  robotOutline,
-  codeOutline,
-  personOutline,
-  settingsOutline,
-  helpOutline
 } from 'ionicons/icons';
 
 import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
@@ -383,7 +378,7 @@ const autoRefreshEnabled = ref(false);
 const routeFilter = ref<'all' | 'local' | 'remote'>('all');
 
 // Computed - Use storeToRefs to maintain reactivity
-const { usageRecords, stats, activeRuns, loading } = storeToRefs(store);
+const { usageRecords, stats, activeRuns, loading: _loading } = storeToRefs(store);
 
 const recentRecords = computed(() => {
   return (usageRecords.value || [])

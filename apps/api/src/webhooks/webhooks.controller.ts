@@ -51,7 +51,21 @@ interface WorkflowStatusUpdate {
   seoContent?: string;
   socialMedia?: string;
 
-  // Any additional data from the workflow system
+  // Nested data object that may contain sequence/totalSteps
+  data?: {
+    sequence?: number;
+    totalSteps?: number;
+    [key: string]: any;
+  };
+}
+
+/**
+ * Marketing workflow results interface
+ */
+interface MarketingResults {
+  webPost?: string;
+  seoContent?: string;
+  socialMedia?: string;
   [key: string]: any;
 }
 
@@ -357,7 +371,7 @@ export class WebhooksController {
   /**
    * Format marketing content from n8n workflow results into a structured markdown deliverable
    */
-  private formatMarketingContent(results: any): string {
+  private formatMarketingContent(results: MarketingResults): string {
     const sections: string[] = ['# Marketing Content Package\n'];
 
     if (results.webPost) {

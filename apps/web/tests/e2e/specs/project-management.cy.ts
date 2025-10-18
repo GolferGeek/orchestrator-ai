@@ -2,7 +2,7 @@
 // Comprehensive tests for project creation, management, and collaboration features
 // Following CLAUDE.md principles: Real API integration, no mocks, robust error handling
 
-import { testConfig } from '../support/e2e';
+import { testConfig as _testConfig } from '../support/e2e';
 
 describe('Project Management Workflow E2E Tests', () => {
   

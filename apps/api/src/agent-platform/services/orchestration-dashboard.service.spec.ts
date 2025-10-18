@@ -1295,11 +1295,11 @@ describe('OrchestrationDashboardService', () => {
         metadata: {},
       });
 
-      const completedStep = {
+      const completedStep = createStepRecord({
         id: 'step-rec-1',
         step_id: 'step-1',
         status: 'completed',
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.getStep.mockResolvedValue(completedStep);
@@ -1325,7 +1325,7 @@ describe('OrchestrationDashboardService', () => {
         metadata: {},
       } as OrchestrationRunRecord;
 
-      const failedStep = {
+      const failedStep = createStepRecord({
         id: 'step-rec-1',
         orchestration_run_id: 'run-1',
         step_id: 'step-1',
@@ -1333,14 +1333,15 @@ describe('OrchestrationDashboardService', () => {
         status: 'failed',
         error_details: { message: 'Original error' },
         metadata: {},
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
       executionService.markStepCompleted.mockResolvedValue({
         step: failedStep,
         run: mockRun,
-      } as any);
+        nextSteps: [],
+      });
       stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
@@ -1381,20 +1382,21 @@ describe('OrchestrationDashboardService', () => {
         metadata: {},
       } as OrchestrationRunRecord;
 
-      const failedStep = {
+      const failedStep = createStepRecord({
         id: 'step-rec-1',
         orchestration_run_id: 'run-1',
         step_id: 'step-1',
         status: 'failed',
         metadata: {},
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
       executionService.markStepCompleted.mockResolvedValue({
         step: failedStep,
         run: mockRun,
-      } as any);
+        nextSteps: [],
+      });
       stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
@@ -1424,20 +1426,21 @@ describe('OrchestrationDashboardService', () => {
         metadata: {},
       } as OrchestrationRunRecord;
 
-      const failedStep = {
+      const failedStep = createStepRecord({
         id: 'step-rec-1',
         orchestration_run_id: 'run-1',
         step_id: 'step-1',
         status: 'failed',
         metadata: {},
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
       executionService.markStepCompleted.mockResolvedValue({
         step: failedStep,
         run: mockRun,
-      } as any);
+        nextSteps: [],
+      });
       stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
@@ -1466,20 +1469,21 @@ describe('OrchestrationDashboardService', () => {
         metadata: {},
       } as OrchestrationRunRecord;
 
-      const failedStep = {
+      const failedStep = createStepRecord({
         id: 'step-rec-1',
         orchestration_run_id: 'run-1',
         step_id: 'step-1',
         status: 'failed',
         metadata: {},
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
       executionService.markStepCompleted.mockResolvedValue({
         step: failedStep,
         run: mockRun,
-      } as any);
+        nextSteps: [],
+      });
       stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(

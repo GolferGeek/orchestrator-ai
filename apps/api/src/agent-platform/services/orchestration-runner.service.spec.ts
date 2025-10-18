@@ -26,7 +26,35 @@ describe('OrchestrationRunnerService', () => {
   });
 
   it('starts orchestration run with metadata enrichment', async () => {
-    runsRepository.start.mockResolvedValue({ id: 'run-1' } as any);
+    runsRepository.start.mockResolvedValue({
+      id: 'run-1',
+      status: 'pending',
+      parameters: {},
+      plan: {},
+      results: {},
+      metadata: {},
+      completed_steps: [],
+      step_state: {},
+      error_details: {},
+      plan_id: null,
+      orchestration_definition_id: null,
+      orchestration_name: null,
+      conversation_id: null,
+      parent_orchestration_run_id: null,
+      origin_type: 'plan',
+      origin_id: null,
+      orchestration_slug: null,
+      organization_slug: null,
+      user_id: null,
+      current_step_index: null,
+      current_step_id: null,
+      human_checkpoint_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      started_at: null,
+      completed_at: null,
+      created_by: null,
+    });
 
     const result = await service.startRun({
       planId: 'plan-1',
@@ -65,7 +93,32 @@ describe('OrchestrationRunnerService', () => {
     runsRepository.update.mockResolvedValue({
       id: 'run-1',
       status: 'in_execution',
-    } as any);
+      parameters: {},
+      plan: {},
+      results: {},
+      metadata: {},
+      completed_steps: [],
+      step_state: {},
+      error_details: {},
+      plan_id: null,
+      orchestration_definition_id: null,
+      orchestration_name: null,
+      conversation_id: null,
+      parent_orchestration_run_id: null,
+      origin_type: 'plan',
+      origin_id: null,
+      orchestration_slug: null,
+      organization_slug: null,
+      user_id: null,
+      current_step_index: null,
+      current_step_id: null,
+      human_checkpoint_id: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      started_at: null,
+      completed_at: null,
+      created_by: null,
+    });
 
     const result = await service.updateRun({
       runId: 'run-1',
@@ -84,7 +137,33 @@ describe('OrchestrationRunnerService', () => {
   });
 
   it('creates orchestration step record', async () => {
-    stepsRepository.create.mockResolvedValue({ id: 'step-1' } as any);
+    stepsRepository.create.mockResolvedValue({
+      id: 'step-1',
+      orchestration_run_id: 'run-1',
+      step_index: 0,
+      step_id: 'fetch',
+      status: 'pending',
+      agent_slug: null,
+      mode: 'BUILD',
+      conversation_id: null,
+      plan_id: null,
+      deliverable_id: null,
+      depends_on: [],
+      attempt_number: 1,
+      checkpoint_decision: null,
+      checkpoint_decided_by: null,
+      checkpoint_decided_at: null,
+      invalidated_at: null,
+      invalidated_reason: null,
+      input: {},
+      output: null,
+      metadata: {},
+      error_details: null,
+      started_at: null,
+      completed_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
 
     const record = await service.createStep({
       orchestration_run_id: 'run-1',

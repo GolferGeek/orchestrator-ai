@@ -138,6 +138,17 @@ export class CreateUserDto {
   })
   @IsOptional()
   emailConfirm?: boolean;
+
+  @ApiProperty({
+    description: 'Namespace access for the user',
+    example: ['my-org'],
+    required: false,
+    isArray: true,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  namespaceAccess?: string[];
 }
 
 export class CreateUserResponseDto {
@@ -162,4 +173,12 @@ export class CreateUserResponseDto {
 
   @ApiProperty({ description: 'Success message' })
   message!: string;
+
+  @ApiProperty({
+    description: 'Namespace access for the user',
+    example: ['my-org'],
+    required: false,
+    isArray: true,
+  })
+  namespaceAccess?: string[];
 }

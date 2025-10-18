@@ -51,7 +51,7 @@ export class PlansRepository {
       .single();
 
     if (error) {
-      throw new BadRequestException(`Failed to create plan: ${error.message}`);
+      throw new BadRequestException(`Failed to create plan: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`);
     }
 
     return planData as PlanRecord;
@@ -75,7 +75,7 @@ export class PlansRepository {
 
     if (error) {
       throw new BadRequestException(
-        `Failed to find plan by conversation: ${error.message}`,
+        `Failed to find plan by conversation: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
       );
     }
 

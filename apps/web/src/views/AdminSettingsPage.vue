@@ -942,7 +942,7 @@ const navigateTo = (path: string) => {
   }
 };
 
-const loadSettings = async () => {
+const _loadSettings = async () => {
   try {
     // In real app, this would load settings from API/environment variables
     console.log('Loading admin settings...');
@@ -956,7 +956,7 @@ const loadSettings = async () => {
   }
 };
 
-const loadStats = async () => {
+const _loadStats = async () => {
   try {
     // In real app, this would load stats from various APIs
     console.log('Loading system stats...');
