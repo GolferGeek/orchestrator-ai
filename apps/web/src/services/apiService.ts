@@ -780,7 +780,7 @@ class ApiService {
   /**
    * Generic GET method
    */
-  async get<T = unknown>(url: string, options?: { suppressErrors?: boolean }): Promise<T> {
+  async get<T = any>(url: string, options?: { suppressErrors?: boolean }): Promise<T> {
 
     
     try {
@@ -803,7 +803,7 @@ console.error(`ApiService.get error for ${url}:`, error);
   /**
    * GET but suppress error-store logging for 404s (for optional/demo endpoints)
    */
-  async getQuiet404<T = unknown>(url: string): Promise<T> {
+  async getQuiet404<T = any>(url: string): Promise<T> {
     const response = await this.axiosInstance.get<T>(
       url,
       { _suppress404Logging: true } as InternalAxiosRequestConfig
@@ -814,12 +814,12 @@ console.error(`ApiService.get error for ${url}:`, error);
   /**
    * Generic POST method
    */
-  async post(url: string, data?: any): Promise<any> {
+  async post<T = any, Body = unknown>(url: string, data?: Body): Promise<T> {
 
     
     try {
       // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
-      const response = await this.axiosInstance.post(url, data);
+      const response = await this.axiosInstance.post<T>(url, data);
 
       
 
@@ -834,18 +834,16 @@ console.error(`ApiService.post error for ${url}:`, error);
   /**
    * Generic PUT method
    */
-  async put(url: string, data?: any): Promise<any> {
-    // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
-    const response = await this.axiosInstance.put(url, data);
+  async put<T = any, Body = unknown>(url: string, data?: Body): Promise<T> {
+    const response = await this.axiosInstance.put<T>(url, data);
     return response.data;
   }
 
   /**
    * Generic DELETE method
    */
-  async delete(url: string): Promise<any> {
-    // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
-    const response = await this.axiosInstance.delete(url);
+  async delete<T = any>(url: string): Promise<T> {
+    const response = await this.axiosInstance.delete<T>(url);
     return response.data;
   }
 

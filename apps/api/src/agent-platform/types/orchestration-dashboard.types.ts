@@ -1,3 +1,4 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import {
   OrchestrationAgentInfo,
   OrchestrationRunSnapshot,
@@ -51,7 +52,7 @@ export interface OrchestrationApprovalView {
   updatedAt: string | null;
   decisionAt: string | null;
   decisionBy: string | null;
-  metadata: Record<string, any> | null;
+  metadata: JsonObject | null;
 }
 
 export interface OrchestrationApprovalListItem {
@@ -83,7 +84,7 @@ export interface OrchestrationRunDetail {
     mode: string;
     stepId: string | null;
     createdAt: string | null;
-    metadata: Record<string, any> | null;
+    metadata: JsonObject | null;
     conversationId: string | null;
     organizationSlug: string | null;
   }>;
@@ -117,10 +118,10 @@ export interface OrchestrationReplayContext {
     displayName: string | null;
     type: string | null;
   };
-  parameters: Record<string, any>;
-  plan: Record<string, any>;
-  results: Record<string, any>;
-  metadata: Record<string, any>;
+  parameters: JsonObject;
+  plan: JsonObject;
+  results: JsonObject;
+  metadata: JsonObject;
   origin: {
     type: string | null;
     id: string | null;

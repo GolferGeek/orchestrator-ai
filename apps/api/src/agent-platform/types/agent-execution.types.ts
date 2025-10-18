@@ -52,7 +52,7 @@ export const EXECUTION_PROFILE_CAPABILITIES: Record<
 };
 
 export function normalizeExecutionProfile(
-  value: any,
+  value: unknown,
 ): AgentExecutionProfile | null {
   if (!value || typeof value !== 'string') {
     return null;

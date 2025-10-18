@@ -10,33 +10,46 @@ import { ref, computed } from 'vue';
 import type { AgentInfo } from '../types/chat';
 import type { HierarchyNode, AgentNodeMetadata } from '@/types/agent';
 
+type AdditionalHierarchyFields = Record<string, HierarchyNode[] | AgentNodeMetadata | string | number | boolean | null | undefined>;
+
+type HierarchyResponseEnvelope = {
+  data?: HierarchyNode[];
+  metadata?: AgentNodeMetadata | null;
+} & AdditionalHierarchyFields;
+
+interface NormalizedHierarchyResponse {
+  data: HierarchyNode[];
+  metadata?: AgentNodeMetadata | null;
+  rest: AdditionalHierarchyFields;
+}
+
+const isHierarchyResponseEnvelope = (input: unknown): input is HierarchyResponseEnvelope => (
+  typeof input === 'object' && input !== null
+);
+
 // Re-export for backward compatibility
 export type { HierarchyNode, AgentNodeMetadata };
 
-export function normalizeHierarchyResponse(input: unknown) {
-  if (input && typeof input === 'object' && 'data' in input) {
-    const { data, metadata, ...rest } = input as {
-      data?: unknown;
-      metadata?: unknown;
-      [key: string]: unknown;
-    };
+export function normalizeHierarchyResponse(input: HierarchyNode[] | HierarchyResponseEnvelope | null | undefined): NormalizedHierarchyResponse {
+  if (isHierarchyResponseEnvelope(input)) {
+    const { data, metadata, ...rest } = input;
 
     return {
-      data: Array.isArray(data) ? (data as HierarchyNode[]) : [],
-      metadata,
+      data: Array.isArray(data) ? data : [],
+      metadata: metadata ?? null,
       rest,
     };
   }
 
   return {
-    data: Array.isArray(input) ? (input as HierarchyNode[]) : [],
-    metadata: undefined,
+    data: Array.isArray(input) ? input : [],
+    metadata: null,
     rest: {},
   };
 }
 
 export function filterHierarchyByNamespace(
-  hierarchy: unknown,
+  hierarchy: HierarchyNode[] | HierarchyResponseEnvelope | null | undefined,
   namespace: string,
 ) {
   const { data, metadata, rest } = normalizeHierarchyResponse(hierarchy);

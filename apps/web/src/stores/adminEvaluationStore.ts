@@ -239,12 +239,14 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
           params.append(key, value.toString());
         }
       });
-      const rawResponse: unknown = await apiService.get(`/evaluation/admin/analytics/overview?${params.toString()}`);
-      if (!isAdminEvaluationAnalytics(rawResponse)) {
+      const response = await apiService.get<AdminEvaluationAnalytics | null>(
+        `/evaluation/admin/analytics/overview?${params.toString()}`
+      );
+      if (!response || !isAdminEvaluationAnalytics(response)) {
         throw new Error('Received malformed admin evaluation analytics response');
       }
-      analytics.value = rawResponse;
-      return rawResponse;
+      analytics.value = response;
+      return response;
     } catch (err) {
       error.value = resolveErrorMessage(err, 'Failed to fetch analytics');
       throw normalizeError(err);
@@ -267,12 +269,14 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
           params.append(key, value.toString());
         }
       });
-      const rawResponse: unknown = await apiService.get(`/evaluation/admin/analytics/workflow?${params.toString()}`);
-      if (!isWorkflowAnalytics(rawResponse)) {
+      const response = await apiService.get<WorkflowAnalytics | null>(
+        `/evaluation/admin/analytics/workflow?${params.toString()}`
+      );
+      if (!response || !isWorkflowAnalytics(response)) {
         throw new Error('Received malformed workflow analytics response');
       }
-      workflowAnalytics.value = rawResponse;
-      return rawResponse;
+      workflowAnalytics.value = response;
+      return response;
     } catch (err) {
       error.value = resolveErrorMessage(err, 'Failed to fetch workflow analytics');
       throw normalizeError(err);
@@ -295,12 +299,14 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
           params.append(key, value.toString());
         }
       });
-      const rawResponse: unknown = await apiService.get(`/evaluation/admin/analytics/constraints?${params.toString()}`);
-      if (!isConstraintAnalytics(rawResponse)) {
+      const response = await apiService.get<ConstraintAnalytics | null>(
+        `/evaluation/admin/analytics/constraints?${params.toString()}`
+      );
+      if (!response || !isConstraintAnalytics(response)) {
         throw new Error('Received malformed constraint analytics response');
       }
-      constraintAnalytics.value = rawResponse;
-      return rawResponse;
+      constraintAnalytics.value = response;
+      return response;
     } catch (err) {
       error.value = resolveErrorMessage(err, 'Failed to fetch constraint analytics');
       throw normalizeError(err);

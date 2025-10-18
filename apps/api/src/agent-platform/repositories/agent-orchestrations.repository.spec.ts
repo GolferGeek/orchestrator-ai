@@ -19,9 +19,30 @@ describe('AgentOrchestrationsRepository', () => {
   });
 
   it('upserts orchestration', async () => {
-    const maybeSingle = jest
-      .fn()
-      .mockResolvedValue({ data: { id: 'orch-1' }, error: null });
+    const maybeSingle = jest.fn().mockResolvedValue({
+      data: {
+        id: 'orch-1',
+        organization_slug: 'demo',
+        agent_slug: 'planner',
+        slug: 'default-plan',
+        display_name: 'Default Plan',
+        description: null,
+        status: 'active',
+        orchestration_json: {
+          orchestration: {
+            steps: [],
+          },
+        },
+        prompt_templates: [],
+        tags: [],
+        version: null,
+        created_by: null,
+        updated_by: null,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
+      },
+      error: null,
+    });
     const select = jest.fn().mockReturnValue({ maybeSingle });
     const upsert = jest.fn().mockReturnValue({ select });
     fromMock.mockReturnValue({ upsert });
@@ -31,7 +52,11 @@ describe('AgentOrchestrationsRepository', () => {
       agent_slug: 'planner',
       slug: 'default-plan',
       display_name: 'Default Plan',
-      orchestration_json: {},
+      orchestration_json: {
+        orchestration: {
+          steps: [],
+        },
+      },
     });
 
     expect(fromMock).toHaveBeenCalledWith('agent_orchestrations');

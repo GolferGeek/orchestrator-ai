@@ -305,18 +305,18 @@ export const usePlanStore = defineStore('plan', () => {
    */
   async function loadPlansByConversation(conversationId: string): Promise<PlanData | null> {
     try {
-      const rawResponse: unknown = await apiService.get(`/plans/conversation/${conversationId}`);
+      const response = await apiService.get<PlanConversationApiResponse | null>(
+        `/plans/conversation/${conversationId}`
+      );
 
-      if (!rawResponse) {
+      if (!response) {
         console.log('[planStore.loadPlansByConversation] No plan found for conversation:', conversationId);
         return null;
       }
 
-      if (!isPlanConversationApiResponse(rawResponse)) {
+      if (!isPlanConversationApiResponse(response)) {
         throw new Error('Received malformed plan conversation response');
       }
-
-      const response = rawResponse;
 
       // Map the API response to PlanData
       const plan = normalizePlan(response);

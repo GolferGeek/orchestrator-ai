@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { apiService } from './apiService';
 // API endpoint configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL;
@@ -50,8 +51,8 @@ export interface DeliverableVersion {
   isCurrentVersion: boolean;
   createdByType: DeliverableVersionCreationType;
   taskId?: string;
-  metadata?: Record<string, any>;
-  fileAttachments?: Record<string, any>;
+  metadata?: JsonObject;
+  fileAttachments?: JsonObject;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,16 +67,16 @@ export interface CreateDeliverableDto {
   initialFormat?: DeliverableFormat;
   initialCreationType?: DeliverableVersionCreationType;
   initialTaskId?: string;
-  initialMetadata?: Record<string, any>;
-  initialFileAttachments?: Record<string, any>;
+  initialMetadata?: JsonObject;
+  initialFileAttachments?: JsonObject;
 }
 export interface CreateVersionDto {
   content: string;
   format?: DeliverableFormat;
   createdByType?: DeliverableVersionCreationType;
   taskId?: string;
-  metadata?: Record<string, any>;
-  fileAttachments?: Record<string, any>;
+  metadata?: JsonObject;
+  fileAttachments?: JsonObject;
 }
 export interface DeliverableFilters {
   type?: DeliverableType;
@@ -99,7 +100,7 @@ export interface DeliverableSearchResult {
   // Current version information
   format?: DeliverableFormat;
   content?: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   versionNumber?: number;
   isCurrentVersion?: boolean;
   versionId?: string;

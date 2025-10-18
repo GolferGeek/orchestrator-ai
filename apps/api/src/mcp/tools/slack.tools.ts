@@ -251,8 +251,9 @@ export class SlackMCPTools implements IMCPToolHandler {
 
       // Try a lightweight connection test
       const response = await this.makeSlackRequest('api.test', 'GET');
-      const _data = await response.json();
-      return _data.ok === true;
+      const data = await this.parseJsonResponse(response, 'Slack api.test');
+      const ok = this.readBoolean(data, 'ok');
+      return ok === true;
     } catch (error) {
       this.logger.debug(
         `Slack ping failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -283,11 +284,18 @@ export class SlackMCPTools implements IMCPToolHandler {
         'POST',
         payload,
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Slack chat.postMessage');
+      const ok = this.readBoolean(data, 'ok');
 
-      if (!_data.ok) {
-        throw new Error(`Slack API error: ${_data.error}`);
+      if (!response.ok || ok === false) {
+        const errorMessage =
+          this.readString(data, 'error') || response.statusText || 'Slack API error';
+        throw new Error(`Slack API error: ${errorMessage}`);
       }
+
+      const channelId = this.readString(data, 'channel');
+      const timestamp = this.readString(data, 'ts');
+      const message = 'message' in data ? data.message : null;
 
       return {
         content: [
@@ -296,9 +304,9 @@ export class SlackMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                channel: _data.channel,
-                timestamp: _data.ts,
-                message: _data.message,
+                channel: channelId ?? 'unknown',
+                timestamp,
+                message,
                 sent_at: new Date().toISOString(),
               },
               null,
@@ -335,11 +343,16 @@ export class SlackMCPTools implements IMCPToolHandler {
         `conversations.list?${params}`,
         'GET',
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Slack conversations.list');
+      const ok = this.readBoolean(data, 'ok');
 
-      if (!_data.ok) {
-        throw new Error(`Slack API error: ${_data.error}`);
+      if (!response.ok || ok === false) {
+        const errorMessage =
+          this.readString(data, 'error') || response.statusText || 'Slack API error';
+        throw new Error(`Slack API error: ${errorMessage}`);
       }
+
+      const channels = this.readArray(data, 'channels') ?? [];
 
       return {
         content: [
@@ -347,8 +360,8 @@ export class SlackMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                channels: _data.channels,
-                total_count: _data.channels?.length || 0,
+                channels,
+                total_count: channels.length,
                 retrieved_at: new Date().toISOString(),
               },
               null,
@@ -377,11 +390,16 @@ export class SlackMCPTools implements IMCPToolHandler {
           `users.info?user=${user_id}`,
           'GET',
         );
-        const _data = await response.json();
+        const data = await this.parseJsonResponse(response, 'Slack users.info');
+        const ok = this.readBoolean(data, 'ok');
 
-        if (!_data.ok) {
-          throw new Error(`Slack API error: ${_data.error}`);
+        if (!response.ok || ok === false) {
+          const errorMessage =
+            this.readString(data, 'error') || response.statusText || 'Slack API error';
+          throw new Error(`Slack API error: ${errorMessage}`);
         }
+
+        const user = 'user' in data ? data.user : null;
 
         return {
           content: [
@@ -389,7 +407,7 @@ export class SlackMCPTools implements IMCPToolHandler {
               type: 'text',
               text: JSON.stringify(
                 {
-                  user: _data.user,
+                  user,
                   retrieved_at: new Date().toISOString(),
                 },
                 null,
@@ -409,17 +427,29 @@ export class SlackMCPTools implements IMCPToolHandler {
           `users.list?${params}`,
           'GET',
         );
-        const _data = await response.json();
+        const data = await this.parseJsonResponse(response, 'Slack users.list');
+        const ok = this.readBoolean(data, 'ok');
 
-        if (!_data.ok) {
-          throw new Error(`Slack API error: ${_data.error}`);
+        if (!response.ok || ok === false) {
+          const errorMessage =
+            this.readString(data, 'error') || response.statusText || 'Slack API error';
+          throw new Error(`Slack API error: ${errorMessage}`);
         }
 
-        let users = _data.members || [];
+        const members = this.readArray(data, 'members') ?? [];
 
-        if (!include_deleted) {
-          users = users.filter((user: any) => !user.deleted);
-        }
+        const users = include_deleted
+          ? members
+          : members.filter((user) => {
+              if (!user || typeof user !== 'object' || Array.isArray(user)) {
+                return false;
+              }
+              const deleted = this.readBoolean(
+                user as Record<string, unknown>,
+                'deleted',
+              );
+              return deleted !== true;
+            });
 
         return {
           content: [
@@ -429,6 +459,7 @@ export class SlackMCPTools implements IMCPToolHandler {
                 {
                   users,
                   total_count: users.length,
+                  include_deleted,
                   retrieved_at: new Date().toISOString(),
                 },
                 null,
@@ -472,11 +503,21 @@ export class SlackMCPTools implements IMCPToolHandler {
         `search.messages?${params}`,
         'GET',
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Slack search.messages');
+      const ok = this.readBoolean(data, 'ok');
 
-      if (!_data.ok) {
-        throw new Error(`Slack API error: ${_data.error}`);
+      if (!response.ok || ok === false) {
+        const errorMessage =
+          this.readString(data, 'error') || response.statusText || 'Slack API error';
+        throw new Error(`Slack API error: ${errorMessage}`);
       }
+
+      const messages = this.ensureObject(
+        'messages' in data ? data.messages : {},
+        'Slack search.messages response payload',
+      );
+      const matches = Array.isArray(messages.matches) ? messages.matches : [];
+      const total = typeof messages.total === 'number' ? messages.total : matches.length;
 
       return {
         content: [
@@ -484,8 +525,8 @@ export class SlackMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                matches: _data.messages?.matches || [],
-                total: _data.messages?.total || 0,
+                matches,
+                total,
                 query: searchQuery,
                 searched_at: new Date().toISOString(),
               },
@@ -527,11 +568,20 @@ export class SlackMCPTools implements IMCPToolHandler {
         `conversations.history?${params}`,
         'GET',
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(
+        response,
+        'Slack conversations.history',
+      );
+      const ok = this.readBoolean(data, 'ok');
 
-      if (!_data.ok) {
-        throw new Error(`Slack API error: ${_data.error}`);
+      if (!response.ok || ok === false) {
+        const errorMessage =
+          this.readString(data, 'error') || response.statusText || 'Slack API error';
+        throw new Error(`Slack API error: ${errorMessage}`);
       }
+
+      const messages = this.readArray(data, 'messages') ?? [];
+      const hasMore = this.readBoolean(data, 'has_more') ?? false;
 
       return {
         content: [
@@ -539,8 +589,8 @@ export class SlackMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                messages: _data.messages || [],
-                has_more: _data.has_more || false,
+                messages,
+                has_more: hasMore,
                 channel,
                 retrieved_at: new Date().toISOString(),
               },
@@ -571,14 +621,24 @@ export class SlackMCPTools implements IMCPToolHandler {
         'POST',
         payload,
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Slack conversations.create');
+      const ok = this.readBoolean(data, 'ok');
 
-      if (!_data.ok) {
-        throw new Error(`Slack API error: ${_data.error}`);
+      if (!response.ok || ok === false) {
+        const errorMessage =
+          this.readString(data, 'error') || response.statusText || 'Slack API error';
+        throw new Error(`Slack API error: ${errorMessage}`);
       }
 
-      // Set purpose and topic if provided
-      const channelId = _data.channel.id;
+      const channelRecord = this.ensureObject(
+        'channel' in data ? data.channel : {},
+        'Slack conversations.create channel payload',
+      );
+      const channelId = this.readString(channelRecord, 'id');
+
+      if (!channelId) {
+        throw new Error('Slack API response missing channel identifier');
+      }
 
       if (purpose) {
         await this.makeSlackRequest('conversations.setPurpose', 'POST', {
@@ -601,7 +661,7 @@ export class SlackMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                channel: _data.channel,
+                channel: channelRecord,
                 created_at: new Date().toISOString(),
               },
               null,
@@ -645,6 +705,48 @@ export class SlackMCPTools implements IMCPToolHandler {
       headers,
       body: body ? JSON.stringify(body) : undefined,
     });
+  }
+
+  private async parseJsonResponse(
+    response: { json(): Promise<unknown> },
+    context: string,
+  ): Promise<Record<string, unknown>> {
+    const value = await response.json();
+    return this.ensureObject(value, `${context} returned invalid JSON payload`);
+  }
+
+  private ensureObject(
+    value: unknown,
+    errorContext: string,
+  ): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(errorContext);
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private readString(
+    source: Record<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const value = source[key];
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private readBoolean(
+    source: Record<string, unknown>,
+    key: string,
+  ): boolean | undefined {
+    const value = source[key];
+    return typeof value === 'boolean' ? value : undefined;
+  }
+
+  private readArray(
+    source: Record<string, unknown>,
+    key: string,
+  ): unknown[] | undefined {
+    const value = source[key];
+    return Array.isArray(value) ? value : undefined;
   }
 
   /**

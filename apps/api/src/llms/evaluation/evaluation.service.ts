@@ -84,7 +84,7 @@ export class EvaluationService {
     messageId: string,
     evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const { client, isServiceClient } = this.getAggregationsClient();
+    const { client } = this.getAggregationsClient();
 
     // Verify message exists and belongs to user
     const { data: message, error: messageError } = await client
@@ -137,7 +137,7 @@ export class EvaluationService {
     userId: string,
     messageId: string,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const { client, isServiceClient } = this.getAggregationsClient();
+    const { client } = this.getAggregationsClient();
 
     const { data: message, error } = await client
       .from('messages')
@@ -170,7 +170,7 @@ export class EvaluationService {
     sessionId: string,
     filters: EvaluationFilters = {},
   ): Promise<EnhancedMessageResponseDto[]> {
-    const { client, isServiceClient } = this.getAggregationsClient();
+    const { client } = this.getAggregationsClient();
 
     let query = client
       .from('messages')
@@ -896,6 +896,30 @@ export class EvaluationService {
     return recommendations;
   }
 
+  private extractTaskContent(task: TaskRecord): string {
+    if (typeof task.prompt === 'string' && task.prompt.trim().length > 0) {
+      return task.prompt;
+    }
+
+    if (typeof task.response === 'string' && task.response.trim().length > 0) {
+      return task.response;
+    }
+
+    if (task.responseMetadata?.content) {
+      return String(task.responseMetadata.content);
+    }
+
+    if (task.responseMetadata?.response) {
+      return String(task.responseMetadata.response);
+    }
+
+    if (typeof task.method === 'string' && task.method.trim().length > 0) {
+      return `${task.method.replace(/_/g, ' ')} Task`;
+    }
+
+    return 'Task';
+  }
+
   private calculateAverage(values: number[]): number {
     return values.length > 0
       ? values.reduce((sum, val) => sum + val, 0) / values.length
@@ -1177,18 +1201,7 @@ export class EvaluationService {
 
         // Additional debug for missing response data
 
-        // Create more meaningful content from task details
-        let taskContent = 'Task';
-        if (task.prompt) {
-          // Use the prompt as content, truncated for display
-          taskContent = task.prompt;
-        } else if (task.response) {
-          // Use the response as content if no prompt
-          taskContent = task.response;
-        } else if (task.method) {
-          // Use the method name as a fallback
-          taskContent = `${task.method} Task`;
-        }
+        const taskContent = this.extractTaskContent(task);
 
         // Create more meaningful agent name from metadata
         let agentName = 'Agent';
@@ -1264,8 +1277,8 @@ export class EvaluationService {
           // Include provider and model details from LLM metadata
           providerId: providerId,
           modelId: modelId,
-          responseTimeMs: task.llm_metadata?.response_time_ms,
-          cost: task.llm_metadata?.total_cost,
+          responseTimeMs: task.llm_metadata?.response_time_ms ?? null,
+          cost: task.llm_metadata?.total_cost ?? null,
           provider: provider,
           model: model,
           // Include user email

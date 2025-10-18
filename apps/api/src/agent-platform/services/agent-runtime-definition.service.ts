@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { load as yamlLoad } from 'js-yaml';
 import { AgentRecord } from '../interfaces/agent-record.interface';
 import {
@@ -13,7 +14,7 @@ import {
   AgentTransportDefinition,
 } from '../interfaces/database-agent-definition.interface';
 
-type UnknownRecord = Record<string, any> | null | undefined;
+type UnknownRecord = JsonObject | null | undefined;
 
 @Injectable()
 export class AgentRuntimeDefinitionService {
@@ -307,17 +308,19 @@ export class AgentRuntimeDefinitionService {
     record: AgentRecord,
     descriptor: UnknownRecord,
   ): AgentLLMDefinition | undefined {
-    const llmNode = this.asRecord(descriptor?.llm);
-    const provider = llmNode?.provider ?? record.config?.llm?.provider;
-    const model = llmNode?.model ?? record.config?.llm?.model;
+    const llmNode = this.toJsonObject(descriptor?.llm);
+    const configNode = this.toJsonObject(record.config);
+    const configLlm = this.toJsonObject(configNode?.llm);
+    const providerCandidate = llmNode?.provider ?? configLlm?.provider;
+    const modelCandidate = llmNode?.model ?? configLlm?.model;
 
-    if (!llmNode && !provider && !model) {
+    if (!llmNode && !providerCandidate && !modelCandidate) {
       return undefined;
     }
 
     return {
-      provider: this.asString(provider),
-      model: this.asString(model),
+      provider: this.asString(providerCandidate),
+      model: this.asString(modelCandidate),
       temperature: this.asNumber(llmNode?.temperature),
       maxTokens: this.asNumber(llmNode?.max_tokens ?? llmNode?.maxTokens),
       systemPrompt: this.asString(

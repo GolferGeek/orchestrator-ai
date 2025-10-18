@@ -332,13 +332,17 @@ export class NotionMCPTools implements IMCPToolHandler {
       }
 
       const response = await this.makeNotionRequest('pages', 'POST', payload);
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Notion create page');
 
       if (!response.ok) {
-        throw new Error(
-          `Notion API error: ${_data.message || response.statusText}`,
-        );
+        const errorMessage =
+          this.readString(data, 'message') || response.statusText || 'Notion API error';
+        throw new Error(`Notion API error: ${errorMessage}`);
       }
+
+      const pageId = this.readString(data, 'id');
+      const pageUrl = this.readString(data, 'url');
+      const createdTime = this.readString(data, 'created_time');
 
       return {
         content: [
@@ -347,10 +351,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                page_id: _data.id,
-                url: _data.url,
+                page_id: pageId,
+                url: pageUrl,
                 title,
-                created_time: _data.created_time,
+                created_time: createdTime,
                 created_at: new Date().toISOString(),
               },
               null,
@@ -392,13 +396,20 @@ export class NotionMCPTools implements IMCPToolHandler {
         'POST',
         payload,
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(
+        response,
+        'Notion query database response',
+      );
 
       if (!response.ok) {
-        throw new Error(
-          `Notion API error: ${_data.message || response.statusText}`,
-        );
+        const errorMessage =
+          this.readString(data, 'message') || response.statusText || 'Notion API error';
+        throw new Error(`Notion API error: ${errorMessage}`);
       }
+
+      const results = this.readArray(data, 'results') ?? [];
+      const hasMore = this.readBoolean(data, 'has_more') ?? false;
+      const nextCursor = this.readString(data, 'next_cursor');
 
       return {
         content: [
@@ -406,10 +417,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                results: _data.results,
-                has_more: _data.has_more,
-                next_cursor: _data.next_cursor,
-                total_count: _data.results?.length || 0,
+                results,
+                has_more: hasMore,
+                next_cursor: nextCursor,
+                total_count: results.length,
                 queried_at: new Date().toISOString(),
               },
               null,
@@ -451,13 +462,17 @@ export class NotionMCPTools implements IMCPToolHandler {
       }
 
       const response = await this.makeNotionRequest('search', 'POST', payload);
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Notion search content');
 
       if (!response.ok) {
-        throw new Error(
-          `Notion API error: ${_data.message || response.statusText}`,
-        );
+        const errorMessage =
+          this.readString(data, 'message') || response.statusText || 'Notion API error';
+        throw new Error(`Notion API error: ${errorMessage}`);
       }
+
+      const results = this.readArray(data, 'results') ?? [];
+      const hasMore = this.readBoolean(data, 'has_more') ?? false;
+      const nextCursor = this.readString(data, 'next_cursor');
 
       return {
         content: [
@@ -465,10 +480,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                results: _data.results,
-                has_more: _data.has_more,
-                next_cursor: _data.next_cursor,
-                total_count: _data.results?.length || 0,
+                results,
+                has_more: hasMore,
+                next_cursor: nextCursor,
+                total_count: results.length,
                 query: query || 'all content',
                 searched_at: new Date().toISOString(),
               },
@@ -493,24 +508,27 @@ export class NotionMCPTools implements IMCPToolHandler {
 
     try {
       const response = await this.makeNotionRequest(`pages/${page_id}`, 'GET');
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Notion get page');
 
       if (!response.ok) {
-        throw new Error(
-          `Notion API error: ${_data.message || response.statusText}`,
-        );
+        const errorMessage =
+          this.readString(data, 'message') || response.statusText || 'Notion API error';
+        throw new Error(`Notion API error: ${errorMessage}`);
       }
 
-      let content = undefined;
+      let content: unknown = undefined;
       if (include_content) {
         try {
           const contentResponse = await this.makeNotionRequest(
             `blocks/${page_id}/children`,
             'GET',
           );
-          const contentData = await contentResponse.json();
+          const contentData = await this.parseJsonResponse(
+            contentResponse,
+            'Notion page content',
+          );
           if (contentResponse.ok) {
-            content = contentData.results;
+            content = this.readArray(contentData, 'results') ?? [];
           }
         } catch (error) {
           this.logger.warn(
@@ -525,7 +543,7 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                page: _data,
+                page: data,
                 content,
                 retrieved_at: new Date().toISOString(),
               },
@@ -564,13 +582,16 @@ export class NotionMCPTools implements IMCPToolHandler {
         'PATCH',
         payload,
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Notion update page');
 
       if (!response.ok) {
-        throw new Error(
-          `Notion API error: ${_data.message || response.statusText}`,
-        );
+        const errorMessage =
+          this.readString(data, 'message') || response.statusText || 'Notion API error';
+        throw new Error(`Notion API error: ${errorMessage}`);
       }
+
+      const pageId = this.readString(data, 'id');
+      const editedTime = this.readString(data, 'last_edited_time');
 
       return {
         content: [
@@ -579,8 +600,8 @@ export class NotionMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                page_id: _data.id,
-                last_edited_time: _data.last_edited_time,
+                page_id: pageId,
+                last_edited_time: editedTime,
                 updated_at: new Date().toISOString(),
               },
               null,

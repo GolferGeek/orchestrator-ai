@@ -25,6 +25,21 @@ import {
   SystemHealthMetrics,
 } from '@/types/llm-monitoring';
 
+const isMemoryStats = (value: unknown): value is SystemHealthMetrics['memoryStats'] => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<SystemHealthMetrics['memoryStats']>;
+  return (
+    typeof candidate.memoryPressure === 'string'
+    && typeof candidate.currentUsage === 'number'
+    && typeof candidate.totalAllocated === 'number'
+    && typeof candidate.loadedModels === 'number'
+    && typeof candidate.threeTierModels === 'number'
+  );
+};
+
 class LLMHealthService {
   // =====================================
   // SYSTEM HEALTH & MONITORING
@@ -86,13 +101,22 @@ class LLMHealthService {
    */
   async getMemoryStats(): Promise<SystemHealthMetrics['memoryStats'] | null> {
     try {
-      const response = await apiService.get('/llm/production/memory/stats');
-      if (response && typeof response === 'object') {
-        const data = 'data' in response ? (response as { data?: unknown }).data : response;
-        if (data && typeof data === 'object') {
-          return data as SystemHealthMetrics['memoryStats'];
-        }
+      const response = await apiService.get<
+        SystemHealthMetrics['memoryStats'] | { data?: SystemHealthMetrics['memoryStats'] | null } | null
+      >('/llm/production/memory/stats');
+
+      if (!response) {
+        return null;
       }
+
+      if (isMemoryStats(response)) {
+        return response;
+      }
+
+      if (typeof response === 'object' && 'data' in response && response.data && isMemoryStats(response.data)) {
+        return response.data;
+      }
+
       return null;
     } catch (error) {
       console.error('Error fetching memory stats:', error);

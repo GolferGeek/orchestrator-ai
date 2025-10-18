@@ -1,5 +1,6 @@
-import { ConversationPlansRepository } from './conversation-plans.repository';
 import { SupabaseService } from '@/supabase/supabase.service';
+import { ConversationPlanRecord } from '../interfaces/conversation-plan-record.interface';
+import { ConversationPlansRepository } from './conversation-plans.repository';
 
 const createSupabaseMock = () => {
   const fromMock = jest.fn();
@@ -12,7 +13,7 @@ const createSupabaseMock = () => {
 describe('ConversationPlansRepository', () => {
   afterEach(() => jest.resetAllMocks());
 
-  const planRecord = {
+  const planRecord: ConversationPlanRecord = {
     id: 'plan-1',
     conversation_id: 'conv-1',
     organization_slug: 'my-org',

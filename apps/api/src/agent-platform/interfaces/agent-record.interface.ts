@@ -1,4 +1,5 @@
 import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type { AgentConfigDefinition } from './database-agent-definition.interface';
 
 export interface AgentRecord {
   id: string;
@@ -14,7 +15,7 @@ export interface AgentRecord {
   function_code: string | null;
   agent_card: JsonObject | null;
   context: JsonObject | null;
-  config: JsonObject | null;
+  config: AgentConfigDefinition | null;
   plan_structure: JsonObject | null;
   deliverable_structure: JsonObject | null;
   io_schema: JsonObject | null;
@@ -37,4 +38,5 @@ export interface AgentUpsertInput {
   plan_structure?: string | JsonObject | null;
   deliverable_structure?: string | JsonObject | null;
   io_schema?: JsonObject | null;
+  config?: AgentConfigDefinition | null;
 }

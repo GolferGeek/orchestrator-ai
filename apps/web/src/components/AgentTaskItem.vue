@@ -301,6 +301,19 @@ const getJsonNumber = (source: JsonObject | undefined, key: string): number | un
   return typeof candidate === 'number' ? candidate : undefined;
 };
 
+const isDeliverableImageAttachment = (value: JsonValue): value is DeliverableImageAttachment => {
+  if (!isJsonObject(value)) {
+    return false;
+  }
+
+  const { thumbnailUrl, url, altText } = value as Partial<DeliverableImageAttachment>;
+  return (
+    (thumbnailUrl === undefined || typeof thumbnailUrl === 'string')
+    && (url === undefined || typeof url === 'string')
+    && (altText === undefined || typeof altText === 'string')
+  );
+};
+
 const props = defineProps<{
   message: AgentChatMessage;
   agentName?: string;
@@ -570,16 +583,16 @@ const imageAssets = computed<DeliverableImageAttachment[]>(() => {
 
   const currentVersion = deliverablesStore.getCurrentVersion(deliverableId);
   const attachments = currentVersion?.fileAttachments;
-  if (!attachments || typeof attachments !== 'object') {
+  if (!attachments || !isJsonObject(attachments)) {
     return [];
   }
 
-  const candidateImages = (attachments as { images?: unknown }).images;
+  const candidateImages = attachments['images'];
   if (!Array.isArray(candidateImages)) {
     return [];
   }
 
-  return candidateImages.filter((image): image is DeliverableImageAttachment => typeof image === 'object' && image !== null);
+  return candidateImages.filter(isDeliverableImageAttachment);
 });
 
 // LLM Information computed properties
