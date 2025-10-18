@@ -82,7 +82,7 @@ const chartConfig = computed(() => {
 });
 
 // Event handlers
-const onChartReady = (chart: any) => {
+const onChartReady = (chart: Chart) => {
   emit('chart-ready', chart);
 };
 

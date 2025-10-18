@@ -28,7 +28,7 @@ describe('OrchestrationStepExecutorService', () => {
   let runtimeExecution: jest.Mocked<AgentRuntimeExecutionService>;
   let routingPolicy: jest.Mocked<RoutingPolicyAdapterService>;
   let modeRouter: jest.Mocked<AgentModeRouterService>;
-  let conversations: jest.Mocked<Agent2AgentConversationsService>;
+  let _conversations: jest.Mocked<Agent2AgentConversationsService>;
 
   const mockRun: OrchestrationRunRecord = {
     id: 'run-123',

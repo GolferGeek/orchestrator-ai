@@ -58,7 +58,7 @@ const emit = defineEmits<{
 
 // Migrated to conversationsStore + chatUiStore
 
-const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: any; description: string }> = [
+const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: string; description: string }> = [
   {
     value: 'converse',
     name: 'Converse',

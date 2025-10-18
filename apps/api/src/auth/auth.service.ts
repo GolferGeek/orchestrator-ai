@@ -184,7 +184,7 @@ export class AuthService {
 
   async getCurrentUser(
     currentAuthUser: SupabaseAuthUserDto,
-    token: string,
+    _token: string,
   ): Promise<AuthenticatedUserResponseDto> {
     try {
       // Use service role client to bypass RLS issues temporarily
@@ -535,7 +535,7 @@ export class AuthService {
    * Create new user (admin only)
    * Creates both auth user and profile record
    */
-  async createUser(createUserDto: any, adminUserId: string): Promise<any> {
+  async createUser(createUserDto: any, _adminUserId: string): Promise<any> {
     try {
       const serviceClient = this.supabaseService.getServiceClient();
 
@@ -608,7 +608,7 @@ export class AuthService {
   /**
    * Get all users (admin only)
    */
-  async getAllUsers(adminUserId: string): Promise<any[]> {
+  async getAllUsers(_adminUserId: string): Promise<any[]> {
     try {
       const serviceClient = this.supabaseService.getServiceClient();
 
@@ -634,7 +634,7 @@ export class AuthService {
   /**
    * Get user by ID (admin only)
    */
-  async getUserById(userId: string, adminUserId: string): Promise<any> {
+  async getUserById(userId: string, _adminUserId: string): Promise<any> {
     try {
       const serviceClient = this.supabaseService.getServiceClient();
 

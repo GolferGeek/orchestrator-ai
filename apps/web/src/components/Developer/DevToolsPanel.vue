@@ -440,7 +440,7 @@ export default defineComponent({
         
         // Refresh child components
         if (this.$refs.localModelStatus) {
-          await (this.$refs.localModelStatus as any).fetchModelStatus()
+          await (this.$refs.localModelStatus as { fetchModelStatus: () => Promise<void> }).fetchModelStatus()
         }
       } catch (error) {
         console.error('Failed to refresh dev tools data:', error)

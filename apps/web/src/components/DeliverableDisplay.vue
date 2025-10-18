@@ -548,7 +548,7 @@ interface Emits {
   (e: 'current-version-changed', version: DeliverableVersion): void;
   (e: 'edit-requested', deliverable: Deliverable): void;
   (e: 'merge-requested', deliverable: Deliverable): void;
-  (e: 'run-with-different-llm', data: { deliverable: any; version: any }): void;
+  (e: 'run-with-different-llm', data: { deliverable: Deliverable; version: DeliverableVersion }): void;
 }
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -586,7 +586,7 @@ const isEditing = ref(false);
 const editedContent = ref('');
 const editedTitle = ref('');
 const isSaving = ref(false);
-const contentTextarea = ref<any>(null);
+const contentTextarea = ref<HTMLTextAreaElement | null>(null);
 const activeSubTab = ref<'plan' | 'document' | 'images'>('document');
 const hasAutoSelectedTab = ref(false);
 const showGenerateModal = ref(false);
@@ -867,10 +867,10 @@ const saveEdits = async () => {
     isEditing.value = false;
     editedContent.value = '';
     editedTitle.value = '';
-  } catch (error: any) {
+  } catch (error: unknown) {
 
     // Show error message to user
-    alert(`Failed to save deliverable: ${error.message || 'Unknown error'}`);
+    alert(`Failed to save deliverable: ${error instanceof Error ? error.message : 'Unknown error'}`);
   } finally {
     isSaving.value = false;
   }
@@ -968,7 +968,7 @@ const loadVersions = async () => {
 };
 const imageAssets = computed(() => {
   try {
-    const imgs = (displayVersion.value as any)?.fileAttachments?.images || [];
+    const imgs = (displayVersion.value as DeliverableVersion)?.fileAttachments?.images || [];
     return Array.isArray(imgs) ? imgs : [];
   } catch { return []; }
 });
@@ -989,7 +989,7 @@ const planPretty = computed(() => {
   }
   return c;
 });
-function openImage(img: any) {
+function openImage(img: { url: string }) {
   try { window.open(img.url, '_blank'); } catch {}
 }
 
@@ -1018,13 +1018,13 @@ async function submitGenerate() {
       ? (selectedProviders[0] === 'gemini' ? 'image_google_generator' : 'image_openai_generator')
       : 'image_orchestrator';
     const { agentExecutionService } = await import('@/services/agentExecutionService');
-    const convId = (props as any).conversationId || (await import('@/stores/ui/chatUiStore')).useChatUiStore().activeConversationId;
+    const convId = (props as Props).conversationId || (await import('@/stores/ui/chatUiStore')).useChatUiStore().activeConversationId;
     if (!convId) throw new Error('No conversation available');
     const response = await agentExecutionService.executeAgentTask(orgSlug, agentSlug, {
       mode: 'build',
       conversationId: convId,
       userMessage: genPrompt.value || 'Generate image',
-      payload: { size: genSize.value, n: genN.value, deliverableId: (props.deliverable as any).id, providers: genProviders.value },
+      payload: { size: genSize.value, n: genN.value, deliverableId: (props.deliverable as Deliverable).id, providers: genProviders.value },
     });
     showGenerateModal.value = false;
 
@@ -1033,8 +1033,8 @@ async function submitGenerate() {
     versionList.forEach(v => {
       deliverablesStore.addVersion(actualDeliverableId.value, v);
     });
-  } catch (e: any) {
-    alert(`Image generation failed: ${e?.message || e}`);
+  } catch (e: unknown) {
+    alert(`Image generation failed: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 const goToPreviousVersion = async () => {
@@ -1062,11 +1062,11 @@ const goToNextVersion = async () => {
     await selectAndDisplayVersion(nextVersion);
   }
 };
-const selectVersion = async (version: any) => {
+const selectVersion = async (version: DeliverableVersion) => {
   selectedVersion.value = version;
   await selectAndDisplayVersion(version);
 };
-const selectAndDisplayVersion = async (version: any) => {
+const selectAndDisplayVersion = async (version: DeliverableVersion) => {
   selectedVersion.value = version;
   // Update the display version to show this version's content
   displayVersion.value = version;
@@ -1164,7 +1164,7 @@ const getMimeType = () => {
 /**
  * Extract LLM information from version metadata
  */
-const getVersionLLMInfo = (version: any): string | null => {
+const getVersionLLMInfo = (version: DeliverableVersion): string | null => {
   if (!version?.metadata) return null;
   
   // Temporary debug to see what we're actually getting
@@ -1222,7 +1222,7 @@ const getVersionLLMInfo = (version: any): string | null => {
 /**
  * Extract cost information from version metadata
  */
-const getVersionCost = (version: any): string | null => {
+const getVersionCost = (version: DeliverableVersion): string | null => {
   if (!version?.metadata) return null;
   
   // Check various possible locations for cost data

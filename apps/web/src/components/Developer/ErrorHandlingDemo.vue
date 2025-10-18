@@ -431,7 +431,7 @@ const processRetryQueue = async () => {
 };
 
 // Error boundary event handlers
-const onBoundaryError = (error: Error, errorInfo: any) => {
+const onBoundaryError = (error: Error, errorInfo: { componentStack: string }) => {
   console.log('🚨 Error boundary caught error:', error);
   hasBoundaryError.value = true;
 };

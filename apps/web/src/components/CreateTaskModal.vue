@@ -178,12 +178,12 @@ interface Conversation {
 interface TaskData {
   method: string;
   prompt: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   timeoutSeconds?: number;
 }
 interface ParameterPreset {
   name: string;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 }
 // Props
 const props = defineProps<{
@@ -270,7 +270,7 @@ const createTask = async () => {
   error.value = null;
   try {
     // Parse parameters JSON
-    let params: Record<string, any> | undefined;
+    let params: Record<string, unknown> | undefined;
     if (parametersJson.value.trim()) {
       try {
         params = JSON.parse(parametersJson.value);

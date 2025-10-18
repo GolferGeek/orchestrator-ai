@@ -285,6 +285,15 @@ export async function optimizeContext(
  * @param conversationHistory - Optional conversation history context
  * @returns The raw LLM response payload
  */
+type LLMResponseLike = { content: string };
+
+const isLLMResponse = (value: unknown): value is LLMResponseLike =>
+  Boolean(
+    value &&
+      typeof value === 'object' &&
+      typeof (value as Record<string, unknown>).content === 'string',
+  );
+
 export async function callLLM(
   llmService: LLMService,
   llmConfig: Record<string, unknown> | null | undefined,
@@ -344,8 +353,7 @@ export async function callLLM(
       : undefined;
   const sessionId =
     typeof config.sessionId === 'string' ? config.sessionId : undefined;
-  const userId =
-    typeof config.userId === 'string' ? config.userId : undefined;
+  const userId = typeof config.userId === 'string' ? config.userId : undefined;
   const callerType =
     typeof config.callerType === 'string' ? config.callerType : 'agent';
   const callerName =
@@ -389,15 +397,11 @@ export async function callLLM(
       options as any,
     );
 
-    if (
-      !response ||
-      typeof response !== 'object' ||
-      typeof (response as LLMResponse).content !== 'string'
-    ) {
+    if (!isLLMResponse(response)) {
       throw new Error('LLM returned an unexpected response');
     }
 
-    return response as LLMResponse;
+    return response;
   } catch (error) {
     if (error instanceof Error) {
       throw error;

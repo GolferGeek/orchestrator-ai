@@ -706,8 +706,7 @@ export class ProjectsService {
         : 0;
 
     const failedSteps = steps.filter((s) => s.status === 'failed').length;
-    const errorRate =
-      steps.length > 0 ? (failedSteps / steps.length) * 100 : 0;
+    const errorRate = steps.length > 0 ? (failedSteps / steps.length) * 100 : 0;
 
     const throughput =
       totalDuration > 0

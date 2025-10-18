@@ -45,7 +45,6 @@ export class RoutingPolicyAdapterService {
     }
 
     const payload = request.payload ?? {};
-    const metadata = this.collectMetadata(request);
 
     if (Array.isArray(request.messages) && request.messages.length) {
       const recent = request.messages.slice(-6);

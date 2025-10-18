@@ -118,14 +118,19 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
       const taskId = (request.payload as any)?.taskId || null;
 
       const allowedModules = new Set(this.allowedModules);
+      const moduleMap: Record<string, unknown> = {};
+      for (const name of allowedModules) {
+        // Dynamic import to comply with lint rules and keep sandbox safe
+        // Sequential is fine here due to small whitelist
+        moduleMap[name] = await import(name);
+      }
       const sandboxRequire = (moduleName: string) => {
         if (!allowedModules.has(moduleName)) {
           throw new Error(
             `Module '${moduleName}' is not allowed in function sandbox`,
           );
         }
-
-        return require(moduleName);
+        return moduleMap[moduleName];
       };
 
       const sandbox: vm.Context = vm.createContext({

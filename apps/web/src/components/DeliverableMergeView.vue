@@ -207,11 +207,13 @@ import {
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import * as diff from 'diff';
 import { marked } from 'marked';
+import type { Deliverable } from '@/types/deliverable';
+
 interface Props {
-  deliverable: any;
+  deliverable: Deliverable;
 }
 interface Emits {
-  (e: 'merge-completed', mergedDeliverable: any): void;
+  (e: 'merge-completed', mergedDeliverable: Deliverable): void;
   (e: 'merge-cancelled'): void;
 }
 const props = defineProps<Props>();
@@ -226,7 +228,7 @@ const selectedSections = ref<Map<string, boolean>>(new Map());
 const manualEditContent = ref('');
 const editHistory = ref<string[]>([]);
 const editHistoryIndex = ref(-1);
-const versions = ref<any[]>([]);
+const versions = ref<Deliverable[]>([]);
 // Computed properties
 const currentVersion = computed(() => props.deliverable);
 const latestVersion = computed(() => versions.value.find(v => v.is_latest_version) || currentVersion.value);
@@ -302,7 +304,7 @@ const parseContentIntoSections = (content: string) => {
   if (currentVersion.value.format === 'markdown') {
     // Parse markdown sections (headings, paragraphs, lists, etc.)
     const lines = content.split('\n');
-    const sections: any[] = [];
+    const sections: Array<{ type: string; content: string; lines: string[]; level?: number }> = [];
     let currentSection: { type: string; content: string; lines: string[]; level?: number } = { type: 'paragraph', content: '', lines: [] as string[] };
     for (const line of lines) {
       if (line.startsWith('#')) {
@@ -357,13 +359,13 @@ const parseContentIntoSections = (content: string) => {
     }));
   }
 };
-const renderSection = (section: any) => {
+const renderSection = (section: { type: string; content: string; lines: string[]; level?: number }) => {
   if (currentVersion.value.format === 'markdown') {
     return marked(section.content);
   }
   return `<pre>${section.content}</pre>`;
 };
-const getSectionClass = (section: any, pane: 'base' | 'compare') => {
+const getSectionClass = (section: { type: string; content: string; lines: string[]; level?: number }, pane: 'base' | 'compare') => {
   const key = `${pane}-${section.type}-${section.content.substring(0, 50)}`;
   const isSelected = selectedSections.value.get(key);
   return {
@@ -389,12 +391,12 @@ const toggleSectionSelection = (index: number, pane: 'base' | 'compare') => {
   newMap.set(key, !currentValue);
   selectedSections.value = newMap;
 };
-const hasContentChanges = (section: any) => {
+const hasContentChanges = (section: { type: string; content: string; lines: string[]; level?: number }) => {
   // Simple heuristic to detect if section has changes
   const baseContent = getVersionByType(baseVersion.value)?.content || '';
   return !baseContent.includes(section.content);
 };
-const handleModeChange = (event: any) => {
+const handleModeChange = (event: CustomEvent) => {
   mergeMode.value = event.detail.value;
   if (mergeMode.value === 'manual' && !manualEditContent.value) {
     manualEditContent.value = currentVersion.value.content;

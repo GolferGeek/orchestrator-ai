@@ -501,7 +501,7 @@ export class TaskStatusService {
       normalizedTaskType === 'ephemeral'
     ) {
       try {
-        const { error } = await this.supabaseService
+        await this.supabaseService
           .getAnonClient()
           .from('tasks')
           .update({
@@ -512,11 +512,9 @@ export class TaskStatusService {
           })
           .eq('id', taskId)
           .eq('user_id', userId);
-
-        if (error) {
-        } else {
-        }
-      } catch (_error) {}
+      } catch {
+        // Silently ignore database update errors
+      }
     }
 
     this.emitStatusChange(taskId, taskStatus);
@@ -606,16 +604,15 @@ export class TaskStatusService {
           updateData.error_message = newStatus.error;
         }
 
-        const { error } = await this.supabaseService
+        await this.supabaseService
           .getAnonClient()
           .from('tasks')
           .update(updateData)
           .eq('id', taskId)
           .eq('user_id', userId);
-
-        if (error) {
-        }
-      } catch (_error) {}
+      } catch {
+        // Silently ignore database update errors
+      }
     }
 
     // Emit status change event
@@ -898,7 +895,7 @@ export class TaskStatusService {
     if (typeof value === 'object') {
       try {
         return JSON.parse(JSON.stringify(value));
-      } catch (_error) {
+      } catch {
         return value;
       }
     }

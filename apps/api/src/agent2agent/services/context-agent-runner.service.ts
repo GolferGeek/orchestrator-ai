@@ -677,7 +677,14 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       }
     }
 
-    return String(content);
+    if (
+      typeof content === 'number' ||
+      typeof content === 'boolean' ||
+      typeof content === 'bigint'
+    ) {
+      return content.toString();
+    }
+    return `${content}`;
   }
 
   /**

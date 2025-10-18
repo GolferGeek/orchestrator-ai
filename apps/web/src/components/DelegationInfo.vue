@@ -55,7 +55,7 @@ interface Props {
   confidence?: number;
   stickyContext?: boolean;
   continuityReason?: string;
-  agentContext?: any;
+  agentContext?: Record<string, unknown>;
   delegationType?: 'new' | 'continuation' | 'handoff';
   agentSpecialization?: string;
 }

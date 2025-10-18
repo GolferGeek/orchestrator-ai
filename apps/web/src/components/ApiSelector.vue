@@ -322,7 +322,7 @@ const formatLastChecked = (date: Date | undefined) => {
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return date.toLocaleDateString();
 };
-const handleVersionChange = async (event: any) => {
+const handleVersionChange = async (event: CustomEvent) => {
   const version = event.detail.value;
   const healthyEndpoints = getHealthyEndpointsForVersion(version);
   if (healthyEndpoints.length > 0) {
@@ -356,7 +356,7 @@ const performHealthCheck = async () => {
     healthCheckInProgress.value = false;
   }
 };
-const handleEndpointDropdownChange = (event: any) => {
+const handleEndpointDropdownChange = (event: CustomEvent) => {
   const endpointName = event.detail.value;
   const endpoint = availableEndpoints.value.find(ep => ep.name === endpointName);
   if (endpoint) {
