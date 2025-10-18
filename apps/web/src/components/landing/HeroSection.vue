@@ -63,7 +63,7 @@ const featuredVideos = computed(() => {
 const currentVideo = ref<VideoPlayerVideo | null>(null);
 
 // Emit events to parent (keeping for other sections that still use modal)
-const emit = defineEmits<{
+const _emit = defineEmits<{
   openVideoModal: [video: VideoPlayerVideo];
 }>();
 

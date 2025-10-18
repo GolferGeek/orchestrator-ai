@@ -125,7 +125,7 @@ export function withPerformanceTracking<T extends Record<string, unknown>>(
   return {
     ...component,
     setup(props: Record<string, unknown>, context: Record<string, unknown>) {
-      const { trackComponentRender } = useComponentPerformance(name);
+      const { trackComponentRender: _trackComponentRender } = useComponentPerformance(name);
       
       // Track renders on updates
       const originalSetup = component.setup;

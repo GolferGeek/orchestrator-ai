@@ -155,7 +155,7 @@ export function useFeatureDetection() {
       if (endpoint.version === 'v2') {
         try {
           // Since we're using a single API service now, skip dynamic feature detection
-        } catch (error) {
+        } catch {
           // Silently ignore feature detection errors
         }
       }

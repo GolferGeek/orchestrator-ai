@@ -40,8 +40,8 @@ export function useDeliverables() {
    */
   async function processAgentResponse(
     response: Record<string, unknown>,
-    conversationId: string,
-    messageId?: string
+    _conversationId: string,
+    _messageId?: string
   ): Promise<void> {
     if (!response || typeof response !== 'object') {
       return;
@@ -152,7 +152,7 @@ export function useDeliverables() {
   /**
    * Search deliverables
    */
-  async function search(query: string, filters?: DeliverableFilters): Promise<void> {
+  async function search(_query: string, _filters?: DeliverableFilters): Promise<void> {
     // Search functionality to be implemented
   }
   /**
@@ -219,8 +219,8 @@ export function useDeliverables() {
           hideDeliverable();
         }
         return true;
-      } catch (error) {
-
+      } catch {
+        // Error loading deliverable
         return false;
       }
     }

@@ -11,7 +11,7 @@ import {
   Tooltip,
   Legend,
   Filler,
-  type ChartConfiguration,
+  // type ChartConfiguration,
   type ChartType,
   type ChartData,
   type ChartOptions
