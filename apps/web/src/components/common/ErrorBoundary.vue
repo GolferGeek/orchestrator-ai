@@ -123,14 +123,14 @@ interface ErrorBoundaryProps {
   showDetails?: boolean;
   showNavigateHome?: boolean;
   maxRetries?: number;
-  onError?: (error: Error, errorInfo: any) => void;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
   onRetry?: () => void;
   onClear?: () => void;
 }
 
 interface ErrorInfo {
   componentName?: string;
-  propsData?: any;
+  propsData?: Record<string, unknown>;
   lifecycle?: string;
   timestamp: number;
   userAgent: string;

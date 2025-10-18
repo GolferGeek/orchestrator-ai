@@ -659,8 +659,8 @@ const isUpdating = ref(false);
 const showModelConfigModal = ref(false);
 const envOverrideActive = ref(false);
 const mode = ref<'flat' | 'dual'>('flat');
-const flat = ref<{ provider: string; model: string; parameters?: Record<string, any> }>({ provider: '', model: '', parameters: {} });
-const dual = ref<{ default: { provider: string; model: string; parameters?: Record<string, any> }; localOnly: { provider: string; model: string; parameters?: Record<string, any> } }>({
+const flat = ref<{ provider: string; model: string; parameters?: Record<string, unknown> }>({ provider: '', model: '', parameters: {} });
+const dual = ref<{ default: { provider: string; model: string; parameters?: Record<string, unknown> }; localOnly: { provider: string; model: string; parameters?: Record<string, unknown> } }>({
   default: { provider: '', model: '', parameters: {} },
   localOnly: { provider: '', model: '', parameters: {} },
 });
@@ -725,7 +725,7 @@ async function loadGlobalModelConfig() {
 const flatModelOptions = computed(() => {
   const list = providers.value.find(p => p.name === flat.value.provider)?.models || [];
   if (flat.value.model && !list.some(m => m.model_name === flat.value.model)) {
-    return [...list, { id: 'custom', model_name: flat.value.model, display_name: flat.value.model } as any];
+    return [...list, { id: 'custom', model_name: flat.value.model, display_name: flat.value.model } as Record<string, unknown>];
   }
   return list;
 });
@@ -733,7 +733,7 @@ const flatModelOptions = computed(() => {
 const dualDefaultModelOptions = computed(() => {
   const list = providers.value.find(p => p.name === dual.value.default.provider)?.models || [];
   if (dual.value.default.model && !list.some(m => m.model_name === dual.value.default.model)) {
-    return [...list, { id: 'custom', model_name: dual.value.default.model, display_name: dual.value.default.model } as any];
+    return [...list, { id: 'custom', model_name: dual.value.default.model, display_name: dual.value.default.model } as Record<string, unknown>];
   }
   return list;
 });
@@ -741,7 +741,7 @@ const dualDefaultModelOptions = computed(() => {
 const dualLocalModelOptions = computed(() => {
   const list = providers.value.find(p => p.name === dual.value.localOnly.provider)?.models || [];
   if (dual.value.localOnly.model && !list.some(m => m.model_name === dual.value.localOnly.model)) {
-    return [...list, { id: 'custom', model_name: dual.value.localOnly.model, display_name: dual.value.localOnly.model } as any];
+    return [...list, { id: 'custom', model_name: dual.value.localOnly.model, display_name: dual.value.localOnly.model } as Record<string, unknown>];
   }
   return list;
 });
@@ -759,7 +759,7 @@ async function saveModelConfig() {
       await toast.present();
       return;
     }
-    let payload: any;
+    let payload: Record<string, unknown>;
     if (mode.value === 'flat') {
       try { flat.value.parameters = flatParamsJson.value ? JSON.parse(flatParamsJson.value) : {}; } catch { flat.value.parameters = {}; }
       flat.value.parameters.temperature = flatTemp.value;
@@ -862,7 +862,7 @@ const navigateTo = (path: string) => {
   router.push(path);
 };
 
-const updatePrivacySetting = async (setting: string, value: any) => {
+  const updatePrivacySetting = async (setting: string, value: unknown) => {
   if (isUpdating.value) return;
   
   isUpdating.value = true;
@@ -887,7 +887,7 @@ const updatePrivacySetting = async (setting: string, value: any) => {
     console.error('Error updating privacy setting:', error);
     
     // Revert the change
-    (privacySettings.value as any)[setting] = !(privacySettings.value as any)[setting];
+    (privacySettings.value as Record<string, unknown>)[setting] = !(privacySettings.value as Record<string, unknown>)[setting];
     
     // Show error toast
     const toast = await toastController.create({
@@ -902,7 +902,7 @@ const updatePrivacySetting = async (setting: string, value: any) => {
   }
 };
 
-const updateAuditSetting = async (setting: string, value: any) => {
+  const updateAuditSetting = async (setting: string, value: unknown) => {
   if (isUpdating.value) return;
   
   isUpdating.value = true;
@@ -927,7 +927,7 @@ const updateAuditSetting = async (setting: string, value: any) => {
     console.error('Error updating audit setting:', error);
     
     // Revert the change
-    (auditSettings.value as any)[setting] = !(auditSettings.value as any)[setting];
+    (auditSettings.value as Record<string, unknown>)[setting] = !(auditSettings.value as Record<string, unknown>)[setting];
     
     // Show error toast
     const toast = await toastController.create({

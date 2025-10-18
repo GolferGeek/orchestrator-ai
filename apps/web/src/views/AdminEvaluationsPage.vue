@@ -150,11 +150,11 @@ const showExportModal = ref(false);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 // Data from store
-const evaluations = ref<any[]>([]);
-const pagination = ref<any>({});
-const analytics = ref<any>(null);
-const workflowAnalytics = ref<any>(null);
-const constraintAnalytics = ref<any>(null);
+const evaluations = ref<Record<string, unknown>[]>([]);
+const pagination = ref<Record<string, unknown>>({});
+const analytics = ref<Record<string, unknown> | null>(null);
+const workflowAnalytics = ref<Record<string, unknown> | null>(null);
+const constraintAnalytics = ref<Record<string, unknown> | null>(null);
 // Filters
 const filters = reactive({
   page: 1,
@@ -230,12 +230,12 @@ function setupFocusRefresh() {
     window.removeEventListener('focus', handleFocus);
   };
   // Store cleanup function for onUnmounted
-  (window as any).__adminEvaluationsCleanup = cleanupFunctions;
+  (window as Record<string, unknown>).__adminEvaluationsCleanup = cleanupFunctions;
 }
 function cleanupFocusRefresh() {
-  if ((window as any).__adminEvaluationsCleanup) {
-    (window as any).__adminEvaluationsCleanup();
-    delete (window as any).__adminEvaluationsCleanup;
+  if ((window as Record<string, unknown>).__adminEvaluationsCleanup) {
+    ((window as Record<string, unknown>).__adminEvaluationsCleanup as () => void)();
+    delete (window as Record<string, unknown>).__adminEvaluationsCleanup;
   }
 }
 async function refreshData() {
@@ -258,8 +258,8 @@ async function refreshData() {
         break;
     }
     lastRefreshTime.value = new Date();
-  } catch (err: any) {
-    error.value = err.message || 'Failed to load admin data';
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Failed to load admin data';
 
   } finally {
     isLoading.value = false;
@@ -320,7 +320,7 @@ async function onTabChange(event: CustomEvent) {
   activeTab.value = event.detail.value;
   await refreshData();
 }
-function onFilterChange(newFilters: any) {
+function onFilterChange(newFilters: Record<string, unknown>) {
   Object.assign(filters, newFilters);
   loadEvaluationsData();
 }
@@ -328,13 +328,13 @@ function onPageChange(page: number) {
   filters.page = page;
   loadEvaluationsData();
 }
-async function onExport(exportOptions: any) {
+async function onExport(exportOptions: Record<string, unknown>) {
   try {
     isLoading.value = true;
     await adminStore.exportEvaluations(exportOptions);
     showExportModal.value = false;
-  } catch (err: any) {
-    error.value = err.message || 'Export failed';
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Export failed';
   } finally {
     isLoading.value = false;
   }

@@ -64,14 +64,14 @@ const currentVideo = ref<VideoPlayerVideo | null>(null);
 
 // Emit events to parent (keeping for other sections that still use modal)
 const emit = defineEmits<{
-  openVideoModal: [video: any];
+  openVideoModal: [video: VideoPlayerVideo];
 }>();
 
 function selectVideo(video: VideoPlayerVideo) {
   currentVideo.value = video;
 }
 
-function openVideoModal(video: any) {
+function openVideoModal(video: VideoPlayerVideo) {
   emit('openVideoModal', video);
 }
 

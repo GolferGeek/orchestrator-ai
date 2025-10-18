@@ -88,7 +88,7 @@ const errorStore = useErrorStore();
 // Component state
 const isVisible = ref(false);
 const showCriticalModal = ref(false);
-const currentNotificationError = ref<any>(null);
+const currentNotificationError = ref<Record<string, unknown> | null>(null);
 
 // Computed properties
 const errorMessage = computed(() => {
@@ -222,7 +222,7 @@ watch(
 );
 
 // Methods
-const showErrorNotification = (error: any) => {
+const showErrorNotification = (error: Record<string, unknown>) => {
   // Don't show notifications for resolved errors
   if (error.resolved) return;
   
@@ -235,7 +235,7 @@ const showErrorNotification = (error: any) => {
   console.log('📢 Showing error notification:', error.id);
 };
 
-const showCriticalError = (error: any) => {
+const showCriticalError = (error: Record<string, unknown>) => {
   errorStore.showGlobalError(error);
   console.log('🚨 Showing critical error modal:', error.id);
 };

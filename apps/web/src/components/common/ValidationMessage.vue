@@ -89,7 +89,7 @@ interface Props {
   type?: 'error' | 'warning' | 'success' | 'validating';
   message?: string;
   suggestion?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   
   // Behavior options
   showIcon?: boolean;
