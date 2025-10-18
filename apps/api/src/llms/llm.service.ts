@@ -37,7 +37,7 @@ import {
   SystemOperationType,
   UserLLMPreferences,
 } from '@/llms/types/llm-evaluation';
-import type { PIIProcessingMetadata } from './types/pii-metadata.types';
+import type { PIIProcessingMetadata, PIIMatch } from './types/pii-metadata.types';
 import { mapProviderFromDb, mapModelFromDb } from '@/utils/case-converter';
 import { ModelConfigurationService } from './config/model-configuration.service';
 import type { EnvironmentName } from './config/model-configuration.service';
@@ -46,6 +46,7 @@ import {
   LLMError,
   LLMErrorMapper,
   LLMErrorMonitor,
+  LLMErrorType,
 } from './services/llm-error-handling';
 
 type GenerateResponseOptions = LLMRequestOptions & {
@@ -104,7 +105,7 @@ export class LLMService {
     }
 
     // Deprecated: SYSTEM_* .env model defaults replaced by ModelConfigurationService
-    this.systemLLMConfigs = {} as any; // No action needed
+    this.systemLLMConfigs = {} as SystemLLMConfigs; // No action needed
 
     // Initialize the LLM service factory
     this.llmServiceFactory = this.llmServiceFactoryInstance;
@@ -206,9 +207,9 @@ export class LLMService {
                 shouldPseudonymize: true,
                 targetMatches: [
                   ...((enhancedPiiMetadata.pseudonymInstructions
-                    ?.targetMatches as any[]) || []),
-                  ...(dictionaryMatches as any[]),
-                ],
+                    ?.targetMatches as PIIMatch[]) || []),
+                  ...(dictionaryMatches as PIIMatch[]),
+                ] as PIIMatch[],
                 requestId:
                   enhancedPiiMetadata.pseudonymInstructions?.requestId ||
                   requestId,
@@ -220,8 +221,8 @@ export class LLMService {
                 applied: true,
                 processedMatches: [
                   ...((enhancedPiiMetadata.pseudonymResults
-                    ?.processedMatches as any[]) || []),
-                  ...(dictionaryMatches as any[]),
+                    ?.processedMatches as PIIMatch[]) || []),
+                  ...(dictionaryMatches as PIIMatch[]),
                 ],
                 mappingsCount:
                   (enhancedPiiMetadata.pseudonymResults?.mappingsCount || 0) +
@@ -251,7 +252,7 @@ export class LLMService {
             );
 
             enhancedPiiMetadata = {
-              ...piiPolicyResult.metadata,
+              ...(piiPolicyResult.metadata as Record<string, unknown>),
               // For UI consumption
               pseudonymsApplied: pseudonymResult.mappings.map((m) => ({
                 original: m.originalValue,
@@ -264,13 +265,13 @@ export class LLMService {
               // Standardized fields used across the app
               pseudonymInstructions: {
                 shouldPseudonymize: pseudonymResult.mappings.length > 0,
-                targetMatches: dictionaryMatches as any,
+                targetMatches: dictionaryMatches as unknown,
                 requestId,
                 context: 'llm-boundary',
               },
               pseudonymResults: {
                 applied: pseudonymResult.mappings.length > 0,
-                processedMatches: dictionaryMatches as any,
+                processedMatches: dictionaryMatches as unknown,
                 mappingsCount: pseudonymResult.mappings.length,
                 processingTimeMs: pseudonymResult.processingTimeMs,
               },
@@ -285,7 +286,7 @@ export class LLMService {
                 pseudonymResult.processingTimeMs,
               sanitizationLevel:
                 pseudonymResult.mappings.length > 0 ? 'standard' : 'none',
-            } as any;
+            } as Record<string, unknown>;
           }
 
           if (this.debugEnabled)
@@ -299,7 +300,7 @@ export class LLMService {
 
         // Use the new unified LLM service factory approach
         const config: LLMServiceConfig = {
-          provider: options.providerName as any,
+          provider: options.providerName as string,
           model: options.modelName,
           temperature: options.temperature,
           maxTokens: options.maxTokens,
@@ -321,7 +322,7 @@ export class LLMService {
             // Pass enhanced PII metadata and mappings
             piiMetadata: enhancedPiiMetadata,
             dictionaryMappings: dictionaryMappings,
-            routingDecision: (options as any)?.routingDecision,
+            routingDecision: (options as Record<string, unknown>)?.routingDecision as RoutingDecision | undefined,
           },
         };
 
@@ -416,7 +417,10 @@ export class LLMService {
 
       // Step 1: Dictionary-based pseudonymization for external providers only
       let sanitizedUserMessage = userMessage;
-      let sanitizationContext: any = null;
+      let sanitizationContext: {
+        mappings: DictionaryPseudonymMapping[];
+        processingTimeMs: number;
+      } | null = null;
 
       if (!isLocalProvider) {
         const pseudonymResult =
@@ -433,7 +437,7 @@ export class LLMService {
           `🎯 [DICTIONARY-PSEUDONYMIZER] Simple path pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`,
         );
         if (pseudonymResult.mappings.length > 0) {
-          pseudonymResult.mappings.forEach((mapping: any) => {
+          pseudonymResult.mappings.forEach((mapping) => {
             this.logger.log(
               `🎯 [DICTIONARY-PSEUDONYMIZER] "${mapping.originalValue}" → "${mapping.pseudonym}"`,
             );
@@ -454,12 +458,12 @@ export class LLMService {
         const llm =
           options?.temperature || options?.maxTokens || options?.provider
             ? this.createCustomLangGraphLLM({
-                provider: validProvider as any,
+                provider: validProvider as 'openai' | 'anthropic' | 'ollama' | 'google',
                 model: options?.modelName,
                 temperature: options?.temperature,
                 maxTokens: options?.maxTokens,
               })
-            : this.getLangGraphLLM(validProvider as any);
+            : this.getLangGraphLLM(validProvider as 'openai' | 'anthropic' | 'ollama' | 'google');
 
         // Format messages for the specific provider - LLM service controls the format
         const messages = this.formatMessagesForProvider(
@@ -482,11 +486,7 @@ export class LLMService {
           'I apologize, but I was unable to generate a response.';
 
         // Step 2: Reverse pseudonyms in the response
-        if (
-          sanitizationContext &&
-          sanitizationContext.mappings &&
-          sanitizationContext.mappings.length > 0
-        ) {
+        if (sanitizationContext?.mappings?.length) {
           const reversalResult =
             await this.dictionaryPseudonymizerService.reversePseudonyms(
               content,
@@ -498,10 +498,7 @@ export class LLMService {
             `🔄 [DICTIONARY-PSEUDONYMIZER] Simple path reversal completed: ${reversalResult.reversalCount} reversals in ${reversalResult.processingTimeMs}ms`,
           );
 
-          if (
-            reversalResult.reversalCount === 0 &&
-            sanitizationContext.mappings.length > 0
-          ) {
+          if (reversalResult.reversalCount === 0) {
             this.logger.warn(
               `🔄 [DICTIONARY-PSEUDONYMIZER] Expected reversals but none found - LLM may not have used the pseudonyms`,
             );
@@ -514,24 +511,27 @@ export class LLMService {
         if (options?.includeMetadata) {
           const endTime = Date.now();
 
-          const pseudonymizationMetadata = sanitizationContext
-            ? {
-                pseudonymizationApplied:
-                  sanitizationContext.mappings.length > 0,
-                pseudonymCount: sanitizationContext.mappings.length,
-                processingTimeMs: sanitizationContext.processingTimeMs,
-                mappings: sanitizationContext.mappings.map((m: any) => ({
-                  type: m.dataType,
-                  originalLength: m.originalValue.length,
-                  pseudonymLength: m.pseudonym.length,
-                })),
-              }
-            : {
-                pseudonymizationApplied: false,
-                pseudonymCount: 0,
-                processingTimeMs: 0,
-                mappings: [],
-              };
+          let pseudonymizationMetadata;
+          if (sanitizationContext?.mappings && sanitizationContext.mappings.length > 0) {
+            const ctx = sanitizationContext;
+            pseudonymizationMetadata = {
+              pseudonymizationApplied: true,
+              pseudonymCount: ctx.mappings.length,
+              processingTimeMs: ctx.processingTimeMs,
+              mappings: ctx.mappings.map((m) => ({
+                type: m.dataType,
+                originalLength: m.originalValue.length,
+                pseudonymLength: m.pseudonym.length,
+              })),
+            };
+          } else {
+            pseudonymizationMetadata = {
+              pseudonymizationApplied: false,
+              pseudonymCount: 0,
+              processingTimeMs: 0,
+              mappings: [],
+            };
+          }
 
           const metadata: ResponseMetadata = {
             provider: options?.providerName ?? 'unknown',
@@ -642,7 +642,7 @@ export class LLMService {
       // Skip PII processing for Ollama (local models don't need sanitization)
       let enhancedPiiMetadata = params.options?.piiMetadata;
       let processedUserMessage = params.userMessage;
-      let dictionaryMappings: any[] = [];
+      let dictionaryMappings: DictionaryPseudonymMapping[] = [];
 
       // Only process PII for non-Ollama providers
       if (params.provider.toLowerCase() === 'ollama') {
@@ -684,7 +684,7 @@ export class LLMService {
                 providerName: params.provider,
               },
             );
-            enhancedPiiMetadata = piiPolicyResult.metadata as any;
+            enhancedPiiMetadata = piiPolicyResult.metadata as unknown as Record<string, unknown>;
           }
 
           if (!enhancedPiiMetadata) {
@@ -710,9 +710,9 @@ export class LLMService {
               shouldPseudonymize: true,
               targetMatches: [
                 ...((enhancedPiiMetadata?.pseudonymInstructions
-                  ?.targetMatches as any[]) || []),
-                ...(dictionaryMatches as any[]),
-              ],
+                  ?.targetMatches as PIIMatch[]) || []),
+                ...(dictionaryMatches as PIIMatch[]),
+              ] as PIIMatch[],
               requestId:
                 enhancedPiiMetadata?.pseudonymInstructions?.requestId ||
                 requestId,
@@ -724,8 +724,8 @@ export class LLMService {
               applied: true,
               processedMatches: [
                 ...((enhancedPiiMetadata?.pseudonymResults
-                  ?.processedMatches as any[]) || []),
-                ...(dictionaryMatches as any[]),
+                  ?.processedMatches as PIIMatch[]) || []),
+                ...(dictionaryMatches as PIIMatch[]),
               ],
               mappingsCount:
                 (enhancedPiiMetadata?.pseudonymResults?.mappingsCount || 0) +
@@ -834,7 +834,7 @@ export class LLMService {
       } catch {
         const fallback = new LLMError(
           `Unified LLM service error: ${error instanceof Error ? error.message : String(error)}`,
-          'unknown' as any,
+          LLMErrorType.UNKNOWN,
           params.provider,
           { model: params.model, originalError: error },
         );
@@ -863,8 +863,8 @@ export class LLMService {
     routingDecision: import('./types/pii-metadata.types').RoutingDecisionWithPII,
     systemPrompt: string,
     userMessage: string,
-    headers: any,
-    options: any,
+    headers: Record<string, unknown>,
+    options: Record<string, unknown>,
   ): Promise<{
     content: string;
     inputTokens?: number;
@@ -910,7 +910,7 @@ export class LLMService {
       }));
 
       piiMetadata.pseudonymInstructions.targetMatches.push(
-        ...(dictionaryMatches as any[]),
+        ...(dictionaryMatches as PIIMatch[]),
       );
     }
 
@@ -923,8 +923,8 @@ export class LLMService {
         prompt: userMessage,
         system: systemPrompt,
         options: {
-          temperature: options.temperature,
-          max_tokens: options.maxTokens,
+          temperature: options.temperature as number | undefined,
+          max_tokens: options.maxTokens as number | undefined,
         },
       });
 
@@ -989,10 +989,10 @@ export class LLMService {
 
     // Use LangChain for external providers
     const llm = this.createCustomLangGraphLLM({
-      provider: routingDecision.provider as any,
+      provider: routingDecision.provider as 'openai' | 'anthropic' | 'ollama' | 'google',
       model: routingDecision.model,
-      temperature: options.temperature,
-      maxTokens: options.maxTokens,
+      temperature: options.temperature as number | undefined,
+      maxTokens: options.maxTokens as number | undefined,
     });
 
     // Format messages for the specific provider - LLM service controls the format
@@ -1055,9 +1055,9 @@ export class LLMService {
       ),
       pseudonymsUsed: pseudonymCount,
       pseudonymTypes:
-        piiMetadata?.pseudonymInstructions?.targetMatches?.map(
-          (m: any) => m.dataType,
-        ) || [],
+        (piiMetadata?.pseudonymInstructions?.targetMatches?.map(
+          (m: unknown) => (m as Record<string, unknown>).dataType as string,
+        ) || []) as string[],
       redactionsApplied: 0, // Redaction is separate from pseudonymization in new architecture
       redactionTypes: [],
 
@@ -1074,8 +1074,8 @@ export class LLMService {
       reversalContextSize: piiMetadata ? JSON.stringify(piiMetadata).length : 0,
 
       // Data classification
-      dataClassification: options.dataClassification || 'public',
-      policyProfile: options.policyProfile || 'standard',
+      dataClassification: (options.dataClassification as 'public' | 'internal' | 'confidential' | 'restricted' | undefined) || 'public',
+      policyProfile: (options.policyProfile as string | undefined) || 'standard',
       sovereignMode: routingDecision.isLocal || false,
 
       // NEW ARCHITECTURE: Compliance flags based on actual PII processing
@@ -1104,14 +1104,14 @@ export class LLMService {
    * Get default headers for requests
    */
   private getDefaultHeaders(
-    options: any,
-    providerConfig: any,
+    options: Record<string, unknown>,
+    providerConfig: Record<string, unknown>,
   ): Record<string, string> {
     return {
-      'X-Policy-Profile': options.policyProfile || 'standard',
-      'X-Data-Class': options.dataClass || 'public',
-      'X-Sovereign-Mode': options.sovereignMode || 'false',
-      ...providerConfig.headers,
+      'X-Policy-Profile': (options.policyProfile as string | undefined) || 'standard',
+      'X-Data-Class': (options.dataClass as string | undefined) || 'public',
+      'X-Sovereign-Mode': (options.sovereignMode as string | undefined) || 'false',
+      ...(providerConfig.headers as Record<string, string> | undefined || {}),
     };
   }
 
@@ -1225,7 +1225,7 @@ export class LLMService {
 
       // Create LLM instance with environment default configuration
       const llm = this.createCustomLangGraphLLM({
-        provider: selectedDefault.provider as any,
+        provider: selectedDefault.provider as 'openai' | 'anthropic' | 'ollama' | 'google',
         model: selectedDefault.model,
         temperature: selectedDefault.parameters?.temperature,
         maxTokens: selectedDefault.parameters?.maxTokens,
@@ -1750,7 +1750,7 @@ export class LLMService {
     const providerApiKey = this.getApiKeyForProvider(mappedProvider.name);
 
     return this.createCustomLangGraphLLM({
-      provider: providerType as any,
+      provider: providerType as 'openai' | 'anthropic' | 'ollama' | 'google',
       model: model.name,
       temperature: overrides?.temperature,
       maxTokens: overrides?.maxTokens || model.maxTokens,
@@ -1861,8 +1861,8 @@ export class LLMService {
    * Extract sanitization metadata in the format expected by the frontend
    */
   private async extractSanitizationMetadataForFrontend(
-    sanitizationMetrics: any,
-  ): Promise<any> {
+    sanitizationMetrics: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     if (
       !sanitizationMetrics ||
       sanitizationMetrics.sanitizationLevel === 'none'
@@ -1877,14 +1877,14 @@ export class LLMService {
 
     // Get PII severity levels from database based on detected types
     const piiSeverityLevels = await this.getPiiSeverityLevels(
-      sanitizationMetrics.piiTypes,
+      (sanitizationMetrics.piiTypes as string[] | undefined) || [],
     );
 
     return {
       status: sanitizationMetrics.piiDetected ? 'completed' : 'none',
       piiDetectionCount:
-        sanitizationMetrics.pseudonymsUsed +
-        sanitizationMetrics.redactionsApplied,
+        (sanitizationMetrics.pseudonymsUsed as number | undefined || 0) +
+        (sanitizationMetrics.redactionsApplied as number | undefined || 0),
       piiTypes: sanitizationMetrics.piiTypes || [],
       piiSeverityLevels: piiSeverityLevels,
       sanitizationLevel: sanitizationMetrics.sanitizationLevel,
