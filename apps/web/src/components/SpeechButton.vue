@@ -29,11 +29,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, onMounted, watch } from 'vue';
+import { ref, computed, onUnmounted, onMounted } from 'vue';
 import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { micOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
-import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 
@@ -52,7 +51,6 @@ const emit = defineEmits<{
 }>();
 
 // Stores
-const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 
 // State
