@@ -345,7 +345,7 @@ import {
   chevronForwardOutline,
   playOutline
 } from 'ionicons/icons';
-import { useSanitizationStore, type SanitizationPhaseData } from '@/stores/sanitizationStore';
+import { useSanitizationStore } from '@/stores/sanitizationStore';
 
 // Props
 interface Props {

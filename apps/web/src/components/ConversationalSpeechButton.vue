@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineEmits, defineProps, onUnmounted, onMounted, watch } from 'vue';
+import { ref, computed, defineEmits, defineProps, onUnmounted, onMounted } from 'vue';
 import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { radioButtonOnOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';

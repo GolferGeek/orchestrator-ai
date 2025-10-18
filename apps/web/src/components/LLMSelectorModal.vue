@@ -142,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -180,8 +180,6 @@ const props = withDefaults(defineProps<Props>(), {
   title: '',
   description: '',
 });
-
-const emit = defineEmits<Emits>();
 
 // Stores
 const llmStore = useLLMPreferencesStore();

@@ -262,7 +262,7 @@ Examples to try:
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   IonGrid,
   IonRow,
