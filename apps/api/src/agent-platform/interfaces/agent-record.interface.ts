@@ -1,3 +1,5 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+
 export interface AgentRecord {
   id: string;
   organization_slug: string | null;
@@ -10,12 +12,12 @@ export interface AgentRecord {
   status: string | null;
   yaml: string;
   function_code: string | null;
-  agent_card: Record<string, any> | null;
-  context: Record<string, any> | null;
-  config: Record<string, any> | null;
-  plan_structure: Record<string, any> | null;
-  deliverable_structure: Record<string, any> | null;
-  io_schema: Record<string, any> | null;
+  agent_card: JsonObject | null;
+  context: JsonObject | null;
+  config: JsonObject | null;
+  plan_structure: JsonObject | null;
+  deliverable_structure: JsonObject | null;
+  io_schema: JsonObject | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,8 +33,8 @@ export interface AgentUpsertInput {
   status?: string | null;
   yaml: string;
   function_code?: string | null;
-  context?: Record<string, any> | null;
-  plan_structure?: string | Record<string, any> | null;
-  deliverable_structure?: string | Record<string, any> | null;
-  io_schema?: Record<string, any> | null;
+  context?: JsonObject | null;
+  plan_structure?: string | JsonObject | null;
+  deliverable_structure?: string | JsonObject | null;
+  io_schema?: JsonObject | null;
 }

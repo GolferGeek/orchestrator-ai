@@ -1,3 +1,6 @@
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+import type { OrchestrationDefinitionSchema } from '../types/orchestration-definition.types';
+
 export interface PromptParameterDefinition {
   key: string;
   label?: string;
@@ -5,7 +8,8 @@ export interface PromptParameterDefinition {
   required?: boolean;
   type?: string;
   enumValues?: string[];
-  defaultValue?: any;
+  defaultValue?: JsonValue;
+  metadata?: JsonObject;
 }
 
 export interface PromptTemplateDefinition {
@@ -14,6 +18,7 @@ export interface PromptTemplateDefinition {
   template: string;
   modelProfile?: string;
   parameters?: PromptParameterDefinition[];
+  metadata?: JsonObject;
 }
 
 export interface AgentOrchestrationRecord {
@@ -24,7 +29,7 @@ export interface AgentOrchestrationRecord {
   display_name: string;
   description: string | null;
   status: string;
-  orchestration_json: Record<string, any>;
+  orchestration_json: OrchestrationDefinitionSchema;
   prompt_templates: PromptTemplateDefinition[];
   tags: string[];
   version: string | null;
@@ -41,7 +46,7 @@ export interface AgentOrchestrationUpsertInput {
   display_name: string;
   description?: string | null;
   status?: string;
-  orchestration_json: Record<string, any>;
+  orchestration_json: OrchestrationDefinitionSchema;
   prompt_templates?: PromptTemplateDefinition[];
   tags?: string[];
   version?: string | null;

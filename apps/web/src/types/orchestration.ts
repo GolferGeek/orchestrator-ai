@@ -3,7 +3,7 @@
  * Domain-specific types for orchestration workflow management
  */
 
-import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import type { AgentTaskMode, JsonValue } from '@orchestrator-ai/transport-types';
 
 // =====================================
 // ORCHESTRATION METADATA
@@ -47,7 +47,7 @@ export interface OrchestrationMetadata {
   };
 
   /** Custom metadata fields */
-  custom?: Record<string, string | number | boolean>;
+  custom?: Record<string, JsonValue>;
 }
 
 // =====================================
@@ -64,8 +64,8 @@ export interface OrchestrationStepInput {
 
   /** Structured data from previous steps */
   context?: {
-    previousStepOutput?: unknown;
-    sharedData?: Record<string, unknown>;
+    previousStepOutput?: JsonValue;
+    sharedData?: Record<string, JsonValue>;
   };
 
   /** Files or resources to process */
@@ -87,7 +87,7 @@ export interface OrchestrationStepInput {
   };
 
   /** Step-specific parameters */
-  parameters?: Record<string, unknown>;
+  parameters?: Record<string, JsonValue>;
 }
 
 /**
@@ -104,7 +104,7 @@ export interface OrchestrationStepOutput {
     text?: string;
 
     /** Structured data */
-    data?: Record<string, unknown>;
+    data?: Record<string, JsonValue>;
 
     /** Generated artifacts */
     artifacts?: Array<{
@@ -141,7 +141,7 @@ export interface OrchestrationStepOutput {
   error?: {
     code: string;
     message: string;
-    details?: unknown;
+    details?: JsonValue;
     recoverable: boolean;
   };
 }

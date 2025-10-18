@@ -1,3 +1,5 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+
 export interface ConversationPlanRecord {
   id: string;
   conversation_id: string;
@@ -6,7 +8,7 @@ export interface ConversationPlanRecord {
   version: number;
   status: string;
   summary: string | null;
-  plan_json: Record<string, any>;
+  plan_json: JsonObject;
   created_by: string | null;
   approved_by: string | null;
   created_at: string;
@@ -18,13 +20,13 @@ export interface ConversationPlanDraftInput {
   organization_slug: string | null;
   agent_slug: string;
   summary?: string | null;
-  plan_json: Record<string, any>;
+  plan_json: JsonObject;
   created_by?: string | null;
 }
 
 export interface ConversationPlanStatusUpdate {
   status: string;
   summary?: string | null;
-  plan_json?: Record<string, any>;
+  plan_json?: JsonObject;
   approved_by?: string | null;
 }

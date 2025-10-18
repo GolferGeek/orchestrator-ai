@@ -1,18 +1,36 @@
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { BaseApiClient } from './baseApiClient';
 import { ApiEndpoint } from '../../types/api';
 import { TaskResponse, AgentInfo } from '../../types/chat';
 
-const extractLLMContent = (payload: unknown, fallback = 'Task completed'): string => {
-  if (!payload || typeof payload !== 'object') {
+type ConversationHistoryItem = {
+  role: string;
+  content: string;
+  metadata?: JsonObject;
+};
+
+type OrchestratorTaskResult = JsonObject & {
+  success?: boolean;
+  metadata?: JsonObject;
+  content?: string;
+  response?: string;
+  message?: string;
+  result?: string;
+};
+
+type LLMContentCarrier = {
+  content?: string;
+  response?: string;
+  message?: string;
+  result?: string;
+};
+
+const extractLLMContent = (payload: LLMContentCarrier | null | undefined, fallback = 'Task completed'): string => {
+  if (!payload) {
     return fallback;
   }
 
-  const candidates = [
-    (payload as any)?.content,
-    (payload as any)?.response,
-    (payload as any)?.message,
-    (payload as any)?.result,
-  ];
+  const candidates = [payload.content, payload.response, payload.message, payload.result];
 
   for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate.trim().length > 0) {
@@ -22,13 +40,14 @@ const extractLLMContent = (payload: unknown, fallback = 'Task completed'): strin
 
   return fallback;
 };
-interface JsonRpcResponse {
+
+interface JsonRpcResponse<Result = JsonValue> {
   jsonrpc: '2.0';
-  result?: any;
+  result?: Result;
   error?: {
     code: number;
     message: string;
-    data?: any;
+    data?: JsonValue;
   };
   id: string | number | null;
 }
@@ -39,7 +58,7 @@ export class ApiClient extends BaseApiClient {
   async postTaskToOrchestrator(
     userInputText: string, 
     sessionId?: string | null,
-    conversationHistory?: Array<{role: string, content: string, metadata?: any}> 
+    conversationHistory?: ConversationHistoryItem[] 
   ): Promise<TaskResponse> {
     // Get the current auth token from localStorage to pass to orchestrator
     const authToken = localStorage.getItem('authToken');
@@ -71,7 +90,7 @@ export class ApiClient extends BaseApiClient {
       },
       id: Date.now() // Use timestamp as unique ID
     };
-    const response = await this.axiosInstance.post<JsonRpcResponse>(
+    const response = await this.axiosInstance.post<JsonRpcResponse<OrchestratorTaskResult>>(
       '/agents/orchestrator/orchestrator/tasks',
       requestPayload
     );

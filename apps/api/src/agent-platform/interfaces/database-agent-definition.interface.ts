@@ -1,4 +1,7 @@
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { AgentRecord } from './agent-record.interface';
+
+type JsonNullable<T extends JsonValue = JsonValue> = T | null;
 
 export interface AgentMetadataDefinition {
   name?: string;
@@ -9,7 +12,7 @@ export interface AgentMetadataDefinition {
   type?: string | null;
   tags: string[];
   provider?: string | null;
-  raw?: Record<string, any> | null;
+  raw?: JsonNullable<JsonObject>;
 }
 
 export interface AgentHierarchyDefinition {
@@ -30,7 +33,7 @@ export interface AgentSkillDefinition {
   outputModes?: string[];
   skillOrder?: number;
   isPrimary?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 export interface AgentCommunicationDefinition {
@@ -54,27 +57,27 @@ export interface AgentTransportApiDefinition {
   method: string;
   timeout?: number;
   headers?: Record<string, string>;
-  authentication?: any;
-  requestTransform?: Record<string, any>;
-  responseTransform?: Record<string, any>;
+  authentication?: JsonNullable<JsonObject>;
+  requestTransform?: JsonNullable<JsonObject>;
+  responseTransform?: JsonNullable<JsonObject>;
 }
 
 export interface AgentTransportExternalDefinition {
   endpoint: string;
   protocol?: string;
   timeout?: number;
-  authentication?: Record<string, any> | null;
-  retry?: Record<string, any> | null;
+  authentication?: JsonNullable<JsonObject>;
+  retry?: JsonNullable<JsonObject>;
   expectedCapabilities?: string[];
-  healthCheck?: Record<string, any> | null;
+  healthCheck?: JsonNullable<JsonObject>;
 }
 
 export interface AgentTransportDefinition {
   kind: 'api' | 'external' | 'function' | 'none';
   api?: AgentTransportApiDefinition;
   external?: AgentTransportExternalDefinition;
-  function?: Record<string, any>;
-  raw?: Record<string, any> | null;
+  function?: JsonObject;
+  raw?: JsonNullable<JsonObject>;
 }
 
 export interface AgentLLMDefinition {
@@ -83,7 +86,7 @@ export interface AgentLLMDefinition {
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
-  raw?: Record<string, any> | null;
+  raw?: JsonNullable<JsonObject>;
 }
 
 export interface AgentPromptDefinition {
@@ -91,19 +94,19 @@ export interface AgentPromptDefinition {
   plan?: string;
   build?: string;
   human?: string;
-  additional?: Record<string, any> | null;
+  additional?: JsonNullable<JsonObject>;
 }
 
 export interface AgentConfigPlanDefinition {
   format: 'json' | 'markdown' | 'yaml';
-  schema?: Record<string, any>;
+  schema?: JsonObject;
   template?: string;
 }
 
 export interface AgentConfigDeliverableDefinition {
   format: 'json' | 'markdown' | 'html';
   type: string;
-  schema?: Record<string, any>;
+  schema?: JsonObject;
   sections?: string[];
 }
 
@@ -125,12 +128,12 @@ export interface AgentRuntimeDefinition {
   transport?: AgentTransportDefinition;
   llm?: AgentLLMDefinition;
   prompts: AgentPromptDefinition;
-  context: Record<string, any> | null;
-  config: Record<string, any> | null;
-  agentCard?: Record<string, any> | null;
-  rawDescriptor?: Record<string, any> | null;
-  planStructure?: string | Record<string, any> | null;
-  deliverableStructure?: string | Record<string, any> | null;
-  ioSchema?: string | Record<string, any> | null;
+  context: JsonNullable<JsonObject>;
+  config: JsonNullable<JsonObject>;
+  agentCard?: JsonNullable<JsonObject>;
+  rawDescriptor?: JsonNullable<JsonObject>;
+  planStructure?: string | JsonNullable<JsonObject>;
+  deliverableStructure?: string | JsonNullable<JsonObject>;
+  ioSchema?: string | JsonNullable<JsonObject>;
   record: AgentRecord;
 }

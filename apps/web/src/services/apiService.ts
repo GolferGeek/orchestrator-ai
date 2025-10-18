@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import axiosRetry from 'axios-retry';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
 import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
@@ -7,17 +8,30 @@ import { useApiSanitization } from '@/composables/useApiSanitization';
 import { useErrorStore } from '@/stores/errorStore';
 import { trackAPI } from '../utils/performanceMonitor';
 
-const extractLLMContent = (payload: unknown, fallback = 'Task completed'): string => {
-  if (!payload || typeof payload !== 'object') {
+type ConversationHistoryItem = {
+  role: string;
+  content: string;
+  metadata?: JsonObject;
+};
+
+type OrchestratorTaskResult = JsonObject & LLMContentCarrier & {
+  success?: boolean;
+  metadata?: JsonObject;
+};
+
+type LLMContentCarrier = {
+  content?: string;
+  response?: string;
+  message?: string;
+  result?: string;
+};
+
+const extractLLMContent = (payload: LLMContentCarrier | null | undefined, fallback = 'Task completed'): string => {
+  if (!payload) {
     return fallback;
   }
 
-  const candidates = [
-    (payload as any)?.content,
-    (payload as any)?.response,
-    (payload as any)?.message,
-    (payload as any)?.result,
-  ];
+  const candidates = [payload.content, payload.response, payload.message, payload.result];
 
   for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate.trim().length > 0) {
@@ -47,13 +61,13 @@ validateSecureContext();
 // API endpoint configuration with HTTPS enforcement
 const API_BASE_URL = getSecureApiBaseUrl();
 
-interface JsonRpcResponse {
+interface JsonRpcResponse<Result = JsonValue> {
   jsonrpc: '2.0';
-  result?: any;
+  result?: Result;
   error?: {
     code: number;
     message: string;
-    data?: any;
+    data?: JsonValue;
   };
   id: string | number | null;
 }
@@ -417,7 +431,7 @@ class ApiService {
   async postTaskToOrchestrator(
     userInputText: string,
     sessionId?: string | null,
-    conversationHistory?: Array<{role: string, content: string, metadata?: any}>,
+    conversationHistory?: ConversationHistoryItem[],
     llmSelection?: LLMSelection
   ): Promise<TaskResponse> {
     // Get the current auth token from localStorage to pass to orchestrator
@@ -463,7 +477,7 @@ class ApiService {
     const sanitizedParams = this.apiSanitization.sanitizeOrchestratorRequest(paramsToSanitize);
     const sanitizedPayload = { ...requestPayload, params: sanitizedParams };
 
-    const response = await this.axiosInstance.post<JsonRpcResponse>(
+    const response = await this.axiosInstance.post<JsonRpcResponse<OrchestratorTaskResult>>(
       '/agents/orchestrator/orchestrator/tasks',
       sanitizedPayload,
       {
@@ -766,13 +780,13 @@ class ApiService {
   /**
    * Generic GET method
    */
-  async get(url: string, options?: { suppressErrors?: boolean }): Promise<any> {
+  async get<T = unknown>(url: string, options?: { suppressErrors?: boolean }): Promise<T> {
 
     
     try {
       // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
       const config = options?.suppressErrors ? { _suppressStatuses: [404] } : {};
-      const response = await this.axiosInstance.get(url, config);
+      const response = await this.axiosInstance.get<T>(url, config);
 
       
 
@@ -789,8 +803,11 @@ console.error(`ApiService.get error for ${url}:`, error);
   /**
    * GET but suppress error-store logging for 404s (for optional/demo endpoints)
    */
-  async getQuiet404(url: string): Promise<any> {
-    const response = await this.axiosInstance.get(url, { _suppress404Logging: true } as any);
+  async getQuiet404<T = unknown>(url: string): Promise<T> {
+    const response = await this.axiosInstance.get<T>(
+      url,
+      { _suppress404Logging: true } as InternalAxiosRequestConfig
+    );
     return response.data;
   }
 
@@ -851,7 +868,7 @@ console.error(`ApiService.post error for ${url}:`, error);
     sampleRate: number;
     agentName?: string;
     agentType?: string;
-    llmSelection?: any;
+    llmSelection?: LLMSelection;
   }): Promise<{
     transcript: string;
     response: string;
@@ -866,7 +883,7 @@ console.error(`ApiService.post error for ${url}:`, error);
       
       // Build conversation history (simplified for speech - we don't have access to the full chat store here)
       // In a real implementation, this should come from the ConversationalSpeechButton component
-      const conversationHistory: any[] = [];
+      const conversationHistory: ConversationHistoryItem[] = [];
       
       // Debug: Log the incoming LLM selection
       console.log('🎤 [apiService.processConversation] Received llmSelection:', data.llmSelection);
