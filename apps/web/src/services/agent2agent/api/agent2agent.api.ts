@@ -17,9 +17,9 @@ import { useAuthStore } from '@/stores/authStore';
 import type {
   // A2ATaskRequest,
   // A2ATaskResponse,
-  AgentTaskMode,
-  isJsonRpcSuccessResponse,
-  isJsonRpcErrorResponse,
+  // AgentTaskMode,
+  // isJsonRpcSuccessResponse,
+  // isJsonRpcErrorResponse,
   StrictA2ARequest,
   StrictA2ASuccessResponse,
   StrictA2AErrorResponse,

@@ -5,7 +5,7 @@
  */
 
 import type {
-  StrictBuildResponse,
+  // StrictBuildResponse,
   DeliverableData,
   DeliverableVersionData,
 } from '@orchestrator-ai/transport-types';
@@ -117,7 +117,7 @@ export const buildResponseHandler = {
    * Handle execute build response (create action in build mode)
    * Validates, extracts data, and updates store
    */
-  handleExecute(response: unknown, planId?: string): BuildExecuteResult {
+  handleExecute(response: unknown, _planId?: string): BuildExecuteResult {
     const result = validateAndExtract<BuildExecuteResult>(response, 'create');
     const store = useDeliverablesStore();
 
@@ -161,7 +161,7 @@ export const buildResponseHandler = {
    * Handle list deliverables response
    * Validates, extracts data, and updates store
    */
-  handleList(response: unknown, planId?: string): BuildListResult {
+  handleList(response: unknown, _planId?: string): BuildListResult {
     const result = validateAndExtract<BuildListResult>(response, 'list');
     const store = useDeliverablesStore();
 
