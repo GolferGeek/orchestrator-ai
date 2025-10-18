@@ -22,6 +22,11 @@ npm run build && npm test
 # Both must succeed before pushing
 ```
 
+### Type Safety Rules
+- **NEVER replace `any` with `unknown`** - This just defers the problem and creates cascading errors
+- **ALWAYS replace `any` with proper types** - Create interfaces, DTOs, or use Zod schemas
+- **IF using `JSON` type** - MUST add runtime validation (type guards or Zod schemas)
+
 ---
 
 ## Phase 1 — Tooling & Governance

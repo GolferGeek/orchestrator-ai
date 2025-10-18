@@ -20,7 +20,7 @@ export async function fetchProvidersWithModels(options: { status?: 'active' | 'i
   try {
     const data = await apiService.getQuiet(url, [500]);
     return data as ProviderWithModels[];
-  } catch (error: any) {
+  } catch (error) {
     // Graceful fallback on error
     return [];
   }

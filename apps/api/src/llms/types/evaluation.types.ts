@@ -32,6 +32,68 @@ export interface AllUserEvaluationsFilters {
   agentName?: string;
 }
 
+export interface TaskEvaluationRecord {
+  user_rating?: number | null;
+  speed_rating?: number | null;
+  accuracy_rating?: number | null;
+  user_notes?: string | null;
+  evaluation_timestamp?: string | null;
+  evaluation_details?: Record<string, unknown> | null;
+}
+
+export interface WorkflowStepRecord {
+  status?: string | null;
+  name?: string | null;
+  duration?: number | null;
+}
+
+export interface TaskResponseMetadata {
+  agent_name?: string | null;
+  agentName?: string | null;
+  workflow_steps_completed?: WorkflowStepRecord[] | null;
+  content?: string | null;
+  response?: string | null;
+  [key: string]: unknown;
+}
+
+export interface TaskLLMSelection {
+  providerId?: string | null;
+  modelId?: string | null;
+  cidafmOptions?: {
+    activeStateModifiers?: unknown[] | null;
+    responseModifiers?: unknown[] | null;
+    [key: string]: unknown;
+  } | null;
+}
+
+export interface TaskLLMMetadata {
+  response_time_ms?: number | null;
+  total_cost?: number | null;
+  originalLLMSelection?: TaskLLMSelection | null;
+  agent_name?: string | null;
+  agentName?: string | null;
+  [key: string]: unknown;
+}
+
+export interface TaskRecord {
+  id: string;
+  prompt?: string | null;
+  response?: string | null;
+  method?: string | null;
+  status?: string | null;
+  conversation_id?: string | null;
+  session_id?: string | null;
+  user_id?: string | null;
+  created_at?: string | null;
+  type?: string | null;
+  progress_message?: string | null;
+  deliverable_metadata?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  response_metadata?: TaskResponseMetadata | null;
+  llm_metadata?: TaskLLMMetadata | null;
+  evaluation?: TaskEvaluationRecord | null;
+}
+
 export interface EvaluationRow {
   id: string;
   user_id: string;

@@ -11,6 +11,7 @@
  * - Active run monitoring
  */
 
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { apiService } from './apiService';
 import {
   LLMUsageStatsRequest,
@@ -86,11 +87,13 @@ export interface LlmStats {
   avgCost: number;
 }
 
-export interface ApiResponse<T> {
+type ApiFilters = Record<string, string | number | boolean | undefined>;
+
+export interface ApiResponse<T, F extends ApiFilters | undefined = ApiFilters> {
   success: boolean;
   data: T;
   count?: number;
-  filters?: any;
+  filters?: F;
 }
 
 export interface ActiveRun {
@@ -111,6 +114,44 @@ export interface ActiveRun {
   modelTier?: string;
   fallbackUsed?: boolean;
   routingReason?: string;
+}
+
+export interface LlmPseudonymMapping {
+  original: string;
+  pseudonym: string;
+  dataType?: string;
+}
+
+export interface LlmUsageDetail extends LlmUsageRecord {
+  request_payload?: JsonObject | null;
+  response_payload?: JsonObject | null;
+  metadata?: JsonObject | null;
+  pseudonym_mappings?: LlmPseudonymMapping[];
+  pseudonym_types?: string[];
+  redactions_applied?: number | null;
+  pseudonyms_used?: number | null;
+  pii_detected?: boolean | null;
+  inference_parameters?: JsonObject | null;
+}
+
+export interface LlmCostSummary {
+  totalCost: number;
+  totalTokens: number;
+  totalRequests: number;
+  period: { startDate: string; endDate: string };
+  breakdown: Array<{
+    key: string;
+    cost: number;
+    tokens: number;
+    requests: number;
+    percentage: number;
+  }>;
+  trends: Array<{
+    date: string;
+    cost: number;
+    tokens: number;
+    requests: number;
+  }>;
 }
 
 class LLMAnalyticsService {
@@ -159,12 +200,14 @@ class LLMAnalyticsService {
       if (request.limit) params.append('limit', request.limit.toString());
       if (request.offset) params.append('offset', request.offset.toString());
 
-      const response = await apiService.get(`/api/llm-usage/records?${params.toString()}`);
+      const response = await apiService.get<{ data?: LlmUsageRecord[]; total?: number }>(
+        `/api/llm-usage/records?${params.toString()}`
+      );
       return {
         success: true,
         data: {
-          records: response.data || [],
-          total: response.total || 0,
+          records: response.data ?? [],
+          total: response.total ?? 0,
           page: Math.floor((request.offset || 0) / (request.limit || 10)) + 1,
           limit: request.limit || 10,
         },
@@ -213,10 +256,17 @@ class LLMAnalyticsService {
         params.append('include_details', request.includeDetails.toString());
       if (request.granularity) params.append('granularity', request.granularity);
 
-      const response = await apiService.get(`/usage/stats?${params.toString()}`);
+      const response = await apiService.get<LLMUsageStatsResponse | LLMUsageStatsResponse['data']>(
+        `/usage/stats?${params.toString()}`
+      );
+
+      if ('success' in (response as LLMUsageStatsResponse)) {
+        return response as LLMUsageStatsResponse;
+      }
+
       return {
         success: true,
-        data: response,
+        data: response as LLMUsageStatsResponse['data'],
       };
     } catch (error) {
       console.error('Error fetching usage stats:', error);
@@ -243,9 +293,20 @@ class LLMAnalyticsService {
   /**
    * Get detailed LLM usage information for a specific run
    */
-  async getUsageDetails(runId: string): Promise<any> {
+  async getUsageDetails(runId: string): Promise<LlmUsageDetail | null> {
     try {
-      const response = await apiService.get(`/api/llm-usage/details/${runId}`);
+      const response = await apiService.get<LlmUsageDetail | { data?: LlmUsageDetail | null } | null>(
+        `/api/llm-usage/details/${runId}`
+      );
+
+      if (!response) {
+        return null;
+      }
+
+      if (typeof response === 'object' && 'data' in response) {
+        return response.data ?? null;
+      }
+
       return response;
     } catch (error) {
       console.error('Error fetching usage details:', error);
@@ -269,10 +330,15 @@ class LLMAnalyticsService {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const response = await apiService.get(`/usage/performance?${params.toString()}`);
+      const response = await apiService.get<PerformanceMetricsResponse | PerformanceMetricsResponse['data']>(
+        `/usage/performance?${params.toString()}`
+      );
+      if ('success' in (response as PerformanceMetricsResponse)) {
+        return response as PerformanceMetricsResponse;
+      }
       return {
         success: true,
-        data: response.data || [],
+        data: (response as PerformanceMetricsResponse['data']) ?? [],
       };
     } catch (error) {
       console.error('Error fetching performance metrics:', error);
@@ -293,10 +359,15 @@ class LLMAnalyticsService {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const response = await apiService.get(`/usage/costs/analysis?${params.toString()}`);
+      const response = await apiService.get<CostAnalysisResponse | CostAnalysisResponse['data']>(
+        `/usage/costs/analysis?${params.toString()}`
+      );
+      if ('success' in (response as CostAnalysisResponse)) {
+        return response as CostAnalysisResponse;
+      }
       return {
         success: true,
-        data: response,
+        data: response as CostAnalysisResponse['data'],
       };
     } catch (error) {
       console.error('Error fetching cost analysis:', error);
@@ -311,14 +382,16 @@ class LLMAnalyticsService {
     groupBy: 'provider' | 'model' | 'date',
     startDate?: string,
     endDate?: string
-  ): Promise<any> {
+  ): Promise<LlmCostSummary> {
     try {
       const params = new URLSearchParams();
       params.append('groupBy', groupBy);
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const response = await apiService.get(`/usage/costs/summary?${params.toString()}`);
+      const response = await apiService.get<LlmCostSummary>(
+        `/usage/costs/summary?${params.toString()}`
+      );
       return response;
     } catch (error) {
       console.error('Error fetching cost summary:', error);
@@ -400,3 +473,4 @@ class LLMAnalyticsService {
 // Export singleton instance
 export const llmAnalyticsService = new LLMAnalyticsService();
 export default llmAnalyticsService;
+export type { LlmUsageDetail, LlmCostSummary, LlmPseudonymMapping };

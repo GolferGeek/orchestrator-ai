@@ -4,6 +4,7 @@ import type {
   EvaluationAggregationRow,
   EvaluationStatsRow,
   ModelComparisonMessageRow,
+  TaskRecord,
 } from '@/llms/types/evaluation.types';
 
 const baseEnhancedMessageSchema = z
@@ -88,3 +89,81 @@ export const modelComparisonRowSchema =
   modelComparisonRowBaseSchema as unknown as z.ZodType<ModelComparisonMessageRow>;
 
 export const modelComparisonRowsSchema = z.array(modelComparisonRowSchema);
+
+const workflowStepRecordSchema = z
+  .object({
+    status: z.string().nullable().optional(),
+    name: z.string().nullable().optional(),
+    duration: z.number().nullable().optional(),
+  })
+  .passthrough();
+
+const taskEvaluationRecordSchema = z
+  .object({
+    user_rating: z.number().nullable().optional(),
+    speed_rating: z.number().nullable().optional(),
+    accuracy_rating: z.number().nullable().optional(),
+    user_notes: z.string().nullable().optional(),
+    evaluation_timestamp: z.string().nullable().optional(),
+    evaluation_details: z.record(z.unknown()).nullable().optional(),
+  })
+  .passthrough();
+
+const taskResponseMetadataSchema = z
+  .object({
+    agent_name: z.string().nullable().optional(),
+    agentName: z.string().nullable().optional(),
+    workflow_steps_completed: z
+      .array(workflowStepRecordSchema)
+      .nullable()
+      .optional(),
+    content: z.any().optional(),
+    response: z.any().optional(),
+  })
+  .catchall(z.unknown())
+  .nullable()
+  .optional();
+
+const taskLLMMetadataSchema = z
+  .object({
+    response_time_ms: z.number().nullable().optional(),
+    total_cost: z.number().nullable().optional(),
+    originalLLMSelection: z
+      .object({
+        providerId: z.string().nullable().optional(),
+        modelId: z.string().nullable().optional(),
+        cidafmOptions: z.record(z.unknown()).nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    agent_name: z.string().nullable().optional(),
+    agentName: z.string().nullable().optional(),
+  })
+  .catchall(z.unknown())
+  .nullable()
+  .optional();
+
+export const taskRecordSchema = z
+  .object({
+    id: z.string(),
+    prompt: z.string().nullable().optional(),
+    response: z.string().nullable().optional(),
+    method: z.string().nullable().optional(),
+    status: z.string().nullable().optional(),
+    conversation_id: z.string().nullable().optional(),
+    session_id: z.string().nullable().optional(),
+    user_id: z.string().nullable().optional(),
+    created_at: z.string().nullable().optional(),
+    type: z.string().nullable().optional(),
+    progress_message: z.string().nullable().optional(),
+    deliverable_metadata: z.record(z.unknown()).nullable().optional(),
+    metadata: z.record(z.unknown()).nullable().optional(),
+    response_metadata: taskResponseMetadataSchema,
+    llm_metadata: taskLLMMetadataSchema,
+    evaluation: taskEvaluationRecordSchema.nullable().optional(),
+  })
+  .passthrough();
+
+export const taskRecordArraySchema = z.array(
+  taskRecordSchema as unknown as z.ZodType<TaskRecord>,
+);

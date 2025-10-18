@@ -374,21 +374,46 @@ export class Agent2AgentApi {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-
-        // Handle JSON-RPC error response
-        if (errorData.jsonrpc === '2.0' && errorData.error) {
-          throw new Error(
-            errorData.error.message || `API request failed: ${response.statusText}`,
-          );
+        let errorPayload: unknown;
+        try {
+          errorPayload = await response.json();
+        } catch {
+          errorPayload = undefined;
         }
 
-        throw new Error(
-          errorData.message || `API request failed: ${response.statusText}`,
-        );
+        const errorRecord = this.asRecord(errorPayload) ?? {};
+        const jsonrpc =
+          typeof errorRecord['jsonrpc'] === 'string'
+            ? (errorRecord['jsonrpc'] as string)
+            : undefined;
+        const errorDetails = this.asRecord(errorRecord['error']);
+
+        if (jsonrpc === '2.0' && errorDetails) {
+          const message =
+            typeof errorDetails.message === 'string'
+              ? errorDetails.message
+              : response.statusText;
+          throw new Error(message || 'JSON-RPC error');
+        }
+
+        const message =
+          typeof errorRecord['message'] === 'string'
+            ? (errorRecord['message'] as string)
+            : response.statusText;
+
+        throw new Error(message || 'API request failed');
       }
 
-      const data: StrictA2ASuccessResponse | StrictA2AErrorResponse = await response.json();
+      const envelopePayload = await this.readJsonSafe(response);
+      const envelopeRecord = this.asRecord(envelopePayload);
+
+      if (!envelopeRecord) {
+        throw new Error('Agent2Agent API returned an invalid JSON payload');
+      }
+
+      const data = envelopeRecord as
+        | StrictA2ASuccessResponse
+        | StrictA2AErrorResponse;
 
       // Validate JSON-RPC envelope
       const envelopeValidation = validateJsonRpcEnvelope(data);
@@ -470,44 +495,89 @@ export class Agent2AgentApi {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-
-        // Handle JSON-RPC error response
-        if (errorData.jsonrpc === '2.0' && errorData.error) {
-          throw new Error(
-            errorData.error.message || `API request failed: ${response.statusText}`,
-          );
+        let errorPayload: unknown;
+        try {
+          errorPayload = await response.json();
+        } catch {
+          errorPayload = undefined;
         }
 
-        throw new Error(
-          errorData.message || `API request failed: ${response.statusText}`,
-        );
+        const errorRecord = this.asRecord(errorPayload) ?? {};
+        const jsonrpc =
+          typeof errorRecord['jsonrpc'] === 'string'
+            ? (errorRecord['jsonrpc'] as string)
+            : undefined;
+        const errorDetails = this.asRecord(errorRecord['error']);
+
+        if (jsonrpc === '2.0' && errorDetails) {
+          const message =
+            typeof errorDetails.message === 'string'
+              ? errorDetails.message
+              : response.statusText;
+          throw new Error(message || 'JSON-RPC error');
+        }
+
+        const message =
+          typeof errorRecord['message'] === 'string'
+            ? (errorRecord['message'] as string)
+            : response.statusText;
+
+        throw new Error(message || 'API request failed');
       }
 
-      const data = await response.json();
+      const payload = await this.readJsonSafe(response);
+      const dataRecord = this.asRecord(payload);
+
+      if (!dataRecord) {
+        throw new Error('Agent2Agent API returned invalid JSON payload');
+      }
 
       // Handle JSON-RPC 2.0 response format
       // Backend returns: { jsonrpc: "2.0", id: "...", result: TaskResponseDto }
       // Handlers expect: { jsonrpc: "2.0", id: "...", result: { success, mode, payload } }
 
-      if (data.jsonrpc === '2.0') {
+      if (dataRecord['jsonrpc'] === '2.0') {
         // Already in JSON-RPC format - return as is
-        if (data.error) {
-          throw new Error(data.error.message || 'JSON-RPC error');
+        if (dataRecord['error']) {
+          const errorInfo = this.asRecord(dataRecord['error']);
+          const message =
+            errorInfo && typeof errorInfo.message === 'string'
+              ? errorInfo.message
+              : 'JSON-RPC error';
+          throw new Error(message);
         }
-        return data as T;
+        return dataRecord as T;
       } else {
         // Direct TaskResponseDto - wrap it in JSON-RPC format for handlers
         return {
           jsonrpc: '2.0',
           id: crypto.randomUUID(),
-          result: data,
+          result: dataRecord,
         } as T;
       }
     } catch (error) {
       console.error(`Agent2Agent API error (${mode}/${request.action}):`, error);
       throw error;
     }
+  }
+
+  private async readJsonSafe(response: Response): Promise<unknown> {
+    try {
+      return await response.json();
+    } catch (error) {
+      throw new Error(
+        `Failed to parse Agent2Agent response JSON: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | undefined {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    return undefined;
   }
 
   /**

@@ -1,3 +1,4 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { apiService } from './apiService';
 // Agent organizational categories - supports business-aligned structure
 type AgentType = 
@@ -20,7 +21,7 @@ interface AgentConversation {
   startedAt: string;
   endedAt?: string;
   lastActiveAt: string;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
   createdAt: string;
   updatedAt: string;
   taskCount?: number;
@@ -31,7 +32,7 @@ interface AgentConversation {
 interface CreateAgentConversationDto {
   agentName: string;
   agentType: AgentType;
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 interface AgentConversationQueryParams {
   userId?: string;
@@ -60,35 +61,35 @@ class AgentConversationsService {
     const url = queryParams.toString() 
       ? `${this.baseUrl}?${queryParams.toString()}`
       : this.baseUrl;
-    const response = await apiService.get(url);
+    const response = await apiService.get<ListConversationsResponse>(url);
     return response;
   }
   /**
    * Get conversation by ID
    */
   async getConversation(conversationId: string): Promise<AgentConversation> {
-    const response = await apiService.get(`${this.baseUrl}/${conversationId}`);
+    const response = await apiService.get<AgentConversation>(`${this.baseUrl}/${conversationId}`);
     return response;
   }
   /**
    * Create a new conversation
    */
   async createConversation(dto: CreateAgentConversationDto): Promise<AgentConversation> {
-    const response = await apiService.post(this.baseUrl, dto);
+    const response = await apiService.post<AgentConversation, CreateAgentConversationDto>(this.baseUrl, dto);
     return response;
   }
   /**
    * End a conversation
    */
   async endConversation(conversationId: string): Promise<{ success: boolean }> {
-    const response = await apiService.put(`${this.baseUrl}/${conversationId}/end`);
+    const response = await apiService.put<{ success: boolean }>(`${this.baseUrl}/${conversationId}/end`);
     return response;
   }
   /**
    * Delete a conversation
    */
   async deleteConversation(conversationId: string): Promise<{ success: boolean }> {
-    const response = await apiService.delete(`${this.baseUrl}/${conversationId}`);
+    const response = await apiService.delete<{ success: boolean }>(`${this.baseUrl}/${conversationId}`);
     return response;
   }
   /**
@@ -96,16 +97,19 @@ class AgentConversationsService {
    */
   async updateConversationMetadata(
     conversationId: string, 
-    metadata: Record<string, any>
+    metadata: JsonObject
   ): Promise<{ success: boolean }> {
-    const response = await apiService.put(`${this.baseUrl}/${conversationId}/metadata`, metadata);
+    const response = await apiService.put<{ success: boolean }, JsonObject>(
+      `${this.baseUrl}/${conversationId}/metadata`,
+      metadata
+    );
     return response;
   }
   /**
    * Get active conversations
    */
   async getActiveConversations(): Promise<AgentConversation[]> {
-    const response = await apiService.get(`${this.baseUrl}/active`);
+    const response = await apiService.get<AgentConversation[]>(`${this.baseUrl}/active`);
     return response;
   }
 }

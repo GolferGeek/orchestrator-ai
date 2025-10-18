@@ -8,6 +8,7 @@
  * State management done via privacyStore mutations
  */
 
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { usePrivacyStore } from '@/stores/privacyStore';
 import { pseudonymService } from './pseudonymService';
 import { piiService } from './piiService';
@@ -29,6 +30,13 @@ import type {
   PIITestRequest,
   PIITestResponse,
 } from '@/types/pii';
+
+interface ServiceError extends Error {
+  response?: {
+    status?: number;
+    data?: unknown;
+  };
+}
 
 // ============================================================================
 // PSEUDONYM MAPPINGS
@@ -55,7 +63,7 @@ export async function fetchMappings(force = false): Promise<PseudonymMapping[]> 
     const fetchedMappings = await pseudonymService.getPseudonymMappings();
     store.setMappings(fetchedMappings);
     return fetchedMappings;
-  } catch (err: any) {
+  } catch (err: ServiceError) {
     const errorMessage = err.message || 'Failed to fetch pseudonym mappings';
     store.setMappingsError(errorMessage);
     console.error('Error fetching pseudonym mappings:', err);
@@ -88,7 +96,7 @@ export async function fetchMappingsFiltered(filterOptions: {
     const result = await pseudonymService.getPseudonymMappingsFiltered(filterOptions);
     store.setMappings(result.mappings);
     return result;
-  } catch (err: any) {
+  } catch (err: ServiceError) {
     const errorMessage = err.message || 'Failed to fetch filtered pseudonym mappings';
     store.setMappingsError(errorMessage);
     console.error('Error fetching filtered pseudonym mappings:', err);
@@ -114,7 +122,7 @@ export async function fetchMapping(id: string): Promise<PseudonymMapping | null>
     store.setMappings(existingMappings);
 
     return mapping;
-  } catch (err: any) {
+  } catch (err: ServiceError) {
     console.error(`Error fetching pseudonym mapping ${id}:`, err);
     return null;
   }
@@ -130,7 +138,7 @@ export async function fetchMappingStats(force = false): Promise<void> {
   try {
     const response = await pseudonymService.getPseudonymStats();
     store.setMappingStats(response.stats);
-  } catch (err: any) {
+  } catch (err: ServiceError) {
     console.error('Error fetching pseudonym stats:', err);
   } finally {
     store.setMappingStatsLoading(false);
@@ -146,7 +154,7 @@ export async function getMappingsByRunId(runId: string): Promise<PseudonymMappin
 
     const response = await pseudonymService.getMappingsByRunId(runId);
     return response || [];
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to fetch mappings by run ID';
     store.setMappingsError(errorMessage);
     console.error('Error fetching mappings by run ID:', err);
@@ -173,7 +181,7 @@ export async function loadDictionaries(force = false): Promise<PseudonymDictiona
     const loadedDictionaries = await pseudonymService.getPseudonymDictionaries();
     store.setDictionaries(loadedDictionaries);
     return loadedDictionaries;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to load pseudonym dictionaries';
     store.setDictionariesError(errorMessage);
     console.error('Error loading pseudonym dictionaries:', err);
@@ -195,7 +203,7 @@ export async function createDictionary(
     const newDictionary = await pseudonymService.createPseudonymDictionary(dictionaryData);
     store.addDictionary(newDictionary);
     return newDictionary;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to create pseudonym dictionary';
     store.setDictionariesError(errorMessage);
     console.error('Error creating pseudonym dictionary:', err);
@@ -218,7 +226,7 @@ export async function updateDictionaryEntry(
     const updatedDictionary = await pseudonymService.updatePseudonymDictionary(id, dictionaryData);
     store.updateDictionary(id, updatedDictionary);
     return updatedDictionary;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to update pseudonym dictionary';
     store.setDictionariesError(errorMessage);
     console.error('Error updating pseudonym dictionary:', err);
@@ -237,7 +245,7 @@ export async function deleteDictionary(id: string): Promise<void> {
   try {
     await pseudonymService.deletePseudonymDictionary(id);
     store.removeDictionary(id);
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to delete pseudonym dictionary';
     store.setDictionariesError(errorMessage);
     console.error('Error deleting pseudonym dictionary:', err);
@@ -274,7 +282,7 @@ export async function bulkOperationDictionaries(
     }
 
     return result;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : `Failed to perform bulk ${operation}`;
     store.setDictionariesError(errorMessage);
     console.error(`Error performing bulk ${operation}:`, err);
@@ -296,7 +304,7 @@ export async function generatePseudonym(
     const result = await pseudonymService.generatePseudonym(request);
     store.setGenerationResult(result);
     return result;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to generate pseudonym';
     store.setDictionariesError(errorMessage);
     console.error('Error generating pseudonym:', err);
@@ -317,7 +325,7 @@ export async function lookupPseudonym(
   try {
     const result = await pseudonymService.lookupPseudonym(request);
     return result;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to lookup pseudonym';
     store.setDictionariesError(errorMessage);
     console.error('Error looking up pseudonym:', err);
@@ -349,7 +357,7 @@ export async function importFromJSON(data: PseudonymDictionaryImportData[]): Pro
     }
 
     return result;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to import dictionaries';
     store.setDictionariesError(errorMessage);
     console.error('Error importing dictionaries:', err);
@@ -374,7 +382,7 @@ export async function importFromCSV(file: File): Promise<any> {
     }
 
     return result;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to import from CSV';
     store.setDictionariesError(errorMessage);
     console.error('Error importing from CSV:', err);
@@ -393,7 +401,7 @@ export async function exportToJSON(): Promise<PseudonymDictionaryExportData> {
   try {
     const exportData = await pseudonymService.exportPseudonymDictionaries();
     return exportData;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to export dictionaries';
     store.setDictionariesError(errorMessage);
     console.error('Error exporting dictionaries:', err);
@@ -412,7 +420,7 @@ export async function exportToCSV(): Promise<Blob> {
   try {
     const csvBlob = await pseudonymService.exportToCSV();
     return csvBlob;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to export to CSV';
     store.setDictionariesError(errorMessage);
     console.error('Error exporting to CSV:', err);
@@ -439,7 +447,7 @@ export async function loadPatterns(force = false): Promise<PIIPattern[]> {
     const loadedPatterns = await piiService.getPIIPatterns();
     store.setPatterns(loadedPatterns);
     return loadedPatterns;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to load PII patterns';
     store.setPatternsError(errorMessage);
     console.error('Error loading PII patterns:', err);
@@ -461,7 +469,7 @@ export async function createPattern(
     const newPattern = await piiService.createPIIPattern(patternData);
     store.addPattern(newPattern);
     return newPattern;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to create PII pattern';
     store.setPatternsError(errorMessage);
     console.error('Error creating PII pattern:', err);
@@ -484,7 +492,7 @@ export async function updatePatternEntry(
     const updatedPattern = await piiService.updatePIIPattern(id, patternData);
     store.updatePattern(id, updatedPattern);
     return updatedPattern;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to update PII pattern';
     store.setPatternsError(errorMessage);
     console.error('Error updating PII pattern:', err);
@@ -503,7 +511,7 @@ export async function deletePattern(id: string): Promise<void> {
   try {
     await piiService.deletePIIPattern(id);
     store.removePattern(id);
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to delete PII pattern';
     store.setPatternsError(errorMessage);
     console.error('Error deleting PII pattern:', err);
@@ -540,7 +548,7 @@ export async function bulkOperationPatterns(
     }
 
     return result;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : `Failed to perform bulk ${operation}`;
     store.setPatternsError(errorMessage);
     console.error(`Error performing bulk ${operation}:`, err);
@@ -560,7 +568,7 @@ export async function testPIIDetection(request: PIITestRequest): Promise<PIITest
     const result = await piiService.testPIIDetection(request);
     store.setTestResult(result);
     return result;
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to test PII detection';
     store.setPatternsError(errorMessage);
     console.error('Error testing PII detection:', err);
@@ -576,7 +584,7 @@ export async function loadPIIStats(): Promise<void> {
   try {
     const loadedStats = await piiService.getPIIStats();
     store.setPatternStats(loadedStats);
-  } catch (err) {
+  } catch (err: ServiceError) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to load PII stats';
     store.setPatternsError(errorMessage);
     console.error('Error loading PII stats:', err);
@@ -756,7 +764,7 @@ export async function initializeSovereignPolicy(): Promise<void> {
     }
 
     store.setSovereignInitialized(true);
-  } catch (error) {
+  } catch (error: ServiceError) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to load sovereign policy';
     store.setSovereignError(errorMessage);
     console.error('Failed to initialize sovereign policy:', error);
@@ -783,7 +791,7 @@ export async function updateUserSovereignPreference(enabled: boolean): Promise<v
 
     // Update local state
     store.setUserSovereignMode(enabled);
-  } catch (error) {
+  } catch (error: ServiceError) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to update preference';
     store.setSovereignError(errorMessage);
     throw error;

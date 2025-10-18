@@ -631,13 +631,18 @@ export class NotionMCPTools implements IMCPToolHandler {
         'PATCH',
         payload,
       );
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(
+        response,
+        'Notion append blocks response',
+      );
 
       if (!response.ok) {
-        throw new Error(
-          `Notion API error: ${_data.message || response.statusText}`,
-        );
+        const errorMessage =
+          this.readString(data, 'message') || response.statusText || 'Notion API error';
+        throw new Error(`Notion API error: ${errorMessage}`);
       }
+
+      const results = this.readArray(data, 'results') ?? [];
 
       return {
         content: [
@@ -646,7 +651,7 @@ export class NotionMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 success: true,
-                blocks_added: _data.results?.length || 0,
+                blocks_added: results.length,
                 page_id,
                 appended_at: new Date().toISOString(),
               },
@@ -683,13 +688,17 @@ export class NotionMCPTools implements IMCPToolHandler {
       }
 
       const response = await this.makeNotionRequest('search', 'POST', payload);
-      const _data = await response.json();
+      const data = await this.parseJsonResponse(response, 'Notion list databases');
 
       if (!response.ok) {
-        throw new Error(
-          `Notion API error: ${_data.message || response.statusText}`,
-        );
+        const errorMessage =
+          this.readString(data, 'message') || response.statusText || 'Notion API error';
+        throw new Error(`Notion API error: ${errorMessage}`);
       }
+
+      const databases = this.readArray(data, 'results') ?? [];
+      const hasMore = this.readBoolean(data, 'has_more') ?? false;
+      const nextCursor = this.readString(data, 'next_cursor');
 
       return {
         content: [
@@ -697,10 +706,10 @@ export class NotionMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                databases: _data.results,
-                has_more: _data.has_more,
-                next_cursor: _data.next_cursor,
-                total_count: _data.results?.length || 0,
+                databases,
+                has_more: hasMore,
+                next_cursor: nextCursor,
+                total_count: databases.length,
                 retrieved_at: new Date().toISOString(),
               },
               null,
@@ -745,6 +754,48 @@ export class NotionMCPTools implements IMCPToolHandler {
       headers,
       body: body ? JSON.stringify(body) : undefined,
     });
+  }
+
+  private async parseJsonResponse(
+    response: { json(): Promise<unknown> },
+    context: string,
+  ): Promise<Record<string, unknown>> {
+    const value = await response.json();
+    return this.ensureObject(value, `${context} returned invalid JSON payload`);
+  }
+
+  private ensureObject(
+    value: unknown,
+    errorContext: string,
+  ): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(errorContext);
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private readString(
+    source: Record<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const value = source[key];
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private readBoolean(
+    source: Record<string, unknown>,
+    key: string,
+  ): boolean | undefined {
+    const value = source[key];
+    return typeof value === 'boolean' ? value : undefined;
+  }
+
+  private readArray(
+    source: Record<string, unknown>,
+    key: string,
+  ): unknown[] | undefined {
+    const value = source[key];
+    return Array.isArray(value) ? value : undefined;
   }
 
   /**

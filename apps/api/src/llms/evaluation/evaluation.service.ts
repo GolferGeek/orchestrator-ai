@@ -29,6 +29,7 @@ import {
   enhancedMessageResponseArraySchema,
   evaluationStatsRowsSchema,
   modelComparisonRowsSchema,
+  taskRecordArraySchema,
 } from '@/llms/types/evaluation.schemas';
 import type {
   EvaluationFilters,
@@ -38,7 +39,9 @@ import type {
   AllUserEvaluationsFilters,
   EvaluationStatsRow,
   ModelComparisonMessageRow,
+  TaskRecord,
 } from '@/llms/types/evaluation.types';
+import type { Provider, Model } from '@/llms/types/llm-evaluation';
 
 /**
  * Format agent names for display by converting from database format to human-readable format
@@ -905,12 +908,20 @@ export class EvaluationService {
       return task.response;
     }
 
-    if (task.responseMetadata?.content) {
-      return String(task.responseMetadata.content);
+    const metadataContent = task.response_metadata?.content;
+    if (typeof metadataContent === 'string' && metadataContent.trim()) {
+      return metadataContent;
+    }
+    if (metadataContent && typeof metadataContent === 'object') {
+      return JSON.stringify(metadataContent);
     }
 
-    if (task.responseMetadata?.response) {
-      return String(task.responseMetadata.response);
+    const metadataResponse = task.response_metadata?.response;
+    if (typeof metadataResponse === 'string' && metadataResponse.trim()) {
+      return metadataResponse;
+    }
+    if (metadataResponse && typeof metadataResponse === 'object') {
+      return JSON.stringify(metadataResponse);
     }
 
     if (typeof task.method === 'string' && task.method.trim().length > 0) {
@@ -918,6 +929,20 @@ export class EvaluationService {
     }
 
     return 'Task';
+  }
+
+  private hasTaskEvaluation(
+    evaluation: TaskRecord['evaluation'],
+  ): boolean {
+    if (!evaluation) {
+      return false;
+    }
+
+    return (
+      typeof evaluation.user_rating === 'number' ||
+      typeof evaluation.speed_rating === 'number' ||
+      typeof evaluation.accuracy_rating === 'number'
+    );
   }
 
   private calculateAverage(values: number[]): number {
@@ -939,6 +964,14 @@ export class EvaluationService {
     );
 
     return [headers, ...rows].join('\n');
+  }
+
+  private parseTaskRecords(data: unknown): TaskRecord[] {
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return taskRecordArraySchema.parse(data);
   }
 
   // Task Evaluation Methods
@@ -1112,13 +1145,11 @@ export class EvaluationService {
       );
     }
 
+    const taskRecords = this.parseTaskRecords(tasks ?? []);
+
     // Filter out tasks that don't have actual evaluation ratings
-    const tasksWithEvaluations = (tasks || []).filter(
-      (task) =>
-        task.evaluation &&
-        (task.evaluation.user_rating ||
-          task.evaluation.speed_rating ||
-          task.evaluation.accuracy_rating),
+    const tasksWithEvaluations = taskRecords.filter((task) =>
+      this.hasTaskEvaluation(task.evaluation),
     );
 
     // Get unique provider and model IDs from tasks to fetch details
@@ -1126,7 +1157,6 @@ export class EvaluationService {
     const modelIds = new Set<string>();
 
     tasksWithEvaluations.forEach((task) => {
-      // Provider and model IDs are nested in originalLLMSelection
       const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
       const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
 
@@ -1139,8 +1169,8 @@ export class EvaluationService {
     });
 
     // Fetch provider and model details
-    const providersMap = new Map();
-    const modelsMap = new Map();
+    const providersMap = new Map<string, Provider>();
+    const modelsMap = new Map<string, Model>();
 
     // Fetch user email
 
@@ -1172,9 +1202,10 @@ export class EvaluationService {
 
       if (providers) {
         providers.forEach((provider) => {
-          // Use the mapLLMProviderFromDb utility function for consistent mapping
           const mappedProvider = mapLLMProviderFromDb(provider);
-          providersMap.set(provider.id, mappedProvider);
+          if (provider.id) {
+            providersMap.set(provider.id, mappedProvider);
+          }
         });
       }
     }
@@ -1187,9 +1218,10 @@ export class EvaluationService {
 
       if (models) {
         models.forEach((model) => {
-          // Use the mapLLMModelFromDb utility function for consistent mapping
           const mappedModel = mapLLMModelFromDb(model);
-          modelsMap.set(model.id, mappedModel);
+          if (model.id) {
+            modelsMap.set(model.id, mappedModel);
+          }
         });
       }
     }

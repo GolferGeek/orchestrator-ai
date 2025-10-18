@@ -1,8 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+import type {
+  JsonArray,
+  JsonObject,
+  JsonValue,
+} from '@orchestrator-ai/transport-types';
 import { load as yamlLoad } from 'js-yaml';
 import { AgentRecord } from '../interfaces/agent-record.interface';
 import {
+  AgentConfigDefinition,
   AgentCommunicationDefinition,
   AgentExecutionDefinition,
   AgentHierarchyDefinition,
@@ -93,7 +98,7 @@ export class AgentRuntimeDefinitionService {
 
   private parseDescriptor(
     raw: string | null | undefined,
-  ): Record<string, any> | null {
+  ): JsonObject | null {
     if (!raw || typeof raw !== 'string' || !raw.trim()) {
       return null;
     }
@@ -101,8 +106,8 @@ export class AgentRuntimeDefinitionService {
     try {
       // Attempt JSON parse first for stored JSON payloads
       const maybeJson = JSON.parse(raw);
-      if (maybeJson && typeof maybeJson === 'object') {
-        return maybeJson as Record<string, any>;
+      if (this.isJsonObject(maybeJson)) {
+        return maybeJson;
       }
     } catch {
       // Not valid JSON; fall back to YAML
@@ -110,8 +115,9 @@ export class AgentRuntimeDefinitionService {
 
     try {
       const parsed = yamlLoad(raw);
-      if (parsed && typeof parsed === 'object') {
-        return parsed as Record<string, any>;
+      const jsonObject = this.toJsonObject(parsed);
+      if (jsonObject) {
+        return jsonObject;
       }
     } catch (error) {
       this.logger.warn(`Unable to parse agent YAML: ${String(error)}`);
@@ -124,29 +130,39 @@ export class AgentRuntimeDefinitionService {
     record: AgentRecord,
     descriptor: UnknownRecord,
   ): AgentMetadataDefinition {
-    const metadataNode = this.asRecord(descriptor?.metadata) ?? {};
-    const tags = this.toStringArray(
-      metadataNode.tags ?? descriptor?.tags ?? descriptor?.metadata?.tags,
-    );
+    const metadataNode = this.toJsonObject(descriptor?.metadata);
+    const tags = this.toStringArray(metadataNode?.tags ?? descriptor?.tags);
 
     return {
-      name: (metadataNode.name ?? descriptor?.name ?? record.slug) || undefined,
+      name:
+        this.asString(metadataNode?.name) ??
+        this.asString(descriptor?.name) ??
+        record.slug,
       displayName:
-        metadataNode.displayName ??
-        descriptor?.displayName ??
+        this.asString(metadataNode?.displayName) ??
+        this.asString(descriptor?.displayName) ??
         record.display_name,
       description:
-        metadataNode.description ??
-        descriptor?.description ??
+        this.asString(metadataNode?.description) ??
+        this.asString(descriptor?.description) ??
         record.description,
-      category: metadataNode.category ?? descriptor?.category ?? null,
+      category:
+        this.asString(metadataNode?.category) ??
+        this.asString(descriptor?.category) ??
+        null,
       version:
-        metadataNode.version ?? descriptor?.version ?? record.version ?? null,
+        this.asString(metadataNode?.version) ??
+        this.asString(descriptor?.version) ??
+        record.version ??
+        null,
       type:
-        metadataNode.type ?? descriptor?.type ?? descriptor?.agent_type ?? null,
-      provider: metadataNode.provider ?? null,
+        this.asString(metadataNode?.type) ??
+        this.asString(descriptor?.type) ??
+        this.asString(descriptor?.agent_type) ??
+        null,
+      provider: this.asString(metadataNode?.provider) ?? null,
       tags,
-      raw: metadataNode,
+      raw: metadataNode ?? null,
     };
   }
 

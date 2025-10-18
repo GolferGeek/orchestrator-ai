@@ -3,39 +3,43 @@ import type {
   JsonValue,
 } from '@orchestrator-ai/transport-types';
 
-export interface OrchestrationParameterDefinition {
+export interface OrchestrationParameterDefinition extends JsonObject {
   name: string;
   type: string;
   required?: boolean;
   description?: string;
   default?: JsonValue;
   enum?: JsonValue[];
+  [key: string]: JsonValue | undefined;
 }
 
-export interface OrchestrationCheckpointOption {
+export interface OrchestrationCheckpointOption extends JsonObject {
   action: string;
   label: string;
   allows_modification?: boolean;
+  [key: string]: JsonValue | undefined;
 }
 
-export interface OrchestrationCheckpointConfig {
+export interface OrchestrationCheckpointConfig extends JsonObject {
   question: string;
   required?: boolean;
   options?: OrchestrationCheckpointOption[];
+  [key: string]: JsonValue | undefined;
 }
 
 export type OrchestrationStepType = 'agent' | 'orchestration';
 
-export interface OrchestrationSubDefinition {
+export interface OrchestrationSubDefinition extends JsonObject {
   name: string;
   owner?: string;
   version?: string;
   parameters?: JsonObject;
   inherit_conversation?: boolean;
   metadata?: JsonObject;
+  [key: string]: JsonValue | undefined;
 }
 
-export interface OrchestrationStepDefinition {
+export interface OrchestrationStepDefinition extends JsonObject {
   id: string;
   name: string;
   agent?: string;
@@ -48,22 +52,30 @@ export interface OrchestrationStepDefinition {
   metadata?: JsonObject;
   type?: OrchestrationStepType;
   orchestration?: OrchestrationSubDefinition;
+  [key: string]: JsonValue | undefined;
 }
 
-export interface OrchestrationDefinitionSchema {
-  metadata?: {
-    name?: string;
-    displayName?: string;
-    version?: string;
-    description?: string;
-    owner?: string;
-  };
-  orchestration: {
-    steps: OrchestrationStepDefinition[];
-    parameters?: OrchestrationParameterDefinition[];
-    error_handling?: JsonObject;
-    execution?: JsonObject;
-  };
+export interface OrchestrationDefinitionMetadata extends JsonObject {
+  name?: string;
+  displayName?: string;
+  version?: string;
+  description?: string;
+  owner?: string;
+  [key: string]: JsonValue | undefined;
+}
+
+export interface OrchestrationDefinitionBody extends JsonObject {
+  steps: OrchestrationStepDefinition[];
+  parameters?: OrchestrationParameterDefinition[];
+  error_handling?: JsonObject;
+  execution?: JsonObject;
+  [key: string]: JsonValue | undefined;
+}
+
+export interface OrchestrationDefinitionSchema extends JsonObject {
+  metadata?: OrchestrationDefinitionMetadata;
+  orchestration: OrchestrationDefinitionBody;
+  [key: string]: JsonValue | undefined;
 }
 
 export interface OrchestrationResolvedDefinition {

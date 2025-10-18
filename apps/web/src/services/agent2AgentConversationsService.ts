@@ -1,3 +1,4 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import apiService from './apiService';
 
 export interface Agent2AgentConversation {
@@ -9,7 +10,7 @@ export interface Agent2AgentConversation {
   createdAt: string;
   updatedAt: string;
   title?: string; // Friendly display name
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 /**
@@ -37,7 +38,20 @@ export interface CreateAgent2AgentConversationDto {
   agentType: string; // Agent type (context, function, tool, etc.)
   organizationSlug: string; // Database organization slug (my-org, etc.) - renamed from namespace to match API
   conversationId?: string; // Pre-generated conversation ID
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
+}
+
+interface Agent2AgentConversationListResponse {
+  conversations: Agent2AgentConversation[];
+  total: number;
+}
+
+interface CreateAgent2AgentConversationPayload {
+  agentName: string;
+  agentType: string;
+  namespace: string;
+  conversationId?: string;
+  metadata?: JsonObject;
 }
 
 /**
@@ -51,7 +65,7 @@ class Agent2AgentConversationsService {
   async createConversation(dto: CreateAgent2AgentConversationDto): Promise<Agent2AgentConversation> {
     console.log('🔍 [Agent2AgentConversationsService] Creating conversation:', dto);
 
-    const response = await apiService.post('/agent-conversations', {
+    const payload: CreateAgent2AgentConversationPayload = {
       agentName: dto.agentName,
       agentType: dto.agentType, // Required for backend validation
       namespace: dto.organizationSlug, // Database organization slug like 'my-org' - API still expects 'namespace' field
@@ -60,7 +74,12 @@ class Agent2AgentConversationsService {
         source: 'agent2agent-frontend',
         ...dto.metadata,
       },
-    });
+    };
+
+    const response = await apiService.post<Agent2AgentConversation, CreateAgent2AgentConversationPayload>(
+      '/agent-conversations',
+      payload,
+    );
 
     console.log('✅ [Agent2AgentConversationsService] Created:', response.id);
     return response;
@@ -74,8 +93,18 @@ class Agent2AgentConversationsService {
     offset?: number;
     agentName?: string;
     agentType?: string;
-  } = {}): Promise<{ conversations: Agent2AgentConversation[]; total: number }> {
-    const response = await apiService.get('/agent-conversations', { params });
+  } = {}): Promise<Agent2AgentConversationListResponse> {
+    const queryParams = new URLSearchParams();
+    if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
+    if (params.offset !== undefined) queryParams.append('offset', params.offset.toString());
+    if (params.agentName) queryParams.append('agentName', params.agentName);
+    if (params.agentType) queryParams.append('agentType', params.agentType);
+
+    const url = queryParams.toString()
+      ? `/agent-conversations?${queryParams.toString()}`
+      : '/agent-conversations';
+
+    const response = await apiService.get<Agent2AgentConversationListResponse>(url);
 
     // Add formatted titles to conversations
     if (response.conversations) {
@@ -92,7 +121,7 @@ class Agent2AgentConversationsService {
    * Get conversation by ID
    */
   async getConversation(conversationId: string): Promise<Agent2AgentConversation> {
-    const response = await apiService.get(`/agent-conversations/${conversationId}`);
+    const response = await apiService.get<Agent2AgentConversation>(`/agent-conversations/${conversationId}`);
     return response;
   }
 

@@ -157,10 +157,10 @@ import {
   IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonChip,
   IonGrid, IonRow, IonCol
 } from '@ionic/vue';
-import { llmAnalyticsService } from '@/services/llmAnalyticsService';
+import { llmAnalyticsService, type LlmUsageDetail } from '@/services/llmAnalyticsService';
 
 const route = useRoute();
-const details = ref<any>(null);
+const details = ref<LlmUsageDetail | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -170,9 +170,9 @@ onMounted(async () => {
   loading.value = true;
   try {
     const resp = await llmAnalyticsService.getUsageDetails(runId);
-    details.value = resp?.data || resp; // handle both wrapped/unwrapped
-  } catch (err: any) {
-    error.value = err?.message || 'Failed to load usage details';
+    details.value = resp;
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to load usage details';
   } finally {
     loading.value = false;
   }

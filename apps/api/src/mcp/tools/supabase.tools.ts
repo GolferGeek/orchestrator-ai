@@ -269,7 +269,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         throw new Error(`Schema query failed: ${response.statusText}`);
       }
 
-      const _data = await response.json();
+      const data = await this.parseJsonValue(response, 'Supabase schema query');
+      const schema = this.ensureJsonCollection(
+        data,
+        'Supabase schema query',
+      );
 
       return {
         content: [
@@ -277,7 +281,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                schema: _data,
+                schema,
                 timestamp: new Date().toISOString(),
                 table_filter: table_name || 'all tables',
               },
@@ -314,7 +318,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         throw new Error(`SQL execution failed: ${response.statusText}`);
       }
 
-      const _data = await response.json();
+      const data = await this.parseJsonValue(response, 'Supabase SQL execution');
+      const results = this.ensureJsonCollection(
+        data,
+        'Supabase SQL execution',
+      );
 
       return {
         content: [
@@ -322,8 +330,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             type: 'text',
             text: JSON.stringify(
               {
-                results: _data,
-                query: query,
+                results,
+                query,
                 timestamp: new Date().toISOString(),
               },
               null,
@@ -388,13 +396,14 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         throw new Error(`Data read failed: ${response.statusText}`);
       }
 
-      const _data = await response.json();
+      const data = await this.parseJsonValue(response, 'Supabase data read');
+      const payload = this.ensureJsonCollection(data, 'Supabase data read');
 
       return {
         content: [
           {
             type: 'text',
-            text: this.formatData(_data, format),
+            text: this.formatData(payload, format),
           },
         ],
       };
@@ -424,13 +433,14 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         throw new Error(`Query execution failed: ${response.statusText}`);
       }
 
-      const _data = await response.json();
+      const data = await this.parseJsonValue(response, 'Supabase query execution');
+      const payload = this.ensureJsonCollection(data, 'Supabase query execution');
 
       return {
         content: [
           {
             type: 'text',
-            text: this.formatData(_data, format, analysis_type),
+            text: this.formatData(payload, format, analysis_type),
           },
         ],
       };
@@ -612,6 +622,32 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     }
 
     return summary;
+  }
+
+  private async parseJsonValue(
+    response: { json(): Promise<unknown> },
+    context: string,
+  ): Promise<unknown> {
+    try {
+      return await response.json();
+    } catch (error) {
+      throw new Error(
+        `${context} did not return valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  private ensureJsonCollection(
+    value: unknown,
+    context: string,
+  ): unknown[] | Record<string, unknown> {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (value && typeof value === 'object') {
+      return value as Record<string, unknown>;
+    }
+    throw new Error(`${context} expected JSON object or array payload`);
   }
 
   /**
