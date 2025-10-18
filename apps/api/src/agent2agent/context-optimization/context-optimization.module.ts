@@ -5,14 +5,12 @@ import { ContextMetricsListener } from './context-metrics.listener';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { AgentConversationsModule } from '../conversations/agent-conversations.module';
 import { DeliverablesModule } from '../deliverables/deliverables.module';
-import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
   imports: [
     SupabaseModule,
     AgentConversationsModule,
     DeliverablesModule,
-    ProjectsModule,
   ],
   controllers: [ContextMetricsController],
   providers: [ContextOptimizationService, ContextMetricsListener],

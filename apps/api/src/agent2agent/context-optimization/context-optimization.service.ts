@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AgentConversationsService } from '../conversations/agent-conversations.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
-import { ProjectsService } from '../projects/projects.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface ConversationMessage {
@@ -18,7 +17,6 @@ export class ContextOptimizationService {
   constructor(
     private readonly agentConversationsService: AgentConversationsService,
     private readonly deliverablesService: DeliverablesService,
-    private readonly projectsService: ProjectsService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -83,10 +81,6 @@ export class ContextOptimizationService {
     if (!type || !id) return null;
 
     try {
-      if (type === 'project') {
-        // Read-only context; implement as needed
-        return await (this.projectsService as any)?.getProjectContext?.(id);
-      }
       if (type === 'deliverable') {
         // Read-only context; implement as needed (userId required in real impl)
         return await this.deliverablesService.findOne(

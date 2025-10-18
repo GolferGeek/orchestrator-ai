@@ -25,7 +25,6 @@ import { AgentConversationsModule } from './conversations/agent-conversations.mo
 import { TasksModule } from './tasks/tasks.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
 import { PlansModule } from './plans/plans.module';
-import { ProjectsModule } from './projects/projects.module';
 import { ContextOptimizationModule } from './context-optimization/context-optimization.module';
 import { MCPModule } from '../mcp/mcp.module';
 import { HttpModule } from '@nestjs/axios';
@@ -43,7 +42,6 @@ import { HttpModule } from '@nestjs/axios';
     TasksModule,
     DeliverablesModule,
     PlansModule,
-    ProjectsModule,
     ContextOptimizationModule,
   ],
   controllers: [Agent2AgentController, AgentApprovalsActionsController],
