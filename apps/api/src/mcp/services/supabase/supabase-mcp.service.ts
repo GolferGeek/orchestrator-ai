@@ -21,7 +21,7 @@ function getErrorMessage(error: unknown): string {
   }
   // Handle Supabase error objects
   if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as any).message);
+    return String((error as { message: unknown }).message);
   }
   return String(error);
 }
@@ -120,7 +120,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      let result: any;
+      let result: unknown;
 
       switch (request.method) {
         case 'get_server_info':
@@ -181,7 +181,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Direct tool execution (for internal use)
    */
-  async executeToolInternal(toolName: string, args: any = {}): Promise<any> {
+  async executeToolInternal(toolName: string, args: unknown = {}): Promise<unknown> {
     if (!this.isReady) {
       throw new Error('MCP server is not ready');
     }
@@ -226,7 +226,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
     tables: string[],
     domainHint?: string,
     maxRows = 100,
-  ): Promise<any> {
+  ): Promise<unknown> {
     return await this.executeToolInternal('generate-sql', {
       query,
       tables,
@@ -238,7 +238,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Execute SQL query (convenience method)
    */
-  async executeSQL(sql: string, maxRows = 1000): Promise<any> {
+  async executeSQL(sql: string, maxRows = 1000): Promise<unknown> {
     return await this.executeTool({
       name: 'execute-sql',
       arguments: {
@@ -252,11 +252,11 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
    * Analyze query results (convenience method)
    */
   async analyzeResults(
-    data: any[],
+    data: unknown[],
     prompt: string,
     provider = 'anthropic',
     model = 'claude-3-5-sonnet-20241022',
-  ): Promise<any> {
+  ): Promise<unknown> {
     return await this.executeTool({
       name: 'analyze-results',
       arguments: {
@@ -281,7 +281,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Execute a tool (for MCPService compatibility)
    */
-  async executeTool(request: { name: string; arguments?: any }): Promise<any> {
+  async executeTool(request: { name: string; arguments?: unknown }): Promise<unknown> {
     if (!this.isReady) {
       throw new Error('MCP server is not ready');
     }
@@ -298,7 +298,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get server statistics and metrics
    */
-  getServerMetrics(): any {
+  getServerMetrics(): unknown {
     return {
       server_name: 'Supabase MCP Server',
       status: this.isReady ? 'ready' : 'initializing',

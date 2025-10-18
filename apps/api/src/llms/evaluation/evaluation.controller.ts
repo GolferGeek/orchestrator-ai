@@ -63,7 +63,7 @@ export class EvaluationController {
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
     const result = await this.evaluationService.evaluateMessage(
-      user.id,
+      user.userId,
       messageId,
       evaluationDto,
     );
@@ -87,7 +87,7 @@ export class EvaluationController {
     @Param('messageId') messageId: string,
   ): Promise<EnhancedMessageResponseDto> {
     const message = await this.evaluationService.getMessageWithEvaluation(
-      user.id,
+      user.userId,
       messageId,
     );
     if (!message) {
@@ -122,7 +122,7 @@ export class EvaluationController {
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
   ): Promise<EnhancedMessageResponseDto[]> {
-    return this.evaluationService.getSessionEvaluations(user.id, sessionId, {
+    return this.evaluationService.getSessionEvaluations(user.userId, sessionId, {
       minRating,
       hasNotes,
     });
@@ -233,7 +233,7 @@ export class EvaluationController {
     const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
     const sanitizedPage = Math.max(page, 1);
 
-    return this.evaluationService.getAllUserEvaluations(user.id, {
+    return this.evaluationService.getAllUserEvaluations(user.userId, {
       page: sanitizedPage,
       limit: sanitizedLimit,
       minRating,
@@ -316,7 +316,7 @@ export class EvaluationController {
       evaluationCount: number;
     }>;
   }> {
-    return this.evaluationService.getEvaluationStats(user.id, {
+    return this.evaluationService.getEvaluationStats(user.userId, {
       startDate,
       endDate,
       providerId,
@@ -371,7 +371,7 @@ export class EvaluationController {
     @Query('endDate') endDate?: string,
     @Query('includeContent') includeContent?: boolean,
   ): Promise<any[] | string> {
-    return this.evaluationService.exportUserFeedback(user.id, {
+    return this.evaluationService.exportUserFeedback(user.userId, {
       format,
       startDate,
       endDate,
@@ -398,7 +398,7 @@ export class EvaluationController {
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
     const result = await this.evaluationService.updateMessageEvaluation(
-      user.id,
+      user.userId,
       messageId,
       evaluationDto,
     );
@@ -478,7 +478,7 @@ export class EvaluationController {
     recommendations: string[];
   }> {
     const modelIds = models.split(',').map((id) => id.trim());
-    return this.evaluationService.compareModels(user.id, modelIds, {
+    return this.evaluationService.compareModels(user.userId, modelIds, {
       startDate,
       endDate,
     });
@@ -519,7 +519,7 @@ export class EvaluationController {
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<any> {
     const result = await this.evaluationService.evaluateTask(
-      user.id,
+      user.userId,
       taskId,
       evaluationDto,
     );
@@ -558,7 +558,7 @@ export class EvaluationController {
     @Param('taskId') taskId: string,
   ): Promise<any> {
     const task = await this.evaluationService.getTaskWithEvaluation(
-      user.id,
+      user.userId,
       taskId,
     );
     if (!task) {
@@ -601,7 +601,7 @@ export class EvaluationController {
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<any> {
     const result = await this.evaluationService.updateTaskEvaluation(
-      user.id,
+      user.userId,
       taskId,
       evaluationDto,
     );
@@ -657,7 +657,7 @@ export class EvaluationController {
     @Query('has_notes') hasNotes?: boolean,
   ): Promise<any[]> {
     return this.evaluationService.getConversationTaskEvaluations(
-      user.id,
+      user.userId,
       conversationId,
       {
         minRating,

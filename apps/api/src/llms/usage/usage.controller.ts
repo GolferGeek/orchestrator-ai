@@ -67,7 +67,7 @@ export class UsageController {
     @Query('granularity')
     _granularity: 'daily' | 'weekly' | 'monthly' = 'daily',
   ): Promise<UsageStatsResponseDto> {
-    return this.usageService.getUserStats(user.id, {
+    return this.usageService.getUserStats(user.userId, {
       startDate,
       endDate,
       providerId,
@@ -163,7 +163,7 @@ export class UsageController {
       requests: number;
     }>;
   }> {
-    return this.usageService.getCostSummary(user.id, {
+    return this.usageService.getCostSummary(user.userId, {
       startDate,
       endDate,
       groupBy: _groupBy,
@@ -247,7 +247,7 @@ export class UsageController {
       rank: number;
     }>
   > {
-    return this.usageService.getModelPerformance(user.id, {
+    return this.usageService.getModelPerformance(user.userId, {
       startDate,
       endDate,
       minUsage,
@@ -359,7 +359,7 @@ export class UsageController {
       priority: string;
     }>;
   }> {
-    return this.usageService.getSpendingInsights(user.id, lookbackDays);
+    return this.usageService.getSpendingInsights(user.userId, lookbackDays);
   }
 
   @Get('export')
@@ -409,7 +409,7 @@ export class UsageController {
     @Query('end_date') endDate?: string,
     @Query('include_details') includeDetails?: boolean,
   ): Promise<any[] | string> {
-    return this.usageService.exportUsageData(user.id, {
+    return this.usageService.exportUsageData(user.userId, {
       format,
       startDate,
       endDate,
@@ -490,6 +490,6 @@ export class UsageController {
       estimatedSavings: number;
     }>;
   }> {
-    return this.usageService.getBudgetStatus(user.id, monthlyBudget);
+    return this.usageService.getBudgetStatus(user.userId, monthlyBudget);
   }
 }

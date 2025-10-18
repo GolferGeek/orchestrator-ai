@@ -356,7 +356,7 @@ export class HumanLoopService {
   /**
    * Map database record to HumanInput type
    */
-  private mapToHumanInput(data: any): HumanInput {
+  private mapToHumanInput(data: unknown): HumanInput {
     const converted = snakeToCamel(data) as Record<string, unknown>;
 
     return {

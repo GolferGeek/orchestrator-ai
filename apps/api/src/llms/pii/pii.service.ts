@@ -38,8 +38,8 @@ export interface PIIPolicyResult {
 export interface PIILLMSanitizationResult {
   sanitizedSystemPrompt: string;
   sanitizedUserMessage: string;
-  reversalContext: any;
-  sanitizationMetrics: any;
+  reversalContext: unknown;
+  sanitizationMetrics: unknown;
   shouldApplySanitization: boolean;
 }
 
@@ -285,13 +285,14 @@ export class PIIService {
   private continueNormalProcessing(
     convertedMatches: PIIMatch[],
     prompt: string,
-    options: any,
+    options: unknown,
     startTime: number,
   ): Promise<{ metadata: PIIProcessingMetadata; originalPrompt: string }> {
     // Check if this is a local provider (Ollama) - skip PII blocking for local providers
+    const opts = options as { providerName?: string; provider?: string };
     const isLocalProvider =
-      options.providerName?.toLowerCase() === 'ollama' ||
-      options.provider?.toLowerCase() === 'ollama';
+      opts.providerName?.toLowerCase() === 'ollama' ||
+      opts.provider?.toLowerCase() === 'ollama';
 
     if (isLocalProvider) {
       this.logger.debug(

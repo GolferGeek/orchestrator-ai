@@ -90,11 +90,12 @@ async function discoverFullSchema(): Promise<void> {
 
   // Group by table
   const tableMap = new Map<string, any[]>();
-  tableInfoData.forEach((row: any) => {
-    if (!tableMap.has(row.table_name)) {
-      tableMap.set(row.table_name, []);
+  tableInfoData.forEach((row: unknown) => {
+    const r = row as { table_name: string };
+    if (!tableMap.has(r.table_name)) {
+      tableMap.set(r.table_name, []);
     }
-    tableMap.get(row.table_name)!.push(row);
+    tableMap.get(r.table_name)!.push(row);
   });
 
   // Discover foreign key relationships
@@ -163,13 +164,16 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
       return inferRelationshipsFromNaming();
     }
 
-    const relationships: SchemaRelationship[] = data.map((row: any) => ({
-      fromTable: row.from_table,
-      fromColumn: row.from_column,
-      toTable: row.to_table,
-      toColumn: row.to_column,
-      relationshipType: 'many-to-one' as const,
-    }));
+    const relationships: SchemaRelationship[] = data.map((row: unknown) => {
+      const r = row as { from_table: string; from_column: string; to_table: string; to_column: string };
+      return {
+        fromTable: r.from_table,
+        fromColumn: r.from_column,
+        toTable: r.to_table,
+        toColumn: r.to_column,
+        relationshipType: 'many-to-one' as const,
+      };
+    });
 
     return relationships;
   } catch {
@@ -214,7 +218,7 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
       return ['id']; // Common default
     }
 
-    return data.map((row: any) => row.column_name);
+    return data.map((row: unknown) => (row as { column_name: string }).column_name);
   } catch {
     return ['id']; // Fallback
   }
@@ -224,21 +228,22 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
  * Process column information and add relationship context
  */
 function processColumn(
-  columnData: any,
+  columnData: unknown,
   relationships: SchemaRelationship[],
 ): TableColumn {
+  const col = columnData as { table_name: string; column_name: string; data_type: string; is_nullable: string; column_default: string | null };
   const fkRelation = relationships.find(
     (rel) =>
-      rel.fromTable === columnData.table_name &&
-      rel.fromColumn === columnData.column_name,
+      rel.fromTable === col.table_name &&
+      rel.fromColumn === col.column_name,
   );
 
   return {
-    name: columnData.column_name,
-    type: columnData.data_type,
-    nullable: columnData.is_nullable === 'YES',
-    default: columnData.column_default,
-    isPrimaryKey: columnData.column_name === 'id', // Common convention
+    name: col.column_name,
+    type: col.data_type,
+    nullable: col.is_nullable === 'YES',
+    default: col.column_default,
+    isPrimaryKey: col.column_name === 'id', // Common convention
     isForeignKey: !!fkRelation,
     referencedTable: fkRelation?.toTable,
     referencedColumn: fkRelation?.toColumn,

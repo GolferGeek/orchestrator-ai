@@ -10,14 +10,17 @@ import { SupabaseModule } from '@/supabase/supabase.module';
 import { SupabaseService } from '@/supabase/supabase.service';
 
 function deepMerge<T>(base: T, patch: Partial<T>): T {
-  const out: any = Array.isArray(base)
-    ? [...(base as any)]
-    : { ...(base as any) };
+  const out = (Array.isArray(base)
+    ? [...(base as unknown as unknown[])]
+    : { ...(base as unknown as Record<string, unknown>) }) as unknown as T;
   for (const [k, v] of Object.entries(patch || {})) {
     if (v && typeof v === 'object' && !Array.isArray(v)) {
-      out[k] = deepMerge(out[k] || {}, v as any);
+      (out as Record<string, unknown>)[k] = deepMerge(
+        (out as Record<string, unknown>)[k] || {},
+        v as unknown as Partial<unknown>,
+      );
     } else {
-      out[k] = v;
+      (out as Record<string, unknown>)[k] = v;
     }
   }
   return out as T;

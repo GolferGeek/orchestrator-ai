@@ -216,12 +216,13 @@ export class MCPController {
   /**
    * Validate JSON-RPC 2.0 request format
    */
-  private isValidJsonRpcRequest(request: any): request is MCPJsonRpcRequest {
+  private isValidJsonRpcRequest(request: unknown): request is MCPJsonRpcRequest {
+    const req = request as { jsonrpc?: string; method?: unknown; id?: unknown };
     return (
       request &&
-      request.jsonrpc === '2.0' &&
-      typeof request.method === 'string' &&
-      request.id !== undefined // id can be string, number, or null
+      req.jsonrpc === '2.0' &&
+      typeof req.method === 'string' &&
+      req.id !== undefined // id can be string, number, or null
     );
   }
 
@@ -230,7 +231,7 @@ export class MCPController {
    */
   private createSuccessResponse(
     id: string | number | null,
-    result: any,
+    result: unknown,
   ): MCPJsonRpcResponse {
     return {
       jsonrpc: '2.0',

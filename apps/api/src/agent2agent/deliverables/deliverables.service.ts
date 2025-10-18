@@ -967,12 +967,22 @@ export class DeliverablesService implements IActionHandler {
       const deliverables = data || [];
       const deliverableResults = await Promise.all(
         deliverables.map(async (deliverableData: unknown) => {
-          const deliverable = this.mapToDeliverable(deliverableData);
+          const typedData = deliverableData as unknown as {
+            id: string;
+            user_id: string;
+            conversation_id?: string;
+            agent_name?: string;
+            title: string;
+            type?: string;
+            created_at: string | Date;
+            updated_at: string | Date;
+          };
+          const deliverable = this.mapToDeliverable(typedData);
 
           // Get current version using the versions service
           try {
             const currentVersion = await this.versionsService.getCurrentVersion(
-              deliverableData.id,
+              typedData.id,
               userId,
             );
             if (currentVersion) {
@@ -981,7 +991,7 @@ export class DeliverablesService implements IActionHandler {
           } catch (error) {
             // Continue without current version
             this.logger.warn(
-              `Failed to load current version for deliverable ${deliverableData.id}`,
+              `Failed to load current version for deliverable ${typedData.id}`,
               error instanceof Error ? error : { message: String(error) },
             );
           }

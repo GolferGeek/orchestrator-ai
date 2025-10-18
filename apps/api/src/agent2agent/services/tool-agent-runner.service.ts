@@ -243,7 +243,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           conversationId,
           userId,
           agentSlug: definition.slug,
-          taskId: taskId || undefined,
+          taskId: (typeof taskId === 'string' ? taskId : undefined),
         },
       );
 
@@ -378,16 +378,17 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       if (Array.isArray(result.content)) {
         // Handle array of content items
         return result.content.map((item: unknown) => {
-          if (item.type === 'text') {
-            return item.text;
-          } else if (item.type === 'image') {
-            return { type: 'image', data: item.data, mimeType: item.mimeType };
-          } else if (item.type === 'resource') {
+          const itemRec = item as Record<string, unknown>;
+          if (itemRec.type === 'text') {
+            return itemRec.text;
+          } else if (itemRec.type === 'image') {
+            return { type: 'image', data: itemRec.data, mimeType: itemRec.mimeType };
+          } else if (itemRec.type === 'resource') {
             return {
               type: 'resource',
-              uri: item.uri,
-              text: item.text,
-              mimeType: item.mimeType,
+              uri: itemRec.uri,
+              text: itemRec.text,
+              mimeType: itemRec.mimeType,
             };
           }
           return item;
@@ -395,8 +396,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       }
       return result.content;
     } else {
-      const errorContent = result.content as Record<string, unknown>;
-      throw new Error(errorContent?.[0]?.text || 'Tool execution failed');
+      const errorContent = result.content as unknown as Array<Record<string, unknown>>;
+      throw new Error((errorContent?.[0]?.text as string) || 'Tool execution failed');
     }
   }
 

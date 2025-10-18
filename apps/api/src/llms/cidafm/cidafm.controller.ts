@@ -89,7 +89,7 @@ export class CIDAFMController {
     @CurrentUser() user: { userId: string },
     @Param('type') type: '^' | '&' | '!',
   ): Promise<CIDAFMCommandResponseDto[]> {
-    return this.cidafmService.findAllCommands(user.id, { type });
+    return this.cidafmService.findAllCommands(user.userId, { type });
   }
 
   @Get('commands/:id')
@@ -126,7 +126,7 @@ export class CIDAFMController {
     @Body() createCommandDto: { commandId: string },
   ): Promise<CIDAFMCommandResponseDto> {
     return this.cidafmService.addUserCommand(
-      user.id,
+      user.userId,
       createCommandDto.commandId,
     );
   }
@@ -147,7 +147,7 @@ export class CIDAFMController {
     @Body() updateCommandDto: { isActive: boolean },
   ): Promise<CIDAFMCommandResponseDto> {
     const command = await this.cidafmService.updateUserCommand(
-      user.id,
+      user.userId,
       id,
       updateCommandDto.isActive,
     );
@@ -167,7 +167,7 @@ export class CIDAFMController {
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
   ): Promise<{ message: string }> {
-    const deleted = await this.cidafmService.deleteUserCommand(user.id, id);
+    const deleted = await this.cidafmService.deleteUserCommand(user.userId, id);
     if (!deleted) {
       throw new HttpException('Command not found', HttpStatus.NOT_FOUND);
     }
@@ -205,7 +205,7 @@ export class CIDAFMController {
     processingNotes: string[];
   }> {
     return this.cidafmService.processMessage(
-      user.id,
+      user.userId,
       body.message,
       body.current_state,
       body.session_id,
@@ -238,7 +238,7 @@ export class CIDAFMController {
     session_state: Record<string, any>;
     available_commands: CIDAFMCommandResponseDto[];
   }> {
-    return this.cidafmService.getSessionState(user.id, sessionId);
+    return this.cidafmService.getSessionState(user.userId, sessionId);
   }
 
   @Post('state/:sessionId/reset')
@@ -262,7 +262,7 @@ export class CIDAFMController {
     message: string;
     reset_state: Record<string, any>;
   }> {
-    return this.cidafmService.resetSessionState(user.id, sessionId);
+    return this.cidafmService.resetSessionState(user.userId, sessionId);
   }
 
   @Get('help')

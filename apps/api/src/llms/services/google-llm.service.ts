@@ -382,7 +382,7 @@ export class GoogleLLMService extends BaseLLMService {
   /**
    * Google-specific error handling
    */
-  protected handleError(error: any, context: string): never {
+  protected handleError(error: unknown, context: string): never {
     try {
       const mapped = LLMErrorMapper.fromGoogleError(
         error,
@@ -436,23 +436,26 @@ export class GoogleLLMService extends BaseLLMService {
   /**
    * Check if content was blocked by safety filters
    */
-  private checkSafetyBlocking(response: any): {
+  private checkSafetyBlocking(response: unknown): {
     blocked: boolean;
     reason?: string;
   } {
-    const candidate = response.candidates?.[0];
+    const r = response as { candidates?: Array<{ finishReason?: string; safetyRatings?: unknown[] }> };
+    const candidate = r.candidates?.[0];
 
     if (candidate?.finishReason === 'SAFETY') {
       const safetyRatings = candidate.safetyRatings || [];
       const blockedRatings = safetyRatings.filter(
-        (rating: any) =>
-          rating.probability === 'HIGH' || rating.probability === 'MEDIUM',
+        (rating: unknown) => {
+          const rat = rating as { probability?: string };
+          return rat.probability === 'HIGH' || rat.probability === 'MEDIUM';
+        },
       );
 
       if (blockedRatings.length > 0) {
         return {
           blocked: true,
-          reason: `Content blocked due to: ${blockedRatings.map((r: any) => r.category).join(', ')}`,
+          reason: `Content blocked due to: ${blockedRatings.map((r: unknown) => (r as { category?: string }).category).join(', ')}`,
         };
       }
     }

@@ -570,18 +570,23 @@ export class SlackMCPTools implements IMCPToolHandler {
     const { channel, count = 100, oldest, latest, inclusive = true } = args;
 
     try {
+      const channelStr = channel as unknown as string;
+      const countNum = count as unknown as number;
+      const inclusiveBool = inclusive as unknown as boolean;
       const params = new URLSearchParams({
-        channel,
-        limit: count.toString(),
-        inclusive: inclusive.toString(),
+        channel: channelStr,
+        limit: countNum.toString(),
+        inclusive: inclusiveBool.toString(),
       });
 
-      if (oldest) {
-        params.append('oldest', oldest);
+      const oldestStr = oldest as unknown as string | undefined;
+      if (oldestStr) {
+        params.append('oldest', oldestStr);
       }
 
-      if (latest) {
-        params.append('latest', latest);
+      const latestStr = latest as unknown as string | undefined;
+      if (latestStr) {
+        params.append('latest', latestStr);
       }
 
       const response = await this.makeSlackRequest(
