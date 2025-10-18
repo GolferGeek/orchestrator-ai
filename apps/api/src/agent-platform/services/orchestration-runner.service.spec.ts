@@ -82,8 +82,8 @@ describe('OrchestrationRunnerService', () => {
             slug: 'assistant',
             type: 'specialist',
             displayName: 'Assistant',
-          }),
-        }),
+          }) as Record<string, unknown>,
+        }) as Record<string, unknown>,
       }),
     );
     expect(result.id).toBe('run-1');

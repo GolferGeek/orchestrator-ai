@@ -4,7 +4,10 @@ import { OrchestrationEventsService } from './orchestration-events.service';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
-import { OrchestrationRunSnapshot } from '../types/orchestration-events.types';
+import {
+  OrchestrationRunSnapshot,
+  OrchestrationStepSnapshot,
+} from '../types/orchestration-events.types';
 
 const createRun = (
   overrides: Partial<OrchestrationRunRecord> = {},
@@ -98,6 +101,26 @@ const createRunSnapshot = (
     completedAt: null,
   },
   agent: { slug: 'test-agent', id: '', type: 'specialist', displayName: '' },
+  ...overrides,
+});
+
+const createStepSnapshot = (
+  overrides: Partial<OrchestrationStepSnapshot> = {},
+): OrchestrationStepSnapshot => ({
+  id: 'step-0',
+  runId: 'run-1',
+  index: 0,
+  status: 'completed',
+  agentSlug: 'test-agent',
+  mode: 'sequential',
+  attemptNumber: 1,
+  dependsOn: [],
+  conversationId: 'conv-1',
+  startedAt: new Date().toISOString(),
+  completedAt: new Date().toISOString(),
+  metadata: {},
+  outputSummary: [],
+  errorDetails: null,
   ...overrides,
 });
 

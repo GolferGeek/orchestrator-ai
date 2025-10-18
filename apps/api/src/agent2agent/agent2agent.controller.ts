@@ -272,7 +272,7 @@ export class Agent2AgentController {
           this.logger.debug(
             `🔍 Using organization_slug from conversation: ${conversation.organization_slug}`,
           );
-          org = conversation.organization_slug;
+          org = conversation.organization_slug as string;
         }
       } catch (error) {
         // Conversation doesn't exist yet, will be created with org from URL
@@ -439,7 +439,7 @@ export class Agent2AgentController {
         // Return JSON-RPC 2.0 success response
         return {
           jsonrpc: '2.0',
-          id: jsonrpc.id ?? null,
+          id: (jsonrpc.id ?? null) as string | number | null,
           result,
         } as A2ATaskSuccessResponse;
       }
@@ -1153,7 +1153,7 @@ export class Agent2AgentController {
       : 'Invalid task request payload.';
   }
 
-  private buildJsonRpcError(id: any, error: unknown): JsonRpcErrorEnvelope {
+  private buildJsonRpcError(id: string | number | null, error: unknown): JsonRpcErrorEnvelope {
     const { code, message, data } = this.mapExceptionToError(error);
 
     // Return JSON-RPC 2.0 error response
@@ -1259,8 +1259,8 @@ export class Agent2AgentController {
       orchestrationRunId: dto.orchestrationRunId ?? null,
       jsonrpc: jsonrpc
         ? {
-            id: jsonrpc.id ?? null,
-            method: jsonrpc.method ?? null,
+            id: (jsonrpc.id ?? null) as string | number | null,
+            method: (jsonrpc.method ?? null) as string | null,
           }
         : null,
     };

@@ -189,7 +189,7 @@ export class OrchestrationOutputMapper {
 
     if (typeof value === 'object') {
       try {
-        return JSON.parse(JSON.stringify(value));
+        return JSON.parse(JSON.stringify(value)) as T;
       } catch {
         // Fallback to original reference if cloning fails
         return value;

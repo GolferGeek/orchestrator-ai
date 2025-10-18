@@ -102,9 +102,9 @@ export class DeliverablesService implements IActionHandler {
    * 9. copy_version - Duplicate a version
    * 10. delete - Delete entire deliverable
    */
-  async executeAction<T = unknown>(
+  async executeAction<T = unknown, TParams = DeliverableActionParams>(
     action: string,
-    params: DeliverableActionParams,
+    params: TParams,
     context: ActionExecutionContext,
   ): Promise<ActionResult<T>> {
     try {

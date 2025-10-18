@@ -61,7 +61,7 @@ export class ContextOptimizationService {
     workProductId?: string;
     tokenBudget: number;
   }): Promise<ConversationMessage[]> {
-    const essentialContext: any = await this.extractWorkProductContext(
+    const essentialContext: unknown = await this.extractWorkProductContext(
       request.workProductType,
       request.workProductId,
     );
@@ -77,7 +77,7 @@ export class ContextOptimizationService {
   private async extractWorkProductContext(
     type?: 'project' | 'deliverable',
     id?: string,
-  ): Promise<any> {
+  ): Promise<unknown> {
     if (!type || !id) return null;
 
     try {
@@ -99,7 +99,7 @@ export class ContextOptimizationService {
 
   private scoreMessageRelevance(
     messages: ConversationMessage[],
-    essentialContext: any,
+    essentialContext: unknown,
   ): Array<{ message: ConversationMessage; score: number; tokens: number }> {
     return messages.map((m, idx) => {
       const tokens = this.estimateTokens(m);

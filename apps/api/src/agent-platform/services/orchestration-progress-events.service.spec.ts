@@ -132,8 +132,8 @@ describe('OrchestrationProgressEventsService', () => {
             metadata: expect.objectContaining({
               eventType: 'orchestration.run.created',
               progressPercentage: 33,
-            }),
-          }),
+            }) as never,
+          }) as never,
         }),
       );
     });
@@ -274,7 +274,7 @@ describe('OrchestrationProgressEventsService', () => {
         expect.objectContaining({
           status: 'running',
           progress: 33,
-          progressMessage: expect.stringContaining('completed'),
+          progressMessage: expect.stringContaining('completed') as never,
         }),
       );
     });
@@ -365,9 +365,9 @@ describe('OrchestrationProgressEventsService', () => {
           event: 'orchestration.run.created',
           runId: 'run-1',
           data: expect.objectContaining({
-            timestamp: expect.any(String),
-            run: expect.any(Object),
-          }),
+            timestamp: expect.any(String) as never,
+            run: expect.any(Object) as never,
+          }) as never,
         }),
       );
     });
@@ -464,8 +464,8 @@ describe('OrchestrationProgressEventsService', () => {
             metadata: expect.objectContaining({
               stepId: 'step-1',
               stepIndex: 0,
-            }),
-          }),
+            }) as never,
+          }) as never,
         }),
       );
     });
@@ -488,8 +488,8 @@ describe('OrchestrationProgressEventsService', () => {
             metadata: expect.objectContaining({
               stepId: null,
               stepIndex: null,
-            }),
-          }),
+            }) as never,
+          }) as never,
         }),
       );
     });

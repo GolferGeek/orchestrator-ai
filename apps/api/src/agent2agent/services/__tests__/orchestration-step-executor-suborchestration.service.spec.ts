@@ -20,6 +20,18 @@ import { OrchestrationStepRecord } from '@agent-platform/interfaces/orchestratio
 import { OrchestrationResolvedDefinition } from '@agent-platform/types/orchestration-definition.types';
 import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 
+type StepProcessResult = {
+  status: 'completed' | 'checkpoint' | 'failed';
+  run: OrchestrationRunRecord;
+};
+
+type ServiceWithPrivateMethods = OrchestrationStepExecutorService & {
+  executeSubOrchestrationStep(
+    run: OrchestrationRunRecord,
+    step: OrchestrationStepRecord,
+  ): Promise<StepProcessResult>;
+};
+
 describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
   let service: OrchestrationStepExecutorService;
   let mockExecution: jest.Mocked<OrchestrationExecutionService>;
@@ -347,10 +359,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      const result = await (service as any).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      const result = await (
+        service as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('completed');
       expect(
@@ -421,7 +432,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as any).executeSubOrchestrationStep(
+      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );
@@ -470,7 +481,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as any).executeSubOrchestrationStep(
+      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );
@@ -526,7 +537,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as any).executeSubOrchestrationStep(
+      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         stepWithoutInheritance,
       );
@@ -559,10 +570,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (service as any).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      const result = await (
+        service as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
@@ -599,10 +609,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (service as any).executeSubOrchestrationStep(
-        mockParentRun,
-        stepWithoutName,
-      );
+      const result = await (
+        service as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, stepWithoutName);
 
       expect(result.status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
@@ -639,10 +648,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (service as any).executeSubOrchestrationStep(
-        parentWithoutAgent,
-        stepWithoutOwner,
-      );
+      const result = await (
+        service as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(parentWithoutAgent, stepWithoutOwner);
 
       expect(result.status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
@@ -674,10 +682,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (service as any).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      const result = await (
+        service as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
@@ -722,10 +729,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         step: { ...runningStep, status: 'failed' as const },
       });
 
-      const result = await (service as any).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      const result = await (
+        service as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
@@ -771,10 +777,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         step: { ...runningStep, status: 'failed' as const },
       });
 
-      const result = await (service as any).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      const result = await (
+        service as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
@@ -819,7 +824,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as any).executeSubOrchestrationStep(
+      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );
@@ -884,7 +889,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as any).executeSubOrchestrationStep(
+      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );

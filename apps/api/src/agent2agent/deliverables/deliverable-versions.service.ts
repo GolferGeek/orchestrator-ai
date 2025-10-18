@@ -946,7 +946,7 @@ Please output ONLY the merged content, maintaining the same format as the origin
 
     const content = typeof response === 'string' ? response : response.content;
     const responseMetadata =
-      typeof response === 'string' ? undefined : (response.metadata as Record<string, unknown> | undefined);
+      typeof response === 'string' ? undefined : (response.metadata as unknown as Record<string, unknown> | undefined);
 
     return {
       content,

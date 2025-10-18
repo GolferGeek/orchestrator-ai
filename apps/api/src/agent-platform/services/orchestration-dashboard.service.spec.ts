@@ -1364,10 +1364,10 @@ describe('OrchestrationDashboardService', () => {
                 manual: true,
                 requestedBy: 'user-123',
                 note: 'Accepting previous deliverable',
-              }),
-            }),
-          }),
-        }),
+              }) as Record<string, unknown>,
+            }) as Record<string, unknown>,
+          }) as Record<string, unknown>,
+        }) as Record<string, unknown>,
       );
       expect(result.status).toBe('running');
     });
@@ -1506,10 +1506,10 @@ describe('OrchestrationDashboardService', () => {
                 manual: true,
                 requestedBy: 'user-123',
                 note: 'Step no longer needed',
-              }),
-            }),
-          }),
-        }),
+              }) as Record<string, unknown>,
+            }) as Record<string, unknown>,
+          }) as Record<string, unknown>,
+        }) as Record<string, unknown>,
       );
     });
 
@@ -1578,7 +1578,7 @@ describe('OrchestrationDashboardService', () => {
           runId: 'run-1',
           status: 'aborted',
           completedAt: expect.any(String),
-        }),
+        }) as Record<string, unknown>,
       );
       expect(result.status).toBe('aborted');
     });

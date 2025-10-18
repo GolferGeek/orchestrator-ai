@@ -8,6 +8,11 @@ type DryRunResult = {
   logs?: string[];
 };
 
+type HandlerFunction = (
+  input: unknown,
+  ctx: { services: Record<string, unknown> }
+) => unknown | Promise<unknown>;
+
 @Injectable()
 export class AgentDryRunService {
   async runFunction(
@@ -64,7 +69,8 @@ export class AgentDryRunService {
       }
 
       const ctx = { services: {} };
-      const exec = Promise.resolve().then(() => handler(input, ctx));
+      const typedHandler = handler as HandlerFunction;
+      const exec = Promise.resolve().then(() => typedHandler(input, ctx));
       const timed = this.withTimeout(exec, timeoutMs);
       const result: unknown = await timed;
       return { ok: true, result, logs };

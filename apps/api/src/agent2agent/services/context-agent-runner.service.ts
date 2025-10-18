@@ -354,7 +354,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           deliverableStructureApplied: Boolean(deliverableStructure),
           ioSchemaApplied: Boolean(outputSchema),
           deliverableMetadata: buildDeliverableMetadata(
-            createResult.data.version?.content ?? finalContent,
+            (createResult.data as any).version?.content ?? finalContent,
           ),
           rerun: payload.rerunContext
             ? {
@@ -372,9 +372,9 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       return TaskResponseDto.success(AgentTaskMode.BUILD, {
         content: {
-          deliverable: createResult.data.deliverable,
-          version: createResult.data.version,
-          isNew: createResult.data.isNew,
+          deliverable: (createResult.data as any).deliverable,
+          version: (createResult.data as any).version,
+          isNew: (createResult.data as any).isNew,
         },
         metadata,
       });

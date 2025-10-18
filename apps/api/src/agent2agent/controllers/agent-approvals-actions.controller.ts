@@ -84,7 +84,7 @@ export class AgentApprovalsActionsController {
       request.payload.options = {
         ...(request.payload.options || {}),
         ...body.options,
-      };
+      } as Record<string, unknown>;
     }
     // If caller provided a pre-supplied streamId in metadata, mirror it into payload.metadata for downstream consumers
     if (request.metadata?.streamId) {
@@ -95,7 +95,7 @@ export class AgentApprovalsActionsController {
       request.payload.metadata = {
         ...(request.payload.metadata || {}),
         streamId: request.metadata.streamId,
-      };
+      } as Record<string, unknown>;
     }
 
     const response = await this.gateway.execute(
@@ -105,15 +105,16 @@ export class AgentApprovalsActionsController {
     );
 
     // Attach approval context to response metadata (avoid mutating readonly types)
+    const responseAny = response as unknown as Record<string, unknown>;
     const resp = {
       ...response,
       payload: {
-        ...(response as any).payload,
+        ...(responseAny.payload as Record<string, unknown>),
         metadata: {
-          ...((response as any).payload?.metadata || {}),
+          ...((responseAny.payload as Record<string, unknown>)?.metadata as Record<string, unknown> || {}),
           approvalId: id,
           approvalStatus: 'approved',
-        },
+        } as Record<string, unknown>,
       },
     };
 

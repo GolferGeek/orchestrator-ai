@@ -51,10 +51,18 @@ const createRequest = (
   ...overrides,
 });
 
+type MockRunnerContext = {
+  handlePlan: jest.Mock;
+  executeBuild: jest.Mock;
+  checkpointService?: {
+    resolveCheckpoint: jest.Mock;
+  };
+};
+
 describe('orchestrate.handlers', () => {
   describe('handleOrchestrateAction', () => {
     let definition: AgentRuntimeDefinition;
-    let runnerContext: any;
+    let runnerContext: MockRunnerContext;
 
     beforeEach(() => {
       definition = createAgentDefinition();

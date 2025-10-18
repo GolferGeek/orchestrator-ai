@@ -22,7 +22,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
-    httpServer = app.getHttpServer();
+    httpServer = app.getHttpServer() as unknown;
   });
 
   afterAll(async () => {

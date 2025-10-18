@@ -111,7 +111,7 @@ export async function handleBuildRead(
         );
       }
 
-      const versions = (listResult.data.versions ?? []) as any[];
+      const versions = ((listResult.data as any).versions ?? []) as any[];
       const targetVersion = versions.find(
         (version) => version.id === payload.versionId,
       );
@@ -152,9 +152,9 @@ export async function handleBuildRead(
     }
 
     const responseDeliverable =
-      readResult.data.deliverable ?? deliverableRecord;
+      (readResult.data as any).deliverable ?? deliverableRecord;
     const responseVersion =
-      readResult.data.version ?? deliverableRecord.currentVersion ?? null;
+      (readResult.data as any).version ?? deliverableRecord.currentVersion ?? null;
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
@@ -221,17 +221,18 @@ export async function handleBuildList(
     }
 
     const deliverable = serializeDeliverable(
-      listResult.data.deliverable,
+      (listResult.data as any).deliverable,
       definition,
       userId,
     );
-    const versions = (listResult.data.versions ?? []).map((version: any) =>
+    const rawVersions = (listResult.data as { versions?: unknown[] }).versions ?? [];
+    const versions = rawVersions.map((version: unknown) =>
       serializeDeliverableVersion(version),
     );
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       versionCount: versions.filter(
-        (version: any): version is DeliverableVersionData => Boolean(version),
+        (version): version is DeliverableVersionData => version !== null,
       ).length,
     });
 
@@ -239,7 +240,7 @@ export async function handleBuildList(
       content: {
         deliverables: [deliverable],
         versions: versions.filter(
-          (version: any): version is DeliverableVersionData => Boolean(version),
+          (version): version is DeliverableVersionData => version !== null,
         ),
       },
       metadata,
@@ -325,7 +326,7 @@ export async function handleBuildEdit(
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        editResult.data.version?.content ?? '',
+        (editResult.data as any).version?.content ?? '',
       ),
       source: 'manual-edit',
     });
@@ -333,12 +334,12 @@ export async function handleBuildEdit(
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: {
         deliverable: serializeDeliverable(
-          editResult.data.deliverable,
+          (editResult.data as any).deliverable,
           definition,
           userId,
         ),
         version:
-          serializeDeliverableVersion(editResult.data.version) ?? undefined,
+          serializeDeliverableVersion((editResult.data as any).version) ?? undefined,
       },
       metadata,
     });
@@ -413,7 +414,7 @@ export async function handleBuildRerun(
       );
     }
 
-    const versions = (listResult.data.versions ?? []) as any[];
+    const versions = ((listResult.data as any).versions ?? []) as any[];
     const sourceVersion = versions.find(
       (version) => version.id === payload.versionId,
     );
@@ -548,7 +549,7 @@ export async function handleBuildSetCurrent(
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        result.data.version?.content ?? '',
+        (result.data as any).version?.content ?? '',
       ),
       updatedVersionId: payload.versionId,
     });
@@ -556,11 +557,11 @@ export async function handleBuildSetCurrent(
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: {
         deliverable: serializeDeliverable(
-          result.data.deliverable,
+          (result.data as any).deliverable,
           definition,
           userId,
         ),
-        version: serializeDeliverableVersion(result.data.version) ?? undefined,
+        version: serializeDeliverableVersion((result.data as any).version) ?? undefined,
       },
       metadata,
     });
@@ -619,19 +620,22 @@ export async function handleBuildDeleteVersion(
     }
 
     const deliverable = serializeDeliverable(
-      deleteResult.data.deliverable,
+      (deleteResult.data as any).deliverable,
       definition,
       userId,
     );
 
-    const remainingVersions = (deleteResult.data.remainingVersions ?? []).map(
-      (version: any) => serializeDeliverableVersion(version),
+    const rawRemainingVersions = (
+      deleteResult.data as { remainingVersions?: unknown[] }
+    ).remainingVersions ?? [];
+    const remainingVersions = rawRemainingVersions.map((version: unknown) =>
+      serializeDeliverableVersion(version),
     );
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deletedVersionId: payload.versionId,
       remainingVersionCount: remainingVersions.filter(
-        (version: any): version is DeliverableVersionData => Boolean(version),
+        (version): version is DeliverableVersionData => version !== null,
       ).length,
     });
 
@@ -641,7 +645,7 @@ export async function handleBuildDeleteVersion(
         deliverableId: deliverable.id,
         versionId: payload.versionId,
         remainingVersions: remainingVersions.filter(
-          (version: any): version is DeliverableVersionData => Boolean(version),
+          (version): version is DeliverableVersionData => version !== null,
         ),
       },
       metadata,
@@ -725,7 +729,7 @@ export async function handleBuildMergeVersions(
       );
     }
 
-    const versions = (listResult.data.versions ?? []) as any[];
+    const versions = ((listResult.data as any).versions ?? []) as any[];
     const sourceVersions = payload.versionIds
       .map((versionId) => versions.find((version) => version.id === versionId))
       .filter((version): version is Record<string, any> => Boolean(version));
@@ -862,13 +866,13 @@ export async function handleBuildCopyVersion(
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       sourceVersionId: payload.versionId,
-      copiedVersionId: copyResult.data.copiedVersion?.id,
+      copiedVersionId: (copyResult.data as any).copiedVersion?.id,
     });
 
     const targetDeliverable =
-      copyResult.data.targetDeliverable ??
-      copyResult.data.sourceDeliverable ??
-      copyResult.data.deliverable ??
+      (copyResult.data as any).targetDeliverable ??
+      (copyResult.data as any).sourceDeliverable ??
+      (copyResult.data as any).deliverable ??
       {};
 
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
@@ -879,10 +883,10 @@ export async function handleBuildCopyVersion(
           userId,
         ),
         version:
-          serializeDeliverableVersion(copyResult.data.copiedVersion) ??
+          serializeDeliverableVersion((copyResult.data as any).copiedVersion) ??
           undefined,
         sourceVersion:
-          serializeDeliverableVersion(copyResult.data.sourceVersion) ??
+          serializeDeliverableVersion((copyResult.data as any).sourceVersion) ??
           undefined,
       },
       metadata,
@@ -934,20 +938,20 @@ export async function handleBuildDelete(
     }
 
     const deletedDeliverableId =
-      deleteResult.data.deletedDeliverableId ??
-      deleteResult.data.deletedPlanId ??
+      (deleteResult.data as any).deletedDeliverableId ??
+      (deleteResult.data as any).deletedPlanId ??
       '';
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deletedDeliverableId,
-      deletedVersionCount: deleteResult.data.deletedVersionCount ?? 0,
+      deletedVersionCount: (deleteResult.data as any).deletedVersionCount ?? 0,
     });
 
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: {
         deleted: true,
         deliverableId: deletedDeliverableId,
-        deletedVersionCount: deleteResult.data.deletedVersionCount ?? 0,
+        deletedVersionCount: (deleteResult.data as any).deletedVersionCount ?? 0,
         userId,
       },
       metadata,

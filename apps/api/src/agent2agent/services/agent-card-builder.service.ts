@@ -436,25 +436,28 @@ export class AgentCardBuilderService {
   }
 
   private stripPrivateFields(card: Record<string, any>): Record<string, any> {
-    const clone = JSON.parse(JSON.stringify(card));
+    const clone = JSON.parse(JSON.stringify(card)) as Record<string, unknown>;
 
     delete clone.internal;
     delete clone.debug;
     if (Array.isArray(clone.security)) {
-      clone.security = clone.security.map((entry: any) => {
-        if (!entry || typeof entry !== 'object') {
-          return entry;
-        }
-        const sanitized = { ...entry };
-        delete sanitized.private;
-        return sanitized;
-      });
+      clone.security = clone.security.map(
+        (entry: unknown): unknown => {
+          if (!entry || typeof entry !== 'object') {
+            return entry;
+          }
+          const sanitized = { ...(entry as Record<string, unknown>) };
+          delete sanitized.private;
+          return sanitized;
+        },
+      );
     }
 
     if (clone.metadata && typeof clone.metadata === 'object') {
-      delete clone.metadata.internal;
-      delete clone.metadata.secrets;
-      delete clone.metadata.debug;
+      const metadata = clone.metadata as Record<string, any>;
+      delete metadata.internal;
+      delete metadata.secrets;
+      delete metadata.debug;
     }
 
     return clone;

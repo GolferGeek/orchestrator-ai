@@ -473,13 +473,13 @@ export class OrchestrationRunFactoryService {
     return null;
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
+  private asRecord(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') {
       return null;
     }
     if (Array.isArray(value)) {
-      return value.reduce<Record<string, any>>((acc, entry: unknown, index) => {
-        acc[index] = entry as any;
+      return value.reduce<Record<string, unknown>>((acc, entry: unknown, index) => {
+        acc[index] = entry;
         return acc;
       }, {});
     }
@@ -489,7 +489,7 @@ export class OrchestrationRunFactoryService {
       return {};
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const [key, entry] of entries) {
       result[key] = entry;
     }
