@@ -46,7 +46,7 @@ export default defineConfig({
       SKIP_DEMO_TESTS: false
     },
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     setupNodeEvents(on, config) {
       // Task definitions for custom commands
       on('task', {

@@ -179,7 +179,7 @@
                     <span class="pattern-description">{{ pattern.description }}</span>
                   </div>
                   </div>
-                </ion-col>
+                </div></ion-col>
               </ion-row>
             </ion-grid>
           </div>

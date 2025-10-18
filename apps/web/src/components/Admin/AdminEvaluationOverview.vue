@@ -110,7 +110,7 @@
                 <p>Used {{ constraint.usageCount }} times</p>
               </ion-label>
               <ion-chip slot="end" color="success">
-                {{ constraint.effectivenessScore.toFixed(1)}}
+                {{ constraint.effectivenessScore.toFixed(1) }}
               </ion-chip>
             </ion-item>
           </ion-list>

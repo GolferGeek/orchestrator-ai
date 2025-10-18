@@ -91,7 +91,7 @@
                     v-model="parametersJson"
                     label="Parameters (JSON)"
                     label-placement="stacked"
-                    placeholder='{"key": "value"}'
+                    placeholder="{&quot;key&quot;: &quot;value&quot;}"
                     :rows="4"
                     :disabled="creating"
                   />

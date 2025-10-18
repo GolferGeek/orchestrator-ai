@@ -403,7 +403,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
 
     clearAgentRecommendations(agentIdentifier?: string) {
       if (agentIdentifier) {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+         
         delete this.agentRecommendations[agentIdentifier];
         return;
       }
