@@ -335,12 +335,6 @@ import {
   checkmarkCircleOutline,
   timeOutline,
   analyticsOutline,
-  hardwareChipOutline,
-  codeOutline,
-  personOutline,
-  settingsOutline,
-  serverOutline,
-  helpOutline
 } from 'ionicons/icons';
 
 import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
@@ -352,19 +346,6 @@ import { storeToRefs } from 'pinia';
 const store = useLLMAnalyticsStore();
 const llmHealthStore = useLLMHealthStore();
 const analyticsStore = useAnalyticsStore();
-
-// Computed properties
-const dashboardData = computed(() => analyticsStore.dashboardData);
-const systemHealthStatus = computed(() => {
-  const health = llmHealthStore.systemHealth;
-  if (!health) return 'unknown';
-  
-  // Determine status based on health metrics
-  if (!health.ollamaConnected) return 'error';
-  if (health.unhealthyModels > 0) return 'warning';
-  if (health.healthyModels > 0) return 'healthy';
-  return 'unknown';
-});
 
 // Reactive data
 const localFilters = ref<{ startDate: string; endDate: string; callerType: string; route: '' | 'local' | 'remote' }>({

@@ -67,7 +67,7 @@ export class MCPModule {
   private async initializeModule(): Promise<void> {
     try {
       // Initialize MCP service and verify tool handlers
-      const serverInfo = await this.mcpService.initialize();
+      const serverInfo = this.mcpService.initialize();
 
       console.log(
         `✅ MCP Server initialized: ${serverInfo.serverInfo.name} v${serverInfo.serverInfo.version}`,

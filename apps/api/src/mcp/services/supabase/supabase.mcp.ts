@@ -95,19 +95,20 @@ export class SupabaseMCPServer implements IMCPServer {
   /**
    * Initialize the MCP server
    */
-  initialize(): void {
-    if (this.initialized) return;
+  initialize(): Promise<void> {
+    if (this.initialized) return Promise.resolve();
 
     // Mark as initialized - connection will be tested when first used
     this.initialized = true;
     console.log('✅ Supabase MCP Server initialized successfully');
+    return Promise.resolve();
   }
 
   /**
    * Get server information (MCP standard method)
    */
-  getServerInfo(): MCPServerInfo {
-    return {
+  getServerInfo(): Promise<MCPServerInfo> {
+    return Promise.resolve({
       protocolVersion: '2025-03-26',
       serverInfo: {
         name: 'Supabase Data MCP Server',
@@ -128,14 +129,14 @@ export class SupabaseMCPServer implements IMCPServer {
         },
         logging: {},
       },
-    };
+    });
   }
 
   /**
    * List available tools (MCP standard method)
    */
-  listTools(): MCPToolDefinition[] {
-    return [
+  listTools(): Promise<MCPToolDefinition[]> {
+    return Promise.resolve([
       {
         name: 'get-schema',
         description: 'Get database schema information for specified tables',
@@ -248,7 +249,7 @@ export class SupabaseMCPServer implements IMCPServer {
           required: ['data', 'analysis_prompt'],
         },
       },
-    ];
+    ]);
   }
 
   /**
@@ -264,7 +265,7 @@ export class SupabaseMCPServer implements IMCPServer {
     try {
       switch (request.name) {
         case 'get-schema':
-          return await this.handleGetSchema(
+          return this.handleGetSchema(
             request.arguments as SupabaseSchemaRequest,
           );
 
@@ -409,7 +410,7 @@ export class SupabaseMCPServer implements IMCPServer {
         '[MCP-SQL-DEBUG] Building schema context for tables:',
         tables,
       );
-      const schemaContext = await this.buildSchemaContext(tables, domain_hint);
+      const schemaContext = this.buildSchemaContext(tables, domain_hint);
       console.log(
         '[MCP-SQL-DEBUG] Schema context length:',
         schemaContext.length,

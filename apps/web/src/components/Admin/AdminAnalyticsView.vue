@@ -327,25 +327,8 @@ const emit = defineEmits<{
 const analyticsStore = useAnalyticsStore();
 const llmHealthStore = useLLMHealthStore();
 
-// Computed properties
-const adminMetrics = computed(() => analyticsStore.dashboardData);
-const systemHealth = computed(() => llmHealthStore.systemHealth);
-const storeLoading = computed(() => analyticsStore.isLoading || llmHealthStore.isLoadingSystemHealth);
-const hasError = computed(() => !!analyticsStore.error || !!llmHealthStore.error);
-
-// Methods
-const refreshSystem = async () => {
-  await Promise.all([
-    analyticsStore.loadDashboardData(),
-    llmHealthStore.loadSystemHealth()
-  ]);
-};
-
 // Auto-refresh functionality (simplified)
 const isAutoRefreshEnabled = ref(false);
-const toggleAutoRefresh = () => {
-  isAutoRefreshEnabled.value = !isAutoRefreshEnabled.value;
-};
 
 const analyticsFilters = reactive({
   startDate: '',

@@ -87,9 +87,9 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('ModelMonitorService initialized');
   }
 
-  async onModuleInit() {
+  onModuleInit() {
     // Load alert thresholds from environment or database
-    await this.loadAlertThresholds();
+    this.loadAlertThresholds();
 
     // Skip automatic model metrics initialization and monitoring
     // Only initialize metrics when models are explicitly requested
@@ -120,9 +120,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
 
     // Memory checks every 1 minute
     this.memoryCheckInterval = setInterval(() => {
-      this.checkMemoryHealth().catch((error) => {
-        this.logger.error('Memory health check failed', error);
-      });
+      this.checkMemoryHealth();
     }, 60000);
 
     // System checks every 5 minutes
@@ -629,7 +627,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   async forceHealthCheck(): Promise<void> {
     this.logger.log('Forcing health check on all models');
     await this.performHealthChecks();
-    await this.checkMemoryHealth();
+    this.checkMemoryHealth();
     await this.checkSystemHealth();
   }
 

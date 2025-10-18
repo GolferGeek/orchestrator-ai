@@ -22,8 +22,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Get all Supabase tools available
    */
-  getTools(): MCPToolDefinition[] {
-    return [
+  getTools(): Promise<MCPToolDefinition[]> {
+    return Promise.resolve([
       {
         name: 'get-schema',
         description:
@@ -166,7 +166,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           additionalProperties: false,
         },
       },
-    ];
+    ]);
   }
 
   /**
@@ -186,7 +186,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         case 'query-and-format':
           return await this.queryAndFormat(args);
         case 'generate-sql':
-          return await this.generateSql(args);
+          return this.generateSql(args);
         default:
           return this.createErrorResponse(`Unknown Supabase tool: ${name}`);
       }

@@ -22,8 +22,8 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get all Slack tools available
    */
-  getTools(): MCPToolDefinition[] {
-    return [
+  getTools(): Promise<MCPToolDefinition[]> {
+    return Promise.resolve([
       {
         name: 'send-message',
         description: 'Send a message to a Slack channel or user',
@@ -200,7 +200,7 @@ export class SlackMCPTools implements IMCPToolHandler {
           additionalProperties: false,
         },
       },
-    ];
+    ]);
   }
 
   /**

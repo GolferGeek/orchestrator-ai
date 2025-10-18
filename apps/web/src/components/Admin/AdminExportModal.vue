@@ -369,7 +369,7 @@ async function generatePreview() {
     previewData.estimatedSize = getEstimatedFileSize();
     previewData.includedFields = getIncludedFields();
     showPreview.value = true;
-  } catch (error) {
+  } catch {
 
   } finally {
     isGeneratingPreview.value = false;
@@ -420,7 +420,7 @@ async function performExport() {
       showPreview.value = false;
       emit('dismiss');
     }, 1500);
-  } catch (error) {
+  } catch {
 
     exportProgress.message = 'Export failed!';
   } finally {

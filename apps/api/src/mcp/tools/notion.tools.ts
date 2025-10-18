@@ -22,8 +22,8 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Get all Notion tools available
    */
-  getTools(): MCPToolDefinition[] {
-    return [
+  getTools(): Promise<MCPToolDefinition[]> {
+    return Promise.resolve([
       {
         name: 'create-page',
         description: 'Create a new page in Notion workspace',
@@ -252,7 +252,7 @@ export class NotionMCPTools implements IMCPToolHandler {
           additionalProperties: false,
         },
       },
-    ];
+    ]);
   }
 
   /**

@@ -484,7 +484,7 @@ interface Props {
   isOpen: boolean;
   evaluation: EvaluationWithMessage;
 }
-const props = defineProps<Props>();
+defineProps<Props>();
 defineEmits<{
   dismiss: []
 }>();

@@ -432,7 +432,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import {
   IonCard,
   IonCardContent,
@@ -466,12 +466,6 @@ import {
   analyticsOutline,
   documentOutline,
   eyeOutline,
-  robotOutline,
-  codeOutline,
-  personOutline,
-  settingsOutline,
-  serverOutline,
-  helpOutline,
   warningOutline,
   checkmarkCircleOutline
 } from 'ionicons/icons';

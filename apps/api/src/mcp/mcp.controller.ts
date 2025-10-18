@@ -99,7 +99,7 @@ export class MCPController {
   /**
    * Handle MCP initialize method
    */
-  private async handleInitialize(params: MCPInitializeParams): Promise<any> {
+  private handleInitialize(params: MCPInitializeParams): any {
     this.logger.log('MCP client initializing connection');
 
     // Validate client protocol version
@@ -112,7 +112,7 @@ export class MCPController {
       );
     }
 
-    const serverInfo = await this.mcpService.initialize();
+    const serverInfo = this.mcpService.initialize();
 
     this.logger.log(
       `MCP initialized for client: ${params.clientInfo?.name || 'unknown'}`,

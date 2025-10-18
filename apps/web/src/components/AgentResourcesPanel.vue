@@ -197,19 +197,7 @@ const hasTranscript = computed(() => {
   return selectedVideo.value?.id && selectedVideo.value.id !== '';
 });
 
-const renderedTranscript = computed(() => {
-  if (!transcriptContent.value) return '';
-  
-  try {
-    return marked(transcriptContent.value, { 
-      breaks: true, 
-      gfm: true 
-    }) as string;
-  } catch (error) {
-    console.error('Error rendering transcript markdown:', error);
-    return `<p>${transcriptContent.value}</p>`;
-  }
-});
+// Removed unused computed property
 
 // Methods
 function openVideoModal(video: Video) {

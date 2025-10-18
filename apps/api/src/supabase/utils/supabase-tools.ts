@@ -94,7 +94,7 @@ function getCompanyClient() {
 /**
  * Create SQL Database interface for LangChain - Orchestrator Database
  */
-async function createOrchestratorSqlDatabase(): Promise<any> {
+function createOrchestratorSqlDatabase(): any {
   // SqlDatabase type not available
   if (!orchestratorSqlDatabase) {
     const client = getOrchestratorClient();
@@ -136,7 +136,7 @@ async function createOrchestratorSqlDatabase(): Promise<any> {
 /**
  * Create SQL Database interface for LangChain - Company Database
  */
-async function createCompanySqlDatabase(): Promise<any> {
+function createCompanySqlDatabase(): any {
   // SqlDatabase type not available
   if (!companySqlDatabase) {
     const client = getCompanyClient();
