@@ -111,7 +111,7 @@ export function useDeliverables() {
       // Initial version data
       initialContent: content,
       initialFormat: options.format || DeliverableFormat.MARKDOWN,
-      initialCreationType: 'manual_edit' as any,
+      initialCreationType: 'manual_edit' as const,
       initialMetadata: {
         manuallyCreated: true,
         createdAt: new Date().toISOString(),
@@ -139,7 +139,7 @@ export function useDeliverables() {
     const versionData: CreateVersionDto = {
       content: newContent,
       format: DeliverableFormat.MARKDOWN,
-      createdByType: 'ai_enhancement' as any,
+      createdByType: 'ai_enhancement' as const,
       metadata: {
         enhancementReason: 'manual_enhancement',
         enhancedAt: new Date().toISOString(),

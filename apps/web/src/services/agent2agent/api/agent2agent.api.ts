@@ -310,7 +310,7 @@ export class Agent2AgentApi {
    * Uses action-based routing with payload.action field
    */
   orchestrate = {
-    create: async (conversationId: string, payload: any) => {
+    create: async (conversationId: string, payload: Record<string, unknown>) => {
       const strictRequest = buildRequest.orchestrate.create(
         { conversationId },
         payload
@@ -318,7 +318,7 @@ export class Agent2AgentApi {
       return this.executeStrictRequest(strictRequest);
     },
 
-    execute: async (conversationId: string, payload: any) => {
+    execute: async (conversationId: string, payload: Record<string, unknown>) => {
       const strictRequest = buildRequest.orchestrate.execute(
         { conversationId },
         payload
@@ -326,7 +326,7 @@ export class Agent2AgentApi {
       return this.executeStrictRequest(strictRequest);
     },
 
-    continue: async (conversationId: string, payload: any) => {
+    continue: async (conversationId: string, payload: Record<string, unknown>) => {
       const strictRequest = buildRequest.orchestrate.continue(
         { conversationId },
         payload
@@ -334,7 +334,7 @@ export class Agent2AgentApi {
       return this.executeStrictRequest(strictRequest);
     },
 
-    saveRecipe: async (conversationId: string, payload: any) => {
+    saveRecipe: async (conversationId: string, payload: Record<string, unknown>) => {
       const strictRequest = buildRequest.orchestrate.saveRecipe(
         { conversationId },
         payload
@@ -351,7 +351,7 @@ export class Agent2AgentApi {
    * Execute a strict A2A request with full validation
    * This is the preferred method that guarantees all required fields are set
    */
-  private async executeStrictRequest<T = any>(
+  private async executeStrictRequest<T = unknown>(
     request: StrictA2ARequest,
   ): Promise<T> {
     // Validate request before sending
@@ -461,9 +461,9 @@ export class Agent2AgentApi {
    * Core method to execute any mode × action request (legacy)
    * @deprecated Use executeStrictRequest instead
    */
-  private async executeAction<T = any>(
+  private async executeAction<T = unknown>(
     mode: TaskMode,
-    request: any,
+    request: Record<string, unknown>,
   ): Promise<T> {
     const org = this.getOrgSlug();
     const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;

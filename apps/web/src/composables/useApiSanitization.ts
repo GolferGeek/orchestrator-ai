@@ -300,8 +300,14 @@ export function useApiSanitization() {
 /**
  * Axios interceptor to automatically sanitize request data
  */
+interface AxiosRequestConfig {
+  data?: unknown;
+  headers?: Record<string, string>;
+  [key: string]: unknown;
+}
+
 export function createApiSanitizationInterceptor(options: ApiSanitizationOptions = {}) {
-  return (config: any) => {
+  return (config: AxiosRequestConfig) => {
     if (config.data && typeof config.data === 'object') {
       // Use direct sanitization to avoid circular reference
       const sanitizationOptions = {
@@ -313,7 +319,7 @@ export function createApiSanitizationInterceptor(options: ApiSanitizationOptions
       const modifiedFields: string[] = [];
       let modified = false;
       
-      const sanitizeValue = (value: any, key?: string): any => {
+      const sanitizeValue = (value: unknown, key?: string): unknown => {
         if (typeof value === 'string') {
           const sanitized = SanitizationHelpers.sanitizeString(value, { profile: sanitizationOptions.profile || 'apiInput' });
           if (sanitized !== value) {
@@ -328,7 +334,7 @@ export function createApiSanitizationInterceptor(options: ApiSanitizationOptions
         }
         
         if (value && typeof value === 'object') {
-          const sanitized: any = {};
+          const sanitized: Record<string, unknown> = {};
           for (const [objKey, objValue] of Object.entries(value)) {
             sanitized[objKey] = sanitizeValue(objValue, objKey);
           }

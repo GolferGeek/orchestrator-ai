@@ -21,7 +21,7 @@ interface StreamLifecycleHandlers {
 }
 
 interface ConnectParams extends StreamLifecycleHandlers {
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   connectionOptions?: SSEConnectionOptions;
 }
 
@@ -208,7 +208,7 @@ export class A2AStreamHandler {
     }
   }
 
-  private normalizeMetadata(metadata: Record<string, any>): NormalizedStreamMetadata {
+  private normalizeMetadata(metadata: Record<string, unknown>): NormalizedStreamMetadata {
     const streamingMeta = metadata.streaming ?? {};
 
     const streamUrl =

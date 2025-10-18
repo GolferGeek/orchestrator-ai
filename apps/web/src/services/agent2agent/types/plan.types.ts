@@ -22,7 +22,7 @@ export interface CreatePlanRequest {
     format?: 'markdown' | 'json' | 'text';
     agentName?: string;
     namespace?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -55,7 +55,7 @@ export interface EditPlanRequest {
   conversationId: string;
   params: {
     content: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -244,7 +244,7 @@ export interface PlanErrorResponse {
   error: {
     code: string;
     message: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
   };
 }
 

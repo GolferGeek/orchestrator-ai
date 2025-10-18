@@ -49,7 +49,7 @@ export function useStoreErrors(...stores: Array<{ error: Ref<string | null> }>) 
   const clearAllErrors = () => {
     stores.forEach(store => {
       if ('clearError' in store && typeof store.clearError === 'function') {
-        (store as any).clearError();
+        (store as { clearError: () => void }).clearError();
       }
     });
   };
@@ -154,7 +154,7 @@ export function useStoreAutoRefresh(
 /**
  * Composable for handling store filters with debouncing
  */
-export function useStoreFilters<T extends Record<string, any>>(
+export function useStoreFilters<T extends Record<string, unknown>>(
   initialFilters: T,
   applyFilters: (filters: T) => void,
   debounceMs: number = 500
@@ -425,7 +425,7 @@ export function useStoreExport() {
   const exportError = ref<string | null>(null);
 
   const exportData = async (
-    data: any[],
+    data: Record<string, unknown>[],
     filename: string,
     format: 'json' | 'csv' | 'excel' = 'json'
   ) => {
@@ -482,7 +482,7 @@ export function useStoreExport() {
   };
 
   // Helper function to convert data to CSV
-  const convertToCSV = (data: any[]): string => {
+  const convertToCSV = (data: Record<string, unknown>[]): string => {
     if (data.length === 0) return '';
 
     const headers = Object.keys(data[0]);
@@ -588,7 +588,7 @@ export function useStoreSearch<T>(
  * Utility function to create a unified store interface
  * Combines multiple stores into a single reactive interface
  */
-export function createUnifiedStoreInterface<T extends Record<string, any>>(stores: T) {
+export function createUnifiedStoreInterface<T extends Record<string, unknown>>(stores: T) {
   const storeKeys = Object.keys(stores);
   
   // Create combined loading state

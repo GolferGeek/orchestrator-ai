@@ -22,7 +22,7 @@ export interface CreateDeliverableRequest {
     format?: 'markdown' | 'json' | 'text' | 'html';
     type?: string;
     agentName?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -55,7 +55,7 @@ export interface EditDeliverableRequest {
   conversationId: string;
   params: {
     content: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -269,7 +269,7 @@ export interface DeliverableErrorResponse {
   error: {
     code: string;
     message: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
   };
 }
 

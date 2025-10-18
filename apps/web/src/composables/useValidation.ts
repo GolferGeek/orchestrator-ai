@@ -48,7 +48,7 @@ const DEFAULT_CONFIG: ValidationConfig = {
  * Sanitize input to prevent XSS and other security issues
  * Enhanced with profile support for different input types
  */
-function sanitizeInput(value: any, options?: SanitizationOptions): any {
+function sanitizeInput(value: unknown, options?: SanitizationOptions): unknown {
   if (typeof value === 'string') {
     const result = sanitizeWithProfile(value, options || { profile: 'moderate' });
     return result.sanitized;
@@ -223,7 +223,7 @@ export const ValidationRules = {
     name: 'required',
     priority: 1,
     description: 'Field must have a value',
-    validator: (value: any) => ({
+    validator: (value: unknown) => ({
       isValid: value !== null && value !== undefined && value !== '',
       errors: !value ? [{
         field: 'required',
@@ -352,7 +352,7 @@ export const ValidationRules = {
     name: 'sanitize',
     priority: 10, // Low priority, runs after other validations
     description: `Sanitize input for security${options?.profile ? ` (${options.profile} profile)` : ''}`,
-    validator: (value: any) => {
+    validator: (value: unknown) => {
       const result = sanitizeWithProfile(value, options || { profile: 'moderate' });
       return {
         isValid: true,
@@ -385,7 +385,7 @@ export const ValidationRules = {
     name: 'sanitizeApiInput',
     priority: 10,
     description: 'Sanitize input for API calls (strict)',
-    validator: (value: any) => {
+    validator: (value: unknown) => {
       const sanitized = SanitizationHelpers.forApiInput(value);
       return {
         isValid: true,
@@ -407,7 +407,7 @@ export const ValidationRules = {
     name: 'sanitizeSearch',
     priority: 10,
     description: 'Sanitize search query input',
-    validator: (value: any) => {
+    validator: (value: unknown) => {
       const sanitized = SanitizationHelpers.forSearch(value);
       return {
         isValid: true,
@@ -429,7 +429,7 @@ export const ValidationRules = {
     name: 'sanitizeRichText',
     priority: 10,
     description: 'Sanitize rich text content (allows formatting)',
-    validator: (value: any) => {
+    validator: (value: unknown) => {
       const sanitized = SanitizationHelpers.forRichText(value);
       return {
         isValid: true,
@@ -523,7 +523,7 @@ export function useValidation(options: UseValidationOptions = {}): UseValidation
   /**
    * Validate a single field
    */
-  async function validate(field: string, value: any, context?: ValidationContext): Promise<ValidationResult> {
+  async function validate(field: string, value: unknown, context?: ValidationContext): Promise<ValidationResult> {
     // Clear existing timeout
     if (validationTimeouts.has(field)) {
       clearTimeout(validationTimeouts.get(field)!);
@@ -615,7 +615,7 @@ export function useValidation(options: UseValidationOptions = {}): UseValidation
   /**
    * Validate all fields in a form
    */
-  async function validateAll(form: Record<string, any>): Promise<Record<string, ValidationResult>> {
+  async function validateAll(form: Record<string, unknown>): Promise<Record<string, ValidationResult>> {
     const results: Record<string, ValidationResult> = {};
     
     // Validate all fields in parallel

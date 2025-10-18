@@ -44,7 +44,7 @@ export interface BaseTaskRequest {
 /**
  * Standardized response structure for all task operations
  */
-export interface TaskResponse<TResult = any> {
+export interface TaskResponse<TResult = unknown> {
   success: boolean;
   mode: TaskMode;
   action: TaskAction;
@@ -54,7 +54,7 @@ export interface TaskResponse<TResult = any> {
     taskId?: string;
     executionTime?: number;
     timestamp?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -64,7 +64,7 @@ export interface TaskResponse<TResult = any> {
 export interface TaskError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   stack?: string;
 }
 
@@ -93,7 +93,7 @@ export interface PlanVersion {
   created_by_type: 'agent' | 'user';
   created_by_id?: string;
   task_id?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   is_current_version: boolean;
   created_at: string;
 }
@@ -119,7 +119,7 @@ export interface DeliverableVersion {
   created_by_type: 'agent' | 'user';
   created_by_id?: string;
   task_id?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   is_current_version: boolean;
   created_at: string;
 }

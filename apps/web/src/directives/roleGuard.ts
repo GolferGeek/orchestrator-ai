@@ -60,7 +60,7 @@ function updateElementAccess(el: HTMLElement, binding: DirectiveBinding<RoleGuar
     el.dataset.originalDisplay = el.style.display || '';
   }
   if (!el.dataset.originalDisabled) {
-    el.dataset.originalDisabled = (el as any).disabled ? 'true' : 'false';
+    el.dataset.originalDisabled = (el as HTMLInputElement).disabled ? 'true' : 'false';
   }
 
   if (hasAccess) {
@@ -73,7 +73,7 @@ function updateElementAccess(el: HTMLElement, binding: DirectiveBinding<RoleGuar
     }
     
     if (disable) {
-      (el as any).disabled = el.dataset.originalDisabled === 'true';
+      (el as HTMLInputElement).disabled = el.dataset.originalDisabled === 'true';
     }
     
     el.classList.remove(deniedClass);
@@ -90,7 +90,7 @@ function updateElementAccess(el: HTMLElement, binding: DirectiveBinding<RoleGuar
       el.setAttribute('aria-hidden', 'true');
       el.dataset.roleGuardHidden = 'true';
     } else if (disable) {
-      (el as any).disabled = true;
+      (el as HTMLInputElement).disabled = true;
       el.classList.add(deniedClass);
     } else {
       // Remove from DOM (default behavior)
@@ -102,6 +102,6 @@ function updateElementAccess(el: HTMLElement, binding: DirectiveBinding<RoleGuar
 }
 
 // Helper function to register the directive
-export function registerRoleGuardDirective(app: any) {
+export function registerRoleGuardDirective(app: { directive: (name: string, directive: Directive) => void }) {
   app.directive('role-guard', roleGuard);
 }

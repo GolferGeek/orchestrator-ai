@@ -40,7 +40,7 @@ import type {
 export async function createOrchestration(
   agentName: string,
   conversationId: string,
-  parameters?: Record<string, any>,
+  parameters?: Record<string, unknown>,
 ): Promise<OrchestrateCreateResponseContent> {
   console.log('🔨 [Orchestrate Create Action] Starting', { agentName, conversationId });
 
@@ -77,7 +77,7 @@ export async function createOrchestration(
     const { orchestration } = content;
 
     // Map backend response to store format
-    const steps = orchestration.steps?.map((step: any, index: number) => ({
+    const steps = orchestration.steps?.map((step: Record<string, unknown>, index: number) => ({
       stepNumber: index,
       mode: step.mode || 'build',
       action: step.action || 'create',
@@ -156,7 +156,7 @@ export async function executeOrchestration(
   // 6. Update store
   if (content.status) {
     // Map backend status to store status
-    const statusMap: Record<string, any> = {
+    const statusMap: Record<string, string> = {
       'running': 'running',
       'completed': 'completed',
       'failed': 'failed',
@@ -172,7 +172,7 @@ export async function executeOrchestration(
       orchestratorStore.updateStepStatus(
         orchestrationRunId,
         content.currentStep.id,
-        content.currentStep.status as any
+        content.currentStep.status as 'pending' | 'running' | 'completed' | 'failed'
       );
     }
   }
@@ -196,8 +196,8 @@ export async function continueOrchestration(
   agentName: string,
   conversationId: string,
   orchestrationRunId: string,
-  context?: Record<string, any>,
-): Promise<any> {
+  context?: Record<string, unknown>,
+): Promise<unknown> {
   console.log('🔨 [Orchestrate Continue Action] Starting', { agentName, orchestrationRunId });
 
   // 1. Create API client
@@ -244,7 +244,7 @@ export async function saveOrchestrationRecipe(
   orchestrationRunId: string,
   recipeName: string,
   description?: string,
-): Promise<any> {
+): Promise<unknown> {
   console.log('🔨 [Orchestrate Save Recipe Action] Starting', { agentName, recipeName });
 
   // 1. Create API client
