@@ -344,7 +344,7 @@ const loadPattern = (pattern: PIIPattern) => {
   };
   
   // Set sample text based on data type
-  sampleText.value = sampleTexts[pattern.dataType] || sampleTexts.custom;
+  sampleText.value = sampleTexts.value[pattern.dataType] || sampleTexts.value.custom;
   
   // Validate regex and update preview
   nextTick(() => {
@@ -403,12 +403,12 @@ const validateRegex = () => {
 };
 
 const getSampleTextPlaceholder = () => {
-  return sampleTexts[formData.value.dataType] || sampleTexts.custom;
+  return sampleTexts.value[formData.value.dataType] || sampleTexts.value.custom;
 };
 
 const updateSampleText = () => {
   if (!sampleText.value || sampleText.value === getSampleTextPlaceholder()) {
-    sampleText.value = sampleTexts[formData.value.dataType] || sampleTexts.custom;
+    sampleText.value = sampleTexts.value[formData.value.dataType] || sampleTexts.value.custom;
     updatePreview();
   }
 };

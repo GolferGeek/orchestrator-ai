@@ -245,7 +245,7 @@ const quickRate = async (type: 'positive' | 'negative') => {
       // Update draft
       draftRating.value.userRating = rating;
     }
-  } catch (error) {
+  } catch {
     // Error saving quick task rating
   } finally {
     isLoading.value = false;
@@ -278,7 +278,7 @@ const saveRating = async () => {
     }
     showDetailedRating.value = false;
     showFeedbackInput.value = false;
-  } catch (error) {
+  } catch {
     // Error saving detailed task rating
   } finally {
     isLoading.value = false;

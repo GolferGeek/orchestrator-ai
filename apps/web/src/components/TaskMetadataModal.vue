@@ -292,7 +292,8 @@ const loadTaskData = async () => {
       await llmStore.initialize();
     }
     taskData.value = await tasksService.getTaskById(props.taskId);
-  } catch (error) {
+  } catch {
+    // Error loading task data
   } finally {
     isLoading.value = false;
   }

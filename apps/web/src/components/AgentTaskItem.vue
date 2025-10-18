@@ -372,7 +372,7 @@ const backendDeliverable = computed<Deliverable | null>(() => {
     console.log('📋 [AgentTaskItem.backendDeliverable] Conversation deliverables count:', conversationDeliverables?.length || 0);
 
     // Also force reactivity on the deliverables store state
-    deliverablesStore.$state;
+    void deliverablesStore.$state;
   }
 
   return deliverable ?? null;
