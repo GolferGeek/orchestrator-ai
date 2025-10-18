@@ -111,9 +111,9 @@ export async function handleBuildRead(
         );
       }
 
-      const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as any[];
+      const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as unknown[];
       const targetVersion = versions.find(
-        (version) => version.id === payload.versionId,
+        (version) => (version as Record<string, unknown>).id === payload.versionId,
       );
 
       if (!targetVersion) {
@@ -124,7 +124,7 @@ export async function handleBuildRead(
       }
 
       const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
-        deliverableMetadata: buildDeliverableMetadata(targetVersion.content),
+        deliverableMetadata: buildDeliverableMetadata((targetVersion as Record<string, unknown>).content as string | undefined),
         requestedVersionId: payload.versionId,
         conversationId,
       });
@@ -158,7 +158,7 @@ export async function handleBuildRead(
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        (responseVersion as any)?.content ?? '',
+        ((responseVersion as Record<string, unknown> | undefined)?.content as string | undefined) ?? '',
       ),
       conversationId,
     });
@@ -415,9 +415,9 @@ export async function handleBuildRerun(
       );
     }
 
-    const versions = ((listResult.data as any).versions ?? []) as any[];
+    const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as unknown[];
     const sourceVersion = versions.find(
-      (version) => version.id === payload.versionId,
+      (version) => (version as Record<string, unknown>).id === payload.versionId,
     );
 
     if (!sourceVersion) {
@@ -439,7 +439,7 @@ export async function handleBuildRerun(
     const rerunPayload = {
       action: 'create' as const,
       title:
-        (request.payload as any)?.title ??
+        ((request.payload as Record<string, unknown>)?.title as string | undefined) ??
         deliverableRecord.title ??
         'Deliverable',
       type:
@@ -548,9 +548,10 @@ export async function handleBuildSetCurrent(
       );
     }
 
+    const resultData = result.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        (result.data as any).version?.content ?? '',
+        ((resultData.version as Record<string, unknown> | undefined)?.content as string | undefined) ?? '',
       ),
       updatedVersionId: payload.versionId,
     });
@@ -558,11 +559,11 @@ export async function handleBuildSetCurrent(
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: {
         deliverable: serializeDeliverable(
-          (result.data as any).deliverable,
+          resultData.deliverable,
           definition,
           userId,
         ),
-        version: serializeDeliverableVersion((result.data as any).version) ?? undefined,
+        version: serializeDeliverableVersion(resultData.version) ?? undefined,
       },
       metadata,
     });
@@ -621,7 +622,7 @@ export async function handleBuildDeleteVersion(
     }
 
     const deliverable = serializeDeliverable(
-      (deleteResult.data as any).deliverable,
+      (deleteResult.data as Record<string, unknown>).deliverable,
       definition,
       userId,
     );
@@ -730,10 +731,10 @@ export async function handleBuildMergeVersions(
       );
     }
 
-    const versions = ((listResult.data as any).versions ?? []) as any[];
+    const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as unknown[];
     const sourceVersions = payload.versionIds
-      .map((versionId) => versions.find((version) => version.id === versionId))
-      .filter((version): version is Record<string, any> => Boolean(version));
+      .map((versionId) => versions.find((version) => (version as Record<string, unknown>).id === versionId))
+      .filter((version): version is Record<string, unknown> => Boolean(version));
 
     if (sourceVersions.length !== payload.versionIds.length) {
       return TaskResponseDto.failure(
@@ -755,7 +756,7 @@ export async function handleBuildMergeVersions(
     const mergePayload = {
       action: 'create' as const,
       title:
-        (request.payload as any)?.title ??
+        ((request.payload as Record<string, unknown>)?.title as string | undefined) ??
         deliverableRecord.title ??
         'Deliverable',
       type:

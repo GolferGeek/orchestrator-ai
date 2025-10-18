@@ -112,7 +112,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(planCreateResponse.payload.content).toHaveProperty('version', 1);
       expect(planCreateResponse.payload.content).toHaveProperty('isNew', true);
 
-      const planId: string = (planCreateResponse.payload.content as any).plan.id as string;
+      const planContent = planCreateResponse.payload.content as { plan: { id: string } };
+      const planId: string = planContent.plan.id;
 
       // 4. Read plan
       const planReadRequest: TaskRequestDto = {
@@ -131,7 +132,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const planReadResponse = planRead.body as TaskResponseDto;
       expect(planReadResponse).toHaveProperty('mode', AgentTaskMode.PLAN);
       expect(planReadResponse.payload.content).toHaveProperty('plan');
-      expect((planReadResponse.payload.content as any).plan.id).toBe(planId);
+      const planReadContent = planReadResponse.payload.content as { plan: { id: string } };
+      expect(planReadContent.plan.id).toBe(planId);
 
       // 5. Edit plan
       const planEditRequest: TaskRequestDto = {
@@ -200,7 +202,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const buildReadResponse = buildRead.body as TaskResponseDto;
       expect(buildReadResponse).toHaveProperty('mode', AgentTaskMode.BUILD);
       expect(buildReadResponse.payload.content).toHaveProperty('deliverable');
-      expect((buildReadResponse.payload.content as any).deliverable).toHaveProperty(
+      const buildReadContent = buildReadResponse.payload.content as { deliverable: { title: string } };
+      expect(buildReadContent.deliverable).toHaveProperty(
         'title',
         'Kubernetes Best Practices',
       );
@@ -249,14 +252,16 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .send(buildRequest)
         .expect(201);
 
-      expect(build.body).toHaveProperty('mode', AgentTaskMode.BUILD);
-      expect(build.body.content).toHaveProperty('deliverable');
-      expect(build.body.content.deliverable).toHaveProperty(
+      const buildResponse = build.body as TaskResponseDto;
+      expect(buildResponse).toHaveProperty('mode', AgentTaskMode.BUILD);
+      expect(buildResponse.payload.content).toHaveProperty('deliverable');
+      const buildContent = buildResponse.payload.content as { deliverable: { title: string; content: string } };
+      expect(buildContent.deliverable).toHaveProperty(
         'title',
         'Docker Intro',
       );
-      expect(build.body.content.deliverable).toHaveProperty('content');
-      expect(build.body.content.deliverable.content).toContain('Docker');
+      expect(buildContent.deliverable).toHaveProperty('content');
+      expect(buildContent.deliverable.content).toContain('Docker');
     });
   });
 
@@ -291,7 +296,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(planV1.body.content).toHaveProperty('version', 1);
+      const planV1Response = planV1.body as TaskResponseDto;
+      expect(planV1Response.payload.content).toHaveProperty('version', 1);
 
       // Edit to create v2
       const planV2 = await request(
@@ -309,7 +315,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(planV2.body.content).toHaveProperty('version', 2);
+      const planV2Response = planV2.body as TaskResponseDto;
+      expect(planV2Response.payload.content).toHaveProperty('version', 2);
 
       // Edit to create v3
       const planV3 = await request(
@@ -327,7 +334,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(planV3.body.content).toHaveProperty('version', 3);
+      const planV3Response = planV3.body as TaskResponseDto;
+      expect(planV3Response.payload.content).toHaveProperty('version', 3);
 
       // List all versions
       const listVersions = await request(

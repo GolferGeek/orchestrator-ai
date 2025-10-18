@@ -404,7 +404,7 @@ export async function callLLM(
     const response = await llmService.generateResponse(
       systemPrompt,
       userMessage,
-      options as any,
+      options as Record<string, unknown>,
     );
 
     if (!isLLMResponse(response)) {
@@ -455,7 +455,8 @@ export function resolveUserId(request: TaskRequestDto): string | null {
 
   const fromMessages = Array.isArray(request.messages)
     ? request.messages
-        .map((message) => (message as any)?.metadata?.userId)
+        .map((message) => (message as unknown as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined)
+        .map((metadata) => metadata?.userId)
         .find((value) => typeof value === 'string' && value.trim().length > 0)
     : null;
 
@@ -503,9 +504,11 @@ export function resolveTaskId(request: TaskRequestDto): string | null {
     return metadataTaskId;
   }
 
+  const payload = request.payload as Record<string, unknown> | undefined;
+  const payloadMetadata = payload?.metadata as Record<string, unknown> | undefined;
   const payloadTaskId =
-    (request.payload as any)?.taskId ??
-    (request.payload as any)?.metadata?.taskId;
+    payload?.taskId ??
+    payloadMetadata?.taskId;
   if (typeof payloadTaskId === 'string') {
     return payloadTaskId;
   }

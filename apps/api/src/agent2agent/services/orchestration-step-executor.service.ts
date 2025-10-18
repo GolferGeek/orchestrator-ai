@@ -685,7 +685,8 @@ export class OrchestrationStepExecutorService {
     }
 
     const stepKey = this.resolveStepKey(step);
-    const stepsConfig = Array.isArray((caching as any).steps)
+    const cachingAny = caching as unknown as { steps?: unknown };
+    const stepsConfig = Array.isArray(cachingAny.steps)
       ? (caching.steps as Array<Record<string, any>>)
       : [];
     const stepConfig = stepsConfig.find(
@@ -710,11 +711,13 @@ export class OrchestrationStepExecutorService {
       return { enabled: false, ttlSeconds: null };
     }
 
+    const stepConfigAny = stepConfig as unknown as { ttl_seconds?: unknown };
+    const cachingTtlAny = caching as unknown as { ttl_seconds?: unknown };
     const ttl =
       this.coerceNumber(
         stepConfig?.ttlSeconds,
-        (stepConfig as any)?.ttl_seconds,
-      ) ?? this.coerceNumber(caching.ttlSeconds, (caching as any)?.ttl_seconds);
+        stepConfigAny?.ttl_seconds,
+      ) ?? this.coerceNumber(caching.ttlSeconds, cachingTtlAny?.ttl_seconds);
 
     return {
       enabled: true,
@@ -796,18 +799,25 @@ export class OrchestrationStepExecutorService {
     definition: any,
     mode: AgentTaskMode,
   ): TaskResponseDto | null {
-    const exec = definition.execution;
+    const definitionAny = definition as unknown as {
+      execution?: {
+        canConverse?: boolean;
+        canPlan?: boolean;
+        canBuild?: boolean;
+      };
+    };
+    const exec = definitionAny.execution;
     switch (mode) {
       case AgentTaskMode.CONVERSE:
-        return exec.canConverse
+        return exec?.canConverse
           ? null
           : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       case AgentTaskMode.PLAN:
-        return exec.canPlan
+        return exec?.canPlan
           ? null
           : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       case AgentTaskMode.BUILD:
-        return exec.canBuild
+        return exec?.canBuild
           ? null
           : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       default:
@@ -1453,15 +1463,20 @@ export class OrchestrationStepExecutorService {
       }, timeoutMs);
 
       eventNames.forEach((eventName) => {
-        const handler = (payload: any) => {
+        const handler = (payload: unknown) => {
           if (resolved) {
             return;
           }
+          const payloadAny = payload as {
+            runId?: string;
+            run?: { id?: string };
+            data?: { runId?: string; run?: { id?: string } };
+          };
           const payloadRunId =
-            payload?.runId ??
-            payload?.run?.id ??
-            payload?.data?.runId ??
-            payload?.data?.run?.id;
+            payloadAny?.runId ??
+            payloadAny?.run?.id ??
+            payloadAny?.data?.runId ??
+            payloadAny?.data?.run?.id;
 
           if (payloadRunId !== runId) {
             return;
@@ -1679,12 +1694,13 @@ export class OrchestrationStepExecutorService {
     }
 
     let remainder = segment;
-    let current = target;
+    let current: any = target;
 
     const fieldMatch = remainder.match(/^([^[\]]+)/);
     if (fieldMatch?.[1]) {
       const fieldName = fieldMatch[1];
-      current = current?.[fieldName];
+      const currentAny = current as Record<string, unknown>;
+      current = currentAny?.[fieldName];
       remainder = remainder.slice(fieldName.length);
     }
 
@@ -1742,13 +1758,26 @@ export class OrchestrationStepExecutorService {
       metadata: this.cloneValue(response.payload?.metadata ?? {}),
     };
 
-    const deliverables = (response as any)?.payload?.deliverables;
+    const responseAny = response as unknown as {
+      payload?: {
+        deliverables?: unknown;
+      };
+    };
+    const deliverables = responseAny?.payload?.deliverables;
     if (Array.isArray(deliverables) && deliverables.length > 0) {
-      snapshot.deliverables = deliverables.map((item: any) => ({
-        id: item?.id ?? null,
-        title: item?.title ?? null,
-        versionId: item?.versionId ?? item?.version_id ?? null,
-      }));
+      snapshot.deliverables = deliverables.map((item: unknown) => {
+        const itemAny = item as {
+          id?: string | null;
+          title?: string | null;
+          versionId?: string | null;
+          version_id?: string | null;
+        };
+        return {
+          id: itemAny?.id ?? null,
+          title: itemAny?.title ?? null,
+          versionId: itemAny?.versionId ?? itemAny?.version_id ?? null,
+        };
+      });
     }
 
     return {

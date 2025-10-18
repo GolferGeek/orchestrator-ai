@@ -1076,7 +1076,7 @@ function buildPlanActionContext(
       userId,
       agentSlug: definition.slug,
       taskId,
-      metadata: (request.metadata ?? {}) as Record<string, unknown>,
+      metadata: (request.metadata ?? {}) as JsonObject,
     },
   };
 }
