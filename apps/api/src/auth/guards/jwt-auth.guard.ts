@@ -147,7 +147,9 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractQueryToken(request: AuthenticatedRequest): string | null {
-    const query: Record<string, unknown> | undefined = request.query as Record<string, unknown> | undefined;
+    const query: Record<string, unknown> | undefined = request.query as
+      | Record<string, unknown>
+      | undefined;
     if (!query) {
       return null;
     }

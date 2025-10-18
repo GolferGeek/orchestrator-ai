@@ -24,12 +24,8 @@ interface CreateResult {
 }
 
 export interface AgentBuilderContext {
-  validate: (
-    config: JsonObject,
-  ) => Promise<ValidationResult>;
-  create: (
-    config: JsonObject,
-  ) => Promise<CreateResult>;
+  validate: (config: JsonObject) => Promise<ValidationResult>;
+  create: (config: JsonObject) => Promise<CreateResult>;
   generateFunctionCode: (
     description: string,
     inputModes: string[],
@@ -51,9 +47,7 @@ export class AgentBuilderService {
   /**
    * Validate an agent configuration
    */
-  async validateAgent(
-    payload: JsonObject,
-  ): Promise<ValidationResult> {
+  async validateAgent(payload: JsonObject): Promise<ValidationResult> {
     const type = payload.agent_type;
     const validation = this.validator.validateByType(type, payload);
     const policyIssues = this.policy.check(payload);
@@ -95,9 +89,7 @@ export class AgentBuilderService {
   /**
    * Create an agent after validation
    */
-  async createAgent(
-    payload: JsonObject,
-  ): Promise<CreateResult> {
+  async createAgent(payload: JsonObject): Promise<CreateResult> {
     try {
       // Validate first
       const validation = await this.validateAgent(payload);

@@ -199,7 +199,7 @@ export class AgentRuntimePlansAdapter {
       return undefined;
     }
 
-    const metadata = (payload as Record<string, unknown>).metadata;
+    const metadata = payload.metadata;
     if (!metadata || typeof metadata !== 'object') {
       return undefined;
     }

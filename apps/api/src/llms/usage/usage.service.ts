@@ -84,6 +84,14 @@ interface DateGroup {
   cost: number;
 }
 
+interface CurrentMonthBudget {
+  spent: number;
+  budget: number;
+  percentageUsed: number;
+  daysRemaining: number;
+  projectedTotal: number;
+}
+
 @Injectable()
 export class UsageService {
   constructor(private readonly supabaseService: SupabaseService) {}
@@ -487,13 +495,17 @@ export class UsageService {
     );
     const avgResponseTime =
       messages.length > 0
-        ? messages.reduce((sum, msg) => sum + (msg.llm_metadata?.response_time_ms || 0), 0) /
-          messages.length
+        ? messages.reduce(
+            (sum, msg) => sum + (msg.llm_metadata?.response_time_ms || 0),
+            0,
+          ) / messages.length
         : 0;
     const avgUserRating =
       messages.filter((msg) => msg.llm_metadata?.user_rating).length > 0
-        ? messages.reduce((sum, msg) => sum + (msg.llm_metadata?.user_rating || 0), 0) /
-          messages.filter((msg) => msg.llm_metadata?.user_rating).length
+        ? messages.reduce(
+            (sum, msg) => sum + (msg.llm_metadata?.user_rating || 0),
+            0,
+          ) / messages.filter((msg) => msg.llm_metadata?.user_rating).length
         : undefined;
 
     const firstMessage = messages[0];
@@ -509,22 +521,25 @@ export class UsageService {
   }
 
   private groupByProvider(messages: TaskWithMetadata[]): ProviderGroup[] {
-    const grouped = messages.reduce((acc: Record<string, ProviderGroup>, msg) => {
-      const providerId = msg.provider?.id || 'unknown';
-      if (!acc[providerId]) {
-        acc[providerId] = {
-          provider: msg.provider,
-          requests: 0,
-          tokens: 0,
-          cost: 0,
-        };
-      }
-      acc[providerId].requests++;
-      acc[providerId].tokens +=
-        (msg.input_tokens || 0) + (msg.output_tokens || 0);
-      acc[providerId].cost += msg.total_cost || 0;
-      return acc;
-    }, {});
+    const grouped = messages.reduce(
+      (acc: Record<string, ProviderGroup>, msg) => {
+        const providerId = msg.provider?.id || 'unknown';
+        if (!acc[providerId]) {
+          acc[providerId] = {
+            provider: msg.provider,
+            requests: 0,
+            tokens: 0,
+            cost: 0,
+          };
+        }
+        acc[providerId].requests++;
+        acc[providerId].tokens +=
+          (msg.input_tokens || 0) + (msg.output_tokens || 0);
+        acc[providerId].cost += msg.total_cost || 0;
+        return acc;
+      },
+      {},
+    );
 
     return Object.values(grouped);
   }
@@ -550,9 +565,15 @@ export class UsageService {
     return Object.values(grouped);
   }
 
-  private groupByDate(messages: TaskWithMetadata[], _granularity: string): DateGroup[] {
+  private groupByDate(
+    messages: TaskWithMetadata[],
+    _granularity: string,
+  ): DateGroup[] {
     const grouped = messages.reduce((acc: Record<string, DateGroup>, msg) => {
-      const timestamp = msg.llm_metadata?.timestamp || msg.timestamp || new Date().toISOString();
+      const timestamp =
+        msg.llm_metadata?.timestamp ||
+        msg.timestamp ||
+        new Date().toISOString();
       const date = new Date(timestamp).toISOString().split('T')[0]!;
       if (!acc[date]) {
         acc[date] = {
@@ -568,9 +589,7 @@ export class UsageService {
       return acc;
     }, {});
 
-    return Object.values(grouped).sort((a, b) =>
-      a.date.localeCompare(b.date),
-    );
+    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
   }
 
   private createBreakdown(
@@ -651,9 +670,26 @@ export class UsageService {
 
   private generateRecommendations(
     _stats: UsageStatsResponseDto,
-    spending: { totalSpent: number; dailyAverage: number; projectedMonthly: number; mostExpensiveDay: string; mostExpensiveAmount: number },
-    _insights: { mostUsedModel: string; mostExpensiveModel: string; bestValueModel: string; underutilizedModels: string[] },
-  ): Array<{ type: string; title: string; description: string; potentialSavings: number; priority: string }> {
+    spending: {
+      totalSpent: number;
+      dailyAverage: number;
+      projectedMonthly: number;
+      mostExpensiveDay: string;
+      mostExpensiveAmount: number;
+    },
+    _insights: {
+      mostUsedModel: string;
+      mostExpensiveModel: string;
+      bestValueModel: string;
+      underutilizedModels: string[];
+    },
+  ): Array<{
+    type: string;
+    title: string;
+    description: string;
+    potentialSavings: number;
+    priority: string;
+  }> {
     return [
       {
         type: 'cost_optimization',
@@ -666,8 +702,18 @@ export class UsageService {
     ];
   }
 
-  private generateBudgetAlerts(currentMonth: any): any[] {
-    const alerts = [];
+  private generateBudgetAlerts(currentMonth: CurrentMonthBudget): Array<{
+    level: 'danger' | 'warning';
+    message: string;
+    threshold: number;
+    currentValue: number;
+  }> {
+    const alerts: Array<{
+      level: 'danger' | 'warning';
+      message: string;
+      threshold: number;
+      currentValue: number;
+    }> = [];
 
     if (currentMonth.percentageUsed > 90) {
       alerts.push({
@@ -697,7 +743,10 @@ export class UsageService {
     return alerts;
   }
 
-  private generateBudgetRecommendations(currentMonth: any, _stats: any): any[] {
+  private generateBudgetRecommendations(
+    currentMonth: CurrentMonthBudget,
+    _stats: UsageStatsResponseDto,
+  ): Array<{ action: string; description: string; estimatedSavings: number }> {
     return [
       {
         action: 'switch_to_cheaper_models',
@@ -707,7 +756,7 @@ export class UsageService {
     ];
   }
 
-  private convertToCSV(data: any): string {
+  private convertToCSV(data: unknown): string {
     // Simple CSV conversion - would need more sophisticated implementation
     return JSON.stringify(data);
   }

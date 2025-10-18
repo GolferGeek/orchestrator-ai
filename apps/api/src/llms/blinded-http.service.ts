@@ -36,7 +36,7 @@ export class BlindedHttpService {
   /**
    * Make a source-blinded GET request
    */
-  get<T = any>(
+  get<T = unknown>(
     url: string,
     config?: AxiosRequestConfig,
     blindingOptions: BlindedHttpOptions = {},
@@ -50,9 +50,9 @@ export class BlindedHttpService {
   /**
    * Make a source-blinded POST request
    */
-  post<T = any>(
+  post<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig,
     blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
@@ -65,9 +65,9 @@ export class BlindedHttpService {
   /**
    * Make a source-blinded PUT request
    */
-  put<T = any>(
+  put<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig,
     blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
@@ -80,7 +80,7 @@ export class BlindedHttpService {
   /**
    * Make a source-blinded DELETE request
    */
-  delete<T = any>(
+  delete<T = unknown>(
     url: string,
     config?: AxiosRequestConfig,
     blindingOptions: BlindedHttpOptions = {},
@@ -94,9 +94,9 @@ export class BlindedHttpService {
   /**
    * Make a source-blinded PATCH request
    */
-  patch<T = any>(
+  patch<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig,
     blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
@@ -109,7 +109,7 @@ export class BlindedHttpService {
   /**
    * Make a source-blinded request with custom config
    */
-  request<T = any>(
+  request<T = unknown>(
     config: AxiosRequestConfig,
     blindingOptions: BlindedHttpOptions = {},
   ): Observable<AxiosResponse<T>> {
@@ -119,7 +119,7 @@ export class BlindedHttpService {
   /**
    * Core method that applies source blinding and makes the request
    */
-  private makeBlindedRequest<T = any>(
+  private makeBlindedRequest<T = unknown>(
     config: AxiosRequestConfig,
     blindingOptions: BlindedHttpOptions,
   ): Observable<AxiosResponse<T>> {
@@ -226,9 +226,9 @@ export class BlindedHttpService {
   /**
    * Convenience method for agent-to-agent calls
    */
-  async makeA2ACall<T = any>(
+  async makeA2ACall<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> {
     return firstValueFrom(
@@ -247,10 +247,10 @@ export class BlindedHttpService {
   /**
    * Convenience method for MCP tool calls
    */
-  async makeMCPCall<T = any>(
+  async makeMCPCall<T = unknown>(
     url: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<T>> {
     const provider = this.inferProvider(url);
@@ -278,7 +278,7 @@ export class BlindedHttpService {
     totalRequests: number;
     blindedRequests: number;
     internalRequests: number;
-    sourceBlindingService: any;
+    sourceBlindingService: unknown;
   } {
     // TODO: Implement request counting
     return {

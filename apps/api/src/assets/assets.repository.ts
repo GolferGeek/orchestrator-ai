@@ -36,7 +36,10 @@ export class AssetsRepository {
       .from(this.table)
       .select('*')
       .eq('id', id)
-      .maybeSingle()) as { data: AssetRecord | null; error: { message: string } | null };
+      .maybeSingle()) as {
+      data: AssetRecord | null;
+      error: { message: string } | null;
+    };
     if (error) throw new Error(`Failed to fetch asset: ${error.message}`);
     return (data as AssetRecord) || null;
   }
@@ -48,7 +51,10 @@ export class AssetsRepository {
       .from(this.table)
       .insert(input)
       .select('*')
-      .single()) as { data: AssetRecord | null; error: { message: string } | null };
+      .single()) as {
+      data: AssetRecord | null;
+      error: { message: string } | null;
+    };
     if (error) throw new Error(`Failed to create asset: ${error.message}`);
     return data as AssetRecord;
   }

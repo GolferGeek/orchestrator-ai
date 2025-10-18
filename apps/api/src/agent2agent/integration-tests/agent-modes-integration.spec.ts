@@ -12,7 +12,8 @@ import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
  */
 describe('Agent Modes Integration Tests (Phase 6)', () => {
   let app: INestApplication;
-  let httpServer: ReturnType<INestApplication['getHttpServer']>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let httpServer: any;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -52,7 +53,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         conversationId,
       };
 
-      const converse1 = await request(httpServer)
+      const converse1 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(converseRequest)
         .expect(201);
@@ -73,7 +76,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         conversationId,
       };
 
-      const converse2 = await request(httpServer)
+      const converse2 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(converse2Request)
         .expect(201);
@@ -91,7 +96,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         },
       };
 
-      const planCreate = await request(httpServer)
+      const planCreate = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(planCreateRequest)
         .expect(201);
@@ -110,7 +117,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         payload: { action: 'read' },
       };
 
-      const planRead = await request(httpServer)
+      const planRead = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(planReadRequest)
         .expect(201);
@@ -133,7 +142,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         },
       };
 
-      const planEdit = await request(httpServer)
+      const planEdit = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(planEditRequest)
         .expect(201);
@@ -153,7 +164,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         },
       };
 
-      const buildCreate = await request(httpServer)
+      const buildCreate = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(buildCreateRequest)
         .expect(201);
@@ -170,7 +183,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         payload: { action: 'read' },
       };
 
-      const buildRead = await request(httpServer)
+      const buildRead = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(buildReadRequest)
         .expect(201);
@@ -200,7 +215,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         conversationId,
       };
 
-      const converse = await request(httpServer)
+      const converse = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(converseRequest)
         .expect(201);
@@ -217,7 +234,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         },
       };
 
-      const build = await request(httpServer)
+      const build = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send(buildRequest)
         .expect(201);
@@ -243,7 +262,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
     it('should manage multiple plan versions correctly', async () => {
       // Setup conversation
-      await request(httpServer)
+      await request(httpServer as unknown as Parameters<typeof request>[0])
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.CONVERSE,
@@ -253,7 +272,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .expect(201);
 
       // Create plan v1
-      const planV1 = await request(httpServer)
+      const planV1 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -265,7 +286,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(planV1.body.content).toHaveProperty('version', 1);
 
       // Edit to create v2
-      const planV2 = await request(httpServer)
+      const planV2 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -281,7 +304,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(planV2.body.content).toHaveProperty('version', 2);
 
       // Edit to create v3
-      const planV3 = await request(httpServer)
+      const planV3 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -297,7 +322,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(planV3.body.content).toHaveProperty('version', 3);
 
       // List all versions
-      const listVersions = await request(httpServer)
+      const listVersions = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -310,7 +337,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(listVersions.body.content.versions).toHaveLength(3);
 
       // Set v2 as current
-      await request(httpServer)
+      await request(httpServer as unknown as Parameters<typeof request>[0])
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -320,7 +347,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .expect(201);
 
       // Verify v2 is current
-      const readCurrent = await request(httpServer)
+      const readCurrent = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -343,7 +372,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
     it('should manage multiple deliverable versions through edit and rerun', async () => {
       // Setup conversation and plan
-      await request(httpServer)
+      await request(httpServer as unknown as Parameters<typeof request>[0])
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.CONVERSE,
@@ -353,7 +382,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .expect(201);
 
       // Create initial deliverable (v1)
-      const buildV1 = await request(httpServer)
+      const buildV1 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -365,7 +396,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(buildV1.body.content).toHaveProperty('version', 1);
 
       // Edit deliverable (creates v2)
-      const buildV2 = await request(httpServer)
+      const buildV2 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -381,7 +414,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(buildV2.body.content).toHaveProperty('version', 2);
 
       // Rerun with different temperature (creates v3)
-      const buildV3 = await request(httpServer)
+      const buildV3 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -396,7 +431,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(buildV3.body.content).toHaveProperty('version', 3);
 
       // List all deliverable versions
-      const listVersions = await request(httpServer)
+      const listVersions = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -409,7 +446,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(listVersions.body.content.versions).toHaveLength(3);
 
       // Set v1 as current
-      await request(httpServer)
+      await request(httpServer as unknown as Parameters<typeof request>[0])
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -419,7 +456,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .expect(201);
 
       // Read (should get v1)
-      const readV1 = await request(httpServer)
+      const readV1 = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -442,7 +481,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
    */
   describe('Test 5: Error Handling - Invalid Actions', () => {
     it('should return proper error for invalid PLAN action', async () => {
-      const response = await request(httpServer)
+      const response = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -456,7 +497,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
     });
 
     it('should return proper error for invalid BUILD action', async () => {
-      const response = await request(httpServer)
+      const response = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -474,7 +517,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const requests = Array(5)
         .fill(null)
         .map(() =>
-          request(httpServer)
+          request(httpServer as unknown as Parameters<typeof request>[0])
             .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
             .send({
               mode: AgentTaskMode.PLAN,
@@ -489,7 +532,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       });
 
       // Server should still work
-      await request(httpServer).get('/health').expect(200);
+      await request(httpServer as unknown as Parameters<typeof request>[0])
+        .get('/health')
+        .expect(200);
     });
   });
 
@@ -506,7 +551,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const conversationId = `validation-test-${Date.now()}`;
 
       // Try to create plan with invalid structure
-      const response = await request(httpServer)
+      const response = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -528,7 +575,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
     it('should validate deliverable structure if agent has deliverable_structure schema', async () => {
       const conversationId = `validation-test-build-${Date.now()}`;
 
-      const response = await request(httpServer)
+      const response = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -556,7 +605,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
     it('should work with agents that have no plan_structure or deliverable_structure', async () => {
       // Use agent without schemas (or default agent)
-      await request(httpServer)
+      await request(httpServer as unknown as Parameters<typeof request>[0])
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.CONVERSE,
@@ -566,7 +615,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         .expect(201);
 
       // Create plan without validation
-      const planResponse = await request(httpServer)
+      const planResponse = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -578,7 +629,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(planResponse.body).toHaveProperty('mode', AgentTaskMode.PLAN);
 
       // Create deliverable without validation
-      const buildResponse = await request(httpServer)
+      const buildResponse = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -600,7 +653,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
     const conversationId = `transport-test-${Date.now()}`;
 
     it('should return CONVERSE response matching TaskResponseDto', async () => {
-      const response = await request(httpServer)
+      const response = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.CONVERSE,
@@ -628,7 +683,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
     });
 
     it('should return PLAN create response matching TaskResponseDto', async () => {
-      const response = await request(httpServer)
+      const response = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.PLAN,
@@ -649,7 +706,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
     });
 
     it('should return BUILD create response matching TaskResponseDto', async () => {
-      const response = await request(httpServer)
+      const response = await request(
+        httpServer as unknown as Parameters<typeof request>[0],
+      )
         .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
         .send({
           mode: AgentTaskMode.BUILD,
@@ -673,7 +732,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const planActions = ['read', 'listVersions', 'getVersion', 'delete'];
 
       for (const action of planActions) {
-        const response = await request(httpServer)
+        const response = await request(
+          httpServer as unknown as Parameters<typeof request>[0],
+        )
           .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
           .send({
             mode: AgentTaskMode.PLAN,
@@ -694,7 +755,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const buildActions = ['read', 'listVersions', 'getVersion', 'delete'];
 
       for (const action of buildActions) {
-        const response = await request(httpServer)
+        const response = await request(
+          httpServer as unknown as Parameters<typeof request>[0],
+        )
           .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
           .send({
             mode: AgentTaskMode.BUILD,
@@ -722,7 +785,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const requests = Array(5)
         .fill(null)
         .map((_, i) =>
-          request(httpServer)
+          request(httpServer as unknown as Parameters<typeof request>[0])
             .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
             .send({
               mode: AgentTaskMode.CONVERSE,
@@ -746,7 +809,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const setupRequests = Array(3)
         .fill(null)
         .map((_, i) =>
-          request(httpServer)
+          request(httpServer as unknown as Parameters<typeof request>[0])
             .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
             .send({
               mode: AgentTaskMode.CONVERSE,
@@ -761,7 +824,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const planRequests = Array(3)
         .fill(null)
         .map((_, i) =>
-          request(httpServer)
+          request(httpServer as unknown as Parameters<typeof request>[0])
             .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
             .send({
               mode: AgentTaskMode.PLAN,
@@ -785,7 +848,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const setupRequests = Array(2)
         .fill(null)
         .map((_, i) =>
-          request(httpServer)
+          request(httpServer as unknown as Parameters<typeof request>[0])
             .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
             .send({
               mode: AgentTaskMode.CONVERSE,
@@ -800,7 +863,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const buildRequests = Array(2)
         .fill(null)
         .map((_, i) =>
-          request(httpServer)
+          request(httpServer as unknown as Parameters<typeof request>[0])
             .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
             .send({
               mode: AgentTaskMode.BUILD,
@@ -824,14 +887,14 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
       // Create two conversations with different content
       await Promise.all([
-        request(httpServer)
+        request(httpServer as unknown as Parameters<typeof request>[0])
           .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
           .send({
             mode: AgentTaskMode.CONVERSE,
             userMessage: 'Talk about Python',
             conversationId: conv1,
           }),
-        request(httpServer)
+        request(httpServer as unknown as Parameters<typeof request>[0])
           .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
           .send({
             mode: AgentTaskMode.CONVERSE,
@@ -842,14 +905,14 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
       // Create plans for both
       const [plan1, plan2] = await Promise.all([
-        request(httpServer)
+        request(httpServer as unknown as Parameters<typeof request>[0])
           .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
           .send({
             mode: AgentTaskMode.PLAN,
             conversationId: conv1,
             payload: { action: 'create', title: 'Python Plan' },
           }),
-        request(httpServer)
+        request(httpServer as unknown as Parameters<typeof request>[0])
           .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
           .send({
             mode: AgentTaskMode.PLAN,

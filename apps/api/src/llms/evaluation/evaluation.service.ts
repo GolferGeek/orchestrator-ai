@@ -974,7 +974,9 @@ export class EvaluationService {
   private convertFeedbackToCSV(feedback: any[]): string {
     if (feedback.length === 0) return '';
 
-    const headers = Object.keys(feedback[0] as Record<string, unknown>).join(',');
+    const headers = Object.keys(feedback[0] as Record<string, unknown>).join(
+      ',',
+    );
     const rows = feedback.map((item) =>
       Object.values(item as Record<string, unknown>)
         .map((val) =>
@@ -1527,14 +1529,18 @@ export class EvaluationService {
 
       // Apply date filters
       if (filters.startDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
+        const evaluationDate = new Date(
+          task.evaluation.evaluation_timestamp as string | number | Date,
+        );
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
       if (filters.endDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
+        const evaluationDate = new Date(
+          task.evaluation.evaluation_timestamp as string | number | Date,
+        );
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
         endDate.setHours(23, 59, 59, 999);
@@ -1707,14 +1713,18 @@ export class EvaluationService {
 
       // Apply date filters
       if (filters.startDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
+        const evaluationDate = new Date(
+          task.evaluation.evaluation_timestamp as string | number | Date,
+        );
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
       if (filters.endDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
+        const evaluationDate = new Date(
+          task.evaluation.evaluation_timestamp as string | number | Date,
+        );
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
         endDate.setHours(23, 59, 59, 999);
@@ -1958,14 +1968,18 @@ export class EvaluationService {
 
       // Apply date filters
       if (filters.startDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
+        const evaluationDate = new Date(
+          task.evaluation.evaluation_timestamp as string | number | Date,
+        );
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
       if (filters.endDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
+        const evaluationDate = new Date(
+          task.evaluation.evaluation_timestamp as string | number | Date,
+        );
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
         endDate.setHours(23, 59, 59, 999);
@@ -2636,7 +2650,9 @@ export class EvaluationService {
     ];
 
     candidateValues.forEach((value) => {
-      const normalized = this.normalizeAgentIdentifier(value as string | null | undefined);
+      const normalized = this.normalizeAgentIdentifier(
+        value as string | null | undefined,
+      );
       if (normalized) {
         names.add(normalized);
       }
@@ -2742,7 +2758,11 @@ export class EvaluationService {
 
       steps.forEach((step: any) => {
         if (!stepStats.has(step.name as string)) {
-          stepStats.set(step.name as string, { total: 0, failed: 0, durations: [] });
+          stepStats.set(step.name as string, {
+            total: 0,
+            failed: 0,
+            durations: [],
+          });
         }
 
         const stats = stepStats.get(step.name as string)!;
@@ -2853,7 +2873,10 @@ export class EvaluationService {
       const impactScore = 5 - userRating + 1; // Higher impact for lower ratings
 
       if (!failurePatterns.has(failureSequence as string)) {
-        failurePatterns.set(failureSequence as string, { count: 0, totalImpact: 0 });
+        failurePatterns.set(failureSequence as string, {
+          count: 0,
+          totalImpact: 0,
+        });
       }
 
       const pattern = failurePatterns.get(failureSequence as string)!;
@@ -2889,7 +2912,9 @@ export class EvaluationService {
       const steps = task.response_metadata?.workflow_steps_completed;
       if (!steps) return;
 
-      const date = new Date(task.created_at as string | number | Date).toISOString().split('T')[0];
+      const date = new Date(task.created_at as string | number | Date)
+        .toISOString()
+        .split('T')[0];
       if (date && !dailyStats.has(date)) {
         dailyStats.set(date, {
           totalSteps: 0,
@@ -3143,7 +3168,8 @@ export class EvaluationService {
           ? stats.withConstraint
           : stats.withoutConstraint;
         targetStats.ratings.push(rating as number);
-        if (responseTime) targetStats.responseTimes.push(responseTime as number);
+        if (responseTime)
+          targetStats.responseTimes.push(responseTime as number);
         if (cost) targetStats.costs.push(cost as number);
       });
     });

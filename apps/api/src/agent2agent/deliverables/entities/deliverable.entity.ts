@@ -43,14 +43,14 @@ export class DeliverableVersion {
     type: 'object',
     additionalProperties: true,
   })
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'File attachments for this version',
     type: 'object',
     additionalProperties: true,
   })
-  fileAttachments?: Record<string, any>;
+  fileAttachments?: Record<string, unknown>;
 
   @ApiProperty({ description: 'Version creation timestamp' })
   createdAt!: Date;
@@ -155,7 +155,7 @@ export class DeliverableSearchResult {
     type: 'object',
     additionalProperties: true,
   })
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Current version number' })
   versionNumber?: number;

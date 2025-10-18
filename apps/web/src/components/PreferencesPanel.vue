@@ -605,7 +605,7 @@ const handleFileImport = async (event: Event) => {
       buttons: ['OK']
     });
     await alert.present();
-  } catch (error) {
+  } catch {
     const alert = await alertController.create({
       header: 'Import Failed',
       message: 'Failed to import preferences. Please check the file format and try again.',

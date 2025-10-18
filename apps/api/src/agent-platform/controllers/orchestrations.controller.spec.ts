@@ -39,7 +39,11 @@ describe('OrchestrationsController', () => {
         },
       };
 
-      statusService.getRunStatus.mockResolvedValue(mockStatus as unknown as Awaited<ReturnType<typeof statusService.getRunStatus>>);
+      statusService.getRunStatus.mockResolvedValue(
+        mockStatus as unknown as Awaited<
+          ReturnType<typeof statusService.getRunStatus>
+        >,
+      );
 
       const result = await controller.getStatus('run-1');
 
@@ -83,7 +87,11 @@ describe('OrchestrationsController', () => {
         },
       };
 
-      statusService.getRunStatus.mockResolvedValue(mockStatus as unknown as Awaited<ReturnType<typeof statusService.getRunStatus>>);
+      statusService.getRunStatus.mockResolvedValue(
+        mockStatus as unknown as Awaited<
+          ReturnType<typeof statusService.getRunStatus>
+        >,
+      );
 
       const result = await controller.getStatus('run-1');
 
@@ -108,10 +116,16 @@ describe('OrchestrationsController', () => {
         hasMore: false,
       };
 
-      dashboardService.listRuns.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.listRuns>>);
+      dashboardService.listRuns.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.listRuns>
+        >,
+      );
 
       const query = { lifecycle: 'active', limit: 25, offset: 0 };
-      const result = await controller.listRuns(query as unknown as Parameters<typeof controller.listRuns>[0]);
+      const result = await controller.listRuns(
+        query as unknown as Parameters<typeof controller.listRuns>[0],
+      );
 
       expect(result.success).toBe(true);
       expect(result.data.items).toHaveLength(2);
@@ -138,7 +152,11 @@ describe('OrchestrationsController', () => {
         hasMore: false,
       };
 
-      dashboardService.listRuns.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.listRuns>>);
+      dashboardService.listRuns.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.listRuns>
+        >,
+      );
 
       const query = {
         lifecycle: 'completed',
@@ -152,7 +170,9 @@ describe('OrchestrationsController', () => {
         startedBefore: '2025-10-12T23:59:59Z',
       };
 
-      await controller.listRuns(query as unknown as Parameters<typeof controller.listRuns>[0]);
+      await controller.listRuns(
+        query as unknown as Parameters<typeof controller.listRuns>[0],
+      );
 
       expect(dashboardService.listRuns).toHaveBeenCalledWith({
         organizationSlug: 'acme-corp',
@@ -183,10 +203,16 @@ describe('OrchestrationsController', () => {
         hasMore: false,
       };
 
-      dashboardService.listApprovals.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.listApprovals>>);
+      dashboardService.listApprovals.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.listApprovals>
+        >,
+      );
 
       const query = { status: 'pending', limit: 50, offset: 0 };
-      const result = await controller.listApprovals(query as unknown as Parameters<typeof controller.listApprovals>[0]);
+      const result = await controller.listApprovals(
+        query as unknown as Parameters<typeof controller.listApprovals>[0],
+      );
 
       expect(result.success).toBe(true);
       expect(result.data.items).toHaveLength(1);
@@ -208,10 +234,16 @@ describe('OrchestrationsController', () => {
         hasMore: false,
       };
 
-      dashboardService.listApprovals.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.listApprovals>>);
+      dashboardService.listApprovals.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.listApprovals>
+        >,
+      );
 
       const query = { organizationSlug: 'test-org' };
-      await controller.listApprovals(query as unknown as Parameters<typeof controller.listApprovals>[0]);
+      await controller.listApprovals(
+        query as unknown as Parameters<typeof controller.listApprovals>[0],
+      );
 
       expect(dashboardService.listApprovals).toHaveBeenCalledWith({
         organizationSlug: 'test-org',
@@ -230,7 +262,11 @@ describe('OrchestrationsController', () => {
         run: { id: 'run-1', status: 'running', pendingApprovals: 0 },
       };
 
-      dashboardService.resolveApproval.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.resolveApproval>>);
+      dashboardService.resolveApproval.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.resolveApproval>
+        >,
+      );
 
       const body = { decision: 'continue', notes: 'Approved' };
       const req = { user: { sub: 'user-123' } };
@@ -258,7 +294,11 @@ describe('OrchestrationsController', () => {
         run: { id: 'run-2', status: 'running', pendingApprovals: 0 },
       };
 
-      dashboardService.resolveApproval.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.resolveApproval>>);
+      dashboardService.resolveApproval.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.resolveApproval>
+        >,
+      );
 
       const body = {
         decision: 'retry',
@@ -267,7 +307,11 @@ describe('OrchestrationsController', () => {
       };
       const req = { user: { id: 'user-456' } };
 
-      await controller.resolveApproval('approval-2', body as unknown as Parameters<typeof controller.resolveApproval>[1], req);
+      await controller.resolveApproval(
+        'approval-2',
+        body as unknown as Parameters<typeof controller.resolveApproval>[1],
+        req,
+      );
 
       expect(dashboardService.resolveApproval).toHaveBeenCalledWith({
         approvalId: 'approval-2',
@@ -284,12 +328,20 @@ describe('OrchestrationsController', () => {
         run: { id: 'run-3', status: 'failed', pendingApprovals: 0 },
       };
 
-      dashboardService.resolveApproval.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.resolveApproval>>);
+      dashboardService.resolveApproval.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.resolveApproval>
+        >,
+      );
 
       const body = { decision: 'abort' };
       const req = { user: { userId: 'user-789' } };
 
-      await controller.resolveApproval('approval-3', body as unknown as Parameters<typeof controller.resolveApproval>[1], req);
+      await controller.resolveApproval(
+        'approval-3',
+        body as unknown as Parameters<typeof controller.resolveApproval>[1],
+        req,
+      );
 
       expect(dashboardService.resolveApproval).toHaveBeenCalledWith(
         expect.objectContaining({ actorId: 'user-789' }),
@@ -302,12 +354,20 @@ describe('OrchestrationsController', () => {
         run: { id: 'run-4', status: 'running', pendingApprovals: 0 },
       };
 
-      dashboardService.resolveApproval.mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof dashboardService.resolveApproval>>);
+      dashboardService.resolveApproval.mockResolvedValue(
+        mockResult as unknown as Awaited<
+          ReturnType<typeof dashboardService.resolveApproval>
+        >,
+      );
 
       const body = { decision: 'continue' };
       const req = {};
 
-      await controller.resolveApproval('approval-4', body as unknown as Parameters<typeof controller.resolveApproval>[1], req);
+      await controller.resolveApproval(
+        'approval-4',
+        body as unknown as Parameters<typeof controller.resolveApproval>[1],
+        req,
+      );
 
       expect(dashboardService.resolveApproval).toHaveBeenCalledWith(
         expect.objectContaining({ actorId: null }),
@@ -335,7 +395,11 @@ describe('OrchestrationsController', () => {
         },
       };
 
-      dashboardService.getReplayContext.mockResolvedValue(mockContext as unknown as Awaited<ReturnType<typeof dashboardService.getReplayContext>>);
+      dashboardService.getReplayContext.mockResolvedValue(
+        mockContext as unknown as Awaited<
+          ReturnType<typeof dashboardService.getReplayContext>
+        >,
+      );
 
       const result = await controller.getReplayContext('run-replay');
 
@@ -377,7 +441,11 @@ describe('OrchestrationsController', () => {
         metadata: { latestCheckpoint: null },
       };
 
-      dashboardService.getRunDetail.mockResolvedValue(mockDetail as unknown as Awaited<ReturnType<typeof dashboardService.getRunDetail>>);
+      dashboardService.getRunDetail.mockResolvedValue(
+        mockDetail as unknown as Awaited<
+          ReturnType<typeof dashboardService.getRunDetail>
+        >,
+      );
 
       const result = await controller.getRun('run-1');
 

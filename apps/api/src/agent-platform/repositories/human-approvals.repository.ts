@@ -40,7 +40,10 @@ export class HumanApprovalsRepository {
         metadata: this.ensureMetadata(input.metadata),
       })
       .select('*')
-      .single()) as { data: HumanApprovalRecord | null; error: { message: string } | null };
+      .single()) as {
+      data: HumanApprovalRecord | null;
+      error: { message: string } | null;
+    };
     if (error) throw new Error(`Failed to create approval: ${error.message}`);
     return data as HumanApprovalRecord;
   }
@@ -69,7 +72,10 @@ export class HumanApprovalsRepository {
       .update(payload)
       .eq('id', id)
       .select('*')
-      .single()) as { data: HumanApprovalRecord | null; error: { message: string } | null };
+      .single()) as {
+      data: HumanApprovalRecord | null;
+      error: { message: string } | null;
+    };
     if (error) throw new Error(`Failed to update approval: ${error.message}`);
     return data as HumanApprovalRecord;
   }
@@ -79,7 +85,10 @@ export class HumanApprovalsRepository {
       .from(this.table)
       .select('*')
       .eq('id', id)
-      .maybeSingle()) as { data: HumanApprovalRecord | null; error: { message: string } | null };
+      .maybeSingle()) as {
+      data: HumanApprovalRecord | null;
+      error: { message: string } | null;
+    };
     if (error) throw new Error(`Failed to fetch approval: ${error.message}`);
     return (data as HumanApprovalRecord) || null;
   }

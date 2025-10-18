@@ -401,7 +401,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import {
   IonChip,
   IonButton,
@@ -532,22 +532,22 @@ const hasUnsavedChanges = computed(() => {
   );
 });
 
-const renderedMarkdown = computed(() => {
-  if (displayVersion.value?.format !== 'markdown') return '';
-  if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
-    return '';
-  }
-  try {
-    marked.setOptions({
-      breaks: true,
-      gfm: true,
-    });
-    return marked(displayVersion.value.content);
-  } catch (error) {
-    console.error('Markdown rendering error:', error);
-    return displayVersion.value.content || '';
-  }
-});
+// const renderedMarkdown = computed(() => {
+//   if (displayVersion.value?.format !== 'markdown') return '';
+//   if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
+//     return '';
+//   }
+//   try {
+//     marked.setOptions({
+//       breaks: true,
+//       gfm: true,
+//     });
+//     return marked(displayVersion.value.content);
+//   } catch (error) {
+//     console.error('Markdown rendering error:', error);
+//     return displayVersion.value.content || '';
+//   }
+// });
 
 const diffLines = computed(() => {
   if (!showDiff.value) return [] as Array<{ type: 'same' | 'add' | 'del'; text: string }>;
@@ -716,7 +716,7 @@ const formatJson = (content: string) => {
   try {
     const parsed = JSON.parse(content);
     return JSON.stringify(parsed, null, 2);
-  } catch (error) {
+  } catch {
     return content;
   }
 };

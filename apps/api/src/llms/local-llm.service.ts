@@ -36,6 +36,18 @@ export interface ModelLoadResult {
   loadTime?: number;
 }
 
+interface OllamaGenerateResponse {
+  response?: string;
+  model?: string;
+  done?: boolean;
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
 @Injectable()
 export class LocalLLMService {
   private readonly logger = new Logger(LocalLLMService.name);
@@ -87,28 +99,33 @@ export class LocalLLMService {
 
       // Make the API call to Ollama
       const response = await firstValueFrom(
-        this.httpService.post(`${this.ollamaBaseUrl}/api/generate`, payload, {
-          timeout: 120000, // 2 minute timeout
-        }),
+        this.httpService.post<OllamaGenerateResponse>(
+          `${this.ollamaBaseUrl}/api/generate`,
+          payload,
+          {
+            timeout: 120000, // 2 minute timeout
+          },
+        ),
       );
 
-      if (response.data.response?.length === 0) {
+      const data = response.data;
+      if (data.response?.length === 0) {
         this.logger.warn(
           `🚨 [LocalLLM] Empty response from model ${request.model} - this is unexpected for a blog post request`,
         );
       }
 
       const result: LocalLLMResponse = {
-        response: response.data.response,
-        model: response.data.model,
+        response: data.response || '',
+        model: data.model || request.model,
         created_at: new Date().toISOString(),
-        done: response.data.done,
-        total_duration: response.data.total_duration,
-        load_duration: response.data.load_duration,
-        prompt_eval_count: response.data.prompt_eval_count,
-        prompt_eval_duration: response.data.prompt_eval_duration,
-        eval_count: response.data.eval_count,
-        eval_duration: response.data.eval_duration,
+        done: data.done || false,
+        total_duration: data.total_duration,
+        load_duration: data.load_duration,
+        prompt_eval_count: data.prompt_eval_count,
+        prompt_eval_duration: data.prompt_eval_duration,
+        eval_count: data.eval_count,
+        eval_duration: data.eval_duration,
       };
 
       const duration = Date.now() - startTime;

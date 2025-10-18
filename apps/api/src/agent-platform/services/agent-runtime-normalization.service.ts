@@ -54,23 +54,44 @@ export class AgentRuntimeNormalizationService {
     definition: AgentRuntimeDefinition,
     mode: AgentTaskMode,
   ): { input?: string; output?: string; strict?: boolean } | null {
-    const cfg = (definition.config as unknown) as Record<string, unknown> | null || {};
+    const cfg =
+      (definition.config as unknown as Record<string, unknown> | null) || {};
     const transforms = (cfg?.transforms as Record<string, unknown>) || {};
     const expected = (transforms?.expected as Record<string, unknown>) || {};
     const byMode = (transforms?.by_mode as Record<string, unknown>) || {};
-    const forMode = (byMode?.[this.modeKey(mode)] as Record<string, unknown>) || {};
+    const forMode =
+      (byMode?.[this.modeKey(mode)] as Record<string, unknown>) || {};
 
-    const input = (forMode?.input as Record<string, unknown>)?.content_type as string | undefined || (expected?.input as Record<string, unknown>)?.content_type as string | undefined;
+    const input =
+      ((forMode?.input as Record<string, unknown>)?.content_type as
+        | string
+        | undefined) ||
+      ((expected?.input as Record<string, unknown>)?.content_type as
+        | string
+        | undefined);
     const output =
-      (forMode?.output as Record<string, unknown>)?.content_type as string | undefined || (expected?.output as Record<string, unknown>)?.content_type as string | undefined;
-    const strict = Boolean((forMode?.input as Record<string, unknown>)?.strict ?? (expected?.input as Record<string, unknown>)?.strict);
+      ((forMode?.output as Record<string, unknown>)?.content_type as
+        | string
+        | undefined) ||
+      ((expected?.output as Record<string, unknown>)?.content_type as
+        | string
+        | undefined);
+    const strict = Boolean(
+      (forMode?.input as Record<string, unknown>)?.strict ??
+        (expected?.input as Record<string, unknown>)?.strict,
+    );
     if (!input && !output && !strict) return null;
     return { input, output, strict };
   }
 
   private detectProvided(request: TaskRequestDto): string | null {
     // If caller specified a contentType, honor it
-    const hinted = (request.payload as any)?.options?.contentType;
+    const hinted = (
+      (request.payload as Record<string, unknown>)?.options as Record<
+        string,
+        unknown
+      >
+    )?.contentType;
     if (typeof hinted === 'string' && hinted.trim()) return hinted.trim();
 
     if (typeof request.userMessage === 'string' && request.userMessage.trim()) {
@@ -99,7 +120,7 @@ export class AgentRuntimeNormalizationService {
         definition,
         'json_to_markdown',
       );
-      const json = this.safeStringify((request.payload as any) ?? {});
+      const json = this.safeStringify((request.payload as unknown) ?? {});
       const rendered = template
         ? template.replace('{{ json }}', json)
         : `\n\n\u003c!-- structured input --\u003e\n\n\u0060\u0060\u0060json\n${json}\n\u0060\u0060\u0060\n`;
@@ -140,36 +161,42 @@ export class AgentRuntimeNormalizationService {
     definition: AgentRuntimeDefinition,
     adapterKey: string,
   ): string | null {
-    const cfg = (definition.config as any) || {};
-    const adapters = cfg.transforms?.adapters || {};
-    const candidate = adapters?.[adapterKey]?.template;
+    const cfg =
+      (definition.config as unknown as Record<string, unknown> | null) || {};
+    const adapters =
+      ((cfg?.transforms as Record<string, unknown>)?.adapters as Record<
+        string,
+        unknown
+      >) || {};
+    const candidate = (adapters?.[adapterKey] as Record<string, unknown>)
+      ?.template;
     return typeof candidate === 'string' && candidate.trim() ? candidate : null;
   }
 
-  private extractFencedJson(text: string): any {
+  private extractFencedJson(text: string): unknown {
     const re = /```json\s*([\s\S]*?)\s*```/i;
     const m = re.exec(text);
     if (!m) return null;
     try {
-      return JSON.parse(m[1] || '');
+      return JSON.parse(m[1] || '') as unknown;
     } catch {
       return null;
     }
   }
 
-  private tryParseYaml(text: string): any {
+  private tryParseYaml(text: string): unknown {
     // Heuristic: contains ':' pairs or starts with '-'
     if (!text || (!text.includes(':') && !/^\s*-\s/m.test(text))) return null;
     try {
       const obj = yamlLoad(text);
-      if (obj && typeof obj === 'object') return obj as any;
+      if (obj && typeof obj === 'object') return obj as unknown;
       return null;
     } catch {
       return null;
     }
   }
 
-  private tryParseCsv(text: string): any[] | null {
+  private tryParseCsv(text: string): unknown[] | null {
     if (!text || !text.includes(',')) return null;
     const lines = text
       .split(/\r?\n/)
@@ -179,11 +206,11 @@ export class AgentRuntimeNormalizationService {
     const headerLine = lines[0] as string;
     const headers = this.splitCsvLine(headerLine);
     if (!headers.length) return null;
-    const rows: any[] = [];
+    const rows: unknown[] = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i] as string;
       const cols = this.splitCsvLine(line);
-      const obj: Record<string, any> = {};
+      const obj: Record<string, unknown> = {};
       headers.forEach((h, idx) => (obj[h] = cols[idx] ?? null));
       rows.push(obj);
     }
@@ -216,7 +243,7 @@ export class AgentRuntimeNormalizationService {
 
   private attachNormalizedJson(
     request: TaskRequestDto,
-    obj: any,
+    obj: unknown,
   ): TaskRequestDto {
     const clone: TaskRequestDto = {
       ...request,
@@ -225,7 +252,7 @@ export class AgentRuntimeNormalizationService {
     return clone;
   }
 
-  private safeStringify(obj: any): string {
+  private safeStringify(obj: unknown): string {
     try {
       return JSON.stringify(obj, null, 2);
     } catch {

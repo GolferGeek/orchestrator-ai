@@ -32,9 +32,9 @@ const props = withDefaults(defineProps<Props>(), {
   forceShow: false
 });
 
-const emit = defineEmits<{
-  click: [];
-}>();
+// const emit = defineEmits<{
+//   click: [];
+// }>();
 
 const privacyStore = usePrivacyStore();
 

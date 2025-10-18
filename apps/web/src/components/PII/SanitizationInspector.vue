@@ -466,7 +466,7 @@ const processingError = computed(() => sanitizationStore.error);
 const currentResult = computed(() => sanitizationStore.currentResult);
 // const processingHistory = computed(() => sanitizationStore.processingHistory);
 // const hasResult = computed(() => sanitizationStore.hasResult);
-const processingStats = computed(() => sanitizationStore.processingStats);
+// const processingStats = computed(() => sanitizationStore.processingStats);
 
 // Computed properties
 const currentPhase = computed(() => {
@@ -477,15 +477,15 @@ const progressPercentage = computed(() => {
   return ((currentPhaseIndex.value + 1) / sanitizationPhases.value.length) * 100;
 });
 
-const highlightedInputText = computed(() => {
-  if (!currentPhase.value) return '';
-  return highlightPIIInText(currentPhase.value.inputText || '');
-});
+// const highlightedInputText = computed(() => {
+//   if (!currentPhase.value) return '';
+//   return highlightPIIInText(currentPhase.value.inputText || '');
+// });
 
-const highlightedOutputText = computed(() => {
-  if (!currentPhase.value) return '';
-  return highlightPIIInText(currentPhase.value.outputText || '');
-});
+// const highlightedOutputText = computed(() => {
+//   if (!currentPhase.value) return '';
+//   return highlightPIIInText(currentPhase.value.outputText || '');
+// });
 
 // Methods
 const navigateToPhase = (index: number) => {
@@ -602,9 +602,9 @@ const getPatternColor = (type: string): string => {
 };
 
 // Helper to add processing control button
-const addProcessButton = () => {
-  return !sanitizationStore.hasResult && inputTextLocal.value.trim();
-};
+// const addProcessButton = () => {
+//   return !sanitizationStore.hasResult && inputTextLocal.value.trim();
+// };
 
 // Methods for reactive data extraction from store (no mock data)
 const getRedactedText = (): string => {

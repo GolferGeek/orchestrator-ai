@@ -46,12 +46,14 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'info',
   showStatus: true,
   dismissible: false,
-  forceShow: false
+  forceShow: false,
+  customTitle: '',
+  customDescription: ''
 });
 
-const emit = defineEmits<{
-  dismiss: [];
-}>();
+// const emit = defineEmits<{
+//   dismiss: [];
+// }>();
 
 const sovereignPolicyStore = usePrivacyStore();
 

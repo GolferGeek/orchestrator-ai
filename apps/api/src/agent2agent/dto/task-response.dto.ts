@@ -25,11 +25,11 @@ export class TaskResponseDto implements TaskResponse {
 
   static human(
     message: string,
-    metadataOrReason?: string | Record<string, any>,
+    metadataOrReason?: string | Record<string, unknown>,
     maybeReason?: string,
   ) {
     let reason: string | undefined = undefined;
-    let metadata: Record<string, any> | undefined = undefined;
+    let metadata: Record<string, unknown> | undefined = undefined;
     if (typeof metadataOrReason === 'string') {
       reason = metadataOrReason;
     } else if (metadataOrReason && typeof metadataOrReason === 'object') {

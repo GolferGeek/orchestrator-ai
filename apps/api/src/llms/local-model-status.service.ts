@@ -36,6 +36,32 @@ export interface OllamaModel {
   modified_at: string;
 }
 
+interface OllamaVersionResponse {
+  version?: string;
+}
+
+interface OllamaLoadedModel {
+  name: string;
+  size: number;
+  digest: string;
+  details?: {
+    format?: string;
+    family?: string;
+    families?: string[];
+    parameter_size?: string;
+    quantization_level?: string;
+  };
+  expires_at?: string;
+}
+
+interface OllamaProcessResponse {
+  models?: OllamaLoadedModel[];
+}
+
+interface OllamaTagsResponse {
+  models?: OllamaModel[];
+}
+
 export interface ModelHealth {
   available: boolean;
   responseTime: number;
@@ -84,7 +110,7 @@ export class LocalModelStatusService {
   async checkOllamaConnection(): Promise<boolean> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.ollamaBaseUrl}/api/version`, {
+        this.httpService.get<OllamaVersionResponse>(`${this.ollamaBaseUrl}/api/version`, {
           timeout: 5000,
         }),
       );
@@ -118,13 +144,13 @@ export class LocalModelStatusService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.ollamaBaseUrl}/api/ps`, {
+        this.httpService.get<OllamaProcessResponse>(`${this.ollamaBaseUrl}/api/ps`, {
           timeout: 5000,
         }),
       );
 
-      const loadedModels: any[] = response.data?.models || [];
-      const modelStatuses: ModelStatus[] = loadedModels.map((model: any) => ({
+      const loadedModels = response.data?.models || [];
+      const modelStatuses: ModelStatus[] = loadedModels.map((model) => ({
         name: model.name,
         status: 'loaded' as const,
         size: this.formatBytes(model.size),
@@ -153,7 +179,7 @@ export class LocalModelStatusService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.ollamaBaseUrl}/api/tags`, {
+        this.httpService.get<OllamaTagsResponse>(`${this.ollamaBaseUrl}/api/tags`, {
           timeout: 10000,
         }),
       );
