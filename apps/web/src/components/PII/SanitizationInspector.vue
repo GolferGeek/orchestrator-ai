@@ -361,6 +361,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  inputText: undefined,
   autoProcess: false,
   autoPlay: false,
   animationSpeed: 2000,
@@ -553,29 +554,29 @@ const processSanitization = async () => {
   }
 };
 
-const highlightPIIInText = (text: string): string => {
-  if (!text) return '';
-  
-  // Define PII highlighting patterns with colors
-  const piiPatterns = [
-    { type: 'email', pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, color: '#10b981' },
-    { type: 'phone', pattern: /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, color: '#3b82f6' },
-    { type: 'name', pattern: /\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, color: '#8b5cf6' },
-    { type: 'ssn', pattern: /\b\d{3}-\d{2}-\d{4}\b/g, color: '#ef4444' },
-    { type: 'api_key', pattern: /sk-[a-zA-Z0-9]{48}/g, color: '#f59e0b' },
-    { type: 'pseudonym', pattern: /\b(PersonAlpha|PersonBeta|PersonGamma|email\.beta|domain\.com)\b/g, color: '#06b6d4' }
-  ];
-  
-  let highlightedText = text;
-  
-  piiPatterns.forEach(({ type, pattern, color }) => {
-    highlightedText = highlightedText.replace(pattern, (match) => {
-      return `<span class="pii-highlight pii-${type}" style="background-color: ${color}20; color: ${color}; border: 0.0625rem solid ${color}40; border-radius: 0.1875rem; padding: 0.0625rem 0.1875rem;">${match}</span>`;
-    });
-  });
-  
-  return highlightedText;
-};
+// const highlightPIIInText = (text: string): string => {
+//   if (!text) return '';
+//   
+//   // Define PII highlighting patterns with colors
+//   const piiPatterns = [
+//     { type: 'email', pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, color: '#10b981' },
+//     { type: 'phone', pattern: /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, color: '#3b82f6' },
+//     { type: 'name', pattern: /\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, color: '#8b5cf6' },
+//     { type: 'ssn', pattern: /\b\d{3}-\d{2}-\d{4}\b/g, color: '#ef4444' },
+//     { type: 'api_key', pattern: /sk-[a-zA-Z0-9]{48}/g, color: '#f59e0b' },
+//     { type: 'pseudonym', pattern: /\b(PersonAlpha|PersonBeta|PersonGamma|email\.beta|domain\.com)\b/g, color: '#06b6d4' }
+//   ];
+//   
+//   let highlightedText = text;
+//   
+//   piiPatterns.forEach(({ type, pattern, color }) => {
+//     highlightedText = highlightedText.replace(pattern, (match) => {
+//       return `<span class="pii-highlight pii-${type}" style="background-color: ${color}20; color: ${color}; border: 0.0625rem solid ${color}40; border-radius: 0.1875rem; padding: 0.0625rem 0.1875rem;">${match}</span>`;
+//     });
+//   });
+//   
+//   return highlightedText;
+// };
 
 const formatPatternType = (type: string): string => {
   const typeMap: Record<string, string> = {

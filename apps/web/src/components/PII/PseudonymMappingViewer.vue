@@ -323,7 +323,7 @@
     </div>
 
     <!-- Mappings Table -->
-    <ion-card v-else-if="!isLoading && !error" class="mappings-table-card">
+    <ion-card v-else class="mappings-table-card">
       <ion-card-header>
         <ion-card-title>
           Pseudonym Mappings
