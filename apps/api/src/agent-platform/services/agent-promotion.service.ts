@@ -147,8 +147,7 @@ export class AgentPromotionService {
       }
 
       // 5. Auto-promote (no approval required)
-      const promoted = await this.agents.updateStatus(agentId, 'active');
-
+      await this.agents.updateStatus(agentId, 'active');
       this.logger.log(`Agent ${agent.slug} promoted to active (auto-approved)`);
 
       return {

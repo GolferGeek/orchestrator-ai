@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import QuickLRU = require('quick-lru');
+import * as QuickLRU from 'quick-lru';
 import { createHash } from 'crypto';
 import { OrchestrationResolvedDefinition } from '../types/orchestration-definition.types';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
@@ -69,10 +69,11 @@ export class OrchestrationCacheService {
     },
   );
   private readonly definitionKeysByRecord = new Map<string, Set<string>>();
-  private readonly stepOutputCache =
-    new QuickLRU<string, StepOutputCacheEntry>({
+  private readonly stepOutputCache = new QuickLRU<string, StepOutputCacheEntry>(
+    {
       maxSize: MAX_STEP_OUTPUT_CACHE_SIZE,
-    });
+    },
+  );
 
   getDefinition(
     key: DefinitionCacheKey,
@@ -101,7 +102,9 @@ export class OrchestrationCacheService {
   ): void {
     const cacheKey = this.buildDefinitionKey(key);
     const expiresAt =
-      ttlMs && Number.isFinite(ttlMs) ? Date.now() + Math.max(ttlMs, 0) : undefined;
+      ttlMs && Number.isFinite(ttlMs)
+        ? Date.now() + Math.max(ttlMs, 0)
+        : undefined;
 
     this.definitionCache.set(cacheKey, {
       record: definition,
@@ -239,9 +242,7 @@ export class OrchestrationCacheService {
       run.orchestration_name ??
       'unknown';
     const name =
-      (plan?.name as string | undefined) ??
-      run.orchestration_name ??
-      'ad_hoc';
+      (plan?.name as string | undefined) ?? run.orchestration_name ?? 'ad_hoc';
     const version =
       (plan?.version as string | undefined) ??
       metadata?.definitionVersion ??
@@ -275,8 +276,7 @@ export class OrchestrationCacheService {
       const entries = Object.keys(value)
         .sort()
         .map(
-          (key) =>
-            `${JSON.stringify(key)}:${this.stableSerialize((value as any)[key])}`,
+          (key) => `${JSON.stringify(key)}:${this.stableSerialize(value[key])}`,
         );
       return `{${entries.join(',')}}`;
     }
@@ -308,7 +308,11 @@ export class OrchestrationCacheService {
     if (typeof value === 'object') {
       try {
         return JSON.parse(JSON.stringify(value));
-      } catch (_error) {
+      } catch (error) {
+        this.logger.debug(
+          'Failed to clone value for orchestration cache',
+          error,
+        );
         return value;
       }
     }

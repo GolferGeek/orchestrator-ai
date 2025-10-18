@@ -31,6 +31,7 @@ export interface ConversationPlanStatusUpdate {
   approved_by?: string | null;
 }
 
-export interface ConversationPlanStatusPatch extends ConversationPlanStatusUpdate {
+export interface ConversationPlanStatusPatch
+  extends ConversationPlanStatusUpdate {
   updated_at: string;
 }

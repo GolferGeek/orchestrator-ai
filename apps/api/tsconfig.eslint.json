@@ -3,10 +3,8 @@
   "include": [
     "src/**/*.ts",
     "test/**/*.ts",
-    "testing/**/*.ts",
     "src/**/*.d.ts",
-    "test/**/*.d.ts",
-    "testing/**/*.d.ts"
+    "test/**/*.d.ts"
   ],
   "exclude": [
     "dist",

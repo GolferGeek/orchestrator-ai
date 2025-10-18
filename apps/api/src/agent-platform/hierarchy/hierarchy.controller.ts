@@ -140,7 +140,7 @@ export class HierarchyController {
           try {
             const yamlData = yamlLoad(agent.yaml) as any;
             reportsTo = yamlData?.reports_to || yamlData?.reportsTo || null;
-          } catch (err) {
+          } catch {
             // YAML parse error - reportsTo remains null
           }
         }

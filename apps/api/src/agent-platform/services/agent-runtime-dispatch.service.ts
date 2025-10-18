@@ -269,7 +269,9 @@ export class AgentRuntimeDispatchService {
       },
       next(): Promise<IteratorResult<AgentRuntimeStreamChunk>> {
         if (error) {
-          return Promise.reject(error);
+          return Promise.reject(
+            error instanceof Error ? error : new Error(String(error)),
+          );
         }
         if (queue.length) {
           const chunk = queue.shift()!;
@@ -786,13 +788,14 @@ export class AgentRuntimeDispatchService {
             return obj[path];
           }
           // dotted/bracket notation
-          const parts: Array<string | number> = [];
-          const re = /([^\.\[\]]+)|(\[(\d+)\])/g;
-          let m: RegExpExecArray | null;
-          while ((m = re.exec(path))) {
-            if (m[1]) parts.push(m[1]);
-            else if (m[3]) parts.push(parseInt(m[3], 10));
-          }
+          const normalized = path.replace(/\[(\d+)\]/g, '.$1');
+          const parts: Array<string | number> = normalized
+            .split('.')
+            .filter((segment) => segment.length > 0)
+            .map((segment) => {
+              const numeric = Number(segment);
+              return Number.isNaN(numeric) ? segment : numeric;
+            });
           let cur: any = obj;
           for (const p of parts) {
             if (cur == null) return undefined;
@@ -841,7 +844,7 @@ export class AgentRuntimeDispatchService {
         continue;
       }
       result[String(key)] =
-        typeof raw === 'string' ? raw : String(raw);
+        typeof raw === 'string' ? raw : this.stringifyContent(raw);
     }
 
     return result;

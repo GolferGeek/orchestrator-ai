@@ -86,9 +86,9 @@ export class OrchestrationDefinitionService {
 
   async getDefinitionForExecution(options: {
     ownerAgentSlug: string;
-   organizationSlug: string;
-   name: string;
-   version?: string;
+    organizationSlug: string;
+    name: string;
+    version?: string;
   }): Promise<OrchestrationResolvedDefinition> {
     const cacheKey = {
       ownerAgentSlug: options.ownerAgentSlug,
@@ -175,8 +175,7 @@ export class OrchestrationDefinitionService {
           id: step.id || `step_${index + 1}`,
           mode: (step.mode || 'BUILD').toUpperCase(),
           depends_on: Array.isArray(step.depends_on) ? step.depends_on : [],
-          type:
-            normalizedType === 'orchestration' ? 'orchestration' : 'agent',
+          type: normalizedType === 'orchestration' ? 'orchestration' : 'agent',
           orchestration: orchestrationConfig,
         };
       },
@@ -448,10 +447,7 @@ export class OrchestrationDefinitionService {
       raw['stepTtl'] as JsonValue | undefined,
       raw['step_ttl'] as JsonValue | undefined,
     );
-    const strategyRaw = this.coerceString(
-      raw['strategy'],
-      raw['mode'],
-    );
+    const strategyRaw = this.coerceString(raw['strategy'], raw['mode']);
 
     const stepsArray = Array.isArray(raw['steps'])
       ? (raw['steps'] as JsonArray)
@@ -482,10 +478,7 @@ export class OrchestrationDefinitionService {
           normalizedStep.enabled = stepEnabledRaw;
         }
         if (ttlValue !== null) {
-          normalizedStep.ttlSeconds = Math.max(
-            0,
-            Math.floor(Number(ttlValue)),
-          );
+          normalizedStep.ttlSeconds = Math.max(0, Math.floor(Number(ttlValue)));
         }
         return normalizedStep;
       })
@@ -517,9 +510,7 @@ export class OrchestrationDefinitionService {
       : null;
   }
 
-  private coerceNumber(
-    ...values: Array<JsonValue | undefined>
-  ): number | null {
+  private coerceNumber(...values: Array<JsonValue | undefined>): number | null {
     for (const value of values) {
       if (value === undefined || value === null) {
         continue;

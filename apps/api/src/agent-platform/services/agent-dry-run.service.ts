@@ -131,7 +131,7 @@ export class AgentDryRunService {
         },
         (e) => {
           clearTimeout(t);
-          reject(e);
+          reject(e instanceof Error ? e : new Error(String(e)));
         },
       );
     });

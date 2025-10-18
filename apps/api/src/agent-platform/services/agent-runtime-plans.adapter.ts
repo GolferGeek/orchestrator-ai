@@ -1,13 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type {
-  JsonObject,
-  JsonValue,
-} from '@orchestrator-ai/transport-types';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import type { ActionResult } from '@/agent2agent/common/interfaces/action-handler.interface';
-import {
-  Plan,
-  PlansService,
-} from '@/agent2agent/plans/services/plans.service';
+import { Plan, PlansService } from '@/agent2agent/plans/services/plans.service';
 import type { PlanVersion } from '@/agent2agent/plans/services/plan-versions.service';
 import {
   AgentTaskMode,
@@ -77,29 +71,30 @@ export class AgentRuntimePlansAdapter {
       const namespace = ctx.namespace || ctx.organizationSlug || 'default';
       const taskId = this.resolveTaskId(request);
 
-      const result = await this.plansService.executeAction<CreatePlanActionResult>(
-        'create',
-        {
-          title,
-          content,
-          format: 'markdown',
-          agentName: ctx.agentSlug,
-          namespace,
-          taskId,
-          metadata: this.buildMetadataObject({
-            organizationSlug: ctx.organizationSlug,
+      const result =
+        await this.plansService.executeAction<CreatePlanActionResult>(
+          'create',
+          {
+            title,
+            content,
+            format: 'markdown',
+            agentName: ctx.agentSlug,
+            namespace,
+            taskId,
+            metadata: this.buildMetadataObject({
+              organizationSlug: ctx.organizationSlug,
+              agentSlug: ctx.agentSlug,
+              mode: ctx.mode,
+            }),
+          },
+          {
+            conversationId,
+            userId,
             agentSlug: ctx.agentSlug,
-            mode: ctx.mode,
-          }),
-        },
-        {
-          conversationId,
-          userId,
-          agentSlug: ctx.agentSlug,
-          taskId: taskId ?? null,
-          metadata: this.buildMetadataObject(request.metadata ?? {}),
-        },
-      );
+            taskId: taskId ?? null,
+            metadata: this.buildMetadataObject(request.metadata ?? {}),
+          },
+        );
 
       const data = this.ensureSuccess(result, 'Failed to create plan');
 
@@ -223,8 +218,8 @@ export class AgentRuntimePlansAdapter {
 
   private buildMetadataObject(value: Record<string, any>): JsonObject {
     const parsed = this.toJsonValue(value);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as JsonObject;
+    if (parsed !== undefined && this.isJsonObject(parsed)) {
+      return parsed;
     }
     return {};
   }
@@ -262,10 +257,11 @@ export class AgentRuntimePlansAdapter {
     return undefined;
   }
 
-  private ensureSuccess<T>(
-    result: ActionResult<T>,
-    defaultMessage: string,
-  ): T {
+  private isJsonObject(value: JsonValue): value is JsonObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private ensureSuccess<T>(result: ActionResult<T>, defaultMessage: string): T {
     if (!result.success || result.data === undefined || result.data === null) {
       throw new Error(result.error?.message ?? defaultMessage);
     }

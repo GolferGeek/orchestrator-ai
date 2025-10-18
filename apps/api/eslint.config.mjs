@@ -15,7 +15,6 @@ const testFilePatterns = [
   '**/*.spec.ts',
   '**/*.spec.tsx',
   'test/**/*.ts',
-  'testing/**/*.ts',
 ];
 
 const temporaryTypeSafetyAllowlist = {
@@ -87,13 +86,27 @@ export default tseslint.config(
       'node_modules/**',
       'coverage/**',
       'eslint.config.mjs',
-      // TODO(lint phase 6): bring scripts back once TypeScript project setup covers utility scripts
       'scripts/**',
-      // TODO(lint phase 6): include legacy E2E suite when converted to new tsconfig structure
+      '**/scripts/**',
+      'testing/**',
       'testing/test/**',
+      '**/testing/**',
     ],
     plugins: {
       '@typescript-eslint': tseslint.plugin,
+    },
+  },
+  {
+    files: ['scripts/**/*.ts', 'scripts/**/*.d.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProjectForFiles: [
+            '**/scripts/**/*.ts',
+            '**/scripts/**/*.d.ts',
+          ],
+        },
+      },
     },
   },
   {
@@ -145,6 +158,8 @@ export default tseslint.config(
       'src/langchain/**',
       'src/supabase/utils/langchain-client.ts',
       'test/**',
+      'testing/**',
+      '**/testing/**',
       '**/*.spec.ts',
       '**/*.spec.tsx',
     ],

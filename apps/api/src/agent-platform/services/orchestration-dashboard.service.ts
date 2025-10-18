@@ -33,10 +33,7 @@ import { OrchestrationExecutionService } from './orchestration-execution.service
 import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 import type {
   OrchestrationCheckpointDecision,
-  OrchestrationCheckpointMetadata,
   OrchestrationRunMetadata,
-  OrchestrationStepState,
-  OrchestrationStepStateEntry,
 } from '../types/orchestration-run.types';
 
 export interface OrchestrationDashboardListOptions {
@@ -158,9 +155,7 @@ export class OrchestrationDashboardService {
 
     const total = count ?? items.length;
     const hasMore =
-      total !== null
-        ? offset + items.length < total
-        : items.length === limit;
+      total !== null ? offset + items.length < total : items.length === limit;
 
     return {
       items,
@@ -191,10 +186,9 @@ export class OrchestrationDashboardService {
       sortBy: 'created_at',
       sortDirection: 'desc',
     });
-    const childPending =
-      await this.approvalsRepository.countPendingByRunIds(
-        childRuns.data.map((child) => child.id),
-      );
+    const childPending = await this.approvalsRepository.countPendingByRunIds(
+      childRuns.data.map((child) => child.id),
+    );
 
     const childSummaries = childRuns.data.map((child) =>
       this.buildRunSummary(child, childPending[child.id] ?? 0),
@@ -202,8 +196,9 @@ export class OrchestrationDashboardService {
 
     let parentSummary: OrchestrationRunSummary | null = null;
     if (runRecord.parent_orchestration_run_id) {
-      const parent =
-        await this.runner.getRun(runRecord.parent_orchestration_run_id);
+      const parent = await this.runner.getRun(
+        runRecord.parent_orchestration_run_id,
+      );
       if (parent) {
         const parentCounts =
           await this.approvalsRepository.countPendingByRunIds([parent.id]);
@@ -283,14 +278,14 @@ export class OrchestrationDashboardService {
 
     const items: OrchestrationApprovalListItem[] = data.map((record) => {
       const runId = record.orchestration_run_id;
-      const runRecord = runId ? runLookup.get(runId) ?? null : null;
+      const runRecord = runId ? (runLookup.get(runId) ?? null) : null;
       return {
         approval: this.buildApprovalView(record),
         run:
           runRecord !== null
             ? this.buildRunSummary(
                 runRecord,
-                runId ? pendingCounts[runId] ?? 0 : 0,
+                runId ? (pendingCounts[runId] ?? 0) : 0,
               )
             : null,
       };
@@ -298,9 +293,7 @@ export class OrchestrationDashboardService {
 
     const total = count ?? items.length;
     const hasMore =
-      total !== null
-        ? offset + items.length < total
-        : items.length === limit;
+      total !== null ? offset + items.length < total : items.length === limit;
 
     return {
       items,
@@ -311,9 +304,7 @@ export class OrchestrationDashboardService {
     };
   }
 
-  async resolveApproval(
-    options: ResolveOrchestrationApprovalOptions,
-  ): Promise<{
+  async resolveApproval(options: ResolveOrchestrationApprovalOptions): Promise<{
     approval: OrchestrationApprovalView;
     run: OrchestrationRunSummary;
   }> {
@@ -325,17 +316,13 @@ export class OrchestrationDashboardService {
       modifications: options.modifications,
     });
 
-    const pendingCounts =
-      await this.approvalsRepository.countPendingByRunIds([
-        result.run.id,
-      ]);
+    const pendingCounts = await this.approvalsRepository.countPendingByRunIds([
+      result.run.id,
+    ]);
 
     return {
       approval: this.buildApprovalView(result.approval),
-      run: this.buildRunSummary(
-        result.run,
-        pendingCounts[result.run.id] ?? 0,
-      ),
+      run: this.buildRunSummary(result.run, pendingCounts[result.run.id] ?? 0),
     };
   }
 
@@ -369,10 +356,7 @@ export class OrchestrationDashboardService {
     const scheduledAt =
       delayMs > 0 ? new Date(now.getTime() + delayMs).toISOString() : null;
 
-    const metadata = this.mergeStepMetadata(
-      step.metadata,
-      {},
-    );
+    const metadata = this.mergeStepMetadata(step.metadata, {});
     const runtime = this.asRecord(metadata.runtime) ?? {};
     const retryRuntime = this.asRecord(runtime.retry) ?? {};
 
@@ -398,10 +382,8 @@ export class OrchestrationDashboardService {
     retryRuntime.requestedBy = options.actorId ?? null;
     if (typeof retryRuntime.maxAttempts !== 'number') {
       retryRuntime.maxAttempts =
-        this.resolveConfiguredMaxAttempts(
-          metadata,
-        step.metadata,
-      ) ?? nextAttempt;
+        this.resolveConfiguredMaxAttempts(metadata, step.metadata) ??
+        nextAttempt;
     }
 
     runtime.retry = retryRuntime;
@@ -469,9 +451,9 @@ export class OrchestrationDashboardService {
           .processRun(run.id)
           .catch((error) =>
             this.logger.error(
-              `Failed to resume orchestration run ${run.id} after manual retry delay: ${error instanceof Error ? error.message : String(
-                error,
-              )}`,
+              `Failed to resume orchestration run ${run.id} after manual retry delay: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
             ),
           );
       }, delayMs);
@@ -485,18 +467,14 @@ export class OrchestrationDashboardService {
         );
     }
 
-    const pendingCounts =
-      await this.approvalsRepository.countPendingByRunIds([updatedRun.id]);
+    const pendingCounts = await this.approvalsRepository.countPendingByRunIds([
+      updatedRun.id,
+    ]);
 
-    return this.buildRunSummary(
-      updatedRun,
-      pendingCounts[updatedRun.id] ?? 0,
-    );
+    return this.buildRunSummary(updatedRun, pendingCounts[updatedRun.id] ?? 0);
   }
 
-  async skipStep(
-    options: ManualSkipOptions,
-  ): Promise<OrchestrationRunSummary> {
+  async skipStep(options: ManualSkipOptions): Promise<OrchestrationRunSummary> {
     const now = new Date().toISOString();
     const run = await this.runner.getRun(options.runId);
     if (!run) {
@@ -544,14 +522,10 @@ export class OrchestrationDashboardService {
         ? this.cloneRecord(options.replacementOutput)
         : { skipped: true };
 
-    const completion = await this.execution.markStepCompleted(
-      step.id,
-      output,
-      {
-        metadata,
-        deliverable_id: null,
-      },
-    );
+    const completion = await this.execution.markStepCompleted(step.id, output, {
+      metadata,
+      deliverable_id: null,
+    });
 
     this.stepExecutor
       .processRun(run.id)
@@ -561,10 +535,9 @@ export class OrchestrationDashboardService {
         ),
       );
 
-    const pendingCounts =
-      await this.approvalsRepository.countPendingByRunIds([
-        completion.run.id,
-      ]);
+    const pendingCounts = await this.approvalsRepository.countPendingByRunIds([
+      completion.run.id,
+    ]);
 
     return this.buildRunSummary(
       completion.run,
@@ -628,15 +601,11 @@ export class OrchestrationDashboardService {
       },
     );
 
-    const pendingCounts =
-      await this.approvalsRepository.countPendingByRunIds([
-        updatedRun.id,
-      ]);
+    const pendingCounts = await this.approvalsRepository.countPendingByRunIds([
+      updatedRun.id,
+    ]);
 
-    return this.buildRunSummary(
-      updatedRun,
-      pendingCounts[updatedRun.id] ?? 0,
-    );
+    return this.buildRunSummary(updatedRun, pendingCounts[updatedRun.id] ?? 0);
   }
 
   async getReplayContext(
@@ -647,7 +616,7 @@ export class OrchestrationDashboardService {
       return null;
     }
 
-    const metadata = (run.metadata ?? {}) as OrchestrationRunMetadata;
+    const metadata: OrchestrationRunMetadata = run.metadata ?? {};
     const agentMetadata = metadata.agent ?? {};
 
     const definition =
@@ -804,9 +773,7 @@ export class OrchestrationDashboardService {
     patch: Record<string, any>,
   ): Record<string, any> {
     const base =
-      current && typeof current === 'object'
-        ? this.cloneRecord(current)
-        : {};
+      current && typeof current === 'object' ? this.cloneRecord(current) : {};
     this.mergeInto(base, patch);
     return base;
   }
@@ -823,10 +790,7 @@ export class OrchestrationDashboardService {
 
     const originalBehavior = this.asRecord(original?.behavior);
     const originalRetry = this.asRecord(originalBehavior?.retry);
-    if (
-      originalRetry &&
-      typeof originalRetry.maxAttempts === 'number'
-    ) {
+    if (originalRetry && typeof originalRetry.maxAttempts === 'number') {
       return originalRetry.maxAttempts;
     }
 
@@ -881,21 +845,20 @@ export class OrchestrationDashboardService {
   private mergeInto(target: JsonObject, patch: JsonObject): void {
     Object.entries(patch).forEach(([key, value]) => {
       if (this.isJsonObject(value)) {
-        if (!this.isJsonObject(target[key])) {
-          target[key] = {} as JsonObject;
-        }
-        this.mergeInto(target[key] as JsonObject, value);
+        const nested = this.asRecord(target[key]) ?? {};
+        target[key] = nested;
+        this.mergeInto(nested, value);
       } else {
-        target[key] = value as JsonValue;
+        target[key] = value;
       }
     });
   }
 
   private asRecord(value: unknown): JsonObject | null {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    if (!this.isJsonObject(value)) {
       return null;
     }
-    return { ...(value as JsonObject) };
+    return { ...value };
   }
 
   private asString(value: unknown): string | null {

@@ -2,10 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import {
   initializeDatabaseSchema,
   getSchemaContext,
-  getTablesByDomain,
   getAllTableNames,
 } from './database-schema';
-import { getLLM, initializeLangChain } from './langchain-client';
+import { initializeLangChain } from './langchain-client';
 import { MCPClientService } from '../../mcp/clients/mcp-client.service';
 
 // Global state for Supabase tools
@@ -266,7 +265,7 @@ export function setMCPClientService(client: MCPClientService): void {
 /**
  * Initialize Supabase tools for Orchestrator database
  */
-export async function initializeForOrchestrator(config?: SupabaseToolsConfig) {
+export async function initializeForOrchestrator(): Promise<void> {
   if (initialized) return;
 
   await initializeDatabaseSchema();
@@ -279,7 +278,7 @@ export async function initializeForOrchestrator(config?: SupabaseToolsConfig) {
 /**
  * Initialize Supabase tools for Company database (KPI/Analytics)
  */
-export async function initializeForCompany(config?: SupabaseToolsConfig) {
+export async function initializeForCompany(): Promise<void> {
   await createCompanySqlDatabase();
 
   if (!initialized) {
@@ -297,9 +296,9 @@ export async function initializeForAgent(config?: SupabaseToolsConfig) {
     config?.agentName?.includes('Metrics');
 
   if (isKpiRequest) {
-    await initializeForCompany(config);
+    await initializeForCompany();
   } else {
-    await initializeForOrchestrator(config);
+    await initializeForOrchestrator();
   }
 }
 

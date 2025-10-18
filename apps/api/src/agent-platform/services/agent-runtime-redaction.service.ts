@@ -109,13 +109,14 @@ export class AgentRuntimeRedactionService {
   }
 
   private maskPath(obj: any, path: string, value: any) {
-    const parts: Array<string | number> = [];
-    const re = /([^\.\[\]]+)|(\[(\d+)\])/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(path))) {
-      if (m[1]) parts.push(m[1]);
-      else if (m[3]) parts.push(parseInt(m[3], 10));
-    }
+    const normalized = path.replace(/\[(\d+)\]/g, '.$1');
+    const parts: Array<string | number> = normalized
+      .split('.')
+      .filter((segment) => segment.length > 0)
+      .map((segment) => {
+        const numeric = Number(segment);
+        return Number.isNaN(numeric) ? segment : numeric;
+      });
     if (!parts.length) return;
     let cur = obj;
     for (let i = 0; i < parts.length - 1; i++) {

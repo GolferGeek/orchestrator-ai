@@ -103,9 +103,7 @@ export class HumanApprovalsRepository {
     return (data as HumanApprovalRecord[]) ?? [];
   }
 
-  async list(
-    options: HumanApprovalListOptions = {},
-  ): Promise<{
+  async list(options: HumanApprovalListOptions = {}): Promise<{
     data: HumanApprovalRecord[];
     count: number | null;
     limit: number;
@@ -175,15 +173,15 @@ export class HumanApprovalsRepository {
       .from(this.table)
       .select('*')
       .in('orchestration_run_id', runIds)
-      .order('created_at', { ascending: false })) as SupabaseListResponse<HumanApprovalRecord>;
+      .order('created_at', {
+        ascending: false,
+      })) as SupabaseListResponse<HumanApprovalRecord>;
 
     if (error) {
       this.logger.error(
         `Failed to list approvals by run ids: ${error.message}`,
       );
-      throw new Error(
-        `Failed to list approvals by run ids: ${error.message}`,
-      );
+      throw new Error(`Failed to list approvals by run ids: ${error.message}`);
     }
 
     return (data as HumanApprovalRecord[]) ?? [];
@@ -206,12 +204,8 @@ export class HumanApprovalsRepository {
     }>;
 
     if (error) {
-      this.logger.error(
-        `Failed to count pending approvals: ${error.message}`,
-      );
-      throw new Error(
-        `Failed to count pending approvals: ${error.message}`,
-      );
+      this.logger.error(`Failed to count pending approvals: ${error.message}`);
+      throw new Error(`Failed to count pending approvals: ${error.message}`);
     }
 
     const counts: Record<string, number> = {};
@@ -240,7 +234,11 @@ export class HumanApprovalsRepository {
       return {};
     }
 
-    if (typeof metadata === 'object' && metadata !== null && !Array.isArray(metadata)) {
+    if (
+      typeof metadata === 'object' &&
+      metadata !== null &&
+      !Array.isArray(metadata)
+    ) {
       return metadata;
     }
 

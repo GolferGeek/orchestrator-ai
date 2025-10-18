@@ -12,8 +12,12 @@ import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchest
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { HumanApprovalRecord } from '../interfaces/human-approval-record.interface';
 import { OrchestrationRunSnapshot } from '../types/orchestration-events.types';
+import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
+import { v4 as uuidv4 } from 'uuid';
 
-function createMockSnapshot(overrides: Partial<OrchestrationRunSnapshot> = {}): OrchestrationRunSnapshot {
+function createMockSnapshot(
+  overrides: Partial<OrchestrationRunSnapshot> = {},
+): OrchestrationRunSnapshot {
   return {
     id: 'run-test',
     status: 'running',
@@ -43,6 +47,76 @@ function createMockSnapshot(overrides: Partial<OrchestrationRunSnapshot> = {}): 
     ...overrides,
   };
 }
+
+const createRunRecord = (
+  overrides: Partial<OrchestrationRunRecord> = {},
+): OrchestrationRunRecord => {
+  const timestamp = new Date().toISOString();
+  return {
+    id: uuidv4(),
+    plan_id: null,
+    orchestration_definition_id: uuidv4(),
+    orchestration_name: null,
+    conversation_id: null,
+    parent_orchestration_run_id: null,
+    origin_type: 'manual',
+    origin_id: null,
+    orchestration_slug: null,
+    parameters: {},
+    organization_slug: null,
+    user_id: null,
+    status: 'pending',
+    current_step_index: null,
+    current_step_id: null,
+    completed_steps: [],
+    step_state: {},
+    human_checkpoint_id: null,
+    plan: {},
+    results: {},
+    error_details: {},
+    metadata: {},
+    created_at: timestamp,
+    updated_at: timestamp,
+    started_at: null,
+    completed_at: null,
+    created_by: null,
+    ...overrides,
+  };
+};
+
+const createStepRecord = (
+  overrides: Partial<OrchestrationStepRecord> = {},
+): OrchestrationStepRecord => {
+  const timestamp = new Date().toISOString();
+  return {
+    id: uuidv4(),
+    orchestration_run_id: uuidv4(),
+    step_index: 0,
+    step_id: uuidv4(),
+    status: 'pending',
+    agent_slug: null,
+    mode: 'EXECUTE',
+    conversation_id: null,
+    plan_id: null,
+    deliverable_id: null,
+    depends_on: [],
+    attempt_number: 1,
+    checkpoint_decision: null,
+    checkpoint_decided_by: null,
+    checkpoint_decided_at: null,
+    invalidated_at: null,
+    invalidated_reason: null,
+    input: {},
+    output: null,
+    metadata: {},
+    error_details: null,
+    started_at: null,
+    completed_at: null,
+    created_at: timestamp,
+    updated_at: timestamp,
+    ...overrides,
+  };
+};
 
 describe('OrchestrationDashboardService', () => {
   let service: OrchestrationDashboardService;
@@ -177,9 +251,19 @@ describe('OrchestrationDashboardService', () => {
         parameters: {},
         errorDetails: {},
         metadata: {},
-        agent: { id: 'agent-1', slug: 'test-agent', displayName: 'Test Agent', type: 'orchestrator' },
+        agent: {
+          id: 'agent-1',
+          slug: 'test-agent',
+          displayName: 'Test Agent',
+          type: 'orchestrator',
+        },
         stats: { totalSteps: 5, completedSteps: 2 },
-        timings: { createdAt: '2025-10-12T10:00:00Z', updatedAt: '2025-10-12T10:00:00Z', startedAt: null, completedAt: null },
+        timings: {
+          createdAt: '2025-10-12T10:00:00Z',
+          updatedAt: '2025-10-12T10:00:00Z',
+          startedAt: null,
+          completedAt: null,
+        },
         currentStepId: 'step-1',
         currentStepIndex: 0,
       });
@@ -219,16 +303,28 @@ describe('OrchestrationDashboardService', () => {
 
       approvalsRepo.countPendingByRunIds.mockResolvedValue({});
 
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({
-        id: 'run-2',
-        status: 'completed',
-        name: 'Completed Orchestration',
-        definitionId: 'def-2',
-        organizationSlug: 'test-org',
-        agent: { id: 'agent-2', slug: 'test-agent-2', displayName: 'Test Agent 2', type: 'orchestrator' },
-        stats: { totalSteps: 3, completedSteps: 3 },
-        timings: { createdAt: '2025-10-12T09:00:00Z', updatedAt: '2025-10-12T09:10:00Z', startedAt: '2025-10-12T09:01:00Z', completedAt: '2025-10-12T09:10:00Z' },
-      }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({
+          id: 'run-2',
+          status: 'completed',
+          name: 'Completed Orchestration',
+          definitionId: 'def-2',
+          organizationSlug: 'test-org',
+          agent: {
+            id: 'agent-2',
+            slug: 'test-agent-2',
+            displayName: 'Test Agent 2',
+            type: 'orchestrator',
+          },
+          stats: { totalSteps: 3, completedSteps: 3 },
+          timings: {
+            createdAt: '2025-10-12T09:00:00Z',
+            updatedAt: '2025-10-12T09:10:00Z',
+            startedAt: '2025-10-12T09:01:00Z',
+            completedAt: '2025-10-12T09:10:00Z',
+          },
+        }),
+      );
 
       const result = await service.listRuns({ lifecycle: 'completed' });
 
@@ -333,11 +429,18 @@ describe('OrchestrationDashboardService', () => {
 
       approvalsRepo.countPendingByRunIds.mockResolvedValue({});
 
-      eventsService.snapshotRun.mockImplementation((run) => createMockSnapshot({
-        id: run.id,
-        status: run.status,
-        timings: { createdAt: run.created_at, updatedAt: run.created_at, startedAt: null, completedAt: null },
-      }));
+      eventsService.snapshotRun.mockImplementation((run) =>
+        createMockSnapshot({
+          id: run.id,
+          status: run.status,
+          timings: {
+            createdAt: run.created_at,
+            updatedAt: run.created_at,
+            startedAt: null,
+            completedAt: null,
+          },
+        }),
+      );
 
       const result = await service.listRuns({ limit: 25, offset: 0 });
 
@@ -370,7 +473,12 @@ describe('OrchestrationDashboardService', () => {
         run: { id: 'run-1', status: 'running', name: 'Test Run' },
         steps: [],
         currentStep: null,
-        summary: { totalSteps: 5, completedSteps: 2, progressPercentage: 40, pendingApprovals: 1 },
+        summary: {
+          totalSteps: 5,
+          completedSteps: 2,
+          progressPercentage: 40,
+          pendingApprovals: 1,
+        },
         pendingApprovals: [],
       };
 
@@ -393,11 +501,13 @@ describe('OrchestrationDashboardService', () => {
         offset: 0,
       });
 
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({
-        id: 'run-1',
-        status: 'running',
-        name: 'Test Run',
-      }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({
+          id: 'run-1',
+          status: 'running',
+          name: 'Test Run',
+        }),
+      );
 
       const result = await service.getRunDetail('run-1');
 
@@ -438,7 +548,12 @@ describe('OrchestrationDashboardService', () => {
         run: { id: 'run-child', status: 'running', name: 'Child Run' },
         steps: [],
         currentStep: null,
-        summary: { totalSteps: 3, completedSteps: 1, progressPercentage: 33, pendingApprovals: 0 },
+        summary: {
+          totalSteps: 3,
+          completedSteps: 1,
+          progressPercentage: 33,
+          pendingApprovals: 0,
+        },
         pendingApprovals: [],
       } as any);
 
@@ -464,14 +579,21 @@ describe('OrchestrationDashboardService', () => {
         offset: 0,
       });
 
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({
-        id: 'run-parent',
-        status: 'running',
-        name: 'Parent Run',
-        organizationSlug: 'test-org',
-        stats: { totalSteps: 5, completedSteps: 3 },
-        timings: { createdAt: '2025-10-12T09:00:00Z', updatedAt: '2025-10-12T09:00:00Z', startedAt: null, completedAt: null },
-      }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({
+          id: 'run-parent',
+          status: 'running',
+          name: 'Parent Run',
+          organizationSlug: 'test-org',
+          stats: { totalSteps: 5, completedSteps: 3 },
+          timings: {
+            createdAt: '2025-10-12T09:00:00Z',
+            updatedAt: '2025-10-12T09:00:00Z',
+            startedAt: null,
+            completedAt: null,
+          },
+        }),
+      );
 
       const result = await service.getRunDetail('run-child');
 
@@ -511,7 +633,12 @@ describe('OrchestrationDashboardService', () => {
         run: { id: 'run-parent', status: 'running', name: 'Parent Run' },
         steps: [],
         currentStep: null,
-        summary: { totalSteps: 5, completedSteps: 2, progressPercentage: 40, pendingApprovals: 0 },
+        summary: {
+          totalSteps: 5,
+          completedSteps: 2,
+          progressPercentage: 40,
+          pendingApprovals: 0,
+        },
         pendingApprovals: [],
       } as any);
 
@@ -536,13 +663,20 @@ describe('OrchestrationDashboardService', () => {
         offset: 0,
       });
 
-      eventsService.snapshotRun.mockImplementation((run) => createMockSnapshot({
-        id: run.id,
-        status: run.status,
-        name: run.orchestration_name,
-        organizationSlug: run.organization_slug,
-        timings: { createdAt: run.created_at, updatedAt: run.created_at, startedAt: null, completedAt: null },
-      }));
+      eventsService.snapshotRun.mockImplementation((run) =>
+        createMockSnapshot({
+          id: run.id,
+          status: run.status,
+          name: run.orchestration_name,
+          organizationSlug: run.organization_slug,
+          timings: {
+            createdAt: run.created_at,
+            updatedAt: run.created_at,
+            startedAt: null,
+            completedAt: null,
+          },
+        }),
+      );
 
       const result = await service.getRunDetail('run-parent');
 
@@ -590,14 +724,21 @@ describe('OrchestrationDashboardService', () => {
 
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 1 });
 
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({
-        id: 'run-1',
-        status: 'checkpoint',
-        name: 'Test Run',
-        organizationSlug: 'test-org',
-        stats: { totalSteps: 5, completedSteps: 2 },
-        timings: { createdAt: '2025-10-12T09:00:00Z', updatedAt: '2025-10-12T09:00:00Z', startedAt: null, completedAt: null },
-      }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({
+          id: 'run-1',
+          status: 'checkpoint',
+          name: 'Test Run',
+          organizationSlug: 'test-org',
+          stats: { totalSteps: 5, completedSteps: 2 },
+          timings: {
+            createdAt: '2025-10-12T09:00:00Z',
+            updatedAt: '2025-10-12T09:00:00Z',
+            startedAt: null,
+            completedAt: null,
+          },
+        }),
+      );
 
       const result = await service.listApprovals({ status: 'pending' });
 
@@ -696,16 +837,25 @@ describe('OrchestrationDashboardService', () => {
       });
 
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({
-        id: 'run-1',
-        status: 'running',
-        name: 'Test Run',
-        organizationSlug: 'test-org',
-        stats: { totalSteps: 5, completedSteps: 3 },
-        timings: { createdAt: '2025-10-12T09:00:00Z', updatedAt: '2025-10-12T09:00:00Z', startedAt: null, completedAt: null },
-      }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({
+          id: 'run-1',
+          status: 'running',
+          name: 'Test Run',
+          organizationSlug: 'test-org',
+          stats: { totalSteps: 5, completedSteps: 3 },
+          timings: {
+            createdAt: '2025-10-12T09:00:00Z',
+            updatedAt: '2025-10-12T09:00:00Z',
+            startedAt: null,
+            completedAt: null,
+          },
+        }),
+      );
 
       const result = await service.resolveApproval({
         approvalId: 'approval-1',
@@ -752,11 +902,18 @@ describe('OrchestrationDashboardService', () => {
 
       approvalsRepo.countPendingByRunIds.mockResolvedValue({});
 
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({
-        id: 'run-2',
-        status: 'running',
-        timings: { createdAt: '2025-10-12T09:00:00Z', updatedAt: '2025-10-12T09:00:00Z', startedAt: null, completedAt: null },
-      }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({
+          id: 'run-2',
+          status: 'running',
+          timings: {
+            createdAt: '2025-10-12T09:00:00Z',
+            updatedAt: '2025-10-12T09:00:00Z',
+            startedAt: null,
+            completedAt: null,
+          },
+        }),
+      );
 
       const modifications = { retryCount: 3, timeout: 60 };
 
@@ -813,7 +970,9 @@ describe('OrchestrationDashboardService', () => {
       };
 
       runnerService.getRun.mockResolvedValue(mockRun);
-      definitionService.getDefinitionById.mockResolvedValue(mockDefinition as any);
+      definitionService.getDefinitionById.mockResolvedValue(
+        mockDefinition as any,
+      );
 
       const result = await service.getReplayContext('run-replay');
 
@@ -886,18 +1045,28 @@ describe('OrchestrationDashboardService', () => {
         input: { param1: 'value1' },
         metadata: {
           behavior: { retry: { maxAttempts: 3 } },
-          runtime: { retry: { attempt: 1, history: [], maxAttempts: 3 } }
+          runtime: { retry: { attempt: 1, history: [], maxAttempts: 3 } },
         },
-      } as any;
+      } satisfies OrchestrationStepRecord;
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
-      runnerService.updateRun.mockResolvedValue({ ...mockRun, status: 'running' } as OrchestrationRunRecord);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      runnerService.updateStep.mockResolvedValue({
+        ...failedStep,
+        status: 'pending',
+      });
+      runnerService.updateRun.mockResolvedValue({
+        ...mockRun,
+        status: 'running',
+      } satisfies OrchestrationRunRecord);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       const result = await service.retryStep({
         runId: 'run-1',
@@ -922,16 +1091,12 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should schedule retry with delay when delaySeconds > 0', async () => {
-      const mockRun: OrchestrationRunRecord = {
+      const mockRun = createRunRecord({
         id: 'run-1',
         status: 'running',
-        parameters: {},
-        plan: {},
-        results: {},
-        metadata: {},
-      } as OrchestrationRunRecord;
+      });
 
-      const failedStep = {
+      const failedStep = createStepRecord({
         id: 'step-rec-1',
         orchestration_run_id: 'run-1',
         step_id: 'step-1',
@@ -939,15 +1104,20 @@ describe('OrchestrationDashboardService', () => {
         status: 'failed',
         attempt_number: 2,
         metadata: { runtime: { retry: { attempt: 2, history: [] } } },
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
+      runnerService.updateStep.mockResolvedValue({
+        ...failedStep,
+        status: 'pending',
+      });
       runnerService.updateRun.mockResolvedValue(mockRun);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       await service.retryStep({
         runId: 'run-1',
@@ -983,11 +1153,16 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
+      runnerService.updateStep.mockResolvedValue({
+        ...failedStep,
+        status: 'pending',
+      } as any);
       runnerService.updateRun.mockResolvedValue(mockRun);
       stepExecutorService.processRun.mockResolvedValue(undefined as any);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       await service.retryStep({
         runId: 'run-1',
@@ -1026,20 +1201,25 @@ describe('OrchestrationDashboardService', () => {
             retry: {
               attempt: 2,
               history: [
-                { attempt: 1, failedAt: '2025-10-12T10:03:00Z', manual: false }
-              ]
-            }
-          }
+                { attempt: 1, failedAt: '2025-10-12T10:03:00Z', manual: false },
+              ],
+            },
+          },
         },
       } as any;
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      runnerService.updateStep.mockResolvedValue({ ...failedStep, status: 'pending' } as any);
+      runnerService.updateStep.mockResolvedValue({
+        ...failedStep,
+        status: 'pending',
+      } as any);
       runnerService.updateRun.mockResolvedValue(mockRun);
       stepExecutorService.processRun.mockResolvedValue(undefined as any);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       await service.retryStep({
         runId: 'run-1',
@@ -1061,7 +1241,7 @@ describe('OrchestrationDashboardService', () => {
       runnerService.getRun.mockResolvedValue(null);
 
       await expect(
-        service.retryStep({ runId: 'nonexistent', actorId: 'user-123' })
+        service.retryStep({ runId: 'nonexistent', actorId: 'user-123' }),
       ).rejects.toThrow('Orchestration run nonexistent could not be found');
     });
 
@@ -1082,7 +1262,7 @@ describe('OrchestrationDashboardService', () => {
       ]);
 
       await expect(
-        service.retryStep({ runId: 'run-1', actorId: 'user-123' })
+        service.retryStep({ runId: 'run-1', actorId: 'user-123' }),
       ).rejects.toThrow('No failed step available to retry for this run');
     });
 
@@ -1110,7 +1290,7 @@ describe('OrchestrationDashboardService', () => {
           runId: 'run-1',
           stepRecordId: 'step-rec-1',
           actorId: 'user-123',
-        })
+        }),
       ).rejects.toThrow('is not in a failed state');
     });
   });
@@ -1138,10 +1318,15 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      executionService.markStepCompleted.mockResolvedValue({
+        step: failedStep,
+        run: mockRun,
+      } as any);
       stepExecutorService.processRun.mockResolvedValue(undefined as any);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       const result = await service.skipStep({
         runId: 'run-1',
@@ -1162,7 +1347,7 @@ describe('OrchestrationDashboardService', () => {
               }),
             }),
           }),
-        })
+        }),
       );
       expect(result.status).toBe('running');
     });
@@ -1187,10 +1372,15 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      executionService.markStepCompleted.mockResolvedValue({
+        step: failedStep,
+        run: mockRun,
+      } as any);
       stepExecutorService.processRun.mockResolvedValue(undefined as any);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       await service.skipStep({
         runId: 'run-1',
@@ -1201,7 +1391,7 @@ describe('OrchestrationDashboardService', () => {
       expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'step-rec-1',
         { content: 'Manual override data' },
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -1225,10 +1415,15 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      executionService.markStepCompleted.mockResolvedValue({
+        step: failedStep,
+        run: mockRun,
+      } as any);
       stepExecutorService.processRun.mockResolvedValue(undefined as any);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       await service.skipStep({
         runId: 'run-1',
@@ -1238,7 +1433,7 @@ describe('OrchestrationDashboardService', () => {
       expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'step-rec-1',
         { skipped: true },
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -1262,10 +1457,15 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
-      executionService.markStepCompleted.mockResolvedValue({ step: failedStep, run: mockRun } as any);
+      executionService.markStepCompleted.mockResolvedValue({
+        step: failedStep,
+        run: mockRun,
+      } as any);
       stepExecutorService.processRun.mockResolvedValue(undefined as any);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'running' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'running' }),
+      );
 
       await service.skipStep({
         runId: 'run-1',
@@ -1286,7 +1486,7 @@ describe('OrchestrationDashboardService', () => {
               }),
             }),
           }),
-        })
+        }),
       );
     });
 
@@ -1294,7 +1494,7 @@ describe('OrchestrationDashboardService', () => {
       runnerService.getRun.mockResolvedValue(null);
 
       await expect(
-        service.skipStep({ runId: 'nonexistent', actorId: 'user-123' })
+        service.skipStep({ runId: 'nonexistent', actorId: 'user-123' }),
       ).rejects.toThrow('Orchestration run nonexistent could not be found');
     });
 
@@ -1314,7 +1514,7 @@ describe('OrchestrationDashboardService', () => {
       ]);
 
       await expect(
-        service.skipStep({ runId: 'run-1', actorId: 'user-123' })
+        service.skipStep({ runId: 'run-1', actorId: 'user-123' }),
       ).rejects.toThrow('No target step available to skip for this run');
     });
   });
@@ -1340,7 +1540,9 @@ describe('OrchestrationDashboardService', () => {
       } as OrchestrationRunRecord;
       runnerService.updateRun.mockResolvedValue(abortedRun);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'aborted' }),
+      );
 
       const result = await service.abortRun({
         runId: 'run-1',
@@ -1353,7 +1555,7 @@ describe('OrchestrationDashboardService', () => {
           runId: 'run-1',
           status: 'aborted',
           completedAt: expect.any(String),
-        })
+        }),
       );
       expect(result.status).toBe('aborted');
     });
@@ -1374,7 +1576,9 @@ describe('OrchestrationDashboardService', () => {
         status: 'aborted',
       } as OrchestrationRunRecord);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'aborted' }),
+      );
 
       await service.abortRun({
         runId: 'run-1',
@@ -1408,7 +1612,9 @@ describe('OrchestrationDashboardService', () => {
         status: 'aborted',
       } as OrchestrationRunRecord);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'aborted' }),
+      );
 
       await service.abortRun({
         runId: 'run-1',
@@ -1423,7 +1629,7 @@ describe('OrchestrationDashboardService', () => {
       runnerService.getRun.mockResolvedValue(null);
 
       await expect(
-        service.abortRun({ runId: 'nonexistent', actorId: 'user-123' })
+        service.abortRun({ runId: 'nonexistent', actorId: 'user-123' }),
       ).rejects.toThrow('Orchestration run nonexistent could not be found');
     });
 
@@ -1446,7 +1652,9 @@ describe('OrchestrationDashboardService', () => {
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.updateRun.mockResolvedValue(abortedRun);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
-      eventsService.snapshotRun.mockReturnValue(createMockSnapshot({ id: 'run-1', status: 'aborted' }));
+      eventsService.snapshotRun.mockReturnValue(
+        createMockSnapshot({ id: 'run-1', status: 'aborted' }),
+      );
 
       await service.abortRun({
         runId: 'run-1',
@@ -1459,7 +1667,7 @@ describe('OrchestrationDashboardService', () => {
           type: 'manual_abort',
           note: null,
         }),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });

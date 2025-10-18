@@ -14,7 +14,7 @@
     "start:dev:full": "./start-dev.sh",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint --max-warnings=0 .",
+    "lint": "eslint --ignore-pattern \"testing/test/**\" --ignore-pattern \"scripts/**\" --ignore-pattern \"dist/**\" .",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

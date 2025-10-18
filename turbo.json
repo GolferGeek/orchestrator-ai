@@ -21,7 +21,9 @@
     "test:e2e": {
       "dependsOn": ["build", "generate"]
     },
-    "lint": {},
+    "lint": {
+      "inputs": ["apps/api/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

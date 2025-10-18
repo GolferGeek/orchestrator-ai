@@ -58,6 +58,8 @@ export class OrchestrationRunsRepository {
         ? (input.plan_id ?? null)
         : (input.origin_id ?? null));
 
+    const stepState: OrchestrationStepState = input.step_state ?? {};
+
     const payload = {
       plan_id: input.plan_id ?? null,
       orchestration_definition_id: input.orchestration_definition_id ?? null,
@@ -74,7 +76,7 @@ export class OrchestrationRunsRepository {
       current_step_index: null,
       current_step_id: input.current_step_id ?? null,
       completed_steps: [],
-      step_state: (input.step_state ?? {}) as OrchestrationStepState,
+      step_state: stepState,
       human_checkpoint_id: null,
       plan: input.plan ?? {},
       results: input.results ?? {},
@@ -161,9 +163,7 @@ export class OrchestrationRunsRepository {
     return data;
   }
 
-  async list(
-    options: OrchestrationRunListOptions = {},
-  ): Promise<{
+  async list(options: OrchestrationRunListOptions = {}): Promise<{
     data: OrchestrationRunRecord[];
     count: number | null;
     limit: number;
@@ -194,18 +194,12 @@ export class OrchestrationRunsRepository {
       if (options.parentRunId === null) {
         query = query.is('parent_orchestration_run_id', null);
       } else {
-        query = query.eq(
-          'parent_orchestration_run_id',
-          options.parentRunId,
-        );
+        query = query.eq('parent_orchestration_run_id', options.parentRunId);
       }
     }
 
     if (options.definitionId) {
-      query = query.eq(
-        'orchestration_definition_id',
-        options.definitionId,
-      );
+      query = query.eq('orchestration_definition_id', options.definitionId);
     }
 
     if (options.originType) {
@@ -239,9 +233,7 @@ export class OrchestrationRunsRepository {
     )) as SupabaseListResponse<OrchestrationRunRecord>;
 
     if (error) {
-      this.logger.error(
-        `Failed to list orchestration runs: ${error.message}`,
-      );
+      this.logger.error(`Failed to list orchestration runs: ${error.message}`);
       throw new Error(`Failed to list orchestration runs: ${error.message}`);
     }
 
@@ -258,7 +250,7 @@ export class OrchestrationRunsRepository {
       return [];
     }
 
-    const { data, error} = (await this.client()
+    const { data, error } = (await this.client()
       .from(TABLE)
       .select('*')
       .in('id', ids)) as SupabaseListResponse<OrchestrationRunRecord>;

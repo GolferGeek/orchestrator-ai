@@ -172,7 +172,7 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
     }));
 
     return relationships;
-  } catch (_error) {
+  } catch {
     return inferRelationshipsFromNaming();
   }
 }
@@ -215,7 +215,7 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
     }
 
     return data.map((row: any) => row.column_name);
-  } catch (_error) {
+  } catch {
     return ['id']; // Fallback
   }
 }

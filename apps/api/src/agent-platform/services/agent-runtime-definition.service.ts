@@ -98,9 +98,7 @@ export class AgentRuntimeDefinitionService {
     };
   }
 
-  private parseDescriptor(
-    raw: string | null | undefined,
-  ): JsonObject | null {
+  private parseDescriptor(raw: string | null | undefined): JsonObject | null {
     if (!raw || typeof raw !== 'string' || !raw.trim()) {
       return null;
     }
@@ -291,10 +289,11 @@ export class AgentRuntimeDefinitionService {
       const authentication =
         apiConfig.authentication === null
           ? null
-          : this.toJsonObject(apiConfig.authentication) ?? null;
+          : (this.toJsonObject(apiConfig.authentication) ?? null);
       const requestTransform =
-        this.toJsonObject(apiConfig.request_transform ?? apiConfig.requestTransform) ??
-        null;
+        this.toJsonObject(
+          apiConfig.request_transform ?? apiConfig.requestTransform,
+        ) ?? null;
       const responseTransform =
         this.toJsonObject(
           apiConfig.response_transform ?? apiConfig.responseTransform,
@@ -321,11 +320,11 @@ export class AgentRuntimeDefinitionService {
       const authentication =
         externalConfig.authentication === null
           ? null
-          : this.toJsonObject(externalConfig.authentication) ?? null;
+          : (this.toJsonObject(externalConfig.authentication) ?? null);
       const retry =
         externalConfig.retry === null
           ? null
-          : this.toJsonObject(externalConfig.retry) ?? null;
+          : (this.toJsonObject(externalConfig.retry) ?? null);
       const healthCheck =
         this.toJsonObject(
           externalConfig.health_check ?? externalConfig.healthCheck,
@@ -418,9 +417,9 @@ export class AgentRuntimeDefinitionService {
     record: AgentRecord,
     descriptor: UnknownRecord,
   ): AgentConfigDefinition | null {
-    const descriptorConfig = this.toJsonObject(descriptor?.configuration) as
-      | AgentConfigDefinition
-      | null;
+    const descriptorConfig = this.toJsonObject(
+      descriptor?.configuration,
+    ) as AgentConfigDefinition | null;
     const merged = this.mergeJsonObjects(descriptorConfig, record.config);
     return (merged as AgentConfigDefinition | null) ?? null;
   }
@@ -455,9 +454,7 @@ export class AgentRuntimeDefinitionService {
     return { ...base, ...override } as JsonObject;
   }
 
-  private toStringRecord(
-    value: unknown,
-  ): Record<string, string> | undefined {
+  private toStringRecord(value: unknown): Record<string, string> | undefined {
     if (!this.isJsonObject(value)) {
       return undefined;
     }
@@ -540,9 +537,7 @@ export class AgentRuntimeDefinitionService {
     return value.every((entry) => this.isJsonValue(entry));
   }
 
-  private resolveSchema(
-    ...candidates: unknown[]
-  ): string | JsonObject | null {
+  private resolveSchema(...candidates: unknown[]): string | JsonObject | null {
     for (const candidate of candidates) {
       const normalized = this.normalizeSchema(candidate);
       if (normalized) {

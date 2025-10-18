@@ -1,4 +1,3 @@
-import type { JsonObject } from '@orchestrator-ai/transport-types';
 import type {
   OrchestrationRunMetadata,
   OrchestrationRunParameters,

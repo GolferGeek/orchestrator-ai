@@ -360,7 +360,9 @@ export class OrchestrationCheckpointService {
       checkpointId: options.checkpointId,
       step: step as OrchestrationCheckpointMetadata['step'],
       question: options.question,
-      options: this.normalizeCheckpointOptions(options.options ?? base.options ?? []),
+      options: this.normalizeCheckpointOptions(
+        options.options ?? base.options ?? [],
+      ),
       status: 'pending',
       requestedAt,
     };

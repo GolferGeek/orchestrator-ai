@@ -32,6 +32,8 @@ export class OrchestrationStepsRepository {
   async create(
     input: OrchestrationStepInsertInput,
   ): Promise<OrchestrationStepRecord> {
+    const metadata: OrchestrationStepStateEntry = input.metadata ?? {};
+
     const payload = {
       orchestration_run_id: input.orchestration_run_id,
       step_index: input.step_index,
@@ -51,7 +53,7 @@ export class OrchestrationStepsRepository {
       invalidated_reason: input.invalidated_reason ?? null,
       input: input.input ?? {},
       output: input.output ?? null,
-      metadata: (input.metadata ?? {}) as OrchestrationStepStateEntry,
+      metadata,
       error_details: input.error_details ?? null,
       started_at: input.started_at ?? null,
       completed_at: input.completed_at ?? null,

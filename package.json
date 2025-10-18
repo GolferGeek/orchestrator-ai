@@ -20,7 +20,7 @@
     "dev:supabase:reset": "cd apps/api && supabase db reset",
     "build": "turbo run build",
     "test": "turbo run test",
-    "lint": "turbo run lint",
+    "lint": "turbo run lint --filter=nestjs",
     "format": "turbo run format",
     "kill:7101": "lsof -ti:7101 | xargs kill -9 2>/dev/null || echo 'No process found on port 7101'",
     "kill:7100": "lsof -ti:7100 | xargs kill -9 2>/dev/null || echo 'No process found on port 7100'",

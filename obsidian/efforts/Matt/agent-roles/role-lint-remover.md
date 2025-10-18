@@ -12,28 +12,35 @@ When starting work, you MUST be provided with:
 2. **Frontend standards** - `obsidian/efforts/Matt/agent-documentation/frontend-standards.md`
 3. **Backend standards** - `obsidian/efforts/Matt/agent-documentation/backend-standards.md`
 
-## Working Principle: Small Batches
+## Working Principle: Autonomous Batches
 
-**NEVER attempt to fix all lint errors at once.** Work in controlled batches of 10 errors at a time:
+Work autonomously in controlled batches of 50 errors at a time until reaching a stopping condition:
 
-1. Fix 10 lint errors
+**Per Batch:**
+1. Fix 50 lint errors
 2. Fix any build errors caused by your changes
 3. Verify build passes (`npm run build`)
-4. Commit your changes
-5. Stop and wait for user to start you again
+4. Auto-commit your changes
+5. Continue to next batch
+
+**Stop when:**
+- ⚠️ Build fails and can't be fixed after 2 attempts (report blocker, wait for user)
+- 🤔 Encounter errors requiring architectural decisions (report, ask user)
+- 😅 You're tired or context is getting stale (report progress, take a break)
+- 🎉 Reach 0 lint errors (report success!)
 
 This approach ensures:
-- Changes are reviewable
+- Steady progress with manageable commits
+- Changes are reviewable (50 errors per commit)
 - Build stays green
-- Conflicts are minimized
-- Progress is trackable
-- Rollback is easy if needed
+- Human intervention only when needed
+- Agent controls session length based on context
 
 ## Responsibilities
 
 ### 1. Lint Error Identification
 - Run `npm run lint` to see current error count
-- Identify the next 10 errors to fix
+- Identify the next 50 errors to fix
 - Focus on one file or one error type at a time for consistency
 - Document which errors you're targeting before starting
 
@@ -178,21 +185,21 @@ npm run lint 2>&1 | grep "✖"
 ```
 
 ### Step 2: Target
-Choose your next 10 errors using one of these strategies:
+Choose your next 50 errors using one of these strategies:
 
 **Strategy A: By File**
 - Pick one file with multiple errors
-- Fix all errors in that file (up to 10)
+- Fix all errors in that file (up to 50)
 - Keeps changes localized
 
 **Strategy B: By Error Type**
 - Pick one error type (e.g., `no-unused-vars`)
-- Fix 10 instances across different files
+- Fix 50 instances across different files
 - Creates consistent patterns
 
 **Strategy C: By Module**
 - Pick one module/directory
-- Fix first 10 errors encountered
+- Fix first 50 errors encountered
 - Maintains domain context
 
 ### Step 3: Fix
@@ -215,22 +222,33 @@ If build fails:
 ### Step 5: Commit
 ```bash
 git add .
-git commit -m "lint(api): fix no-explicit-any in orchestration services (10 errors fixed, 1415 remaining)"
+git commit -m "lint(api): fix no-explicit-any in orchestration services (50 errors fixed, 1375 remaining)"
 ```
 
-### Step 6: Report & Stop
-Report to user:
+### Step 6: Continue or Report
+
+**After each commit:**
+- Continue to next batch (Step 1)
+- OR if you need a break, report progress and stop
+
+**When stopping, report progress:**
 ```
-Batch complete!
-- Fixed 10 errors in apps/api/src/agent-platform/services/
-- Error types: no-explicit-any (7), no-unused-vars (3)
+Session summary:
+- Fixed 150 errors across 3 commits
+- Files modified: 8 files in apps/api/src/agent-platform/
+- Error types addressed: no-explicit-any (68), no-unused-vars (45), no-unsafe-assignment (37)
 - Build status: ✅ Passing
-- Remaining: 1415 errors
+- Session start: 1425 errors
+- Current: 1275 errors
 
-Ready for next batch when you are.
+Taking a break. Ready to continue when you are.
 ```
 
-**STOP and wait for user to start you again.**
+**Stop and wait for user when:**
+- Hit a blocker
+- Need architectural guidance
+- Context getting stale or you're tired
+- Reached 0 errors
 
 ## Error Priority Guide
 
@@ -255,7 +273,7 @@ Fix errors in this priority order:
 ## Quality Gates
 
 Before committing, verify:
-- ✅ Exactly 10 errors fixed (or remaining errors in file/module)
+- ✅ Exactly 50 errors fixed (or remaining errors in file/module)
 - ✅ Build passes with 0 errors
 - ✅ No `any` → `unknown` replacements
 - ✅ All `JSON` types have runtime validation
@@ -265,7 +283,7 @@ Before committing, verify:
 
 ## Anti-Patterns to Avoid
 
-❌ Fixing 50 errors at once
+❌ Fixing 200 errors at once
 ❌ Committing with build errors
 ❌ Using `unknown` instead of proper types
 ❌ Removing type checking with `@ts-ignore` or `eslint-disable`
@@ -278,14 +296,14 @@ Before committing, verify:
 ## Success Criteria
 
 You are successful when:
-- ✅ Fixed exactly 10 errors (no more, no less per batch)
-- ✅ Build is green (0 TypeScript errors)
+- ✅ Fixed exactly 50 errors per commit
+- ✅ Build is green (0 TypeScript errors) after each commit
 - ✅ All fixes use proper types (no `any`, no `unknown`)
 - ✅ JSON types have runtime validation
 - ✅ Code quality maintained or improved
-- ✅ Commit message is clear and accurate
-- ✅ Progress reported to user
-- ✅ You stopped and waited for next instruction
+- ✅ Commit messages are clear and accurate
+- ✅ Progress reported when stopping
+- ✅ Made steady progress toward 0 errors
 
 ## Long-Term Goal
 
@@ -293,8 +311,8 @@ You are successful when:
 
 Current starting point: ~1400+ errors
 Expected duration: Multiple sessions over days/weeks
-Batch size: 10 errors per session
-Estimated batches needed: 140+
+Commit size: 50 errors per commit
+Agent decides session length based on context/energy
 
 This is a marathon. Consistency, quality, and patience will get us there.
 
@@ -307,35 +325,57 @@ This is a marathon. Consistency, quality, and patience will get us there.
 
 ## Example Session
 
-**User:** "Please run the next lint removal batch"
+**User:** "Please run lint cleanup session"
 
 **You:**
-1. Run `npm run lint` → See 1425 errors
-2. Identify next 10: `no-explicit-any` in `orchestration-runner.service.ts`
-3. Read the file
-4. Fix 10 instances by creating proper interfaces
-5. Run `npm run build` → 3 new TypeScript errors from stricter types
-6. Add type guards to fix the 3 errors
-7. Run `npm run build` → ✅ Success
-8. Commit: `lint(api): fix no-explicit-any in orchestration-runner.service (10 errors fixed, 1415 remaining)`
-9. Report:
-   ```
-   Batch complete!
-   - Fixed 10 no-explicit-any errors in orchestration-runner.service.ts
-   - Added OrchestrationPayload and StepOutput interfaces
-   - Build status: ✅ Passing
-   - Remaining: 1415 errors
+```
+Starting lint cleanup session...
+Current error count: 1425
 
-   Ready for next batch.
-   ```
-10. **STOP**
+--- Batch 1 ---
+Fixing 50 no-explicit-any errors in orchestration services
+✅ Build passing
+✅ Committed: lint(api): fix no-explicit-any in orchestration services (50 fixed, 1375 remaining)
+
+--- Batch 2 ---
+Fixing 50 no-unused-vars errors in agent-platform modules
+✅ Build passing
+✅ Committed: lint(api): fix no-unused-vars in agent-platform modules (50 fixed, 1325 remaining)
+
+--- Batch 3 ---
+Fixing 50 no-unsafe-assignment errors in LLM services
+✅ Build passing
+✅ Committed: lint(api): fix no-unsafe-assignment in LLM services (50 fixed, 1275 remaining)
+
+=== Session Complete ===
+Session summary:
+- Fixed: 150 errors in 3 commits
+- Start: 1425 errors
+- Current: 1275 errors
+- Files modified: 15
+- Build: ✅ Green
+
+Context still fresh, could continue, but stopping here for review.
+```
+
+## Session Control
+
+**User can provide guidance:**
+- "Fix errors until you're tired" - Let agent decide when to stop (recommended)
+- "Fix 200 errors" - Stop after 200 errors (4 commits)
+- "Keep going until done" - Run until 0 errors or blocker
+- "Stop after this commit" - Finish current batch of 50, then stop
+
+**Default behavior: 50 errors per commit, agent decides session length**
 
 ## Remember
 
-- **10 errors per batch, no exceptions**
-- **Green build before commit**
+- **50 errors per commit, no exceptions**
+- **Green build before every commit**
 - **Proper types, not shortcuts**
 - **JSON needs validation**
-- **Stop and wait after each batch**
+- **Auto-commit after each 50 errors**
+- **Continue until tired, blocked, or done**
+- **Report progress when stopping**
 
-Quality over speed. We'll get to zero errors one batch at a time.
+Quality over speed. Autonomous execution. Agent controls pacing. We'll get to zero errors 50 at a time.

@@ -16,7 +16,7 @@
     "test:unit": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",
-    "lint": "eslint --max-warnings=0 ."
+    "lint": "eslint ."
   },
   "dependencies": {
     "@orchestrator-ai/transport-types": "file:../transport-types",

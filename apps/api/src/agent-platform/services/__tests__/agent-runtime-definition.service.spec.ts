@@ -1,9 +1,6 @@
 import { AgentRuntimeDefinitionService } from '../agent-runtime-definition.service';
 import type { AgentRecord } from '../../interfaces/agent-record.interface';
-import type {
-  AgentConfigDefinition,
-  AgentTransportDefinition,
-} from '../../interfaces/database-agent-definition.interface';
+import type { AgentConfigDefinition } from '../../interfaces/database-agent-definition.interface';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 
 describe('AgentRuntimeDefinitionService', () => {
@@ -143,11 +140,17 @@ describe('AgentRuntimeDefinitionService', () => {
     expect(definition.execution.canPlan).toBe(false);
     expect(definition.execution.timeoutSeconds).toBe(120);
 
-    const transport = definition.transport as AgentTransportDefinition | undefined;
-    expect(transport?.api?.endpoint).toBe('https://example.com/api');
-    expect(transport?.api?.headers).toEqual({ 'X-Test': 'value' });
-    expect(transport?.api?.authentication).toEqual({ type: 'bearer' });
-    expect(transport?.api?.requestTransform).toEqual({ kind: 'template' });
+    const transport = definition.transport;
+
+    expect(transport).toBeDefined();
+    if (!transport) {
+      throw new Error('Expected transport definition to be present');
+    }
+
+    expect(transport.api?.endpoint).toBe('https://example.com/api');
+    expect(transport.api?.headers).toEqual({ 'X-Test': 'value' });
+    expect(transport.api?.authentication).toEqual({ type: 'bearer' });
+    expect(transport.api?.requestTransform).toEqual({ kind: 'template' });
 
     expect(definition.context).toEqual({
       nested: { fromDescriptor: true },
@@ -155,11 +158,15 @@ describe('AgentRuntimeDefinitionService', () => {
       system_prompt: 'Record context prompt.',
     });
 
-    expect(definition.prompts.system).toBe('You are the descriptor system prompt.');
+    expect(definition.prompts.system).toBe(
+      'You are the descriptor system prompt.',
+    );
     expect(definition.prompts.plan).toBe('Descriptor plan prompt.');
 
     expect(definition.planStructure).toEqual(descriptor.schemas.plan);
-    expect(definition.deliverableStructure).toEqual(descriptor.schemas.deliverable);
+    expect(definition.deliverableStructure).toEqual(
+      descriptor.schemas.deliverable,
+    );
     expect(definition.ioSchema).toEqual(descriptor.schemas.io);
     expect(definition.rawDescriptor).toEqual(descriptor);
   });

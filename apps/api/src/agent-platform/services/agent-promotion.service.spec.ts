@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { AgentPromotionService } from './agent-promotion.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
@@ -11,7 +11,6 @@ describe('AgentPromotionService', () => {
   let agentsRepo: jest.Mocked<AgentsRepository>;
   let approvalsRepo: jest.Mocked<HumanApprovalsRepository>;
   let validator: jest.Mocked<AgentValidationService>;
-  let policy: jest.Mocked<AgentPolicyService>;
 
   beforeEach(async () => {
     const mockAgentsRepo = {
@@ -47,7 +46,6 @@ describe('AgentPromotionService', () => {
     agentsRepo = moduleRef.get(AgentsRepository);
     approvalsRepo = moduleRef.get(HumanApprovalsRepository);
     validator = moduleRef.get(AgentValidationService);
-    policy = moduleRef.get(AgentPolicyService);
   });
 
   describe('requestPromotion', () => {

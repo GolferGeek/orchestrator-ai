@@ -208,7 +208,10 @@ describe('OrchestrationRunFactoryService', () => {
         totalSteps: 1,
       });
 
-      expect(mockExecution.startExecution).toHaveBeenCalledWith('run-123', expect.any(Object));
+      expect(mockExecution.startExecution).toHaveBeenCalledWith(
+        'run-123',
+        expect.any(Object),
+      );
     });
 
     it('should include parent run metadata for child orchestrations', async () => {
@@ -293,7 +296,10 @@ describe('OrchestrationRunFactoryService', () => {
         run: { ...planningRun, status: 'running' },
         readySteps: mockStepRecords,
       };
-      const params = { kpi_names: ['revenue', 'costs'], start_date: '2025-01-01' };
+      const params = {
+        kpi_names: ['revenue', 'costs'],
+        start_date: '2025-01-01',
+      };
 
       mockRunner.startRun.mockResolvedValue(mockRunRecord);
       mockState.initializeRun.mockResolvedValue(mockStepRecords);
@@ -423,8 +429,18 @@ describe('OrchestrationRunFactoryService', () => {
 
       const multiStepRecords: OrchestrationStepRecord[] = [
         mockStepRecords[0]!,
-        { ...mockStepRecords[0]!, id: 'step-rec-2', step_id: 'step-2', step_index: 1 },
-        { ...mockStepRecords[0]!, id: 'step-rec-3', step_id: 'step-3', step_index: 2 },
+        {
+          ...mockStepRecords[0]!,
+          id: 'step-rec-2',
+          step_id: 'step-2',
+          step_index: 1,
+        },
+        {
+          ...mockStepRecords[0]!,
+          id: 'step-rec-3',
+          step_id: 'step-3',
+          step_index: 2,
+        },
       ];
 
       const planningRun = { ...mockRunRecord, status: 'planning' };

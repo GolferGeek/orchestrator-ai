@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import * as AjvNS from 'ajv';
 import {
   AgentType,
-  baseAgentSchema,
   schemaFor,
   CreateAgentPayload,
 } from '../schemas/agent-schemas';

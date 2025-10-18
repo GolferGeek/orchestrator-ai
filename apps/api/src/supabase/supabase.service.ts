@@ -69,13 +69,8 @@ export class SupabaseService implements OnModuleInit {
           },
         });
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        const errorStack = error instanceof Error ? error.stack : undefined;
-
         throw error;
       }
-    } else {
     }
 
     // Initialize service client (bypasses RLS - use with caution)
@@ -92,13 +87,8 @@ export class SupabaseService implements OnModuleInit {
           },
         });
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        const errorStack = error instanceof Error ? error.stack : undefined;
-
         throw error;
       }
-    } else {
     }
   }
 
@@ -160,10 +150,9 @@ export class SupabaseService implements OnModuleInit {
 
       return authenticatedClient;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
+      const message =
+        error instanceof Error ? error.message : 'Could not create authenticated client.';
+      this.logger.error(message, error instanceof Error ? error.stack : undefined);
       throw new HttpException(
         'Could not create authenticated client.',
         HttpStatus.UNAUTHORIZED,
@@ -186,10 +175,10 @@ export class SupabaseService implements OnModuleInit {
     try {
       return await callback(client);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
+      this.logger.error(
+        'Supabase query execution failed',
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -270,11 +259,13 @@ export class SupabaseService implements OnModuleInit {
 
       return { status: 'ok', message: 'Database connection successful' };
     } catch (error) {
-      const errorMessage =
+      const message =
         error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
-      return { status: 'error', message: errorMessage };
+      this.logger.error(
+        'Supabase health check failed',
+        error instanceof Error ? error.stack : undefined,
+      );
+      return { status: 'error', message: message };
     }
   }
 }
