@@ -24,6 +24,8 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as request from 'supertest';
+import { INestApplication } from '@nestjs/common';
+import type { Agent, OrchestrationDefinition } from './mock-factories';
 
 // ============================================================================
 // Configuration
@@ -90,7 +92,7 @@ export class DatabaseTestHelper {
    * @param appInstance - NestJS app instance (for HTTP-based auth)
    * @returns JWT authentication token
    */
-  static async authenticateTestUser(appInstance?: any): Promise<string> {
+  static async authenticateTestUser(appInstance?: INestApplication): Promise<string> {
     // If we already have a token, reuse it
     if (DatabaseTestHelper.authToken) {
       return DatabaseTestHelper.authToken;
@@ -106,8 +108,9 @@ export class DatabaseTestHelper {
         })
         .expect(200);
 
-      DatabaseTestHelper.authToken = response.body.access_token;
-      return DatabaseTestHelper.authToken!;
+      const accessToken = response.body.access_token as string;
+      DatabaseTestHelper.authToken = accessToken;
+      return DatabaseTestHelper.authToken;
     }
 
     // Fallback: authenticate via Supabase client directly
@@ -271,9 +274,9 @@ export class DatabaseTestHelper {
    * @param params - Query parameters (use $1, $2, etc. in SQL)
    * @returns Query results
    */
-  static async rawQuery<T = any>(
+  static async rawQuery<T = Record<string, unknown>>(
     sql: string,
-    params: any[] = [],
+    params: unknown[] = [],
   ): Promise<T[]> {
     DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
@@ -301,7 +304,7 @@ export class DatabaseTestHelper {
    * @param params - Command parameters
    * @returns Number of affected rows
    */
-  static async rawCommand(sql: string, params: any[] = []): Promise<number> {
+  static async rawCommand(sql: string, params: unknown[] = []): Promise<number> {
     const result = await DatabaseTestHelper.rawQuery(sql, params);
     return result ? result.length : 0;
   }
@@ -345,7 +348,7 @@ export class DatabaseTestHelper {
   static async countRecords(
     tableName: string,
     column: string,
-    value: any,
+    value: unknown,
   ): Promise<number> {
     DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
@@ -372,7 +375,7 @@ export class DatabaseTestHelper {
    * @param agentData - Agent data to seed
    * @returns Seeded agent
    */
-  static async seedTestAgent(agentData: any): Promise<any> {
+  static async seedTestAgent(agentData: Partial<Agent>): Promise<Agent> {
     DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
@@ -388,7 +391,7 @@ export class DatabaseTestHelper {
       throw new Error(`Failed to seed test agent: ${error.message}`);
     }
 
-    return data;
+    return data as Agent;
   }
 
   /**
@@ -397,7 +400,7 @@ export class DatabaseTestHelper {
    * @param definitionData - Orchestration definition data
    * @returns Seeded definition
    */
-  static async seedTestOrchestration(definitionData: any): Promise<any> {
+  static async seedTestOrchestration(definitionData: Partial<OrchestrationDefinition>): Promise<OrchestrationDefinition> {
     DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
@@ -413,6 +416,6 @@ export class DatabaseTestHelper {
       throw new Error(`Failed to seed test orchestration: ${error.message}`);
     }
 
-    return data;
+    return data as OrchestrationDefinition;
   }
 }

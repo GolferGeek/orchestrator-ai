@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { AdminOnly } from '@/auth/decorators/roles.decorator';
-import { CreateAgentDto, UpdateAgentDto } from '../dto/agent-admin.dto';
+import { CreateAgentDto, UpdateAgentDto, AgentType } from '../dto/agent-admin.dto';
 import { AgentValidationService } from '../services/agent-validation.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { AgentDryRunService } from '../services/agent-dry-run.service';
@@ -18,6 +18,14 @@ import { AgentPolicyService } from '../services/agent-policy.service';
 import { AgentPromotionService } from '../services/agent-promotion.service';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
+
+interface AuthenticatedRequest {
+  user?: {
+    sub?: string;
+    id?: string;
+    userId?: string;
+  };
+}
 
 @Controller('api/admin/agents')
 export class AgentsAdminController {
@@ -44,8 +52,8 @@ export class AgentsAdminController {
   @AdminOnly()
   async upsert(@Body() dto: CreateAgentDto) {
     // Run JSON-schema validation by type
-    const type = dto.agent_type as any;
-    const { ok, issues } = this.validator.validateByType(type, dto as any);
+    const type = dto.agent_type;
+    const { ok, issues } = this.validator.validateByType(type, dto);
     const policyIssues = this.policy.check(dto);
     if (!ok || policyIssues.length) {
       return { success: false, issues: [...issues, ...policyIssues] };
@@ -79,22 +87,25 @@ export class AgentsAdminController {
     @Body() dto: CreateAgentDto,
     @Query('dryRun') dryRun?: string,
   ) {
-    const type = dto.agent_type as any;
-    const validation = this.validator.validateByType(type, dto as any);
+    const type = dto.agent_type;
+    const validation = this.validator.validateByType(type, dto);
     const policyIssues = this.policy.check(dto);
 
-    const response: any = {
+    const response: {
+      success: boolean;
+      issues: Array<{ message: string }>;
+      dryRun?: { ok: boolean; error?: string };
+    } = {
       success: validation.ok && policyIssues.length === 0,
       issues: [...validation.issues, ...policyIssues],
     };
     const wantsDryRun = (dryRun || '').toString().toLowerCase() === 'true';
-    if (validation.ok && wantsDryRun && type === 'function') {
-      const code = (dto as any)?.config?.configuration?.function?.code as
-        | string
-        | undefined;
-      const timeout =
-        Number((dto as any)?.config?.configuration?.function?.timeout_ms) ||
-        2000;
+    if (validation.ok && wantsDryRun && type === AgentType.FUNCTION) {
+      const config = dto.config as Record<string, unknown> | undefined;
+      const configuration = config?.configuration as Record<string, unknown> | undefined;
+      const functionConfig = configuration?.function as Record<string, unknown> | undefined;
+      const code = functionConfig?.code as string | undefined;
+      const timeout = Number(functionConfig?.timeout_ms) || 2000;
       if (code && code.length < 50000) {
         response.dryRun = await this.dryRun.runFunction(code, {}, timeout);
       } else {
@@ -104,14 +115,14 @@ export class AgentsAdminController {
         };
       }
     }
-    if (validation.ok && wantsDryRun && type === 'api') {
-      const apiCfg = (dto as any)?.config?.configuration?.api
-        ?.api_configuration;
+    if (validation.ok && wantsDryRun && type === AgentType.API) {
+      const config = dto.config as Record<string, unknown> | undefined;
+      const configuration = config?.configuration as Record<string, unknown> | undefined;
+      const apiConfig = configuration?.api as Record<string, unknown> | undefined;
+      const apiCfg = apiConfig?.api_configuration;
       if (apiCfg) {
-        const sampleInput = (dto as any)?.config?.configuration?.api
-          ?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' };
-        const sampleResp = (dto as any)?.config?.configuration?.api
-          ?.sample_response || { output: 'dry-run-ok' };
+        const sampleInput = apiConfig?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' };
+        const sampleResp = apiConfig?.sample_response || { output: 'dry-run-ok' };
         response.dryRun = this.dryRun.runApiTransform(
           apiCfg,
           sampleInput,
@@ -165,8 +176,8 @@ export class AgentsAdminController {
     } as CreateAgentDto;
 
     const validation = this.validator.validateByType(
-      current.agent_type,
-      createLike as any,
+      current.agent_type as AgentType,
+      createLike,
     );
     const policyIssues = this.policy.check(createLike);
     if (!validation.ok || policyIssues.length) {
@@ -268,9 +279,9 @@ export class AgentsAdminController {
   async requestPromotion(
     @Param('id') id: string,
     @Body() body: { requireApproval?: boolean; skipValidation?: boolean },
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId || null;
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
     const result = await this.promotion.requestPromotion(id, {
       requireApproval: body.requireApproval,
       skipValidation: body.skipValidation,

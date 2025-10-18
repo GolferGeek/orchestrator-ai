@@ -1,6 +1,15 @@
 import { Controller, Param, Post, Req, Get, Query } from '@nestjs/common';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
 import { AgentPromotionService } from '../services/agent-promotion.service';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+interface AuthenticatedRequest {
+  user?: {
+    sub?: string;
+    id?: string;
+    userId?: string;
+  };
+}
 
 @Controller('api/agent-approvals')
 export class AgentApprovalsController {
@@ -16,7 +25,7 @@ export class AgentApprovalsController {
     @Query('agentSlug') agentSlug?: string,
   ) {
     // Fallback to repository direct query pattern
-    const c = (this.approvals as any).client();
+    const c = (this.approvals as unknown as { client: () => SupabaseClient }).client();
     let q = c.from('human_approvals').select('*');
     if (status) q = q.eq('status', status);
     if (conversationId) q = q.eq('conversation_id', conversationId);
@@ -28,7 +37,7 @@ export class AgentApprovalsController {
   }
 
   @Post(':id/approve')
-  async approve(@Param('id') id: string, @Req() req: any) {
+  async approve(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user?.sub || req.user?.id || req.user?.userId || null;
 
     // Approve the request
@@ -58,7 +67,7 @@ export class AgentApprovalsController {
   }
 
   @Post(':id/reject')
-  async reject(@Param('id') id: string, @Req() req: any) {
+  async reject(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = req.user?.sub || req.user?.id || req.user?.userId || null;
     const record = await this.approvals.setStatus(id, 'rejected', userId);
     return { success: true, data: record };

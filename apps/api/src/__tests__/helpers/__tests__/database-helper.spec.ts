@@ -299,8 +299,8 @@ describe('DatabaseTestHelper', () => {
         const seeded = await DatabaseTestHelper.seedTestAgent(testAgent);
 
         expect(seeded).toBeDefined();
-        expect(seeded.id).toBe(testAgent.id);
-        expect(seeded.slug).toBe(testAgent.slug);
+        expect((seeded as { id: string }).id).toBe(testAgent.id);
+        expect((seeded as { slug: string }).slug).toBe(testAgent.slug);
 
         // Cleanup
         await DatabaseTestHelper.cleanupTestData(TEST_PREFIX);
@@ -326,7 +326,7 @@ describe('DatabaseTestHelper', () => {
           display_name: 'Updated Name',
         });
 
-        expect(updated.display_name).toBe('Updated Name');
+        expect((updated as { display_name: string }).display_name).toBe('Updated Name');
 
         // Cleanup
         await DatabaseTestHelper.cleanupTestData(TEST_PREFIX);
@@ -348,8 +348,8 @@ describe('DatabaseTestHelper', () => {
           await DatabaseTestHelper.seedTestOrchestration(testDefinition);
 
         expect(seeded).toBeDefined();
-        expect(seeded.id).toBe(testDefinition.id);
-        expect(seeded.slug).toBe(testDefinition.slug);
+        expect((seeded as { id: string }).id).toBe(testDefinition.id);
+        expect((seeded as { slug: string }).slug).toBe(testDefinition.slug);
 
         // Cleanup
         await DatabaseTestHelper.cleanupTestData(TEST_PREFIX);
@@ -375,7 +375,7 @@ describe('DatabaseTestHelper', () => {
           version: 2,
         });
 
-        expect(updated.version).toBe(2);
+        expect((updated as { version: number }).version).toBe(2);
 
         // Cleanup
         await DatabaseTestHelper.cleanupTestData(TEST_PREFIX);

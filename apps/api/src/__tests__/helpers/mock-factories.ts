@@ -29,10 +29,10 @@ export interface Agent {
   version: string;
   status: string;
   yaml: string;
-  agent_card: Record<string, any>;
-  context: Record<string, any>;
-  configuration: Record<string, any>;
-  config: Record<string, any>;
+  agent_card: Record<string, unknown>;
+  context: Record<string, unknown>;
+  configuration: Record<string, unknown>;
+  config: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
 }
@@ -46,7 +46,7 @@ export interface OrchestrationDefinition {
   owner_agent_slug: string;
   version: number;
   is_active: boolean;
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
 }
@@ -68,8 +68,8 @@ export interface OrchestrationRun {
     | 'failed'
     | 'aborted'
     | 'in_progress';
-  parameters: Record<string, any>;
-  metadata: Record<string, any>;
+  parameters: Record<string, unknown>;
+  metadata: Record<string, unknown>;
   parent_run_id: string | null;
   started_at: Date | null;
   completed_at: Date | null;
@@ -111,7 +111,7 @@ export interface Conversation {
   agent_slug: string;
   title: string;
   status: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
 }
@@ -124,7 +124,7 @@ export interface Deliverable {
   content_type: string;
   version: number;
   status: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
 }
@@ -136,7 +136,7 @@ export interface Task {
   status: string;
   task_type: string;
   description: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
 }
