@@ -160,7 +160,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   /**
    * Load alert thresholds from configuration
    */
-  private loadAlertThresholds(): void {
+  private async loadAlertThresholds(): Promise<void> {
     try {
       // Override with environment variables if present
       this.alertThresholds = {
@@ -345,7 +345,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
   /**
    * Check memory health and pressure
    */
-  private checkMemoryHealth(): void {
+  private async checkMemoryHealth(): Promise<void> {
     try {
       const memoryStats = this.memoryManagerService.getMemoryStats();
       const usageRatio = memoryStats.currentUsage / memoryStats.totalAllocated;

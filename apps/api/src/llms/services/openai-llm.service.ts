@@ -408,7 +408,7 @@ export class OpenAILLMService extends BaseLLMService {
   /**
    * Override LangSmith integration for OpenAI-specific tracing
    */
-  protected async integrateLangSmith(
+  protected integrateLangSmith(
     _params: GenerateResponseParams,
     _response: LLMResponse,
   ): Promise<string | undefined> {
@@ -421,12 +421,12 @@ export class OpenAILLMService extends BaseLLMService {
         // This would integrate with LangSmith for OpenAI-specific tracing
         const runId = `openai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.logger.debug(`LangSmith integration for OpenAI: ${runId}`);
-        return runId;
+        return Promise.resolve(runId);
       } catch (error) {
         this.logger.warn('LangSmith integration failed:', error);
       }
     }
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
   /**

@@ -83,7 +83,7 @@ export class RunMetadataService {
   /**
    * Start tracking a new LLM request
    */
-  async startRequest(
+  startRequest(
     routingDecision: {
       provider: string;
       model: string;
@@ -132,7 +132,7 @@ export class RunMetadataService {
     };
 
     // Legacy two-phase tracking disabled: do not insert starter rows
-    return context;
+    return Promise.resolve(context);
   }
 
   /**
@@ -313,7 +313,7 @@ export class RunMetadataService {
   /**
    * Complete tracking for a failed request
    */
-  async completeRequestWithError(
+  completeRequestWithError(
     context: MetadataContext,
     error: Error,
   ): Promise<RunMetadata> {
@@ -352,7 +352,7 @@ export class RunMetadataService {
       `Failed run ${context.runId}: ${error.message} (${duration}ms)`,
     );
 
-    return metadata;
+    return Promise.resolve(metadata);
   }
 
   /**

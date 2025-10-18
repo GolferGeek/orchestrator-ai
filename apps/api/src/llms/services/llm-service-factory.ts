@@ -337,7 +337,7 @@ export class LLMServiceFactory {
    * @returns Promise<BaseLLMService> - New service instance
    * @throws Error if instantiation fails
    */
-  private async instantiateService(
+  private instantiateService(
     provider: SupportedProvider,
     config: LLMServiceConfig,
   ): Promise<BaseLLMService> {
@@ -402,7 +402,7 @@ export class LLMServiceFactory {
       }
 
       this.logger.log(`Successfully instantiated ${provider} service`);
-      return serviceInstance;
+      return Promise.resolve(serviceInstance);
     } catch (error) {
       const errorMessage = `Failed to instantiate ${provider} service: ${
         error instanceof Error ? error.message : 'Unknown error'

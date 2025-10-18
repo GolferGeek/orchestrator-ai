@@ -532,13 +532,13 @@ export abstract class BaseLLMService {
    * Optional LangSmith integration hook
    * Subclasses can override this to provide LangSmith integration
    */
-  protected async integrateLangSmith(
+  protected integrateLangSmith(
     _params: GenerateResponseParams,
     _response: LLMResponse,
   ): Promise<string | undefined> {
     // Default implementation returns undefined (no LangSmith integration)
     // Subclasses can override this method to provide actual integration
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
   /**

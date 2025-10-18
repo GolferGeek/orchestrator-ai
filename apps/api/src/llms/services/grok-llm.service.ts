@@ -234,7 +234,7 @@ export class GrokLLMService extends BaseLLMService {
   /**
    * Override LangSmith integration for Grok-specific tracing
    */
-  protected async integrateLangSmith(
+  protected integrateLangSmith(
     _params: GenerateResponseParams,
     _response: LLMResponse,
   ): Promise<string | undefined> {
@@ -247,12 +247,12 @@ export class GrokLLMService extends BaseLLMService {
         // This would integrate with LangSmith for Grok-specific tracing
         const runId = `grok-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         this.logger.debug(`LangSmith integration for Grok: ${runId}`);
-        return runId;
+        return Promise.resolve(runId);
       } catch (error) {
         this.logger.warn('LangSmith integration failed:', error);
       }
     }
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
   /**

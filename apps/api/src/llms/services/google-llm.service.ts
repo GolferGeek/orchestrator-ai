@@ -307,7 +307,7 @@ export class GoogleLLMService extends BaseLLMService {
   /**
    * Override LangSmith integration for Google-specific tracing
    */
-  protected async integrateLangSmith(
+  protected integrateLangSmith(
     params: GenerateResponseParams,
     response: LLMResponse,
   ): Promise<string | undefined> {
@@ -322,12 +322,12 @@ export class GoogleLLMService extends BaseLLMService {
         this.logger.debug(
           `LangSmith integration for Google model ${params.config.model} (run: ${runId}, tokens: ${response.metadata.usage.totalTokens})`,
         );
-        return runId;
+        return Promise.resolve(runId);
       } catch (error) {
         this.logger.warn('LangSmith integration failed:', error);
       }
     }
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
   private mapFinishReason(

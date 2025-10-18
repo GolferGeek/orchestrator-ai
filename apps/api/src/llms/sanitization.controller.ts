@@ -83,9 +83,9 @@ export class SanitizationController {
    * Return effective PII patterns (built-in + any custom)
    */
   @Get('pii/patterns')
-  async getPIIPatterns() {
+  getPIIPatterns() {
     const patterns = this.pseudonymizationService.getPIIPatterns();
-    return { patterns };
+    return Promise.resolve({ patterns });
   }
 
   /**

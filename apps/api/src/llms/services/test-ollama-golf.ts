@@ -15,10 +15,11 @@ import {
 // Mock dependencies for testing (we'll keep this simple for now)
 const mockDependencies = {
   piiService: {
-    detectAndProcessPII: async () => ({
-      processedText: 'test',
-      piiMetadata: undefined,
-    }),
+    detectAndProcessPII: () =>
+      Promise.resolve({
+        processedText: 'test',
+        piiMetadata: undefined,
+      }),
   } as any,
   dictionaryPseudonymizerService: {} as any,
   runMetadataService: {} as any,
