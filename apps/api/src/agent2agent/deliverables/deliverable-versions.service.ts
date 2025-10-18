@@ -123,7 +123,7 @@ export class DeliverableVersionsService {
         );
       }
 
-      const versions = (data || []).map((item: any) => this.mapToVersion(item));
+      const versions = (data as Record<string, unknown>[] | null || []).map((item) => this.mapToVersion(item));
 
       return versions;
     } catch (error) {
@@ -519,12 +519,12 @@ export class DeliverableVersionsService {
           mergedAt: new Date().toISOString(),
           llmMetadata: mergedContent.metadata
             ? {
-                provider: mergedContent.metadata.provider,
-                model: mergedContent.metadata.model,
-                inputTokens: mergedContent.metadata.usage?.inputTokens,
-                outputTokens: mergedContent.metadata.usage?.outputTokens,
-                cost: mergedContent.metadata.usage?.cost,
-                duration: mergedContent.metadata.timing?.duration,
+                provider: (mergedContent.metadata as Record<string, unknown>).provider as string | undefined,
+                model: (mergedContent.metadata as Record<string, unknown>).model as string | undefined,
+                inputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.inputTokens as number | undefined,
+                outputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.outputTokens as number | undefined,
+                cost: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.cost as number | undefined,
+                duration: ((mergedContent.metadata as Record<string, unknown>).timing as Record<string, unknown> | undefined)?.duration as number | undefined,
               }
             : undefined,
         },
@@ -686,8 +686,9 @@ export class DeliverableVersionsService {
       }
 
       // Extract agent information from source version metadata
-      const agentName = (sourceVersion.metadata as any)?.agentName || 'unknown';
-      const agentType = (sourceVersion.metadata as any)?.agentType || 'context';
+      const metadata = sourceVersion.metadata as Record<string, unknown> | undefined;
+      const agentName = (metadata?.agentName as string) || 'unknown';
+      const agentType = (metadata?.agentType as string) || 'context';
 
       // Create system prompt based on agent type and original context
       const systemPrompt = this.buildSystemPromptForRerun(
@@ -712,9 +713,7 @@ export class DeliverableVersionsService {
           userId: userId,
           callerType: 'deliverable_rerun',
           callerName: `${agentName}_rerun`,
-          conversationId: (sourceVersion.metadata as any)?.conversationId as
-            | string
-            | undefined,
+          conversationId: metadata?.conversationId as string | undefined,
           includeMetadata: true, // We need the full response object
         },
       });
@@ -870,18 +869,21 @@ export class DeliverableVersionsService {
     }
   }
 
-  private mapToVersion(data: any): DeliverableVersion {
+  private mapToVersion(data: Record<string, unknown> | null): DeliverableVersion {
+    if (!data) {
+      throw new BadRequestException('Invalid version data');
+    }
     return {
-      id: data.id,
-      deliverableId: data.deliverable_id,
-      versionNumber: data.version_number,
-      content: data.content,
-      format: data.format,
-      isCurrentVersion: data.is_current_version,
-      createdByType: data.created_by_type,
-      taskId: data.task_id,
-      metadata: data.metadata || {},
-      fileAttachments: data.file_attachments || {},
+      id: data.id as string,
+      deliverableId: data.deliverable_id as string,
+      versionNumber: data.version_number as number,
+      content: data.content as string,
+      format: data.format as DeliverableFormat,
+      isCurrentVersion: data.is_current_version as boolean,
+      createdByType: data.created_by_type as DeliverableVersionCreationType,
+      taskId: (data.task_id as string) || undefined,
+      metadata: (data.metadata as Record<string, unknown>) || {},
+      fileAttachments: (data.file_attachments as Record<string, unknown>) || {},
       createdAt: new Date(data.created_at as string | number | Date),
       updatedAt: new Date(data.updated_at as string | number | Date),
     };
@@ -895,7 +897,7 @@ export class DeliverableVersionsService {
     mergePrompt: string,
     providerName?: string,
     modelName?: string,
-  ): Promise<{ content: string; conflictSummary?: string; metadata?: any }> {
+  ): Promise<{ content: string; conflictSummary?: string; metadata?: Record<string, unknown> }> {
     // Build version contents for LLM
     const versionContents = versions
       .map(
@@ -943,13 +945,13 @@ Please output ONLY the merged content, maintaining the same format as the origin
     });
 
     const content = typeof response === 'string' ? response : response.content;
-    const metadata =
+    const responseMetadata =
       typeof response === 'string' ? undefined : (response.metadata as Record<string, unknown> | undefined);
 
     return {
       content,
       conflictSummary: `Successfully merged ${versions.length} versions using LLM (${provider}/${model})`,
-      metadata,
+      metadata: responseMetadata,
     };
   }
 

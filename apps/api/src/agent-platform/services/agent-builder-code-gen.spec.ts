@@ -69,7 +69,8 @@ describe('AgentBuilderService - Code Generation', () => {
       ['text/markdown'],
     );
 
-    expect(llmService.generateResponse).toHaveBeenCalledWith(
+    const generateResponseMock = llmService['generateResponse'] as jest.Mock;
+    expect(generateResponseMock).toHaveBeenCalledWith(
       expect.stringContaining('JavaScript code generator'),
       expect.stringContaining('Process the input and return a greeting'),
       expect.objectContaining({

@@ -142,20 +142,23 @@ describe('OrchestrationCheckpointService', () => {
     });
 
     expect(result.approvalId).toBe('approval-1');
-    expect(approvals.create).toHaveBeenCalledWith(
+    const createMock = approvals['create'] as jest.Mock;
+    expect(createMock).toHaveBeenCalledWith(
       expect.objectContaining({
         orchestrationRunId: run.id,
         orchestrationStepId: 'orch-step-rec-1',
       }),
     );
-    expect(runner.updateRun).toHaveBeenCalledWith(
+    const updateRunMock = runner['updateRun'] as jest.Mock;
+    expect(updateRunMock).toHaveBeenCalledWith(
       expect.objectContaining({
         runId: run.id,
         status: 'checkpoint',
         humanCheckpointId: 'approval-1',
       }),
     );
-    expect(eventEmitter.emit).toHaveBeenCalledWith(
+    const emitMock = eventEmitter['emit'] as jest.Mock;
+    expect(emitMock).toHaveBeenCalledWith(
       'orchestration.checkpoint.requested',
       expect.objectContaining({
         runId: run.id,
@@ -215,7 +218,8 @@ describe('OrchestrationCheckpointService', () => {
 
     expect(result.run.status).toBe('running');
     expect(result.decision).toBe('continue');
-    expect(approvals.setStatus).toHaveBeenCalledWith(
+    const setStatusMock = approvals['setStatus'] as jest.Mock;
+    expect(setStatusMock).toHaveBeenCalledWith(
       'approval-1',
       'approved',
       'user-1',
@@ -223,7 +227,8 @@ describe('OrchestrationCheckpointService', () => {
         decision: expect.objectContaining({ action: 'continue' }),
       }),
     );
-    expect(eventEmitter.emit).toHaveBeenCalledWith(
+    const emitMock1 = eventEmitter['emit'] as jest.Mock;
+    expect(emitMock1).toHaveBeenCalledWith(
       'orchestration.checkpoint.resolved',
       expect.objectContaining({
         runId: run.id,
@@ -290,7 +295,8 @@ describe('OrchestrationCheckpointService', () => {
       actorId: 'user-1',
     });
 
-    expect(runner.updateStep).toHaveBeenCalledWith(step.id, {
+    const updateStepMock = runner['updateStep'] as jest.Mock;
+    expect(updateStepMock).toHaveBeenCalledWith(step.id, {
       status: 'pending',
       attempt_number: step.attempt_number + 1,
       started_at: null,

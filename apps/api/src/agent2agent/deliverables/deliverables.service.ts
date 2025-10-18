@@ -29,6 +29,49 @@ import {
   ActionResult,
 } from '../common/interfaces/action-handler.interface';
 
+/**
+ * Union type for all possible action parameters
+ */
+type DeliverableActionParams =
+  | {
+      // create action
+      title: string;
+      content: string;
+      format?: string;
+      type?: string;
+      agentName?: string;
+      taskId?: string;
+      metadata?: Record<string, unknown>;
+      deliverableId?: string;
+    }
+  | {
+      // edit action
+      content: string;
+      metadata?: Record<string, unknown>;
+    }
+  | {
+      // rerun action
+      versionId: string;
+      rerunConfig: {
+        provider: string;
+        model: string;
+        temperature?: number;
+        maxTokens?: number;
+      };
+    }
+  | {
+      // set_current, delete_version, copy_version actions
+      versionId: string;
+    }
+  | {
+      // merge_versions action
+      versionIds: string[];
+      mergePrompt: string;
+      providerName?: string;
+      modelName?: string;
+    }
+  | Record<string, never>; // For actions like read, list, delete that don't need params
+
 @Injectable()
 export class DeliverablesService implements IActionHandler {
   private readonly logger = new Logger(DeliverablesService.name);
@@ -59,9 +102,9 @@ export class DeliverablesService implements IActionHandler {
    * 9. copy_version - Duplicate a version
    * 10. delete - Delete entire deliverable
    */
-  async executeAction<T = any>(
+  async executeAction<T = unknown>(
     action: string,
-    params: any,
+    params: DeliverableActionParams,
     context: ActionExecutionContext,
   ): Promise<ActionResult<T>> {
     try {
@@ -70,7 +113,7 @@ export class DeliverablesService implements IActionHandler {
         JSON.stringify({ action, context }),
       );
 
-      let result: any;
+      let result: unknown;
 
       switch (action) {
         case 'create':
@@ -82,7 +125,7 @@ export class DeliverablesService implements IActionHandler {
               type?: string;
               agentName?: string;
               taskId?: string;
-              metadata?: Record<string, any>;
+              metadata?: Record<string, unknown>;
               deliverableId?: string;
             },
             context,
@@ -101,7 +144,7 @@ export class DeliverablesService implements IActionHandler {
           result = await this.saveManualEdit(
             params as {
               content: string;
-              metadata?: Record<string, any>;
+              metadata?: Record<string, unknown>;
             },
             context,
           );

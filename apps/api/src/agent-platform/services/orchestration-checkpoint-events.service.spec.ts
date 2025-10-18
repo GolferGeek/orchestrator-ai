@@ -148,8 +148,10 @@ describe('OrchestrationCheckpointEventsService', () => {
         ],
       });
 
-      expect(runner.getRun).toHaveBeenCalledWith(run.id);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      const getRunMock1 = runner['getRun'] as jest.Mock;
+      expect(getRunMock1).toHaveBeenCalledWith(run.id);
+      const emitMock4 = eventEmitter['emit'] as jest.Mock;
+      expect(emitMock4).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           streamId: run.id,
@@ -168,7 +170,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       );
 
-      expect(httpService.post).toHaveBeenCalledWith(
+      const postMock1 = httpService['post'] as jest.Mock;
+      expect(postMock1).toHaveBeenCalledWith(
         'http://localhost:5678/webhook/checkpoint',
         expect.objectContaining({
           event: 'orchestration.checkpoint.requested',
@@ -283,8 +286,10 @@ describe('OrchestrationCheckpointEventsService', () => {
         modifications: null,
       });
 
-      expect(runner.getRun).toHaveBeenCalledWith(run.id);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      const getRunMock = runner['getRun'] as jest.Mock;
+      expect(getRunMock).toHaveBeenCalledWith(run.id);
+      const emitMock3 = eventEmitter['emit'] as jest.Mock;
+      expect(emitMock3).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           streamId: run.id,
@@ -304,7 +309,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       );
 
-      expect(httpService.post).toHaveBeenCalledWith(
+      const postMock = httpService['post'] as jest.Mock;
+      expect(postMock).toHaveBeenCalledWith(
         'http://localhost:5678/webhook/checkpoint',
         expect.objectContaining({
           event: 'orchestration.checkpoint.resolved',
@@ -339,7 +345,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         modifications: null,
       });
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      const emitMock2 = eventEmitter['emit'] as jest.Mock;
+      expect(emitMock2).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -371,7 +378,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         modifications: { inputOverride: 'new-value' },
       });
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      const emitMock1 = eventEmitter['emit'] as jest.Mock;
+      expect(emitMock1).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -422,7 +430,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       ).resolves.not.toThrow();
 
-      expect(eventEmitter.emit).toHaveBeenCalled();
+      const emitMock5 = eventEmitter['emit'] as jest.Mock;
+      expect(emitMock5).toHaveBeenCalled();
     });
   });
 
@@ -447,8 +456,10 @@ describe('OrchestrationCheckpointEventsService', () => {
         question: 'Approve?',
       });
 
-      expect(runner.listSteps).toHaveBeenCalledWith(run.id);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      const listStepsMock1 = runner['listSteps'] as jest.Mock;
+      expect(listStepsMock1).toHaveBeenCalledWith(run.id);
+      const emitMock = eventEmitter['emit'] as jest.Mock;
+      expect(emitMock).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -477,7 +488,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         question: 'Approve?',
       });
 
-      expect(runner.listSteps).toHaveBeenCalledWith(run.id);
+      const listStepsMock = runner['listSteps'] as jest.Mock;
+      expect(listStepsMock).toHaveBeenCalledWith(run.id);
     });
   });
 });

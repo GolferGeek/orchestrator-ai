@@ -21,6 +21,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { DeliverablesService } from './deliverables.service';
 import {
@@ -33,6 +34,17 @@ import {
   Deliverable,
   DeliverableSearchResult,
 } from './entities/deliverable.entity';
+
+/**
+ * Authenticated request with user information
+ */
+interface AuthenticatedRequest extends Request {
+  user?: {
+    sub?: string;
+    id?: string;
+    userId?: string;
+  };
+}
 
 @ApiTags('deliverables')
 @ApiBearerAuth()
@@ -188,7 +200,7 @@ export class DeliverablesController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findByConversation(
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<Deliverable[]> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
@@ -214,7 +226,7 @@ export class DeliverablesController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDeliverableDto: UpdateDeliverableDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<Deliverable> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
@@ -253,7 +265,7 @@ export class DeliverablesController {
   async createEditingConversation(
     @Param('id', ParseUUIDPipe) deliverableId: string,
     @Body() createEditingConversationDto: CreateEditingConversationDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<{ conversationId: string; message: string }> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
@@ -278,7 +290,7 @@ export class DeliverablesController {
   @ApiResponse({ status: 404, description: 'Deliverable not found' })
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<void> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {

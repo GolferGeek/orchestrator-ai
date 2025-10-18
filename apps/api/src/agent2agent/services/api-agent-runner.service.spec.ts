@@ -111,7 +111,8 @@ describe('ApiAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify HTTP call
-      expect(httpService.request).toHaveBeenCalledWith({
+      const requestMock = httpService['request'] as jest.Mock;
+      expect(requestMock).toHaveBeenCalledWith({
         url: 'https://api.example.com/users',
         method: 'GET',
         headers: expect.objectContaining({
@@ -125,7 +126,8 @@ describe('ApiAgentRunnerService', () => {
       });
 
       // Verify deliverable creation
-      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
+      const executeActionMock = deliverablesService['executeAction'] as jest.Mock;
+      expect(executeActionMock).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'User List',
@@ -189,7 +191,8 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      expect(httpService.request).toHaveBeenCalledWith(
+      const requestMock1 = httpService['request'] as jest.Mock;
+      expect(requestMock1).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -234,7 +237,8 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      expect(httpService.request).toHaveBeenCalledWith(
+      const requestMock2 = httpService['request'] as jest.Mock;
+      expect(requestMock2).toHaveBeenCalledWith(
         expect.objectContaining({
           url: 'https://api.example.com/users/42',
         }),
@@ -277,7 +281,8 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      expect(httpService.request).toHaveBeenCalledWith(
+      const requestMock3 = httpService['request'] as jest.Mock;
+      expect(requestMock3).toHaveBeenCalledWith(
         expect.objectContaining({
           params: {
             limit: '10',
