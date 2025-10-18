@@ -306,7 +306,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Create a new page
    */
-  private async createPage(args: any): Promise<MCPToolResponse> {
+  private async createPage(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { parent, title, content = [], properties = {} } = args;
 
     try {
@@ -375,7 +375,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Query a database
    */
-  private async queryDatabase(args: any): Promise<MCPToolResponse> {
+  private async queryDatabase(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { database_id, filter, sorts, start_cursor, page_size = 100 } = args;
 
     try {
@@ -443,7 +443,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Search content in workspace
    */
-  private async searchContent(args: any): Promise<MCPToolResponse> {
+  private async searchContent(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { query, filter, sort, start_cursor, page_size = 100 } = args;
 
     try {
@@ -512,7 +512,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Get a specific page
    */
-  private async getPage(args: any): Promise<MCPToolResponse> {
+  private async getPage(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { page_id, include_content = false } = args;
 
     try {
@@ -574,7 +574,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Update a page
    */
-  private async updatePage(args: any): Promise<MCPToolResponse> {
+  private async updatePage(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { page_id, properties, archived } = args;
 
     try {
@@ -633,7 +633,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Append blocks to a page
    */
-  private async appendBlocks(args: any): Promise<MCPToolResponse> {
+  private async appendBlocks(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { page_id, children } = args;
 
     try {
@@ -686,7 +686,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   /**
    * Get all databases
    */
-  private async getDatabases(args: any): Promise<MCPToolResponse> {
+  private async getDatabases(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { start_cursor, page_size = 100 } = args;
 
     try {

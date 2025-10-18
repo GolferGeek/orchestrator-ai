@@ -231,7 +231,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Get database schema information
    */
-  private async getSchema(args: any): Promise<MCPToolResponse> {
+  private async getSchema(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { table_name, include_system = false } = args;
 
     try {
@@ -298,7 +298,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Execute SQL query
    */
-  private async executeSql(args: any): Promise<MCPToolResponse> {
+  private async executeSql(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { query, params = [] } = args;
 
     try {
@@ -347,7 +347,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Read data from table
    */
-  private async readData(args: any): Promise<MCPToolResponse> {
+  private async readData(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const {
       table_name,
       columns = ['*'],
@@ -414,7 +414,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Query and format results
    */
-  private async queryAndFormat(args: any): Promise<MCPToolResponse> {
+  private async queryAndFormat(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { query, format = 'table', analysis_type = 'raw' } = args;
 
     try {
@@ -457,7 +457,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Generate SQL from natural language
    */
-  private generateSql(args: any): MCPToolResponse {
+  private generateSql(args: Record<string, unknown>): MCPToolResponse {
     const { description, table_context = [], query_type = 'select' } = args;
 
     try {
@@ -520,7 +520,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Format data according to specified format
    */
-  private formatData(data: any, format: string, analysisType?: string): string {
+  private formatData(data: unknown, format: string, analysisType?: string): string {
     switch (format) {
       case 'json':
         return JSON.stringify(data, null, 2);
@@ -538,7 +538,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Format data as ASCII table
    */
-  private formatAsTable(data: any[]): string {
+  private formatAsTable(data: unknown[]): string {
     if (!Array.isArray(data) || data.length === 0) {
       return 'No data to display';
     }
@@ -576,7 +576,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Format data as CSV
    */
-  private formatAsCsv(data: any[]): string {
+  private formatAsCsv(data: unknown[]): string {
     if (!Array.isArray(data) || data.length === 0) {
       return '';
     }
@@ -603,7 +603,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Format data as summary with analysis
    */
-  private formatAsSummary(data: any[], analysisType?: string): string {
+  private formatAsSummary(data: unknown[], analysisType?: string): string {
     if (!Array.isArray(data)) {
       return JSON.stringify(data, null, 2);
     }

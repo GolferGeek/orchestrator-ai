@@ -265,7 +265,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Send a message to Slack
    */
-  private async sendMessage(args: any): Promise<MCPToolResponse> {
+  private async sendMessage(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { channel, text, thread_ts, blocks } = args;
 
     try {
@@ -330,7 +330,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get channels list
    */
-  private async getChannels(args: any): Promise<MCPToolResponse> {
+  private async getChannels(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const {
       types = 'public_channel',
       exclude_archived = true,
@@ -390,7 +390,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get users information
    */
-  private async getUsers(args: any): Promise<MCPToolResponse> {
+  private async getUsers(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { user_id, include_deleted = false, limit = 100 } = args;
 
     try {
@@ -493,7 +493,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Search messages
    */
-  private async searchMessages(args: any): Promise<MCPToolResponse> {
+  private async searchMessages(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { query, channel, user, count = 20, sort = 'score' } = args;
 
     try {
@@ -566,7 +566,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get channel history
    */
-  private async getChannelHistory(args: any): Promise<MCPToolResponse> {
+  private async getChannelHistory(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { channel, count = 100, oldest, latest, inclusive = true } = args;
 
     try {
@@ -632,7 +632,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Create a new channel
    */
-  private async createChannel(args: any): Promise<MCPToolResponse> {
+  private async createChannel(args: Record<string, unknown>): Promise<MCPToolResponse> {
     const { name, is_private = false, purpose, topic } = args;
 
     try {

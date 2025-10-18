@@ -128,7 +128,7 @@ function createOrchestratorSqlDatabase(): any {
           names.map((name) => ({ tableName: name })),
         );
       },
-    } as any;
+    } as Record<string, unknown>;
   }
   return orchestratorSqlDatabase!;
 }
@@ -173,7 +173,7 @@ function createCompanySqlDatabase(): any {
           { tableName: 'kpi_data' },
         ]);
       },
-    } as any;
+    } as Record<string, unknown>;
   }
   return companySqlDatabase!;
 }
@@ -182,9 +182,9 @@ function createCompanySqlDatabase(): any {
  * Execute a query on company database using PostgREST API
  */
 async function executeQueryOnCompanyDB(
-  client: any,
+  client: unknown,
   query: string,
-): Promise<{ data: any; error?: string }> {
+): Promise<{ data: unknown; error?: string }> {
   // Simple query parsing for basic SELECT statements on company schema
   // This is a simplified approach - for production you'd want more robust SQL parsing
   const lowerQuery = query.toLowerCase().trim();
@@ -404,7 +404,7 @@ export async function generateAndExecuteCompanySQL(
     }
 
     const generatedSQL = JSON.parse(sqlResponse.content[0].text).sql;
-    let result: any[] = [];
+    let result: unknown[] = [];
     let error: string | undefined;
 
     if (options.executeQuery !== false && generatedSQL) {
@@ -487,7 +487,7 @@ export async function generateAndExecuteOrchestratorSQL(
     }
 
     const generatedSQL = JSON.parse(sqlResponse.content[0].text).sql;
-    let result: any[] = [];
+    let result: unknown[] = [];
     let error: string | undefined;
 
     if (options.executeQuery !== false && generatedSQL) {
