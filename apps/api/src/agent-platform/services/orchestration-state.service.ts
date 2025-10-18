@@ -239,7 +239,18 @@ export class OrchestrationStateService {
               expression,
               parameters,
             );
-            return paramValue !== undefined ? String(paramValue) : '';
+            if (paramValue === undefined) return '';
+            if (typeof paramValue === 'object' && paramValue !== null) {
+              return JSON.stringify(paramValue);
+            }
+            if (
+              typeof paramValue === 'string' ||
+              typeof paramValue === 'number' ||
+              typeof paramValue === 'boolean'
+            ) {
+              return String(paramValue);
+            }
+            return '';
           },
         );
       }

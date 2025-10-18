@@ -76,9 +76,13 @@ export class DeliverableVersionsService {
           .single();
 
       if (insertError) {
-        throw new BadRequestException(
-          `Failed to create version: ${insertError && typeof insertError === 'object' && 'message' in insertError ? (insertError as Error).message : String(insertError)}`,
-        );
+        const errorMsg =
+          insertError && typeof insertError === 'object' && 'message' in insertError
+            ? (insertError as Error).message
+            : typeof insertError === 'string'
+              ? insertError
+              : JSON.stringify(insertError);
+        throw new BadRequestException(`Failed to create version: ${errorMsg}`);
       }
 
       return this.mapToVersion(newVersionData);
@@ -158,9 +162,13 @@ export class DeliverableVersionsService {
           throw new NotFoundException(`Version not found: ${versionId}`);
         }
 
-        throw new BadRequestException(
-          `Failed to find version: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
-        );
+        const errorMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as Error).message
+            : typeof error === 'string'
+              ? error
+              : JSON.stringify(error);
+        throw new BadRequestException(`Failed to find version: ${errorMsg}`);
       }
 
       if (!data) {
@@ -281,8 +289,14 @@ export class DeliverableVersionsService {
           .single();
 
       if (error) {
+        const errorMsg =
+          error && typeof error === 'object' && 'message' in error
+            ? (error as Error).message
+            : typeof error === 'string'
+              ? error
+              : JSON.stringify(error);
         throw new BadRequestException(
-          `Failed to set current version: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
+          `Failed to set current version: ${errorMsg}`,
         );
       }
 
@@ -886,7 +900,7 @@ export class DeliverableVersionsService {
     const versionContents = versions
       .map(
         (version) =>
-          `=== VERSION ${version.versionNumber} (Created: ${version.createdAt}) ===\n${version.content || ''}`,
+          `=== VERSION ${version.versionNumber} (Created: ${version.createdAt instanceof Date ? version.createdAt.toISOString() : String(version.createdAt)}) ===\n${version.content || ''}`,
       )
       .join('\n\n---\n\n');
 

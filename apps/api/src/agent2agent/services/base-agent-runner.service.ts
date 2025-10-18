@@ -130,7 +130,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
           );
 
         default:
-          this.logger.warn(`Unsupported mode: ${mode}`);
+          this.logger.warn(`Unsupported mode: ${String(mode)}`);
           return TaskResponseDto.failure(mode, 'Unsupported mode');
       }
     } catch (error) {

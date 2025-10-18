@@ -419,7 +419,11 @@ export async function callLLM(
 export function resolveUserId(request: TaskRequestDto): string | null {
   const fromMetadata = request.metadata?.userId ?? request.metadata?.createdBy;
   if (fromMetadata) {
-    return String(fromMetadata);
+    return typeof fromMetadata === 'string'
+      ? fromMetadata
+      : typeof fromMetadata === 'number'
+        ? String(fromMetadata)
+        : null;
   }
 
   const payload = request.payload ?? {};
@@ -432,7 +436,11 @@ export function resolveUserId(request: TaskRequestDto): string | null {
     payloadMetadata?.userId ??
     payloadMetadata?.createdBy;
   if (fromPayload) {
-    return String(fromPayload);
+    return typeof fromPayload === 'string'
+      ? fromPayload
+      : typeof fromPayload === 'number'
+        ? String(fromPayload)
+        : null;
   }
 
   const fromMessages = Array.isArray(request.messages)

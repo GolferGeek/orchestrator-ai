@@ -171,7 +171,7 @@ export async function handleOrchestrateAction(
       default:
         return TaskResponseDto.failure(
           AgentTaskMode.ORCHESTRATE,
-          `Unknown action: ${action}`,
+          `Unknown action: ${String(action)}`,
         );
     }
   } catch (error) {

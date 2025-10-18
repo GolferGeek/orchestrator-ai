@@ -4,6 +4,72 @@ import { getTableName } from '../../supabase/supabase.config';
 // No AgentType import needed - we treat agent_type as a simple string
 
 /**
+ * LLM Selection configuration interface
+ */
+export interface LlmSelection {
+  provider?: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Conversation history message interface
+ */
+export interface ConversationMessage {
+  role: string;
+  content: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Task parameters interface
+ */
+export interface TaskParams {
+  method: string;
+  prompt: string;
+  conversationId?: string;
+  metadata?: {
+    protocol?: string;
+    llmSelection?: LlmSelection;
+    conversationHistory?: ConversationMessage[];
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Task data for database insertion
+ */
+interface TaskData {
+  id?: string;
+  user_id: string;
+  conversation_id: string;
+  method: string;
+  prompt: string;
+  status: string;
+  params: TaskParams;
+}
+
+/**
+ * Task record from database
+ */
+export interface TaskRecord {
+  id: string;
+  user_id: string;
+  conversation_id: string;
+  method: string;
+  prompt: string;
+  status: string;
+  params: TaskParams;
+  result?: Record<string, unknown>;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * Agent2Agent-specific Tasks Service
  * Handles task creation and management for A2A Google protocol agents
  * Isolated from legacy file-based agent system
@@ -27,9 +93,9 @@ export class Agent2AgentTasksService {
       prompt: string;
       conversationId?: string;
       taskId?: string;
-      metadata?: Record<string, any>;
-      llmSelection?: any;
-      conversationHistory?: any[];
+      metadata?: Record<string, unknown>;
+      llmSelection?: LlmSelection;
+      conversationHistory?: ConversationMessage[];
     },
   ): Promise<{
     id: string;
@@ -38,7 +104,7 @@ export class Agent2AgentTasksService {
     namespace: string | null; // Organization slug from conversation (null for global agents)
     agentConversationId: string | null;
     status: string;
-    params: any;
+    params: TaskParams;
     createdAt: Date;
   }> {
     this.logger.debug(
@@ -110,8 +176,13 @@ export class Agent2AgentTasksService {
         );
       }
 
+      // At this point, conversationId is guaranteed to be a string
+      if (!conversationId) {
+        throw new Error('Conversation ID is required but was not created');
+      }
+
       // Create task record (agent info is stored in the linked conversation)
-      const taskData: any = {
+      const taskData: TaskData = {
         user_id: userId,
         conversation_id: conversationId,
         method: params.method,
@@ -180,8 +251,8 @@ export class Agent2AgentTasksService {
     namespace: string | null; // Organization slug from conversation (null for global agents)
     agentConversationId: string | null;
     status: string;
-    params: any;
-    result?: any;
+    params: TaskParams;
+    result?: Record<string, unknown>;
     error?: string;
     createdAt: Date;
     updatedAt: Date;
@@ -230,7 +301,7 @@ export class Agent2AgentTasksService {
   async getTasksByConversation(
     conversationId: string,
     userId: string,
-  ): Promise<any[]> {
+  ): Promise<TaskRecord[]> {
     try {
       const { data: tasks, error } = await this.supabaseService
         .getServiceClient()

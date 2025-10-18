@@ -150,7 +150,17 @@ export class AgentDryRunService {
   private renderTemplate(tpl: string, ctx: unknown): string {
     return String(tpl).replace(/\{\{\s*([^}]+)\s*\}\}/g, (_m, p1) => {
       const v = this.getByPath(ctx, String(p1).trim());
-      return v == null ? '' : String(v);
+      if (v == null) return '';
+      // Handle objects by stringifying them
+      if (typeof v === 'object') {
+        return JSON.stringify(v);
+      }
+      // Handle primitives (string, number, boolean, symbol)
+      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+        return String(v);
+      }
+      // Fallback for any other types
+      return '';
     });
   }
 

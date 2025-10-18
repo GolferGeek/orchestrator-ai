@@ -40,6 +40,6 @@ export class PseudonymDictionariesRepository {
       );
       return [];
     }
-    return data || [];
+    return (data as PseudonymDictionaryRecord[]) || [];
   }
 }

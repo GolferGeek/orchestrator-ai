@@ -40,6 +40,6 @@ export class RedactionPatternsRepository {
       );
       return [];
     }
-    return data || [];
+    return (data as RedactionPatternRecord[]) || [];
   }
 }

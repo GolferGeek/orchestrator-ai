@@ -22,7 +22,11 @@ import { TaskResponseDto } from './dto/task-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
-import { Agent2AgentTasksService } from './services/agent-tasks.service';
+import {
+  Agent2AgentTasksService,
+  LlmSelection,
+  ConversationMessage,
+} from './services/agent-tasks.service';
 import { Agent2AgentTaskStatusService } from './services/agent-task-status.service';
 import { Agent2AgentConversationsService } from './services/agent-conversations.service';
 import { plainToInstance } from 'class-transformer';
@@ -90,14 +94,14 @@ interface FrontendTaskRequest {
   prompt?: string;
   conversationHistory?: Array<{ role: string; content: string }>;
   conversationId?: string;
-  params?: Record<string, any>;
-  llmSelection?: any;
-  executionMode?: any;
+  params?: Record<string, unknown>;
+  llmSelection?: LlmSelection;
+  executionMode?: string;
   taskId?: string;
   timeoutSeconds?: number;
-  metadata?: Record<string, any>;
-  id?: any;
-  [key: string]: any;
+  metadata?: Record<string, unknown>;
+  id?: string;
+  [key: string]: unknown;
 }
 
 // Use shared protocol types
@@ -301,14 +305,26 @@ export class Agent2AgentController {
       );
 
       // Extract data from normalized DTO (which came from adaptedBody)
-      const taskIdFromPayload = dto.payload?.taskId || body.id; // JSON-RPC id or payload.taskId
-      const llmSelectionFromPayload = dto.payload?.llmSelection;
-      const conversationHistoryFromMessages =
-        dto.messages?.map((msg) => ({
-          role: msg.role,
-          content: String(msg.content || ''),
-          timestamp: new Date().toISOString(),
-        })) || [];
+      const taskIdFromPayload =
+        (typeof dto.payload?.taskId === 'string' ? dto.payload.taskId : undefined) ||
+        body.id; // JSON-RPC id or payload.taskId
+      const llmSelectionFromPayload = dto.payload?.llmSelection as
+        | LlmSelection
+        | undefined;
+      const conversationHistoryFromMessages: ConversationMessage[] =
+        dto.messages?.map((msg) => {
+          const content =
+            typeof msg.content === 'string'
+              ? msg.content
+              : msg.content && typeof msg.content === 'object'
+                ? JSON.stringify(msg.content)
+                : '';
+          return {
+            role: msg.role,
+            content,
+            timestamp: new Date().toISOString(),
+          };
+        }) || [];
 
       // Use namespace as agentType for database agents (clean architecture separation)
       const effectiveAgentType = org || 'global';

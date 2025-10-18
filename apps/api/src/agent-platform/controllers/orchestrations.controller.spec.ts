@@ -51,7 +51,8 @@ describe('OrchestrationsController', () => {
         success: true,
         data: mockStatus,
       });
-      expect(statusService.getRunStatus).toHaveBeenCalledWith('run-1');
+      const mockFn = statusService['getRunStatus'] as jest.Mock;
+      expect(mockFn).toHaveBeenCalledWith('run-1');
     });
 
     it('throws NotFoundException for non-existent run', async () => {
@@ -130,7 +131,8 @@ describe('OrchestrationsController', () => {
       expect(result.success).toBe(true);
       expect(result.data.items).toHaveLength(2);
       expect(result.data.hasMore).toBe(false);
-      expect(dashboardService.listRuns).toHaveBeenCalledWith({
+      const listRunsMock = dashboardService['listRuns'] as jest.Mock;
+      expect(listRunsMock).toHaveBeenCalledWith({
         organizationSlug: undefined,
         lifecycle: 'active',
         definitionId: undefined,
@@ -174,7 +176,8 @@ describe('OrchestrationsController', () => {
         query as unknown as Parameters<typeof controller.listRuns>[0],
       );
 
-      expect(dashboardService.listRuns).toHaveBeenCalledWith({
+      const listRunsMock2 = dashboardService['listRuns'] as jest.Mock;
+      expect(listRunsMock2).toHaveBeenCalledWith({
         organizationSlug: 'acme-corp',
         lifecycle: 'completed',
         definitionId: 'def-123',
@@ -216,7 +219,8 @@ describe('OrchestrationsController', () => {
 
       expect(result.success).toBe(true);
       expect(result.data.items).toHaveLength(1);
-      expect(dashboardService.listApprovals).toHaveBeenCalledWith({
+      const listApprovalsMock = dashboardService['listApprovals'] as jest.Mock;
+      expect(listApprovalsMock).toHaveBeenCalledWith({
         organizationSlug: undefined,
         status: 'pending',
         limit: 50,
@@ -245,7 +249,8 @@ describe('OrchestrationsController', () => {
         query as unknown as Parameters<typeof controller.listApprovals>[0],
       );
 
-      expect(dashboardService.listApprovals).toHaveBeenCalledWith({
+      const listApprovalsMock2 = dashboardService['listApprovals'] as jest.Mock;
+      expect(listApprovalsMock2).toHaveBeenCalledWith({
         organizationSlug: 'test-org',
         status: undefined,
         limit: undefined,
@@ -281,7 +286,8 @@ describe('OrchestrationsController', () => {
 
       expect(result.success).toBe(true);
       expect(result.data.approval.status).toBe('approved');
-      expect(dashboardService.resolveApproval).toHaveBeenCalledWith({
+      const resolveApprovalMock = dashboardService['resolveApproval'] as jest.Mock;
+      expect(resolveApprovalMock).toHaveBeenCalledWith({
         approvalId: 'approval-1',
         decision: 'continue',
         notes: 'Approved',
@@ -317,7 +323,8 @@ describe('OrchestrationsController', () => {
         req,
       );
 
-      expect(dashboardService.resolveApproval).toHaveBeenCalledWith({
+      const resolveApprovalMock2 = dashboardService['resolveApproval'] as jest.Mock;
+      expect(resolveApprovalMock2).toHaveBeenCalledWith({
         approvalId: 'approval-2',
         decision: 'retry',
         notes: 'Retry with changes',
@@ -349,7 +356,8 @@ describe('OrchestrationsController', () => {
         req,
       );
 
-      expect(dashboardService.resolveApproval).toHaveBeenCalledWith(
+      const resolveApprovalMock3 = dashboardService['resolveApproval'] as jest.Mock;
+      expect(resolveApprovalMock3).toHaveBeenCalledWith(
         expect.objectContaining({ actorId: 'user-789' }),
       );
     });
@@ -375,7 +383,8 @@ describe('OrchestrationsController', () => {
         req,
       );
 
-      expect(dashboardService.resolveApproval).toHaveBeenCalledWith(
+      const resolveApprovalMock4 = dashboardService['resolveApproval'] as jest.Mock;
+      expect(resolveApprovalMock4).toHaveBeenCalledWith(
         expect.objectContaining({ actorId: null }),
       );
     });
@@ -412,7 +421,8 @@ describe('OrchestrationsController', () => {
       expect(result.success).toBe(true);
       expect(result.data.runId).toBe('run-replay');
       expect(result.data.parameters).toEqual({ param1: 'value1' });
-      expect(dashboardService.getReplayContext).toHaveBeenCalledWith(
+      const getReplayContextMock = dashboardService['getReplayContext'] as jest.Mock;
+      expect(getReplayContextMock).toHaveBeenCalledWith(
         'run-replay',
       );
     });
@@ -458,7 +468,8 @@ describe('OrchestrationsController', () => {
       expect(result.success).toBe(true);
       expect(result.data.run.id).toBe('run-1');
       expect(result.data.steps).toHaveLength(1);
-      expect(dashboardService.getRunDetail).toHaveBeenCalledWith('run-1');
+      const getRunDetailMock = dashboardService['getRunDetail'] as jest.Mock;
+      expect(getRunDetailMock).toHaveBeenCalledWith('run-1');
     });
 
     it('throws NotFoundException if run not found', async () => {

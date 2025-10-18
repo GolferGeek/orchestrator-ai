@@ -468,16 +468,28 @@ export class EvaluationService {
     ]);
 
     if (taskError) {
+      const taskErrorMsg =
+        taskError && typeof taskError === 'object' && 'message' in taskError
+          ? (taskError as Error).message
+          : typeof taskError === 'string'
+            ? taskError
+            : JSON.stringify(taskError);
       this.logger.warn(
-        `[EvaluationService] Failed to fetch task evaluations for agent ${agentIdentifier}: ${taskError && typeof taskError === 'object' && 'message' in taskError ? (taskError as Error).message : String(taskError)}`,
+        `[EvaluationService] Failed to fetch task evaluations for agent ${agentIdentifier}: ${taskErrorMsg}`,
       );
     }
 
     let effectiveMessages = messagesData || [];
 
     if (messageError) {
+      const messageErrorMsg =
+        messageError && typeof messageError === 'object' && 'message' in messageError
+          ? (messageError as Error).message
+          : typeof messageError === 'string'
+            ? messageError
+            : JSON.stringify(messageError);
       this.logger.warn(
-        `[EvaluationService] Failed to fetch message evaluations for agent ${agentIdentifier}: ${messageError && typeof messageError === 'object' && 'message' in messageError ? (messageError as Error).message : String(messageError)}`,
+        `[EvaluationService] Failed to fetch message evaluations for agent ${agentIdentifier}: ${messageErrorMsg}`,
       );
 
       if (!isServiceClient) {
@@ -490,8 +502,16 @@ export class EvaluationService {
         };
 
         if (fallbackError) {
+          const fallbackErrorMsg =
+            fallbackError &&
+            typeof fallbackError === 'object' &&
+            'message' in fallbackError
+              ? (fallbackError as Error).message
+              : typeof fallbackError === 'string'
+                ? fallbackError
+                : JSON.stringify(fallbackError);
           this.logger.warn(
-            `[EvaluationService] Fallback message query also failed for agent ${agentIdentifier}: ${fallbackError && typeof fallbackError === 'object' && 'message' in fallbackError ? (fallbackError as Error).message : String(fallbackError)}`,
+            `[EvaluationService] Fallback message query also failed for agent ${agentIdentifier}: ${fallbackErrorMsg}`,
           );
         } else {
           effectiveMessages = fallbackMessages || [];

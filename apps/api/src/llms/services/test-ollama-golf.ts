@@ -189,7 +189,13 @@ export async function testOllamaGolfBlogPost(): Promise<{
           `   Generation time: ${(evalDuration / 1_000_000).toFixed(0)}ms`,
         );
       }
-      console.log(`   Model status: ${perf.model_status}`);
+      const modelStatus =
+        typeof perf.model_status === 'string'
+          ? perf.model_status
+          : perf.model_status && typeof perf.model_status === 'object'
+            ? JSON.stringify(perf.model_status)
+            : 'unknown';
+      console.log(`   Model status: ${modelStatus}`);
       console.log('');
     }
 

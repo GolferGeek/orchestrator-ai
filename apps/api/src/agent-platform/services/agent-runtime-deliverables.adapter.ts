@@ -26,7 +26,21 @@ export interface BuildDeliverableInput {
   deliverableFormat?: DeliverableFormat | string | null;
 }
 
-type ImageRecord = Record<string, unknown>;
+interface ImageRecord {
+  url?: string;
+  mime?: string;
+  contentType?: string;
+  width?: number;
+  height?: number;
+  size?: number;
+  thumbnailUrl?: string;
+  altText?: string;
+  hash?: string;
+  assetId?: string;
+  filename?: string;
+  data?: string;
+  [key: string]: unknown;
+}
 
 @Injectable()
 export class AgentRuntimeDeliverablesAdapter {
@@ -286,15 +300,15 @@ export class AgentRuntimeDeliverablesAdapter {
         ? (input as Record<string, unknown>)
         : {};
     const out: ImageRecord = {
-      url: obj.url || obj.href || '',
-      mime: obj.mime || obj.contentType || null,
+      url: (typeof obj.url === 'string' ? obj.url : typeof obj.href === 'string' ? obj.href : ''),
+      mime: (typeof obj.mime === 'string' ? obj.mime : typeof obj.contentType === 'string' ? obj.contentType : undefined),
     };
-    if (obj.width) out.width = obj.width;
-    if (obj.height) out.height = obj.height;
-    if (obj.size) out.size = obj.size;
-    if (obj.thumbnailUrl) out.thumbnailUrl = obj.thumbnailUrl;
-    if (obj.altText) out.altText = obj.altText;
-    if (obj.hash) out.hash = obj.hash;
+    if (typeof obj.width === 'number') out.width = obj.width;
+    if (typeof obj.height === 'number') out.height = obj.height;
+    if (typeof obj.size === 'number') out.size = obj.size;
+    if (typeof obj.thumbnailUrl === 'string') out.thumbnailUrl = obj.thumbnailUrl;
+    if (typeof obj.altText === 'string') out.altText = obj.altText;
+    if (typeof obj.hash === 'string') out.hash = obj.hash;
     return out;
   }
 

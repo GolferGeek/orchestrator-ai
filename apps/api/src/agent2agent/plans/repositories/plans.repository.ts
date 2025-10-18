@@ -51,9 +51,13 @@ export class PlansRepository {
       .single();
 
     if (error) {
-      throw new BadRequestException(
-        `Failed to create plan: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
-      );
+      const errorMsg =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as Error).message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
+      throw new BadRequestException(`Failed to create plan: ${errorMsg}`);
     }
 
     return planData as PlanRecord;
@@ -76,8 +80,14 @@ export class PlansRepository {
         .maybeSingle();
 
     if (error) {
+      const errorMsg =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as Error).message
+          : typeof error === 'string'
+            ? error
+            : JSON.stringify(error);
       throw new BadRequestException(
-        `Failed to find plan by conversation: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
+        `Failed to find plan by conversation: ${errorMsg}`,
       );
     }
 

@@ -310,8 +310,20 @@ export class AgentRuntimeDispatchService {
       },
       next(): Promise<IteratorResult<AgentRuntimeStreamChunk>> {
         if (error) {
+          let errorMessage: string;
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (typeof error === 'object' && error !== null) {
+            errorMessage = JSON.stringify(error);
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          } else if (typeof error === 'number' || typeof error === 'boolean') {
+            errorMessage = String(error);
+          } else {
+            errorMessage = 'Unknown error';
+          }
           return Promise.reject(
-            error instanceof Error ? error : new Error(String(error)),
+            error instanceof Error ? error : new Error(errorMessage),
           );
         }
         if (queue.length) {
@@ -625,10 +637,15 @@ export class AgentRuntimeDispatchService {
       try {
         return JSON.stringify(value);
       } catch {
-        return String(value);
+        return '[Object]';
       }
     }
-    return String(value);
+    // Handle primitives (number, boolean, bigint, symbol)
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    // Handle null, undefined, or other types
+    return value == null ? '' : '[Unknown]';
   }
 
   private sanitizeForwardHeaders(
@@ -713,8 +730,21 @@ export class AgentRuntimeDispatchService {
     const statusText = status ? ` (HTTP ${status})` : '';
     if (!error) return `External A2A error${statusText}`;
     const errorObj = error as { code?: unknown; message?: unknown };
-    const code =
-      errorObj.code !== undefined ? ` [code ${String(errorObj.code)}]` : '';
+    let codeStr = '';
+    if (errorObj.code !== undefined) {
+      if (typeof errorObj.code === 'object' && errorObj.code !== null) {
+        codeStr = JSON.stringify(errorObj.code);
+      } else if (
+        typeof errorObj.code === 'string' ||
+        typeof errorObj.code === 'number' ||
+        typeof errorObj.code === 'boolean'
+      ) {
+        codeStr = String(errorObj.code);
+      } else {
+        codeStr = '[code]';
+      }
+    }
+    const code = codeStr ? ` [code ${codeStr}]` : '';
     const raw: string =
       typeof errorObj.message === 'string'
         ? errorObj.message

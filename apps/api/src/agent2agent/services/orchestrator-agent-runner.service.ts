@@ -136,11 +136,15 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         },
       });
     } catch (error) {
-      this.logger.error(
-        `Failed to generate orchestration plan: ${
-          error instanceof Error ? error.message : error
-        }`,
-      );
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : error && typeof error === 'object'
+              ? JSON.stringify(error)
+              : 'Unknown error';
+      this.logger.error(`Failed to generate orchestration plan: ${errorMsg}`);
       return TaskResponseDto.failure(
         AgentTaskMode.PLAN,
         error instanceof Error ? error.message : 'Unknown error',
@@ -215,11 +219,15 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         resolvedDefinition.ownerAgentSlug,
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to initialize orchestration run: ${
-          error instanceof Error ? error.message : error
-        }`,
-      );
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : error && typeof error === 'object'
+              ? JSON.stringify(error)
+              : 'Unknown error';
+      this.logger.error(`Failed to initialize orchestration run: ${errorMsg}`);
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
         error instanceof Error ? error.message : 'Unknown error',

@@ -189,7 +189,8 @@ describe('OrchestrationRunFactoryService', () => {
         readySteps: mockStepRecords,
       });
 
-      expect(mockRunner.startRun).toHaveBeenCalledWith(
+      const startRunMock = mockRunner['startRun'] as jest.Mock;
+      expect(startRunMock).toHaveBeenCalledWith(
         expect.objectContaining({
           orchestrationDefinitionId: 'def-123',
           orchestrationName: 'test-orchestration',
@@ -198,17 +199,20 @@ describe('OrchestrationRunFactoryService', () => {
         }),
       );
 
-      expect(mockState.initializeRun).toHaveBeenCalledWith(
+      const initializeRunMock = mockState['initializeRun'] as jest.Mock;
+      expect(initializeRunMock).toHaveBeenCalledWith(
         mockRunRecord,
         mockDefinition,
         {},
       );
 
-      expect(mockEvents.emitRunCreated).toHaveBeenCalledWith(planningRun, {
+      const emitRunCreatedMock = mockEvents['emitRunCreated'] as jest.Mock;
+      expect(emitRunCreatedMock).toHaveBeenCalledWith(planningRun, {
         totalSteps: 1,
       });
 
-      expect(mockExecution.startExecution).toHaveBeenCalledWith(
+      const startExecutionMock = mockExecution['startExecution'] as jest.Mock;
+      expect(startExecutionMock).toHaveBeenCalledWith(
         'run-123',
         expect.any(Object),
       );
@@ -241,7 +245,8 @@ describe('OrchestrationRunFactoryService', () => {
         },
       });
 
-      expect(mockRunner.startRun).toHaveBeenCalledWith(
+      const startRunMock2 = mockRunner['startRun'] as jest.Mock;
+      expect(startRunMock2).toHaveBeenCalledWith(
         expect.objectContaining({
           parentOrchestrationRunId: 'parent-run-123',
           metadata: expect.objectContaining({
@@ -278,7 +283,8 @@ describe('OrchestrationRunFactoryService', () => {
         },
       });
 
-      expect(mockRunner.startRun).toHaveBeenCalledWith(
+      const startRunMock3 = mockRunner['startRun'] as jest.Mock;
+      expect(startRunMock3).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
             task: {
@@ -315,13 +321,15 @@ describe('OrchestrationRunFactoryService', () => {
         },
       });
 
-      expect(mockRunner.startRun).toHaveBeenCalledWith(
+      const startRunMock4 = mockRunner['startRun'] as jest.Mock;
+      expect(startRunMock4).toHaveBeenCalledWith(
         expect.objectContaining({
           parameters: params,
         }),
       );
 
-      expect(mockState.initializeRun).toHaveBeenCalledWith(
+      const initializeRunMock2 = mockState['initializeRun'] as jest.Mock;
+      expect(initializeRunMock2).toHaveBeenCalledWith(
         mockRunRecord,
         mockDefinition,
         params,
@@ -348,7 +356,8 @@ describe('OrchestrationRunFactoryService', () => {
         },
       });
 
-      expect(mockRunner.startRun).toHaveBeenCalledWith(
+      const startRunMock5 = mockRunner['startRun'] as jest.Mock;
+      expect(startRunMock5).toHaveBeenCalledWith(
         expect.objectContaining({
           plan: {
             name: 'test-orchestration',
@@ -385,7 +394,8 @@ describe('OrchestrationRunFactoryService', () => {
         },
       });
 
-      expect(mockRunner.updateRun).toHaveBeenCalledWith({
+      const updateRunMock = mockRunner['updateRun'] as jest.Mock;
+      expect(updateRunMock).toHaveBeenCalledWith({
         runId: 'run-123',
         status: 'planning',
         currentStepIndex: 0,
@@ -465,7 +475,8 @@ describe('OrchestrationRunFactoryService', () => {
       });
 
       expect(result.steps).toHaveLength(3);
-      expect(mockEvents.emitRunCreated).toHaveBeenCalledWith(planningRun, {
+      const emitRunCreatedMock2 = mockEvents['emitRunCreated'] as jest.Mock;
+      expect(emitRunCreatedMock2).toHaveBeenCalledWith(planningRun, {
         totalSteps: 3,
       });
     });
@@ -494,7 +505,8 @@ describe('OrchestrationRunFactoryService', () => {
         organizationSlug: 'custom-org',
       });
 
-      expect(mockRunner.startRun).toHaveBeenCalledWith(
+      const startRunMock6 = mockRunner['startRun'] as jest.Mock;
+      expect(startRunMock6).toHaveBeenCalledWith(
         expect.objectContaining({
           agentId: 'agent-456',
           agentSlug: 'orchestrator',
@@ -542,7 +554,8 @@ describe('OrchestrationRunFactoryService', () => {
       expect(result.steps).toHaveLength(0);
       expect(result.readySteps).toHaveLength(0);
 
-      expect(mockRunner.updateRun).toHaveBeenCalledWith({
+      const updateRunMock2 = mockRunner['updateRun'] as jest.Mock;
+      expect(updateRunMock2).toHaveBeenCalledWith({
         runId: 'run-123',
         status: 'planning',
         currentStepIndex: 0,
@@ -582,7 +595,8 @@ describe('OrchestrationRunFactoryService', () => {
         requestMetadata,
       });
 
-      expect(mockRunner.startRun).toHaveBeenCalledWith(
+      const startRunMock7 = mockRunner['startRun'] as jest.Mock;
+      expect(startRunMock7).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
             requestMetadata,
@@ -620,7 +634,8 @@ describe('OrchestrationRunFactoryService', () => {
           originId: `origin-${originType}`,
         });
 
-        expect(mockRunner.startRun).toHaveBeenCalledWith(
+        const startRunMock8 = mockRunner['startRun'] as jest.Mock;
+        expect(startRunMock8).toHaveBeenCalledWith(
           expect.objectContaining({
             originType,
             originId: `origin-${originType}`,

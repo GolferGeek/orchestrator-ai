@@ -551,7 +551,16 @@ export class OrchestrationExecutionService {
       return null;
     }
 
-    const queuedAt = Date.parse(String(queuedAtRaw));
+    const queuedAtStr =
+      typeof queuedAtRaw === 'string'
+        ? queuedAtRaw
+        : typeof queuedAtRaw === 'number'
+          ? String(queuedAtRaw)
+          : null;
+    if (!queuedAtStr) {
+      return null;
+    }
+    const queuedAt = Date.parse(queuedAtStr);
     const startedAt = Date.parse(step.started_at);
     if (Number.isNaN(queuedAt) || Number.isNaN(startedAt)) {
       return null;
