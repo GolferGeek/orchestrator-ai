@@ -184,10 +184,10 @@
                   </ion-text>
                   <div class="star-rating">
                     <ion-icon 
-                      v-for="star in 5" 
-                      :key="`overall-${star}`"
-                      :icon="star <= evaluation.userRating ? starIcon : starOutline"
-                      :color="star <= evaluation.userRating ? 'warning' : 'medium'"
+                      v-for="starIndex in 5" 
+                      :key="`overall-${starIndex}`"
+                      :icon="starIndex <= evaluation.userRating ? starIcon : starOutline"
+                      :color="starIndex <= evaluation.userRating ? 'warning' : 'medium'"
                       size="large"
                     ></ion-icon>
                     <ion-text class="rating-text">
@@ -209,10 +209,10 @@
                   </ion-text>
                   <div class="star-rating">
                     <ion-icon 
-                      v-for="star in 5" 
-                      :key="`speed-${star}`"
-                      :icon="star <= evaluation.speedRating ? starIcon : starOutline"
-                      :color="star <= evaluation.speedRating ? 'primary' : 'medium'"
+                      v-for="starIndex in 5" 
+                      :key="`speed-${starIndex}`"
+                      :icon="starIndex <= evaluation.speedRating ? starIcon : starOutline"
+                      :color="starIndex <= evaluation.speedRating ? 'primary' : 'medium'"
                     ></ion-icon>
                     <ion-text class="rating-text">
                       <strong>{{ evaluation.speedRating }}/5</strong>
@@ -233,10 +233,10 @@
                   </ion-text>
                   <div class="star-rating">
                     <ion-icon 
-                      v-for="star in 5" 
-                      :key="`accuracy-${star}`"
-                      :icon="star <= evaluation.accuracyRating ? starIcon : starOutline"
-                      :color="star <= evaluation.accuracyRating ? 'success' : 'medium'"
+                      v-for="starIndex in 5" 
+                      :key="`accuracy-${starIndex}`"
+                      :icon="starIndex <= evaluation.accuracyRating ? starIcon : starOutline"
+                      :color="starIndex <= evaluation.accuracyRating ? 'success' : 'medium'"
                     ></ion-icon>
                     <ion-text class="rating-text">
                       <strong>{{ evaluation.accuracyRating }}/5</strong>

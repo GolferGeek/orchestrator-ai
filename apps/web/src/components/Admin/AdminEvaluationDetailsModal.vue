@@ -31,10 +31,10 @@
                   <h4>Overall Rating</h4>
                   <div class="rating-stars">
                     <ion-icon 
-                      v-for="star in 5" 
-                      :key="star"
-                      :icon="star <= evaluation.evaluation.userRating ? starIcon : starOutline"
-                      :color="star <= evaluation.evaluation.userRating ? 'warning' : 'medium'"
+                      v-for="starIndex in 5" 
+                      :key="starIndex"
+                      :icon="starIndex <= evaluation.evaluation.userRating ? starIcon : starOutline"
+                      :color="starIndex <= evaluation.evaluation.userRating ? 'warning' : 'medium'"
                       size="large"
                     ></ion-icon>
                   </div>

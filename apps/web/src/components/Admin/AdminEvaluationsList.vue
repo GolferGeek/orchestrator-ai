@@ -174,10 +174,10 @@
             <ion-col size="12" size-md="4" class="ion-text-right">
               <div class="rating-display">
                 <ion-icon 
-                  v-for="star in 5" 
-                  :key="star"
-                  :icon="star <= evaluation.evaluation.userRating ? starIcon : starOutline"
-                  :color="star <= evaluation.evaluation.userRating ? 'warning' : 'medium'"
+                  v-for="starIndex in 5" 
+                  :key="starIndex"
+                  :icon="starIndex <= evaluation.evaluation.userRating ? starIcon : starOutline"
+                  :color="starIndex <= evaluation.evaluation.userRating ? 'warning' : 'medium'"
                   size="small"
                 ></ion-icon>
               </div>
