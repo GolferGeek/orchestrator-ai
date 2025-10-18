@@ -71,13 +71,11 @@ import {
   refresh,
   wifi,
   chevronDown,
-  speedometer,
-  pulse,
 } from 'ionicons/icons';
-import { useAgentChatStore } from '@/services/conversationHelpers';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
 // Store instances
-const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const userPreferencesStore = useUserPreferencesStore();
 // Local state
