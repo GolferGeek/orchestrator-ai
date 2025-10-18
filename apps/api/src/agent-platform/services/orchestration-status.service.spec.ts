@@ -213,7 +213,7 @@ describe('OrchestrationStatusService', () => {
           ({
             id: s.step_id,
             index: s.step_index,
-          }) as any,
+          }) as Partial<OrchestrationStepSnapshot>,
       );
 
       const result = await service.getRunStatus('run-1');
@@ -243,7 +243,7 @@ describe('OrchestrationStatusService', () => {
           ({
             id: s.step_id,
             index: s.step_index,
-          }) as any,
+          }) as Partial<OrchestrationStepSnapshot>,
       );
 
       const result = await service.getRunStatus('run-1');
@@ -275,7 +275,7 @@ describe('OrchestrationStatusService', () => {
           ({
             id: s.step_id,
             index: s.step_index,
-          }) as any,
+          }) as Partial<OrchestrationStepSnapshot>,
       );
 
       const result = await service.getRunStatus('run-1');
@@ -333,7 +333,7 @@ describe('OrchestrationStatusService', () => {
           ({
             id: s.step_id,
             index: s.step_index,
-          }) as any,
+          }) as Partial<OrchestrationStepSnapshot>,
       );
 
       const result = await service.getRunStatus('run-1');

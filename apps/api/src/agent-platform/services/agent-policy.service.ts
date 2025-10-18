@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 type Issue = { message: string; path?: string };
 
-interface AgentPolicyPayload {
+export interface AgentPolicyPayload {
   agent_type?: string;
   input_modes?: unknown;
   inputModes?: unknown;

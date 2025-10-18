@@ -70,7 +70,8 @@ describe('AgentPromotionService', () => {
       expect(result.success).toBe(true);
       expect(result.newStatus).toBe('active');
       expect(result.requiresApproval).toBeUndefined();
-      expect(agentsRepo.updateStatus).toHaveBeenCalledWith('agent-1', 'active');
+      const updateStatusSpy = agentsRepo.updateStatus;
+      expect(updateStatusSpy).toHaveBeenCalledWith('agent-1', 'active');
     });
 
     it('should require approval for complex function agent', async () => {
@@ -105,8 +106,10 @@ describe('AgentPromotionService', () => {
       expect(result.newStatus).toBe('draft'); // Still draft, pending approval
       expect(result.requiresApproval).toBe(true);
       expect(result.approvalId).toBe('approval-1');
-      expect(approvalsRepo.create).toHaveBeenCalled();
-      expect(agentsRepo.updateStatus).not.toHaveBeenCalled();
+      const createSpy = approvalsRepo.create;
+      expect(createSpy).toHaveBeenCalled();
+      const updateStatusSpy = agentsRepo.updateStatus;
+      expect(updateStatusSpy).not.toHaveBeenCalled();
     });
 
     it('should require approval for API agent', async () => {
@@ -129,7 +132,8 @@ describe('AgentPromotionService', () => {
       const result = await service.requestPromotion('agent-3');
 
       expect(result.requiresApproval).toBe(true);
-      expect(approvalsRepo.create).toHaveBeenCalled();
+      const createSpy = approvalsRepo.create;
+      expect(createSpy).toHaveBeenCalled();
     });
 
     it('should fail if agent is already active', async () => {
@@ -185,8 +189,10 @@ describe('AgentPromotionService', () => {
 
       await service.requestPromotion('agent-6', { skipValidation: true });
 
-      expect(validator.validateByType).not.toHaveBeenCalled();
-      expect(agentsRepo.updateStatus).toHaveBeenCalled();
+      const validateByTypeSpy = validator.validateByType;
+      expect(validateByTypeSpy).not.toHaveBeenCalled();
+      const updateStatusSpy = agentsRepo.updateStatus;
+      expect(updateStatusSpy).toHaveBeenCalled();
     });
   });
 
@@ -217,7 +223,8 @@ describe('AgentPromotionService', () => {
 
       expect(result.success).toBe(true);
       expect(result.newStatus).toBe('active');
-      expect(agentsRepo.updateStatus).toHaveBeenCalledWith('agent-1', 'active');
+      const updateStatusSpy = agentsRepo.updateStatus;
+      expect(updateStatusSpy).toHaveBeenCalledWith('agent-1', 'active');
     });
 
     it('should fail if approval is not approved', async () => {
@@ -255,7 +262,8 @@ describe('AgentPromotionService', () => {
       expect(result.success).toBe(true);
       expect(result.previousStatus).toBe('active');
       expect(result.newStatus).toBe('draft');
-      expect(agentsRepo.updateStatus).toHaveBeenCalledWith('agent-7', 'draft');
+      const updateStatusSpy = agentsRepo.updateStatus;
+      expect(updateStatusSpy).toHaveBeenCalledWith('agent-7', 'draft');
     });
 
     it('should fail if agent is not active', async () => {

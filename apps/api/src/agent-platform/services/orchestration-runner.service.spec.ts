@@ -67,7 +67,8 @@ describe('OrchestrationRunnerService', () => {
       metadata: { traceId: 'abc' },
     });
 
-    expect(runsRepository.start).toHaveBeenCalledWith(
+    const startSpy = runsRepository.start;
+    expect(startSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         plan_id: 'plan-1',
         origin_type: 'plan',
@@ -126,7 +127,8 @@ describe('OrchestrationRunnerService', () => {
       currentStepId: 'step-1',
     });
 
-    expect(runsRepository.update).toHaveBeenCalledWith(
+    const updateSpy = runsRepository.update;
+    expect(updateSpy).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({
         status: 'in_execution',
@@ -172,7 +174,8 @@ describe('OrchestrationRunnerService', () => {
       mode: 'BUILD',
     });
 
-    expect(stepsRepository.create).toHaveBeenCalledWith(
+    const createSpy = stepsRepository.create;
+    expect(createSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         orchestration_run_id: 'run-1',
         step_index: 0,

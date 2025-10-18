@@ -67,7 +67,7 @@ import { TaskStatusService } from './tasks/task-status.service';
 interface NormalizedTaskRequest {
   dto: NormalizedTaskRequestDto;
   jsonrpc?: {
-    id: any;
+    id: string | number | null;
     method?: string | null;
   };
 }
@@ -76,10 +76,10 @@ interface TaskExecutionResult {
   taskCompletionHandled?: boolean;
   metadata?: {
     taskCompletionHandled?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   deliverableId?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface RequestWithStreamData extends Request {
@@ -142,7 +142,7 @@ export class Agent2AgentController {
       agentName: string;
       namespace: string;
       conversationId?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     },
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
@@ -390,7 +390,7 @@ export class Agent2AgentController {
       });
 
       // Check if task completion was already handled by the agent (to avoid duplicate completion)
-      const typedResult = result as TaskExecutionResult;
+      const typedResult = result as unknown as TaskExecutionResult;
       const taskAlreadyHandled =
         result &&
         (typedResult.taskCompletionHandled === true ||
@@ -719,7 +719,7 @@ export class Agent2AgentController {
 
     const payload = result.payload;
     const metadata =
-      (payload.metadata as Record<string, any> | undefined) ?? {};
+      (payload.metadata as Record<string, unknown> | undefined) ?? {};
 
     payload.metadata = metadata;
 
@@ -735,9 +735,9 @@ export class Agent2AgentController {
     metadata.streamTokenEndpoint = tokenPath;
 
     const existingStreaming =
-      (metadata.streaming as Record<string, any> | undefined) ?? {};
+      (metadata.streaming as Record<string, unknown> | undefined) ?? {};
 
-    const streamingMetadata: Record<string, any> = {
+    const streamingMetadata: Record<string, unknown> = {
       ...existingStreaming,
       streamEndpoint: streamPath,
       streamTokenEndpoint: tokenPath,
@@ -1067,8 +1067,8 @@ export class Agent2AgentController {
     let jsonrpc: NormalizedTaskRequest['jsonrpc'] | undefined;
 
     if (isJsonRpc) {
-      const jsonrpcContext: { id: unknown; method?: string | null } = {
-        id: typedPayload.id ?? null,
+      const jsonrpcContext: NonNullable<NormalizedTaskRequest['jsonrpc']> = {
+        id: (typeof typedPayload.id === 'string' || typeof typedPayload.id === 'number') ? typedPayload.id : null,
         method:
           typeof typedPayload.method === 'string' ? typedPayload.method : null,
       };

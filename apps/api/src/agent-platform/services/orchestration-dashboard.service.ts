@@ -34,6 +34,9 @@ import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchest
 import type {
   OrchestrationCheckpointDecision,
   OrchestrationRunMetadata,
+  OrchestrationRunMetricsMetadata,
+  OrchestrationStepState,
+  OrchestrationStepStateEntry,
 } from '../types/orchestration-run.types';
 
 export interface OrchestrationDashboardListOptions {
@@ -783,7 +786,7 @@ export class OrchestrationDashboardService {
 
   private resolveConfiguredMaxAttempts(
     metadata: JsonObject,
-    original: Record<string, any> | undefined,
+    original: Record<string, unknown> | undefined,
   ): number | null {
     const behavior = this.asRecord(metadata.behavior);
     const retry = this.asRecord(behavior?.retry);
@@ -801,23 +804,23 @@ export class OrchestrationDashboardService {
   }
 
   private mergeRecords(
-    base: Record<string, any> | undefined,
-    patch: Record<string, any>,
-  ): Record<string, any> {
+    base: Record<string, unknown> | undefined,
+    patch: Record<string, unknown>,
+  ): JsonObject {
     if (!patch || Object.keys(patch).length === 0) {
-      return base ? this.cloneRecord(base) : {};
+      return base ? this.cloneRecord(base as JsonObject) : {};
     }
 
     const target =
-      base && typeof base === 'object' ? this.cloneRecord(base) : {};
-    this.mergeInto(target, patch);
+      base && typeof base === 'object' ? this.cloneRecord(base as JsonObject) : {};
+    this.mergeInto(target, patch as JsonObject);
     return target;
   }
 
   private mergeRunMetadata(
-    existing: Record<string, any> | undefined,
-    patch: Record<string, any>,
-  ): Record<string, any> {
+    existing: Record<string, unknown> | undefined,
+    patch: Record<string, unknown>,
+  ): OrchestrationRunMetadata {
     const base = { ...(existing ?? {}) };
     const mergeResult = { ...base, ...patch };
 
@@ -825,24 +828,24 @@ export class OrchestrationDashboardService {
       mergeResult.stats = {
         ...(base.stats as Record<string, unknown>),
         ...(patch.stats as Record<string, unknown>),
-      };
+      } as OrchestrationRunMetricsMetadata;
     }
 
-    return mergeResult;
+    return mergeResult as OrchestrationRunMetadata;
   }
 
   private updateStepStateEntry(
-    current: Record<string, any>,
+    current: Record<string, unknown>,
     key: string,
-    entry: Record<string, any>,
-  ): Record<string, any> {
+    entry: Record<string, unknown>,
+  ): OrchestrationStepState {
     return {
       ...current,
       [key]: {
         ...((current[key] as Record<string, unknown>) ?? {}),
         ...entry,
-      },
-    };
+      } as OrchestrationStepStateEntry,
+    } as OrchestrationStepState;
   }
 
   private mergeInto(target: JsonObject, patch: JsonObject): void {

@@ -10,6 +10,7 @@ import { OrchestrationEventsService } from './orchestration-events.service';
 import { OrchestrationMetricsService } from './orchestration-metrics.service';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 import type {
+  OrchestrationRunMetadata,
   OrchestrationStepState,
   OrchestrationStepStateEntry,
 } from '../types/orchestration-run.types';
@@ -168,7 +169,7 @@ export class OrchestrationExecutionService {
       currentStepId: queuedSteps[0]
         ? this.resolveStepKey(queuedSteps[0])
         : null,
-      stepState: stepState,
+      stepState,
       metadata: this.mergeMetadata(run.metadata, {
         lifecycle: 'running',
         stats: this.buildStats(metrics.total, metrics.completed),
@@ -219,7 +220,7 @@ export class OrchestrationExecutionService {
       status: 'running',
       currentStepIndex: step.step_index,
       currentStepId: this.resolveStepKey(step),
-      stepState: stepState,
+      stepState,
       metadata: this.mergeMetadata(run.metadata, {
         lifecycle: 'running',
         currentStep: this.resolveStepKey(step),
@@ -305,7 +306,7 @@ export class OrchestrationExecutionService {
         runStatus === 'completed' ? null : (run.current_step_index ?? null),
       currentStepId: runStatus === 'completed' ? null : run.current_step_id,
       completedSteps: completedSteps,
-      stepState: stepState,
+      stepState,
       results: this.mergeResults(
         run.results ?? {},
         this.resolveStepKey(step),
@@ -363,13 +364,13 @@ export class OrchestrationExecutionService {
    */
   async markStepFailed(
     stepId: string,
-    errorDetails: Record<string, any>,
+    errorDetails: Record<string, unknown>,
     options: StepFailureOptions = {},
   ): Promise<{ step: OrchestrationStepRecord; run: OrchestrationRunRecord }> {
     const now = new Date().toISOString();
     const step = await this.orchestrationRunner.updateStep(stepId, {
       status: 'failed',
-      error_details: errorDetails,
+      error_details: errorDetails as JsonObject,
       completed_at: now,
     });
 
@@ -383,11 +384,11 @@ export class OrchestrationExecutionService {
           status: 'failed',
           completedAt: now,
           metadata: allowRetry
-            ? {
+            ? ({
                 ...errorDetails,
                 retryAt: options.retryAt ?? null,
-              }
-            : errorDetails,
+              } as JsonObject)
+            : (errorDetails as JsonObject),
         },
       },
     ]);
@@ -404,12 +405,12 @@ export class OrchestrationExecutionService {
       status: allowRetry ? 'running' : 'failed',
       currentStepIndex: step.step_index,
       currentStepId: this.resolveStepKey(step),
-      stepState: stepState,
+      stepState,
       metadata: this.mergeMetadata(run.metadata, {
         error_details: {
           ...(run.error_details ?? {}),
-          lastError: errorDetails,
-        },
+          lastError: errorDetails as JsonObject,
+        } as JsonObject,
         lastFailedStep: this.resolveStepKey(step),
         stats: this.buildStats(metrics.total, metrics.completed),
         ...(retryMetadataPatch ?? {}),
@@ -480,7 +481,7 @@ export class OrchestrationExecutionService {
   private buildStats(
     totalSteps: number,
     completedSteps: number,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     if (totalSteps <= 0) {
       return {
         totalSteps,
@@ -502,15 +503,15 @@ export class OrchestrationExecutionService {
   }
 
   private mergeMetadata(
-    existing: Record<string, any> | undefined,
-    patch: Record<string, any>,
-  ): Record<string, any> {
+    existing: Record<string, unknown> | undefined,
+    patch: Record<string, unknown>,
+  ): OrchestrationRunMetadata {
     const base = { ...(existing ?? {}) };
-    const existingStats = (base.stats as Record<string, any> | undefined) ?? {};
+    const existingStats = (base.stats as Record<string, unknown> | undefined) ?? {};
     const patchStats =
-      (patch.stats as Record<string, any> | undefined) ?? undefined;
+      (patch.stats as Record<string, unknown> | undefined) ?? undefined;
 
-    const merged: Record<string, any> = {
+    const merged: Record<string, unknown> = {
       ...base,
       ...patch,
     };
@@ -524,7 +525,7 @@ export class OrchestrationExecutionService {
       merged.stats = existingStats;
     }
 
-    return merged;
+    return merged as OrchestrationRunMetadata;
   }
 
   private cloneMetadata(metadata: JsonObject | undefined): JsonObject {
@@ -655,7 +656,7 @@ export class OrchestrationExecutionService {
         ...existing,
         ...state,
         metadata: this.mergeJsonObjects(existing.metadata, state.metadata),
-      };
+      } as OrchestrationStepStateEntry;
     });
 
     return next;

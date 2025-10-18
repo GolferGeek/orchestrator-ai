@@ -7,6 +7,8 @@ import { OrchestrationResolvedDefinition } from '../types/orchestration-definiti
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
 import { OrchestrationMetricsService } from './orchestration-metrics.service';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type { OrchestrationRunMetadata } from '../types/orchestration-run.types';
 
 interface OrchestrationRunFactoryAgentMetadata {
   id?: string | null;
@@ -17,18 +19,18 @@ interface OrchestrationRunFactoryAgentMetadata {
 
 interface OrchestrationRunFactoryOptions {
   definition: OrchestrationResolvedDefinition;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   planId?: string | null;
   conversationId?: string | null;
   parentRunId?: string | null;
   organizationSlug?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   agent: OrchestrationRunFactoryAgentMetadata;
   createdBy?: string | null;
   originType?: 'plan' | 'saved_orchestration' | 'ad_hoc';
   originId?: string | null;
   orchestrationSlug?: string | null;
-  requestMetadata?: Record<string, any>;
+  requestMetadata?: Record<string, unknown>;
   taskLink?: { id: string | null; userId: string | null } | null;
 }
 
@@ -66,8 +68,8 @@ export class OrchestrationRunFactoryService {
       conversationId: options.conversationId ?? null,
       parentOrchestrationRunId: options.parentRunId ?? null,
       organizationSlug,
-      parameters,
-      plan,
+      parameters: parameters as JsonObject,
+      plan: plan as JsonObject,
       metadata,
       agentId: options.agent.id ?? null,
       agentSlug: options.agent.slug,
@@ -124,7 +126,7 @@ export class OrchestrationRunFactoryService {
 
   private buildPlanSnapshot(
     definition: OrchestrationResolvedDefinition,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     return {
       name: definition.name,
       steps: definition.steps.map((step) => ({
@@ -138,10 +140,10 @@ export class OrchestrationRunFactoryService {
 
   private buildRunMetadata(
     options: OrchestrationRunFactoryOptions,
-    plan: Record<string, any>,
-  ): Record<string, any> {
-    const baseMetadata: Record<string, any> = {
-      plan,
+    plan: Record<string, unknown>,
+  ): OrchestrationRunMetadata {
+    const baseMetadata: OrchestrationRunMetadata = {
+      plan: plan as JsonObject,
       triggeredByAgent: options.agent.slug,
       agent: {
         id: options.agent.id ?? null,
@@ -151,11 +153,11 @@ export class OrchestrationRunFactoryService {
         organizationSlug:
           options.organizationSlug ?? options.definition.organizationSlug,
       },
-      requestMetadata: options.requestMetadata ?? {},
+      requestMetadata: (options.requestMetadata ?? {}) as JsonObject,
     };
 
     if (options.taskLink) {
-      baseMetadata['task'] = {
+      baseMetadata.task = {
         id: options.taskLink.id,
         userId: options.taskLink.userId,
       };
@@ -164,30 +166,31 @@ export class OrchestrationRunFactoryService {
     const errorHandling = this.extractErrorHandlingMetadata(options.definition);
 
     if (errorHandling) {
-      baseMetadata.errorHandling = errorHandling;
+      baseMetadata.errorHandling = errorHandling as JsonObject;
     }
 
     const execution = this.extractExecutionMetadata(options.definition);
     if (execution) {
-      baseMetadata.execution = execution;
+      baseMetadata.execution = execution as JsonObject;
     }
 
-    return {
-      ...(options.metadata ?? {}),
+    const result: OrchestrationRunMetadata = {
+      ...((options.metadata ?? {}) as OrchestrationRunMetadata),
       ...baseMetadata,
     };
+    return result;
   }
 
   private mergeRunMetadata(
-    existing: Record<string, any> | undefined,
-    patch: Record<string, any>,
-  ): Record<string, any> {
+    existing: Record<string, unknown> | undefined,
+    patch: Record<string, unknown>,
+  ): OrchestrationRunMetadata {
     const base = { ...(existing ?? {}) };
-    const existingStats = (base.stats as Record<string, any> | undefined) ?? {};
+    const existingStats = (base.stats as Record<string, unknown> | undefined) ?? {};
     const patchStats =
-      (patch.stats as Record<string, any> | undefined) ?? undefined;
+      (patch.stats as Record<string, unknown> | undefined) ?? undefined;
 
-    const merged: Record<string, any> = {
+    const merged: Record<string, unknown> = {
       ...base,
       ...patch,
     };
@@ -201,7 +204,7 @@ export class OrchestrationRunFactoryService {
       merged.stats = existingStats;
     }
 
-    return merged;
+    return merged as OrchestrationRunMetadata;
   }
 
   private extractErrorHandlingMetadata(

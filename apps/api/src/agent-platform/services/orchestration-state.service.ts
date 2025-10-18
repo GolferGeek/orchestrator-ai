@@ -9,6 +9,11 @@ import {
   OrchestrationStepRecord,
   OrchestrationStepInsertInput,
 } from '../interfaces/orchestration-step-record.interface';
+import type {
+  OrchestrationStepStateEntry,
+  OrchestrationCheckpointMetadata,
+} from '../types/orchestration-run.types';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 
 @Injectable()
 export class OrchestrationStateService {
@@ -25,7 +30,7 @@ export class OrchestrationStateService {
   async initializeRun(
     run: OrchestrationRunRecord,
     definition: OrchestrationResolvedDefinition,
-    parameters: Record<string, any> = {},
+    parameters: Record<string, unknown> = {},
   ): Promise<OrchestrationStepRecord[]> {
     const orderedStepIds = this.resolveExecutionOrder(definition.steps);
     const stepLookup = new Map(definition.steps.map((step) => [step.id, step]));
@@ -57,9 +62,9 @@ export class OrchestrationStateService {
         stepDefinition,
       );
 
-      const metadata: Record<string, any> = {
+      const metadata: OrchestrationStepStateEntry = {
         name: stepDefinition.name,
-        checkpoint: stepDefinition.checkpoint_after ?? null,
+        checkpoint: stepDefinition.checkpoint_after as OrchestrationCheckpointMetadata | undefined,
         rawInput: stepDefinition.input ?? null,
         rawContext: stepDefinition.context ?? null,
         outputMapping: stepDefinition.output_mapping ?? null,
@@ -67,7 +72,7 @@ export class OrchestrationStateService {
         orchestration: stepDefinition.orchestration
           ? (JSON.parse(
               JSON.stringify(stepDefinition.orchestration),
-            ) as unknown)
+            ) as JsonObject)
           : null,
       };
 

@@ -205,7 +205,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -238,7 +239,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -268,7 +270,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -295,7 +298,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -326,7 +330,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -359,7 +364,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(httpService.post).toHaveBeenCalledWith(
+      const postSpy = httpService.post;
+      expect(postSpy).toHaveBeenCalledWith(
         'http://localhost:5678/webhook/progress',
         expect.objectContaining({
           event: 'orchestration.run.created',
@@ -385,7 +391,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(httpService.post).not.toHaveBeenCalled();
+      const postSpy = httpService.post;
+      expect(postSpy).not.toHaveBeenCalled();
     });
 
     it('handles webhook dispatch failures gracefully', async () => {
@@ -438,7 +445,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).not.toHaveBeenCalled();
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).not.toHaveBeenCalled();
     });
 
     it('includes step metadata in stream chunk', async () => {
@@ -457,7 +465,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      const emitSpy = eventEmitter.emit;
+      expect(emitSpy).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -481,7 +490,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      const emitSpy = eventEmitter.emit;
+      expect(emitSpy).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -508,7 +518,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -534,7 +545,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -557,7 +569,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
+      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
+      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({

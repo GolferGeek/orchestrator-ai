@@ -203,7 +203,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       ).resolves.not.toThrow();
 
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
+      const emitSpy = eventEmitter.emit;
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('skips webhook when URL not configured', async () => {
@@ -226,7 +227,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         question: 'Test question',
       });
 
-      expect(httpService.post).not.toHaveBeenCalled();
+      const postSpy = httpService.post;
+      expect(postSpy).not.toHaveBeenCalled();
     });
 
     it('handles webhook dispatch failures gracefully', async () => {
@@ -408,7 +410,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       ).resolves.not.toThrow();
 
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
+      const emitSpy = eventEmitter.emit;
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('handles missing lastCheckpoint metadata gracefully', async () => {

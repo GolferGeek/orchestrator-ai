@@ -83,7 +83,8 @@ describe('ApiKeyGuard', () => {
       createContext({ 'x-agent-api-key': provided }),
     );
 
-    expect(repo.get).toHaveBeenCalledWith('acme', 'agent_api_key');
+    const getSpy = repo.get;
+    expect(getSpy).toHaveBeenCalledWith('acme', 'agent_api_key');
     expect(result).toBe(true);
   });
 
@@ -114,7 +115,8 @@ describe('ApiKeyGuard', () => {
       }),
     );
 
-    expect(repo.get).toHaveBeenCalledWith('acme', 'custom_alias');
+    const getSpy = repo.get;
+    expect(getSpy).toHaveBeenCalledWith('acme', 'custom_alias');
     expect(result).toBe(true);
   });
 
@@ -163,7 +165,8 @@ describe('ApiKeyGuard', () => {
     await expect(guard.canActivate(createContext({}))).rejects.toThrow(
       UnauthorizedException,
     );
-    expect(repo.get).not.toHaveBeenCalled();
+    const getSpy = repo.get;
+    expect(getSpy).not.toHaveBeenCalled();
   });
 
   it('rejects when credential lookup fails', async () => {
@@ -204,7 +207,8 @@ describe('ApiKeyGuard', () => {
     await guard.canActivate(ctx);
     await guard.canActivate(ctx);
 
-    expect(repo.get).toHaveBeenCalledTimes(1);
+    const getSpy = repo.get;
+    expect(getSpy).toHaveBeenCalledTimes(1);
   });
 
   it('enforces rate limits per API key', async () => {

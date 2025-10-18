@@ -373,7 +373,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         version: '1.0.0',
       });
 
-      expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
+      const createRunFromDefinitionSpy = mockRunFactory.createRunFromDefinition;
+      expect(createRunFromDefinitionSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           definition: mockChildDefinition,
           parameters: {
@@ -386,7 +387,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         }),
       );
 
-      expect(mockExecution.markStepCompleted).toHaveBeenCalledWith(
+      const markStepCompletedSpy = mockExecution.markStepCompleted;
+      expect(markStepCompletedSpy).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
           orchestrationRunId: 'child-run-456',

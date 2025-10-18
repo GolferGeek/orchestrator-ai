@@ -294,7 +294,8 @@ describe('OrchestrationDashboardService', () => {
       expect(result.items[0]!.pendingApprovals).toBe(2);
       expect(result.total).toBe(1);
       expect(result.hasMore).toBe(false);
-      expect(runsRepo.list).toHaveBeenCalledWith(
+      const listSpy = runsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           statuses: ['pending', 'planning', 'running', 'checkpoint'],
         }),
@@ -349,7 +350,8 @@ describe('OrchestrationDashboardService', () => {
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0]!.status).toBe('completed');
-      expect(runsRepo.list).toHaveBeenCalledWith(
+      const listSpy = runsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           statuses: ['completed', 'failed', 'cancelled', 'canceled', 'aborted'],
         }),
@@ -368,7 +370,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ search: 'finance' });
 
-      expect(runsRepo.list).toHaveBeenCalledWith(
+      const listSpy = runsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           search: 'finance',
         }),
@@ -387,7 +390,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ organizationSlug: 'acme-corp' });
 
-      expect(runsRepo.list).toHaveBeenCalledWith(
+      const listSpy = runsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationSlug: 'acme-corp',
         }),
@@ -406,7 +410,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ definitionId: 'def-123' });
 
-      expect(runsRepo.list).toHaveBeenCalledWith(
+      const listSpy = runsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           definitionId: 'def-123',
         }),
@@ -425,7 +430,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ parentRunId: 'parent-run-1' });
 
-      expect(runsRepo.list).toHaveBeenCalledWith(
+      const listSpy = runsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           parentRunId: 'parent-run-1',
         }),
@@ -767,7 +773,8 @@ describe('OrchestrationDashboardService', () => {
       expect(result.items[0]!.approval.id).toBe('approval-1');
       expect(result.items[0]!.run).not.toBeNull();
       expect(result.items[0]!.run?.id).toBe('run-1');
-      expect(approvalsRepo.list).toHaveBeenCalledWith(
+      const listSpy = approvalsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 'orchestration_checkpoint',
         }),
@@ -818,7 +825,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listApprovals({ organizationSlug: 'acme-corp' });
 
-      expect(approvalsRepo.list).toHaveBeenCalledWith(
+      const listSpy = approvalsRepo.list;
+      expect(listSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationSlug: 'acme-corp',
         }),
@@ -889,7 +897,8 @@ describe('OrchestrationDashboardService', () => {
       expect(result.approval.status).toBe('approved');
       expect(result.run.id).toBe('run-1');
       expect(result.run.pendingApprovals).toBe(0);
-      expect(checkpointService.resolveCheckpoint).toHaveBeenCalledWith({
+      const resolveCheckpointSpy = checkpointService.resolveCheckpoint;
+      expect(resolveCheckpointSpy).toHaveBeenCalledWith({
         approvalId: 'approval-1',
         decision: 'continue',
         actorId: 'user-1',
@@ -944,7 +953,8 @@ describe('OrchestrationDashboardService', () => {
         modifications,
       });
 
-      expect(checkpointService.resolveCheckpoint).toHaveBeenCalledWith({
+      const resolveCheckpointSpy = checkpointService.resolveCheckpoint;
+      expect(resolveCheckpointSpy).toHaveBeenCalledWith({
         approvalId: 'approval-2',
         decision: 'retry',
         actorId: null,
@@ -1276,8 +1286,8 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([
-        { id: 'step-1', status: 'completed' } as any,
-        { id: 'step-2', status: 'pending' } as any,
+        { id: 'step-1', status: 'completed' } as Partial<OrchestrationStepRecord>,
+        { id: 'step-2', status: 'pending' } as Partial<OrchestrationStepRecord>,
       ]);
 
       await expect(
@@ -1354,7 +1364,8 @@ describe('OrchestrationDashboardService', () => {
         note: 'Accepting previous deliverable',
       });
 
-      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+      const markStepCompletedSpy = executionService.markStepCompleted;
+      expect(markStepCompletedSpy).toHaveBeenCalledWith(
         'step-rec-1',
         { skipped: true },
         expect.objectContaining({
@@ -1409,7 +1420,8 @@ describe('OrchestrationDashboardService', () => {
         replacementOutput: { content: 'Manual override data' },
       });
 
-      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+      const markStepCompletedSpy = executionService.markStepCompleted;
+      expect(markStepCompletedSpy).toHaveBeenCalledWith(
         'step-rec-1',
         { content: 'Manual override data' },
         expect.any(Object),
@@ -1452,7 +1464,8 @@ describe('OrchestrationDashboardService', () => {
         actorId: 'user-123',
       });
 
-      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+      const markStepCompletedSpy = executionService.markStepCompleted;
+      expect(markStepCompletedSpy).toHaveBeenCalledWith(
         'step-rec-1',
         { skipped: true },
         expect.any(Object),
@@ -1496,7 +1509,8 @@ describe('OrchestrationDashboardService', () => {
         note: 'Step no longer needed',
       });
 
-      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+      const markStepCompletedSpy = executionService.markStepCompleted;
+      expect(markStepCompletedSpy).toHaveBeenCalledWith(
         'step-rec-1',
         { skipped: true },
         expect.objectContaining({
@@ -1533,7 +1547,7 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([
-        { id: 'step-1', status: 'completed' } as any,
+        { id: 'step-1', status: 'completed' } as Partial<OrchestrationStepRecord>,
       ]);
 
       await expect(
@@ -1573,7 +1587,8 @@ describe('OrchestrationDashboardService', () => {
         note: 'Escalated to human review',
       });
 
-      expect(runnerService.updateRun).toHaveBeenCalledWith(
+      const updateRunSpy = runnerService.updateRun;
+      expect(updateRunSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           runId: 'run-1',
           status: 'aborted',
@@ -1684,7 +1699,8 @@ describe('OrchestrationDashboardService', () => {
         actorId: 'user-123',
       });
 
-      expect(eventsService.emitRunFailed).toHaveBeenCalledWith(
+      const emitRunFailedSpy = eventsService.emitRunFailed;
+      expect(emitRunFailedSpy).toHaveBeenCalledWith(
         abortedRun,
         expect.objectContaining({
           type: 'manual_abort',
