@@ -20,7 +20,7 @@ export class RoutePreloader {
 
     // Preload during idle time
     if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(() => {
+      (window as { requestIdleCallback: (callback: () => void) => void }).requestIdleCallback(() => {
         this.preloadRoutes(criticalRoutes);
       });
     } else {
@@ -35,7 +35,7 @@ export class RoutePreloader {
    * Preload routes based on user behavior patterns
    */
   async preloadByUserRole(userRole: string) {
-    let roleBasedRoutes: (() => Promise<any>)[] = [];
+    let roleBasedRoutes: (() => Promise<unknown>)[] = [];
 
     switch (userRole) {
       case 'admin':
@@ -71,7 +71,7 @@ export class RoutePreloader {
     this.loadingRoutes.add(routePath);
     
     // Map route paths to dynamic imports
-    const routeImports: Record<string, () => Promise<any>> = {
+    const routeImports: Record<string, () => Promise<unknown>> = {
       '/app/projects': () => import('../views/ProjectsListPage.vue'),
       '/app/pii': () => import('../views/PIIManagementPage.vue'),
       '/app/pii/testing': () => import('../views/PIITestingPage.vue'),
@@ -95,7 +95,7 @@ export class RoutePreloader {
     }
   }
 
-  private async preloadRoutes(routes: (() => Promise<any>)[]) {
+  private async preloadRoutes(routes: (() => Promise<unknown>)[]) {
     for (const route of routes) {
       try {
         await route();

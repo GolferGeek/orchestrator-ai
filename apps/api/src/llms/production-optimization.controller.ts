@@ -151,10 +151,10 @@ export class ProductionOptimizationController {
    */
   @Get('health/system')
   @HttpCode(HttpStatus.OK)
-  async getSystemHealthFrontend(): Promise<SystemHealthMetrics> {
+  getSystemHealthFrontend(): Promise<SystemHealthMetrics> {
     // Return immediate fallback data to avoid hanging
     const memoryStats = this.memoryManagerService.getMemoryStats();
-    return {
+    return Promise.resolve({
       ollamaConnected: false,
       totalModels: 0,
       healthyModels: 0,
@@ -163,7 +163,7 @@ export class ProductionOptimizationController {
       memoryStats: memoryStats,
       systemLoad: 0,
       uptime: process.uptime() * 1000,
-    };
+    });
   }
 
   /**
@@ -275,10 +275,10 @@ export class ProductionOptimizationController {
    */
   @Get('operations/status')
   @HttpCode(HttpStatus.OK)
-  async getOperationalStatus() {
+  getOperationalStatus() {
     // Return immediate fallback data to avoid hanging
     const memoryStats = this.memoryManagerService.getMemoryStats();
-    return {
+    return Promise.resolve({
       timestamp: new Date().toISOString(),
       system: {
         healthy: false,
@@ -314,7 +314,7 @@ export class ProductionOptimizationController {
       },
       loadedModels: this.memoryManagerService.getLoadedModels(),
       activeAlerts: [],
-    };
+    });
   }
 
   /**

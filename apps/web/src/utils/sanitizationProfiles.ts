@@ -191,9 +191,9 @@ export const SANITIZATION_PROFILES: Record<string, SanitizationProfile> = {
  * Enhanced sanitization function with profile support
  */
 export function sanitizeWithProfile(
-  value: any, 
+  value: unknown, 
   options: SanitizationOptions = {}
-): { sanitized: any; wasModified: boolean; profile: string } {
+): { sanitized: unknown; wasModified: boolean; profile: string } {
   if (typeof value !== 'string' || !value) {
     return { sanitized: value, wasModified: false, profile: 'none' };
   }
@@ -308,8 +308,8 @@ export const SanitizationHelpers = {
   /**
    * Batch sanitize multiple values with the same profile
    */
-  batch(values: Record<string, any>, options: SanitizationOptions = {}): Record<string, any> {
-    const sanitized: Record<string, any> = {};
+  batch(values: Record<string, unknown>, options: SanitizationOptions = {}): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
     
     for (const [key, value] of Object.entries(values)) {
       if (typeof value === 'string') {
@@ -325,7 +325,7 @@ export const SanitizationHelpers = {
   /**
    * Deep sanitize nested objects
    */
-  deep(obj: any, options: SanitizationOptions = {}): any {
+  deep(obj: unknown, options: SanitizationOptions = {}): unknown {
     if (typeof obj === 'string') {
       return sanitizeWithProfile(obj, options).sanitized;
     }
@@ -335,7 +335,7 @@ export const SanitizationHelpers = {
     }
     
     if (obj && typeof obj === 'object') {
-      const sanitized: any = {};
+      const sanitized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
         sanitized[key] = this.deep(value, options);
       }

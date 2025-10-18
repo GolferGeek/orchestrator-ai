@@ -209,7 +209,7 @@ export class PseudonymizationService {
   /**
    * Get service statistics
    */
-  async getStats(): Promise<{
+  getStats(): Promise<{
     totalPIIPatterns: number;
     productionMode: boolean;
     showstopperPatterns: number;
@@ -218,13 +218,13 @@ export class PseudonymizationService {
   }> {
     const patternServiceStats = this.piiPatternService.getStats();
 
-    return {
+    return Promise.resolve({
       totalPIIPatterns: patternServiceStats.totalPatterns,
       productionMode: this.isProduction,
       showstopperPatterns: patternServiceStats.showstopperPatterns,
       flaggerPatterns: patternServiceStats.flaggerPatterns,
       patternServiceStats,
-    };
+    });
   }
 
   // =====================================
@@ -612,7 +612,7 @@ export class PseudonymizationService {
   /**
    * Reverse pseudonymization - convert pseudonyms back to original values
    */
-  async reversePseudonymization(
+  reversePseudonymization(
     pseudonymizedText: string,
     pseudonymMappings: PseudonymResult[],
   ): Promise<{
@@ -650,11 +650,11 @@ export class PseudonymizationService {
 
     const processingTime = Date.now() - startTime;
 
-    return {
+    return Promise.resolve({
       originalText: reversedText,
       reversalCount,
       processingTime,
-    };
+    });
   }
 
   /**

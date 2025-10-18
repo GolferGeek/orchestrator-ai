@@ -282,7 +282,7 @@ export class PIIService {
   /**
    * Continue normal processing for non-showstopper cases
    */
-  private async continueNormalProcessing(
+  private continueNormalProcessing(
     convertedMatches: PIIMatch[],
     prompt: string,
     options: any,
@@ -329,10 +329,10 @@ export class PIIService {
         },
       };
 
-      return {
+      return Promise.resolve({
         metadata: localMetadata,
         originalPrompt: prompt,
-      };
+      });
     }
 
     // External provider - create pseudonym instructions
@@ -389,10 +389,10 @@ export class PIIService {
       },
     };
 
-    return {
+    return Promise.resolve({
       metadata: externalMetadata,
       originalPrompt: prompt,
-    };
+    });
   }
 
   /**

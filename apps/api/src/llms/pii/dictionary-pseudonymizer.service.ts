@@ -215,7 +215,7 @@ export class DictionaryPseudonymizerService {
   /**
    * Reverse pseudonyms back to original values
    */
-  async reversePseudonyms(
+  reversePseudonyms(
     text: string,
     mappings: DictionaryPseudonymMapping[],
   ): Promise<DictionaryReversalResult> {
@@ -243,11 +243,11 @@ export class DictionaryPseudonymizerService {
 
       const processingTimeMs = Date.now() - startTime;
 
-      return {
+      return Promise.resolve({
         originalText: processedText,
         reversalCount,
         processingTimeMs,
-      };
+      });
     } catch (error) {
       this.logger.error('Reversal failed:', error);
       throw error;
