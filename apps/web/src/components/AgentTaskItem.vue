@@ -206,7 +206,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref } from 'vue';
 // import { marked } from 'marked';
 import { IonIcon, IonButton, IonSpinner, IonChip, IonPopover } from '@ionic/vue';
 import { 

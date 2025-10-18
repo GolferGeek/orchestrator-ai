@@ -74,10 +74,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import {
   IonIcon,
-  IonButton,
   IonItem,
   IonTextarea,
   IonSpinner,
