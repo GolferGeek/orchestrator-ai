@@ -110,7 +110,7 @@ export async function fetchExistingPlan(
   const planIdCandidates: Array<unknown> = [
     request.planId,
     payload?.planId,
-    (payload?.plan as Record<string, unknown> | undefined)?.id,
+    (payload?.plan as Record<string, unknown>)?.id,
     metadata?.planId,
     metadata?.plan_id,
   ];

@@ -4,6 +4,22 @@ import { getTableName } from '../../supabase/supabase.config';
 // No AgentType import needed - we treat agent_type as a simple string
 
 /**
+ * Database record type for conversations table
+ */
+interface ConversationDbRecord {
+  id: string;
+  user_id: string;
+  agent_name: string;
+  agent_type: string;
+  title: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  started_at?: string;
+  last_active_at?: string;
+}
+
+/**
  * Agent2Agent-specific Conversations Service
  * Handles conversation management for A2A Google protocol agents
  * Isolated from legacy file-based agent system
@@ -38,7 +54,7 @@ export class Agent2AgentConversationsService {
   }> {
     try {
       const now = new Date().toISOString();
-      const conversationData: Record<string, unknown> = {
+      const insertData: Record<string, unknown> = {
         user_id: userId,
         agent_name: agentName,
         agent_type: namespace, // Store namespace in agent_type column
@@ -56,18 +72,22 @@ export class Agent2AgentConversationsService {
 
       // Only include id if explicitly provided, otherwise let database generate it
       if (options?.conversationId) {
-        conversationData.id = options.conversationId;
+        insertData.id = options.conversationId;
       }
 
-      const { data: conversation, error } = await this.supabaseService
+      const { data, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('conversations'))
-        .insert([conversationData])
+        .insert([insertData])
         .select('*')
         .single();
 
-      if (error) {
-        throw new Error(`Failed to create conversation: ${error.message}`);
+      const conversation = data as ConversationDbRecord | null;
+
+      if (error || !conversation) {
+        throw new Error(
+          `Failed to create conversation: ${error?.message || 'No data returned'}`,
+        );
       }
 
       this.logger.debug(
@@ -81,7 +101,7 @@ export class Agent2AgentConversationsService {
         namespace: conversation.agent_type, // agent_type column stores the namespace
         title: conversation.title,
         metadata: conversation.metadata,
-        createdAt: new Date(conversation.created_at as string),
+        createdAt: new Date(conversation.created_at),
       };
     } catch (error) {
       this.logger.error('Failed to create A2A conversation:', error);
@@ -107,13 +127,15 @@ export class Agent2AgentConversationsService {
     updatedAt: Date;
   } | null> {
     try {
-      const { data: conversation, error } = await this.supabaseService
+      const { data, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('conversations'))
         .select('*')
         .eq('id', conversationId)
         .eq('user_id', userId)
         .single();
+
+      const conversation = data as ConversationDbRecord | null;
 
       if (error || !conversation) {
         return null;
@@ -126,8 +148,8 @@ export class Agent2AgentConversationsService {
         namespace: conversation.agent_type, // agent_type column stores the namespace
         title: conversation.title,
         metadata: conversation.metadata,
-        createdAt: new Date(conversation.created_at as string),
-        updatedAt: new Date(conversation.updated_at as string),
+        createdAt: new Date(conversation.created_at),
+        updatedAt: new Date(conversation.updated_at),
       };
     } catch (error) {
       this.logger.error(
@@ -203,13 +225,15 @@ export class Agent2AgentConversationsService {
 
       if (updates.metadata) {
         // Merge metadata
-        const { data: current } = await this.supabaseService
+        const { data } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('conversations'))
           .select('metadata')
           .eq('id', conversationId)
           .eq('user_id', userId)
           .single();
+
+        const current = data as Pick<ConversationDbRecord, 'metadata'> | null;
 
         updateData.metadata = {
           ...(current?.metadata || {}),

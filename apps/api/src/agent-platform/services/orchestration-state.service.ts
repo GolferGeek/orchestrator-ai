@@ -268,7 +268,7 @@ export class OrchestrationStateService {
       if (value && typeof value === 'object') {
         const resolved: Record<string, unknown> = {};
         Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
-          resolved[key] = resolveValue(entry) as unknown;
+          resolved[key] = resolveValue(entry);
         });
         return resolved;
       }

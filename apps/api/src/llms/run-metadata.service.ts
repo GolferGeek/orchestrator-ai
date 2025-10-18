@@ -47,6 +47,25 @@ export interface CostEstimate {
   currency: string;
 }
 
+/**
+ * Database record type for llm_usage table
+ */
+export interface LLMUsageDbRecord {
+  run_id: string;
+  provider: string;
+  model: string;
+  tier: string;
+  cost: number;
+  duration: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  status: string;
+  error_message?: string;
+  timestamp: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class RunMetadataService {
   private readonly logger = new Logger(RunMetadataService.name);
@@ -404,17 +423,19 @@ export class RunMetadataService {
   /**
    * Fetch a single usage record by run_id from the database
    */
-  async getUsageDetails(runId: string): Promise<any> {
+  async getUsageDetails(runId: string): Promise<LLMUsageDbRecord | null> {
     try {
       const client = this.supabaseService.getServiceClient();
-      const { data, error } = await client
+      const { data: result, error } = await client
         .from(getTableName('llm_usage'))
         .select('*')
         .eq('run_id', runId)
         .single();
 
+      const data = result as LLMUsageDbRecord | null;
+
       if (error) {
-        if ((error as any)?.code === 'PGRST116') {
+        if ((error as { code?: string })?.code === 'PGRST116') {
           // no rows
           return null;
         }
@@ -469,11 +490,13 @@ export class RunMetadataService {
         Date.now() - 24 * 60 * 60 * 1000,
       ).toISOString();
 
-      const { data: recentRuns, error: recentError } = await client
+      const { data: result, error: recentError } = await client
         .from(getTableName('llm_usage'))
         .select('duration_ms, input_cost, output_cost')
         .eq('status', 'completed')
         .gte('started_at', last24Hours);
+
+      const recentRuns = result as Array<{ duration_ms?: number; input_cost?: number; output_cost?: number }> | null;
 
       if (recentError) {
         this.logger.error('Error fetching recent runs:', recentError);
@@ -487,12 +510,12 @@ export class RunMetadataService {
 
       const totalRunsToday = recentRuns?.length || 0;
       const avgDuration =
-        totalRunsToday > 0
+        totalRunsToday > 0 && recentRuns
           ? recentRuns.reduce((sum, run) => sum + (run.duration_ms || 0), 0) /
             totalRunsToday
           : 0;
       const avgCost =
-        totalRunsToday > 0
+        totalRunsToday > 0 && recentRuns
           ? recentRuns.reduce(
               (sum, run) =>
                 sum + ((run.input_cost || 0) + (run.output_cost || 0)),
@@ -652,7 +675,7 @@ export class RunMetadataService {
       updateData,
     );
 
-    const { data: updatedRow, error } = await client
+    const { data: result, error } = await client
       .from(getTableName('llm_usage'))
       .update(updateData)
       .eq('run_id', runId)
@@ -660,6 +683,8 @@ export class RunMetadataService {
         'run_id,status,input_tokens,output_tokens,duration_ms,pii_detected,pseudonyms_used,sanitization_level,total_cost',
       )
       .single();
+
+    const updatedRow = result as Partial<LLMUsageDbRecord> | null;
 
     if (error) {
       this.logger.error(
@@ -710,7 +735,8 @@ export class RunMetadataService {
     if (filters?.route) query = query.eq('route', filters.route);
     if (filters?.limit) query = query.limit(filters.limit);
 
-    const { data, error } = await query;
+    const { data: result, error } = await query;
+    const data = result as LLMUsageDbRecord[] | null;
     if (error)
       throw new Error(`Failed to fetch usage records: ${error.message}`);
     return data || [];
@@ -740,7 +766,8 @@ export class RunMetadataService {
       query = query.eq('caller_type', filters.callerType);
     if (filters?.route) query = query.eq('route', filters.route);
 
-    const { data, error } = await query;
+    const { data: result, error } = await query;
+    const data = result as LLMUsageDbRecord[] | null;
     if (error)
       throw new Error(`Failed to fetch usage analytics: ${error.message}`);
     return data || [];

@@ -98,7 +98,7 @@ export class PlansRepository {
    * Find plan by ID
    */
   async findById(id: string, userId: string): Promise<PlanRecord | null> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
       .select('*')
@@ -113,7 +113,7 @@ export class PlansRepository {
       throw new BadRequestException(`Failed to find plan: ${error.message}`);
     }
 
-    return data as PlanRecord;
+    return result as PlanRecord | null;
   }
 
   /**
@@ -129,7 +129,7 @@ export class PlansRepository {
       updated_at: new Date().toISOString(),
     };
 
-    const { data: planData, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
       .update(updateData)
@@ -142,7 +142,12 @@ export class PlansRepository {
       throw new BadRequestException(`Failed to update plan: ${error.message}`);
     }
 
-    return planData as PlanRecord;
+    const planData = result as PlanRecord | null;
+    if (!planData) {
+      throw new BadRequestException('No data returned from plan update');
+    }
+
+    return planData;
   }
 
   /**

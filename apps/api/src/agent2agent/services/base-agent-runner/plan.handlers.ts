@@ -1169,7 +1169,7 @@ function serializePlan(
 }
 
 function serializePlanVersion(
-  version: PlanVersion | Record<string, unknown> | unknown | null | undefined,
+  version: unknown,
 ): PlanCreateResponseContent['version'] | null {
   if (!version) {
     return null;

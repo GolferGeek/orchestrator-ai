@@ -313,7 +313,7 @@ async function handleRunHumanResponse(
     const result = await checkpointService.resolveCheckpoint({
       approvalId: approvalId as string,
       decision: decision as string,
-      actorId: (request.metadata as Record<string, unknown> | undefined)?.userId as string | null ?? null,
+      actorId: (request.metadata as Record<string, unknown>)?.userId as string | null ?? null,
       notes: (notes as string | null) ?? null,
       modifications: (modifications as Record<string, unknown> | null) ?? null,
     });

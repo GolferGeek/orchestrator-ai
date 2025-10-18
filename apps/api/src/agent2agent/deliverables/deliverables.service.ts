@@ -967,7 +967,7 @@ export class DeliverablesService implements IActionHandler {
       const deliverables = data || [];
       const deliverableResults = await Promise.all(
         deliverables.map(async (deliverableData: unknown) => {
-          const typedData = deliverableData as unknown as {
+          const typedData = deliverableData as {
             id: string;
             user_id: string;
             conversation_id?: string;

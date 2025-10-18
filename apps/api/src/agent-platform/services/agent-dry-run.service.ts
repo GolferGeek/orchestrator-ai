@@ -10,8 +10,8 @@ type DryRunResult = {
 
 type HandlerFunction = (
   input: unknown,
-  ctx: { services: Record<string, unknown> }
-) => unknown | Promise<unknown>;
+  ctx: { services: Record<string, unknown> },
+) => unknown;
 
 @Injectable()
 export class AgentDryRunService {

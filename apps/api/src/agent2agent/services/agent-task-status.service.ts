@@ -3,6 +3,23 @@ import { SupabaseService } from '../../supabase/supabase.service';
 import { getTableName } from '../../supabase/supabase.config';
 
 /**
+ * Database record type for tasks table
+ */
+interface TaskDbRecord {
+  id: string;
+  user_id: string;
+  conversation_id: string;
+  status: string;
+  params: Record<string, unknown>;
+  response: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
+  [key: string]: unknown;
+}
+
+/**
  * Agent2Agent-specific Task Status Service
  * Handles task status updates for A2A Google protocol agents
  * Isolated from legacy file-based agent system
@@ -44,7 +61,7 @@ export class Agent2AgentTaskStatusService {
         updates.metadata
       ) {
         // Fetch current params to merge status data
-        const { data: currentTask } = await this.supabaseService
+        const { data } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('tasks'))
           .select('params')
@@ -52,7 +69,8 @@ export class Agent2AgentTaskStatusService {
           .eq('user_id', userId)
           .single();
 
-        const currentParams = currentTask?.params || {};
+        const currentTask = data as Pick<TaskDbRecord, 'params'> | null;
+        const currentParams = (currentTask?.params as Record<string, unknown> & { status_data?: Record<string, unknown> }) || {};
         const currentStatusData = currentParams.status_data || {};
 
         updateData.params = {
@@ -182,7 +200,7 @@ export class Agent2AgentTaskStatusService {
     metadata?: Record<string, unknown>;
   } | null> {
     try {
-      const { data: task, error } = await this.supabaseService
+      const { data, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
         .select('status, response, error, params')
@@ -190,19 +208,22 @@ export class Agent2AgentTaskStatusService {
         .eq('user_id', userId)
         .single();
 
+      const task = data as Pick<TaskDbRecord, 'status' | 'response' | 'params'> & { error?: string } | null;
+
       if (error || !task) {
         return null;
       }
 
-      const statusData = task.params?.status_data || {};
+      const taskParams = task.params as Record<string, unknown> & { status_data?: Record<string, unknown> };
+      const statusData = (taskParams?.status_data as Record<string, unknown>) || {};
 
       return {
         status: task.status,
-        progress: statusData.progress,
-        progressMessage: statusData.progressMessage,
+        progress: (statusData.progress as number | undefined),
+        progressMessage: (statusData.progressMessage as string | undefined),
         response: task.response,
         error: task.error,
-        metadata: statusData.metadata,
+        metadata: (statusData.metadata as Record<string, unknown> | undefined),
       };
     } catch (error) {
       this.logger.error(`Failed to get A2A task ${taskId} status:`, error);

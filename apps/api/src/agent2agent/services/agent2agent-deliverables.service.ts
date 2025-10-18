@@ -70,7 +70,7 @@ export class Agent2AgentDeliverablesService {
 
       const rawOutput: string =
         typeof contentRec?.output === 'string'
-          ? (contentRec.output as string)
+          ? contentRec.output
           : '';
       const images = this.normalizeImages([
         ...(Array.isArray(payload.images) ? payload.images : []),
@@ -245,12 +245,12 @@ export class Agent2AgentDeliverablesService {
     }
 
     const lines = images.map((image, index) => {
-      const mime = image.mime || 'image';
+      const mime = String(image.mime || 'image');
       const dims =
         image.width && image.height
-          ? `${image.width}x${image.height}`
+          ? `${String(image.width)}x${String(image.height)}`
           : image.width || image.height
-            ? `${image.width ?? image.height}px`
+            ? `${String(image.width ?? image.height)}px`
             : 'unknown size';
       return `- Image ${index + 1}: ${mime} (${dims})`;
     });
@@ -271,9 +271,9 @@ export class Agent2AgentDeliverablesService {
       const redactedUrl = this.redactUrlForLogs(image.url as string);
       const dims =
         image.width && image.height
-          ? `${image.width}x${image.height}`
+          ? `${String(image.width)}x${String(image.height)}`
           : 'unknown';
-      return `[${index + 1}] ${redactedUrl} (${image.mime || 'image'}, ${dims})`;
+      return `[${index + 1}] ${redactedUrl} (${String(image.mime || 'image')}, ${dims})`;
     });
 
     return preview.length ? preview.join(' ') : '';

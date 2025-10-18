@@ -413,7 +413,7 @@ export class PlanVersionsService {
 
     if (typeof value === 'string') {
       try {
-        const parsed = JSON.parse(value);
+        const parsed: unknown = JSON.parse(value);
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
           return parsed as JsonObject;
         }

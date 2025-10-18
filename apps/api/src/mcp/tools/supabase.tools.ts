@@ -248,7 +248,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       `;
 
       if (table_name) {
-        query += ` AND table_name = '${table_name}'`;
+        query += ` AND table_name = '${String(table_name)}'`;
       }
 
       if (!include_system) {
@@ -359,7 +359,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     } = args;
 
     try {
-      let url = `/rest/v1/${table_name}`;
+      let url = `/rest/v1/${String(table_name)}`;
       const params = new URLSearchParams();
 
       // Add column selection
@@ -478,7 +478,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             text: JSON.stringify(
               {
                 description,
-                suggested_query: `-- Generated SQL for: ${description}\n-- Query type: ${query_type}\n-- TODO: Implement AI-powered SQL generation`,
+                suggested_query: `-- Generated SQL for: ${String(description)}\n-- Query type: ${String(query_type)}\n-- TODO: Implement AI-powered SQL generation`,
                 table_context,
                 timestamp: new Date().toISOString(),
               },
@@ -558,7 +558,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         key.length,
         ...data.map((row) => {
           const rowRec = row as unknown as Record<string, unknown>;
-          return String(rowRec[key] || '').length;
+          const value = rowRec[key];
+          return String(value ?? '').length;
         }),
       ),
     );
@@ -581,7 +582,10 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       table +=
         '| ' +
         keys
-          .map((key, i) => String(rowRec[key] || '').padEnd(maxWidths[i] || 0))
+          .map((key, i) => {
+            const value = rowRec[key];
+            return String(value ?? '').padEnd(maxWidths[i] || 0);
+          })
           .join(' | ') +
         ' |\n';
     });
@@ -609,7 +613,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             const value = rowRec[key];
             return typeof value === 'string' && value.includes(',')
               ? `"${value}"`
-              : String(value || '');
+              : String(value ?? '');
           })
           .join(','),
       );

@@ -518,14 +518,19 @@ export class DeliverableVersionsService {
           mergePrompt: mergePrompt,
           mergedAt: new Date().toISOString(),
           llmMetadata: mergedContent.metadata
-            ? {
-                provider: (mergedContent.metadata as Record<string, unknown>).provider,
-                model: (mergedContent.metadata as Record<string, unknown>).model,
-                inputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.inputTokens,
-                outputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.outputTokens,
-                cost: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.cost,
-                duration: ((mergedContent.metadata as Record<string, unknown>).timing as Record<string, unknown> | undefined)?.duration,
-              }
+            ? (() => {
+                const metadata = mergedContent.metadata as Record<string, unknown>;
+                const usage = metadata.usage as Record<string, unknown> | undefined;
+                const timing = metadata.timing as Record<string, unknown> | undefined;
+                return {
+                  provider: metadata.provider,
+                  model: metadata.model,
+                  inputTokens: usage?.inputTokens,
+                  outputTokens: usage?.outputTokens,
+                  cost: usage?.cost,
+                  duration: timing?.duration,
+                };
+              })()
             : undefined,
         },
       };

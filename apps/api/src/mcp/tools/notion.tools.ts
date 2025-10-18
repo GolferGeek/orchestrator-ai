@@ -399,7 +399,7 @@ export class NotionMCPTools implements IMCPToolHandler {
       }
 
       const response = await this.makeNotionRequest(
-        `databases/${database_id}/query`,
+        `databases/${String(database_id)}/query`,
         'POST',
         payload,
       );
@@ -521,7 +521,7 @@ export class NotionMCPTools implements IMCPToolHandler {
     const { page_id, include_content = false } = args;
 
     try {
-      const response = await this.makeNotionRequest(`pages/${page_id}`, 'GET');
+      const response = await this.makeNotionRequest(`pages/${String(page_id)}`, 'GET');
       const data = await this.parseJsonResponse(response, 'Notion get page');
 
       if (!response.ok) {
@@ -536,7 +536,7 @@ export class NotionMCPTools implements IMCPToolHandler {
       if (include_content) {
         try {
           const contentResponse = await this.makeNotionRequest(
-            `blocks/${page_id}/children`,
+            `blocks/${String(page_id)}/children`,
             'GET',
           );
           const contentData = await this.parseJsonResponse(
@@ -594,7 +594,7 @@ export class NotionMCPTools implements IMCPToolHandler {
       }
 
       const response = await this.makeNotionRequest(
-        `pages/${page_id}`,
+        `pages/${String(page_id)}`,
         'PATCH',
         payload,
       );
@@ -645,7 +645,7 @@ export class NotionMCPTools implements IMCPToolHandler {
       const payload = { children };
 
       const response = await this.makeNotionRequest(
-        `blocks/${page_id}/children`,
+        `blocks/${String(page_id)}/children`,
         'PATCH',
         payload,
       );

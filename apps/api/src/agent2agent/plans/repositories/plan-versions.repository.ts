@@ -40,7 +40,7 @@ export class PlanVersionsRepository {
    * Create a new plan version
    */
   async create(data: CreatePlanVersionData): Promise<PlanVersionRecord> {
-    const { data: versionData, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .insert([data])
@@ -53,14 +53,19 @@ export class PlanVersionsRepository {
       );
     }
 
-    return versionData as PlanVersionRecord;
+    const versionData = result as PlanVersionRecord | null;
+    if (!versionData) {
+      throw new BadRequestException('No data returned from plan version creation');
+    }
+
+    return versionData;
   }
 
   /**
    * Find version by ID
    */
   async findById(versionId: string): Promise<PlanVersionRecord | null> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .select('*')
@@ -76,14 +81,14 @@ export class PlanVersionsRepository {
       );
     }
 
-    return (data as PlanVersionRecord | null) ?? null;
+    return (result as PlanVersionRecord | null) ?? null;
   }
 
   /**
    * Find all versions for a plan
    */
   async findByPlanId(planId: string): Promise<PlanVersionRecord[]> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .select('*')
@@ -96,14 +101,14 @@ export class PlanVersionsRepository {
       );
     }
 
-    return (data as PlanVersionRecord[] | null) ?? [];
+    return (result as PlanVersionRecord[] | null) ?? [];
   }
 
   /**
    * Get current version for a plan
    */
   async getCurrentVersion(planId: string): Promise<PlanVersionRecord | null> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .select('*')
@@ -117,14 +122,14 @@ export class PlanVersionsRepository {
       );
     }
 
-    return (data as PlanVersionRecord | null) ?? null;
+    return (result as PlanVersionRecord | null) ?? null;
   }
 
   /**
    * Get next version number for a plan
    */
   async getNextVersionNumber(planId: string): Promise<number> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .select('version_number')
@@ -139,14 +144,15 @@ export class PlanVersionsRepository {
       );
     }
 
-    return data ? data.version_number + 1 : 1;
+    const versionData = result as { version_number: number } | null;
+    return versionData ? versionData.version_number + 1 : 1;
   }
 
   /**
    * Mark a version as current
    */
   async markAsCurrent(versionId: string): Promise<PlanVersionRecord> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .update({ is_current_version: true })
@@ -160,7 +166,12 @@ export class PlanVersionsRepository {
       );
     }
 
-    return data as PlanVersionRecord;
+    const versionData = result as PlanVersionRecord | null;
+    if (!versionData) {
+      throw new BadRequestException('No data returned from mark as current');
+    }
+
+    return versionData;
   }
 
   /**

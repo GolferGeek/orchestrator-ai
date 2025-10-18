@@ -4,6 +4,32 @@ import { getTableName } from '../../supabase/supabase.config';
 // No AgentType import needed - we treat agent_type as a simple string
 
 /**
+ * Database record type for conversations table
+ */
+interface ConversationDbRecord {
+  id: string;
+  user_id: string;
+  agent_name: string;
+  agent_type: string;
+  created_at: string;
+  updated_at: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Database record type for tasks table
+ */
+interface TaskDbRecord {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  status: string;
+  params: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * LLM Selection configuration interface
  */
 export interface LlmSelection {
@@ -115,13 +141,15 @@ export class Agent2AgentTasksService {
       // If conversationId provided, validate it exists
       let conversationId = params.conversationId || null;
       if (conversationId) {
-        const { data: existingConv } = await this.supabaseService
+        const { data } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('conversations'))
           .select('id')
           .eq('id', conversationId)
           .eq('user_id', userId)
           .single();
+
+        const existingConv = data as Pick<ConversationDbRecord, 'id'> | null;
 
         if (!existingConv) {
           this.logger.warn(
