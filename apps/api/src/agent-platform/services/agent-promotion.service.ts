@@ -6,8 +6,13 @@ import {
 } from '@nestjs/common';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
-import { AgentValidationService } from './agent-validation.service';
+import {
+  AgentValidationService,
+  ValidationIssue,
+} from './agent-validation.service';
 import { AgentPolicyService } from './agent-policy.service';
+import type { AgentType, CreateAgentPayload } from '../schemas/agent-schemas';
+import type { AgentRecord } from '../interfaces/agent.interface';
 
 export interface PromotionRequirements {
   requiresApproval: boolean;
@@ -22,7 +27,7 @@ export interface PromotionResult {
   previousStatus: string;
   newStatus: string;
   approvalId?: string;
-  validationResults?: any;
+  validationResults?: { ok: boolean; issues: ValidationIssue[] };
   error?: string;
   requiresApproval?: boolean;
 }
@@ -76,9 +81,9 @@ export class AgentPromotionService {
       // 3. Validate agent (unless explicitly skipped)
       if (!options?.skipValidation) {
         const validation = this.validator.validateByType(
-          agent.agent_type as any,
+          agent.agent_type as AgentType,
           {
-            agent_type: agent.agent_type as any,
+            agent_type: agent.agent_type as AgentType,
             slug: agent.slug,
             display_name: agent.display_name,
             mode_profile: agent.mode_profile,
@@ -86,13 +91,13 @@ export class AgentPromotionService {
             yaml: agent.yaml,
             context: agent.context,
             config: agent.config,
-          } as any,
+          } as CreateAgentPayload,
         );
 
         const policyIssues = this.policy.check({
           agent_type: agent.agent_type,
-          config: agent.config,
-          context: agent.context,
+          config: agent.config ?? undefined,
+          context: agent.context ?? undefined,
         });
 
         if (!validation.ok || policyIssues.length > 0) {
@@ -309,10 +314,13 @@ export class AgentPromotionService {
   /**
    * Determine if agent requires approval based on type and configuration
    */
-  private requiresApproval(agent: any): boolean {
+  private requiresApproval(agent: AgentRecord): boolean {
     // Function agents with complex code always require approval
     if (agent.agent_type === 'function') {
-      const code = agent.config?.configuration?.function?.code || '';
+      const config = agent.config as {
+        configuration?: { function?: { code?: string } };
+      } | null;
+      const code: string = config?.configuration?.function?.code || '';
       // Require approval for long/complex functions
       if (code.length > 5000) return true;
       // Require approval if uses external services

@@ -26,6 +26,8 @@ export interface BuildDeliverableInput {
   deliverableFormat?: DeliverableFormat | string | null;
 }
 
+type ImageRecord = Record<string, any>;
+
 @Injectable()
 export class AgentRuntimeDeliverablesAdapter {
   private readonly logger = new Logger(AgentRuntimeDeliverablesAdapter.name);
@@ -63,12 +65,12 @@ export class AgentRuntimeDeliverablesAdapter {
       const imageFormat = this.resolveImageFormat(storedImages);
 
       // Enhancement path: if a target deliverableId is provided, create a new version instead
-      const targetDeliverableId =
+      const targetDeliverableId: string | undefined =
         (request.payload as any)?.deliverableId ||
         (request.payload as any)?.metadata?.deliverableId;
       if (targetDeliverableId) {
         const version = await this.versions.createVersion(
-          targetDeliverableId,
+          targetDeliverableId as string,
           {
             content:
               content || (hasImages ? this.describeImageSet(storedImages) : ''),
@@ -210,7 +212,7 @@ export class AgentRuntimeDeliverablesAdapter {
   }
 
   private resolveImageFormat(
-    images: Array<Record<string, any>>,
+    images: ImageRecord[],
   ): DeliverableFormat | undefined {
     if (!images.length) {
       return undefined;
@@ -227,7 +229,7 @@ export class AgentRuntimeDeliverablesAdapter {
     );
   }
 
-  private describeImageSet(images: Array<Record<string, any>>): string {
+  private describeImageSet(images: ImageRecord[]): string {
     if (!images.length) {
       return 'Image assets';
     }
@@ -268,15 +270,15 @@ export class AgentRuntimeDeliverablesAdapter {
       conversationId: string | null;
       userId: string | null;
     },
-  ): Promise<any[]> {
+  ): Promise<ImageRecord[]> {
     if (!images || images.length === 0) return [];
-    const results: any[] = [];
+    const results: ImageRecord[] = [];
     for (let i = 0; i < images.length; i++) {
       const img = images[i] || {};
       const hasData = typeof img.data === 'string' && img.data.length > 0;
       if (hasData && this.assets) {
         try {
-          let mime = img.mime || img.contentType || 'image/png';
+          let mime: string = img.mime || img.contentType || 'image/png';
           let base64 = img.data as string;
           const match = /^data:([^;]+);base64,(.*)$/i.exec(base64);
           if (match) {
@@ -314,11 +316,11 @@ export class AgentRuntimeDeliverablesAdapter {
       }
       // Optionally fetch-and-store external URLs
       const hasUrl =
-        typeof img.url === 'string' && /^https?:\/\//i.test(img.url);
+        typeof img.url === 'string' && /^https?:\/\//i.test(img.url as string);
       if (hasUrl && this.assets) {
         try {
           const rec = await this.assets.saveFromUrl({
-            url: img.url,
+            url: img.url as string,
             organizationSlug: ctx.organizationSlug,
             conversationId: ctx.conversationId,
             userId: ctx.userId,

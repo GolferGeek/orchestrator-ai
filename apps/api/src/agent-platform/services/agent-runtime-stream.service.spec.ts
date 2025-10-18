@@ -12,7 +12,7 @@ describe('AgentRuntimeStreamService', () => {
 
   it('emits start/chunk/complete events for a streaming session', () => {
     const events: string[] = [];
-    const payloads: any[] = [];
+    const payloads: unknown[] = [];
 
     eventEmitter.on('agent.stream.start', (payload) => {
       events.push('start');
@@ -58,7 +58,7 @@ describe('AgentRuntimeStreamService', () => {
   });
 
   it('emits error event when session errors', () => {
-    const errors: any[] = [];
+    const errors: unknown[] = [];
 
     eventEmitter.on('agent.stream.error', (payload) => {
       errors.push(payload);

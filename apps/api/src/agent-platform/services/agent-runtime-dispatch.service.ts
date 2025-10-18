@@ -347,7 +347,7 @@ export class AgentRuntimeDispatchService {
       );
     } catch (err: any) {
       const end = Date.now();
-      const status = err?.response?.status ?? -1;
+      const status = Number(err?.response?.status ?? -1);
       this.safeLog('api', url, status, end - start);
       this.metrics.record(
         'api',
@@ -465,7 +465,7 @@ export class AgentRuntimeDispatchService {
       );
     } catch (err: any) {
       const end = Date.now();
-      const status = err?.response?.status ?? -1;
+      const status = Number(err?.response?.status ?? -1);
       this.safeLog('external', url, status, end - start);
       this.metrics.record(
         'external',
@@ -661,7 +661,7 @@ export class AgentRuntimeDispatchService {
     const statusText = status ? ` (HTTP ${status})` : '';
     if (!error) return `External A2A error${statusText}`;
     const code = error.code !== undefined ? ` [code ${error.code}]` : '';
-    const raw =
+    const raw: string =
       typeof error.message === 'string'
         ? error.message
         : this.stringifyContent(error);

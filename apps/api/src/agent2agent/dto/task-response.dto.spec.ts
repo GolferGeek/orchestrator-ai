@@ -65,7 +65,8 @@ describe('TaskResponseDto', () => {
       );
 
       expect(response.payload.content).toHaveProperty('action');
-      expect(response.payload.content.action).toBe('run_human_response');
+      const content = response.payload.content as { action?: string };
+      expect(content.action).toBe('run_human_response');
     });
 
     it('should include message in content', () => {
@@ -73,7 +74,8 @@ describe('TaskResponseDto', () => {
       const response = TaskResponseDto.human(message);
 
       expect(response.payload.content).toHaveProperty('message');
-      expect(response.payload.content.message).toBe(message);
+      const content = response.payload.content as { message?: string };
+      expect(content.message).toBe(message);
     });
 
     it('should include reason in content when provided as string', () => {
@@ -83,7 +85,8 @@ describe('TaskResponseDto', () => {
       );
 
       expect(response.payload.content).toHaveProperty('reason');
-      expect(response.payload.content.reason).toBe('Requires manager approval');
+      const content = response.payload.content as { reason?: string };
+      expect(content.reason).toBe('Requires manager approval');
     });
 
     it('should include reason in content when provided as third parameter', () => {
@@ -94,7 +97,8 @@ describe('TaskResponseDto', () => {
       );
 
       expect(response.payload.content).toHaveProperty('reason');
-      expect(response.payload.content.reason).toBe('High risk change');
+      const content = response.payload.content as { reason?: string };
+      expect(content.reason).toBe('High risk change');
     });
 
     it('should include metadata when provided as object', () => {
@@ -120,14 +124,16 @@ describe('TaskResponseDto', () => {
       const response = TaskResponseDto.human('Please review', metadata, reason);
 
       expect(response.payload.metadata).toEqual(metadata);
-      expect(response.payload.content.reason).toBe(reason);
+      const content = response.payload.content as { reason?: string };
+      expect(content.reason).toBe(reason);
       expect(response.humanResponse?.reason).toBe(reason);
     });
 
     it('should handle undefined reason', () => {
       const response = TaskResponseDto.human('Please review');
 
-      expect(response.payload.content.reason).toBeUndefined();
+      const content = response.payload.content as { reason?: string };
+      expect(content.reason).toBeUndefined();
       expect(response.humanResponse?.reason).toBeUndefined();
     });
 

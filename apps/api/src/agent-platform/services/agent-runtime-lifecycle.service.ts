@@ -14,14 +14,14 @@ export interface LifecycleProgress {
   step?: string;
   message?: string;
   percent?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()
 export class AgentRuntimeLifecycleService {
   constructor(private readonly emitter: EventEmitter2) {}
 
-  start(ctx: LifecycleContext, metadata?: Record<string, any>) {
+  start(ctx: LifecycleContext, metadata?: Record<string, unknown>) {
     this.emitter.emit(
       'agent.lifecycle.start',
       this.envelope(ctx, { metadata }),
@@ -42,14 +42,18 @@ export class AgentRuntimeLifecycleService {
     );
   }
 
-  fail(ctx: LifecycleContext, reason: string, metadata?: Record<string, any>) {
+  fail(
+    ctx: LifecycleContext,
+    reason: string,
+    metadata?: Record<string, unknown>,
+  ) {
     this.emitter.emit(
       'agent.lifecycle.fail',
       this.envelope(ctx, { error: { reason }, metadata }),
     );
   }
 
-  private envelope(ctx: LifecycleContext, payload: Record<string, any>) {
+  private envelope(ctx: LifecycleContext, payload: Record<string, unknown>) {
     return {
       ...ctx,
       timestamp: new Date().toISOString(),

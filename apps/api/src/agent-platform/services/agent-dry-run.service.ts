@@ -28,8 +28,8 @@ export class AgentDryRunService {
 
     // Very limited sandbox; no require/process. This is a best-effort guard.
     const context = vm.createContext({
-      module: { exports: undefined as any },
-      exports: {},
+      module: { exports: undefined as unknown },
+      exports: {} as Record<string, unknown>,
       console: consoleStub,
       require: undefined,
       process: undefined,
@@ -40,7 +40,7 @@ export class AgentDryRunService {
     try {
       const script = new vm.Script(String(code));
       script.runInContext(context, { timeout: Math.min(timeoutMs, 1000) });
-      const handler = context.module.exports || context.exports;
+      const handler: unknown = context.module.exports || context.exports;
       if (typeof handler !== 'function') {
         return {
           ok: false,
@@ -53,7 +53,7 @@ export class AgentDryRunService {
       const ctx = { services: {} };
       const exec = Promise.resolve().then(() => handler(input, ctx));
       const timed = this.withTimeout(exec, timeoutMs);
-      const result = await timed;
+      const result: unknown = await timed;
       return { ok: true, result, logs };
     } catch (err: any) {
       return { ok: false, error: err?.message || 'dry-run error', logs };

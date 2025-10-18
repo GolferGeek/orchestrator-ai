@@ -160,10 +160,10 @@ export class OrchestrationMetricsService {
     return `index_${step.step_index}`;
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
+  private asRecord(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    return { ...(value as Record<string, unknown>) };
   }
 }

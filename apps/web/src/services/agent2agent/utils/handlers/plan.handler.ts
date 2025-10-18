@@ -5,7 +5,7 @@
  */
 
 import type {
-  StrictPlanResponse,
+  // StrictPlanResponse,
   PlanData,
   PlanVersionData,
 } from '@orchestrator-ai/transport-types';

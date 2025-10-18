@@ -8,14 +8,14 @@ export interface PromptBuildOptions {
   definition: AgentRuntimeDefinition;
   request: TaskRequestDto;
   mode?: RuntimePromptMode;
-  additionalMetadata?: Record<string, any>;
+  additionalMetadata?: Record<string, unknown>;
 }
 
 export interface PromptPayload {
   systemPrompt: string;
   userMessage: string;
-  metadata: Record<string, any>;
-  optionMetadata: Record<string, any>;
+  metadata: Record<string, unknown>;
+  optionMetadata: Record<string, unknown>;
   conversationId?: string;
   sessionId?: string;
   userId: string | null;
@@ -192,8 +192,8 @@ export class AgentRuntimePromptService {
   collectMetadata(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
-    additional: Record<string, any> | undefined,
-  ): Record<string, any> {
+    additional: Record<string, unknown> | undefined,
+  ): Record<string, unknown> {
     const baseMetadata = {
       agentId: definition.id,
       agentSlug: definition.slug,
@@ -227,7 +227,7 @@ export class AgentRuntimePromptService {
 
   private resolveUserId(
     request: TaskRequestDto,
-    metadata: Record<string, any>,
+    metadata: Record<string, unknown>,
   ): string | null {
     const payload = request.payload ?? {};
     return (

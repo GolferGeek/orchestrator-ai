@@ -1,6 +1,7 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
+import { AxiosResponse } from 'axios';
 import { OrchestrationCheckpointEventsService } from './orchestration-checkpoint-events.service';
 import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
@@ -129,7 +130,9 @@ describe('OrchestrationCheckpointEventsService', () => {
       runner.getRun.mockResolvedValue(run);
       runner.listSteps.mockResolvedValue([step]);
       httpService.post.mockReturnValue(
-        of({ data: { success: true }, status: 200 } as any),
+        of({ data: { success: true }, status: 200 } as AxiosResponse<{
+          success: boolean;
+        }>),
       );
 
       await service.handleCheckpointRequested({
@@ -265,7 +268,9 @@ describe('OrchestrationCheckpointEventsService', () => {
       runner.getRun.mockResolvedValue(run);
       runner.listSteps.mockResolvedValue([createStep()]);
       httpService.post.mockReturnValue(
-        of({ data: { success: true }, status: 200 } as any),
+        of({ data: { success: true }, status: 200 } as AxiosResponse<{
+          success: boolean;
+        }>),
       );
 
       await service.handleCheckpointResolved({

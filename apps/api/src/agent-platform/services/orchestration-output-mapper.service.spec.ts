@@ -61,10 +61,12 @@ describe('OrchestrationOutputMapper', () => {
       const result = service.map(payload, null);
 
       // Mutate original
-      payload.content.nested.value = 999;
+      const originalContent = payload.content as { nested: { value: number } };
+      originalContent.nested.value = 999;
 
       // Result should be unchanged
-      expect(result.output.content.nested.value).toBe(42);
+      const resultContent = result.output.content as { nested: { value: number } };
+      expect(resultContent.nested.value).toBe(42);
     });
   });
 
@@ -360,8 +362,9 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should log warning for mapping failures', () => {
+      const serviceWithLogger = service as unknown as { logger: { warn: jest.Mock } };
       const logSpy = jest
-        .spyOn((service as any).logger, 'warn')
+        .spyOn(serviceWithLogger.logger, 'warn')
         .mockImplementation();
 
       const payload: TaskResponsePayload = { content: {}, metadata: {} };

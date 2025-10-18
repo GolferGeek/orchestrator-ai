@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { AgentValidationService } from './agent-validation.service';
 import { AgentDryRunService } from './agent-dry-run.service';
 import { AgentPolicyService } from './agent-policy.service';
+import type { AgentType, CreateAgentPayload } from '../schemas/agent-schemas';
 
 describe('Seed payloads (local smoke without HTTP)', () => {
   const validator = new AgentValidationService();
@@ -25,7 +26,9 @@ describe('Seed payloads (local smoke without HTTP)', () => {
   );
 
   it('validates Blog Post Writer (context agent)', () => {
-    const blog = JSON.parse(readFileSync(blogPath, 'utf8'));
+    const blog = JSON.parse(
+      readFileSync(blogPath, 'utf8'),
+    ) as CreateAgentPayload;
     const v = validator.validateByType(blog.agent_type, blog);
     const p = policy.check(blog);
     expect(v.ok).toBe(true);

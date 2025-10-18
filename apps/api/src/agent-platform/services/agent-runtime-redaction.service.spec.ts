@@ -7,7 +7,7 @@ describe('AgentRuntimeRedactionService', () => {
   const makeService = (
     patterns: Array<{ pattern: string; flags?: string; replacement?: string }>,
   ) => {
-    const repo: jest.Mocked<RedactionPatternsRepository> = {
+    const repo = {
       listByOrganization: jest.fn().mockResolvedValue(
         patterns.map((p) => ({
           id: '1',
@@ -16,9 +16,9 @@ describe('AgentRuntimeRedactionService', () => {
           pattern: p.pattern,
           flags: p.flags ?? 'gi',
           replacement: p.replacement ?? '[REDACTED]',
-        })) as any,
+        })),
       ),
-    } as any;
+    } as jest.Mocked<RedactionPatternsRepository>;
     return new AgentRuntimeRedactionService(repo);
   };
 
@@ -43,17 +43,17 @@ describe('AgentRuntimeRedactionService', () => {
     },
     prompts: { system: '', plan: '', build: '', human: '' },
     context: null,
-    config: { transforms: { redaction: { fields: [] } } } as any,
-    record: {} as any,
+    config: { transforms: { redaction: { fields: [] } } },
+    record: {},
   };
 
   it('applies DB regex only on remote (isLocal=false) and always applies secret masking', async () => {
     const service = makeService([{ pattern: 'secret', replacement: '[DB]' }]);
     const request: TaskRequestDto = {
-      mode: 'converse' as any,
+      mode: 'converse',
       userMessage: 'my secret is ALPHA and key sk-ABCDEFGHIJKL',
       payload: {},
-    } as any;
+    };
 
     // Local route: DB redaction skipped, secret token masked
     const localRedacted = await service.redact(definition, request, {

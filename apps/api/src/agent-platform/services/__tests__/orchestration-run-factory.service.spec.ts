@@ -249,7 +249,7 @@ describe('OrchestrationRunFactoryService', () => {
               runId: 'parent-run-123',
               stepRecordId: 'parent-step-123',
             },
-          }),
+          }) as Record<string, unknown>,
         }),
       );
     });
@@ -285,7 +285,7 @@ describe('OrchestrationRunFactoryService', () => {
               id: 'task-123',
               userId: 'user-456',
             },
-          }),
+          }) as Record<string, unknown>,
         }),
       );
     });
@@ -397,7 +397,7 @@ describe('OrchestrationRunFactoryService', () => {
             completedSteps: 0,
             progressPercentage: 0,
           },
-        }),
+        }) as Record<string, unknown>,
       });
     });
 
@@ -509,7 +509,7 @@ describe('OrchestrationRunFactoryService', () => {
               displayName: 'Test Orchestrator',
               organizationSlug: 'custom-org',
             },
-          }),
+          }) as Record<string, unknown>,
         }),
       );
     });
@@ -553,7 +553,7 @@ describe('OrchestrationRunFactoryService', () => {
             completedSteps: 0,
             progressPercentage: null,
           },
-        }),
+        }) as Record<string, unknown>,
       });
     });
 
@@ -586,7 +586,7 @@ describe('OrchestrationRunFactoryService', () => {
         expect.objectContaining({
           metadata: expect.objectContaining({
             requestMetadata,
-          }),
+          }) as Record<string, unknown>,
         }),
       );
     });

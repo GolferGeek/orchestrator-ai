@@ -1,6 +1,8 @@
 import { OrchestrationExecutionService } from './orchestration-execution.service';
 import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationStateService } from './orchestration-state.service';
+import { OrchestrationEventsService } from './orchestration-events.service';
+import { OrchestrationMetricsService } from './orchestration-metrics.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
 
@@ -88,7 +90,7 @@ describe('OrchestrationExecutionService', () => {
     emitRunFailed: jest.fn(),
     emitStepsQueued: jest.fn(),
     emitRunUpdated: jest.fn(),
-  } as any;
+  } as unknown as OrchestrationEventsService;
 
   const metrics = {
     recordRunCreated: jest.fn(),
@@ -97,7 +99,7 @@ describe('OrchestrationExecutionService', () => {
     recordStepFailed: jest.fn(),
     recordRunCompleted: jest.fn(),
     recordRunFailed: jest.fn(),
-  } as any;
+  } as unknown as OrchestrationMetricsService;
 
   let service: OrchestrationExecutionService;
 

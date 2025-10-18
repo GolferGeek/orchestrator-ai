@@ -3,7 +3,7 @@
  * Validates and processes converse-specific responses
  */
 
-import type { StrictConverseResponse } from '@orchestrator-ai/transport-types';
+// import type { StrictConverseResponse } from '@orchestrator-ai/transport-types';
 import {
   isStrictConverseResponse,
   validateSuccessResponse,

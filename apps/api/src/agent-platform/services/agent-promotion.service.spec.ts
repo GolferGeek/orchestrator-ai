@@ -282,11 +282,11 @@ describe('AgentPromotionService', () => {
         status: 'active',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       agentsRepo.updateStatus.mockResolvedValue({
         ...agent,
         status: 'archived',
-      } as any);
+      } as never);
 
       const result = await service.archive('agent-9', 'No longer needed');
 
@@ -304,7 +304,7 @@ describe('AgentPromotionService', () => {
         config: { configuration: { function: { code: 'simple code' } } },
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
 
       const requirements = await service.getPromotionRequirements('agent-10');
 

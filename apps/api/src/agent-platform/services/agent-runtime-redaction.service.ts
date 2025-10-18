@@ -19,9 +19,15 @@ export class AgentRuntimeRedactionService {
     request: TaskRequestDto,
     options: RedactionOptions = {},
   ): Promise<TaskRequestDto> {
-    const cfg = (definition.config as any) || {};
-    const fields: string[] = (cfg.transforms?.redaction?.fields || []).filter(
-      (f: any) => typeof f === 'string',
+    const cfg =
+      (definition.config as Record<string, unknown> | undefined) || {};
+    const transforms = cfg.transforms as Record<string, unknown> | undefined;
+    const redaction = transforms?.redaction as
+      | Record<string, unknown>
+      | undefined;
+    const rawFields = redaction?.fields as unknown[] | undefined;
+    const fields: string[] = (rawFields || []).filter(
+      (f): f is string => typeof f === 'string',
     );
 
     let next: TaskRequestDto = request;
@@ -52,7 +58,9 @@ export class AgentRuntimeRedactionService {
       next.payload?.normalized &&
       typeof next.payload.normalized === 'object'
     ) {
-      const copy = JSON.parse(JSON.stringify(next.payload.normalized));
+      const copy: Record<string, unknown> = JSON.parse(
+        JSON.stringify(next.payload.normalized),
+      ) as Record<string, unknown>;
       for (const path of fields) {
         this.maskPath(copy, path, 'REDACTED');
       }
@@ -108,7 +116,7 @@ export class AgentRuntimeRedactionService {
     }
   }
 
-  private maskPath(obj: any, path: string, value: any) {
+  private maskPath(obj: Record<string, unknown>, path: string, value: string) {
     const normalized = path.replace(/\[(\d+)\]/g, '.$1');
     const parts: Array<string | number> = normalized
       .split('.')
@@ -118,20 +126,20 @@ export class AgentRuntimeRedactionService {
         return Number.isNaN(numeric) ? segment : numeric;
       });
     if (!parts.length) return;
-    let cur = obj;
+    let cur: unknown = obj;
     for (let i = 0; i < parts.length - 1; i++) {
       const p = parts[i];
       if (cur == null) return;
-      const key: any = p as any;
-      cur = cur[key];
+      const key = p as string | number;
+      cur = (cur as Record<string | number, unknown>)[key];
       if (cur == null) return;
     }
     const last = parts[parts.length - 1] as string | number;
     if (cur != null) {
       if (typeof last === 'number') {
         if (Array.isArray(cur) && last < cur.length) cur[last] = value;
-      } else if (Object.prototype.hasOwnProperty.call(cur, last as any)) {
-        cur[last as any] = value;
+      } else if (Object.prototype.hasOwnProperty.call(cur, last)) {
+        (cur as Record<string, unknown>)[last] = value;
       }
     }
   }
