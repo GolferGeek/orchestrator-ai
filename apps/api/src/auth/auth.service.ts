@@ -527,8 +527,12 @@ export class AuthService {
         });
 
       if (error) {
+        // Audit log insertion failed - log but don't throw
+        this.logger.warn('Failed to insert role change audit log', error);
       }
-    } catch {}
+    } catch {
+      // Silent failure for audit log
+    }
   }
 
   /**

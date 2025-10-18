@@ -55,6 +55,8 @@ export class CIDAFMService {
       const uuidRegex =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(userId)) {
+        // Invalid UUID format, skip user commands
+        return allCommands;
       } else {
         // First check if user has any commands
         const { data: userCommandIds } = await client

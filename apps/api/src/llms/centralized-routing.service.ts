@@ -124,14 +124,12 @@ export class CentralizedRoutingService {
     try {
       let processedResponse = agentResponse;
       let reversalCount = 0;
-      let processingTimeMs = 0;
 
       // If we have pseudonym instructions, reverse them
       if (
         piiMetadata.pseudonymInstructions &&
         piiMetadata.pseudonymInstructions.targetMatches.length > 0
       ) {
-        const startTime = Date.now();
         const requestId =
           options.conversationId ||
           options.requestId ||
@@ -487,10 +485,7 @@ export class CentralizedRoutingService {
           await this.checkLocalModelAvailability(tier);
 
         if (localModelAvailable) {
-          const localModel = await this.selectBestLocalModel(
-            tier,
-            sovereignPolicy,
-          );
+          const localModel = await this.selectBestLocalModel(tier);
           reasoningPath.push(`Selected local model: ${localModel}`);
 
           const localDecision: RoutingDecision = {

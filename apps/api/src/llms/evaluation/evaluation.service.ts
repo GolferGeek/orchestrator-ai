@@ -1219,7 +1219,7 @@ export class EvaluationService {
     }
 
     if (modelIds.size > 0) {
-      const { data: models, error: modelError } = await client
+      const { data: models } = await client
         .from('llm_models')
         .select('*')
         .in('id', Array.from(modelIds));
@@ -1465,7 +1465,7 @@ export class EvaluationService {
     // filter by evaluation timestamp which is stored in JSONB
     tasksQuery = tasksQuery.order('created_at', { ascending: false });
 
-    const { data: tasks, error: tasksError, count } = await tasksQuery;
+    const { data: tasks, error: tasksError } = await tasksQuery;
 
     if (tasksError) {
       throw new HttpException(
@@ -1887,10 +1887,8 @@ export class EvaluationService {
       this.calculateWorkflowStepPerformance(workflowTasks);
     const commonFailurePatterns =
       this.identifyWorkflowFailurePatterns(workflowTasks);
-    const workflowEfficiencyTrends = this.calculateWorkflowEfficiencyTrends(
-      workflowTasks,
-      filters,
-    );
+    const workflowEfficiencyTrends =
+      this.calculateWorkflowEfficiencyTrends(workflowTasks);
 
     return {
       workflowPerformance,
@@ -2179,7 +2177,6 @@ export class EvaluationService {
     const responseMetadataRecord = this.asRecord(task.response_metadata);
     const llmMetadataRecord = this.asRecord(task.llm_metadata);
     const taskMetadataRecord = this.asRecord(task.metadata);
-    const deliverableMetadataRecord = this.asRecord(task.deliverable_metadata);
 
     const evaluationRecord = task.evaluation ?? {};
     const evaluation: EvaluationDataDto = {
@@ -2871,10 +2868,7 @@ export class EvaluationService {
     }));
   }
 
-  private calculateWorkflowEfficiencyTrends(
-    tasks: any[],
-    filters: AdminEvaluationFiltersDto,
-  ): Array<{
+  private calculateWorkflowEfficiencyTrends(tasks: any[]): Array<{
     date: string;
     averageSteps: number;
     averageDuration: number;
