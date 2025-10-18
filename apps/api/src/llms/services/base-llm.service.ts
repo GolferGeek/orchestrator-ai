@@ -58,7 +58,7 @@ export abstract class BaseLLMService {
    * Create standardized metadata for responses
    */
   protected createMetadata(
-    rawResponse: any,
+    rawResponse: unknown,
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
@@ -122,10 +122,10 @@ export abstract class BaseLLMService {
           showstopperDetected: false,
           detectionResults: {
             totalMatches: result.mappings.length,
-            flaggedMatches: result.mappings.map((mapping: any) => ({
+            flaggedMatches: result.mappings.map((mapping: unknown) => ({
               value: mapping.originalValue,
               dataType: mapping.dataType,
-              severity: 'info' as any,
+              severity: 'info' as string,
               confidence: 1.0,
               startIndex: 0, // Dictionary doesn't track positions
               endIndex: 0,
@@ -280,7 +280,7 @@ export abstract class BaseLLMService {
 
         // Derive full pseudonym mappings from PII metadata when available
         const derivePseudonymMappings = (
-          piiMeta: any,
+          piiMeta: unknown,
         ): Array<{ original: string; pseudonym: string; dataType: string }> => {
           try {
             // Prefer explicit pseudonymsApplied if present
@@ -289,7 +289,7 @@ export abstract class BaseLLMService {
               piiMeta.pseudonymsApplied.length > 0
             ) {
               return piiMeta.pseudonymsApplied
-                .map((m: any) => ({
+                .map((m: unknown) => ({
                   original: m.original ?? m.value ?? m.source ?? '',
                   pseudonym: m.pseudonym ?? '',
                   dataType: m.type ?? m.dataType ?? 'custom',
@@ -307,9 +307,9 @@ export abstract class BaseLLMService {
               piiMeta?.pseudonymResults?.processedMatches ||
               piiMeta?.pseudonymInstructions?.targetMatches ||
               [];
-            return (matches as any[])
-              .filter((m: any) => !!m?.pseudonym)
-              .map((m: any) => ({
+            return (matches as unknown[])
+              .filter((m: unknown) => !!(m as Record<string, unknown>)?.pseudonym)
+              .map((m: unknown) => ({
                 original: m.value ?? '',
                 pseudonym: m.pseudonym ?? '',
                 dataType: m.dataType ?? 'custom',
@@ -342,7 +342,7 @@ export abstract class BaseLLMService {
                   ?.length || 0,
               pseudonymTypes:
                 requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.map(
-                  (m: any) => m.dataType,
+                  (m: unknown) => (m as Record<string, unknown>).dataType,
                 ) || [],
               pseudonymMappings: derivePseudonymMappings(
                 requestMetadata.piiMetadata,
@@ -353,7 +353,7 @@ export abstract class BaseLLMService {
                   ?.length || 0,
               redactionTypes:
                 requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.map(
-                  (m: any) => m.dataType,
+                  (m: unknown) => (m as Record<string, unknown>).dataType,
                 ) || [],
             }
           : ({
@@ -367,7 +367,7 @@ export abstract class BaseLLMService {
               pseudonymMappings: [],
               redactionsApplied: 0,
               redactionTypes: [],
-            } as any);
+            } as Record<string, unknown>);
 
         this.logger.debug(
           `🔍 [PII-METADATA-DEBUG] trackUsage - enhancedMetrics:`,
@@ -490,7 +490,7 @@ export abstract class BaseLLMService {
   /**
    * Handle errors consistently across all providers
    */
-  protected handleError(error: any, context: string): never {
+  protected handleError(error: unknown, context: string): never {
     try {
       const provider = this.config?.provider || 'unknown';
       const model = this.config?.model;

@@ -101,25 +101,25 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
       }
 
       const fnConfig =
-        (definition.config as any)?.configuration?.function ||
-        (definition.config as any)?.function ||
+        (definition.config as Record<string, unknown>)?.configuration?.function ||
+        (definition.config as Record<string, unknown>)?.function ||
         {};
 
       const prompt =
         request.userMessage ||
-        (request.payload as any)?.prompt ||
+        (request.payload as Record<string, unknown>)?.prompt ||
         'Function agent execution';
       const input = { prompt, ...(request.payload || {}) } as Record<
         string,
-        any
+        unknown
       >;
       const userId =
-        (request.metadata as any)?.userId ||
-        (request.payload as any)?.metadata?.userId ||
+        (request.metadata as Record<string, unknown>)?.userId ||
+        (request.payload as Record<string, unknown>)?.metadata?.userId ||
         process.env.SYSTEM_USER_ID ||
         null;
       const conversationId = request.conversationId || null;
-      const taskId = (request.payload as any)?.taskId || null;
+      const taskId = (request.payload as Record<string, unknown>)?.taskId || null;
 
       const allowedModules = new Set(this.allowedModules);
       const moduleMap: Record<string, unknown> = {};
@@ -139,9 +139,9 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
 
       const sandbox: vm.Context = vm.createContext({
         console: {
-          log: (...a: any[]) => this.logger.log(a.join(' ')),
-          warn: (...a: any[]) => this.logger.warn(a.join(' ')),
-          error: (...a: any[]) => this.logger.error(a.join(' ')),
+          log: (...a: unknown[]) => this.logger.log(a.join(' ')),
+          warn: (...a: unknown[]) => this.logger.warn(a.join(' ')),
+          error: (...a: unknown[]) => this.logger.error(a.join(' ')),
         },
         Buffer,
         setTimeout,
@@ -188,14 +188,14 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   private resolveFunctionCode(
     definition: AgentRuntimeDefinition,
   ): string | null {
-    const recordCode = (definition as any)?.record?.function_code;
+    const recordCode = (definition as Record<string, unknown>)?.record?.function_code;
     if (typeof recordCode === 'string' && recordCode.trim().length > 0) {
       return recordCode;
     }
 
     const configCode =
-      (definition.config as any)?.configuration?.function?.code ||
-      (definition.config as any)?.function?.code;
+      (definition.config as Record<string, unknown>)?.configuration?.function?.code ||
+      (definition.config as Record<string, unknown>)?.function?.code;
     if (typeof configCode === 'string' && configCode.trim().length > 0) {
       return configCode;
     }
@@ -204,12 +204,12 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   }
 
   private buildExecutionContext(params: {
-    sandboxRequire: (moduleName: string) => any;
+    sandboxRequire: (moduleName: string) => unknown;
     organizationSlug: string | null;
     conversationId: string | null;
     userId: string | null;
     agentSlug: string;
-    config: any;
+    config: Record<string, unknown>;
     taskId: string | null;
   }) {
     const {
@@ -314,9 +314,9 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
     };
   }
 
-  private normalizeResultPayload(result: any): {
-    content: any;
-    metadata: Record<string, any>;
+  private normalizeResultPayload(result: unknown): {
+    content: unknown;
+    metadata: Record<string, unknown>;
     deliverables?: Array<{
       id: string;
       versionId?: string | null;
@@ -372,8 +372,8 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
     }
 
     const payload: {
-      content: any;
-      metadata: Record<string, any>;
+      content: unknown;
+      metadata: Record<string, unknown>;
       deliverables?: Array<{
         id: string;
         versionId?: string | null;

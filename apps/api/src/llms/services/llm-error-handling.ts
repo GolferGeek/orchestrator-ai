@@ -408,7 +408,7 @@ export class LLMErrorMapper {
    * Map OpenAI errors to standardized LLMError
    */
   static fromOpenAIError(
-    error: any,
+    error: unknown,
     provider: string = 'openai',
     model?: string,
     requestId?: string,
@@ -534,7 +534,7 @@ export class LLMErrorMapper {
    * Map Anthropic errors to standardized LLMError
    */
   static fromAnthropicError(
-    error: any,
+    error: unknown,
     provider: string = 'anthropic',
     model?: string,
     requestId?: string,
@@ -603,7 +603,7 @@ export class LLMErrorMapper {
    * Map Google errors to standardized LLMError
    */
   static fromGoogleError(
-    error: any,
+    error: unknown,
     provider: string = 'google',
     model?: string,
     requestId?: string,
@@ -662,7 +662,7 @@ export class LLMErrorMapper {
    * Map Ollama errors to standardized LLMError
    */
   static fromOllamaError(
-    error: any,
+    error: unknown,
     provider: string = 'ollama',
     model?: string,
     requestId?: string,
@@ -720,7 +720,7 @@ export class LLMErrorMapper {
    * Map Grok errors to standardized LLMError
    */
   static fromGrokError(
-    error: any,
+    error: unknown,
     provider: string = 'grok',
     model?: string,
     requestId?: string,
@@ -787,7 +787,7 @@ export class LLMErrorMapper {
    * Generic error mapper that attempts to determine provider from error
    */
   static fromGenericError(
-    error: any,
+    error: unknown,
     provider: string,
     model?: string,
     requestId?: string,
@@ -885,9 +885,9 @@ export class LLMErrorMonitor {
         error.provider === provider && new Date(error.timestamp) > cutoffTime,
     );
 
-    const errorsByType: Record<LLMErrorType, number> = {} as any;
-    const errorsBySeverity: Record<LLMErrorSeverity, number> = {} as any;
-    const errorsByCategory: Record<LLMErrorCategory, number> = {} as any;
+    const errorsByType: Record<LLMErrorType, number> = {} as Record<LLMErrorType, number>;
+    const errorsBySeverity: Record<LLMErrorSeverity, number> = {} as Record<LLMErrorSeverity, number>;
+    const errorsByCategory: Record<LLMErrorCategory, number> = {} as Record<LLMErrorCategory, number>;
     let retryableErrors = 0;
 
     relevantErrors.forEach((error) => {
@@ -984,7 +984,7 @@ export class LLMRetryHandler {
           error instanceof LLMError
             ? error
             : new LLMError(
-                (error as any)?.message || 'Unknown error',
+                (error as Error)?.message || 'Unknown error',
                 LLMErrorType.UNKNOWN,
                 'unknown',
                 { originalError: error },
@@ -1044,7 +1044,7 @@ export class LLMErrorUtils {
   /**
    * Check if an error is retryable
    */
-  static isRetryable(error: any): boolean {
+  static isRetryable(error: unknown): boolean {
     if (error instanceof LLMError) {
       return error.retryable;
     }
@@ -1065,7 +1065,7 @@ export class LLMErrorUtils {
   /**
    * Extract retry delay from error
    */
-  static getRetryDelay(error: any): number | undefined {
+  static getRetryDelay(error: unknown): number | undefined {
     if (error instanceof LLMError && error.retryAfterMs) {
       return error.retryAfterMs;
     }
