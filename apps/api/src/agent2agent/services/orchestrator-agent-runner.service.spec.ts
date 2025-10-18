@@ -7,7 +7,7 @@ import { OrchestrationCheckpointService } from '@agent-platform/services/orchest
 import { OrchestrationEventsService } from '@agent-platform/services/orchestration-events.service';
 import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
 import { OrchestrationRunFactoryService } from '@agent-platform/services/orchestration-run-factory.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 
@@ -419,6 +419,8 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
     const response = await service.execute(definition, request, 'org-1');
 
     expect(response.success).toBe(false);
-    expect(response.payload.metadata?.reason).toContain('does not support orchestrate mode');
+    expect(response.payload.metadata?.reason).toContain(
+      'does not support orchestrate mode',
+    );
   });
 });

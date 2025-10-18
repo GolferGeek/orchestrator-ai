@@ -153,7 +153,10 @@ export interface OrchestrationStepStateEntry extends JsonObject {
   [key: string]: JsonValue | undefined;
 }
 
-export type OrchestrationStepState = Record<string, OrchestrationStepStateEntry>;
+export type OrchestrationStepState = Record<
+  string,
+  OrchestrationStepStateEntry
+>;
 
 export type OrchestrationRunParameters = JsonObject;
 export type OrchestrationRunPlan = JsonObject;

@@ -7,7 +7,7 @@ import {
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
-import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 import { ConversationPlanRecord } from '@agent-platform/interfaces/conversation-plan-record.interface';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
@@ -19,7 +19,7 @@ import { AgentRegistryService } from '@agent-platform/services/agent-registry.se
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
 import { AgentRuntimeAgentMetadata } from '@agent-platform/interfaces/agent-runtime-agent-metadata.interface';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 import { HumanApprovalsRepository } from '@agent-platform/repositories/human-approvals.repository';
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
@@ -350,8 +350,7 @@ export class AgentExecutionGateway {
           metadata: runMetadata,
         });
 
-        const concurrencyLimit =
-          this.executionService.getConcurrencyLimit(run);
+        const concurrencyLimit = this.executionService.getConcurrencyLimit(run);
         const { run: executionRun, readySteps } =
           await this.executionService.startExecution(run.id, {
             maxParallel: concurrencyLimit,
@@ -446,8 +445,7 @@ export class AgentExecutionGateway {
           ),
         });
 
-        const savedConcurrency =
-          this.executionService.getConcurrencyLimit(run);
+        const savedConcurrency = this.executionService.getConcurrencyLimit(run);
         const { run: executionRun, readySteps } =
           await this.executionService.startExecution(run.id, {
             maxParallel: savedConcurrency,
@@ -617,13 +615,11 @@ export class AgentExecutionGateway {
       return;
     }
 
-    this.stepExecutor
-      .processRun(runId)
-      .catch((error) => {
-        this.logger.error(
-          `Failed to process orchestration run ${runId}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
+    this.stepExecutor.processRun(runId).catch((error) => {
+      this.logger.error(
+        `Failed to process orchestration run ${runId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
   }
 
   private maybeStartStream(
@@ -741,8 +737,9 @@ export class AgentExecutionGateway {
       };
     }
 
-    const resumeConcurrency =
-      this.executionService.getConcurrencyLimit(resolution.run);
+    const resumeConcurrency = this.executionService.getConcurrencyLimit(
+      resolution.run,
+    );
     const resumeResult = await this.executionService.startExecution(
       resolution.run.id,
       {
@@ -766,10 +763,7 @@ export class AgentExecutionGateway {
     };
   }
 
-  private toJsonObject(
-    value: unknown,
-    fallback: JsonObject,
-  ): JsonObject {
+  private toJsonObject(value: unknown, fallback: JsonObject): JsonObject {
     if (this.isJsonObject(value)) {
       return { ...value } as JsonObject;
     }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '../interfaces/agent.interface';
 import { TaskRequestDto } from '@agent2agent/dto/task-request.dto';
 
 export type RuntimePromptMode = 'converse' | 'build' | 'plan';

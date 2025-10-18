@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import type { BuildCreatePayload } from '@orchestrator-ai/transport-types/modes/build.types';
 import type {
   DeliverableData,
@@ -27,8 +27,8 @@ import {
 } from '../context-optimization/context-optimization.service';
 import type { ActionExecutionContext } from '../common/interfaces/action-handler.interface';
 import { DeliverablesService } from '../deliverables/deliverables.service';
-import { PlansService, type Plan } from '../plans/services/plans.service';
-import type { PlanVersion } from '../plans/services/plan-versions.service';
+import { PlansService } from '../plans/services/plans.service'; import type { Plan } from '../plans/types/plan.types';
+import type { PlanVersion } from '@/agent2agent/plans/types/plan.types';
 
 type ExtendedBuildCreatePayload = BuildCreatePayload & {
   content?: unknown;
@@ -191,7 +191,10 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       const deliverableStructure = definition.deliverableStructure ?? null;
       const outputSchema =
-        (typeof definition.ioSchema === 'object' && definition.ioSchema?.output) ?? definition.ioSchema ?? null;
+        (typeof definition.ioSchema === 'object' &&
+          definition.ioSchema?.output) ??
+        definition.ioSchema ??
+        null;
 
       const systemPrompt = this.buildExecutionPrompt(definition, {
         plan: buildContext.plan,
@@ -206,9 +209,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       const userMessage = this.resolveUserMessage(payload, request);
 
       let finalContent: string | null = null;
-      const providedContent = this.normalizeDeliverableContent(
-        payload.content,
-      );
+      const providedContent = this.normalizeDeliverableContent(payload.content);
       if (providedContent.trim().length > 0) {
         finalContent = providedContent;
       }
@@ -234,7 +235,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         );
 
         finalContent = this.normalizeDeliverableContent(llmResponse.content);
-        llmMetadata = (llmResponse.metadata as unknown as Record<string, unknown>) ?? null;
+        llmMetadata =
+          (llmResponse.metadata as unknown as Record<string, unknown>) ?? null;
       }
 
       if (!finalContent || finalContent.trim().length === 0) {
@@ -263,7 +265,10 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       // Extract the actual deliverable content for storage
       // The validation functions work with the full response, but we only want to store the unwrapped content
-      const contentForStorage = this.extractDeliverableContent(finalContent, deliverableStructure);
+      const contentForStorage = this.extractDeliverableContent(
+        finalContent,
+        deliverableStructure,
+      );
 
       const deliverableFormat = this.resolveDeliverableFormat(
         contentForStorage,
@@ -351,8 +356,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           ),
           rerun: payload.rerunContext
             ? {
-                sourceVersionId:
-                  payload.rerunContext.sourceVersion?.id ?? null,
+                sourceVersionId: payload.rerunContext.sourceVersion?.id ?? null,
                 deliverableId: payload.rerunContext.deliverable?.id ?? null,
               }
             : undefined,
@@ -413,9 +417,12 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     let planSource: PlanContextSource = planVersion ? 'current' : 'none';
 
     if (requestedPlanVersionId) {
-      const listResult = await this.plansService.executeAction<
-        PlanListActionResult
-      >('list', { includeArchived: true }, executionContext);
+      const listResult =
+        await this.plansService.executeAction<PlanListActionResult>(
+          'list',
+          { includeArchived: true },
+          executionContext,
+        );
 
       if (!listResult.success) {
         if (listResult.error?.code === 'NOT_FOUND') {
@@ -512,9 +519,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     if (options.conversationHistory.length > 0) {
       const recentMessages = options.conversationHistory
         .slice(-10)
-        .map(
-          (message) =>
-            `${message.role.toUpperCase()}: ${message.content}`.trim(),
+        .map((message) =>
+          `${message.role.toUpperCase()}: ${message.content}`.trim(),
         )
         .join('\n');
       sections.push(`Recent Conversation:\n${recentMessages}`);
@@ -626,7 +632,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
     // Extract provider and model from payload (from frontend store)
     const payloadAny = payload as any;
-    const providerName = payloadAny.currentProvider ?? payload.rerunConfig?.provider;
+    const providerName =
+      payloadAny.currentProvider ?? payload.rerunConfig?.provider;
     const modelName = payloadAny.currentModel ?? payload.rerunConfig?.model;
 
     if (providerName && providerName.trim().length > 0) {
@@ -677,7 +684,10 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
    * The LLM returns data wrapped in io_schema format: {status, blog_post: {title, content, ...}}
    * But we only want to store the actual content (markdown) in the version.
    */
-  private extractDeliverableContent(rawContent: string, deliverableStructure: unknown): string {
+  private extractDeliverableContent(
+    rawContent: string,
+    deliverableStructure: unknown,
+  ): string {
     // Try to parse as JSON
     let parsed: any;
     try {
@@ -693,14 +703,23 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     }
 
     // Look for common wrapper keys that contain the actual deliverable
-    const wrapperKeys = ['blog_post', 'deliverable', 'data', 'output', 'result'];
+    const wrapperKeys = [
+      'blog_post',
+      'deliverable',
+      'data',
+      'output',
+      'result',
+    ];
 
     for (const key of wrapperKeys) {
       if (key in parsed && parsed[key] && typeof parsed[key] === 'object') {
         const deliverableData = parsed[key];
 
         // If the deliverable has a 'content' field, extract just that (the markdown)
-        if ('content' in deliverableData && typeof deliverableData.content === 'string') {
+        if (
+          'content' in deliverableData &&
+          typeof deliverableData.content === 'string'
+        ) {
           return deliverableData.content;
         }
 
@@ -808,19 +827,33 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       }
 
       // Look for common wrapper keys
-      const wrapperKeys = ['blog_post', 'deliverable', 'data', 'output', 'result'];
+      const wrapperKeys = [
+        'blog_post',
+        'deliverable',
+        'data',
+        'output',
+        'result',
+      ];
 
       for (const key of wrapperKeys) {
         if (key in parsed && parsed[key] && typeof parsed[key] === 'object') {
           const deliverableData = parsed[key];
-          if ('title' in deliverableData && typeof deliverableData.title === 'string' && deliverableData.title.trim().length > 0) {
+          if (
+            'title' in deliverableData &&
+            typeof deliverableData.title === 'string' &&
+            deliverableData.title.trim().length > 0
+          ) {
             return deliverableData.title.trim();
           }
         }
       }
 
       // Check top-level title
-      if ('title' in parsed && typeof parsed.title === 'string' && parsed.title.trim().length > 0) {
+      if (
+        'title' in parsed &&
+        typeof parsed.title === 'string' &&
+        parsed.title.trim().length > 0
+      ) {
         return parsed.title.trim();
       }
 
@@ -857,10 +890,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     payload: ExtendedBuildCreatePayload,
   ): string {
     const fromMetadata = metadata?.provider;
-    if (
-      typeof fromMetadata === 'string' &&
-      fromMetadata.trim().length > 0
-    ) {
+    if (typeof fromMetadata === 'string' && fromMetadata.trim().length > 0) {
       return fromMetadata;
     }
 

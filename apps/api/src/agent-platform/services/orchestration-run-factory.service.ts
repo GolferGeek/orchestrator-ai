@@ -161,9 +161,7 @@ export class OrchestrationRunFactoryService {
       };
     }
 
-    const errorHandling = this.extractErrorHandlingMetadata(
-      options.definition,
-    );
+    const errorHandling = this.extractErrorHandlingMetadata(options.definition);
 
     if (errorHandling) {
       baseMetadata.errorHandling = errorHandling;
@@ -209,8 +207,8 @@ export class OrchestrationRunFactoryService {
   private extractErrorHandlingMetadata(
     definition: OrchestrationResolvedDefinition,
   ): Record<string, any> | null {
-    const orchestrationConfig =
-      (definition.rawDefinition?.orchestration ?? {}) as Record<string, any>;
+    const orchestrationConfig = (definition.rawDefinition?.orchestration ??
+      {}) as Record<string, any>;
     const retryConfig = this.normalizeRetryConfig(
       orchestrationConfig.error_handling,
     );
@@ -245,9 +243,7 @@ export class OrchestrationRunFactoryService {
     const defaultConcurrency = this.resolveDefaultConcurrency();
 
     const concurrencyConfig = executionConfig?.concurrency ?? null;
-    const concurrencyValue = this.coerceNumber(
-      concurrencyConfig?.maxParallel,
-    );
+    const concurrencyValue = this.coerceNumber(concurrencyConfig?.maxParallel);
     const resolvedConcurrency =
       concurrencyValue !== null
         ? Math.max(1, Math.floor(Number(concurrencyValue)))
@@ -257,7 +253,11 @@ export class OrchestrationRunFactoryService {
       metadata.concurrency = {
         maxParallelSteps: resolvedConcurrency,
         source:
-          concurrencyValue !== null ? 'definition' : defaultConcurrency !== null ? 'default' : 'unspecified',
+          concurrencyValue !== null
+            ? 'definition'
+            : defaultConcurrency !== null
+              ? 'default'
+              : 'unspecified',
         queueStrategy: concurrencyConfig?.queueStrategy ?? 'fifo',
       };
     }
@@ -270,9 +270,7 @@ export class OrchestrationRunFactoryService {
     return Object.keys(metadata).length > 0 ? metadata : null;
   }
 
-  private resolveRunConcurrency(
-    metadata: Record<string, any>,
-  ): number | null {
+  private resolveRunConcurrency(metadata: Record<string, any>): number | null {
     const execution = this.asRecord(
       metadata.execution as Record<string, any> | undefined,
     );
@@ -361,9 +359,7 @@ export class OrchestrationRunFactoryService {
     return {
       maxAttempts,
       strategy:
-        typeof config.strategy === 'string'
-          ? config.strategy
-          : 'exponential',
+        typeof config.strategy === 'string' ? config.strategy : 'exponential',
       initialDelayMs: Math.max(250, initialDelayMs),
       backoffMultiplier: Math.max(1, backoffMultiplier),
       maxDelayMs:
@@ -407,9 +403,7 @@ export class OrchestrationRunFactoryService {
           ? rollback.manualOnly
           : rollback.manual_only === true,
       description:
-        typeof rollback.description === 'string'
-          ? rollback.description
-          : null,
+        typeof rollback.description === 'string' ? rollback.description : null,
     };
   }
 
@@ -420,7 +414,7 @@ export class OrchestrationRunFactoryService {
       return {};
     }
 
-    const onFailureRaw = (raw as Record<string, any>).on_step_failure;
+    const onFailureRaw = raw.on_step_failure;
     if (!onFailureRaw) {
       return {};
     }
@@ -434,8 +428,11 @@ export class OrchestrationRunFactoryService {
       }, {});
     }
 
-    if (typeof onFailureRaw === 'object') {
-      return { ...(onFailureRaw as Record<string, any>) };
+    if (onFailureRaw && typeof onFailureRaw === 'object') {
+      const cloned = this.asRecord(onFailureRaw);
+      if (cloned) {
+        return cloned;
+      }
     }
 
     return {};
@@ -450,10 +447,7 @@ export class OrchestrationRunFactoryService {
       return Math.max(1, attemptConfig);
     }
 
-    const retryCount = this.coerceNumber(
-      config.retry_count,
-      config.retryCount,
-    );
+    const retryCount = this.coerceNumber(config.retry_count, config.retryCount);
 
     if (retryCount !== null) {
       return Math.max(1, retryCount + 1);
@@ -484,6 +478,22 @@ export class OrchestrationRunFactoryService {
     if (!value || typeof value !== 'object') {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    if (Array.isArray(value)) {
+      return value.reduce<Record<string, any>>((acc, entry, index) => {
+        acc[index] = entry;
+        return acc;
+      }, {});
+    }
+
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return {};
+    }
+
+    const result: Record<string, any> = {};
+    for (const [key, entry] of entries) {
+      result[key] = entry;
+    }
+    return result;
   }
 }

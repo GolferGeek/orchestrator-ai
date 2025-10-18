@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import type { ActionResult } from '@/agent2agent/common/interfaces/action-handler.interface';
-import { Plan, PlansService } from '@/agent2agent/plans/services/plans.service';
-import type { PlanVersion } from '@/agent2agent/plans/services/plan-versions.service';
+import { PlansService } from '@/agent2agent/plans/services/plans.service'; import type { Plan } from '@/agent2agent/plans/types/plan.types';
+import type { PlanVersion } from '@/agent2agent/plans/types/plan.types';
 import {
   AgentTaskMode,
   TaskRequestDto,

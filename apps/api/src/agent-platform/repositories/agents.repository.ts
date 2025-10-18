@@ -4,7 +4,7 @@ import {
   AgentRecord,
   AgentUpsertInput,
   AgentUpsertRow,
-} from '../interfaces/agent-record.interface';
+} from '../interfaces/agent.interface';
 
 type SupabaseError = { message: string; code?: string } | null;
 

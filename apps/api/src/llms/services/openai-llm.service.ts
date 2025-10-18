@@ -19,9 +19,7 @@ import type {
   OpenAIChatCompletionRequest,
   OpenAIChatCompletionResponse,
 } from '../types/provider-payload.types';
-import {
-  openAIChatCompletionSchema,
-} from '../types/provider-schemas';
+import { openAIChatCompletionSchema } from '../types/provider-schemas';
 import type { OpenAIChatCompletionParsed } from '../types/provider-schemas';
 
 /**

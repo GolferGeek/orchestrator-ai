@@ -1,6 +1,6 @@
 import { AgentRuntimeRedactionService } from './agent-runtime-redaction.service';
 import { RedactionPatternsRepository } from '../repositories/redaction-patterns.repository';
-import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '../interfaces/agent.interface';
 import { TaskRequestDto } from '@agent2agent/dto/task-request.dto';
 
 describe('AgentRuntimeRedactionService', () => {

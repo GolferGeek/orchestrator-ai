@@ -1,13 +1,10 @@
 import Ajv from 'ajv';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { LLMService } from '@llm/llm.service';
 import { Agent2AgentConversationsService } from '../agent-conversations.service';
 import { PlansService } from '../../plans/services/plans.service';
 import { DeliverablesService } from '../../deliverables/deliverables.service';
-import {
-  TaskRequestDto,
-  AgentTaskMode,
-} from '../../dto/task-request.dto';
+import { TaskRequestDto, AgentTaskMode } from '../../dto/task-request.dto';
 import { TaskResponseDto } from '../../dto/task-response.dto';
 import type {
   BuildCopyVersionPayload,
@@ -68,10 +65,8 @@ export async function handleBuildRead(
 
   try {
     const payload = (request.payload ?? {}) as Partial<BuildReadPayload>;
-    const { userId, conversationId, executionContext } = buildBuildActionContext(
-      definition,
-      request,
-    );
+    const { userId, conversationId, executionContext } =
+      buildBuildActionContext(definition, request);
 
     const existingDeliverable = (await fetchExistingDeliverable(
       services.deliverablesService,
@@ -134,8 +129,7 @@ export async function handleBuildRead(
       return TaskResponseDto.success(AgentTaskMode.BUILD, {
         content: {
           deliverable: baseDeliverable,
-          version:
-            serializeDeliverableVersion(targetVersion) ?? undefined,
+          version: serializeDeliverableVersion(targetVersion) ?? undefined,
         },
         metadata,
       });
@@ -296,7 +290,10 @@ export async function handleBuildEdit(
     );
 
     const ioSchemaOutput =
-      (typeof definition.ioSchema === 'object' && definition.ioSchema?.output) ?? definition.ioSchema ?? null;
+      (typeof definition.ioSchema === 'object' &&
+        definition.ioSchema?.output) ??
+      definition.ioSchema ??
+      null;
 
     validateDeliverableSchema(normalizedContent, ioSchemaOutput);
 
@@ -337,7 +334,8 @@ export async function handleBuildEdit(
           definition,
           userId,
         ),
-        version: serializeDeliverableVersion(editResult.data.version) ?? undefined,
+        version:
+          serializeDeliverableVersion(editResult.data.version) ?? undefined,
       },
       metadata,
     });
@@ -433,23 +431,21 @@ export async function handleBuildRerun(
     const serializedVersion =
       serializeDeliverableVersion(sourceVersion) ?? undefined;
 
-  const rerunPayload = {
-    action: 'create' as const,
-    title:
-      (request.payload as any)?.title ??
-      deliverableRecord.title ??
-      'Deliverable',
-    type:
-      (request.payload as any)?.type ??
-      deliverableRecord.type ??
-      'document',
-    planVersionId: (request.payload as any)?.planVersionId,
-    deliverableId: deliverableRecord.id,
-    rerunConfig: payload.rerunConfig,
-    rerunContext: {
-      sourceVersion: serializedVersion,
-      deliverable: serializedDeliverable,
-    },
+    const rerunPayload = {
+      action: 'create' as const,
+      title:
+        (request.payload as any)?.title ??
+        deliverableRecord.title ??
+        'Deliverable',
+      type:
+        (request.payload as any)?.type ?? deliverableRecord.type ?? 'document',
+      planVersionId: (request.payload as any)?.planVersionId,
+      deliverableId: deliverableRecord.id,
+      rerunConfig: payload.rerunConfig,
+      rerunContext: {
+        sourceVersion: serializedVersion,
+        deliverable: serializedDeliverable,
+      },
     };
 
     const rerunRequest: TaskRequestDto = {
@@ -725,9 +721,7 @@ export async function handleBuildMergeVersions(
 
     const versions = (listResult.data.versions ?? []) as any[];
     const sourceVersions = payload.versionIds
-      .map((versionId) =>
-        versions.find((version) => version.id === versionId),
-      )
+      .map((versionId) => versions.find((version) => version.id === versionId))
       .filter((version): version is Record<string, any> => Boolean(version));
 
     if (sourceVersions.length !== payload.versionIds.length) {
@@ -745,27 +739,23 @@ export async function handleBuildMergeVersions(
 
     const serializedVersions = sourceVersions
       .map((version) => serializeDeliverableVersion(version))
-      .filter(
-        (version): version is DeliverableVersionData => Boolean(version),
-      );
+      .filter((version): version is DeliverableVersionData => Boolean(version));
 
-  const mergePayload = {
-    action: 'create' as const,
-    title:
-      (request.payload as any)?.title ??
-      deliverableRecord.title ??
-      'Deliverable',
-    type:
-      (request.payload as any)?.type ??
-      deliverableRecord.type ??
-      'document',
-    planVersionId: (request.payload as any)?.planVersionId,
-    deliverableId: deliverableRecord.id,
-    mergeContext: {
-      versionIds: payload.versionIds,
-      mergePrompt: payload.mergePrompt,
-      sourceVersions: serializedVersions,
-      deliverable: serializedDeliverable,
+    const mergePayload = {
+      action: 'create' as const,
+      title:
+        (request.payload as any)?.title ??
+        deliverableRecord.title ??
+        'Deliverable',
+      type:
+        (request.payload as any)?.type ?? deliverableRecord.type ?? 'document',
+      planVersionId: (request.payload as any)?.planVersionId,
+      deliverableId: deliverableRecord.id,
+      mergeContext: {
+        versionIds: payload.versionIds,
+        mergePrompt: payload.mergePrompt,
+        sourceVersions: serializedVersions,
+        deliverable: serializedDeliverable,
       },
     };
 
@@ -876,13 +866,17 @@ export async function handleBuildCopyVersion(
 
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: {
-        deliverable: serializeDeliverable(targetDeliverable, definition, userId),
-        version: serializeDeliverableVersion(
-          copyResult.data.copiedVersion,
-        ) ?? undefined,
-        sourceVersion: serializeDeliverableVersion(
-          copyResult.data.sourceVersion,
-        ) ?? undefined,
+        deliverable: serializeDeliverable(
+          targetDeliverable,
+          definition,
+          userId,
+        ),
+        version:
+          serializeDeliverableVersion(copyResult.data.copiedVersion) ??
+          undefined,
+        sourceVersion:
+          serializeDeliverableVersion(copyResult.data.sourceVersion) ??
+          undefined,
       },
       metadata,
     });
@@ -1031,7 +1025,9 @@ export function validateDeliverableSchema(
     candidate = parsed !== null ? parsed : extracted;
   }
 
-  console.log('[validateDeliverableSchema] Validating io_schema with wrapped format');
+  console.log(
+    '[validateDeliverableSchema] Validating io_schema with wrapped format',
+  );
 
   if (!validate(candidate)) {
     const message = ajv.errorsText(validate.errors, { separator: '; ' });
@@ -1069,9 +1065,7 @@ export function buildDeliverableMetadata(
 
     const parsed = tryParseJson(trimmed);
     if (parsed !== null) {
-      const keys = Object.keys(
-        parsed as Record<string, unknown>,
-      );
+      const keys = Object.keys(parsed as Record<string, unknown>);
       metadata.format = Array.isArray(parsed) ? 'array' : 'json';
       metadata.keyCount = keys.length;
       if (keys.length > 0) {
@@ -1159,7 +1153,9 @@ function buildBuildActionContext(
   };
 }
 
-function sanitizeMetadata(value: Record<string, unknown> | undefined): JsonObject {
+function sanitizeMetadata(
+  value: Record<string, unknown> | undefined,
+): JsonObject {
   if (!value) {
     return {};
   }
@@ -1189,14 +1185,12 @@ function toJsonValue(value: unknown): JsonValue | undefined {
 
   if (typeof value === 'object') {
     const result: JsonObject = {};
-    Object.entries(value as Record<string, unknown>).forEach(
-      ([key, entry]) => {
-        const jsonEntry = toJsonValue(entry);
-        if (jsonEntry !== undefined) {
-          result[key] = jsonEntry;
-        }
-      },
-    );
+    Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
+      const jsonEntry = toJsonValue(entry);
+      if (jsonEntry !== undefined) {
+        result[key] = jsonEntry;
+      }
+    });
     return result;
   }
 
@@ -1232,9 +1226,7 @@ function serializeDeliverable(
   return {
     id: deliverable.id,
     conversationId:
-      deliverable.conversationId ??
-      deliverable.conversation_id ??
-      '',
+      deliverable.conversationId ?? deliverable.conversation_id ?? '',
     userId,
     agentName:
       deliverable.agentName ??
@@ -1257,8 +1249,7 @@ function serializeDeliverableVersion(
     return null;
   }
 
-  const formatRaw =
-    version.format ?? version.deliverableFormat ?? 'markdown';
+  const formatRaw = version.format ?? version.deliverableFormat ?? 'markdown';
   const normalizedFormat =
     typeof formatRaw === 'string'
       ? normalizeDeliverableFormat(formatRaw)
@@ -1266,22 +1257,15 @@ function serializeDeliverableVersion(
 
   return {
     id: version.id,
-    deliverableId:
-      version.deliverableId ?? version.deliverable_id ?? '',
+    deliverableId: version.deliverableId ?? version.deliverable_id ?? '',
     versionNumber: numberOrZero(
       version.versionNumber ?? version.version_number ?? 1,
       1,
     ),
     content: version.content ?? '',
     format: normalizedFormat,
-    createdByType:
-      version.createdByType ??
-      version.created_by_type ??
-      'agent',
-    createdById:
-      version.createdById ??
-      version.created_by_id ??
-      null,
+    createdByType: version.createdByType ?? version.created_by_type ?? 'agent',
+    createdById: version.createdById ?? version.created_by_id ?? null,
     metadata: version.metadata ?? undefined,
     isCurrentVersion: Boolean(
       version.isCurrentVersion ?? version.is_current_version,
@@ -1317,10 +1301,7 @@ function resolveNamespace(
       : null;
 
   return (
-    organizationSlug ??
-    definition.organizationSlug ??
-    namespace ??
-    'global'
+    organizationSlug ?? definition.organizationSlug ?? namespace ?? 'global'
   );
 }
 
@@ -1353,10 +1334,19 @@ function coerceDeliverableContent(content: unknown): unknown {
   console.log('[coerceDeliverableContent] Input type:', typeof content);
   if (typeof content === 'string') {
     console.log('[coerceDeliverableContent] Content length:', content.length);
-    console.log('[coerceDeliverableContent] First 300 chars:', content.substring(0, 300));
-    console.log('[coerceDeliverableContent] Last 300 chars:', content.substring(Math.max(0, content.length - 300)));
+    console.log(
+      '[coerceDeliverableContent] First 300 chars:',
+      content.substring(0, 300),
+    );
+    console.log(
+      '[coerceDeliverableContent] Last 300 chars:',
+      content.substring(Math.max(0, content.length - 300)),
+    );
   } else {
-    console.log('[coerceDeliverableContent] Input value:', JSON.stringify(content).substring(0, 200));
+    console.log(
+      '[coerceDeliverableContent] Input value:',
+      JSON.stringify(content).substring(0, 200),
+    );
   }
 
   if (typeof content === 'string') {
@@ -1365,22 +1355,32 @@ function coerceDeliverableContent(content: unknown): unknown {
     console.log('[coerceDeliverableContent] After parsing:', {
       hadCodeFence: candidate !== content.trim(),
       parsedSuccessfully: parsed !== null,
-      parsedType: parsed !== null ? typeof parsed : 'null'
+      parsedType: parsed !== null ? typeof parsed : 'null',
     });
 
     // If parsed successfully, check if it's wrapped in io_schema output format
-    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    if (
+      parsed !== null &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed)
+    ) {
       // Check for common io_schema output wrappers and extract the actual deliverable
       if ('blog_post' in parsed) {
-        console.log('[coerceDeliverableContent] Unwrapping blog_post from io_schema output format');
+        console.log(
+          '[coerceDeliverableContent] Unwrapping blog_post from io_schema output format',
+        );
         return parsed.blog_post;
       }
       if ('deliverable' in parsed) {
-        console.log('[coerceDeliverableContent] Unwrapping deliverable from io_schema output format');
+        console.log(
+          '[coerceDeliverableContent] Unwrapping deliverable from io_schema output format',
+        );
         return parsed.deliverable;
       }
       if ('data' in parsed) {
-        console.log('[coerceDeliverableContent] Unwrapping data from io_schema output format');
+        console.log(
+          '[coerceDeliverableContent] Unwrapping data from io_schema output format',
+        );
         return parsed.data;
       }
     }
@@ -1396,11 +1396,15 @@ function coerceDeliverableContent(content: unknown): unknown {
     // Check if this is an io_schema wrapped object
     const obj = content as any;
     if ('blog_post' in obj) {
-      console.log('[coerceDeliverableContent] Unwrapping blog_post from object');
+      console.log(
+        '[coerceDeliverableContent] Unwrapping blog_post from object',
+      );
       return obj.blog_post;
     }
     if ('deliverable' in obj) {
-      console.log('[coerceDeliverableContent] Unwrapping deliverable from object');
+      console.log(
+        '[coerceDeliverableContent] Unwrapping deliverable from object',
+      );
       return obj.deliverable;
     }
     if ('data' in obj) {
@@ -1433,7 +1437,7 @@ function tryParseJson(value: string): any | null {
   // Look for the first occurrence of { or [ and try to parse from there
   const jsonStartIndex = Math.min(
     trimmed.indexOf('{') >= 0 ? trimmed.indexOf('{') : Infinity,
-    trimmed.indexOf('[') >= 0 ? trimmed.indexOf('[') : Infinity
+    trimmed.indexOf('[') >= 0 ? trimmed.indexOf('[') : Infinity,
   );
 
   if (jsonStartIndex !== Infinity && jsonStartIndex > 0) {

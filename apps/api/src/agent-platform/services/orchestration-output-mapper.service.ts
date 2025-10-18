@@ -80,29 +80,36 @@ export class OrchestrationOutputMapper {
 
     const deliverables = candidate.deliverables;
     if (Array.isArray(deliverables) && deliverables.length > 0) {
-      const primary = (deliverables[0] ?? {}) as JsonObject;
-      return {
-        id: this.asString(primary.id) ?? null,
-        versionId:
-          this.asString(primary.versionId) ??
-          this.asString(primary.version_id) ??
-          null,
-      };
+      const primaryCandidate = deliverables[0];
+      if (this.isJsonObject(primaryCandidate)) {
+        const primary = primaryCandidate;
+        const currentVersion = this.isJsonObject(primary.currentVersion)
+          ? primary.currentVersion
+          : undefined;
+        return {
+          id: this.asString(primary.id) ?? null,
+          versionId:
+            this.asString(primary.versionId) ??
+            this.asString(primary.version_id) ??
+            this.asString(currentVersion?.id) ??
+            null,
+        };
+      }
     }
 
-    const contentDeliverable = (
-      candidate.content as JsonObject | undefined
-    )?.deliverable;
-    if (contentDeliverable && typeof contentDeliverable === 'object') {
-      const deliverable = contentDeliverable as JsonObject;
+    const content = candidate.content as JsonObject | undefined;
+    const deliverableCandidate = content?.deliverable;
+    if (this.isJsonObject(deliverableCandidate)) {
+      const deliverable = deliverableCandidate;
+      const currentVersion = this.isJsonObject(deliverable.currentVersion)
+        ? deliverable.currentVersion
+        : undefined;
       return {
         id: this.asString(deliverable.id) ?? null,
         versionId:
           this.asString(deliverable.versionId) ??
           this.asString(deliverable.version_id) ??
-          this.asString(
-            (deliverable.currentVersion as JsonObject | undefined)?.id,
-          ) ??
+          this.asString(currentVersion?.id) ??
           null,
       };
     }
@@ -152,8 +159,8 @@ export class OrchestrationOutputMapper {
     const fieldMatch = remainder.match(/^([^[]+)/);
     if (fieldMatch?.[1]) {
       const fieldName = fieldMatch[1];
-      if (current && typeof current === 'object' && !Array.isArray(current)) {
-        current = (current as JsonObject)[fieldName] ?? null;
+      if (this.isJsonObject(current)) {
+        current = current[fieldName] ?? null;
       } else {
         current = null;
       }
@@ -192,5 +199,9 @@ export class OrchestrationOutputMapper {
 
   private asString(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined;
+  }
+
+  private isJsonObject(value: unknown): value is JsonObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 }

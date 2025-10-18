@@ -4,7 +4,8 @@
  * These are just the generic types with strict naming for backwards compatibility
  */
 
-import type { A2ATaskSuccessResponse, A2ATaskErrorResponse, A2ATaskRequest, TaskMessage } from '../index';
+import type { A2ATaskSuccessResponse, A2ATaskErrorResponse } from '../response/task-response.types';
+import type { A2ATaskRequest, TaskMessage } from '../request/task-request.types';
 
 // Request types - all use the generic A2ATaskRequest structure
 export type StrictPlanRequest = A2ATaskRequest;

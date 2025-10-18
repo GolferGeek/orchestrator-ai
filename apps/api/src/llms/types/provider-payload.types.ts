@@ -21,7 +21,8 @@ import type {
  * Narrow wrappers around SDK request/response types so we can reference them
  * across the codebase without sprinkling direct imports in every service.
  */
-export type OpenAIChatCompletionRequest = ChatCompletionCreateParamsNonStreaming;
+export type OpenAIChatCompletionRequest =
+  ChatCompletionCreateParamsNonStreaming;
 export type OpenAIChatCompletionResponse = ChatCompletion;
 
 export type AnthropicMessageCreateRequest = MessageCreateParamsNonStreaming;

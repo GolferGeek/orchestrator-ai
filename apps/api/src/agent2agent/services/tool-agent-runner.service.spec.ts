@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ToolAgentRunnerService } from './tool-agent-runner.service';
 import { MCPService } from '../../mcp/mcp.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
-import { AgentRuntimeDefinition } from '../../agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '../../agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { ActionResult } from '../common/interfaces/action-handler.interface';
 

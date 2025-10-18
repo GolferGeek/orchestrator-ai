@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { AgentRuntimeMetricsService } from '@agent-platform/services/agent-runtime-metrics.service';
 
@@ -270,11 +270,9 @@ export class AgentCardBuilderService {
     const contextRecord = this.asRecord(agent.context);
     const metadataRecord = this.asRecord(contextRecord?.metadata);
 
-    const contextSkills =
-      this.ensureStringArray(contextRecord?.skills) ?? [];
+    const contextSkills = this.ensureStringArray(contextRecord?.skills) ?? [];
     const configSkills = this.ensureStringArray(agent.config?.skills) ?? [];
-    const yamlSkills =
-      this.ensureStringArray(metadataRecord?.skills) ?? [];
+    const yamlSkills = this.ensureStringArray(metadataRecord?.skills) ?? [];
 
     const combined = new Set<string>([
       ...contextSkills,
@@ -342,7 +340,7 @@ export class AgentCardBuilderService {
       const contact =
         typeof contactValue === 'string'
           ? contactValue
-          : this.asRecord(contactValue) ?? null;
+          : (this.asRecord(contactValue) ?? null);
       const url = this.pickString(providerObject.url);
 
       return {

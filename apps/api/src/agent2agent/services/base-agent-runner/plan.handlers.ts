@@ -1,11 +1,11 @@
 import Ajv from 'ajv';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { LLMService } from '@llm/llm.service';
 import type { LLMResponse } from '@llm/services/llm-interfaces';
 import type { ConversationMessage } from '../../context-optimization/context-optimization.service';
 import { PlansService } from '../../plans/services/plans.service';
-import type { Plan } from '../../plans/services/plans.service';
-import type { PlanVersion } from '../../plans/services/plan-versions.service';
+import type { Plan } from '@/agent2agent/plans/types/plan.types';
+import type { PlanVersion } from '@/agent2agent/plans/types/plan.types';
 import { Agent2AgentConversationsService } from '../agent-conversations.service';
 import {
   fetchConversationHistory,
@@ -113,11 +113,14 @@ export async function handlePlanCreate(
         );
       }
 
-      const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-        planMetadata: extractPlanMetadata(currentVersion.content),
-        planStructureApplied: Boolean(definition.planStructure),
-        source: 'existing',
-      });
+      const metadata = buildResponseMetadata(
+        EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+        {
+          planMetadata: extractPlanMetadata(currentVersion.content),
+          planStructureApplied: Boolean(definition.planStructure),
+          source: 'existing',
+        },
+      );
 
       request.planId = existingPlan.id;
 
@@ -153,14 +156,16 @@ export async function handlePlanCreate(
 
       // Extract LLM configuration from payload (required from frontend)
       const payloadAny = payload as any;
-      const providerName = payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
-      const modelName = payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
+      const providerName =
+        payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
+      const modelName =
+        payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
 
       // Validate LLM configuration (no fallbacks - frontend must provide)
       if (!providerName || !modelName) {
         throw new Error(
           'LLM provider and model must be specified in the request payload. ' +
-          'Frontend must send currentProvider and currentModel.'
+            'Frontend must send currentProvider and currentModel.',
         );
       }
 
@@ -196,28 +201,27 @@ export async function handlePlanCreate(
     const planFormat = resolvePlanFormat(definition);
     const planMetadata = extractPlanMetadata(parsed ?? normalizedContent);
 
-    const createResult = await services.plansService.executeAction<
-      PlanCreateResponseContent
-    >(
-      'create',
-      {
-        title:
-          (payload.title && payload.title.trim().length > 0
-            ? payload.title
-            : null) ?? 'Plan',
-        content: normalizedContent,
-        format: planFormat,
-        agentName: definition.slug, // Always use slug, not displayName
-        namespace,
-        taskId,
-        metadata: {
-          planMetadata,
-          planStructureApplied: Boolean(definition.planStructure),
-          source: llmResponse ? 'llm' : 'payload',
+    const createResult =
+      await services.plansService.executeAction<PlanCreateResponseContent>(
+        'create',
+        {
+          title:
+            (payload.title && payload.title.trim().length > 0
+              ? payload.title
+              : null) ?? 'Plan',
+          content: normalizedContent,
+          format: planFormat,
+          agentName: definition.slug, // Always use slug, not displayName
+          namespace,
+          taskId,
+          metadata: {
+            planMetadata,
+            planStructureApplied: Boolean(definition.planStructure),
+            source: llmResponse ? 'llm' : 'payload',
+          },
         },
-      },
-      executionContext,
-    );
+        executionContext,
+      );
 
     if (!createResult.success || !createResult.data) {
       return TaskResponseDto.failure(
@@ -228,13 +232,16 @@ export async function handlePlanCreate(
 
     const { plan, version, isNew } = createResult.data;
     const baseMetadata = createBaseMetadataFromLLM(llmResponse);
-    const metadata = buildResponseMetadata(baseMetadata as unknown as Record<string, unknown>, {
-      planMetadata,
-      planFormat,
-      planStructureApplied: Boolean(definition.planStructure),
-      isNew,
-      conversationId,
-    });
+    const metadata = buildResponseMetadata(
+      baseMetadata as unknown as Record<string, unknown>,
+      {
+        planMetadata,
+        planFormat,
+        planStructureApplied: Boolean(definition.planStructure),
+        isNew,
+        conversationId,
+      },
+    );
 
     request.planId = plan.id;
 
@@ -287,11 +294,12 @@ export async function handlePlanRead(
     request.planId = plan.id;
 
     if (payload.versionId) {
-      const listResult = await services.plansService.executeAction<PlanListResponseContent>(
-        'list',
-        {},
-        executionContext,
-      );
+      const listResult =
+        await services.plansService.executeAction<PlanListResponseContent>(
+          'list',
+          {},
+          executionContext,
+        );
 
       if (!listResult.success || !listResult.data) {
         return TaskResponseDto.failure(
@@ -312,10 +320,13 @@ export async function handlePlanRead(
         );
       }
 
-      const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-        planMetadata: extractPlanMetadata(targetVersion.content),
-        requestedVersionId: payload.versionId,
-      });
+      const metadata = buildResponseMetadata(
+        EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+        {
+          planMetadata: extractPlanMetadata(targetVersion.content),
+          requestedVersionId: payload.versionId,
+        },
+      );
 
       return TaskResponseDto.success(AgentTaskMode.PLAN, {
         content: {
@@ -330,12 +341,15 @@ export async function handlePlanRead(
 
     const currentVersion = plan.currentVersion ?? null;
 
-    const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-      planMetadata: extractPlanMetadata(
-        currentVersion?.content ?? plan.currentVersion ?? '',
-      ),
-      conversationId,
-    });
+    const metadata = buildResponseMetadata(
+      EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+      {
+        planMetadata: extractPlanMetadata(
+          currentVersion?.content ?? plan.currentVersion ?? '',
+        ),
+        conversationId,
+      },
+    );
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
@@ -365,13 +379,14 @@ export async function handlePlanList(
       request,
     );
 
-    const listResult = await services.plansService.executeAction<PlanListResponseContent>(
-      'list',
-      {
-        includeArchived: payload.includeArchived ?? false,
-      },
-      executionContext,
-    );
+    const listResult =
+      await services.plansService.executeAction<PlanListResponseContent>(
+        'list',
+        {
+          includeArchived: payload.includeArchived ?? false,
+        },
+        executionContext,
+      );
 
     if (!listResult.success || !listResult.data) {
       return TaskResponseDto.failure(
@@ -380,7 +395,11 @@ export async function handlePlanList(
       );
     }
 
-    const responsePlan = serializePlan(listResult.data.plan, definition, userId);
+    const responsePlan = serializePlan(
+      listResult.data.plan,
+      definition,
+      userId,
+    );
     const responseVersions = (listResult.data.versions ?? []).map((version) =>
       serializePlanVersion(version),
     );
@@ -392,9 +411,12 @@ export async function handlePlanList(
           (version): version is NonNullable<typeof version> => Boolean(version),
         ),
       },
-      metadata: buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-        versionCount: responseVersions.length,
-      }),
+      metadata: buildResponseMetadata(
+        EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+        {
+          versionCount: responseVersions.length,
+        },
+      ),
     });
   } catch (error) {
     return handleError(AgentTaskMode.PLAN, error);
@@ -430,18 +452,19 @@ export async function handlePlanEdit(
       normalized.parsed ?? normalized.content,
     );
 
-    const editResult = await services.plansService.executeAction<PlanCreateResponseContent>(
-      'edit',
-      {
-        content: normalized.content,
-        metadata: {
-          comment: payload.comment,
-          planMetadata,
-          planStructureApplied: Boolean(definition.planStructure),
+    const editResult =
+      await services.plansService.executeAction<PlanCreateResponseContent>(
+        'edit',
+        {
+          content: normalized.content,
+          metadata: {
+            comment: payload.comment,
+            planMetadata,
+            planStructureApplied: Boolean(definition.planStructure),
+          },
         },
-      },
-      executionContext,
-    );
+        executionContext,
+      );
 
     if (!editResult.success || !editResult.data) {
       return TaskResponseDto.failure(
@@ -450,10 +473,13 @@ export async function handlePlanEdit(
       );
     }
 
-    const baseMetadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-      planMetadata,
-      source: 'manual-edit',
-    });
+    const baseMetadata = buildResponseMetadata(
+      EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+      {
+        planMetadata,
+        source: 'manual-edit',
+      },
+    );
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
@@ -514,14 +540,17 @@ export async function handlePlanRerun(
       unknown
     >;
 
-    const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-      provider: typeof llmInfo.provider === 'string' ? llmInfo.provider : '',
-      model: typeof llmInfo.model === 'string' ? llmInfo.model : '',
-      usage: normalizeUsage(llmMetadata.usage),
-      planMetadata: extractPlanMetadata(rerunResult.data.version.content),
-      sourceVersionId: payload.versionId,
-      rerunConfig: payload.rerunConfig,
-    });
+    const metadata = buildResponseMetadata(
+      EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+      {
+        provider: typeof llmInfo.provider === 'string' ? llmInfo.provider : '',
+        model: typeof llmInfo.model === 'string' ? llmInfo.model : '',
+        usage: normalizeUsage(llmMetadata.usage),
+        planMetadata: extractPlanMetadata(rerunResult.data.version.content),
+        sourceVersionId: payload.versionId,
+        rerunConfig: payload.rerunConfig,
+      },
+    );
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
@@ -557,11 +586,12 @@ export async function handlePlanSetCurrent(
       request,
     );
 
-    const result = await services.plansService.executeAction<PlanCreateResponseContent>(
-      'set_current',
-      payload,
-      executionContext,
-    );
+    const result =
+      await services.plansService.executeAction<PlanCreateResponseContent>(
+        'set_current',
+        payload,
+        executionContext,
+      );
 
     if (!result.success || !result.data) {
       return TaskResponseDto.failure(
@@ -570,10 +600,13 @@ export async function handlePlanSetCurrent(
       );
     }
 
-    const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-      planMetadata: extractPlanMetadata(result.data.version.content),
-      updatedVersionId: payload.versionId,
-    });
+    const metadata = buildResponseMetadata(
+      EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+      {
+        planMetadata: extractPlanMetadata(result.data.version.content),
+        updatedVersionId: payload.versionId,
+      },
+    );
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
@@ -609,9 +642,12 @@ export async function handlePlanDeleteVersion(
       request,
     );
 
-    const deleteResult = await services.plansService.executeAction<
-      DeleteVersionActionResult
-    >('delete_version', payload, executionContext);
+    const deleteResult =
+      await services.plansService.executeAction<DeleteVersionActionResult>(
+        'delete_version',
+        payload,
+        executionContext,
+      );
 
     if (!deleteResult.success || !deleteResult.data) {
       return TaskResponseDto.failure(
@@ -629,17 +665,21 @@ export async function handlePlanDeleteVersion(
       (version: any) => serializePlanVersion(version),
     );
 
-    const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-      deletedVersionId: payload.versionId,
-      remainingVersionCount: remainingVersions.length,
-    });
+    const metadata = buildResponseMetadata(
+      EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+      {
+        deletedVersionId: payload.versionId,
+        remainingVersionCount: remainingVersions.length,
+      },
+    );
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
         deletedVersionId: payload.versionId,
         plan: serializedPlan,
         remainingVersions: remainingVersions.filter(
-          (version: any): version is NonNullable<typeof version> => Boolean(version),
+          (version: any): version is NonNullable<typeof version> =>
+            Boolean(version),
         ),
       },
       metadata,
@@ -678,19 +718,18 @@ export async function handlePlanMergeVersions(
     );
 
     const planFormat = resolvePlanFormat(definition);
-    const mergeResult = await services.plansService.executeAction<
-      MergeVersionsActionResult
-    >(
-      'merge_versions',
-      {
-        versionIds: payload.versionIds,
-        mergePrompt: payload.mergePrompt,
-        planStructure: definition.planStructure ?? null,
-        llmConfig: normalizeLlmConfig(definition.llm),
-        preferredFormat: planFormat,
-      },
-      executionContext,
-    );
+    const mergeResult =
+      await services.plansService.executeAction<MergeVersionsActionResult>(
+        'merge_versions',
+        {
+          versionIds: payload.versionIds,
+          mergePrompt: payload.mergePrompt,
+          planStructure: definition.planStructure ?? null,
+          llmConfig: normalizeLlmConfig(definition.llm),
+          preferredFormat: planFormat,
+        },
+        executionContext,
+      );
 
     if (!mergeResult.success || !mergeResult.data) {
       return TaskResponseDto.failure(
@@ -755,9 +794,12 @@ export async function handlePlanCopyVersion(
       request,
     );
 
-    const copyResult = await services.plansService.executeAction<
-      CopyVersionActionResult
-    >('copy_version', payload, executionContext);
+    const copyResult =
+      await services.plansService.executeAction<CopyVersionActionResult>(
+        'copy_version',
+        payload,
+        executionContext,
+      );
 
     if (!copyResult.success || !copyResult.data) {
       return TaskResponseDto.failure(
@@ -766,16 +808,27 @@ export async function handlePlanCopyVersion(
       );
     }
 
-    const metadata = buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-      sourceVersionId: payload.versionId,
-      copiedVersionId: copyResult.data.copiedVersion?.id,
-    });
+    const metadata = buildResponseMetadata(
+      EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+      {
+        sourceVersionId: payload.versionId,
+        copiedVersionId: copyResult.data.copiedVersion?.id,
+      },
+    );
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
       content: {
-        sourcePlan: serializePlan(copyResult.data.sourcePlan, definition, userId),
+        sourcePlan: serializePlan(
+          copyResult.data.sourcePlan,
+          definition,
+          userId,
+        ),
         sourceVersion: serializePlanVersion(copyResult.data.sourceVersion),
-        targetPlan: serializePlan(copyResult.data.targetPlan, definition, userId),
+        targetPlan: serializePlan(
+          copyResult.data.targetPlan,
+          definition,
+          userId,
+        ),
         copiedVersion: serializePlanVersion(copyResult.data.copiedVersion),
       },
       metadata,
@@ -796,14 +849,14 @@ export async function handlePlanDelete(
     const payload = (request.payload ?? {}) as PlanDeletePayload;
     void payload;
 
-    const { executionContext } = buildPlanActionContext(
-      definition,
-      request,
-    );
+    const { executionContext } = buildPlanActionContext(definition, request);
 
-    const deleteResult = await services.plansService.executeAction<
-      DeletePlanActionResult
-    >('delete', {}, executionContext);
+    const deleteResult =
+      await services.plansService.executeAction<DeletePlanActionResult>(
+        'delete',
+        {},
+        executionContext,
+      );
 
     if (!deleteResult.success || !deleteResult.data) {
       return TaskResponseDto.failure(
@@ -817,10 +870,13 @@ export async function handlePlanDelete(
         deletedPlanId: deleteResult.data.deletedPlanId,
         deletedVersionCount: deleteResult.data.deletedVersionCount,
       },
-      metadata: buildResponseMetadata(EMPTY_PLAN_METADATA as unknown as Record<string, unknown>, {
-        deletedPlanId: deleteResult.data.deletedPlanId,
-        deletedVersionCount: deleteResult.data.deletedVersionCount,
-      }),
+      metadata: buildResponseMetadata(
+        EMPTY_PLAN_METADATA as unknown as Record<string, unknown>,
+        {
+          deletedPlanId: deleteResult.data.deletedPlanId,
+          deletedVersionCount: deleteResult.data.deletedVersionCount,
+        },
+      ),
     });
   } catch (error) {
     return handleError(AgentTaskMode.PLAN, error);
@@ -863,16 +919,19 @@ export function buildPlanningPrompt(
       prompt += `\n\n=== MARKDOWN TEMPLATE TO FOLLOW ===\n${planStructure}\n=== END TEMPLATE ===`;
       prompt += '\n\n🚨 CRITICAL INSTRUCTIONS 🚨';
       prompt += '\n- Your ENTIRE response must be in MARKDOWN format only';
-      prompt += '\n- Use the template structure above with proper markdown headings (# ## ###)';
+      prompt +=
+        '\n- Use the template structure above with proper markdown headings (# ## ###)';
       prompt += '\n- Use bullet points (-) and proper markdown formatting';
       prompt += '\n- DO NOT use JSON format';
       prompt += '\n- DO NOT wrap your response in code blocks';
       prompt += '\n- DO NOT include any JSON objects or arrays';
       prompt += '\n- Start your response directly with markdown content';
-      prompt += '\n\nReturn ONLY the markdown-formatted plan following the template structure. Begin now with your markdown response:';
+      prompt +=
+        '\n\nReturn ONLY the markdown-formatted plan following the template structure. Begin now with your markdown response:';
     } else {
       prompt += `\n\nYour plan must follow this structure:\n${safeStringify(planStructure)}`;
-      prompt += '\n\nIMPORTANT: You MUST return your response as valid JSON that strictly validates against the plan structure above. Do not return plain text, explanations, or any other format. Return ONLY valid JSON matching the structure exactly.';
+      prompt +=
+        '\n\nIMPORTANT: You MUST return your response as valid JSON that strictly validates against the plan structure above. Do not return plain text, explanations, or any other format. Return ONLY valid JSON matching the structure exactly.';
     }
   } else {
     prompt +=
@@ -905,7 +964,9 @@ export function validatePlanStructure(
       }
     } catch {
       // Not valid JSON, it's a markdown template - return content as-is
-      console.log('📝 Plan structure is a markdown template, skipping JSON schema validation');
+      console.log(
+        '📝 Plan structure is a markdown template, skipping JSON schema validation',
+      );
       return planContent;
     }
   }
@@ -922,10 +983,9 @@ export function validatePlanStructure(
 
   if (!validate(candidate)) {
     const message = ajv.errorsText(validate.errors, { separator: '; ' });
-    console.warn(
-      `⚠️ Plan structure validation warning: ${message}`,
-      { errors: validate.errors }
-    );
+    console.warn(`⚠️ Plan structure validation warning: ${message}`, {
+      errors: validate.errors,
+    });
     // Don't throw - just log a warning and continue
     // This allows flexible plan structures while still providing feedback
   }
@@ -953,9 +1013,7 @@ export function extractPlanMetadata(
 
     const parsed = tryParseJson(trimmed);
     if (parsed !== null) {
-      const keys = Object.keys(
-        parsed as Record<string, unknown>,
-      );
+      const keys = Object.keys(parsed as Record<string, unknown>);
       metadata.format = Array.isArray(parsed) ? 'array' : 'json';
       metadata.keyCount = keys.length;
       if (keys.length > 0) {
@@ -1117,11 +1175,14 @@ function serializePlanVersion(
   }
 
   const record = version as Record<string, any>;
-  const rawFormat = typeof record.format === 'string' ? record.format : 'markdown';
+  const rawFormat =
+    typeof record.format === 'string' ? record.format : 'markdown';
   const format: 'json' | 'markdown' =
-    rawFormat === 'text' ? 'markdown' :
-    rawFormat === 'json' ? 'json' :
-    'markdown';
+    rawFormat === 'text'
+      ? 'markdown'
+      : rawFormat === 'json'
+        ? 'json'
+        : 'markdown';
 
   return {
     id: record.id,
@@ -1132,10 +1193,8 @@ function serializePlanVersion(
     ),
     content: record.content ?? '',
     format,
-    createdByType:
-      record.createdByType ?? record.created_by_type ?? 'agent',
-    createdById:
-      record.createdById ?? record.created_by_id ?? null,
+    createdByType: record.createdByType ?? record.created_by_type ?? 'agent',
+    createdById: record.createdById ?? record.created_by_id ?? null,
     metadata: record.metadata ?? undefined,
     isCurrentVersion: Boolean(
       record.isCurrentVersion ?? record.is_current_version,
@@ -1187,9 +1246,7 @@ function normalizePlanContent(
 
   return {
     content:
-      rawContent === undefined || rawContent === null
-        ? ''
-        : String(rawContent),
+      rawContent === undefined || rawContent === null ? '' : String(rawContent),
   };
 }
 

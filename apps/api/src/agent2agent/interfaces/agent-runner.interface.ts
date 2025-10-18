@@ -1,4 +1,4 @@
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 

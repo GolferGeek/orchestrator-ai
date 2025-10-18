@@ -124,7 +124,7 @@ export class MCPController {
   /**
    * Handle tools/list method
    */
-  private async handleListTools(params: any): Promise<any> {
+  private async handleListTools(_params: any): Promise<any> {
     this.logger.debug('Listing available MCP tools');
 
     const toolsResult = await this.mcpService.listTools();
@@ -173,7 +173,7 @@ export class MCPController {
   /**
    * Handle ping method
    */
-  private async handlePing(params: any): Promise<any> {
+  private async handlePing(_params: any): Promise<any> {
     this.logger.debug('MCP ping request');
 
     const pingResult = await this.mcpService.ping();

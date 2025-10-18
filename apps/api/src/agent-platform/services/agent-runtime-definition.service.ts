@@ -5,7 +5,7 @@ import type {
   JsonValue,
 } from '@orchestrator-ai/transport-types';
 import { load as yamlLoad } from 'js-yaml';
-import { AgentRecord } from '../interfaces/agent-record.interface';
+import { AgentRecord } from '../interfaces/agent.interface';
 import {
   AgentConfigDefinition,
   AgentCommunicationDefinition,
@@ -17,7 +17,7 @@ import {
   AgentRuntimeDefinition,
   AgentSkillDefinition,
   AgentTransportDefinition,
-} from '../interfaces/database-agent-definition.interface';
+} from '../interfaces/agent.interface';
 
 type UnknownRecord = JsonObject | null | undefined;
 

@@ -1,4 +1,4 @@
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import type { ConversationMessage } from '../../context-optimization/context-optimization.service';
 import { LLMService } from '@llm/llm.service';
 import { ConverseModePayload } from '@orchestrator-ai/transport-types';
@@ -70,14 +70,16 @@ export async function executeConverse(
     // Extract LLM configuration from payload (required from frontend)
     // Frontend sends currentProvider and currentModel in the payload
     const payloadAny = payload as any; // Temporary until transport types fully integrated
-    const providerName = payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
-    const modelName = payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
+    const providerName =
+      payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
+    const modelName =
+      payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
 
     // Validate LLM configuration (no fallbacks - frontend must provide)
     if (!providerName || !modelName) {
       throw new Error(
         'LLM provider and model must be specified in the request payload. ' +
-        'Frontend must send currentProvider and currentModel.'
+          'Frontend must send currentProvider and currentModel.',
       );
     }
 
@@ -95,7 +97,7 @@ export async function executeConverse(
       callerType: 'agent',
       callerName: `${definition.slug}-converse`,
     };
-    
+
     const llmResponse = await callLLM(
       services.llmService,
       llmConfig,
@@ -222,9 +224,8 @@ export function buildConversationalPrompt(
   if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
     const formattedHistory = conversationHistory
       .slice(-10)
-      .map(
-        (message) =>
-          `${message.role ?? 'unknown'}: ${message.content ?? ''}`.trim(),
+      .map((message) =>
+        `${message.role ?? 'unknown'}: ${message.content ?? ''}`.trim(),
       )
       .filter((line) => line.length > 0)
       .join('\n');

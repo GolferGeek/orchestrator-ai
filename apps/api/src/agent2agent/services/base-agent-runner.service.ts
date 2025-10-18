@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { LLMService } from '@llm/llm.service';
 import { IAgentRunner } from '../interfaces/agent-runner.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
@@ -119,7 +119,11 @@ export abstract class BaseAgentRunner implements IAgentRunner {
           return await this.handleBuild(definition, request, organizationSlug);
 
         case AgentTaskMode.ORCHESTRATE:
-          return await this.handleOrchestrate(definition, request, organizationSlug);
+          return await this.handleOrchestrate(
+            definition,
+            request,
+            organizationSlug,
+          );
 
         default:
           this.logger.warn(`Unsupported mode: ${mode}`);
@@ -188,7 +192,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     const payload = (request.payload ?? {}) as { action?: string };
-    const action = typeof payload.action === 'string' ? payload.action : 'create';
+    const action =
+      typeof payload.action === 'string' ? payload.action : 'create';
 
     try {
       switch (action) {
@@ -291,7 +296,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     const payload = (request.payload ?? {}) as { action?: string };
-    const action = typeof payload.action === 'string' ? payload.action : 'create';
+    const action =
+      typeof payload.action === 'string' ? payload.action : 'create';
 
     try {
       switch (action) {

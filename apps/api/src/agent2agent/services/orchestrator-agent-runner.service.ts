@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { BaseAgentRunner } from './base-agent-runner.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { LLMService } from '@llm/llm.service';
@@ -292,7 +292,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     const available = this.ensureStringArray(
       orchestrationConfig?.available_orchestrations,
     );
-    return available && available.length > 0 ? available[0] ?? null : null;
+    return available && available.length > 0 ? (available[0] ?? null) : null;
   }
 
   private async resumeAfterApproval(
@@ -334,8 +334,9 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       });
     }
 
-    const concurrencyLimit =
-      this.executionService.getConcurrencyLimit(resolution.run);
+    const concurrencyLimit = this.executionService.getConcurrencyLimit(
+      resolution.run,
+    );
     const { run: resumedRun, readySteps } =
       await this.executionService.startExecution(resolution.run.id, {
         maxParallel: concurrencyLimit,
@@ -383,8 +384,8 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
           agent: step.agent_slug,
           mode: step.mode,
           type:
-            ((step.metadata as Record<string, any> | undefined)?.type as
-              string) ?? 'agent',
+            ((step.metadata as Record<string, any> | undefined)
+              ?.type as string) ?? 'agent',
           dependsOn: step.depends_on,
         })),
         readySteps: readySteps.map((step) => ({
@@ -393,8 +394,8 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
           agent: step.agent_slug,
           mode: step.mode,
           type:
-            ((step.metadata as Record<string, any> | undefined)?.type as
-              string) ?? 'agent',
+            ((step.metadata as Record<string, any> | undefined)
+              ?.type as string) ?? 'agent',
         })),
       },
       metadata: {

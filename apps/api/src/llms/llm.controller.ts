@@ -110,8 +110,11 @@ export class LLMController {
       if (isLLMResponse(result)) {
         const sanitizationMetadata =
           result.sanitizationMetadata ??
-          (result.metadata.providerSpecific as Record<string, unknown> | undefined)
-            ?.sanitizationMetadata ??
+          (
+            result.metadata.providerSpecific as
+              | Record<string, unknown>
+              | undefined
+          )?.sanitizationMetadata ??
           null;
 
         const normalized = {

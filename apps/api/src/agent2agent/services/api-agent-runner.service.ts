@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { BaseAgentRunner } from './base-agent-runner.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { DeliverablesService } from '../deliverables/deliverables.service';
@@ -288,9 +288,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     return value as Record<string, unknown>;
   }
 
-  private toPlainRecord(
-    record: Record<string, unknown>,
-  ): Record<string, any> {
+  private toPlainRecord(record: Record<string, unknown>): Record<string, any> {
     return Object.fromEntries(Object.entries(record)) as Record<string, any>;
   }
 

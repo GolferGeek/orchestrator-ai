@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseAgentRunner } from './base-agent-runner.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { MCPService } from '../../mcp/mcp.service';
@@ -103,13 +103,10 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       }
 
       const configRecord = this.asRecord(definition.config);
-      const configTools =
-        this.ensureStringArray(configRecord?.tools) ?? [];
+      const configTools = this.ensureStringArray(configRecord?.tools) ?? [];
       const overrideTools = this.ensureStringArray(payloadOverrides.tools);
       const tools: string[] =
-        overrideTools && overrideTools.length > 0
-          ? overrideTools
-          : configTools;
+        overrideTools && overrideTools.length > 0 ? overrideTools : configTools;
 
       const toolParams = this.mergeToolParams(
         this.asRecord(configRecord?.toolParams),
@@ -145,11 +142,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       if (executionMode === 'parallel') {
         // Execute all tools in parallel
         const promises = tools.map((toolName) =>
-          this.executeTool(
-            toolName,
-            toolParams[toolName] ?? {},
-            request,
-          ),
+          this.executeTool(toolName, toolParams[toolName] ?? {}, request),
         );
         const results = await Promise.allSettled(promises);
 
@@ -178,11 +171,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         for (const toolName of tools) {
           try {
             const params = toolParams[toolName] || {};
-            const result = await this.executeTool(
-              toolName,
-              params,
-              request,
-            );
+            const result = await this.executeTool(toolName, params, request);
 
             toolResults.push({
               tool: toolName,
@@ -293,9 +282,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     return value as Record<string, unknown>;
   }
 
-  private toPlainRecord(
-    record: Record<string, unknown>,
-  ): Record<string, any> {
+  private toPlainRecord(record: Record<string, unknown>): Record<string, any> {
     return Object.fromEntries(Object.entries(record)) as Record<string, any>;
   }
 

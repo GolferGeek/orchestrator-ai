@@ -8,7 +8,7 @@ import { Agent2AgentConversationsService } from '../agent-conversations.service'
 import { ContextOptimizationService } from '../../context-optimization/context-optimization.service';
 import { TaskRequestDto, AgentTaskMode } from '../../dto/task-request.dto';
 import { TaskResponseDto } from '../../dto/task-response.dto';
-import type { AgentRuntimeDefinition } from '../../../agent-platform/interfaces/database-agent-definition.interface';
+import type { AgentRuntimeDefinition } from '../../../agent-platform/interfaces/agent.interface';
 
 /**
  * Fetches conversation history required for agent execution.
@@ -210,7 +210,10 @@ export async function optimizeContext(
       }
 
       const message = entry as Partial<ConversationMessage>;
-      if (typeof message.role !== 'string' || typeof message.content !== 'string') {
+      if (
+        typeof message.role !== 'string' ||
+        typeof message.content !== 'string'
+      ) {
         return null;
       }
 
@@ -218,7 +221,8 @@ export async function optimizeContext(
         role: message.role,
         content: message.content,
         timestamp:
-          typeof message.timestamp === 'string' && message.timestamp.trim().length > 0
+          typeof message.timestamp === 'string' &&
+          message.timestamp.trim().length > 0
             ? message.timestamp
             : new Date().toISOString(),
         metadata:
@@ -307,23 +311,33 @@ export async function callLLM(
         : null;
 
   if (!provider || !model) {
-    throw new Error('LLM provider and model must be explicitly specified in the configuration');
+    throw new Error(
+      'LLM provider and model must be explicitly specified in the configuration',
+    );
   }
 
   // DEBUG: Log LLM configuration before processing
-  console.log('🔍 [DEBUG] callLLM - Input llmConfig:', JSON.stringify(llmConfig, null, 2));
+  console.log(
+    '🔍 [DEBUG] callLLM - Input llmConfig:',
+    JSON.stringify(llmConfig, null, 2),
+  );
   console.log('🔍 [DEBUG] callLLM - Resolved provider:', provider);
   console.log('🔍 [DEBUG] callLLM - Resolved model:', model);
-  console.log('🔍 [DEBUG] callLLM - System prompt (first 500 chars):', systemPrompt.substring(0, 500));
-  console.log('🔍 [DEBUG] callLLM - System prompt (last 500 chars):', systemPrompt.substring(Math.max(0, systemPrompt.length - 500)));
+  console.log(
+    '🔍 [DEBUG] callLLM - System prompt (first 500 chars):',
+    systemPrompt.substring(0, 500),
+  );
+  console.log(
+    '🔍 [DEBUG] callLLM - System prompt (last 500 chars):',
+    systemPrompt.substring(Math.max(0, systemPrompt.length - 500)),
+  );
   console.log('🔍 [DEBUG] callLLM - User message:', userMessage);
 
   const temperature =
     typeof config.temperature === 'number' ? config.temperature : undefined;
   const maxTokens =
     typeof config.maxTokens === 'number' ? config.maxTokens : undefined;
-  const stream =
-    typeof config.stream === 'boolean' ? config.stream : undefined;
+  const stream = typeof config.stream === 'boolean' ? config.stream : undefined;
   const conversationId =
     typeof config.conversationId === 'string'
       ? (config.conversationId as string)
@@ -449,7 +463,8 @@ export function resolveConversationId(request: TaskRequestDto): string | null {
   }
 
   const payloadConversation =
-    request.payload?.conversationId ?? request.payload?.metadata?.conversationId;
+    request.payload?.conversationId ??
+    request.payload?.metadata?.conversationId;
   if (typeof payloadConversation === 'string') {
     return payloadConversation;
   }

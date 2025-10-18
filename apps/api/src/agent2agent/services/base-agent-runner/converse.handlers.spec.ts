@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { buildConversationalPrompt } from './converse.handlers';
 
 describe('Converse Handlers', () => {

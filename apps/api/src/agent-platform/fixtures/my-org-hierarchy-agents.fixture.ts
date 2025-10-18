@@ -1,4 +1,4 @@
-import { AgentRecord } from '../interfaces/agent-record.interface';
+import { AgentRecord } from '../interfaces/agent.interface';
 
 const EPOCH = '1970-01-01T00:00:00.000Z';
 

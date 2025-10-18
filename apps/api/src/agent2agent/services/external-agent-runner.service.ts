@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { BaseAgentRunner } from './base-agent-runner.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { DeliverablesService } from '../deliverables/deliverables.service';
@@ -194,8 +194,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
           if (value === undefined || value === null) {
             continue;
           }
-          headers[key] =
-            typeof value === 'string' ? value : String(value);
+          headers[key] = typeof value === 'string' ? value : String(value);
         }
       }
 
@@ -248,7 +247,8 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
 
       // 6. If BUILD mode and successful, save deliverable
       if (mode === AgentTaskMode.BUILD && a2aResponse.success) {
-        const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
+        const targetDeliverableId =
+          this.resolveDeliverableIdFromRequest(request);
 
         const deliverableResult = await this.deliverablesService.executeAction(
           'create',
@@ -319,9 +319,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
     return value as Record<string, unknown>;
   }
 
-  private toPlainRecord(
-    record: Record<string, unknown>,
-  ): Record<string, any> {
+  private toPlainRecord(record: Record<string, unknown>): Record<string, any> {
     return Object.fromEntries(Object.entries(record)) as Record<string, any>;
   }
 

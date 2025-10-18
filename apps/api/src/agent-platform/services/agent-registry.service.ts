@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AgentsRepository } from '../repositories/agents.repository';
-import { AgentRecord } from '../interfaces/agent-record.interface';
+import { AgentRecord } from '../interfaces/agent.interface';
 
 interface CacheEntry {
   record: AgentRecord;

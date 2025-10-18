@@ -7,7 +7,16 @@ describe('TaskResponseDto', () => {
     it('should create a successful response', () => {
       const response = TaskResponseDto.success(AgentTaskMode.CONVERSE, {
         content: { message: 'Hello' },
-        metadata: { provider: 'anthropic', model: 'claude', usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30, cost: 0.01 } },
+        metadata: {
+          provider: 'anthropic',
+          model: 'claude',
+          usage: {
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+            cost: 0.01,
+          },
+        },
       });
 
       expect(response.success).toBe(true);

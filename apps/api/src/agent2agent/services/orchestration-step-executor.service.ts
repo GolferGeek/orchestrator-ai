@@ -13,7 +13,7 @@ import { AgentRegistryService } from '@agent-platform/services/agent-registry.se
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
 import { AgentRuntimeAgentMetadata } from '@agent-platform/interfaces/agent-runtime-agent-metadata.interface';
-import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { Agent2AgentConversationsService } from './agent-conversations.service';
@@ -83,7 +83,9 @@ export class OrchestrationStepExecutorService {
 
   async processRun(runId: string): Promise<void> {
     if (this.activeRuns.has(runId)) {
-      this.logger.debug(`Orchestration run ${runId} already processing; skipping duplicate trigger.`);
+      this.logger.debug(
+        `Orchestration run ${runId} already processing; skipping duplicate trigger.`,
+      );
       return;
     }
 
@@ -95,11 +97,14 @@ export class OrchestrationStepExecutorService {
     try {
       const initialRun = await this.runner.getRun(runId);
       if (!initialRun) {
-        this.logger.warn(`Cannot process orchestration run ${runId} because it no longer exists`);
+        this.logger.warn(
+          `Cannot process orchestration run ${runId} because it no longer exists`,
+        );
         return;
       }
 
-      let concurrencyLimit = this.executionService.getConcurrencyLimit(initialRun);
+      let concurrencyLimit =
+        this.executionService.getConcurrencyLimit(initialRun);
       let start = await this.executionService.startExecution(runId, {
         maxParallel: concurrencyLimit,
       });
@@ -162,7 +167,10 @@ export class OrchestrationStepExecutorService {
         activePromises.delete(settled.stepId);
         run = settled.result.run;
 
-        if (settled.result.status === 'checkpoint' || settled.result.status === 'failed') {
+        if (
+          settled.result.status === 'checkpoint' ||
+          settled.result.status === 'failed'
+        ) {
           halted = true;
           break;
         }
@@ -256,8 +264,7 @@ export class OrchestrationStepExecutorService {
       return { status: 'failed', run: refreshed };
     }
 
-    const definition =
-      this.runtimeDefinitions.buildDefinition(agentRecord);
+    const definition = this.runtimeDefinitions.buildDefinition(agentRecord);
     const agentMetadata = this.runtimeExecution.getAgentMetadataFromDefinition(
       definition,
       run.organization_slug,
@@ -335,14 +342,18 @@ export class OrchestrationStepExecutorService {
             'Agent execution failed',
           mode: agentResponse.mode,
           payload: agentResponse.payload,
-          type: agentResponse.payload?.metadata?.errorType ?? 'agent_response_failure',
+          type:
+            agentResponse.payload?.metadata?.errorType ??
+            'agent_response_failure',
         },
       });
     }
 
     const mapping = this.outputMapper.map(
       agentResponse.payload,
-      (step.metadata?.outputMapping ?? undefined) as Record<string, any> | undefined,
+      (step.metadata?.outputMapping ?? undefined) as
+        | Record<string, any>
+        | undefined,
     );
 
     let metadataPatch = this.buildMetadataPatch(
@@ -485,10 +496,7 @@ export class OrchestrationStepExecutorService {
       return { status: 'failed', run: refreshed };
     }
 
-    const childParameters = this.resolveChildParameters(
-      config.parameters,
-      run,
-    );
+    const childParameters = this.resolveChildParameters(config.parameters, run);
 
     let childDefinition: OrchestrationResolvedDefinition;
     try {
@@ -543,7 +551,7 @@ export class OrchestrationStepExecutorService {
       definition: childDefinition,
       parameters: childParameters,
       conversationId: this.shouldInheritConversation(config)
-        ? run.conversation_id ?? null
+        ? (run.conversation_id ?? null)
         : null,
       parentRunId: run.id,
       organizationSlug: childDefinition.organizationSlug,
@@ -622,10 +630,7 @@ export class OrchestrationStepExecutorService {
       },
     });
 
-    if (
-      !finalChildRun ||
-      !this.isSuccessfulRun(finalChildRun.status)
-    ) {
+    if (!finalChildRun || !this.isSuccessfulRun(finalChildRun.status)) {
       await this.runner.updateStep(runningStep.id, {
         metadata: stepMetadata,
       });
@@ -708,8 +713,7 @@ export class OrchestrationStepExecutorService {
       this.coerceNumber(
         stepConfig?.ttlSeconds,
         (stepConfig as any)?.ttl_seconds,
-      ) ??
-      this.coerceNumber(caching.ttlSeconds, (caching as any)?.ttl_seconds);
+      ) ?? this.coerceNumber(caching.ttlSeconds, (caching as any)?.ttl_seconds);
 
     return {
       enabled: true,
@@ -832,8 +836,8 @@ export class OrchestrationStepExecutorService {
     await this.executionService.markStepFailed(step.id, {
       message,
       type: 'configuration_error',
-        runId: run.id,
-        stepId: step.step_id ?? step.id,
+      runId: run.id,
+      stepId: step.step_id ?? step.id,
     });
   }
 
@@ -981,15 +985,11 @@ export class OrchestrationStepExecutorService {
     return true;
   }
 
-  private resolveCheckpointConfig(
-    step: OrchestrationStepRecord,
-  ):
-    | {
-        question: string;
-        options?: RequestOrchestrationCheckpointOptions['options'];
-        required?: boolean;
-      }
-    | null {
+  private resolveCheckpointConfig(step: OrchestrationStepRecord): {
+    question: string;
+    options?: RequestOrchestrationCheckpointOptions['options'];
+    required?: boolean;
+  } | null {
     const checkpoint =
       (step.metadata?.checkpoint as Record<string, any> | null) ?? null;
     if (!checkpoint || typeof checkpoint !== 'object') {
@@ -1047,7 +1047,10 @@ export class OrchestrationStepExecutorService {
         'orchestrator',
       stepId: step.step_id ?? null,
       stepRecordId: step.id,
-      stepLabel: (step.metadata?.name as string | undefined) ?? step.step_id ?? undefined,
+      stepLabel:
+        (step.metadata?.name as string | undefined) ??
+        step.step_id ??
+        undefined,
       stepIndex: step.step_index,
       options: options.options,
       organizationSlug: options.organizationSlug ?? run.organization_slug,
@@ -1061,8 +1064,10 @@ export class OrchestrationStepExecutorService {
 
   private resolveUserId(run: OrchestrationRunRecord): string | null {
     const fromRun = run.created_by ?? null;
-    const requestMetadata = (run.metadata?.requestMetadata ??
-      {}) as Record<string, any>;
+    const requestMetadata = (run.metadata?.requestMetadata ?? {}) as Record<
+      string,
+      any
+    >;
     const fallback =
       requestMetadata.userId ??
       requestMetadata.createdBy ??
@@ -1207,9 +1212,7 @@ export class OrchestrationStepExecutorService {
     patch: Record<string, any>,
   ): Record<string, any> {
     const base =
-      current && typeof current === 'object'
-        ? this.cloneValue(current)
-        : {};
+      current && typeof current === 'object' ? this.cloneValue(current) : {};
     this.mergeInto(base, patch);
     return base;
   }
@@ -1223,10 +1226,7 @@ export class OrchestrationStepExecutorService {
       return Math.max(1, maxAttempts);
     }
 
-    const retryCount = this.coerceNumber(
-      config.retry_count,
-      config.retryCount,
-    );
+    const retryCount = this.coerceNumber(config.retry_count, config.retryCount);
     if (retryCount !== null) {
       return Math.max(1, retryCount + 1);
     }
@@ -1267,7 +1267,9 @@ export class OrchestrationStepExecutorService {
     if (strategy === 'linear') {
       delay = initialDelay * attempt;
     } else {
-      delay = initialDelay * Math.pow(Math.max(1, multiplier), Math.max(0, attempt - 1));
+      delay =
+        initialDelay *
+        Math.pow(Math.max(1, multiplier), Math.max(0, attempt - 1));
     }
 
     const maxDelay =
@@ -1382,9 +1384,7 @@ export class OrchestrationStepExecutorService {
     return Boolean(config?.inherit_conversation);
   }
 
-  private isTerminalRunStatus(
-    status: string | null | undefined,
-  ): boolean {
+  private isTerminalRunStatus(status: string | null | undefined): boolean {
     if (!status) {
       return false;
     }
@@ -1494,7 +1494,8 @@ export class OrchestrationStepExecutorService {
     request.orchestrationRunId = run.id;
     request.payload =
       payload && Object.keys(payload).length > 0 ? payload : undefined;
-    request.userMessage = typeof userMessage === 'string' ? userMessage : undefined;
+    request.userMessage =
+      typeof userMessage === 'string' ? userMessage : undefined;
     request.metadata = this.buildRequestMetadata(
       run,
       step,
@@ -1530,7 +1531,8 @@ export class OrchestrationStepExecutorService {
       slug: agentMetadata?.slug ?? '',
       displayName: agentMetadata?.displayName ?? null,
       type: agentMetadata?.type ?? null,
-      organizationSlug: agentMetadata?.organizationSlug ?? run.organization_slug,
+      organizationSlug:
+        agentMetadata?.organizationSlug ?? run.organization_slug,
     });
   }
 
@@ -1556,8 +1558,7 @@ export class OrchestrationStepExecutorService {
     }
 
     const { userMessage, ...rest } = resolved as Record<string, any>;
-    const payload =
-      rest && Object.keys(rest).length > 0 ? rest : undefined;
+    const payload = rest && Object.keys(rest).length > 0 ? rest : undefined;
 
     return {
       resolvedInput: resolved,
@@ -1641,9 +1642,10 @@ export class OrchestrationStepExecutorService {
         break;
     }
 
-    const remaining = first === 'steps' || first === 'parameters' || first === 'run'
-      ? rest
-      : rest;
+    const remaining =
+      first === 'steps' || first === 'parameters' || first === 'run'
+        ? rest
+        : rest;
 
     for (const segment of remaining) {
       if (current === null || current === undefined) {
@@ -1712,15 +1714,18 @@ export class OrchestrationStepExecutorService {
     resolvedInput: Record<string, any>,
     response: TaskResponseDto,
   ): Record<string, any> {
-    const baseMetadata =
-      (step.metadata ?? {}) as Record<string, any>;
+    const baseMetadata = (step.metadata ?? {}) as Record<string, any>;
     const runtimeMeta =
       (baseMetadata.runtime as Record<string, any> | undefined) ?? {};
 
     const snapshot: {
       content: any;
       metadata: Record<string, any>;
-      deliverables?: Array<{ id: string | null; title: string | null; versionId: string | null }>;
+      deliverables?: Array<{
+        id: string | null;
+        title: string | null;
+        versionId: string | null;
+      }>;
     } = {
       content: this.cloneValue(response.payload?.content ?? null),
       metadata: this.cloneValue(response.payload?.metadata ?? {}),

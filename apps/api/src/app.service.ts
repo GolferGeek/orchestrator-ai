@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { LLMService } from '@llm/llm.service';
 import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
-import { AgentRecord } from './agent-platform/interfaces/agent-record.interface';
+import { AgentRecord } from './agent-platform/interfaces/agent.interface';
 import {
   DEFAULT_EXECUTION_CAPABILITIES,
   DEFAULT_EXECUTION_PROFILE,

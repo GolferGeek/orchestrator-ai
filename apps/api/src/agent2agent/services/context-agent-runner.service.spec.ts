@@ -5,7 +5,7 @@ import { LLMService } from '@llm/llm.service';
 import { PlansService } from '../plans/services/plans.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { Agent2AgentConversationsService } from './agent-conversations.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { ActionResult } from '../common/interfaces/action-handler.interface';
 

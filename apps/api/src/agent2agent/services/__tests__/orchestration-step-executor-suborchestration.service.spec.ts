@@ -39,7 +39,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     origin_id: null,
     orchestration_slug: null,
     organization_slug: 'global',
-    parameters: { kpi_names: ['revenue'], start_date: '2025-01-01', end_date: '2025-03-31' },
+    parameters: {
+      kpi_names: ['revenue'],
+      start_date: '2025-01-01',
+      end_date: '2025-03-31',
+    },
     plan: {},
     metadata: {
       agent: { slug: 'finance-manager' },
@@ -134,7 +138,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     origin_id: null,
     orchestration_slug: null,
     organization_slug: 'global',
-    parameters: { kpi_names: ['revenue'], start_date: '2025-01-01', end_date: '2025-03-31' },
+    parameters: {
+      kpi_names: ['revenue'],
+      start_date: '2025-01-01',
+      end_date: '2025-03-31',
+    },
     plan: {},
     metadata: {},
     status: 'completed',
@@ -278,11 +286,19 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
 
   describe('executeSubOrchestrationStep', () => {
     it('should successfully execute a child orchestration to completion', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
-      const completedChildRun = { ...mockChildRun, status: 'completed' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
+      const completedChildRun = {
+        ...mockChildRun,
+        status: 'completed' as const,
+      };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',
@@ -309,7 +325,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       );
 
       expect(result.status).toBe('completed');
-      expect(mockDefinitionService.getDefinitionForExecution).toHaveBeenCalledWith({
+      expect(
+        mockDefinitionService.getDefinitionForExecution,
+      ).toHaveBeenCalledWith({
         ownerAgentSlug: 'finance-manager',
         organizationSlug: 'global',
         name: 'kpi-tracking',
@@ -341,10 +359,15 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should interpolate child parameters from parent run', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',
@@ -358,7 +381,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         readySteps: [],
       });
 
-      mockRunner.getRun.mockResolvedValue({ ...mockChildRun, status: 'completed' as const });
+      mockRunner.getRun.mockResolvedValue({
+        ...mockChildRun,
+        status: 'completed' as const,
+      });
       mockExecution.markStepCompleted.mockResolvedValue({
         run: mockParentRun,
         step: runningStep,
@@ -382,10 +408,15 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should inherit conversation when configured', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',
@@ -397,7 +428,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         readySteps: [],
       });
 
-      mockRunner.getRun.mockResolvedValue({ ...mockChildRun, status: 'completed' as const });
+      mockRunner.getRun.mockResolvedValue({
+        ...mockChildRun,
+        status: 'completed' as const,
+      });
       mockExecution.markStepCompleted.mockResolvedValue({
         run: mockParentRun,
         step: runningStep,
@@ -428,10 +462,15 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         },
       };
 
-      const runningStep = { ...stepWithoutInheritance, status: 'running' as const };
+      const runningStep = {
+        ...stepWithoutInheritance,
+        status: 'running' as const,
+      };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',
@@ -443,7 +482,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         readySteps: [],
       });
 
-      mockRunner.getRun.mockResolvedValue({ ...mockChildRun, status: 'completed' as const });
+      mockRunner.getRun.mockResolvedValue({
+        ...mockChildRun,
+        status: 'completed' as const,
+      });
       mockExecution.markStepCompleted.mockResolvedValue({
         run: mockParentRun,
         step: runningStep,
@@ -463,7 +505,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should fail step when child orchestration definition not found', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
       mockDefinitionService.getDefinitionForExecution.mockRejectedValue(
@@ -475,7 +520,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         step: { ...runningStep, status: 'failed' as const },
       });
 
-      mockRunner.getRun.mockResolvedValue({ ...mockParentRun, status: 'failed' as const });
+      mockRunner.getRun.mockResolvedValue({
+        ...mockParentRun,
+        status: 'failed' as const,
+      });
 
       const result = await (service as any).executeSubOrchestrationStep(
         mockParentRun,
@@ -486,7 +534,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
-          message: expect.stringContaining('Failed to resolve sub-orchestration definition'),
+          message: expect.stringContaining(
+            'Failed to resolve sub-orchestration definition',
+          ),
         }),
       );
     });
@@ -510,7 +560,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         run: { ...mockParentRun, status: 'failed' as const },
         step: { ...runningStep, status: 'failed' as const },
       });
-      mockRunner.getRun.mockResolvedValue({ ...mockParentRun, status: 'failed' as const });
+      mockRunner.getRun.mockResolvedValue({
+        ...mockParentRun,
+        status: 'failed' as const,
+      });
 
       const result = await (service as any).executeSubOrchestrationStep(
         mockParentRun,
@@ -547,7 +600,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         run: { ...parentWithoutAgent, status: 'failed' as const },
         step: { ...runningStep, status: 'failed' as const },
       });
-      mockRunner.getRun.mockResolvedValue({ ...parentWithoutAgent, status: 'failed' as const });
+      mockRunner.getRun.mockResolvedValue({
+        ...parentWithoutAgent,
+        status: 'failed' as const,
+      });
 
       const result = await (service as any).executeSubOrchestrationStep(
         parentWithoutAgent,
@@ -564,17 +620,25 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should fail step when owner agent not found in registry', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue(null);
 
       mockExecution.markStepFailed.mockResolvedValue({
         run: { ...mockParentRun, status: 'failed' as const },
         step: { ...runningStep, status: 'failed' as const },
       });
-      mockRunner.getRun.mockResolvedValue({ ...mockParentRun, status: 'failed' as const });
+      mockRunner.getRun.mockResolvedValue({
+        ...mockParentRun,
+        status: 'failed' as const,
+      });
 
       const result = await (service as any).executeSubOrchestrationStep(
         mockParentRun,
@@ -591,7 +655,10 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should fail step when child orchestration fails', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
       const failedChildRun = {
         ...mockChildRun,
         status: 'failed' as const,
@@ -599,7 +666,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',
@@ -634,14 +703,19 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should fail step when child orchestration is aborted', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
       const abortedChildRun = {
         ...mockChildRun,
         status: 'aborted' as const,
       };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',
@@ -674,11 +748,19 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should include child run metadata in step metadata', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
-      const completedChildRun = { ...mockChildRun, status: 'completed' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
+      const completedChildRun = {
+        ...mockChildRun,
+        status: 'completed' as const,
+      };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',
@@ -724,19 +806,24 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     });
 
     it('should build correct child run output structure', async () => {
-      const runningStep = { ...mockOrchestrationStep, status: 'running' as const };
+      const runningStep = {
+        ...mockOrchestrationStep,
+        status: 'running' as const,
+      };
       const completedChildRun = {
         ...mockChildRun,
         status: 'completed' as const,
         results: {
           'fetch-data': { kpi_data: [{ name: 'revenue', value: 100000 }] },
-          'summarize': { summary: 'All KPIs trending up' },
+          summarize: { summary: 'All KPIs trending up' },
         },
         completed_steps: ['fetch-data', 'summarize'],
       };
 
       mockExecution.markStepRunning.mockResolvedValue(runningStep);
-      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(mockChildDefinition);
+      mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
+        mockChildDefinition,
+      );
       mockAgentRegistry.getAgent.mockResolvedValue({
         id: 'agent-123',
         slug: 'finance-manager',

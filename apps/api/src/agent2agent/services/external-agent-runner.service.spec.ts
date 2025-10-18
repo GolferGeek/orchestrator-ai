@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExternalAgentRunnerService } from './external-agent-runner.service';
 import { HttpService } from '@nestjs/axios';
 import { DeliverablesService } from '../deliverables/deliverables.service';
-import { AgentRuntimeDefinition } from '../../agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '../../agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { of, throwError } from 'rxjs';

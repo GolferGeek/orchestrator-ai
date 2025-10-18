@@ -8,7 +8,13 @@ export const openAIChatCompletionSchema = z.object({
       z.object({
         index: z.number(),
         finish_reason: z
-          .enum(['stop', 'length', 'tool_calls', 'content_filter', 'function_call'])
+          .enum([
+            'stop',
+            'length',
+            'tool_calls',
+            'content_filter',
+            'function_call',
+          ])
           .nullable()
           .optional(),
         message: z.object({

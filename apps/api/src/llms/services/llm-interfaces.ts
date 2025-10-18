@@ -35,7 +35,10 @@ export interface LLMCurrentUserContext extends Record<string, unknown> {
   roles?: string[];
 }
 
-export type LLMRequestHeaders = Record<string, string | number | boolean | string[] | undefined>;
+export type LLMRequestHeaders = Record<
+  string,
+  string | number | boolean | string[] | undefined
+>;
 
 export interface LLMRequestOptions extends Record<string, unknown> {
   temperature?: number;

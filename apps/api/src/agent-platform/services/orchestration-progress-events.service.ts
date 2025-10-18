@@ -278,9 +278,7 @@ export class OrchestrationProgressEventsService {
 
     const stepsCandidate = data.steps as unknown;
     if (Array.isArray(stepsCandidate)) {
-      const match = stepsCandidate.find((value) =>
-        this.isStepSnapshot(value),
-      );
+      const match = stepsCandidate.find((value) => this.isStepSnapshot(value));
       if (match) {
         return match;
       }

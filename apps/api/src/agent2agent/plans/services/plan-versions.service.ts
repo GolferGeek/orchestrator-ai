@@ -15,30 +15,11 @@ import {
 import { PlansRepository, PlanRecord } from '../repositories/plans.repository';
 import { LLMService } from '@/llms/llm.service';
 import { TasksService } from '@/agent2agent/tasks/tasks.service';
-import type { Plan } from './plans.service';
-
-export interface PlanVersion {
-  id: string;
-  planId: string;
-  versionNumber: number;
-  content: string;
-  format: 'markdown' | 'json' | 'text';
-  createdByType: 'agent' | 'user';
-  createdById?: string;
-  taskId?: string;
-  metadata?: JsonObject;
-  isCurrentVersion: boolean;
-  createdAt: Date;
-}
-
-export interface CreatePlanVersionDto {
-  content: string;
-  format: 'markdown' | 'json' | 'text';
-  createdByType: 'agent' | 'user';
-  createdById?: string;
-  taskId?: string;
-  metadata?: JsonObject;
-}
+import type {
+  Plan,
+  PlanVersion,
+  CreatePlanVersionDto,
+} from '../types/plan.types';
 
 @Injectable()
 export class PlanVersionsService {
@@ -332,7 +313,9 @@ export class PlanVersionsService {
         } as JsonObject);
       } else {
         llmResponseContent = response.content;
-        const usageMetadata = response.metadata?.usage as JsonObject | undefined;
+        const usageMetadata = response.metadata?.usage as
+          | JsonObject
+          | undefined;
         llmResponseMetadata = this.mergeMetadata(undefined, {
           provider: response.metadata?.provider ?? llmConfig.provider,
           model: response.metadata?.model ?? llmConfig.model,
@@ -531,9 +514,7 @@ export class PlanVersionsService {
     }
   }
 
-  private buildMergeSystemPrompt(
-    format: 'markdown' | 'json' | 'text',
-  ): string {
+  private buildMergeSystemPrompt(format: 'markdown' | 'json' | 'text'): string {
     const base =
       'You are an expert planning assistant. Merge multiple plan versions into a single cohesive plan that preserves the strongest ideas, resolves conflicts, and maintains clarity.';
 
@@ -630,10 +611,7 @@ export class PlanVersionsService {
     return trimmed;
   }
 
-  private validateAgainstStructure(
-    content: unknown,
-    schema: JsonObject,
-  ): void {
+  private validateAgainstStructure(content: unknown, schema: JsonObject): void {
     try {
       const ajv = new Ajv({
         allErrors: true,

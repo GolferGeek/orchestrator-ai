@@ -333,7 +333,12 @@ export class OrchestrationExecutionService {
 
     const stepDuration = this.computeStepDuration(step);
     if (stepDuration !== null) {
-      this.metrics.observeStepDuration(updatedRun, step, stepDuration, 'completed');
+      this.metrics.observeStepDuration(
+        updatedRun,
+        step,
+        stepDuration,
+        'completed',
+      );
     }
 
     this.events.emitStepCompleted(updatedRun, step, nextSteps, context);
@@ -410,12 +415,17 @@ export class OrchestrationExecutionService {
         stats: this.buildStats(metrics.total, metrics.completed),
         ...(retryMetadataPatch ?? {}),
       }),
-      completedAt: allowRetry ? run.completed_at ?? null : now,
+      completedAt: allowRetry ? (run.completed_at ?? null) : now,
     });
 
     const failureDuration = this.computeStepDuration(step);
     if (failureDuration !== null) {
-      this.metrics.observeStepDuration(updatedRun, step, failureDuration, 'failed');
+      this.metrics.observeStepDuration(
+        updatedRun,
+        step,
+        failureDuration,
+        'failed',
+      );
     }
 
     if (!allowRetry) {
@@ -458,8 +468,7 @@ export class OrchestrationExecutionService {
     total: number;
     completed: number;
   }> {
-    const records =
-      steps ?? (await this.orchestrationRunner.listSteps(runId));
+    const records = steps ?? (await this.orchestrationRunner.listSteps(runId));
     const completed = records.filter(
       (step) => step.status === 'completed',
     ).length;

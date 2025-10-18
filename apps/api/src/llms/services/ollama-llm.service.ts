@@ -133,8 +133,9 @@ export class OllamaLLMService extends BaseLLMService {
       );
       const apiDuration = Date.now() - apiStartTime;
 
-      const parsedResponse: OllamaResponseParsed =
-        ollamaResponseSchema.parse(response.data);
+      const parsedResponse: OllamaResponseParsed = ollamaResponseSchema.parse(
+        response.data,
+      );
 
       if (!parsedResponse.response) {
         throw new Error('No response from Ollama model');

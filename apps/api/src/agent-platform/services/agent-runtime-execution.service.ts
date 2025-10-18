@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
-import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '../interfaces/agent.interface';
 import { AgentRuntimeAgentMetadata } from '../interfaces/agent-runtime-agent-metadata.interface';
 
 export type RuntimeMetadataExtras = JsonObject;

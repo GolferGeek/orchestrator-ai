@@ -329,7 +329,12 @@ describe('OrchestrationStepExecutorService', () => {
       } as any);
 
       routingPolicy.evaluate.mockResolvedValue({
-        taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
+        taskRequest: {
+          metadata: {},
+          input: {},
+          mode: 'build',
+          conversationId: null,
+        },
       } as any);
 
       modeRouter.execute.mockResolvedValue({
@@ -466,7 +471,7 @@ describe('OrchestrationStepExecutorService', () => {
           checkpoint: {
             type: 'manual',
             message: 'Review the query results before summarizing',
-          }
+          },
         },
       };
 
@@ -491,7 +496,12 @@ describe('OrchestrationStepExecutorService', () => {
       } as any);
 
       routingPolicy.evaluate.mockResolvedValue({
-        taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
+        taskRequest: {
+          metadata: {},
+          input: {},
+          mode: 'build',
+          conversationId: null,
+        },
       } as any);
 
       modeRouter.execute.mockResolvedValue({
@@ -543,7 +553,10 @@ describe('OrchestrationStepExecutorService', () => {
           readySteps: [],
         });
 
-      agentRegistry.getAgent.mockResolvedValue({ id: 'agent-id', slug: 'supabase-agent' } as any);
+      agentRegistry.getAgent.mockResolvedValue({
+        id: 'agent-id',
+        slug: 'supabase-agent',
+      } as any);
       runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: { id: 'agent-id', slug: 'supabase-agent' },
       } as any);
@@ -553,7 +566,12 @@ describe('OrchestrationStepExecutorService', () => {
         resolvedInput: {},
       } as any);
       routingPolicy.evaluate.mockResolvedValue({
-        taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
+        taskRequest: {
+          metadata: {},
+          input: {},
+          mode: 'build',
+          conversationId: null,
+        },
       } as any);
       modeRouter.execute.mockResolvedValue({
         payload: { content: 'result', metadata: {} },
@@ -585,7 +603,7 @@ describe('OrchestrationStepExecutorService', () => {
           output_mapping: {
             query_results: '$.content.rows',
             summary: '$.content.summary',
-          }
+          },
         },
       };
 
@@ -610,7 +628,12 @@ describe('OrchestrationStepExecutorService', () => {
       } as any);
 
       routingPolicy.evaluate.mockResolvedValue({
-        taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
+        taskRequest: {
+          metadata: {},
+          input: {},
+          mode: 'build',
+          conversationId: null,
+        },
       } as any);
 
       modeRouter.execute.mockResolvedValue({
@@ -665,7 +688,10 @@ describe('OrchestrationStepExecutorService', () => {
         readySteps: [mockStep],
       });
 
-      agentRegistry.getAgent.mockResolvedValue({ id: 'agent-id', slug: 'supabase-agent' } as any);
+      agentRegistry.getAgent.mockResolvedValue({
+        id: 'agent-id',
+        slug: 'supabase-agent',
+      } as any);
       runtimeDefinitions.buildDefinition.mockReturnValue({
         agent: { id: 'agent-id', slug: 'supabase-agent' },
       } as any);
@@ -675,7 +701,12 @@ describe('OrchestrationStepExecutorService', () => {
         resolvedInput: {},
       } as any);
       routingPolicy.evaluate.mockResolvedValue({
-        taskRequest: { metadata: {}, input: {}, mode: 'build', conversationId: null },
+        taskRequest: {
+          metadata: {},
+          input: {},
+          mode: 'build',
+          conversationId: null,
+        },
       } as any);
       modeRouter.execute.mockResolvedValue({
         payload: { content: 'result', metadata: {} },

@@ -284,12 +284,17 @@ export class SlackMCPTools implements IMCPToolHandler {
         'POST',
         payload,
       );
-      const data = await this.parseJsonResponse(response, 'Slack chat.postMessage');
+      const data = await this.parseJsonResponse(
+        response,
+        'Slack chat.postMessage',
+      );
       const ok = this.readBoolean(data, 'ok');
 
       if (!response.ok || ok === false) {
         const errorMessage =
-          this.readString(data, 'error') || response.statusText || 'Slack API error';
+          this.readString(data, 'error') ||
+          response.statusText ||
+          'Slack API error';
         throw new Error(`Slack API error: ${errorMessage}`);
       }
 
@@ -343,12 +348,17 @@ export class SlackMCPTools implements IMCPToolHandler {
         `conversations.list?${params}`,
         'GET',
       );
-      const data = await this.parseJsonResponse(response, 'Slack conversations.list');
+      const data = await this.parseJsonResponse(
+        response,
+        'Slack conversations.list',
+      );
       const ok = this.readBoolean(data, 'ok');
 
       if (!response.ok || ok === false) {
         const errorMessage =
-          this.readString(data, 'error') || response.statusText || 'Slack API error';
+          this.readString(data, 'error') ||
+          response.statusText ||
+          'Slack API error';
         throw new Error(`Slack API error: ${errorMessage}`);
       }
 
@@ -395,7 +405,9 @@ export class SlackMCPTools implements IMCPToolHandler {
 
         if (!response.ok || ok === false) {
           const errorMessage =
-            this.readString(data, 'error') || response.statusText || 'Slack API error';
+            this.readString(data, 'error') ||
+            response.statusText ||
+            'Slack API error';
           throw new Error(`Slack API error: ${errorMessage}`);
         }
 
@@ -432,7 +444,9 @@ export class SlackMCPTools implements IMCPToolHandler {
 
         if (!response.ok || ok === false) {
           const errorMessage =
-            this.readString(data, 'error') || response.statusText || 'Slack API error';
+            this.readString(data, 'error') ||
+            response.statusText ||
+            'Slack API error';
           throw new Error(`Slack API error: ${errorMessage}`);
         }
 
@@ -503,12 +517,17 @@ export class SlackMCPTools implements IMCPToolHandler {
         `search.messages?${params}`,
         'GET',
       );
-      const data = await this.parseJsonResponse(response, 'Slack search.messages');
+      const data = await this.parseJsonResponse(
+        response,
+        'Slack search.messages',
+      );
       const ok = this.readBoolean(data, 'ok');
 
       if (!response.ok || ok === false) {
         const errorMessage =
-          this.readString(data, 'error') || response.statusText || 'Slack API error';
+          this.readString(data, 'error') ||
+          response.statusText ||
+          'Slack API error';
         throw new Error(`Slack API error: ${errorMessage}`);
       }
 
@@ -517,7 +536,8 @@ export class SlackMCPTools implements IMCPToolHandler {
         'Slack search.messages response payload',
       );
       const matches = Array.isArray(messages.matches) ? messages.matches : [];
-      const total = typeof messages.total === 'number' ? messages.total : matches.length;
+      const total =
+        typeof messages.total === 'number' ? messages.total : matches.length;
 
       return {
         content: [
@@ -576,7 +596,9 @@ export class SlackMCPTools implements IMCPToolHandler {
 
       if (!response.ok || ok === false) {
         const errorMessage =
-          this.readString(data, 'error') || response.statusText || 'Slack API error';
+          this.readString(data, 'error') ||
+          response.statusText ||
+          'Slack API error';
         throw new Error(`Slack API error: ${errorMessage}`);
       }
 
@@ -621,12 +643,17 @@ export class SlackMCPTools implements IMCPToolHandler {
         'POST',
         payload,
       );
-      const data = await this.parseJsonResponse(response, 'Slack conversations.create');
+      const data = await this.parseJsonResponse(
+        response,
+        'Slack conversations.create',
+      );
       const ok = this.readBoolean(data, 'ok');
 
       if (!response.ok || ok === false) {
         const errorMessage =
-          this.readString(data, 'error') || response.statusText || 'Slack API error';
+          this.readString(data, 'error') ||
+          response.statusText ||
+          'Slack API error';
         throw new Error(`Slack API error: ${errorMessage}`);
       }
 

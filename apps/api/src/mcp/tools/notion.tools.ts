@@ -336,7 +336,9 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         const errorMessage =
-          this.readString(data, 'message') || response.statusText || 'Notion API error';
+          this.readString(data, 'message') ||
+          response.statusText ||
+          'Notion API error';
         throw new Error(`Notion API error: ${errorMessage}`);
       }
 
@@ -403,7 +405,9 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         const errorMessage =
-          this.readString(data, 'message') || response.statusText || 'Notion API error';
+          this.readString(data, 'message') ||
+          response.statusText ||
+          'Notion API error';
         throw new Error(`Notion API error: ${errorMessage}`);
       }
 
@@ -462,11 +466,16 @@ export class NotionMCPTools implements IMCPToolHandler {
       }
 
       const response = await this.makeNotionRequest('search', 'POST', payload);
-      const data = await this.parseJsonResponse(response, 'Notion search content');
+      const data = await this.parseJsonResponse(
+        response,
+        'Notion search content',
+      );
 
       if (!response.ok) {
         const errorMessage =
-          this.readString(data, 'message') || response.statusText || 'Notion API error';
+          this.readString(data, 'message') ||
+          response.statusText ||
+          'Notion API error';
         throw new Error(`Notion API error: ${errorMessage}`);
       }
 
@@ -512,7 +521,9 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         const errorMessage =
-          this.readString(data, 'message') || response.statusText || 'Notion API error';
+          this.readString(data, 'message') ||
+          response.statusText ||
+          'Notion API error';
         throw new Error(`Notion API error: ${errorMessage}`);
       }
 
@@ -586,7 +597,9 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         const errorMessage =
-          this.readString(data, 'message') || response.statusText || 'Notion API error';
+          this.readString(data, 'message') ||
+          response.statusText ||
+          'Notion API error';
         throw new Error(`Notion API error: ${errorMessage}`);
       }
 
@@ -638,7 +651,9 @@ export class NotionMCPTools implements IMCPToolHandler {
 
       if (!response.ok) {
         const errorMessage =
-          this.readString(data, 'message') || response.statusText || 'Notion API error';
+          this.readString(data, 'message') ||
+          response.statusText ||
+          'Notion API error';
         throw new Error(`Notion API error: ${errorMessage}`);
       }
 
@@ -688,11 +703,16 @@ export class NotionMCPTools implements IMCPToolHandler {
       }
 
       const response = await this.makeNotionRequest('search', 'POST', payload);
-      const data = await this.parseJsonResponse(response, 'Notion list databases');
+      const data = await this.parseJsonResponse(
+        response,
+        'Notion search databases',
+      );
 
       if (!response.ok) {
         const errorMessage =
-          this.readString(data, 'message') || response.statusText || 'Notion API error';
+          this.readString(data, 'message') ||
+          response.statusText ||
+          'Notion API error';
         throw new Error(`Notion API error: ${errorMessage}`);
       }
 

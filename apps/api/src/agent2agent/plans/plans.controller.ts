@@ -6,7 +6,13 @@ import {
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PlansService } from './services/plans.service';
 import { PlanVersionsService } from './services/plan-versions.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
@@ -56,7 +62,10 @@ export class PlansController {
     }
 
     // Get all versions for the plan
-    const versions = await this.planVersionsService.getVersionHistory(plan.id, userId);
+    const versions = await this.planVersionsService.getVersionHistory(
+      plan.id,
+      userId,
+    );
 
     return {
       ...plan,

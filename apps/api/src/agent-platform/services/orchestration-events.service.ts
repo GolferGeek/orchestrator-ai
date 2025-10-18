@@ -271,8 +271,9 @@ export class OrchestrationEventsService {
     run: OrchestrationRunRecord,
     context?: RunEventContext,
   ): OrchestrationRunStats {
+    const metadata = run.metadata;
     const metadataStats: OrchestrationRunMetricsMetadata =
-      this.isRunMetricsMetadata(metadata.stats) ? metadata.stats : {};
+      this.isRunMetricsMetadata(metadata?.stats) ? metadata.stats : {};
 
     const totalSteps =
       this.extractNumber(context?.totalSteps ?? metadataStats.totalSteps) ??

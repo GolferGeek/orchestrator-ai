@@ -20,7 +20,10 @@ export interface ActionExecutionContext extends JsonObject {
  * Result returned by action handlers
  * @template TData - The specific result type for this action
  */
-export interface ActionResult<TData = JsonValue, TMetadata extends JsonObject | undefined = JsonObject | undefined> {
+export interface ActionResult<
+  TData = JsonValue,
+  TMetadata extends JsonObject | undefined = JsonObject | undefined,
+> {
   success: boolean;
   data?: TData;
   error?: {

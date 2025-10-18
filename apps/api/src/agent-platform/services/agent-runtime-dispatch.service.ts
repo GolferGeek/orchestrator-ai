@@ -7,7 +7,7 @@ import {
   LLMServiceConfig,
 } from '@llm/services/llm-interfaces';
 import { RoutingDecision } from '@llm/centralized-routing.service';
-import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '../interfaces/agent.interface';
 import { PromptPayload } from './agent-runtime-prompt.service';
 import {
   TaskRequestDto,

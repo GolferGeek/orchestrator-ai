@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { load as yamlLoad } from 'js-yaml';
-import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '../interfaces/agent.interface';
 import {
   AgentTaskMode,
   TaskRequestDto,

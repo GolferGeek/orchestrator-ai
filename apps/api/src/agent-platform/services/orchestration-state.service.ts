@@ -98,13 +98,11 @@ export class OrchestrationStateService {
         step_id: stepDefinition.id,
         status: 'pending',
         agent_slug:
-          stepDefinition.agent ??
-          stepDefinition.orchestration?.owner ??
-          null,
+          stepDefinition.agent ?? stepDefinition.orchestration?.owner ?? null,
         mode:
           stepType === 'orchestration'
             ? 'ORCHESTRATION'
-            : stepDefinition.mode ?? 'BUILD',
+            : (stepDefinition.mode ?? 'BUILD'),
         depends_on: stepDefinition.depends_on ?? [],
         input: inputPayload,
         metadata,
@@ -216,7 +214,7 @@ export class OrchestrationStateService {
     const resolveValue = (value: any): any => {
       if (typeof value === 'string') {
         return value.replace(
-          /{{\s*([a-zA-Z0-9_\.]+)\s*}}/g,
+          /{{\s*([a-zA-Z0-9_.]+)\s*}}/g,
           (_, expression: string) => {
             if (expression.startsWith('steps.')) {
               // Defer step output interpolation to runtime resolution
@@ -277,13 +275,12 @@ export class OrchestrationStateService {
     step: OrchestrationStepDefinition,
   ): Record<string, any> | null {
     const orchestrationConfig =
-      (definition.rawDefinition?.orchestration ?? {}) as Record<string, any>;
+      this.asRecord(definition.rawDefinition?.orchestration) ?? {};
     const defaultRetryConfig = this.normalizeRetryConfig(
-      orchestrationConfig.error_handling,
+      this.asRecord(orchestrationConfig.error_handling),
     );
-    const stepRetryRaw = this.asRecord(
-      (step.metadata as Record<string, any> | undefined)?.retry,
-    );
+    const stepMetadata = this.asRecord(step.metadata);
+    const stepRetryRaw = this.asRecord(stepMetadata?.retry);
 
     const merged = {
       ...defaultRetryConfig,
@@ -327,9 +324,7 @@ export class OrchestrationStateService {
     return {
       maxAttempts,
       strategy:
-        typeof merged.strategy === 'string'
-          ? merged.strategy
-          : 'exponential',
+        typeof merged.strategy === 'string' ? merged.strategy : 'exponential',
       initialDelayMs: Math.max(250, initialDelayMs),
       backoffMultiplier: Math.max(1, backoffMultiplier),
       maxDelayMs:
@@ -350,7 +345,7 @@ export class OrchestrationStateService {
     step: OrchestrationStepDefinition,
   ): Record<string, any> | null {
     const orchestrationConfig =
-      (definition.rawDefinition?.orchestration ?? {}) as Record<string, any>;
+      this.asRecord(definition.rawDefinition?.orchestration) ?? {};
     const defaultRollback = this.asRecord(
       orchestrationConfig.error_handling?.rollback,
     );
@@ -370,7 +365,7 @@ export class OrchestrationStateService {
     const reversible =
       typeof merged.reversible === 'boolean'
         ? merged.reversible
-        : reversibleFlag ?? false;
+        : (reversibleFlag ?? false);
 
     if (!reversible) {
       return null;
@@ -381,11 +376,9 @@ export class OrchestrationStateService {
       label:
         typeof merged.label === 'string' && merged.label.trim().length > 0
           ? merged.label.trim()
-          : step.name ?? step.id,
+          : (step.name ?? step.id),
       description:
-        typeof merged.description === 'string'
-          ? merged.description
-          : null,
+        typeof merged.description === 'string' ? merged.description : null,
       manualOnly:
         typeof merged.manualOnly === 'boolean'
           ? merged.manualOnly
@@ -394,13 +387,13 @@ export class OrchestrationStateService {
   }
 
   private normalizeRetryConfig(
-    raw: Record<string, any> | undefined,
+    raw: Record<string, any> | null | undefined,
   ): Record<string, any> {
-    if (!raw || typeof raw !== 'object') {
+    if (!raw) {
       return {};
     }
 
-    const onFailureRaw = (raw as Record<string, any>).on_step_failure;
+    const onFailureRaw = raw.on_step_failure;
     if (!onFailureRaw) {
       return {};
     }
@@ -414,8 +407,11 @@ export class OrchestrationStateService {
       }, {});
     }
 
-    if (typeof onFailureRaw === 'object') {
-      return { ...(onFailureRaw as Record<string, any>) };
+    if (onFailureRaw && typeof onFailureRaw === 'object') {
+      const cloned = this.asRecord(onFailureRaw);
+      if (cloned) {
+        return cloned;
+      }
     }
 
     return {};
@@ -430,10 +426,7 @@ export class OrchestrationStateService {
       return Math.max(1, attemptConfig);
     }
 
-    const retryCount = this.coerceNumber(
-      config.retry_count,
-      config.retryCount,
-    );
+    const retryCount = this.coerceNumber(config.retry_count, config.retryCount);
 
     if (retryCount !== null) {
       return Math.max(1, retryCount + 1);
@@ -464,6 +457,22 @@ export class OrchestrationStateService {
     if (!value || typeof value !== 'object') {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    if (Array.isArray(value)) {
+      return value.reduce<Record<string, any>>((acc, entry, index) => {
+        acc[index] = entry;
+        return acc;
+      }, {});
+    }
+
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return {};
+    }
+
+    const result: Record<string, any> = {};
+    for (const [key, entry] of entries) {
+      result[key] = entry;
+    }
+    return result;
   }
 }

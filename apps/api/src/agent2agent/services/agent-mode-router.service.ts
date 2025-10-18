@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
-import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-runtime-definition.service';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { AgentRunnerRegistryService } from './agent-runner-registry.service';
 
 export interface AgentExecutionContext {

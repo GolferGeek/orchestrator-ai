@@ -27,7 +27,7 @@ export interface MCPServerCapabilities {
   prompts?: {
     listChanged?: boolean;
   };
-  logging?: {};
+  logging?: Record<string, unknown>;
 }
 
 export interface MCPToolDefinition {
@@ -98,7 +98,7 @@ export interface MCPInitializeParams {
 
 export interface MCPClientCapabilities {
   experimental?: Record<string, any>;
-  sampling?: {};
+  sampling?: Record<string, unknown>;
 }
 
 export interface MCPListToolsResult {

@@ -1,7 +1,73 @@
 import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
-import { AgentRecord } from './agent-record.interface';
 
 type JsonNullable<T extends JsonValue = JsonValue> = T | null;
+
+// ============================================================================
+// Database Record Types
+// ============================================================================
+
+export interface AgentRecord {
+  id: string;
+  organization_slug: string | null;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  agent_type: string;
+  mode_profile: string;
+  version: string | null;
+  status: string | null;
+  yaml: string;
+  function_code: string | null;
+  agent_card: JsonObject | null;
+  context: JsonObject | null;
+  config: AgentConfigDefinition | null;
+  plan_structure: JsonObject | null;
+  deliverable_structure: JsonObject | null;
+  io_schema: JsonObject | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentUpsertInput {
+  organization_slug: string | null;
+  slug: string;
+  display_name: string;
+  description?: string | null;
+  agent_type: string;
+  mode_profile: string;
+  version?: string | null;
+  status?: string | null;
+  yaml: string;
+  function_code?: string | null;
+  context?: JsonObject | null;
+  plan_structure?: string | JsonObject | null;
+  deliverable_structure?: string | JsonObject | null;
+  io_schema?: JsonObject | null;
+  config?: AgentConfigDefinition | null;
+}
+
+export interface AgentUpsertRow {
+  organization_slug: string | null;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  agent_type: string;
+  mode_profile: string;
+  version: string | null;
+  status: string | null;
+  yaml: string;
+  function_code: string | null;
+  context: JsonObject | null;
+  plan_structure?: string | JsonObject | null;
+  deliverable_structure?: string | JsonObject | null;
+  io_schema?: JsonObject | null;
+  config?: AgentConfigDefinition | null;
+  updated_at: string;
+}
+
+// ============================================================================
+// Agent Definition Types
+// ============================================================================
 
 export interface AgentMetadataDefinition extends JsonObject {
   name?: string;
@@ -160,6 +226,10 @@ export interface AgentConfigDefinition extends JsonObject {
   ioSchema?: JsonValue;
   [key: string]: JsonValue | undefined;
 }
+
+// ============================================================================
+// Runtime Definition
+// ============================================================================
 
 export interface AgentRuntimeDefinition {
   id: string;

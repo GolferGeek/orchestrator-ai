@@ -20,7 +20,12 @@ import type { AnthropicMessageParsed } from '../types/provider-schemas';
  */
 interface AnthropicResponseMetadata extends ResponseMetadata {
   providerSpecific: {
-    stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | null;
+    stop_reason:
+      | 'end_turn'
+      | 'max_tokens'
+      | 'stop_sequence'
+      | 'tool_use'
+      | null;
     stop_sequence?: string;
     model_version?: string;
     // Anthropic usage details
@@ -205,7 +210,9 @@ export class AnthropicLLMService extends BaseLLMService {
 
       // Extract text content (Anthropic returns array of content blocks)
       const rawContent = completion.content
-        .filter((block) => block.type === 'text' && typeof block.text === 'string')
+        .filter(
+          (block) => block.type === 'text' && typeof block.text === 'string',
+        )
         .map((block) => block.text ?? '')
         .join('');
 

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import {
   buildPlanningPrompt,
   validatePlanStructure,
@@ -39,9 +39,7 @@ describe('Plan Handlers', () => {
       expect(result).toContain('You are a helpful planning assistant.');
       expect(result).toContain('Conversation history:');
       expect(result).toContain('user: I want to build a blog');
-      expect(result).toContain(
-        'Generate a structured plan with named phases',
-      );
+      expect(result).toContain('Generate a structured plan with named phases');
       expect(result).not.toContain('Your plan must follow this structure:');
     });
 

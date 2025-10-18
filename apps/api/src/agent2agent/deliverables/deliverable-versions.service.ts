@@ -207,7 +207,18 @@ export class DeliverableVersionsService {
             .eq('deliverable_id', deliverableId);
 
         if (allVersionsError) {
+          this.logger.error(
+            `Failed to list versions for deliverable ${deliverableId}`,
+            allVersionsError,
+          );
+        } else if (!allVersions || allVersions.length === 0) {
+          this.logger.debug(
+            `No deliverable versions exist yet for ${deliverableId}`,
+          );
         } else {
+          this.logger.warn(
+            `Deliverable ${deliverableId} has ${allVersions.length} versions but none marked as current`,
+          );
         }
 
         return null;
@@ -834,8 +845,8 @@ export class DeliverableVersionsService {
     // Build version contents for LLM
     const versionContents = versions
       .map(
-        (v, i) =>
-          `=== VERSION ${v.versionNumber} (Created: ${v.createdAt}) ===\n${v.content || ''}`,
+        (version) =>
+          `=== VERSION ${version.versionNumber} (Created: ${version.createdAt}) ===\n${version.content || ''}`,
       )
       .join('\n\n---\n\n');
 

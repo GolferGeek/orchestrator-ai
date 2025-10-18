@@ -269,7 +269,9 @@ export class TaskStatusService {
     }
   }
 
-  private extractProgress(metadata: JsonObject | undefined): number | undefined {
+  private extractProgress(
+    metadata: JsonObject | undefined,
+  ): number | undefined {
     if (!metadata) {
       return undefined;
     }
@@ -481,7 +483,9 @@ export class TaskStatusService {
     };
 
     if (taskStatus.metadata) {
-      taskStatus.metadata = this.cloneJsonValue(taskStatus.metadata) as JsonObject;
+      taskStatus.metadata = this.cloneJsonValue(
+        taskStatus.metadata,
+      ) as JsonObject;
     }
     if (taskStatus.result) {
       taskStatus.result = this.cloneJsonValue(taskStatus.result);
@@ -545,7 +549,9 @@ export class TaskStatusService {
     };
 
     if (newStatus.metadata) {
-      newStatus.metadata = this.cloneJsonValue(newStatus.metadata) as JsonObject;
+      newStatus.metadata = this.cloneJsonValue(
+        newStatus.metadata,
+      ) as JsonObject;
     }
     if (newStatus.result) {
       newStatus.result = this.cloneJsonValue(newStatus.result);
@@ -590,7 +596,8 @@ export class TaskStatusService {
               }
 
               // Store response metadata (for compatibility)
-              updateData.response_metadata = this.cloneJsonValue(resultMetadata);
+              updateData.response_metadata =
+                this.cloneJsonValue(resultMetadata);
             }
           }
         }

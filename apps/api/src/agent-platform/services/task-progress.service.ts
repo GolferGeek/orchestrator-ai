@@ -5,10 +5,7 @@ import {
   AgentStreamCompleteEvent,
   AgentStreamErrorEvent,
 } from '@/agent-platform/services/agent-runtime-stream.service';
-import {
-  TaskProgressEvent,
-  WorkflowStepProgressEvent,
-} from '@/agent2agent/types/agent-conversations.types';
+import { TaskProgressEvent } from '@/agent2agent/types/agent-conversations.types';
 
 @Injectable()
 export class TaskProgressService {

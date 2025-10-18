@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CentralizedRoutingService } from '@llm/centralized-routing.service';
 import { TaskRequestDto } from '../dto/task-request.dto';
-import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
+import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 
 export interface RoutingAssessment {
   showstopper: boolean;

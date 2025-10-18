@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { AgentTaskMode, TaskRequestDto } from '../../dto/task-request.dto';
 import { TaskResponseDto } from '../../dto/task-response.dto';
 import { handleOrchestrateAction } from './orchestrate.handlers';
@@ -62,13 +62,31 @@ describe('orchestrate.handlers', () => {
         handlePlan: jest.fn().mockResolvedValue(
           TaskResponseDto.success(AgentTaskMode.ORCHESTRATE, {
             content: { action: 'create', result: 'plan created' },
-            metadata: { provider: '', model: '', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 } },
+            metadata: {
+              provider: '',
+              model: '',
+              usage: {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                cost: 0,
+              },
+            },
           }),
         ),
         executeBuild: jest.fn().mockResolvedValue(
           TaskResponseDto.success(AgentTaskMode.ORCHESTRATE, {
             content: { action: 'execute', result: 'build executed' },
-            metadata: { provider: '', model: '', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 } },
+            metadata: {
+              provider: '',
+              model: '',
+              usage: {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                cost: 0,
+              },
+            },
           }),
         ),
         checkpointService: {
@@ -165,7 +183,10 @@ describe('orchestrate.handlers', () => {
       });
 
       it('should route "plan_create" action to handlePlan', async () => {
-        const request = createRequest({ action: 'plan_create', parameters: {} });
+        const request = createRequest({
+          action: 'plan_create',
+          parameters: {},
+        });
 
         const response = await handleOrchestrateAction(
           definition,
@@ -252,7 +273,9 @@ describe('orchestrate.handlers', () => {
         );
 
         expect(response.success).toBe(false);
-        expect(response.payload.metadata?.reason).toContain('not yet implemented');
+        expect(response.payload.metadata?.reason).toContain(
+          'not yet implemented',
+        );
       });
 
       it('should catch and return errors from handlers', async () => {
@@ -391,7 +414,9 @@ describe('orchestrate.handlers', () => {
           runnerContext,
         );
 
-        expect(runnerContext.checkpointService.resolveCheckpoint).toHaveBeenCalledWith({
+        expect(
+          runnerContext.checkpointService.resolveCheckpoint,
+        ).toHaveBeenCalledWith({
           approvalId: 'approval-1',
           decision: 'continue',
           actorId: 'user-1',
@@ -510,7 +535,9 @@ describe('orchestrate.handlers', () => {
         );
 
         expect(response.success).toBe(false);
-        expect(response.payload.metadata?.reason).toContain('Checkpoint not found');
+        expect(response.payload.metadata?.reason).toContain(
+          'Checkpoint not found',
+        );
       });
     });
   });

@@ -2,7 +2,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
@@ -211,10 +210,7 @@ export class DeliverablesService implements IActionHandler {
       );
 
       return {
-        deliverable: await this.findOne(
-          existingDeliverable.id,
-          context.userId,
-        ),
+        deliverable: await this.findOne(existingDeliverable.id, context.userId),
         version: newVersion,
         isNew: false,
       };
@@ -603,17 +599,7 @@ export class DeliverablesService implements IActionHandler {
       }
 
       // Always create an initial version
-      // Log what content we're working with for debugging
-
-      if (createDto.initialContent) {
-      } else {
-      }
-
-      const initialVersion = await this.createInitialVersion(
-        deliverableData.id,
-        createDto,
-        userId,
-      );
+      await this.createInitialVersion(deliverableData.id, createDto);
 
       return await this.findOne(deliverableData.id, userId);
     } catch (error) {
@@ -745,26 +731,20 @@ export class DeliverablesService implements IActionHandler {
     conversationId: string,
     userId: string,
   ): Promise<Deliverable[]> {
-    try {
-      const { data, error } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverables'))
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .eq('user_id', userId);
+    const { data, error } = await this.supabaseService
+      .getServiceClient()
+      .from(getTableName('deliverables'))
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
 
-      if (error) {
-        throw new BadRequestException(
-          `Failed to find deliverables by conversation: ${error.message}`,
-        );
-      }
-
-      const deliverables =
-        data?.map((item) => this.mapToDeliverable(item)) || [];
-      return deliverables;
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new BadRequestException(
+        `Failed to find deliverables by conversation: ${error.message}`,
+      );
     }
+
+    return data?.map((item) => this.mapToDeliverable(item)) || [];
   }
 
   /**
@@ -802,10 +782,13 @@ export class DeliverablesService implements IActionHandler {
         );
         if (currentVersion) {
           deliverable.currentVersion = currentVersion;
-        } else {
         }
-      } catch (_error) {
+      } catch (error) {
         // Don't throw here, just return deliverable without current version
+        this.logger.warn(
+          `Failed to load current version for deliverable ${id}`,
+          error instanceof Error ? error : { message: String(error) },
+        );
       }
 
       return deliverable;
@@ -858,8 +841,12 @@ export class DeliverablesService implements IActionHandler {
             if (currentVersion) {
               deliverable.currentVersion = currentVersion;
             }
-          } catch (_error) {
+          } catch (error) {
             // Continue without current version
+            this.logger.warn(
+              `Failed to load current version for deliverable ${deliverableData.id}`,
+              error instanceof Error ? error : { message: String(error) },
+            );
           }
 
           return deliverable;
@@ -950,7 +937,7 @@ export class DeliverablesService implements IActionHandler {
       if (updateDto.agentName !== undefined)
         updateData.agent_name = updateDto.agentName;
 
-      const { data, error } = await this.supabaseService
+      const { error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('deliverables'))
         .update(updateData)
@@ -1114,7 +1101,6 @@ export class DeliverablesService implements IActionHandler {
   private async createInitialVersion(
     deliverableId: string,
     createDto: CreateDeliverableDto,
-    userId: string,
   ): Promise<DeliverableVersion> {
     const { data, error } = await this.supabaseService
       .getServiceClient()

@@ -31,16 +31,14 @@ import {
   AgentTaskMode,
   NormalizedTaskRequestDto,
 } from './dto/task-request.dto';
-import { AgentType } from '@/agent2agent/types/agent-conversations.types';
 import { AgentRegistryService } from '../agent-platform/services/agent-registry.service';
-import { AgentRecord } from '../agent-platform/interfaces/agent-record.interface';
+import { AgentRecord } from '../agent-platform/interfaces/agent.interface';
 import { Public } from '../auth/decorators/public.decorator';
 import { Agent2AgentDeliverablesService } from './services/agent2agent-deliverables.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   A2ATaskSuccessResponse,
   A2ATaskErrorResponse,
-  JsonRpcErrorCode,
 } from '@orchestrator-ai/transport-types';
 import { Response, Request } from 'express';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -244,6 +242,9 @@ export class Agent2AgentController {
         // Conversation doesn't exist yet, will be created with org from URL
         this.logger.debug(
           `Conversation ${dto.conversationId} not found, will create with org: ${org}`,
+          {
+            cause: error instanceof Error ? error.message : error,
+          },
         );
       }
     }
@@ -1298,7 +1299,7 @@ export class Agent2AgentController {
 
     const roots: any[] = [];
 
-    grouped.forEach((agents, namespaceKey) => {
+    grouped.forEach((agents, _namespaceKey) => {
       // Group agents by logical hierarchy based on naming patterns
       const orchestrators = agents.filter(
         (a) => a.agent_type === 'orchestrator' || a.config?.orchestrator,

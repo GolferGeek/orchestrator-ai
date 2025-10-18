@@ -1,6 +1,6 @@
 import { AgentRuntimeDefinitionService } from '../agent-runtime-definition.service';
-import type { AgentRecord } from '../../interfaces/agent-record.interface';
-import type { AgentConfigDefinition } from '../../interfaces/database-agent-definition.interface';
+import type { AgentRecord } from '../../interfaces/agent.interface';
+import type { AgentConfigDefinition } from '../../interfaces/agent.interface';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 
 describe('AgentRuntimeDefinitionService', () => {

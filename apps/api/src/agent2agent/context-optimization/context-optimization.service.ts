@@ -51,7 +51,9 @@ export class ContextOptimizationService {
         processingTimeMs: duration,
         workProductType: request.workProductType,
       });
-    } catch (_e) {}
+    } catch (error) {
+      this.logger.warn('Failed to emit context optimization metrics', error);
+    }
     return optimized;
   }
 
@@ -92,7 +94,12 @@ export class ContextOptimizationService {
           '00000000-0000-0000-0000-000000000000',
         );
       }
-    } catch (_e) {}
+    } catch (error) {
+      this.logger.warn(
+        `Failed to load ${type ?? 'unknown'} context for ${id ?? 'unknown id'}`,
+        error,
+      );
+    }
     return null;
   }
 

@@ -102,9 +102,7 @@ export class PlanVersionsRepository {
   /**
    * Get current version for a plan
    */
-  async getCurrentVersion(
-    planId: string,
-  ): Promise<PlanVersionRecord | null> {
+  async getCurrentVersion(planId: string): Promise<PlanVersionRecord | null> {
     const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))

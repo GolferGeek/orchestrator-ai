@@ -1,4 +1,4 @@
-import { AgentRuntimeDefinition } from '@agent-platform/interfaces/database-agent-definition.interface';
+import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { AgentTaskMode, TaskRequestDto } from '../../dto/task-request.dto';
 import { TaskResponseDto } from '../../dto/task-response.dto';
 import type {
@@ -316,11 +316,7 @@ async function handleRunHumanResponse(
   } catch (error) {
     return TaskResponseDto.failure(
       AgentTaskMode.ORCHESTRATE,
-      error instanceof Error
-        ? error.message
-        : 'Failed to resolve checkpoint',
+      error instanceof Error ? error.message : 'Failed to resolve checkpoint',
     );
   }
 }
-
-

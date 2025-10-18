@@ -53,15 +53,15 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should clone values to prevent mutation', () => {
-      const payload: TaskResponsePayload = {
+      const payload = {
         content: { nested: { value: 42 } },
         metadata: {},
-      };
+      } satisfies TaskResponsePayload;
 
       const result = service.map(payload, null);
 
       // Mutate original
-      (payload.content as any).nested.value = 999;
+      payload.content.nested.value = 999;
 
       // Result should be unchanged
       expect(result.output.content.nested.value).toBe(42);
@@ -87,7 +87,10 @@ describe('OrchestrationOutputMapper', () => {
         metadata: {},
       };
 
-      const mapping = { firstItem: '$.content.items[0]', secondItem: '$.content.items[1]' };
+      const mapping = {
+        firstItem: '$.content.items[0]',
+        secondItem: '$.content.items[1]',
+      };
       const result = service.map(payload, mapping);
 
       expect(result.output.firstItem).toBe('first');
@@ -223,10 +226,18 @@ describe('OrchestrationOutputMapper', () => {
     it('should copy literal object values', () => {
       const payload: TaskResponsePayload = { content: null, metadata: {} };
 
-      const mapping = { config: { key: 'value', nested: { flag: true } } };
+      const mapping = {
+        config: {
+          key: 'value',
+          nested: { flag: true },
+        },
+      };
       const result = service.map(payload, mapping);
 
-      expect(result.output.config).toEqual({ key: 'value', nested: { flag: true } });
+      expect(result.output.config).toEqual({
+        key: 'value',
+        nested: { flag: true },
+      });
     });
   });
 
@@ -349,7 +360,9 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should log warning for mapping failures', () => {
-      const logSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
+      const logSpy = jest
+        .spyOn((service as any).logger, 'warn')
+        .mockImplementation();
 
       const payload: TaskResponsePayload = { content: {}, metadata: {} };
       const mapping = { bad: '$.content.deeply.nested.undefined.path' };
@@ -405,7 +418,9 @@ describe('OrchestrationOutputMapper', () => {
         { metric: 'revenue', value: 150000, change: 5.2 },
         { metric: 'expenses', value: 95000, change: -2.1 },
       ]);
-      expect(result.output.sql_query).toBe('SELECT * FROM kpis WHERE month = $1');
+      expect(result.output.sql_query).toBe(
+        'SELECT * FROM kpis WHERE month = $1',
+      );
       expect(result.output.summary).toBe('Retrieved 2 KPI records');
     });
   });

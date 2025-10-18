@@ -678,24 +678,24 @@ export class LLMService {
 
           if (!enhancedPiiMetadata) {
             // Compute detection only if we don't already have metadata
-          const piiPolicyResult = await this.piiService.checkPolicy(
-            params.userMessage,
-            {
-              provider: params.provider,
-              providerName: params.provider,
-            },
-          );
-          enhancedPiiMetadata = piiPolicyResult.metadata as any;
-        }
+            const piiPolicyResult = await this.piiService.checkPolicy(
+              params.userMessage,
+              {
+                provider: params.provider,
+                providerName: params.provider,
+              },
+            );
+            enhancedPiiMetadata = piiPolicyResult.metadata as any;
+          }
 
-        if (!enhancedPiiMetadata) {
-          throw new Error('PII metadata unavailable after policy check');
-        }
+          if (!enhancedPiiMetadata) {
+            throw new Error('PII metadata unavailable after policy check');
+          }
 
-        // Merge pseudonym data into metadata
-        enhancedPiiMetadata = {
-          ...enhancedPiiMetadata,
-          flaggings:
+          // Merge pseudonym data into metadata
+          enhancedPiiMetadata = {
+            ...enhancedPiiMetadata,
+            flaggings:
               enhancedPiiMetadata.detectionResults?.flaggedMatches ||
               enhancedPiiMetadata.flaggings ||
               [],

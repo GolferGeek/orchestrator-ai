@@ -81,8 +81,7 @@ export class CreateDeliverableDto {
   type?: DeliverableType;
 
   @ApiProperty({
-    description:
-      'Conversation ID this deliverable belongs to (required)',
+    description: 'Conversation ID this deliverable belongs to (required)',
   })
   @IsUUID()
   @RequireConversationId({

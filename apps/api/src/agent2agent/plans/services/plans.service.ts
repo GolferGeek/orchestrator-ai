@@ -6,66 +6,23 @@ import {
 } from '@nestjs/common';
 import { PlansRepository, PlanRecord } from '../repositories/plans.repository';
 import { PlanVersionsService } from './plan-versions.service';
-import type { PlanVersion } from './plan-versions.service';
 import type { JsonObject, PlanVersionData } from '@orchestrator-ai/transport-types';
 import {
   IActionHandler,
   ActionExecutionContext,
   ActionResult,
 } from '../../common/interfaces/action-handler.interface';
-
-export interface Plan {
-  id: string;
-  conversationId: string;
-  userId: string;
-  agentName: string;
-  namespace: string;
-  title: string;
-  currentVersionId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  currentVersion?: PlanVersionData | null;
-}
-
-type PlanCreateParams = {
-  title: string;
-  content: string;
-  format?: 'markdown' | 'json' | 'text';
-  agentName?: string;
-  namespace?: string;
-  taskId?: string;
-  metadata?: JsonObject;
-};
-
-type PlanEditParams = {
-  content: string;
-  metadata?: JsonObject;
-};
-
-type PlanRerunParams = {
-  versionId: string;
-  rerunConfig: {
-    provider: string;
-    model: string;
-    temperature?: number;
-    maxTokens?: number;
-  };
-};
-
-type PlanSetCurrentParams = { versionId: string };
-type PlanTargetVersionParams = { versionId: string };
-
-type PlanMergeParams = {
-  versionIds: string[];
-  mergePrompt: string;
-  planStructure?: unknown;
-  llmConfig?: JsonObject | null;
-  preferredFormat?: 'markdown' | 'json' | 'text';
-};
-
-type PlanCopyParams = {
-  versionId: string;
-};
+import type {
+  Plan,
+  PlanVersion,
+  PlanCreateParams,
+  PlanEditParams,
+  PlanRerunParams,
+  PlanSetCurrentParams,
+  PlanTargetVersionParams,
+  PlanMergeParams,
+  PlanCopyParams,
+} from '../types/plan.types';
 
 /**
  * PlansService - Implements the mode × action architecture for plan operations
@@ -126,10 +83,7 @@ export class PlansService implements IActionHandler {
           break;
 
         case 'edit': {
-          const editParams = this.ensureObject<PlanEditParams>(
-            params,
-            action,
-          );
+          const editParams = this.ensureObject<PlanEditParams>(params, action);
           result = await this.saveManualEdit(editParams, context);
           break;
         }
@@ -171,10 +125,7 @@ export class PlansService implements IActionHandler {
         }
 
         case 'copy_version': {
-          const copyParams = this.ensureObject<PlanCopyParams>(
-            params,
-            action,
-          );
+          const copyParams = this.ensureObject<PlanCopyParams>(params, action);
           result = await this.copyVersion(copyParams, context);
           break;
         }
@@ -209,10 +160,7 @@ export class PlansService implements IActionHandler {
     }
   }
 
-  private ensureObject<T extends object>(
-    params: unknown,
-    action: string,
-  ): T {
+  private ensureObject<T extends object>(params: unknown, action: string): T {
     if (!params || typeof params !== 'object') {
       throw new BadRequestException(
         `Invalid payload for plan action "${action}"`,

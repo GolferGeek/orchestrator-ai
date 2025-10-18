@@ -48,7 +48,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       // 1. Start conversation
       const converseRequest: TaskRequestDto = {
         mode: AgentTaskMode.CONVERSE,
-        userMessage: 'I need to write a technical blog post about Kubernetes best practices',
+        userMessage:
+          'I need to write a technical blog post about Kubernetes best practices',
         conversationId,
       };
 
@@ -68,7 +69,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       // 2. Continue conversation
       const converse2Request: TaskRequestDto = {
         mode: AgentTaskMode.CONVERSE,
-        userMessage: 'Target audience is DevOps engineers with 2-3 years experience',
+        userMessage:
+          'Target audience is DevOps engineers with 2-3 years experience',
         conversationId,
       };
 
@@ -86,7 +88,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         conversationId,
         payload: {
           action: 'create',
-          title: 'Kubernetes Best Practices Plan'
+          title: 'Kubernetes Best Practices Plan',
         },
       };
 
@@ -126,7 +128,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
           action: 'edit',
           editedContent: {
             sections: ['Introduction', 'Best Practices', 'Conclusion'],
-            target_audience: 'DevOps engineers'
+            target_audience: 'DevOps engineers',
           },
           comment: 'Added more detail to sections',
         },
@@ -176,7 +178,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
       expect(buildRead.body).toHaveProperty('mode', AgentTaskMode.BUILD);
       expect(buildRead.body.content).toHaveProperty('deliverable');
-      expect(buildRead.body.content.deliverable).toHaveProperty('title', 'Kubernetes Best Practices');
+      expect(buildRead.body.content.deliverable).toHaveProperty(
+        'title',
+        'Kubernetes Best Practices',
+      );
     });
   });
 
@@ -220,7 +225,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
       expect(build.body).toHaveProperty('mode', AgentTaskMode.BUILD);
       expect(build.body.content).toHaveProperty('deliverable');
-      expect(build.body.content.deliverable).toHaveProperty('title', 'Docker Intro');
+      expect(build.body.content.deliverable).toHaveProperty(
+        'title',
+        'Docker Intro',
+      );
       expect(build.body.content.deliverable).toHaveProperty('content');
       expect(build.body.content.deliverable.content).toContain('Docker');
     });
@@ -381,7 +389,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
           conversationId,
           payload: {
             action: 'rerun',
-            llmConfig: { temperature: 0.9 }
+            llmConfig: { temperature: 0.9 },
           },
         })
         .expect(201);
@@ -421,7 +429,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(readV1.body.content.deliverable).toHaveProperty('currentVersion', 1);
+      expect(readV1.body.content.deliverable).toHaveProperty(
+        'currentVersion',
+        1,
+      );
     });
   });
 
@@ -461,25 +472,25 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
     it('should not crash server on invalid actions', async () => {
       // Multiple invalid requests shouldn't crash server
-      const requests = Array(5).fill(null).map(() =>
-        request(httpServer)
-          .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
-          .send({
-            mode: AgentTaskMode.PLAN,
-            conversationId: 'test-errors',
-            payload: { action: 'nonsense' },
-          })
-      );
+      const requests = Array(5)
+        .fill(null)
+        .map(() =>
+          request(httpServer)
+            .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
+            .send({
+              mode: AgentTaskMode.PLAN,
+              conversationId: 'test-errors',
+              payload: { action: 'nonsense' },
+            }),
+        );
 
       const responses = await Promise.all(requests);
-      responses.forEach(res => {
+      responses.forEach((res) => {
         expect([400, 500]).toContain(res.status);
       });
 
       // Server should still work
-      const healthCheck = await request(httpServer)
-        .get('/health')
-        .expect(200);
+      const healthCheck = await request(httpServer).get('/health').expect(200);
     });
   });
 
@@ -668,7 +679,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
           .send({
             mode: AgentTaskMode.PLAN,
             conversationId,
-            payload: { action, ...(action === 'getVersion' ? { versionNumber: 1 } : {}) },
+            payload: {
+              action,
+              ...(action === 'getVersion' ? { versionNumber: 1 } : {}),
+            },
           });
 
         expect(response.body).toHaveProperty('mode', AgentTaskMode.PLAN);
@@ -686,7 +700,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
           .send({
             mode: AgentTaskMode.BUILD,
             conversationId,
-            payload: { action, ...(action === 'getVersion' ? { versionNumber: 1 } : {}) },
+            payload: {
+              action,
+              ...(action === 'getVersion' ? { versionNumber: 1 } : {}),
+            },
           });
 
         expect(response.body).toHaveProperty('mode', AgentTaskMode.BUILD);
@@ -703,19 +720,21 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
    */
   describe('Test 9: Concurrent Requests', () => {
     it('should handle 5 CONVERSE requests simultaneously', async () => {
-      const requests = Array(5).fill(null).map((_, i) =>
-        request(httpServer)
-          .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
-          .send({
-            mode: AgentTaskMode.CONVERSE,
-            userMessage: `Concurrent message ${i}`,
-            conversationId: `concurrent-converse-${i}-${Date.now()}`,
-          })
-      );
+      const requests = Array(5)
+        .fill(null)
+        .map((_, i) =>
+          request(httpServer)
+            .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
+            .send({
+              mode: AgentTaskMode.CONVERSE,
+              userMessage: `Concurrent message ${i}`,
+              conversationId: `concurrent-converse-${i}-${Date.now()}`,
+            }),
+        );
 
       const responses = await Promise.all(requests);
 
-      responses.forEach(res => {
+      responses.forEach((res) => {
         expect(res.status).toBe(201);
         expect(res.body).toHaveProperty('mode', AgentTaskMode.CONVERSE);
       });
@@ -725,32 +744,36 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const timestamp = Date.now();
 
       // Setup conversations first
-      const setupRequests = Array(3).fill(null).map((_, i) =>
-        request(httpServer)
-          .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
-          .send({
-            mode: AgentTaskMode.CONVERSE,
-            userMessage: `Setup for plan ${i}`,
-            conversationId: `concurrent-plan-${i}-${timestamp}`,
-          })
-      );
+      const setupRequests = Array(3)
+        .fill(null)
+        .map((_, i) =>
+          request(httpServer)
+            .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
+            .send({
+              mode: AgentTaskMode.CONVERSE,
+              userMessage: `Setup for plan ${i}`,
+              conversationId: `concurrent-plan-${i}-${timestamp}`,
+            }),
+        );
 
       await Promise.all(setupRequests);
 
       // Create plans concurrently
-      const planRequests = Array(3).fill(null).map((_, i) =>
-        request(httpServer)
-          .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
-          .send({
-            mode: AgentTaskMode.PLAN,
-            conversationId: `concurrent-plan-${i}-${timestamp}`,
-            payload: { action: 'create', title: `Concurrent Plan ${i}` },
-          })
-      );
+      const planRequests = Array(3)
+        .fill(null)
+        .map((_, i) =>
+          request(httpServer)
+            .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
+            .send({
+              mode: AgentTaskMode.PLAN,
+              conversationId: `concurrent-plan-${i}-${timestamp}`,
+              payload: { action: 'create', title: `Concurrent Plan ${i}` },
+            }),
+        );
 
       const responses = await Promise.all(planRequests);
 
-      responses.forEach(res => {
+      responses.forEach((res) => {
         expect(res.status).toBe(201);
         expect(res.body).toHaveProperty('mode', AgentTaskMode.PLAN);
       });
@@ -760,32 +783,36 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const timestamp = Date.now();
 
       // Setup conversations
-      const setupRequests = Array(2).fill(null).map((_, i) =>
-        request(httpServer)
-          .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
-          .send({
-            mode: AgentTaskMode.CONVERSE,
-            userMessage: `Setup for build ${i}`,
-            conversationId: `concurrent-build-${i}-${timestamp}`,
-          })
-      );
+      const setupRequests = Array(2)
+        .fill(null)
+        .map((_, i) =>
+          request(httpServer)
+            .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
+            .send({
+              mode: AgentTaskMode.CONVERSE,
+              userMessage: `Setup for build ${i}`,
+              conversationId: `concurrent-build-${i}-${timestamp}`,
+            }),
+        );
 
       await Promise.all(setupRequests);
 
       // Create deliverables concurrently
-      const buildRequests = Array(2).fill(null).map((_, i) =>
-        request(httpServer)
-          .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
-          .send({
-            mode: AgentTaskMode.BUILD,
-            conversationId: `concurrent-build-${i}-${timestamp}`,
-            payload: { action: 'create', title: `Concurrent Build ${i}` },
-          })
-      );
+      const buildRequests = Array(2)
+        .fill(null)
+        .map((_, i) =>
+          request(httpServer)
+            .post('/api/a2a/agent-to-agent/demo/blog-post-writer/tasks')
+            .send({
+              mode: AgentTaskMode.BUILD,
+              conversationId: `concurrent-build-${i}-${timestamp}`,
+              payload: { action: 'create', title: `Concurrent Build ${i}` },
+            }),
+        );
 
       const responses = await Promise.all(buildRequests);
 
-      responses.forEach(res => {
+      responses.forEach((res) => {
         expect(res.status).toBe(201);
         expect(res.body).toHaveProperty('mode', AgentTaskMode.BUILD);
       });

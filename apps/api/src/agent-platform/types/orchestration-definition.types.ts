@@ -1,7 +1,4 @@
-import type {
-  JsonObject,
-  JsonValue,
-} from '@orchestrator-ai/transport-types';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 
 export interface OrchestrationParameterDefinition extends JsonObject {
   name: string;
