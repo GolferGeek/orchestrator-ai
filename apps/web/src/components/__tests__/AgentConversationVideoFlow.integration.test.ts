@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
-import AgentChatView from '../AgentChatView.vue';
 import { videoService } from '@/services/videoService';
 
 // Mock the video service
@@ -29,11 +27,11 @@ interface MockVideoService {
 }
 
 describe('Agent Conversation Video Flow Integration', () => {
-  let pinia: ReturnType<typeof createPinia>;
+  let _pinia: ReturnType<typeof createPinia>;
   const mockVideoService = videoService as MockVideoService;
 
   beforeEach(() => {
-    pinia = createPinia();
+    _pinia = createPinia();
     
     // Reset mocks
     mockVideoService.getAllVideos.mockReturnValue([]);

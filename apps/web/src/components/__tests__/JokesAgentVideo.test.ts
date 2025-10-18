@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
-import AgentChatView from '../AgentChatView.vue';
 
 // Mock dependencies
 vi.mock('@/stores/agentChatStore', () => ({
@@ -32,10 +30,10 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('Jokes Agent Video Display', () => {
-  let pinia: ReturnType<typeof createPinia>;
+  let _pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
-    pinia = createPinia();
+    _pinia = createPinia();
   });
 
   it('should show jokes-agent-demo video for productivity/jokes_agent agent', () => {

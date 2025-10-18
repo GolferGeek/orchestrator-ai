@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
-import AgentChatView from '../AgentChatView.vue';
-import AgentResourcesPanel from '../AgentResourcesPanel.vue';
 
 // Mock dependencies
 vi.mock('@/stores/agentChatStore', () => ({
@@ -33,10 +30,10 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('Metrics Agent Video Display', () => {
-  let pinia: ReturnType<typeof createPinia>;
+  let _pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
-    pinia = createPinia();
+    _pinia = createPinia();
   });
 
   it('should show metrics-agent-walkthrough video for finance/metrics agent', () => {

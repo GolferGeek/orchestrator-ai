@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
-import AgentChatView from '../AgentChatView.vue';
 import { videoService } from '@/services/videoService';
 
 // Mock dependencies
@@ -27,10 +25,10 @@ vi.mock('vue-router', () => ({
 }));
 
 describe('Agent Video Fallback Behavior', () => {
-  let pinia: ReturnType<typeof createPinia>;
+  let _pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
-    pinia = createPinia();
+    _pinia = createPinia();
   });
 
   it('should show agent-default-overview for agents without video section', () => {

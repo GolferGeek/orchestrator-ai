@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
-import AgentResourcesPanel from '../AgentResourcesPanel.vue';
 import type { Video } from '@/services/videoService';
 
 // Mock video data
-const mockVideos: Video[] = [
+const _mockVideos: Video[] = [
   {
     id: 'agent-default-overview',
     title: 'Working with Orchestrator AI Agents',
@@ -29,10 +27,10 @@ const mockVideos: Video[] = [
 ];
 
 describe('AgentResourcesPanel', () => {
-  let pinia: ReturnType<typeof createPinia>;
+  let _pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
-    pinia = createPinia();
+    _pinia = createPinia();
   });
 
   it('should render with agent-specific videos', () => {
