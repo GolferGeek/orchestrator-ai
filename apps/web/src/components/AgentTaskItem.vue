@@ -138,20 +138,20 @@
         <!-- Privacy Indicators for assistant messages only -->
         <UserPrivacyIndicators
           v-if="message.role === 'assistant' && showPrivacyIndicators"
-          :showDataProtection="false"
-          :isDataProtected="false"
-          :showSanitizationStatus="privacySettings.showSanitizationStatus"
-          :sanitizationStatus="sanitizationStatus"
-          :flaggedCount="flaggedItemsCount"
-          :pseudonymizedCount="pseudonymizedItemsCount"
-          :showRoutingDisplay="privacySettings.showRoutingDisplay"
-          :routingMode="currentRoutingMode"
-          :showTrustSignal="privacySettings.showTrustSignal"
-          :trustLevel="currentTrustLevel"
-          :trustScore="currentTrustScore"
-          :showPiiCount="privacySettings.showPiiCount"
-          :showProcessingTime="false"
-          :processingTimeMs="0"
+          :show-data-protection="false"
+          :is-data-protected="false"
+          :show-sanitization-status="privacySettings.showSanitizationStatus"
+          :sanitization-status="sanitizationStatus"
+          :flagged-count="flaggedItemsCount"
+          :pseudonymized-count="pseudonymizedItemsCount"
+          :show-routing-display="privacySettings.showRoutingDisplay"
+          :routing-mode="currentRoutingMode"
+          :show-trust-signal="privacySettings.showTrustSignal"
+          :trust-level="currentTrustLevel"
+          :trust-score="currentTrustScore"
+          :show-pii-count="privacySettings.showPiiCount"
+          :show-processing-time="false"
+          :processing-time-ms="0"
           :compact="privacySettings.compactMode"
         />
         
@@ -161,9 +161,9 @@
         <!-- LLM Information for assistant messages -->
         <LLMInfo
           v-if="message.role === 'assistant' && llmUsed && ((message.metadata?.mode || '').toLowerCase() !== 'converse')"
-          :llmUsed="llmUsed"
+          :llm-used="llmUsed"
           :usage="usage || undefined"
-          :costCalculation="costCalculation || undefined"
+          :cost-calculation="costCalculation || undefined"
         />
       </div>
       
@@ -186,9 +186,9 @@
                 !message.taskId.startsWith('workflow-') && 
                 !message.metadata?.isPlaceholder" class="task-evaluation">
       <TaskRating
-        :taskId="message.taskId"
-        :agentName="agentName"
-        :messageRole="message.role"
+        :task-id="message.taskId"
+        :agent-name="agentName"
+        :message-role="message.role"
       />
     </div>
     

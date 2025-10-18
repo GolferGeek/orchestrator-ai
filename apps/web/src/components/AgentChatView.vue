@@ -22,8 +22,8 @@
         v-for="message in messages"
         :key="message.id"
         :message="message"
-        :conversationId="conversationId"
-        :agentName="currentAgent?.name"
+        :conversation-id="conversationId"
+        :agent-name="currentAgent?.name"
       />
     </div>
     <!-- Input Area -->

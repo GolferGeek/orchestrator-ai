@@ -350,7 +350,7 @@
       <!-- Routing Tab -->
       <div v-show="selectedTab === 'routing'" class="tab-panel routing-panel">
         <LLMRoutingDashboard 
-          :timeRange="selectedTimeRange" 
+          :time-range="selectedTimeRange" 
           :provider="selectedProvider" 
         />
       </div>
