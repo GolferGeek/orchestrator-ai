@@ -16,7 +16,7 @@ beforeEach(() => {
 
 afterEach(() => {
   // Clean up after each test
-  setActivePinia(undefined as any);
+  setActivePinia(undefined as unknown);
 });
 
 // Mock console methods to reduce noise in tests (optional)
@@ -25,7 +25,7 @@ const originalConsoleError = console.error;
 
 beforeEach(() => {
   // Suppress known warnings in tests
-  console.warn = (message: string, ...args: any[]) => {
+  console.warn = (message: string, ...args: unknown[]) => {
     if (
       message.includes('Failed to resolve component') ||
       message.includes('[Vue warn]') ||
@@ -36,7 +36,7 @@ beforeEach(() => {
     originalConsoleWarn(message, ...args);
   };
 
-  console.error = (message: string, ...args: any[]) => {
+  console.error = (message: string, ...args: unknown[]) => {
     if (
       message.includes('Failed to resolve component') ||
       message.includes('[Vue warn]') ||

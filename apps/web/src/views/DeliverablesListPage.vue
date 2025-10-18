@@ -102,16 +102,16 @@
                 <div class="deliverable-header">
                   <div class="deliverable-title-section">
                     <div class="title-with-icon">
-                      <span class="type-icon">{{ getTypeIcon(deliverable.type as any) }}</span>
+                      <span class="type-icon">{{ getTypeIcon(deliverable.type as string) }}</span>
                       <ion-card-title>{{ deliverable.title }}</ion-card-title>
                     </div>
                   </div>
                   <div class="deliverable-badges">
                     <ion-badge 
-                      :color="getTypeColor(deliverable.type as any)"
+                      :color="getTypeColor(deliverable.type as string)"
                       class="type-badge"
                     >
-                      {{ getTypeName(deliverable.type as any) }}
+                      {{ getTypeName(deliverable.type as string) }}
                     </ion-badge>
                     <ion-badge 
                       v-if="getVersionNumber(deliverable) > 1"
@@ -480,7 +480,7 @@ const handleRefresh = async (event: CustomEvent) => {
 const handleSearch = async () => {
   if (searchQuery.value.trim()) {
     await deliverables.search(searchQuery.value, {
-      type: typeFilter.value as any || undefined,
+      type: typeFilter.value as string || undefined,
       limit: pageSize,
       offset: 0
     });
@@ -492,7 +492,7 @@ const handleSearch = async () => {
 const handleFilter = async () => {
   if (searchQuery.value.trim()) {
     await deliverables.search(searchQuery.value, {
-      type: typeFilter.value as any || undefined,
+      type: typeFilter.value as string || undefined,
       limit: pageSize,
       offset: 0
     });
@@ -510,7 +510,7 @@ const loadMoreDeliverables = async () => {
     const newOffset = currentOffset.value + pageSize;
     if (searchQuery.value.trim()) {
       await deliverables.search(searchQuery.value, {
-        type: typeFilter.value as any || undefined,
+        type: typeFilter.value as string || undefined,
         limit: pageSize,
         offset: newOffset
       });
@@ -535,7 +535,7 @@ const handleDeliverableCreated = (deliverableId: string) => {
 function getImageAssets(deliverable: Record<string, unknown>) {
   try {
     const current = deliverablesStore.getCurrentVersion(deliverable.id);
-    const images = (current?.fileAttachments?.images || []) as any[];
+    const images = (current?.fileAttachments?.images || []) as string[];
     return Array.isArray(images) ? images : [];
   } catch {
     return [];

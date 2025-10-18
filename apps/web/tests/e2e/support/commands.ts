@@ -100,7 +100,7 @@ Cypress.Commands.add('waitForIonic', () => {
 });
 
 // Fill PII pattern form
-Cypress.Commands.add('fillPIIPatternForm', (pattern: any) => {
+Cypress.Commands.add('fillPIIPatternForm', (pattern: { name: string; dataType: string; regex: string; description?: string }) => {
   cy.get('[data-cy=pattern-name-input]').type(pattern.name);
   cy.get('[data-cy=pattern-type-select]').select(pattern.dataType);
   cy.get('[data-cy=pattern-regex-input]').type(pattern.regex);
@@ -119,7 +119,7 @@ Cypress.Commands.add('fillPIIPatternForm', (pattern: any) => {
 });
 
 // Fill pseudonym dictionary form
-Cypress.Commands.add('fillDictionaryForm', (dictionary: any) => {
+Cypress.Commands.add('fillDictionaryForm', (dictionary: { name: string; dataType: string; category: string; words?: string[] }) => {
   cy.get('[data-cy=dictionary-name-input]').type(dictionary.name);
   cy.get('[data-cy=dictionary-type-select]').select(dictionary.dataType);
   cy.get('[data-cy=dictionary-category-input]').type(dictionary.category);
@@ -179,8 +179,8 @@ declare global {
       checkAccessibility(): Chainable<void>;
       verifyNoConsoleErrors(): Chainable<void>;
       waitForIonic(): Chainable<void>;
-      fillPIIPatternForm(pattern: any): Chainable<void>;
-      fillDictionaryForm(dictionary: any): Chainable<void>;
+      fillPIIPatternForm(pattern: { name: string; dataType: string; regex: string; description?: string }): Chainable<void>;
+      fillDictionaryForm(dictionary: { name: string; dataType: string; category: string; words?: string[] }): Chainable<void>;
       navigateToAdmin(section: string): Chainable<void>;
       checkLoadingState(shouldBeLoading?: boolean): Chainable<void>;
       expectSuccessMessage(message?: string): Chainable<void>;

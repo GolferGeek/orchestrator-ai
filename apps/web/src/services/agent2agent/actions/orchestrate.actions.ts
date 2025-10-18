@@ -120,7 +120,7 @@ export async function executeOrchestration(
   agentName: string,
   conversationId: string,
   orchestrationRunId: string,
-  parameters?: Record<string, any>,
+  parameters?: Record<string, unknown>,
 ): Promise<OrchestrateExecuteResponseContent> {
   console.log('🔨 [Orchestrate Execute Action] Starting', { agentName, orchestrationRunId });
 

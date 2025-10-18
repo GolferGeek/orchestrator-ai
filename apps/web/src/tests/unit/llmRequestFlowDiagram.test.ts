@@ -34,8 +34,8 @@ const mockLLMUsageRecord = {
 
 
 describe('LLMRequestFlowDiagram', () => {
-  let wrapper: VueWrapper<any>;
-  let pinia: any;
+  let wrapper: VueWrapper<unknown>;
+  let pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
     // Create fresh Pinia instance
@@ -86,7 +86,7 @@ describe('LLMRequestFlowDiagram', () => {
         }
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as { autoStart: boolean; animationSpeed: number; liveMode: boolean; refreshInterval: number };
       expect(vm.autoStart).toBe(false);
       expect(vm.animationSpeed).toBe(2000);
       expect(vm.liveMode).toBe(false);
@@ -116,7 +116,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should start animation when start button is clicked', async () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as { startFlow: () => void; isPlaying: boolean };
       
       // Test the method directly since button finding can be unreliable in tests
       vm.startFlow();
@@ -128,7 +128,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should pause animation when pause button is clicked', async () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as { startFlow: () => void; pauseFlow: () => void; isPlaying: boolean };
       vm.startFlow(); // Start first
       
       const pauseButton = wrapper.findAll('ion-button').find(btn => btn.text().includes('Pause'));
@@ -143,7 +143,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should reset animation when reset button is clicked', async () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as { currentStep: number; timingData: unknown[]; resetFlow: () => void };
       vm.currentStep = 3; // Set some progress
       vm.timingData = [{ step: 'test', duration: 100, percentage: 50, completed: true }];
       
@@ -160,7 +160,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should step forward when step button is clicked', async () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as { currentStep: number; stepForward: () => void };
       const initialStep = vm.currentStep;
       
       const stepButton = wrapper.findAll('ion-button').find(btn => btn.text().includes('Step'));
@@ -269,7 +269,7 @@ describe('LLMRequestFlowDiagram', () => {
 
       await wrapper.vm.$nextTick();
       
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       
       // Test that the component can process real data
       vm.updateFlowWithLiveData(mockLLMUsageRecord);
@@ -294,7 +294,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should process real timing data correctly', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       vm.updateFlowWithLiveData(mockLLMUsageRecord);
 
       // Check if timing data was processed
@@ -303,7 +303,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should update step metadata with real data', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       vm.updateFlowWithLiveData(mockLLMUsageRecord);
 
       expect(vm.flowSteps).toBeDefined();
@@ -312,7 +312,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should handle empty or invalid data gracefully', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       
       // Test with null data
       vm.updateFlowWithLiveData(null);
@@ -334,7 +334,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should calculate progress percentage correctly', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       
       // Test initial state
       expect(vm.progressPercentage).toBe(0);
@@ -346,7 +346,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should update current step data correctly', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       vm.currentStep = 0;
       
       const currentData = vm.currentStepData;
@@ -355,7 +355,7 @@ describe('LLMRequestFlowDiagram', () => {
     });
 
     it('should handle step transitions correctly', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       const initialStep = vm.currentStep;
       
       vm.stepForward();
@@ -377,7 +377,7 @@ describe('LLMRequestFlowDiagram', () => {
         }
       });
 
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       
       // Should be able to use animation controls
       vm.startFlow();

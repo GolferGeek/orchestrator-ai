@@ -301,7 +301,7 @@ export const buildResponseHandler = {
    * Generic handler that auto-detects action
    * Validates and returns typed data
    */
-  handle(response: unknown): any {
+  handle(response: unknown): unknown {
     return validateAndExtract(response, 'unknown');
   },
 };

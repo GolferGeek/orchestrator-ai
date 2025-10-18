@@ -203,7 +203,7 @@ describe('State Management Integration Tests - Task 24.2', () => {
       const piiStore = usePIIPatternsStore();
       
       // Test pattern validation action
-      const validatePattern = (pattern: any) => {
+      const validatePattern = (pattern: { name: string; dataType: string; regex: string }) => {
         if (!pattern.name || !pattern.dataType || !pattern.regex) {
           throw new Error('Invalid pattern structure');
         }

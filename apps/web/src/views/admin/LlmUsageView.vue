@@ -395,7 +395,7 @@ const recentRecords = computed(() => {
 const routeSplit = computed(() => {
   const records = usageRecords.value || [];
   const total = records.length || 0;
-  const local = records.filter((r: any) => (r.route ? r.route === 'local' : r.is_local)).length;
+  const local = records.filter((r: Record<string, unknown>) => (r.route ? r.route === 'local' : r.is_local)).length;
   const remote = total - local;
   const localPercent = total ? Math.round((local / total) * 100) : 0;
   const remotePercent = total ? 100 - localPercent : 0;
@@ -425,10 +425,10 @@ const onTabChange = (event: CustomEvent) => {
 const onRouteFilterChange = async () => {
   const route = routeFilter.value === 'all' ? undefined : routeFilter.value;
   // Update store filters for records
-  store.updateFilters({ route: route as any });
+  store.updateFilters({ route: route as string });
   await store.fetchUsageRecords();
   // Update analytics
-  store.updateAnalyticsFilters({ route: route as any });
+  store.updateAnalyticsFilters({ route: route as string });
   await store.fetchAnalytics();
 };
 
@@ -436,9 +436,9 @@ const applyPresetLocal7d = async () => {
   routeFilter.value = 'local';
   const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const end = new Date().toISOString().split('T')[0];
-  store.updateFilters({ route: 'local' as any, startDate: start, endDate: end });
+  store.updateFilters({ route: 'local' as string, startDate: start, endDate: end });
   await store.fetchUsageRecords();
-  store.updateAnalyticsFilters({ route: 'local' as any, startDate: start, endDate: end });
+  store.updateAnalyticsFilters({ route: 'local' as string, startDate: start, endDate: end });
   await store.fetchAnalytics();
 };
 

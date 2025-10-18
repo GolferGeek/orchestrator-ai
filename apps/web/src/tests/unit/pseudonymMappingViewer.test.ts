@@ -101,8 +101,8 @@ vi.mock('@ionic/vue', async () => {
 });
 
 describe('PseudonymMappingViewer', () => {
-  let wrapper: VueWrapper<any>;
-  let pinia: any;
+  let wrapper: VueWrapper<unknown>;
+  let pinia: ReturnType<typeof createPinia>;
 
   beforeEach(() => {
     pinia = createPinia();
@@ -240,7 +240,7 @@ describe('PseudonymMappingViewer', () => {
 
     it('should have demo controls in the modal when opened', async () => {
       // Simulate opening the modal by setting the reactive property
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       vm.reversibilityModalOpen = true;
       vm.selectedMapping = mockMappings[0];
       await wrapper.vm.$nextTick();
@@ -250,7 +250,7 @@ describe('PseudonymMappingViewer', () => {
     });
 
     it('should show security requirements after demo completion', async () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       vm.reversibilityModalOpen = true;
       vm.selectedMapping = mockMappings[0];
       
@@ -266,14 +266,14 @@ describe('PseudonymMappingViewer', () => {
     });
 
     it('should generate consistent demo values', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       const demoValue1 = vm.generateDemoValue(mockMappings[0]);
       const demoValue2 = vm.generateDemoValue(mockMappings[0]);
       expect(demoValue1).toBe(demoValue2); // Should be consistent for same mapping
     });
 
     it('should generate appropriate demo values for different data types', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       const nameDemo = vm.generateDemoValue(mockMappings[0]); // name type
       const emailDemo = vm.generateDemoValue(mockMappings[1]); // email type
       const phoneDemo = vm.generateDemoValue(mockMappings[2]); // phone type
@@ -288,7 +288,7 @@ describe('PseudonymMappingViewer', () => {
     });
 
     it('should reset demo state when modal opens', async () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       vm.demoStep = 3; // Set to completed state
       vm.demoProcessing = true;
 
@@ -350,7 +350,7 @@ describe('PseudonymMappingViewer', () => {
     });
 
     it('should handle demo values appropriately', () => {
-      const vm = wrapper.vm as any;
+      const vm = wrapper.vm as Record<string, unknown>;
       if (vm.generateDemoValue) {
         const demoValue = vm.generateDemoValue(mockMappings[0]);
         expect(typeof demoValue).toBe('string');

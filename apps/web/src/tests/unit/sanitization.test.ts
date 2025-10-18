@@ -446,7 +446,7 @@ describe('Edge Cases and Security Tests', () => {
 
   describe('Performance Tests', () => {
     it('should handle large objects efficiently', () => {
-      const largeObject: any = {};
+      const largeObject: Record<string, string> = {};
       for (let i = 0; i < 1000; i++) {
         largeObject[`field${i}`] = `<script>alert("${i}")</script>Value ${i}`;
       }

@@ -136,7 +136,7 @@ const currentVideo = ref<Video | null>(null);
 
 // Search state
 const searchQuery = ref('');
-const searchResults = ref<Array<{ video: Video; category: any; categoryKey: string }>>([]);
+const searchResults = ref<Array<{ video: Video; category: unknown; categoryKey: string }>>([]);
 
 // Get video data from service
 const videoCategories = computed(() => videoService.getCategoriesInOrder());

@@ -94,7 +94,7 @@ import { useAgentsStore } from '@/stores/agentsStore';
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const agentsStore = useAgentsStore();
-const handleConversationSelected = async (conv: any) => {
+const handleConversationSelected = async (conv: { id: string }) => {
   try {
     // TODO: Load conversation messages if not already loaded
     // await conversation.loadConversationMessages(conv.id);
@@ -103,7 +103,7 @@ const handleConversationSelected = async (conv: any) => {
 
   }
 };
-const handleAgentSelected = async (agent: any) => {
+const handleAgentSelected = async (agent: { type: string }) => {
   try {
     await conversation.createConversation(agent);
   } catch (error) {
@@ -114,7 +114,7 @@ const handleQuickAction = async (agentType: string) => {
   try {
     // Find the first agent of the requested type
     const availableAgents = agentsStore.getAvailableAgents;
-    const targetAgent = availableAgents.find((agent: any) => agent.type === agentType);
+    const targetAgent = availableAgents.find((agent: { type: string }) => agent.type === agentType);
     if (targetAgent && targetAgent.type) {
       // Ensure the agent has the required type field
       const agentData = {

@@ -23,8 +23,8 @@ Object.defineProperty(window, 'localStorage', {
 
 describe('LandingStore', () => {
   let store: ReturnType<typeof useLandingStore>;
-  let mockRoute: any;
-  let mockRouter: any;
+  let mockRoute: { query: Record<string, unknown> };
+  let mockRouter: { replace: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     // Create a fresh Pinia instance for each test
@@ -37,13 +37,13 @@ describe('LandingStore', () => {
     mockRoute = {
       query: {},
     };
-    (useRoute as any).mockReturnValue(mockRoute);
+    (useRoute as ReturnType<typeof vi.fn>).mockReturnValue(mockRoute);
     
     // Setup mock router
     mockRouter = {
       replace: vi.fn(),
     };
-    (useRouter as any).mockReturnValue(mockRouter);
+    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue(mockRouter);
     
     // Clear localStorage mock
     localStorageMock.getItem.mockReturnValue(null);

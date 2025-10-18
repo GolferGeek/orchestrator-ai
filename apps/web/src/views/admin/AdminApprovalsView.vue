@@ -68,7 +68,7 @@ async function load() {
   try {
     const res = await approvalsService.list({ status: status.value, agentSlug: agentFilter.value || undefined, conversationId: conversationFilter.value || undefined });
     // The API returns { success, data } shape from controller; handle both shapes
-    records.value = Array.isArray(res) ? res as any : (res?.data ?? []);
+    records.value = Array.isArray(res) ? res as HumanApprovalRecord[] : (res?.data ?? []);
   } catch (e) {
     console.error('Failed to load approvals', e);
   } finally {
@@ -119,7 +119,7 @@ async function approveContinue(rec: HumanApprovalRecord) {
 
 async function doInfinite(ev: CustomEvent) {
   await load();
-  (ev.target as any).complete();
+  (ev.target as { complete: () => void }).complete();
 }
 
 onMounted(load);

@@ -273,7 +273,7 @@ export function removeControlChars(value: string): string {
 /**
  * Generate user-friendly validation message
  */
-export function getValidationMessage(code: string, context?: Record<string, any>): string {
+export function getValidationMessage(code: string, context?: Record<string, unknown>): string {
   const messages: Record<string, string> = {
     [ValidationCodes.REQUIRED]: 'This field is required',
     [ValidationCodes.MIN_LENGTH]: context?.min ? `Must be at least ${context.min} characters` : 'Too short',
@@ -326,7 +326,7 @@ export function getValidationStatusIcon(status: 'valid' | 'error' | 'warning' | 
 /**
  * Create a debounced validation function
  */
-export function createDebouncedValidator<T extends (...args: any[]) => any>(
+export function createDebouncedValidator<T extends (...args: unknown[]) => unknown>(
   validator: T,
   delay: number
 ): (...args: Parameters<T>) => Promise<ReturnType<T>> {
@@ -353,11 +353,11 @@ export function createDebouncedValidator<T extends (...args: any[]) => any>(
  * Build a chain of validation rules
  */
 export function buildValidationChain() {
-  const rules: Array<(value: any) => boolean | string> = [];
+  const rules: Array<(value: unknown) => boolean | string> = [];
   
   const chain = {
     required(message = 'This field is required') {
-      rules.push((value: any) => {
+      rules.push((value: unknown) => {
         return value !== null && value !== undefined && value !== '' || message;
       });
       return chain;

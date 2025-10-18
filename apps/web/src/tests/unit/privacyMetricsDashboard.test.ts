@@ -20,8 +20,8 @@ const createWrapper = (props = {}) => {
 };
 
 describe('PrivacyMetricsDashboard.vue', () => {
-  let wrapper: VueWrapper<any>;
-  let store: any;
+  let wrapper: VueWrapper<unknown>;
+  let store: ReturnType<typeof usePrivacyMetricsStore>;
 
   beforeEach(() => {
     // Initialize Pinia

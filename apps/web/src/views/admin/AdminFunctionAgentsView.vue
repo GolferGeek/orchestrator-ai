@@ -41,8 +41,8 @@ import { ref, onMounted } from 'vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonInput, IonTextarea, IonButton } from '@ionic/vue';
 import { apiService } from '@/services/apiService';
 
-const agents = ref<any[]>([]);
-const selected = ref<any | null>(null);
+const agents = ref<Record<string, unknown>[]>([]);
+const selected = ref<Record<string, unknown> | null>(null);
 const fnCode = ref('');
 const fnTimeout = ref(20000);
 
@@ -51,7 +51,7 @@ async function loadAgents() {
   agents.value = res?.data?.data || res?.data || [];
 }
 
-function select(a: any) {
+function select(a: Record<string, unknown>) {
   selected.value = a;
   const cfg = a?.config || {};
   const fn = cfg?.configuration?.function || cfg?.function || {};
