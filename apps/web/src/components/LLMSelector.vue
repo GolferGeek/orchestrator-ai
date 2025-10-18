@@ -323,12 +323,12 @@ const onSovereignModeChange = async () => {
   }
 };
 // Computed properties
-const isLoading = computed(() => 
-  llmStore.loadingProviders || llmStore.loadingModels
-);
-const hasErrors = computed(() => 
-  llmStore.providerError || llmStore.modelError
-);
+// const isLoading = computed(() => 
+//   llmStore.loadingProviders || llmStore.loadingModels
+// );
+// const hasErrors = computed(() => 
+//   llmStore.providerError || llmStore.modelError
+// );
 
 // Sovereign mode computed properties
 const effectiveSovereignModeClass = computed(() => {

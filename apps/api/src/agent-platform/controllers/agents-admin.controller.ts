@@ -235,7 +235,7 @@ export class AgentsAdminController {
       .select('*')
       .maybeSingle();
     if (updateResult.error) throw new Error(updateResult.error.message);
-    return { success: true, data: updateResult.data };
+    return { success: true, data: updateResult.data as AgentRecord | null };
   }
 
   @Post('smoke-run')

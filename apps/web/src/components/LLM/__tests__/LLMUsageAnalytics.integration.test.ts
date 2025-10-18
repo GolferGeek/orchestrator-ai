@@ -314,7 +314,7 @@ describe('LLMUsageAnalytics Integration Tests', () => {
       store.loading = false;
       await nextTick();
 
-      expect(wrapper.text()).toContain('error') || expect(wrapper.text()).toContain('Failed');
+      expect(wrapper.text()).toMatch(/error|Failed/);
     });
 
     it('handles invalid data without crashing', async () => {
@@ -359,7 +359,7 @@ describe('LLMUsageAnalytics Integration Tests', () => {
       let chartUpdateCount = 0;
       
       // Monitor chart updates
-      const originalProps = wrapper.find('[data-testid="line-chart"]').props;
+      // const originalProps = wrapper.find('[data-testid="line-chart"]').props;
       wrapper.find('[data-testid="line-chart"]').vm.$watch('data', () => {
         chartUpdateCount++;
       }, { deep: true });

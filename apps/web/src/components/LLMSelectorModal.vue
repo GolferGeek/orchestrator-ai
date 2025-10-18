@@ -170,11 +170,11 @@ interface Props {
   description?: string;
 }
 
-interface Emits {
-  (e: 'dismiss'): void;
-  (e: 'select', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
-  (e: 'execute', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
-}
+// interface Emits {
+//   (e: 'dismiss'): void;
+//   (e: 'select', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
+//   (e: 'execute', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
+// }
 
 const props = withDefaults(defineProps<Props>(), {
   title: '',

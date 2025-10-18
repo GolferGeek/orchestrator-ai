@@ -407,7 +407,7 @@ const parsedResponse = computed(() => {
           if (responseObj.content) return responseObj.content as string;
           if (responseObj.text) return responseObj.text as string;
           if (responseObj.message) return responseObj.message as string;
-        } catch (e) {
+        } catch {
         }
       }
       return null;
@@ -424,7 +424,7 @@ const parsedResponse = computed(() => {
         if (emailFromNested) {
           result.email = emailFromNested;
         }
-      } catch (e) {
+      } catch {
         // Response text is not JSON, that's fine
       }
     }
@@ -439,7 +439,7 @@ const parsedResponse = computed(() => {
     }
     // Return null if no meaningful content found
     return Object.keys(result).length > 0 ? result : null;
-  } catch (error) {
+  } catch {
     // If JSON parsing fails, return null to fall back to raw text
     return null;
   }
@@ -470,9 +470,9 @@ const formatStepName = (stepName: string): string => {
     .join(' ');
 };
 // Debug computed property for workflow steps
-const debugWorkflowSteps = computed(() => {
-  return props.evaluation?.metadata?.workflowStepsCompleted;
-});
+// const debugWorkflowSteps = computed(() => {
+//   return props.evaluation?.metadata?.workflowStepsCompleted;
+// });
 </script>
 <style scoped>
 .message-info {

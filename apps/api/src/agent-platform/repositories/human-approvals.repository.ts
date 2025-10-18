@@ -26,7 +26,7 @@ export class HumanApprovalsRepository {
   }
 
   async create(input: HumanApprovalCreateInput): Promise<HumanApprovalRecord> {
-    const { data, error } = await this.client()
+    const { data, error } = (await this.client()
       .from(this.table)
       .insert({
         organization_slug: input.organizationSlug,
@@ -40,7 +40,7 @@ export class HumanApprovalsRepository {
         metadata: this.ensureMetadata(input.metadata),
       })
       .select('*')
-      .single();
+      .single()) as { data: HumanApprovalRecord | null; error: { message: string } | null };
     if (error) throw new Error(`Failed to create approval: ${error.message}`);
     return data as HumanApprovalRecord;
   }
@@ -64,22 +64,22 @@ export class HumanApprovalsRepository {
     if (metadata) {
       payload.metadata = this.ensureMetadata(metadata);
     }
-    const { data, error } = await this.client()
+    const { data, error } = (await this.client()
       .from(this.table)
       .update(payload)
       .eq('id', id)
       .select('*')
-      .single();
+      .single()) as { data: HumanApprovalRecord | null; error: { message: string } | null };
     if (error) throw new Error(`Failed to update approval: ${error.message}`);
     return data as HumanApprovalRecord;
   }
 
   async get(id: string): Promise<HumanApprovalRecord | null> {
-    const { data, error } = await this.client()
+    const { data, error } = (await this.client()
       .from(this.table)
       .select('*')
       .eq('id', id)
-      .maybeSingle();
+      .maybeSingle()) as { data: HumanApprovalRecord | null; error: { message: string } | null };
     if (error) throw new Error(`Failed to fetch approval: ${error.message}`);
     return (data as HumanApprovalRecord) || null;
   }

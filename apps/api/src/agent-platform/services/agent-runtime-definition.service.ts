@@ -105,7 +105,7 @@ export class AgentRuntimeDefinitionService {
 
     try {
       // Attempt JSON parse first for stored JSON payloads
-      const maybeJson = JSON.parse(raw);
+      const maybeJson = JSON.parse(raw) as unknown;
       if (this.isJsonObject(maybeJson)) {
         return maybeJson;
       }
@@ -554,7 +554,7 @@ export class AgentRuntimeDefinitionService {
 
     if (typeof value === 'string') {
       try {
-        const parsed = JSON.parse(value);
+        const parsed = JSON.parse(value) as unknown;
         return this.toJsonObject(parsed);
       } catch {
         // If it's not valid JSON, return the string as-is (e.g., markdown template)

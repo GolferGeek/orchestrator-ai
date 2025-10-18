@@ -81,12 +81,12 @@ export class CreateAgentDto {
   @ApiProperty({ description: 'Agent card metadata', required: false })
   @IsOptional()
   @IsObject()
-  agent_card?: Record<string, any> | null;
+  agent_card?: Record<string, unknown> | null;
 
   @ApiProperty({ description: 'Context/Prompt configuration', required: false })
   @IsOptional()
   @IsObject()
-  context?: Record<string, any> | null;
+  context?: Record<string, unknown> | null;
 
   @ApiProperty({
     description: 'Runtime configuration (type-specific)',
@@ -94,14 +94,14 @@ export class CreateAgentDto {
   })
   @IsOptional()
   @IsObject()
-  config?: Record<string, any> | null;
+  config?: Record<string, unknown> | null;
 
   @ApiProperty({
     description: 'Plan structure template (markdown string or JSON schema)',
     required: false,
   })
   @IsOptional()
-  plan_structure?: string | Record<string, any> | null;
+  plan_structure?: string | Record<string, unknown> | null;
 
   @ApiProperty({
     description:
@@ -109,7 +109,7 @@ export class CreateAgentDto {
     required: false,
   })
   @IsOptional()
-  deliverable_structure?: string | Record<string, any> | null;
+  deliverable_structure?: string | Record<string, unknown> | null;
 }
 
 export class UpdateAgentDto {
@@ -131,13 +131,13 @@ export class UpdateAgentDto {
 
   @IsOptional()
   @IsObject()
-  agent_card?: Record<string, any> | null;
+  agent_card?: Record<string, unknown> | null;
 
   @IsOptional()
   @IsObject()
-  context?: Record<string, any> | null;
+  context?: Record<string, unknown> | null;
 
   @IsOptional()
   @IsObject()
-  config?: Record<string, any> | null;
+  config?: Record<string, unknown> | null;
 }

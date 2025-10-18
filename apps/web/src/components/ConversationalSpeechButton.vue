@@ -42,12 +42,12 @@ import { sendMessage, createPlan, createDeliverable } from '@/services/agent2age
 // Define conversation states
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
 
-const props = defineProps<{
-  conversationId: string;
-  disabled?: boolean;
-  agentName?: string;
-  agentType?: string;
-}>();
+// const props = defineProps<{
+//   conversationId: string;
+//   disabled?: boolean;
+//   agentName?: string;
+//   agentType?: string;
+// }>();
 
 const emit = defineEmits<{
   (e: 'conversationStart'): void;
@@ -55,9 +55,9 @@ const emit = defineEmits<{
   (e: 'error', error: string): void;
 }>();
 
-const uiStore = useUiStore();
-const llmStore = useLLMPreferencesStore();
-const conversationsStore = useConversationsStore();
+// const uiStore = useUiStore();
+// const llmStore = useLLMPreferencesStore();
+// const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 
 // Component state

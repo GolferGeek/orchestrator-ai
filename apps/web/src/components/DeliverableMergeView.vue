@@ -206,7 +206,7 @@ import {
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import * as diff from 'diff';
-import { marked } from 'marked';
+// import { marked } from 'marked';
 import type { Deliverable } from '@/types/deliverable';
 
 interface Props {

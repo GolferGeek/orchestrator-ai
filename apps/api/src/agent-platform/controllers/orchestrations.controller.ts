@@ -8,6 +8,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -24,6 +25,15 @@ import {
   SkipOrchestrationStepDto,
   AbortOrchestrationRunDto,
 } from '../dto/orchestrations.dto';
+
+interface RequestWithUser extends Request {
+  user?: {
+    sub?: string;
+    id?: string;
+    userId?: string;
+    user_id?: string;
+  };
+}
 
 @ApiTags('orchestrations')
 @ApiBearerAuth('JWT-auth')
@@ -92,7 +102,7 @@ export class OrchestrationsController {
   async resolveApproval(
     @Param('approvalId') approvalId: string,
     @Body() body: ResolveOrchestrationApprovalDto,
-    @Req() req: any,
+    @Req() req: RequestWithUser,
   ) {
     const actor =
       req.user?.sub ??
@@ -126,7 +136,7 @@ export class OrchestrationsController {
   async retryFailedStep(
     @Param('runId') runId: string,
     @Body() body: RetryOrchestrationStepDto,
-    @Req() req: any,
+    @Req() req: RequestWithUser,
   ) {
     const actor =
       req.user?.sub ??
@@ -161,7 +171,7 @@ export class OrchestrationsController {
   async skipFailedStep(
     @Param('runId') runId: string,
     @Body() body: SkipOrchestrationStepDto,
-    @Req() req: any,
+    @Req() req: RequestWithUser,
   ) {
     const actor =
       req.user?.sub ??
@@ -194,7 +204,7 @@ export class OrchestrationsController {
   async abortRun(
     @Param('runId') runId: string,
     @Body() body: AbortOrchestrationRunDto,
-    @Req() req: any,
+    @Req() req: RequestWithUser,
   ) {
     const actor =
       req.user?.sub ??

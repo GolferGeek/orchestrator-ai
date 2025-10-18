@@ -15,6 +15,13 @@ import {
   StreamTokenService,
 } from '../services/stream-token.service';
 
+interface AuthenticatedRequest extends Request {
+  user?: SupabaseAuthUserDto;
+  streamTokenClaims?: StreamTokenClaims;
+  sanitizedUrl?: string;
+  originalUrl?: string;
+}
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   private readonly logger = new Logger(JwtAuthGuard.name);
@@ -34,7 +41,7 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
     // Check for API key authentication as fallback FIRST
     const testApiKey = request.headers['x-test-api-key'] as string;
@@ -48,7 +55,7 @@ export class JwtAuthGuard implements CanActivate {
       const devEmail =
         process.env.SUPABASE_TEST_USER || 'test_api_key_user@example.com';
 
-      (request as any).user = {
+      request.user = {
         id: devUserId,
         email: devEmail,
         aud: 'authenticated',
@@ -97,7 +104,7 @@ export class JwtAuthGuard implements CanActivate {
           identities: user.identities || [],
         };
 
-        (request as any).user = validatedUser;
+        request.user = validatedUser;
         return true;
       } catch (error) {
         this.logger.warn('Bearer token validation failed', {
@@ -112,15 +119,15 @@ export class JwtAuthGuard implements CanActivate {
       const claims = this.streamTokenService.verifyToken(queryToken);
       const validatedUser = this.buildUserFromClaims(claims);
 
-      (request as any).user = validatedUser;
-      (request as any).streamTokenClaims = claims;
-      (request as any).sanitizedUrl = this.streamTokenService.stripTokenFromUrl(
-        (request as any).originalUrl ?? request.url,
+      request.user = validatedUser;
+      request.streamTokenClaims = claims;
+      request.sanitizedUrl = this.streamTokenService.stripTokenFromUrl(
+        request.originalUrl ?? request.url,
       );
 
       if (request.query && typeof request.query === 'object') {
         if ('token' in request.query) {
-          delete (request.query as any).token;
+          delete (request.query as Record<string, unknown>).token;
         }
       }
 
@@ -130,7 +137,7 @@ export class JwtAuthGuard implements CanActivate {
     throw new UnauthorizedException('No token provided');
   }
 
-  private extractBearerToken(request: Request): string | null {
+  private extractBearerToken(request: AuthenticatedRequest): string | null {
     const authHeader = request.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
       return null;
@@ -139,8 +146,8 @@ export class JwtAuthGuard implements CanActivate {
     return token || null;
   }
 
-  private extractQueryToken(request: Request): string | null {
-    const query: Record<string, unknown> | undefined = request.query as any;
+  private extractQueryToken(request: AuthenticatedRequest): string | null {
+    const query: Record<string, unknown> | undefined = request.query as Record<string, unknown> | undefined;
     if (!query) {
       return null;
     }

@@ -51,7 +51,7 @@
 import { computed } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
 import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
-import { useRoute } from 'vue-router';
+// import { useRoute } from 'vue-router';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';

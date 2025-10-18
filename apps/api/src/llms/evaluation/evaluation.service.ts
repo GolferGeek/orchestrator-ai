@@ -974,9 +974,9 @@ export class EvaluationService {
   private convertFeedbackToCSV(feedback: any[]): string {
     if (feedback.length === 0) return '';
 
-    const headers = Object.keys(feedback[0]).join(',');
+    const headers = Object.keys(feedback[0] as Record<string, unknown>).join(',');
     const rows = feedback.map((item) =>
-      Object.values(item)
+      Object.values(item as Record<string, unknown>)
         .map((val) =>
           typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val,
         )
@@ -1212,7 +1212,7 @@ export class EvaluationService {
         providers.forEach((provider) => {
           const mappedProvider = mapLLMProviderFromDb(provider);
           if (provider.id) {
-            providersMap.set(provider.id, mappedProvider);
+            providersMap.set(provider.id as string, mappedProvider);
           }
         });
       }
@@ -1228,7 +1228,7 @@ export class EvaluationService {
         models.forEach((model) => {
           const mappedModel = mapLLMModelFromDb(model);
           if (model.id) {
-            modelsMap.set(model.id, mappedModel);
+            modelsMap.set(model.id as string, mappedModel);
           }
         });
       }
@@ -1527,14 +1527,14 @@ export class EvaluationService {
 
       // Apply date filters
       if (filters.startDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
       if (filters.endDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
         endDate.setHours(23, 59, 59, 999);
@@ -1552,13 +1552,13 @@ export class EvaluationService {
     const modelIds = new Set<string>();
 
     tasksWithEvaluations.forEach((task) => {
-      userIds.add(task.user_id);
+      userIds.add(task.user_id as string);
 
       const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
       const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
 
-      if (providerId) providerIds.add(providerId);
-      if (modelId) modelIds.add(modelId);
+      if (providerId) providerIds.add(providerId as string);
+      if (modelId) modelIds.add(modelId as string);
     });
 
     // Batch fetch user profiles, providers, and models
@@ -1573,7 +1573,7 @@ export class EvaluationService {
       tasksWithEvaluations
         .map((task) =>
           this.transformTaskToEnhancedEvaluation(
-            task,
+            task as TaskRecord,
             usersMap,
             providersMap,
             modelsMap,
@@ -1707,14 +1707,14 @@ export class EvaluationService {
 
       // Apply date filters
       if (filters.startDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
       if (filters.endDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
         endDate.setHours(23, 59, 59, 999);
@@ -1795,7 +1795,7 @@ export class EvaluationService {
       '5': 0,
     };
     ratings.forEach((rating) => {
-      const key = Math.floor(rating).toString();
+      const key = Math.floor(rating as number).toString();
       if (ratingDistribution[key] !== undefined) {
         ratingDistribution[key]++;
       }
@@ -1958,14 +1958,14 @@ export class EvaluationService {
 
       // Apply date filters
       if (filters.startDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
       if (filters.endDate && task.evaluation?.evaluation_timestamp) {
-        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp as string | number | Date);
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
         endDate.setHours(23, 59, 59, 999);
@@ -2096,7 +2096,7 @@ export class EvaluationService {
     const usersMap = new Map<string, UserProfileRecord>();
     (users || []).forEach((user) => {
       if (user.id) {
-        usersMap.set(user.id, user as UserProfileRecord);
+        usersMap.set(user.id as string, user as UserProfileRecord);
       }
     });
 
@@ -2122,7 +2122,7 @@ export class EvaluationService {
     (providers || []).forEach((provider) => {
       const mappedProvider = mapLLMProviderFromDb(provider);
       if (provider.id) {
-        providersMap.set(provider.id, mappedProvider);
+        providersMap.set(provider.id as string, mappedProvider);
       }
     });
 
@@ -2148,7 +2148,7 @@ export class EvaluationService {
     (models || []).forEach((model) => {
       const mappedModel = mapLLMModelFromDb(model);
       if (model.id) {
-        modelsMap.set(model.id, mappedModel);
+        modelsMap.set(model.id as string, mappedModel);
       }
     });
 
@@ -2481,7 +2481,7 @@ export class EvaluationService {
     );
 
     return Object.entries(agentGroups).map(
-      ([agentName, data]: [string, any]) => ({
+      ([agentName, data]: [string, { ratings: number[]; count: number }]) => ({
         agentName,
         averageRating:
           data.ratings.length > 0
