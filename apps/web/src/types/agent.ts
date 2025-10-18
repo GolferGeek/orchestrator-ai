@@ -1,3 +1,5 @@
+import type { JsonValue } from '@orchestrator-ai/transport-types';
+
 /**
  * Agent Type Definitions
  * Domain-specific types for agent management and hierarchy
@@ -100,7 +102,7 @@ export interface FlatHierarchyData {
   parentId?: string | null;
   namespace?: string;
   metadata?: AgentNodeMetadata;
-  [key: string]: unknown;
+  [key: string]: JsonValue;
 }
 
 // =====================================
@@ -165,7 +167,7 @@ export interface AgentConfiguration {
   };
 
   /** Custom configuration */
-  custom?: Record<string, unknown>;
+  custom?: Record<string, JsonValue>;
 }
 
 /**

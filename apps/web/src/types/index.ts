@@ -139,7 +139,7 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 
-export type UnknownRecord = Record<string, unknown>;
+export type UnknownRecord = Record<string, JsonValue>;
 
 // =====================================
 // COMMON STORE TYPES
@@ -162,7 +162,7 @@ export interface LoadingStates {
 export interface ErrorState {
   error: string | null;
   errorCode?: string;
-  errorDetails?: unknown;
+  errorDetails?: JsonValue;
   lastError?: Date;
 }
 
@@ -210,7 +210,7 @@ export interface SelectionState<T = string> {
 /**
  * Common API response wrapper
  */
-export interface StoreApiResponse<T = unknown> {
+export interface StoreApiResponse<T = JsonValue> {
   success: boolean;
   data?: T;
   error?: string;
@@ -259,7 +259,7 @@ export interface AuditTrail {
   entityId: string;
   userId?: string;
   timestamp: string;
-  changes?: Record<string, { before: unknown; after: unknown }>;
+  changes?: Record<string, { before: JsonValue; after: JsonValue }>;
   metadata?: UnknownRecord;
 }
 
@@ -328,7 +328,7 @@ export interface BulkOperationResult {
 /**
  * Common cache entry interface
  */
-export interface CacheEntry<T = unknown> {
+export interface CacheEntry<T = JsonValue> {
   data: T;
   timestamp: number;
   ttl: number;
@@ -338,7 +338,7 @@ export interface CacheEntry<T = unknown> {
 /**
  * Common real-time update interface
  */
-export interface RealTimeUpdate<T = unknown> {
+export interface RealTimeUpdate<T = JsonValue> {
   type: 'create' | 'update' | 'delete' | 'bulk_update';
   entityType: string;
   entityId?: string;
@@ -366,8 +366,8 @@ export interface FilterConfig {
   field: string;
   type: 'text' | 'select' | 'multiselect' | 'date' | 'daterange' | 'number' | 'boolean';
   label: string;
-  options?: Array<{ label: string; value: unknown }>;
-  defaultValue?: unknown;
+  options?: Array<{ label: string; value: JsonValue }>;
+  defaultValue?: JsonValue;
   required?: boolean;
   validation?: (value: unknown) => boolean;
 }
@@ -384,7 +384,7 @@ export interface ColumnConfig {
   minWidth?: string;
   maxWidth?: string;
   align?: 'left' | 'center' | 'right';
-  format?: (value: unknown) => string;
+  format?: (value: JsonValue) => string;
   component?: string;
   visible?: boolean;
 }
@@ -450,7 +450,7 @@ export interface BaseStoreState {
 /**
  * Store state for data-driven stores (CRUD operations)
  */
-export interface DataStoreState<T = unknown> extends BaseStoreState {
+export interface DataStoreState<T = JsonValue> extends BaseStoreState {
   // Data
   items: T[];
   selectedItems: string[];
@@ -475,7 +475,7 @@ export interface DataStoreState<T = unknown> extends BaseStoreState {
  */
 export interface MonitoringStoreState extends BaseStoreState {
   // Real-time data
-  realTimeData: unknown;
+  realTimeData: JsonValue;
   isRealTimeEnabled: boolean;
   
   // Metrics
@@ -483,7 +483,7 @@ export interface MonitoringStoreState extends BaseStoreState {
   alerts: Notification[];
   
   // Historical data
-  historicalData: Record<string, unknown[]>;
+  historicalData: Record<string, JsonValue[]>;
   
   // Auto-refresh
   autoRefreshEnabled: boolean;

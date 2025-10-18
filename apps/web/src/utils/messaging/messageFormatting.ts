@@ -44,91 +44,12 @@ export class MessageFormattingService {
         
         // Extract content from various possible formats
         if (parsedResult) {
-          if (parsedResult.success && parsedResult.message) {
-            // Format: { success: true, message: "content", metadata: {...} } (orchestrator format)
-            responseContent = String(parsedResult.message);
-            responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID and plan ID if present
-            if (parsedResult.deliverableId) {
-              responseMetadata.deliverableId = parsedResult.deliverableId;
-            }
-            if (parsedResult.planId) {
-              responseMetadata.planId = parsedResult.planId;
-            }
-          } else if (parsedResult.success && parsedResult.response) {
-            // Format: { success: true, response: "content", metadata: {...}, deliverableId: "uuid" }
-            responseContent = String(parsedResult.response);
-            responseMetadata = parsedResult.metadata || {};
-
-            // Extract deliverable ID and plan ID if present
-            if (parsedResult.deliverableId) {
-              responseMetadata.deliverableId = parsedResult.deliverableId;
-            }
-            if (parsedResult.planId) {
-              responseMetadata.planId = parsedResult.planId;
-            }
-          } else if (parsedResult.success) {
-            // Format: { success: true, response: "content", deliverableId: "..." } (current blog post format)
-            responseContent = String(parsedResult.response || parsedResult.message || 'Success');
-            responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID and plan ID if present
-            if (parsedResult.deliverableId) {
-              responseMetadata.deliverableId = parsedResult.deliverableId;
-            }
-            if (parsedResult.planId) {
-              responseMetadata.planId = parsedResult.planId;
-            }
-          } else if (parsedResult.message) {
-            // Format: { message: "content" }
-            responseContent = String(parsedResult.message);
-            responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID and plan ID if present
-            if (parsedResult.deliverableId) {
-              responseMetadata.deliverableId = parsedResult.deliverableId;
-            }
-            if (parsedResult.planId) {
-              responseMetadata.planId = parsedResult.planId;
-            }
-          } else if (parsedResult.response) {
-            // Format: { response: "content" }
-            responseContent = String(parsedResult.response);
-            responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID and plan ID if present
-            if (parsedResult.deliverableId) {
-              responseMetadata.deliverableId = parsedResult.deliverableId;
-            }
-            if (parsedResult.planId) {
-              responseMetadata.planId = parsedResult.planId;
-            }
-          } else if (parsedResult.content) {
-            // Format: { content: "content" }
-            responseContent = String(parsedResult.content);
-            responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID and plan ID if present
-            if (parsedResult.deliverableId) {
-              responseMetadata.deliverableId = parsedResult.deliverableId;
-            }
-            if (parsedResult.planId) {
-              responseMetadata.planId = parsedResult.planId;
-            }
-          } else if (parsedResult.result) {
-            // Format: { result: "content" }
-            responseContent = String(parsedResult.result);
-            responseMetadata = parsedResult.metadata || {};
-            // Extract deliverable ID and plan ID if present
-            if (parsedResult.deliverableId) {
-              responseMetadata.deliverableId = parsedResult.deliverableId;
-            }
-            if (parsedResult.planId) {
-              responseMetadata.planId = parsedResult.planId;
-            }
-          } else if (typeof parsedResult === 'string') {
-            // Format: "content"
+          if (typeof parsedResult === 'string') {
             responseContent = parsedResult;
           } else {
-            // Fallback: stringify the whole object
-            responseContent = JSON.stringify(parsedResult, null, 2);
-            // Still check for deliverable ID and plan ID even in fallback case
+            responseContent = extractContent(parsedResult, responseContent);
+            responseMetadata = parsedResult.metadata || {};
+
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
             }

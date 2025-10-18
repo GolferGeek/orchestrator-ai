@@ -1,3 +1,5 @@
+import type { JsonValue } from '@orchestrator-ai/transport-types';
+
 /**
  * Task Type Definitions
  * Domain-specific types for task management
@@ -94,7 +96,7 @@ export interface TaskData {
     prompt?: string;
 
     /** Structured parameters */
-    parameters?: Record<string, unknown>;
+    parameters?: Record<string, JsonValue>;
 
     /** File references */
     files?: Array<{
@@ -105,7 +107,7 @@ export interface TaskData {
     }>;
 
     /** Context from previous tasks */
-    context?: Record<string, unknown>;
+    context?: Record<string, JsonValue>;
   };
 
   /** Output data */
@@ -114,7 +116,7 @@ export interface TaskData {
     text?: string;
 
     /** Structured result data */
-    data?: Record<string, unknown>;
+    data?: Record<string, JsonValue>;
 
     /** Generated artifacts */
     artifacts?: Array<{
@@ -142,7 +144,7 @@ export interface TaskData {
     checkpoints?: Array<{
       phase: string;
       timestamp: string;
-      data?: unknown;
+      data?: JsonValue;
     }>;
   };
 
@@ -150,7 +152,7 @@ export interface TaskData {
   error?: {
     code?: string;
     message?: string;
-    details?: unknown;
+    details?: JsonValue;
     recoverable?: boolean;
     retryable?: boolean;
   };

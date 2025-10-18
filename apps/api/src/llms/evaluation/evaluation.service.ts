@@ -84,7 +84,7 @@ export class EvaluationService {
     messageId: string,
     evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const { client } = this.getAggregationsClient();
+    const { client, isServiceClient } = this.getAggregationsClient();
 
     // Verify message exists and belongs to user
     const { data: message, error: messageError } = await client
@@ -137,7 +137,7 @@ export class EvaluationService {
     userId: string,
     messageId: string,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const { client } = this.getAggregationsClient();
+    const { client, isServiceClient } = this.getAggregationsClient();
 
     const { data: message, error } = await client
       .from('messages')
@@ -170,7 +170,7 @@ export class EvaluationService {
     sessionId: string,
     filters: EvaluationFilters = {},
   ): Promise<EnhancedMessageResponseDto[]> {
-    const { client } = this.getAggregationsClient();
+    const { client, isServiceClient } = this.getAggregationsClient();
 
     let query = client
       .from('messages')
@@ -437,7 +437,7 @@ export class EvaluationService {
     const providerIds = new Set<string>();
     const modelIds = new Set<string>();
 
-    const { client } = this.getAggregationsClient();
+    const { client, isServiceClient } = this.getAggregationsClient();
 
     const [
       { data: tasksData, error: taskError },

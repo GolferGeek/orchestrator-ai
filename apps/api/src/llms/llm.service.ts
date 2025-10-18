@@ -164,16 +164,10 @@ export class LLMService {
             await this.dictionaryPseudonymizerService.pseudonymizeText(
               userMessage,
               {
-                organizationSlug:
-              options?.organizationSlug ||
-              options?.routingDecision?.organizationSlug ||
-              null,
-            agentSlug:
-              options?.agentSlug ||
-              options?.routingDecision?.agentSlug ||
-              null,
-            },
-          );
+                organizationSlug: options?.organizationSlug ?? null,
+                agentSlug: options?.agentSlug ?? null,
+              },
+            );
           processedUserMessage = pseudonymResult.pseudonymizedText;
           dictionaryMappings = pseudonymResult.mappings;
 
@@ -684,20 +678,24 @@ export class LLMService {
 
           if (!enhancedPiiMetadata) {
             // Compute detection only if we don't already have metadata
-            const piiPolicyResult = await this.piiService.checkPolicy(
-              params.userMessage,
-              {
-                provider: params.provider,
-                providerName: params.provider,
-              },
-            );
-            enhancedPiiMetadata = piiPolicyResult.metadata as any;
-          }
+          const piiPolicyResult = await this.piiService.checkPolicy(
+            params.userMessage,
+            {
+              provider: params.provider,
+              providerName: params.provider,
+            },
+          );
+          enhancedPiiMetadata = piiPolicyResult.metadata as any;
+        }
 
-          // Merge pseudonym data into metadata
-          enhancedPiiMetadata = {
-            ...enhancedPiiMetadata,
-            flaggings:
+        if (!enhancedPiiMetadata) {
+          throw new Error('PII metadata unavailable after policy check');
+        }
+
+        // Merge pseudonym data into metadata
+        enhancedPiiMetadata = {
+          ...enhancedPiiMetadata,
+          flaggings:
               enhancedPiiMetadata.detectionResults?.flaggedMatches ||
               enhancedPiiMetadata.flaggings ||
               [],

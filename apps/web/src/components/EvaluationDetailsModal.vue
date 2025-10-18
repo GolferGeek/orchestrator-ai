@@ -412,6 +412,7 @@ const parsedResponse = computed(() => {
     const responseText = extractResponseText(response);
     if (responseText) {
       result.response = responseText;
+      result.content = responseText;
       // Try to parse the response text itself as JSON to look for email
       try {
         const nestedResponse = JSON.parse(responseText);

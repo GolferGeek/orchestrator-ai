@@ -1,6 +1,27 @@
 import { BaseApiClient } from './baseApiClient';
 import { ApiEndpoint } from '../../types/api';
 import { TaskResponse, AgentInfo } from '../../types/chat';
+
+const extractLLMContent = (payload: unknown, fallback = 'Task completed'): string => {
+  if (!payload || typeof payload !== 'object') {
+    return fallback;
+  }
+
+  const candidates = [
+    (payload as any)?.content,
+    (payload as any)?.response,
+    (payload as any)?.message,
+    (payload as any)?.result,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+
+  return fallback;
+};
 interface JsonRpcResponse {
   jsonrpc: '2.0';
   result?: any;
@@ -78,7 +99,7 @@ export class ApiClient extends BaseApiClient {
           timestamp: new Date().toISOString(),
           message: result.success ? 'Task completed successfully' : 'Task failed'
         },
-        result: result.response || result.result || 'Success',
+        result: extractLLMContent(result, 'Success'),
         metadata: {
           agentName: respondingAgentName,
           respondingAgentName: respondingAgentName,
@@ -88,7 +109,7 @@ export class ApiClient extends BaseApiClient {
           role: 'assistant',
           parts: [{
             type: 'text',
-            text: result.response || result.message || result.result || 'Task completed'
+            text: extractLLMContent(result, 'Task completed')
           }],
           metadata: {
             respondingAgentName: respondingAgentName

@@ -165,22 +165,30 @@ export async function testOllamaGolfBlogPost(): Promise<{
     if (response.metadata.providerSpecific) {
       const perf = response.metadata.providerSpecific;
       console.log('🔧 Ollama Performance Details:');
-      if (perf.total_duration)
+      const totalDuration = Number(perf.total_duration);
+      if (Number.isFinite(totalDuration)) {
         console.log(
-          `   Total duration: ${(perf.total_duration / 1000000).toFixed(0)}ms`,
+          `   Total duration: ${(totalDuration / 1_000_000).toFixed(0)}ms`,
         );
-      if (perf.load_duration)
+      }
+      const loadDuration = Number(perf.load_duration);
+      if (Number.isFinite(loadDuration)) {
         console.log(
-          `   Model load time: ${(perf.load_duration / 1000000).toFixed(0)}ms`,
+          `   Model load time: ${(loadDuration / 1_000_000).toFixed(0)}ms`,
         );
-      if (perf.prompt_eval_duration)
+      }
+      const promptEvalDuration = Number(perf.prompt_eval_duration);
+      if (Number.isFinite(promptEvalDuration)) {
         console.log(
-          `   Prompt eval time: ${(perf.prompt_eval_duration / 1000000).toFixed(0)}ms`,
+          `   Prompt eval time: ${(promptEvalDuration / 1_000_000).toFixed(0)}ms`,
         );
-      if (perf.eval_duration)
+      }
+      const evalDuration = Number(perf.eval_duration);
+      if (Number.isFinite(evalDuration)) {
         console.log(
-          `   Generation time: ${(perf.eval_duration / 1000000).toFixed(0)}ms`,
+          `   Generation time: ${(evalDuration / 1_000_000).toFixed(0)}ms`,
         );
+      }
       console.log(`   Model status: ${perf.model_status}`);
       console.log('');
     }

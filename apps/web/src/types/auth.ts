@@ -1,3 +1,5 @@
+import type { JsonValue } from '@orchestrator-ai/transport-types';
+
 /**
  * Authentication Type Definitions
  * Domain-specific types for authentication and authorization
@@ -108,12 +110,14 @@ export type AuthErrorCode =
 export interface AuthError extends Error {
   code: AuthErrorCode;
   statusCode?: number;
-  details?: {
-    field?: string;
-    reason?: string;
-    retryAfter?: number;
-    [key: string]: unknown;
-  };
+  details?: (
+    {
+      field?: string;
+      reason?: string;
+      retryAfter?: number;
+    }
+    & Record<string, JsonValue>
+  );
   timestamp: string;
 }
 
@@ -124,7 +128,7 @@ export interface AuthResponseError {
   error: {
     code: AuthErrorCode;
     message: string;
-    details?: unknown;
+    details?: JsonValue;
   };
   status: number;
   timestamp: string;
@@ -151,8 +155,8 @@ export interface UserProfile {
   mfaEnabled: boolean;
   roles: string[];
   permissions: string[];
-  preferences?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
+  preferences?: Record<string, JsonValue>;
+  metadata?: Record<string, JsonValue>;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -299,7 +303,7 @@ export interface TokenPayload {
   exp: number; // expires at
   aud?: string; // audience
   iss?: string; // issuer
-  [key: string]: unknown;
+  [key: string]: JsonValue;
 }
 
 /**

@@ -499,7 +499,7 @@ class ApiService {
           timestamp: new Date().toISOString(),
           message: result.success ? 'Task completed successfully' : 'Task failed'
         },
-        result: result.response || result.result || 'Success',
+        result: extractLLMContent(result, 'Success'),
         metadata: {
           agentName: respondingAgentName,
           respondingAgentName: respondingAgentName,
@@ -509,7 +509,7 @@ class ApiService {
           role: 'assistant',
           parts: [{
             type: 'text',
-            text: result.response || result.message || result.result || 'Task completed'
+            text: extractLLMContent(result, 'Task completed')
           }],
           metadata: {
             respondingAgentName: respondingAgentName
@@ -914,7 +914,7 @@ console.error(`ApiService.post error for ${url}:`, error);
       // Extract the response from the A2A task result
       const taskResponse = result.result;
       const transcribedText = result.audioInput?.transcribedText || 'Audio transcription not available';
-      const responseText = taskResponse?.message || taskResponse?.response || taskResponse?.content || 'No response available';
+      const responseText = extractLLMContent(taskResponse, 'No response available');
       const responseAudio = result.responseAudio; // Audio synthesis result if available
       
       return {

@@ -53,6 +53,11 @@ type ExtendedBuildCreatePayload = BuildCreatePayload & {
 
 type PlanContextSource = 'requested-version' | 'current' | 'none';
 
+interface PlanListActionResult {
+  plan: Plan;
+  versions: PlanVersion[];
+}
+
 interface BuildContextResult {
   plan: Plan | null;
   planVersion: PlanVersion | null;
@@ -408,11 +413,9 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     let planSource: PlanContextSource = planVersion ? 'current' : 'none';
 
     if (requestedPlanVersionId) {
-      const listResult = await this.plansService.executeAction(
-        'list',
-        { includeArchived: true },
-        executionContext,
-      );
+      const listResult = await this.plansService.executeAction<
+        PlanListActionResult
+      >('list', { includeArchived: true }, executionContext);
 
       if (!listResult.success) {
         if (listResult.error?.code === 'NOT_FOUND') {
@@ -431,14 +434,14 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      const versions = (listResult.data?.versions ?? []) as PlanVersion[];
+      const versions = listResult.data?.versions ?? [];
       const targetVersion = versions.find(
         (version) => version.id === requestedPlanVersionId,
       );
 
       if (!targetVersion) {
         return {
-          plan: (listResult.data?.plan as Plan) ?? plan,
+          plan: listResult.data?.plan ?? plan,
           planVersion: null,
           planSource: 'none',
           conversationHistory,
@@ -449,7 +452,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
 
       planVersion = targetVersion;
       planSource = 'requested-version';
-      plan = plan ?? ((listResult.data?.plan as Plan) ?? null);
+      plan = plan ?? listResult.data?.plan ?? null;
     }
 
     if (plan?.id) {
