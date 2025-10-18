@@ -144,7 +144,7 @@ export class BlindedLLMService {
   /**
    * Create a blinded fetch function for LangChain HTTP clients
    */
-  private createBlindedFetch(blindedClient: any, provider: string) {
+  private createBlindedFetch(blindedClient: unknown, provider: string) {
     return async (
       url: string | URL | Request,
       init?: RequestInit,
@@ -186,19 +186,19 @@ export class BlindedLLMService {
     url: string;
     data?: any;
     headers: Record<string, string>;
-    options: any;
+    options: unknown;
   } {
     const requestUrl =
       typeof url === 'string'
         ? url
         : url instanceof URL
           ? url.toString()
-          : ((url as any)?.url ?? '');
+          : ((url as Record<string, unknown>)?.url ?? '');
     const headers: Record<string, string> = {};
 
     // Extract headers from init
     if (init?.headers) {
-      const headerEntries = init.headers as any;
+      const headerEntries = init.headers as Record<string, unknown>;
       if (headerEntries.entries) {
         // Headers object
         for (const [key, value] of headerEntries.entries()) {
@@ -224,7 +224,7 @@ export class BlindedLLMService {
   /**
    * Convert axios response to fetch Response
    */
-  private convertAxiosToFetchResponse(axiosResponse: any): Response {
+  private convertAxiosToFetchResponse(axiosResponse: unknown): Response {
     const response = new Response(JSON.stringify(axiosResponse.data), {
       status: axiosResponse.status,
       statusText: axiosResponse.statusText,
@@ -258,7 +258,7 @@ export class BlindedLLMService {
 
             try {
               // Call the original LLM method (which will use our blinded fetch)
-              const result = await (target as any)[prop](
+              const result = await (target as Record<string, unknown>)[prop](
                 messages,
                 options,
                 callbacks,
@@ -280,7 +280,7 @@ export class BlindedLLMService {
           };
         }
 
-        return (target as any)[prop];
+        return (target as Record<string, unknown>)[prop];
       },
     });
   }
@@ -348,7 +348,7 @@ export class BlindedLLMService {
       ];
 
       // This should trigger our blinded HTTP client
-      await blindedLLM.call(testMessages as any);
+      await blindedLLM.call(testMessages as unknown);
 
       return {
         success: true,
@@ -374,7 +374,7 @@ export class BlindedLLMService {
   getStats(): {
     supportedProviders: string[];
     sourceBlindingEnabled: boolean;
-    blindingService: any;
+    blindingService: unknown;
   } {
     return {
       supportedProviders: ['openai', 'anthropic', 'google'],

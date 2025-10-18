@@ -67,7 +67,7 @@ export class DictionaryPseudonymizerService {
       const { organizationSlug = null, agentSlug = null } = options || {};
 
       // Prefer agent-scoped -> org-scoped -> global
-      const resultSets: any[][] = [];
+      const resultSets: unknown[][] = [];
 
       if (organizationSlug && agentSlug) {
         const { data } = await client
@@ -78,7 +78,7 @@ export class DictionaryPseudonymizerService {
           .eq('agent_slug', agentSlug)
           .not('original_value', 'is', null)
           .not('pseudonym', 'is', null);
-        if (data) resultSets.push(data as any[]);
+        if (data) resultSets.push(data as unknown[]);
       }
 
       if (organizationSlug) {
@@ -90,7 +90,7 @@ export class DictionaryPseudonymizerService {
           .is('agent_slug', null)
           .not('original_value', 'is', null)
           .not('pseudonym', 'is', null);
-        if (data) resultSets.push(data as any[]);
+        if (data) resultSets.push(data as unknown[]);
       }
 
       const { data: globalData, error } = await client
@@ -107,10 +107,10 @@ export class DictionaryPseudonymizerService {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      if (globalData) resultSets.push(globalData as any[]);
+      if (globalData) resultSets.push(globalData as unknown[]);
 
       // Merge with priority: agent > org > global, detect overrides/conflicts
-      const merged = ([] as any[]).concat(...resultSets);
+      const merged = ([] as unknown[]).concat(...resultSets);
       const byOriginal: Record<
         string,
         { pseudonym: string; src: 'agent' | 'org' | 'global'; row: any }
@@ -144,7 +144,7 @@ export class DictionaryPseudonymizerService {
       const unique = Object.values(byOriginal).map((e) => e.row);
 
       const dictionary: DictionaryPseudonymMapping[] = (unique || []).map(
-        (row: any) => ({
+        (row: unknown) => ({
           originalValue: row.original_value,
           pseudonym: row.pseudonym,
           dataType: row.data_type,

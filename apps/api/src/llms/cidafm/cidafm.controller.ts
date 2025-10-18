@@ -86,7 +86,7 @@ export class CIDAFMController {
     type: [CIDAFMCommandResponseDto],
   })
   async getCommandsByType(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('type') type: '^' | '&' | '!',
   ): Promise<CIDAFMCommandResponseDto[]> {
     return this.cidafmService.findAllCommands(user.id, { type });
@@ -122,7 +122,7 @@ export class CIDAFMController {
     description: 'Command name already exists for user',
   })
   async createUserCommand(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Body() createCommandDto: { commandId: string },
   ): Promise<CIDAFMCommandResponseDto> {
     return this.cidafmService.addUserCommand(
@@ -142,7 +142,7 @@ export class CIDAFMController {
   @ApiResponse({ status: 404, description: 'Command not found' })
   @ApiResponse({ status: 403, description: 'Cannot modify built-in commands' })
   async updateUserCommand(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('id') id: string,
     @Body() updateCommandDto: { isActive: boolean },
   ): Promise<CIDAFMCommandResponseDto> {
@@ -164,7 +164,7 @@ export class CIDAFMController {
   @ApiResponse({ status: 404, description: 'Command not found' })
   @ApiResponse({ status: 403, description: 'Cannot delete built-in commands' })
   async deleteUserCommand(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('id') id: string,
   ): Promise<{ message: string }> {
     const deleted = await this.cidafmService.deleteUserCommand(user.id, id);
@@ -191,7 +191,7 @@ export class CIDAFMController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   async processCommands(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Body()
     body: {
       message: string;
@@ -231,7 +231,7 @@ export class CIDAFMController {
     },
   })
   async getSessionState(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('sessionId') sessionId: string,
   ): Promise<{
     activeStateModifiers: string[];
@@ -256,7 +256,7 @@ export class CIDAFMController {
     },
   })
   async resetSessionState(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('sessionId') sessionId: string,
   ): Promise<{
     message: string;

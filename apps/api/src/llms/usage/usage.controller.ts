@@ -58,7 +58,7 @@ export class UsageController {
     type: UsageStatsResponseDto,
   })
   async getUserStats(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
     @Query('provider_id') providerId?: string,
@@ -140,7 +140,7 @@ export class UsageController {
     },
   })
   async getCostSummary(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
     @Query('group_by') _groupBy: 'provider' | 'model' | 'date' = 'provider',
@@ -224,14 +224,14 @@ export class UsageController {
     },
   })
   async getModelPerformance(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
     @Query('min_usage') minUsage: number = 1,
     @Query('sort_by') sortBy: 'rating' | 'speed' | 'cost' | 'usage' = 'rating',
   ): Promise<
     Array<{
-      model: any;
+      model: string;
       metrics: {
         usageCount: number;
         avgUserRating: number;
@@ -324,7 +324,7 @@ export class UsageController {
     },
   })
   async getSpendingInsights(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('lookback_days') lookbackDays: number = 30,
   ): Promise<{
     analysisPeriod: {
@@ -403,7 +403,7 @@ export class UsageController {
     },
   })
   async exportUsageData(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('format') format: 'json' | 'csv' = 'json',
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
@@ -468,7 +468,7 @@ export class UsageController {
     },
   })
   async getBudgetStatus(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('monthly_budget') monthlyBudget?: number,
   ): Promise<{
     currentMonth: {

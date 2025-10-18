@@ -87,9 +87,9 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     try {
-      const payloadOverrides = ((request.payload as any) ?? {}) as Record<
+      const payloadOverrides = ((request.payload as Record<string, unknown>) ?? {}) as Record<
         string,
-        any
+        unknown
       >;
 
       // Validate required context
@@ -221,7 +221,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         'create',
         {
           title:
-            (request.payload as any)?.title ||
+            (request.payload as Record<string, unknown>)?.title ||
             `Tool Execution: ${definition.displayName}`,
           content: formattedContent,
           format: definition.config?.deliverable?.format || 'json',
@@ -377,7 +377,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       // Extract content from MCP response
       if (Array.isArray(result.content)) {
         // Handle array of content items
-        return result.content.map((item: any) => {
+        return result.content.map((item: unknown) => {
           if (item.type === 'text') {
             return item.text;
           } else if (item.type === 'image') {
@@ -395,7 +395,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       }
       return result.content;
     } else {
-      const errorContent = result.content as any;
+      const errorContent = result.content as Record<string, unknown>;
       throw new Error(errorContent?.[0]?.text || 'Tool execution failed');
     }
   }

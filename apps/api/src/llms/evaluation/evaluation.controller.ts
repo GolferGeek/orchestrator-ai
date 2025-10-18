@@ -58,7 +58,7 @@ export class EvaluationController {
     description: 'Not authorized to evaluate this message',
   })
   async evaluateMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
@@ -83,7 +83,7 @@ export class EvaluationController {
   })
   @ApiResponse({ status: 404, description: 'Message not found' })
   async getMessageEvaluation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('messageId') messageId: string,
   ): Promise<EnhancedMessageResponseDto> {
     const message = await this.evaluationService.getMessageWithEvaluation(
@@ -117,7 +117,7 @@ export class EvaluationController {
     type: [EnhancedMessageResponseDto],
   })
   async getSessionEvaluations(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('sessionId') sessionId: string,
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
@@ -214,7 +214,7 @@ export class EvaluationController {
     },
   })
   async getAllUserEvaluations(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('minRating') minRating?: number,
@@ -299,7 +299,7 @@ export class EvaluationController {
     },
   })
   async getEvaluationStats(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('providerId') providerId?: string,
@@ -311,7 +311,7 @@ export class EvaluationController {
     averageAccuracyRating: number;
     evaluationDistribution: Record<string, number>;
     modelPerformance: Array<{
-      model: any;
+      model: string;
       avgRating: number;
       evaluationCount: number;
     }>;
@@ -365,7 +365,7 @@ export class EvaluationController {
     },
   })
   async exportFeedback(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('format') format: 'json' | 'csv' = 'json',
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -393,7 +393,7 @@ export class EvaluationController {
     description: 'Not authorized to update this evaluation',
   })
   async updateMessageEvaluation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
@@ -459,13 +459,13 @@ export class EvaluationController {
     },
   })
   async getModelComparison(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Query('models') models: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<{
     comparison: Array<{
-      model: any;
+      model: string;
       metrics: {
         avgOverallRating: number;
         avgSpeedRating: number;
@@ -514,7 +514,7 @@ export class EvaluationController {
     description: 'Not authorized to evaluate this task',
   })
   async evaluateTask(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<any> {
@@ -554,7 +554,7 @@ export class EvaluationController {
   })
   @ApiResponse({ status: 404, description: 'Task not found' })
   async getTaskEvaluation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('taskId') taskId: string,
   ): Promise<any> {
     const task = await this.evaluationService.getTaskWithEvaluation(
@@ -596,7 +596,7 @@ export class EvaluationController {
     description: 'Not authorized to update this task evaluation',
   })
   async updateTaskEvaluation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<any> {
@@ -651,7 +651,7 @@ export class EvaluationController {
     },
   })
   async getConversationTaskEvaluations(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { userId: string },
     @Param('conversationId') conversationId: string,
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
