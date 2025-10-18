@@ -161,7 +161,7 @@ export class ModelsService {
     this.logger.log('About to map models using mapLLMModelFromDb...');
     try {
       const mappedModels = (data || []).map((model: unknown) => {
-        return mapLLMModelFromDb(model);
+        return mapLLMModelFromDb(model as Record<string, unknown>);
       });
       this.logger.log(`Successfully mapped ${mappedModels.length} models`);
       return mappedModels;

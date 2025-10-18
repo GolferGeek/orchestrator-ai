@@ -432,7 +432,7 @@ export class SlackMCPTools implements IMCPToolHandler {
         // Get users list
         const params = new URLSearchParams({
           include_locale: 'false',
-          limit: limit.toString(),
+          limit: (limit as number).toString(),
         });
 
         const response = await this.makeSlackRequest(

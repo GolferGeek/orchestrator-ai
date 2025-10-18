@@ -116,40 +116,44 @@ export class DictionaryPseudonymizerService {
         { pseudonym: string; src: 'agent' | 'org' | 'global'; row: any }
       > = {};
       for (const row of merged) {
-        const src: 'agent' | 'org' | 'global' = row.agent_slug
+        const r = row as Record<string, any>;
+        const src: 'agent' | 'org' | 'global' = r.agent_slug
           ? 'agent'
-          : row.organization_slug
+          : r.organization_slug
             ? 'org'
             : 'global';
-        const key = `${(row.original_value || '').toLowerCase()}::${row.data_type || 'unknown'}`;
+        const key = `${(r.original_value || '').toLowerCase()}::${r.data_type || 'unknown'}`;
         if (!key.trim()) continue;
         const existing = byOriginal[key];
         if (!existing) {
-          byOriginal[key] = { pseudonym: row.pseudonym, src, row };
+          byOriginal[key] = { pseudonym: r.pseudonym, src, row };
           continue;
         }
         // Only override when new source has higher priority
         const rank = (s: 'agent' | 'org' | 'global') =>
           s === 'agent' ? 3 : s === 'org' ? 2 : 1;
         if (rank(src) > rank(existing.src)) {
-          if (existing.pseudonym !== row.pseudonym) {
+          if (existing.pseudonym !== r.pseudonym) {
             this.logger.warn(
-              `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${row.pseudonym}'`,
+              `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${r.pseudonym}'`,
             );
           }
-          byOriginal[key] = { pseudonym: row.pseudonym, src, row };
+          byOriginal[key] = { pseudonym: r.pseudonym, src, row };
         }
       }
 
       const unique = Object.values(byOriginal).map((e) => e.row);
 
       const dictionary: DictionaryPseudonymMapping[] = (unique || []).map(
-        (row: unknown) => ({
-          originalValue: row.original_value,
-          pseudonym: row.pseudonym,
-          dataType: row.data_type,
-          category: row.category,
-        }),
+        (row: unknown) => {
+          const r = row as Record<string, any>;
+          return {
+            originalValue: r.original_value,
+            pseudonym: r.pseudonym,
+            dataType: r.data_type,
+            category: r.category,
+          };
+        },
       );
 
       // Cache the results

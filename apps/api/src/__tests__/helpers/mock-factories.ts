@@ -436,11 +436,18 @@ export class MockFactories {
    * - Orchestration run
    * - Multiple steps
    */
-  static createOrchestrationScenario(stepCount: number = 2) {
-    const definition = MockFactories.createOrchestrationDefinition();
+  static createOrchestrationScenario(
+    stepCount: number = 2,
+    overrides?: { organizationSlug?: string; orchestrationSlug?: string },
+  ) {
+    const definition = MockFactories.createOrchestrationDefinition({
+      organization_slug: overrides?.organizationSlug,
+      slug: overrides?.orchestrationSlug,
+    });
     const run = MockFactories.createOrchestrationRun({
       orchestration_definition_id: definition.id,
       orchestration_definition_slug: definition.slug,
+      organization_slug: overrides?.organizationSlug,
     });
     const steps = Array.from({ length: stepCount }, (_, index) =>
       MockFactories.createOrchestrationStep({
@@ -457,14 +464,20 @@ export class MockFactories {
   /**
    * Create a conversation with associated task and deliverable
    */
-  static createConversationWithDeliverable() {
-    const conversation = MockFactories.createConversation();
+  static createConversationWithDeliverable(overrides?: {
+    conversationOverrides?: Partial<Conversation>;
+    deliverableOverrides?: Partial<Deliverable>;
+  }) {
+    const conversation = MockFactories.createConversation(
+      overrides?.conversationOverrides,
+    );
     const task = MockFactories.createTask({
       conversation_id: conversation.id,
     });
     const deliverable = MockFactories.createDeliverable({
       conversation_id: conversation.id,
       task_id: task.id,
+      ...overrides?.deliverableOverrides,
     });
 
     return { conversation, task, deliverable };

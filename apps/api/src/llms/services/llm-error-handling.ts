@@ -413,15 +413,16 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const rawStatus = error.response?.status ?? error.status;
+    const err = error as Record<string, any>;
+    const rawStatus = err.response?.status ?? err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
         : rawStatus
           ? Number.parseInt(rawStatus, 10)
           : NaN;
-    const errorType = error.response?.data?.error?.type || error.type;
-    const errorCode = error.response?.data?.error?.code || error.code;
+    const errorType = err.response?.data?.error?.type || err.type;
+    const errorCode = err.response?.data?.error?.code || err.code;
 
     // Authentication errors
     if (Number.isFinite(status) && status === 401) {
@@ -435,7 +436,7 @@ export class LLMErrorMapper {
 
     // Rate limiting
     if (Number.isFinite(status) && status === 429) {
-      const retryAfter = error.response?.headers?.['retry-after'];
+      const retryAfter = err.response?.headers?.['retry-after'];
       return new LLMError(
         'OpenAI rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
@@ -475,7 +476,7 @@ export class LLMErrorMapper {
       }
 
       return new LLMError(
-        `Invalid OpenAI request: ${error.message}`,
+        `Invalid OpenAI request: ${err.message}`,
         LLMErrorType.INVALID_REQUEST,
         provider,
         { model, originalError: error, requestId },
@@ -503,7 +504,7 @@ export class LLMErrorMapper {
     }
 
     // Network errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
       return new LLMError(
         'Cannot connect to OpenAI service',
         LLMErrorType.NETWORK_ERROR,
@@ -512,7 +513,7 @@ export class LLMErrorMapper {
       );
     }
 
-    if (error.code === 'ETIMEDOUT') {
+    if (err.code === 'ETIMEDOUT') {
       return new LLMError(
         'OpenAI request timed out',
         LLMErrorType.CONNECTION_TIMEOUT,
@@ -523,7 +524,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown OpenAI error: ${error.message}`,
+      `Unknown OpenAI error: ${err.message}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -539,14 +540,15 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const rawStatus = error.status;
+    const err = error as Record<string, any>;
+    const rawStatus = err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
         : rawStatus
           ? Number.parseInt(rawStatus, 10)
           : NaN;
-    const errorType = error.error?.type;
+    const errorType = err.error?.type;
 
     // Authentication errors
     if (Number.isFinite(status) && status === 401) {
@@ -572,7 +574,7 @@ export class LLMErrorMapper {
     if (Number.isFinite(status) && status === 400) {
       if (errorType === 'invalid_request_error') {
         return new LLMError(
-          `Invalid Anthropic request: ${error.error?.message}`,
+          `Invalid Anthropic request: ${err.error?.message}`,
           LLMErrorType.INVALID_REQUEST,
           provider,
           { model, originalError: error, requestId },
@@ -592,7 +594,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Anthropic error: ${error.message}`,
+      `Unknown Anthropic error: ${err.message}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -608,7 +610,8 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const message = error.message || '';
+    const err = error as Record<string, any>;
+    const message = err.message || '';
 
     // Authentication errors
     if (message.includes('API_KEY_INVALID')) {
@@ -651,7 +654,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Google error: ${error.message}`,
+      `Unknown Google error: ${err.message}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -667,8 +670,9 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
+    const err = error as Record<string, any>;
     // Connection errors
-    if (error.code === 'ECONNREFUSED') {
+    if (err.code === 'ECONNREFUSED') {
       return new LLMError(
         'Cannot connect to Ollama server. Is Ollama running?',
         LLMErrorType.NETWORK_ERROR,
@@ -678,7 +682,7 @@ export class LLMErrorMapper {
     }
 
     // Timeout errors
-    if (error.code === 'ETIMEDOUT') {
+    if (err.code === 'ETIMEDOUT') {
       return new LLMError(
         'Ollama request timed out. Model may be loading.',
         LLMErrorType.CONNECTION_TIMEOUT,
@@ -688,7 +692,7 @@ export class LLMErrorMapper {
     }
 
     // Not found errors
-    if (error.response?.status === 404) {
+    if (err.response?.status === 404) {
       return new LLMError(
         'Ollama endpoint not found. Check server configuration.',
         LLMErrorType.MODEL_NOT_FOUND,
@@ -698,7 +702,7 @@ export class LLMErrorMapper {
     }
 
     // Model not available
-    if (error.message?.includes('model not found')) {
+    if (err.message?.includes('model not found')) {
       return new LLMError(
         `Ollama model not available: ${model}`,
         LLMErrorType.MODEL_UNAVAILABLE,
@@ -709,7 +713,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Ollama error: ${error.message}`,
+      `Unknown Ollama error: ${err.message}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -725,8 +729,9 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
+    const err = error as Record<string, any>;
     // Grok uses OpenAI-compatible API, so similar error handling
-    const rawStatus = error.response?.status ?? error.status;
+    const rawStatus = err.response?.status ?? err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
@@ -757,7 +762,7 @@ export class LLMErrorMapper {
     // Invalid request
     if (Number.isFinite(status) && status === 400) {
       return new LLMError(
-        `Invalid Grok request: ${error.message}`,
+        `Invalid Grok request: ${err.message}`,
         LLMErrorType.INVALID_REQUEST,
         provider,
         { model, originalError: error, requestId },
@@ -776,7 +781,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Grok error: ${error.message}`,
+      `Unknown Grok error: ${err.message}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -792,6 +797,7 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
+    const err = error as Record<string, any>;
     switch (provider.toLowerCase()) {
       case 'openai':
         return this.fromOpenAIError(error, provider, model, requestId);
@@ -805,7 +811,7 @@ export class LLMErrorMapper {
         return this.fromGrokError(error, provider, model, requestId);
       default:
         return new LLMError(
-          `Unknown error from ${provider}: ${error.message}`,
+          `Unknown error from ${provider}: ${err.message}`,
           LLMErrorType.UNKNOWN,
           provider,
           { model, originalError: error, requestId },

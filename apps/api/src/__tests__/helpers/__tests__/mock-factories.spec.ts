@@ -296,20 +296,20 @@ describe('MockFactories', () => {
         expect(scenario.run.orchestration_definition_slug).toBe(
           scenario.definition.slug,
         );
-        expect(scenario.steps[0].orchestration_run_id).toBe(scenario.run.id);
-        expect(scenario.steps[1].orchestration_run_id).toBe(scenario.run.id);
+        expect(scenario.steps[0]?.orchestration_run_id).toBe(scenario.run.id);
+        expect(scenario.steps[1]?.orchestration_run_id).toBe(scenario.run.id);
 
         // Verify step ordering
-        expect(scenario.steps[0].step_order).toBe(0);
-        expect(scenario.steps[1].step_order).toBe(1);
+        expect(scenario.steps[0]?.step_order).toBe(0);
+        expect(scenario.steps[1]?.step_order).toBe(1);
       });
 
       it('should create scenario with custom step count', () => {
         const scenario = MockFactories.createOrchestrationScenario(5);
 
         expect(scenario.steps).toHaveLength(5);
-        expect(scenario.steps[0].step_order).toBe(0);
-        expect(scenario.steps[4].step_order).toBe(4);
+        expect(scenario.steps[0]?.step_order).toBe(0);
+        expect(scenario.steps[4]?.step_order).toBe(4);
       });
 
       it('should allow custom overrides', () => {

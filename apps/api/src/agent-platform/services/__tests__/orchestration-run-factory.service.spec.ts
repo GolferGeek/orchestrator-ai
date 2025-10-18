@@ -50,6 +50,7 @@ describe('OrchestrationRunFactoryService', () => {
     origin_type: 'plan',
     origin_id: null,
     orchestration_slug: null,
+    user_id: 'user-123',
     organization_slug: 'global',
     parameters: {},
     plan: {},

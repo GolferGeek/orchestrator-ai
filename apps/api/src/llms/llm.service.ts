@@ -26,6 +26,7 @@ import {
   LLMServiceConfig,
   ResponseMetadata,
   LLMRequestOptions,
+  RoutingDecision,
 } from './services/llm-interfaces';
 import {
   Provider,
@@ -252,7 +253,7 @@ export class LLMService {
             );
 
             enhancedPiiMetadata = {
-              ...(piiPolicyResult.metadata as Record<string, unknown>),
+              ...piiPolicyResult.metadata,
               // For UI consumption
               pseudonymsApplied: pseudonymResult.mappings.map((m) => ({
                 original: m.originalValue,
@@ -286,7 +287,7 @@ export class LLMService {
                 pseudonymResult.processingTimeMs,
               sanitizationLevel:
                 pseudonymResult.mappings.length > 0 ? 'standard' : 'none',
-            } as Record<string, unknown>;
+            } as unknown as PIIProcessingMetadata;
           }
 
           if (this.debugEnabled)
@@ -486,11 +487,12 @@ export class LLMService {
           'I apologize, but I was unable to generate a response.';
 
         // Step 2: Reverse pseudonyms in the response
-        if (sanitizationContext?.mappings?.length) {
+        if (sanitizationContext != null && sanitizationContext!.mappings && sanitizationContext!.mappings!.length > 0) {
+          const mappings = sanitizationContext!.mappings!;
           const reversalResult =
             await this.dictionaryPseudonymizerService.reversePseudonyms(
               content,
-              sanitizationContext.mappings,
+              mappings,
             );
           content = reversalResult.originalText;
 
@@ -512,13 +514,13 @@ export class LLMService {
           const endTime = Date.now();
 
           let pseudonymizationMetadata;
-          if (sanitizationContext?.mappings && sanitizationContext.mappings.length > 0) {
-            const ctx = sanitizationContext;
+          if (sanitizationContext != null && sanitizationContext!.mappings && sanitizationContext!.mappings!.length > 0) {
+            const ctx = sanitizationContext!;
             pseudonymizationMetadata = {
               pseudonymizationApplied: true,
-              pseudonymCount: ctx.mappings.length,
+              pseudonymCount: ctx.mappings!.length,
               processingTimeMs: ctx.processingTimeMs,
-              mappings: ctx.mappings.map((m) => ({
+              mappings: ctx.mappings!.map((m) => ({
                 type: m.dataType,
                 originalLength: m.originalValue.length,
                 pseudonymLength: m.pseudonym.length,
@@ -684,7 +686,7 @@ export class LLMService {
                 providerName: params.provider,
               },
             );
-            enhancedPiiMetadata = piiPolicyResult.metadata as unknown as Record<string, unknown>;
+            enhancedPiiMetadata = piiPolicyResult.metadata as PIIProcessingMetadata;
           }
 
           if (!enhancedPiiMetadata) {

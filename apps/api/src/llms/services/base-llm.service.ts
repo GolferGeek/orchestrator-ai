@@ -64,10 +64,11 @@ export abstract class BaseLLMService {
     endTime: number,
     requestId: string,
   ): ResponseMetadata {
+    const rawResp = rawResponse as Record<string, any>;
     const inputTokens = this.estimateTokens(
       params.systemPrompt + params.userMessage,
     );
-    const outputTokens = this.estimateTokens(rawResponse.content || '');
+    const outputTokens = this.estimateTokens(rawResp.content || '');
     const totalTokens = inputTokens + outputTokens;
 
     return {
@@ -95,7 +96,7 @@ export abstract class BaseLLMService {
       tier: params.options?.preferLocal ? 'local' : 'external',
       status: 'completed',
       // Provider-specific data can be added by subclasses
-      providerSpecific: rawResponse.providerSpecific || {},
+      providerSpecific: rawResp.providerSpecific || {},
     };
   }
 
@@ -122,16 +123,19 @@ export abstract class BaseLLMService {
           showstopperDetected: false,
           detectionResults: {
             totalMatches: result.mappings.length,
-            flaggedMatches: result.mappings.map((mapping: unknown) => ({
-              value: mapping.originalValue,
-              dataType: mapping.dataType,
-              severity: 'info' as string,
-              confidence: 1.0,
-              startIndex: 0, // Dictionary doesn't track positions
-              endIndex: 0,
-              pattern: mapping.originalValue,
-              pseudonym: mapping.pseudonym,
-            })),
+            flaggedMatches: result.mappings.map((mapping: unknown) => {
+              const m = mapping as Record<string, any>;
+              return {
+                value: m.originalValue,
+                dataType: m.dataType,
+                severity: 'info' as const,
+                confidence: 1.0,
+                startIndex: 0, // Dictionary doesn't track positions
+                endIndex: 0,
+                pattern: m.originalValue,
+                pseudonym: m.pseudonym,
+              };
+            }),
             showstopperMatches: [],
             dataTypesSummary: {},
             severityBreakdown: {
@@ -283,17 +287,21 @@ export abstract class BaseLLMService {
           piiMeta: unknown,
         ): Array<{ original: string; pseudonym: string; dataType: string }> => {
           try {
+            const piiMetaAny = piiMeta as Record<string, any>;
             // Prefer explicit pseudonymsApplied if present
             if (
-              Array.isArray(piiMeta?.pseudonymsApplied) &&
-              piiMeta.pseudonymsApplied.length > 0
+              Array.isArray(piiMetaAny?.pseudonymsApplied) &&
+              piiMetaAny.pseudonymsApplied.length > 0
             ) {
-              return piiMeta.pseudonymsApplied
-                .map((m: unknown) => ({
-                  original: m.original ?? m.value ?? m.source ?? '',
-                  pseudonym: m.pseudonym ?? '',
-                  dataType: m.type ?? m.dataType ?? 'custom',
-                }))
+              return piiMetaAny.pseudonymsApplied
+                .map((m: unknown) => {
+                  const match = m as Record<string, unknown>;
+                  return {
+                    original: (match.original ?? match.value ?? match.source ?? '') as string,
+                    pseudonym: (match.pseudonym ?? '') as string,
+                    dataType: (match.type ?? match.dataType ?? 'custom') as string,
+                  };
+                })
                 .filter(
                   (m: {
                     original: string;
@@ -303,17 +311,21 @@ export abstract class BaseLLMService {
                 );
             }
             // Fallback to processedMatches
+            const piiMetaAny2 = piiMeta as Record<string, any>;
             const matches =
-              piiMeta?.pseudonymResults?.processedMatches ||
-              piiMeta?.pseudonymInstructions?.targetMatches ||
+              piiMetaAny2?.pseudonymResults?.processedMatches ||
+              piiMetaAny2?.pseudonymInstructions?.targetMatches ||
               [];
             return (matches as unknown[])
               .filter((m: unknown) => !!(m as Record<string, unknown>)?.pseudonym)
-              .map((m: unknown) => ({
-                original: m.value ?? '',
-                pseudonym: m.pseudonym ?? '',
-                dataType: m.dataType ?? 'custom',
-              }))
+              .map((m: unknown) => {
+                const match = m as Record<string, unknown>;
+                return {
+                  original: (match.value ?? '') as string,
+                  pseudonym: (match.pseudonym ?? '') as string,
+                  dataType: (match.dataType ?? 'custom') as string,
+                };
+              })
               .filter(
                 (m: {
                   original: string;
@@ -502,8 +514,9 @@ export abstract class BaseLLMService {
       LLMErrorMonitor.recordError(mappedError);
       throw mappedError;
     } catch {
+      const err = error as Record<string, any>;
       const fallback = new LLMError(
-        `${context}: ${error?.message || 'Unknown error occurred'}`,
+        `${context}: ${err?.message || 'Unknown error occurred'}`,
         LLMErrorType.UNKNOWN,
         this.config?.provider || 'unknown',
         { model: this.config?.model, originalError: error },

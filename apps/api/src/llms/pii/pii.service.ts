@@ -343,10 +343,12 @@ export class PIIService {
 
     const pseudonymizerMatches: PIIMatch[] = []; // Never create pseudonym instructions from pattern matches
 
-    const requestId =
-      options.conversationId ||
-      options.requestId ||
-      `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const optsExt = options as Record<string, unknown>;
+    const requestId = (
+      optsExt.conversationId ||
+      optsExt.requestId ||
+      `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    ) as string;
 
     const externalMetadata: PIIProcessingMetadata = {
       piiDetected: convertedMatches.length > 0,
