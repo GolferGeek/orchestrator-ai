@@ -169,7 +169,7 @@ export class TasksService {
 
         // Register task with TaskStatusService for live tracking
         await this.taskStatusService.createTask(
-          createdTask.id,
+          createdTask.id!,
           userId,
           `${agentType}/${agentName}`, // Use the constructed task type for status service
           {
@@ -293,29 +293,38 @@ export class TasksService {
     }
 
     // Convert camelCase to snake_case for database columns
-    if (updateData.responseMetadata !== undefined) {
-      updateData.response_metadata = updateData.responseMetadata;
-      delete updateData.responseMetadata;
+    // Type assertion needed because we're converting between camelCase DTO and snake_case DB
+    const anyUpdateData = updateData as any as {
+      responseMetadata?: Record<string, unknown>;
+      errorData?: Record<string, unknown>;
+      progressMessage?: string;
+      errorCode?: string;
+      errorMessage?: string;
+      llmMetadata?: Record<string, unknown>;
+    };
+    if (anyUpdateData.responseMetadata !== undefined) {
+      updateData.response_metadata = anyUpdateData.responseMetadata;
+      delete anyUpdateData.responseMetadata;
     }
-    if (updateData.errorData !== undefined) {
-      updateData.error_data = updateData.errorData;
-      delete updateData.errorData;
+    if (anyUpdateData.errorData !== undefined) {
+      updateData.error_data = anyUpdateData.errorData;
+      delete anyUpdateData.errorData;
     }
-    if (updateData.progressMessage !== undefined) {
-      updateData.progress_message = updateData.progressMessage;
-      delete updateData.progressMessage;
+    if (anyUpdateData.progressMessage !== undefined) {
+      updateData.progress_message = anyUpdateData.progressMessage;
+      delete anyUpdateData.progressMessage;
     }
-    if (updateData.errorCode !== undefined) {
-      updateData.error_code = updateData.errorCode;
-      delete updateData.errorCode;
+    if (anyUpdateData.errorCode !== undefined) {
+      updateData.error_code = anyUpdateData.errorCode;
+      delete anyUpdateData.errorCode;
     }
-    if (updateData.errorMessage !== undefined) {
-      updateData.error_message = updateData.errorMessage;
-      delete updateData.errorMessage;
+    if (anyUpdateData.errorMessage !== undefined) {
+      updateData.error_message = anyUpdateData.errorMessage;
+      delete anyUpdateData.errorMessage;
     }
-    if (updateData.llmMetadata !== undefined) {
-      updateData.llm_metadata = updateData.llmMetadata;
-      delete updateData.llmMetadata;
+    if (anyUpdateData.llmMetadata !== undefined) {
+      updateData.llm_metadata = anyUpdateData.llmMetadata;
+      delete anyUpdateData.llmMetadata;
     }
 
     const { data, error } = await this.supabaseService
@@ -445,15 +454,17 @@ export class TasksService {
         throw new Error(`Failed to fetch task metrics: ${error.message}`);
       }
 
+      const typedTasks = (tasks ?? []) as TaskRow[];
+
       // Calculate basic metrics
-      const totalTasks = tasks?.length || 0;
+      const totalTasks = typedTasks.length;
       const completedTasks =
-        tasks?.filter((task) => task.status === 'completed').length || 0;
+        typedTasks.filter((task) => task.status === 'completed').length;
       const activeTasks =
-        tasks?.filter((task) => ['pending', 'running'].includes(task.status))
-          .length || 0;
+        typedTasks.filter((task) => ['pending', 'running'].includes(task.status))
+          .length;
       const failedTasks =
-        tasks?.filter((task) => task.status === 'failed').length || 0;
+        typedTasks.filter((task) => task.status === 'failed').length;
 
       // Calculate success rate
       const successRate =
@@ -461,10 +472,10 @@ export class TasksService {
 
       // Calculate average completion time (for completed tasks)
       const completedTasksWithTimes =
-        tasks?.filter(
+        typedTasks.filter(
           (task) =>
             task.status === 'completed' && task.created_at && task.updated_at,
-        ) || [];
+        );
 
       const averageCompletionTime =
         completedTasksWithTimes.length > 0

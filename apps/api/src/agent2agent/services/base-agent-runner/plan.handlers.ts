@@ -149,11 +149,12 @@ export async function handlePlanCreate(
           : 'Generate a detailed, actionable plan that satisfies the conversation context.';
 
       // Extract LLM configuration from payload (required from frontend)
-      const payloadAny = payload as any;
+      const payloadRec = payload as Record<string, unknown>;
+      const llmSelection = payloadRec.llmSelection as Record<string, unknown> | undefined;
       const providerName =
-        payloadAny.currentProvider ?? payloadAny.llmSelection?.providerName;
+        payloadRec.currentProvider ?? llmSelection?.providerName;
       const modelName =
-        payloadAny.currentModel ?? payloadAny.llmSelection?.modelName;
+        payloadRec.currentModel ?? llmSelection?.modelName;
 
       // Validate LLM configuration (no fallbacks - frontend must provide)
       if (!providerName || !modelName) {
@@ -657,7 +658,7 @@ export async function handlePlanDeleteVersion(
       userId,
     );
     const remainingVersions = (deleteResult.data.remainingVersions ?? []).map(
-      (version: any) => serializePlanVersion(version),
+      (version: unknown) => serializePlanVersion(version),
     );
 
     const metadata = buildResponseMetadata(
@@ -673,7 +674,7 @@ export async function handlePlanDeleteVersion(
         deletedVersionId: payload.versionId,
         plan: serializedPlan,
         remainingVersions: remainingVersions.filter(
-          (version: any): version is NonNullable<typeof version> =>
+          (version: unknown): version is NonNullable<typeof version> =>
             Boolean(version),
         ),
       },
@@ -759,7 +760,7 @@ export async function handlePlanMergeVersions(
         plan: serializePlan(mergeResult.data.plan, definition, userId),
         mergedVersion,
         sourceVersions: (mergeResult.data.sourceVersions ?? []).map(
-          (version: any) => serializePlanVersion(version),
+          (version: unknown) => serializePlanVersion(version),
         ),
       },
       metadata,
@@ -1073,7 +1074,7 @@ function buildPlanActionContext(
       userId,
       agentSlug: definition.slug,
       taskId,
-      metadata: (request.metadata ?? {}) as any,
+      metadata: (request.metadata ?? {}) as Record<string, unknown>,
     },
   };
 }
@@ -1085,22 +1086,23 @@ function resolveNamespace(
   return organizationSlug ?? definition.organizationSlug ?? 'global';
 }
 
-function normalizeUsage(usage: any): typeof EMPTY_USAGE {
+function normalizeUsage(usage: unknown): typeof EMPTY_USAGE {
   if (!usage || typeof usage !== 'object') {
     return EMPTY_USAGE;
   }
 
+  const usageRec = usage as Record<string, unknown>;
   const inputTokens = numberOrZero(
-    usage.inputTokens ?? usage.promptTokens ?? usage.total_input_tokens,
+    usageRec.inputTokens ?? usageRec.promptTokens ?? usageRec.total_input_tokens,
   );
   const outputTokens = numberOrZero(
-    usage.outputTokens ?? usage.completionTokens ?? usage.total_output_tokens,
+    usageRec.outputTokens ?? usageRec.completionTokens ?? usageRec.total_output_tokens,
   );
   const totalTokens = numberOrZero(
-    usage.totalTokens ?? usage.total_tokens,
+    usageRec.totalTokens ?? usageRec.total_tokens,
     inputTokens + outputTokens,
   );
-  const cost = numberOrZero(usage.cost ?? usage.price);
+  const cost = numberOrZero(usageRec.cost ?? usageRec.price);
 
   return {
     inputTokens,
@@ -1275,11 +1277,14 @@ function normalizePlanContent(
 function resolvePlanFormat(
   definition: AgentRuntimeDefinition,
 ): 'markdown' | 'json' | 'text' {
+  const config = definition.config as Record<string, unknown> | undefined;
+  const plan = config?.plan as Record<string, unknown> | undefined;
+  const planning = config?.planning as Record<string, unknown> | undefined;
   const formatCandidate =
-    (definition.config as any)?.plan?.format ??
-    (definition.config as any)?.plan?.outputFormat ??
-    (definition.config as any)?.planning?.format ??
-    (definition.config as any)?.planFormat;
+    plan?.format ??
+    plan?.outputFormat ??
+    planning?.format ??
+    config?.planFormat;
 
   if (typeof formatCandidate === 'string') {
     const normalized = formatCandidate.toLowerCase();
@@ -1312,7 +1317,7 @@ function coercePlanContent(planContent: unknown): unknown {
   return planContent ?? '';
 }
 
-function tryParseJson(value: string): any {
+function tryParseJson(value: string): unknown {
   if (!value) {
     return null;
   }

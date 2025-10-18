@@ -1,3 +1,5 @@
+import type { TaskMessageService } from './task-message.service';
+
 /**
  * MessageEmitter interface for agents to emit progress and status messages
  * This allows agents to communicate with users in real-time during task execution
@@ -65,7 +67,7 @@ export class TaskMessageEmitter implements MessageEmitter {
   constructor(
     private readonly taskId: string,
     private readonly userId: string,
-    private readonly messageService: any, // TaskMessageService
+    private readonly messageService: TaskMessageService,
   ) {}
 
   async emit(

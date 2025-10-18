@@ -251,17 +251,19 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       // Validate structure but don't fail - just log warnings
       try {
         validateDeliverableStructure(finalContent, deliverableStructure);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         this.logger.warn(
-          `Deliverable structure validation warning: ${error?.message || error}. Continuing anyway.`,
+          `Deliverable structure validation warning: ${message}. Continuing anyway.`,
         );
       }
 
       try {
         validateDeliverableSchema(finalContent, outputSchema);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         this.logger.warn(
-          `Deliverable schema validation warning: ${error?.message || error}. Continuing anyway.`,
+          `Deliverable schema validation warning: ${message}. Continuing anyway.`,
         );
       }
 
@@ -354,7 +356,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           deliverableStructureApplied: Boolean(deliverableStructure),
           ioSchemaApplied: Boolean(outputSchema),
           deliverableMetadata: buildDeliverableMetadata(
-            (createResult.data as any).version?.content ?? finalContent,
+            (createResult.data as { version?: { content?: unknown } }).version?.content ?? finalContent,
           ),
           rerun: payload.rerunContext
             ? {
@@ -370,11 +372,16 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         }),
       );
 
+      const resultData = createResult.data as {
+        deliverable: unknown;
+        version: unknown;
+        isNew: boolean;
+      };
       return TaskResponseDto.success(AgentTaskMode.BUILD, {
         content: {
-          deliverable: (createResult.data as any).deliverable,
-          version: (createResult.data as any).version,
-          isNew: (createResult.data as any).isNew,
+          deliverable: resultData.deliverable,
+          version: resultData.version,
+          isNew: resultData.isNew,
         },
         metadata,
       });
@@ -633,16 +640,21 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     };
 
     // Extract provider and model from payload (from frontend store)
-    const payloadAny = payload as any;
+    const payloadAny = payload as unknown as {
+      currentProvider?: string;
+      currentModel?: string;
+      temperature?: number;
+      maxTokens?: number;
+    };
     const providerName =
       payloadAny.currentProvider ?? payload.rerunConfig?.provider;
     const modelName = payloadAny.currentModel ?? payload.rerunConfig?.model;
 
-    if (providerName && providerName.trim().length > 0) {
+    if (providerName && typeof providerName === 'string' && providerName.trim().length > 0) {
       config.providerName = providerName.trim();
     }
 
-    if (modelName && modelName.trim().length > 0) {
+    if (modelName && typeof modelName === 'string' && modelName.trim().length > 0) {
       config.modelName = modelName.trim();
     }
 
