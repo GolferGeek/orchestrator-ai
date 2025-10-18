@@ -76,7 +76,7 @@ export interface BuildCopyVersionResult {
  *
  * @throws StrictResponseValidationError if response is invalid
  */
-function validateAndExtract<T>(response: any, action: string): T {
+function validateAndExtract<T>(response: unknown, action: string): T {
   // Validate it's a build response
   if (!isStrictBuildResponse(response)) {
     throw new StrictResponseValidationError(
@@ -117,7 +117,7 @@ export const buildResponseHandler = {
    * Handle execute build response (create action in build mode)
    * Validates, extracts data, and updates store
    */
-  handleExecute(response: any, planId?: string): BuildExecuteResult {
+  handleExecute(response: unknown, planId?: string): BuildExecuteResult {
     const result = validateAndExtract<BuildExecuteResult>(response, 'create');
     const store = useDeliverablesStore();
 
@@ -141,7 +141,7 @@ export const buildResponseHandler = {
    * Handle read deliverable response
    * Validates, extracts data, and updates store
    */
-  handleRead(response: any): BuildReadResult {
+  handleRead(response: unknown): BuildReadResult {
     const result = validateAndExtract<BuildReadResult>(response, 'read');
     const store = useDeliverablesStore();
 
@@ -161,7 +161,7 @@ export const buildResponseHandler = {
    * Handle list deliverables response
    * Validates, extracts data, and updates store
    */
-  handleList(response: any, planId?: string): BuildListResult {
+  handleList(response: unknown, planId?: string): BuildListResult {
     const result = validateAndExtract<BuildListResult>(response, 'list');
     const store = useDeliverablesStore();
 
@@ -181,7 +181,7 @@ export const buildResponseHandler = {
    * Handle rerun build response
    * Validates, extracts data, and updates store
    */
-  handleRerun(response: any): BuildRerunResult {
+  handleRerun(response: unknown): BuildRerunResult {
     const result = validateAndExtract<BuildRerunResult>(response, 'rerun');
     const store = useDeliverablesStore();
 
@@ -201,7 +201,7 @@ export const buildResponseHandler = {
    * Handle edit deliverable response
    * Validates, extracts data, and updates store
    */
-  handleEdit(response: any): BuildEditResult {
+  handleEdit(response: unknown): BuildEditResult {
     const result = validateAndExtract<BuildEditResult>(response, 'edit');
     const store = useDeliverablesStore();
 
@@ -221,7 +221,7 @@ export const buildResponseHandler = {
    * Handle set current version response
    * Validates, extracts data, and updates store
    */
-  handleSetCurrent(response: any): BuildSetCurrentResult {
+  handleSetCurrent(response: unknown): BuildSetCurrentResult {
     const result = validateAndExtract<BuildSetCurrentResult>(response, 'set_current');
     const store = useDeliverablesStore();
 
@@ -235,7 +235,7 @@ export const buildResponseHandler = {
    * Handle delete version response
    * Validates, extracts data, and updates store
    */
-  handleDeleteVersion(response: any): BuildDeleteVersionResult {
+  handleDeleteVersion(response: unknown): BuildDeleteVersionResult {
     const result = validateAndExtract<BuildDeleteVersionResult>(response, 'delete_version');
     const store = useDeliverablesStore();
 
@@ -251,7 +251,7 @@ export const buildResponseHandler = {
    * Handle merge versions response
    * Validates, extracts data, and updates store
    */
-  handleMergeVersions(response: any): BuildMergeVersionsResult {
+  handleMergeVersions(response: unknown): BuildMergeVersionsResult {
     const result = validateAndExtract<BuildMergeVersionsResult>(response, 'merge_versions');
     const store = useDeliverablesStore();
 
@@ -271,7 +271,7 @@ export const buildResponseHandler = {
    * Handle copy version response
    * Validates, extracts data, and updates store
    */
-  handleCopyVersion(response: any): BuildCopyVersionResult {
+  handleCopyVersion(response: unknown): BuildCopyVersionResult {
     const result = validateAndExtract<BuildCopyVersionResult>(response, 'copy_version');
     const store = useDeliverablesStore();
 
@@ -285,7 +285,7 @@ export const buildResponseHandler = {
    * Handle delete deliverable response
    * Validates, extracts data, and updates store
    */
-  handleDelete(response: any): BuildDeleteResult {
+  handleDelete(response: unknown): BuildDeleteResult {
     const result = validateAndExtract<BuildDeleteResult>(response, 'delete');
     const store = useDeliverablesStore();
 
@@ -301,7 +301,7 @@ export const buildResponseHandler = {
    * Generic handler that auto-detects action
    * Validates and returns typed data
    */
-  handle(response: any): any {
+  handle(response: unknown): any {
     return validateAndExtract(response, 'unknown');
   },
 };

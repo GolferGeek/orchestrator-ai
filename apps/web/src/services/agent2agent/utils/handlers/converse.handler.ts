@@ -20,7 +20,7 @@ export interface ConverseResult {
   metadata?: {
     timestamp?: string;
     model?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -30,7 +30,7 @@ export interface ConverseResult {
  *
  * @throws StrictResponseValidationError if response is invalid
  */
-function validateAndExtract(response: any, action: string): ConverseResult {
+function validateAndExtract(response: unknown, action: string): ConverseResult {
   // Validate it's a converse response
   if (!isStrictConverseResponse(response)) {
     throw new StrictResponseValidationError(
@@ -71,7 +71,7 @@ export const converseResponseHandler = {
    * Handle converse send response
    * Validates, extracts data, and updates store
    */
-  handleSend(response: any, conversationId: string): ConverseResult {
+  handleSend(response: unknown, conversationId: string): ConverseResult {
     const result = validateAndExtract(response, 'send');
     const store = useConversationsStore();
 
@@ -85,7 +85,7 @@ export const converseResponseHandler = {
    * Generic handler that auto-detects action
    * Validates and returns typed data
    */
-  handle(response: any): ConverseResult {
+  handle(response: unknown): ConverseResult {
     return validateAndExtract(response, 'unknown');
   },
 };

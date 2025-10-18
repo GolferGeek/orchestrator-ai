@@ -20,7 +20,7 @@ export class StrictRequestValidationError extends Error {
 /**
  * Type guard to check if a value is a strict request
  */
-export function isStrictRequest(value: any): value is StrictA2ARequest {
+export function isStrictRequest(value: unknown): value is StrictA2ARequest {
   return (
     value &&
     typeof value === 'object' &&
@@ -54,7 +54,7 @@ export function validateStrictRequest(
   }
 
   // Validate params
-  const params = request.params as any;
+  const params = request.params as Record<string, unknown>;
   if (params) {
     if (!params.mode) {
       errors.push('Missing mode in params');

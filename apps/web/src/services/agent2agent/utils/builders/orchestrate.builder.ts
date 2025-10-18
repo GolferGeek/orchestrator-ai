@@ -14,13 +14,13 @@ interface RequestMetadata {
   conversationId: string;
   userMessage?: string;
   messages?: StrictTaskMessage[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
  * Validation helper
  */
-function validateRequired(value: any, fieldName: string): void {
+function validateRequired(value: unknown, fieldName: string): void {
   if (value === undefined || value === null || value === '') {
     throw new Error(`${fieldName} is required and cannot be empty`);
   }
@@ -36,7 +36,7 @@ export const orchestrateBuilder = {
    */
   create: (
     metadata: RequestMetadata,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): StrictOrchestrateRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
 
@@ -60,7 +60,7 @@ export const orchestrateBuilder = {
    */
   execute: (
     metadata: RequestMetadata,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): StrictOrchestrateRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
 
@@ -84,7 +84,7 @@ export const orchestrateBuilder = {
    */
   continue: (
     metadata: RequestMetadata,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): StrictOrchestrateRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
 
@@ -108,7 +108,7 @@ export const orchestrateBuilder = {
    */
   saveRecipe: (
     metadata: RequestMetadata,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): StrictOrchestrateRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
 

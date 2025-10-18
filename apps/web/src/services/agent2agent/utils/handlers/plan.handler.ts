@@ -76,7 +76,7 @@ export interface PlanCopyVersionResult {
  *
  * @throws StrictResponseValidationError if response is invalid
  */
-function validateAndExtract<T>(response: any, action: string): T {
+function validateAndExtract<T>(response: unknown, action: string): T {
   // Validate it's a plan response
   if (!isStrictPlanResponse(response)) {
     throw new StrictResponseValidationError(
@@ -117,7 +117,7 @@ export const planResponseHandler = {
    * Handle create plan response
    * Validates, extracts data, and updates store
    */
-  handleCreate(response: any, conversationId: string): PlanCreateResult {
+  handleCreate(response: unknown, conversationId: string): PlanCreateResult {
     const result = validateAndExtract<PlanCreateResult>(response, 'create');
     const store = usePlanStore();
 
@@ -135,7 +135,7 @@ export const planResponseHandler = {
    * Handle read plan response
    * Validates, extracts data, and updates store
    */
-  handleRead(response: any): PlanReadResult {
+  handleRead(response: unknown): PlanReadResult {
     const result = validateAndExtract<PlanReadResult>(response, 'read');
     const store = usePlanStore();
 
@@ -152,7 +152,7 @@ export const planResponseHandler = {
    * Handle list plans response
    * Validates, extracts data, and updates store
    */
-  handleList(response: any, conversationId?: string): PlanListResult {
+  handleList(response: unknown, conversationId?: string): PlanListResult {
     const result = validateAndExtract<PlanListResult>(response, 'list');
     const store = usePlanStore();
 
@@ -171,7 +171,7 @@ export const planResponseHandler = {
    * Handle edit plan response
    * Validates, extracts data, and updates store
    */
-  handleEdit(response: any): PlanEditResult {
+  handleEdit(response: unknown): PlanEditResult {
     const result = validateAndExtract<PlanEditResult>(response, 'edit');
     const store = usePlanStore();
 
@@ -188,7 +188,7 @@ export const planResponseHandler = {
    * Handle rerun plan response
    * Validates, extracts data, and updates store
    */
-  handleRerun(response: any): PlanRerunResult {
+  handleRerun(response: unknown): PlanRerunResult {
     const result = validateAndExtract<PlanRerunResult>(response, 'rerun');
     const store = usePlanStore();
 
@@ -205,7 +205,7 @@ export const planResponseHandler = {
    * Handle set current version response
    * Validates, extracts data, and updates store
    */
-  handleSetCurrent(response: any): PlanSetCurrentResult {
+  handleSetCurrent(response: unknown): PlanSetCurrentResult {
     const result = validateAndExtract<PlanSetCurrentResult>(response, 'set_current');
     const store = usePlanStore();
 
@@ -219,7 +219,7 @@ export const planResponseHandler = {
    * Handle delete version response
    * Validates, extracts data, and updates store
    */
-  handleDeleteVersion(response: any): PlanDeleteVersionResult {
+  handleDeleteVersion(response: unknown): PlanDeleteVersionResult {
     const result = validateAndExtract<PlanDeleteVersionResult>(response, 'delete_version');
     const store = usePlanStore();
 
@@ -235,7 +235,7 @@ export const planResponseHandler = {
    * Handle merge versions response
    * Validates, extracts data, and updates store
    */
-  handleMergeVersions(response: any): PlanMergeVersionsResult {
+  handleMergeVersions(response: unknown): PlanMergeVersionsResult {
     const result = validateAndExtract<PlanMergeVersionsResult>(response, 'merge_versions');
     const store = usePlanStore();
 
@@ -252,7 +252,7 @@ export const planResponseHandler = {
    * Handle copy version response
    * Validates, extracts data, and updates store
    */
-  handleCopyVersion(response: any): PlanCopyVersionResult {
+  handleCopyVersion(response: unknown): PlanCopyVersionResult {
     const result = validateAndExtract<PlanCopyVersionResult>(response, 'copy_version');
     const store = usePlanStore();
 
@@ -266,7 +266,7 @@ export const planResponseHandler = {
    * Handle delete plan response
    * Validates, extracts data, and updates store
    */
-  handleDelete(response: any): PlanDeleteResult {
+  handleDelete(response: unknown): PlanDeleteResult {
     const result = validateAndExtract<PlanDeleteResult>(response, 'delete');
     const store = usePlanStore();
 
@@ -282,7 +282,7 @@ export const planResponseHandler = {
    * Generic handler that auto-detects action
    * Validates and returns typed data
    */
-  handle(response: any): any {
+  handle(response: unknown): any {
     return validateAndExtract(response, 'unknown');
   },
 };
