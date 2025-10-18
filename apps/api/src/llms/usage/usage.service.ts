@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
 import { UsageStatsResponseDto } from '@/llms/dto/llm-evaluation.dto';
 import { getTableName } from '@/supabase/supabase.config';
@@ -118,7 +118,7 @@ export class UsageService {
         averageResponseTime,
         averageUserRating: 0, // TODO: Extract from evaluation data
       };
-    } catch (error) {
+    } catch {
       // Return empty stats on error
       return {
         userId,

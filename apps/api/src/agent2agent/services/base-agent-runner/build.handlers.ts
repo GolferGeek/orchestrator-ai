@@ -31,6 +31,9 @@ import {
   resolveUserId,
 } from './shared.helpers';
 
+const isJsonObject = (value: JsonValue | undefined): value is JsonObject =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 export interface BuildHandlerDependencies {
   deliverablesService: DeliverablesService;
   plansService: PlansService;
@@ -1161,9 +1164,7 @@ function sanitizeMetadata(
   }
 
   const jsonValue = toJsonValue(value);
-  return jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)
-    ? (jsonValue as JsonObject)
-    : {};
+  return isJsonObject(jsonValue) ? jsonValue : {};
 }
 
 function toJsonValue(value: unknown): JsonValue | undefined {
@@ -1285,49 +1286,6 @@ function normalizeDeliverableFormat(
     return 'html';
   }
   return 'markdown';
-}
-
-function resolveNamespace(
-  definition: AgentRuntimeDefinition,
-  organizationSlug: string | null,
-): string {
-  const namespaceRaw =
-    definition.context && typeof definition.context === 'object'
-      ? definition.context['namespace']
-      : null;
-  const namespace =
-    typeof namespaceRaw === 'string' && namespaceRaw.trim().length
-      ? namespaceRaw.trim()
-      : null;
-
-  return (
-    organizationSlug ?? definition.organizationSlug ?? namespace ?? 'global'
-  );
-}
-
-function normalizeUsage(usage: any): typeof EMPTY_USAGE {
-  if (!usage || typeof usage !== 'object') {
-    return EMPTY_USAGE;
-  }
-
-  const inputTokens = numberOrZero(
-    usage.inputTokens ?? usage.promptTokens ?? usage.total_input_tokens,
-  );
-  const outputTokens = numberOrZero(
-    usage.outputTokens ?? usage.completionTokens ?? usage.total_output_tokens,
-  );
-  const totalTokens = numberOrZero(
-    usage.totalTokens ?? usage.total_tokens,
-    inputTokens + outputTokens,
-  );
-  const cost = numberOrZero(usage.cost ?? usage.price);
-
-  return {
-    inputTokens,
-    outputTokens,
-    totalTokens,
-    cost,
-  };
 }
 
 function coerceDeliverableContent(content: unknown): unknown {

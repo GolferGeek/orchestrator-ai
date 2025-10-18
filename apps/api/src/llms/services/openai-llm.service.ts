@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
 import {
   GenerateResponseParams,
@@ -7,18 +7,12 @@ import {
   ResponseMetadata,
 } from './llm-interfaces';
 import { PIIService } from '../pii/pii.service';
-import {
-  DictionaryPseudonymizerService,
-  DictionaryPseudonymMapping,
-} from '../pii/dictionary-pseudonymizer.service';
+import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import OpenAI from 'openai';
 import { getModelRestrictions } from '../config/model-restrictions.config';
-import type {
-  OpenAIChatCompletionRequest,
-  OpenAIChatCompletionResponse,
-} from '../types/provider-payload.types';
+import type { OpenAIChatCompletionRequest } from '../types/provider-payload.types';
 import { openAIChatCompletionSchema } from '../types/provider-schemas';
 import type { OpenAIChatCompletionParsed } from '../types/provider-schemas';
 
@@ -415,8 +409,8 @@ export class OpenAILLMService extends BaseLLMService {
    * Override LangSmith integration for OpenAI-specific tracing
    */
   protected async integrateLangSmith(
-    params: GenerateResponseParams,
-    response: LLMResponse,
+    _params: GenerateResponseParams,
+    _response: LLMResponse,
   ): Promise<string | undefined> {
     // Example OpenAI-specific LangSmith integration
     if (

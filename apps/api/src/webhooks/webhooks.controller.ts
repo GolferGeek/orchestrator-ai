@@ -329,7 +329,7 @@ export class WebhooksController {
   /**
    * Estimate total steps based on workflow type
    */
-  private estimateTotalSteps(status: string): number {
+  private estimateTotalSteps(_status: string): number {
     // Marketing swarm typically has 5 steps
     // This could be made configurable per workflow
     return 5;

@@ -293,8 +293,81 @@ Fix errors in this priority order for API:
 ### High Priority (Fix First)
 1. **`no-explicit-any`** - Replace with DTOs/interfaces
 2. **`no-unsafe-*`** - Add Zod schemas and type guards
-3. **`no-unused-vars`** - Remove or prefix with `_` (NestJS DI params)
+3. **`no-unused-vars`** - Follow decision tree below (prefer removal!)
 4. **`no-floating-promises`** - Add `await` or `.catch()`
+
+### Fixing `no-unused-vars` - Decision Tree
+
+When you encounter an unused variable/parameter, follow this order:
+
+**1. FIRST: Try to Remove It**
+```typescript
+// ❌ Before: Unused parameter
+function processAgent(agent: Agent, metadata: Metadata) {
+  return agent.id;
+}
+
+// ✅ After: Removed unused parameter
+function processAgent(agent: Agent) {
+  return agent.id;
+}
+```
+
+**2. SECOND: Should You Actually Use It?**
+```typescript
+// ❌ Before: Ignoring useful data
+function handleResponse(response: Response, statusCode: number) {
+  return response.data;
+}
+
+// ✅ After: Use it properly
+function handleResponse(response: Response, statusCode: number) {
+  if (statusCode >= 400) {
+    throw new Error(`Request failed with status ${statusCode}`);
+  }
+  return response.data;
+}
+```
+
+**3. THIRD: Prefix with `_` ONLY if Required**
+
+Use underscore prefix ONLY when the parameter is:
+- Required by interface/abstract class implementation
+- Needed for NestJS dependency injection
+- Required by callback signature but not used
+
+```typescript
+// ✅ Required by interface
+interface Handler {
+  handle(event: Event, context: Context): void;
+}
+
+class MyHandler implements Handler {
+  handle(event: Event, _context: Context): void {
+    // Context required by interface but not needed here
+    console.log(event.type);
+  }
+}
+
+// ✅ Required by NestJS DI (injected for future use)
+@Injectable()
+class MyService {
+  constructor(
+    private readonly plansService: PlansService,
+    private readonly _llmService: LLMService,  // Will use later
+  ) {}
+}
+
+// ✅ Required by callback signature
+items.map((item, _index) => item.id);  // Index not needed
+```
+
+**Decision Priority:**
+1. **Remove** (best) → Not required by anything
+2. **Use properly** (better) → Contains useful data being ignored
+3. **Underscore** (last resort) → Required by signature but not needed
+
+**Never underscore just to silence the linter!**
 
 ### Medium Priority
 5. **`require-await`** - Remove async or add await

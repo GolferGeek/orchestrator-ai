@@ -13,6 +13,9 @@ import * as PlanHandlers from './base-agent-runner/plan.handlers';
 import * as BuildHandlers from './base-agent-runner/build.handlers';
 import { handleError as sharedHandleError } from './base-agent-runner/shared.helpers';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
 /**
  * Base abstract class for all agent runners.
  *
@@ -78,9 +81,10 @@ export abstract class BaseAgentRunner implements IAgentRunner {
   async execute(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
-    organizationSlug: string | null,
+    _organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     const mode = request.mode;
+    const organizationSlug = _organizationSlug;
 
     // Validate mode is specified
     if (!mode) {
@@ -381,9 +385,9 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * Execute build - Abstract, each runner implements specific build logic.
    */
   protected abstract executeBuild(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
+    _definition: AgentRuntimeDefinition,
+    _request: TaskRequestDto,
+    _organizationSlug: string | null,
   ): Promise<TaskResponseDto>;
 
   /**
@@ -391,9 +395,9 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * For most runners, this will return "not supported". Only orchestrator agent runner implements this.
    */
   protected async handleOrchestrate(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
+    _definition: AgentRuntimeDefinition,
+    _request: TaskRequestDto,
+    _organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     return TaskResponseDto.failure(
       AgentTaskMode.ORCHESTRATE,
@@ -834,16 +838,38 @@ export abstract class BaseAgentRunner implements IAgentRunner {
   protected resolveDeliverableIdFromRequest(
     request: TaskRequestDto,
   ): string | null {
-    const payload = (request.payload ?? {}) as Record<string, any>;
+    const payload: Record<string, unknown> = isRecord(request.payload)
+      ? request.payload
+      : {};
+    const payloadMetadata = isRecord(payload.metadata)
+      ? payload.metadata
+      : undefined;
+    const payloadDeliverable = isRecord(payload.deliverable)
+      ? payload.deliverable
+      : undefined;
+    const requestMetadata = isRecord(request.metadata)
+      ? request.metadata
+      : undefined;
 
-    const candidates: Array<unknown> = [
-      payload?.deliverableId,
-      payload?.deliverable_id,
-      payload?.deliverable?.id,
-      payload?.metadata?.deliverableId,
-      payload?.metadata?.deliverable_id,
-      request.metadata?.deliverableId,
-      request.metadata?.deliverable_id,
+    const getString = (
+      record: Record<string, unknown> | undefined,
+      key: string,
+    ): string | undefined => {
+      if (!record) {
+        return undefined;
+      }
+      const value = record[key];
+      return typeof value === 'string' ? value : undefined;
+    };
+
+    const candidates: Array<string | undefined> = [
+      getString(payload, 'deliverableId'),
+      getString(payload, 'deliverable_id'),
+      getString(payloadDeliverable, 'id'),
+      getString(payloadMetadata, 'deliverableId'),
+      getString(payloadMetadata, 'deliverable_id'),
+      getString(requestMetadata, 'deliverableId'),
+      getString(requestMetadata, 'deliverable_id'),
     ];
 
     const match = candidates.find(
@@ -895,7 +921,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       payload?: any;
     }>,
     request: TaskRequestDto,
-    organizationSlug: string | null,
+    _organizationSlug: string | null,
   ): Promise<TaskResponseDto[]> {
     const results: TaskResponseDto[] = [];
 
@@ -906,7 +932,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     for (const subAgent of subAgents) {
       try {
         // Build sub-agent request
-        const subRequest: TaskRequestDto = {
+        const _subRequest: TaskRequestDto = {
           mode: subAgent.mode,
           conversationId: request.conversationId,
           sessionId: request.sessionId,

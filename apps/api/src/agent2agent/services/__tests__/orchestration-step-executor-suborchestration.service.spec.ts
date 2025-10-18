@@ -26,7 +26,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
   let mockDefinitionService: jest.Mocked<OrchestrationDefinitionService>;
   let mockRunFactory: jest.Mocked<OrchestrationRunFactoryService>;
   let mockAgentRegistry: jest.Mocked<AgentRegistryService>;
-  let mockEventEmitter: jest.Mocked<EventEmitter2>;
+  let _mockEventEmitter: jest.Mocked<EventEmitter2>;
 
   const mockParentRun: OrchestrationRunRecord = {
     id: 'parent-run-123',
@@ -272,7 +272,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     mockDefinitionService = module.get(OrchestrationDefinitionService);
     mockRunFactory = module.get(OrchestrationRunFactoryService);
     mockAgentRegistry = module.get(AgentRegistryService);
-    mockEventEmitter = module.get(EventEmitter2);
+    _mockEventEmitter = module.get(EventEmitter2);
 
     // Suppress logger output in tests
     jest.spyOn(Logger.prototype, 'debug').mockImplementation();

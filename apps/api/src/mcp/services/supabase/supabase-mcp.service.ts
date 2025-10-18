@@ -202,7 +202,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
         return JSON.parse(content);
       }
       return content;
-    } catch (_e) {
+    } catch {
       return response.content[0]?.text;
     }
   }

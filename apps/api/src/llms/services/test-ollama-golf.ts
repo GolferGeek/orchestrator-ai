@@ -5,7 +5,6 @@
  * Tests a real-world scenario: generating a blog post about playing golf in the rain.
  */
 
-import { HttpService } from '@nestjs/axios';
 import { OllamaLLMService } from './ollama-llm.service';
 import {
   LLMServiceConfig,

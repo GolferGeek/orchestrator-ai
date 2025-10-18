@@ -11,8 +11,11 @@ import type {
  * Services required by orchestrate action handlers
  */
 export interface OrchestrateHandlerDependencies {
-  // Will be populated as we implement specific handlers
-  // For now, orchestrator-specific services are injected in the runner
+  /**
+   * Placeholder property to satisfy lint rules until orchestrator-specific
+   * dependencies are wired through.
+   */
+  readonly placeholder?: undefined;
 }
 
 const EMPTY_USAGE = {
@@ -36,7 +39,7 @@ export async function handleOrchestrateAction(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
-  services: OrchestrateHandlerDependencies,
+  _services: OrchestrateHandlerDependencies,
   // Pass runner instance for access to existing methods
   runnerContext: any,
 ): Promise<TaskResponseDto> {
@@ -200,10 +203,10 @@ async function handleOrchestrateContinue(
  * Saves an orchestration as a reusable recipe
  */
 async function handleOrchestrateSaveRecipe(
-  definition: AgentRuntimeDefinition,
-  request: TaskRequestDto,
-  organizationSlug: string | null,
-  runnerContext: any,
+  _definition: AgentRuntimeDefinition,
+  _request: TaskRequestDto,
+  _organizationSlug: string | null,
+  _runnerContext: any,
 ): Promise<TaskResponseDto> {
   return TaskResponseDto.failure(
     AgentTaskMode.ORCHESTRATE,
@@ -219,7 +222,7 @@ async function handleOrchestratePlanManagement(
   request: TaskRequestDto,
   organizationSlug: string | null,
   runnerContext: any,
-  action: string,
+  _action: string,
 ): Promise<TaskResponseDto> {
   // Delegate to handlePlan for plan creation/update
   return runnerContext.handlePlan(definition, request, organizationSlug);

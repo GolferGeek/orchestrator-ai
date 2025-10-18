@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
@@ -12,6 +12,7 @@ export interface AgentCardOptions {
 export class AgentCardBuilderService {
   private static readonly DEFAULT_SPEC_VERSION = '2024-08-07';
   private static readonly DEFAULT_PROVIDER = 'Orchestrator AI';
+  private readonly logger = new Logger(AgentCardBuilderService.name);
 
   constructor(
     private readonly agentRegistry: AgentRegistryService,

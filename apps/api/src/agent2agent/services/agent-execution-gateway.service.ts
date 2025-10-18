@@ -69,6 +69,10 @@ export class AgentExecutionGateway {
     );
 
     const assessment = await this.routingPolicy.evaluate(request, agent);
+    const routingMetadata = {
+      ...(assessment.metadata ?? {}),
+      agentMetadata,
+    };
 
     if (assessment.showstopper) {
       return TaskResponseDto.human(
@@ -91,7 +95,7 @@ export class AgentExecutionGateway {
           agent,
           definition,
           request,
-          routingMetadata: assessment.metadata,
+          routingMetadata,
         });
       case AgentTaskMode.PLAN:
         // Delegate to mode router (uses new plans table via PlansService)
@@ -101,7 +105,7 @@ export class AgentExecutionGateway {
           agent,
           definition,
           request,
-          routingMetadata: assessment.metadata,
+          routingMetadata,
         });
       case AgentTaskMode.BUILD:
         // Delegate to mode router (uses new deliverables table via DeliverablesService)
@@ -111,7 +115,7 @@ export class AgentExecutionGateway {
           agent,
           definition,
           request,
-          routingMetadata: assessment.metadata,
+          routingMetadata,
         });
       case AgentTaskMode.ORCHESTRATE:
         // Delegate to mode router (uses action-based routing for orchestrate operations)
@@ -121,7 +125,7 @@ export class AgentExecutionGateway {
           agent,
           definition,
           request,
-          routingMetadata: assessment.metadata,
+          routingMetadata,
         });
       default:
         return TaskResponseDto.failure(request.mode!, 'Unsupported mode');
@@ -239,7 +243,7 @@ export class AgentExecutionGateway {
     agentMetadata: AgentRuntimeAgentMetadata,
     request: TaskRequestDto,
     responseMode: AgentTaskMode,
-    options: { requireTarget: boolean },
+    _options: { requireTarget: boolean },
   ): Promise<TaskResponseDto | null> {
     const agentSlug = agent.slug;
     const orchestrationSlug =

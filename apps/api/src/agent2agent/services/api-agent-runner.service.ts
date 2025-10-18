@@ -73,9 +73,9 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
    * PLAN mode - not yet implemented for API agents
    */
   protected async handlePlan(
-    definition: AgentRuntimeDefinition,
-    request: TaskRequestDto,
-    organizationSlug: string | null,
+    _definition: AgentRuntimeDefinition,
+    _request: TaskRequestDto,
+    _organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     return TaskResponseDto.failure(
       AgentTaskMode.PLAN,

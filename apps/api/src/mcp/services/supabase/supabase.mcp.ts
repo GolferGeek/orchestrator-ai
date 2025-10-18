@@ -1112,7 +1112,7 @@ Format your response as a structured JSON object with these sections.`;
           },
         };
       }
-    } catch (_error) {
+    } catch {
       // Fallback analysis
       return this.generateSimpleAnalysis(data, prompt);
     }

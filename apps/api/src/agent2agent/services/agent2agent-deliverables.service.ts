@@ -285,7 +285,7 @@ export class Agent2AgentDeliverablesService {
           ? segments.join('/')
           : `${segments.slice(0, 1).join('')}/…/${segments.slice(-1).join('')}`;
       return `${parsed.hostname}/${visible || ''}`.replace(/\/$/, '');
-    } catch (_error) {
+    } catch {
       return '[image]';
     }
   }

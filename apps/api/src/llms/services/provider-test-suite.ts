@@ -8,35 +8,14 @@
 
 import {
   LLMServiceConfig,
-  GenerateResponseParams,
   LLMResponse,
   ProviderHealthStatus,
 } from './llm-interfaces';
-import {
-  OpenAILLMService,
-  createOpenAIService,
-  testOpenAIService,
-} from './openai-llm.service';
-import {
-  AnthropicLLMService,
-  createAnthropicService,
-  testAnthropicService,
-} from './anthropic-llm.service';
-import {
-  OllamaLLMService,
-  createOllamaService,
-  testOllamaService,
-} from './ollama-llm.service';
-import {
-  GrokLLMService,
-  createGrokService,
-  testGrokService,
-} from './grok-llm.service';
-import {
-  GoogleLLMService,
-  createGoogleService,
-  testGoogleService,
-} from './google-llm.service';
+import { testOpenAIService } from './openai-llm.service';
+import { testAnthropicService } from './anthropic-llm.service';
+import { testOllamaService } from './ollama-llm.service';
+import { testGrokService } from './grok-llm.service';
+import { testGoogleService } from './google-llm.service';
 
 /**
  * Provider test configuration
@@ -276,17 +255,19 @@ export class ProviderTestSuite {
     const startTime = Date.now();
 
     try {
-      const params: GenerateResponseParams = {
-        systemPrompt,
-        userMessage,
-        config: testConfig.config,
-        conversationId: `test-${Date.now()}`,
-        options: {
-          preferLocal: testConfig.config.provider === 'ollama',
-        },
-      };
-
       let response: LLMResponse;
+
+      const systemPreview =
+        systemPrompt.length > 60
+          ? `${systemPrompt.slice(0, 60)}...`
+          : systemPrompt;
+      const userPreview =
+        userMessage.length > 60
+          ? `${userMessage.slice(0, 60)}...`
+          : userMessage;
+      console.log(
+        `  ▶ Prompts → system: "${systemPreview}", user: "${userPreview}"`,
+      );
 
       // Route to appropriate service based on provider
       switch (testConfig.config.provider) {
@@ -562,16 +543,13 @@ export class ProviderTestSuite {
       cost: number;
     }> = [];
 
+    console.log(
+      `System prompt: "${systemPrompt}" | Benchmark prompt: "${benchmarkPrompt}"`,
+    );
+
     for (const testConfig of this.testConfigs.filter((c) => c.enabled)) {
       try {
         const startTime = Date.now();
-
-        const params: GenerateResponseParams = {
-          systemPrompt,
-          userMessage: benchmarkPrompt,
-          config: testConfig.config,
-          conversationId: `benchmark-${Date.now()}`,
-        };
 
         let response: LLMResponse;
 

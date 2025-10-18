@@ -17,12 +17,10 @@ async function bootstrap() {
 
     try {
       dotenv.config({ path: envFilePath });
-    } catch (_error) {
+    } catch {
       process.exit(1);
     }
   }
-
-  const logger = new Logger('Bootstrap');
 
   // Parse command line arguments for --enable-external-agents
   const args = process.argv.slice(2);
@@ -229,6 +227,6 @@ async function bootstrap() {
 
 bootstrap().catch((error) => {
   const logger = new Logger('Bootstrap');
-
+  logger.error('Failed to bootstrap application', error);
   process.exit(1);
 });
