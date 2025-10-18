@@ -177,7 +177,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
           headers,
           data: body,
           params: queryParams,
-          timeout: apiConfig.timeout || 30000,
+          timeout: this.ensureNumber(apiConfig.timeout) ?? 30000,
           validateStatus: () => true, // Don't throw on non-2xx status
         });
 
@@ -300,6 +300,19 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     }
     const trimmed = value.trim();
     return trimmed.length ? trimmed : null;
+  }
+
+  private ensureNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value.trim());
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return null;
   }
 
   /**

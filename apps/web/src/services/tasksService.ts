@@ -1,89 +1,95 @@
 import { apiService } from './apiService';
 import { useApiSanitization } from '@/composables/useApiSanitization';
-interface Task {
-  id: string;
-  agentConversationId: string;
-  userId: string;
-  method: string;
-  prompt: string;
-  params?: Record<string, any>;
-  response?: string;
-  responseMetadata?: Record<string, any>;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  progress: number;
-  progressMessage?: string;
-  evaluation?: Record<string, any>;
-  llmMetadata?: Record<string, any>;
-  errorCode?: string;
-  errorMessage?: string;
-  errorData?: Record<string, any>;
-  startedAt?: string;
-  completedAt?: string;
-  timeoutSeconds: number;
-  metadata?: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-}
-interface LLMSelection {
-  providerName?: string;
-  modelName?: string;
-  cidafmOptions?: {
-    activeStateModifiers?: string[];
-    responseModifiers?: string[];
-    executedCommands?: string[];
-    customOptions?: Record<string, any>;
-  };
-  temperature?: number;
-  maxTokens?: number;
-}
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+import type {
+  TaskDetail,
+  TaskEvaluation,
+  TaskLLMMetadata,
+  TaskLLMSelection,
+  TaskMetadataRecord,
+  TaskParameters,
+  TaskResponseMetadata,
+  TaskStatus,
+} from '@/types/task';
+import type { ExecutionMode } from '@/types/conversation';
+
 interface CreateTaskDto {
   method: string;
   prompt: string;
-  params?: Record<string, any>;
+  params?: TaskParameters;
   conversationId?: string;
   taskId?: string; // Optional, pre-generated task ID from frontend
   timeoutSeconds?: number;
-  llmSelection?: LLMSelection;
-  executionMode?: 'immediate' | 'polling' | 'websocket'; // Execution mode for backend processing
+  llmSelection?: TaskLLMSelection;
+  executionMode?: ExecutionMode; // Execution mode for backend processing
   conversationHistory?: Array<{
     role: string;
     content: string;
     timestamp: string;
     taskId?: string;
-    metadata?: Record<string, any>;
+    metadata?: JsonObject;
   }>;
-  metadata?: Record<string, any>; // Context metadata for deliverable/project operations
+  metadata?: TaskMetadataRecord; // Context metadata for deliverable/project operations
 }
+
 interface UpdateTaskDto {
-  status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status?: TaskStatus;
   progress?: number;
   progressMessage?: string;
   response?: string;
-  responseMetadata?: Record<string, any>;
-  evaluation?: Record<string, any>;
-  llmMetadata?: Record<string, any>;
+  responseMetadata?: TaskResponseMetadata;
+  evaluation?: TaskEvaluation;
+  llmMetadata?: TaskLLMMetadata;
   errorCode?: string;
   errorMessage?: string;
-  errorData?: Record<string, any>;
+  errorData?: JsonObject;
 }
+
 interface TaskQueryParams {
   conversationId?: string;
   userId?: string;
-  status?: string;
+  status?: TaskStatus;
   limit?: number;
   offset?: number;
 }
+
 interface ListTasksResponse {
-  tasks: Task[];
+  tasks: TaskDetail[];
   total: number;
 }
+
 interface TaskProgressEvent {
   taskId: string;
   progress: number;
   message?: string;
-  status?: string;
-  metadata?: Record<string, any>;
+  status?: TaskStatus;
+  metadata?: JsonObject;
 }
+
+const TASK_STATUS_VALUES: readonly TaskStatus[] = [
+  'pending',
+  'queued',
+  'running',
+  'paused',
+  'completed',
+  'failed',
+  'cancelled',
+];
+
+const isTaskStatus = (value: unknown): value is TaskStatus =>
+  typeof value === 'string' && (TASK_STATUS_VALUES as readonly string[]).includes(value);
+
+const isJsonObject = (value: unknown): value is JsonObject =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isTaskProgressEvent = (value: unknown): value is TaskProgressEvent => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<TaskProgressEvent>;
+  return typeof candidate.taskId === 'string' && typeof candidate.progress === 'number';
+};
 class TasksService {
   private readonly baseUrl = '/tasks';
   private apiSanitization = useApiSanitization();
@@ -99,21 +105,21 @@ class TasksService {
     const url = queryParams.toString() 
       ? `${this.baseUrl}?${queryParams.toString()}`
       : this.baseUrl;
-    const response = await apiService.get(url);
+    const response = await apiService.get<ListTasksResponse>(url);
     return response;
   }
   /**
    * Get task by ID
    */
-  async getTask(taskId: string, options?: { suppressErrors?: boolean }): Promise<Task> {
-    const response = await apiService.get(`${this.baseUrl}/${taskId}`, options);
+  async getTask(taskId: string, options?: { suppressErrors?: boolean }): Promise<TaskDetail> {
+    const response = await apiService.get<TaskDetail>(`${this.baseUrl}/${taskId}`, options);
     return response;
   }
   /**
    * Update task
    */
-  async updateTask(taskId: string, updates: UpdateTaskDto): Promise<Task> {
-    const response = await apiService.put(`${this.baseUrl}/${taskId}`, updates);
+  async updateTask(taskId: string, updates: UpdateTaskDto): Promise<TaskDetail> {
+    const response = await apiService.put<TaskDetail, UpdateTaskDto>(`${this.baseUrl}/${taskId}`, updates);
     return response;
   }
   /**
@@ -126,8 +132,8 @@ class TasksService {
   /**
    * Get active tasks
    */
-  async getActiveTasks(): Promise<Task[]> {
-    const response = await apiService.get(`${this.baseUrl}/active`);
+  async getActiveTasks(): Promise<TaskDetail[]> {
+    const response = await apiService.get<TaskDetail[]>(`${this.baseUrl}/active`);
     return response;
   }
   /**
@@ -135,12 +141,18 @@ class TasksService {
    */
   async getTaskStatus(taskId: string): Promise<{
     taskId: string;
-    status: string;
+    status: TaskStatus;
     progress: number;
     progressMessage?: string;
-    data?: any;
+    data?: JsonObject | null;
   }> {
-    const response = await apiService.get(`${this.baseUrl}/${taskId}/status`);
+    const response = await apiService.get<{
+      taskId: string;
+      status: TaskStatus;
+      progress: number;
+      progressMessage?: string;
+      data?: JsonObject | null;
+    }>(`${this.baseUrl}/${taskId}/status`);
     return response;
   }
   /**
@@ -152,10 +164,18 @@ class TasksService {
     content: string;
     messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
     progressPercentage?: number;
-    metadata?: Record<string, any>;
+    metadata?: JsonObject;
     createdAt: string;
   }>> {
-    const response = await apiService.get(`${this.baseUrl}/${taskId}/messages`);
+    const response = await apiService.get<Array<{
+      id: string;
+      taskId: string;
+      content: string;
+      messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
+      progressPercentage?: number;
+      metadata?: JsonObject;
+      createdAt: string;
+    }>>(`${this.baseUrl}/${taskId}/messages`);
     return response;
   }
   /**
@@ -197,10 +217,26 @@ class TasksService {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const data = JSON.parse(line.slice(6));
-              yield data as TaskProgressEvent;
-              // Stop if task is completed
-              if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
+              const parsed = JSON.parse(line.slice(6));
+              if (!isTaskProgressEvent(parsed)) {
+                continue;
+              }
+
+              const status = isTaskStatus(parsed.status) ? parsed.status : undefined;
+              const metadata = isJsonObject(parsed.metadata) ? parsed.metadata : undefined;
+              const message = typeof parsed.message === 'string' ? parsed.message : undefined;
+
+              const event: TaskProgressEvent = {
+                taskId: parsed.taskId,
+                progress: parsed.progress,
+                status,
+                metadata,
+                message,
+              };
+
+              yield event;
+
+              if (status && (status === 'completed' || status === 'failed' || status === 'cancelled')) {
                 return;
               }
             } catch (error) {
@@ -224,8 +260,8 @@ class TasksService {
   ): Promise<{
     taskId: string;
     conversationId: string;
-    status: string;
-    result?: any;
+    status: TaskStatus;
+    result?: JsonValue;
   }> {
     // Validate routing inputs early – never fall back silently
     if (!agentType || !agentName) {
@@ -244,17 +280,22 @@ class TasksService {
     const url = `/agent-to-agent/${namespace}/${agentName}/tasks`;
     
     // Transform to JSON-RPC 2.0 format (A2A protocol compliant)
-    const paramsInput = taskData.params || {};
+    const paramsInput: TaskParameters = taskData.params ?? {};
     const {
-      mode: requestedMode,
-      payload: modePayload,
+      mode: requestedModeValue,
+      payload: rawPayload,
       promptParameters,
       ...extraParams
-    } = paramsInput;
+    } = paramsInput as TaskParameters & {
+      mode?: JsonValue;
+      payload?: JsonValue;
+      promptParameters?: JsonValue;
+    };
 
-    const mergedPayload = {
-      ...(modePayload || {}),
-      ...extraParams,
+    const payloadBase = isJsonObject(rawPayload) ? rawPayload : {};
+    const mergedPayload: JsonObject = {
+      ...payloadBase,
+      ...(extraParams as JsonObject),
     };
 
     if (taskData.llmSelection) {
@@ -282,66 +323,93 @@ class TasksService {
       mergedPayload.timeoutSeconds = taskData.timeoutSeconds;
     }
 
-    const paramsBody: Record<string, any> = {
-      conversationId: taskData.conversationId,
+    const paramsBody: JsonObject = {
       userMessage: taskData.prompt,
-      messages: taskData.conversationHistory?.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      mode: requestedMode ?? taskData.method,
+      mode: typeof requestedModeValue === 'string' ? requestedModeValue : taskData.method,
       payload: mergedPayload,
-      metadata: taskData.metadata,
     };
 
-    if (promptParameters) {
+    if (taskData.conversationId) {
+      paramsBody.conversationId = taskData.conversationId;
+    }
+
+    if (taskData.conversationHistory) {
+      paramsBody.messages = taskData.conversationHistory.map((msg) => {
+        const historyEntry: JsonObject = {
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp,
+        };
+
+        if (msg.taskId) {
+          historyEntry.taskId = msg.taskId;
+        }
+
+        if (msg.metadata) {
+          historyEntry.metadata = msg.metadata;
+        }
+
+        return historyEntry;
+      });
+    }
+
+    if (taskData.metadata) {
+      paramsBody.metadata = taskData.metadata;
+    }
+
+    if (promptParameters !== undefined) {
       paramsBody.promptParameters = promptParameters;
     }
 
-    const payload = {
+    const payload: JsonObject = {
       jsonrpc: '2.0',
       method: taskData.method,
-      id: taskData.taskId, // Use taskId as JSON-RPC id
       params: paramsBody,
+      ...(taskData.taskId ? { id: taskData.taskId } : {}),
     };
-    
+
     console.log('🚀 Sending A2A JSON-RPC 2.0 request:', {
       url,
       namespace: namespace,
       method: payload.method,
       id: payload.id,
-      conversationId: payload.params.conversationId,
-      mode: payload.params.mode,
+      conversationId: paramsBody.conversationId,
+      mode: paramsBody.mode,
     });
 
-    const response = await apiService.post(url, payload);
+    const response = await apiService.post<{
+      taskId: string;
+      conversationId: string;
+      status: TaskStatus;
+      result?: JsonValue;
+    }, JsonObject>(url, payload);
     return response;
   }
   /**
    * Get task by ID (alias for getTask)
    */
-  async getTaskById(taskId: string): Promise<Task> {
+  async getTaskById(taskId: string): Promise<TaskDetail> {
     return this.getTask(taskId);
   }
   /**
    * Evaluate task
    */
-  async evaluateTask(taskId: string, evaluation: any): Promise<Task> {
-    const response = await apiService.post(`/evaluation/tasks/${taskId}`, evaluation);
+  async evaluateTask(taskId: string, evaluation: TaskEvaluation): Promise<TaskDetail> {
+    const response = await apiService.post<TaskDetail, TaskEvaluation>(`/evaluation/tasks/${taskId}`, evaluation);
     return response;
   }
   /**
    * Get task evaluation
    */
-  async getTaskEvaluation(taskId: string): Promise<Task> {
-    const response = await apiService.get(`/evaluation/tasks/${taskId}`);
+  async getTaskEvaluation(taskId: string): Promise<TaskDetail> {
+    const response = await apiService.get<TaskDetail>(`/evaluation/tasks/${taskId}`);
     return response;
   }
   /**
    * Update task evaluation
    */
-  async updateTaskEvaluation(taskId: string, evaluation: any): Promise<Task> {
-    const response = await apiService.put(`/evaluation/tasks/${taskId}`, evaluation);
+  async updateTaskEvaluation(taskId: string, evaluation: TaskEvaluation): Promise<TaskDetail> {
+    const response = await apiService.put<TaskDetail, TaskEvaluation>(`/evaluation/tasks/${taskId}`, evaluation);
     return response;
   }
   /**
@@ -350,14 +418,14 @@ class TasksService {
   async getConversationTaskEvaluations(
     conversationId: string,
     filters?: { minRating?: number; hasNotes?: boolean }
-  ): Promise<Task[]> {
+  ): Promise<TaskDetail[]> {
     const queryParams = new URLSearchParams();
-      if (filters?.minRating) queryParams.append('minRating', filters.minRating.toString());
-  if (filters?.hasNotes) queryParams.append('hasNotes', filters.hasNotes.toString());
+    if (filters?.minRating) queryParams.append('minRating', filters.minRating.toString());
+    if (filters?.hasNotes) queryParams.append('hasNotes', filters.hasNotes.toString());
     const url = queryParams.toString() 
       ? `/evaluation/conversations/${conversationId}/tasks?${queryParams.toString()}`
       : `/evaluation/conversations/${conversationId}/tasks`;
-    const response = await apiService.get(url);
+    const response = await apiService.get<TaskDetail[]>(url);
     return response;
   }
 }

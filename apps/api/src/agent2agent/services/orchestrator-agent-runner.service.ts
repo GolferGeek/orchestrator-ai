@@ -283,13 +283,16 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   private resolveDefaultOrchestrationName(
     agentDefinition: AgentRuntimeDefinition,
   ): string | null {
+    const configRecord = this.asRecord(agentDefinition.config);
+    const contextRecord = this.asRecord(agentDefinition.context);
     const orchestrationConfig =
-      agentDefinition.config?.orchestration ||
-      agentDefinition.context?.orchestration ||
-      {};
-    const available: string[] =
-      orchestrationConfig.available_orchestrations || [];
-    return available.length > 0 ? (available[0] ?? null) : null;
+      this.asRecord(configRecord?.orchestration) ??
+      this.asRecord(contextRecord?.orchestration);
+
+    const available = this.ensureStringArray(
+      orchestrationConfig?.available_orchestrations,
+    );
+    return available && available.length > 0 ? available[0] ?? null : null;
   }
 
   private async resumeAfterApproval(
@@ -521,6 +524,33 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     }
 
     return merged;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private ensureStringArray(value: unknown): string[] | null {
+    if (!value) {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      const sanitized = value
+        .map((entry) => (typeof entry === 'string' ? entry.trim() : null))
+        .filter((entry): entry is string => Boolean(entry));
+      return sanitized.length ? sanitized : null;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed ? [trimmed] : null;
+    }
+
+    return null;
   }
 
   private asString(value: unknown): string | undefined {

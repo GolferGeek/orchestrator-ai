@@ -1,4 +1,4 @@
-import type { JsonValue } from '@orchestrator-ai/transport-types';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 
 /**
  * Task Type Definitions
@@ -79,7 +79,76 @@ export interface TaskMetadata {
 
   /** Custom metadata fields */
   custom?: Record<string, string | number | boolean>;
+
+  /** Agent identity metadata */
+  agentName?: string;
+  agentType?: string;
+
+  /** Delegation metadata */
+  delegatedTo?: string;
+  delegationReason?: string;
+
+  /** Confidence score for agent output */
+  confidence?: number;
+
+  /** LLM metadata captured when the task executed */
+  llmMetadata?: TaskLLMMetadata;
 }
+
+export type TaskMetadataRecord = TaskMetadata & JsonObject;
+
+export interface TaskCIDAFMOptions extends JsonObject {
+  activeStateModifiers?: string[];
+  responseModifiers?: string[];
+  executedCommands?: string[];
+  customOptions?: JsonObject;
+}
+
+export interface TaskLLMSelection extends JsonObject {
+  providerName?: string;
+  provider?: string;
+  providerId?: string;
+  modelName?: string;
+  model?: string;
+  modelId?: string;
+  temperature?: number;
+  maxTokens?: number;
+  responseTimeMs?: number;
+  operationType?: string;
+  cidafmOptions?: TaskCIDAFMOptions;
+}
+
+export type TaskLLMMetadata = JsonObject & {
+  originalLLMSelection?: TaskLLMSelection;
+};
+
+export type TaskParameters = JsonObject;
+
+export interface TaskResponseUsage extends JsonObject {
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
+export interface TaskCostCalculation extends JsonObject {
+  inputCost?: number;
+  outputCost?: number;
+  totalCost?: number;
+  currency?: string;
+}
+
+export type TaskResponseMetadata = JsonObject & {
+  usage?: TaskResponseUsage;
+  costCalculation?: TaskCostCalculation;
+  llmUsed?: TaskLLMSelection;
+};
+
+export type TaskEvaluation = JsonObject & {
+  userRating?: number;
+  speedRating?: number;
+  accuracyRating?: number;
+  evaluationTimestamp?: string;
+  userNotes?: string;
+};
 
 // =====================================
 // TASK DATA
@@ -200,8 +269,21 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
-  metadata?: TaskMetadata;
+  metadata?: TaskMetadataRecord;
   data?: TaskData;
+  method?: string;
+  progress?: number;
+  progressMessage?: string;
+  params?: TaskParameters;
+  response?: string;
+  responseMetadata?: TaskResponseMetadata;
+  evaluation?: TaskEvaluation;
+  llmMetadata?: TaskLLMMetadata;
+  errorCode?: string;
+  errorMessage?: string;
+  errorData?: JsonObject;
+  timeoutSeconds?: number;
+  agentConversationId?: string;
 }
 
 // =====================================
@@ -262,6 +344,32 @@ export interface TaskFilters {
 export interface TaskSortOptions {
   field: 'createdAt' | 'updatedAt' | 'completedAt' | 'priority' | 'status';
   direction: 'asc' | 'desc';
+}
+
+export interface TaskDetail {
+  id: string;
+  method: string;
+  status: TaskStatus;
+  progress: number;
+  prompt: string;
+  timeoutSeconds?: number;
+  agentConversationId?: string;
+  userId?: string;
+  conversationId?: string;
+  params?: TaskParameters;
+  response?: string;
+  responseMetadata?: TaskResponseMetadata;
+  progressMessage?: string;
+  evaluation?: TaskEvaluation;
+  llmMetadata?: TaskLLMMetadata;
+  errorCode?: string;
+  errorMessage?: string;
+  errorData?: JsonObject;
+  metadata?: TaskMetadataRecord;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string;
+  completedAt?: string;
 }
 
 // =====================================

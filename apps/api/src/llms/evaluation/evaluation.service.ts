@@ -43,7 +43,7 @@ import type {
   TaskRecord,
   UserProfileRecord,
 } from '@/llms/types/evaluation.types';
-import type { Provider, Model } from '@/llms/types/llm-evaluation';
+import type { Provider, UserRatingScale } from '@/llms/types/llm-evaluation';
 
 /**
  * Format agent names for display by converting from database format to human-readable format
@@ -1197,7 +1197,7 @@ export class EvaluationService {
 
     // Fetch provider and model details
     const providersMap = new Map<string, Provider>();
-    const modelsMap = new Map<string, Model>();
+    const modelsMap = new Map<string, ModelResponseDto>();
 
     // Fetch user email
 
@@ -1247,10 +1247,7 @@ export class EvaluationService {
         models.forEach((model) => {
           const mappedModel = mapLLMModelFromDb(model);
           if (model.id) {
-            modelsMap.set(
-              model.id,
-              this.convertToModel(model, mappedModel),
-            );
+            modelsMap.set(model.id, mappedModel);
           }
         });
       }
@@ -1265,6 +1262,12 @@ export class EvaluationService {
           // Additional debug for missing response data
 
           const taskContent = this.extractTaskContent(task);
+          const responseMetadataRecord = this.asRecord(task.response_metadata);
+          const llmMetadataRecord = this.asRecord(task.llm_metadata);
+          const taskMetadataRecord = this.asRecord(task.metadata);
+          const deliverableMetadataRecord = this.asRecord(
+            task.deliverable_metadata,
+          );
 
           const sessionId =
             this.pickString(task.session_id) ??
@@ -1319,7 +1322,7 @@ export class EvaluationService {
 
         // Get provider and model from LLM metadata (nested in originalLLMSelection)
         const originalSelectionRecord = this.asRecord(
-          task.llm_metadata?.originalLLMSelection,
+          llmMetadataRecord?.originalLLMSelection,
         );
         const providerId = this.pickString(originalSelectionRecord?.providerId);
         const modelId = this.pickString(originalSelectionRecord?.modelId);
@@ -1362,27 +1365,28 @@ export class EvaluationService {
             progressMessage: task.progress_message,
             workflowStepsCompleted:
               responseMetadataRecord?.workflow_steps_completed,
+            userEmail,
           },
           // Map evaluation fields directly to DTO (not nested)
-          userRating: task.evaluation?.user_rating ?? undefined,
-          speedRating: task.evaluation?.speed_rating ?? undefined,
-          accuracyRating: task.evaluation?.accuracy_rating ?? undefined,
+          userRating: this.normalizeUserRating(task.evaluation?.user_rating),
+          speedRating: this.normalizeUserRating(
+            task.evaluation?.speed_rating,
+          ),
+          accuracyRating: this.normalizeUserRating(
+            task.evaluation?.accuracy_rating,
+          ),
           userNotes: task.evaluation?.user_notes ?? undefined,
           evaluationTimestamp:
             this.pickString(task.evaluation?.evaluation_timestamp) ??
             undefined,
           evaluationDetails: task.evaluation?.evaluation_details ?? undefined,
           // Include provider and model details from LLM metadata
-          providerId: providerId ?? undefined,
-          modelId: modelId ?? undefined,
           responseTimeMs:
             this.pickNumber(llmMetadataRecord?.response_time_ms) ?? undefined,
-          cost:
+          totalCost:
             this.pickNumber(llmMetadataRecord?.total_cost) ?? undefined,
           provider,
           model,
-          // Include user email
-          userEmail,
         };
         })
         .filter(
@@ -2152,7 +2156,7 @@ export class EvaluationService {
 
   private async fetchModelsMap(
     modelIds: string[],
-  ): Promise<Map<string, Model>> {
+  ): Promise<Map<string, ModelResponseDto>> {
     if (modelIds.length === 0) return new Map();
 
     const { data: models, error } = await this.supabaseService
@@ -2165,14 +2169,11 @@ export class EvaluationService {
       return new Map();
     }
 
-    const modelsMap = new Map<string, Model>();
+    const modelsMap = new Map<string, ModelResponseDto>();
     (models || []).forEach((model) => {
       const mappedModel = mapLLMModelFromDb(model);
       if (model.id) {
-        modelsMap.set(
-          model.id,
-          this.convertToModel(model, mappedModel),
-        );
+        modelsMap.set(model.id, mappedModel);
       }
     });
 
@@ -2183,7 +2184,7 @@ export class EvaluationService {
     task: TaskRecord,
     usersMap: Map<string, UserProfileRecord>,
     providersMap: Map<string, Provider>,
-    modelsMap: Map<string, Model>,
+    modelsMap: Map<string, ModelResponseDto>,
   ): EnhancedEvaluationMetadataDto {
     // Get user info
     const userProfile = task.user_id
@@ -2209,9 +2210,12 @@ export class EvaluationService {
 
     const evaluationRecord = task.evaluation ?? {};
     const evaluation: EvaluationDataDto = {
-      userRating: evaluationRecord.user_rating ?? 0,
-      speedRating: evaluationRecord.speed_rating ?? undefined,
-      accuracyRating: evaluationRecord.accuracy_rating ?? undefined,
+      userRating:
+        this.normalizeUserRating(evaluationRecord.user_rating) ?? 1,
+      speedRating: this.normalizeUserRating(evaluationRecord.speed_rating),
+      accuracyRating: this.normalizeUserRating(
+        evaluationRecord.accuracy_rating,
+      ),
       userNotes: evaluationRecord.user_notes ?? undefined,
       evaluationTimestamp: new Date(
         evaluationRecord.evaluation_timestamp ?? task.created_at ?? Date.now(),
@@ -2316,10 +2320,6 @@ export class EvaluationService {
     const model = modelId ? modelsMap.get(modelId) : undefined;
     const providerRecord = this.asRecord(provider);
     const modelRecord = this.asRecord(model);
-    const llmMetadataRecord = this.asRecord(task.llm_metadata);
-    const originalSelectionRecord = this.asRecord(
-      task.llm_metadata?.originalLLMSelection,
-    );
 
     const llmInfo: EnhancedLLMInfoDto = {
       provider:
@@ -2338,7 +2338,7 @@ export class EvaluationService {
         input: this.pickNumber(llmMetadataRecord?.input_tokens) ?? 0,
         output: this.pickNumber(llmMetadataRecord?.output_tokens) ?? 0,
       },
-      modelVersion: this.pickString(modelRecord?.model_id) ?? undefined,
+      modelVersion: this.pickString(modelRecord?.modelName) ?? undefined,
       temperature:
         this.pickNumber(originalSelectionRecord?.temperature) ?? undefined,
       maxTokens:
@@ -2378,23 +2378,18 @@ export class EvaluationService {
     return validRoles.length ? validRoles : [UserRole.USER];
   }
 
-  private convertToModel(dbModel: any, mappedModel: ModelResponseDto): Model {
-    return {
-      name: mappedModel.name,
-      providerName: mappedModel.providerName,
-      pricingInputPer1k: mappedModel.pricingInputPer1k,
-      pricingOutputPer1k: mappedModel.pricingOutputPer1k,
-      supportsThinking: mappedModel.supportsThinking,
-      maxTokens: mappedModel.maxTokens,
-      contextWindow: mappedModel.contextWindow,
-      strengths: mappedModel.strengths,
-      weaknesses: mappedModel.weaknesses,
-      useCases: mappedModel.useCases,
-      status: mappedModel.status,
-      createdAt: mappedModel.createdAt,
-      updatedAt: dbModel.updated_at ?? mappedModel.createdAt,
-      provider: mappedModel.provider,
-    };
+  private normalizeUserRating(
+    value: unknown,
+  ): UserRatingScale | undefined {
+    const rating = this.pickNumber(value);
+    if (rating === undefined) {
+      return undefined;
+    }
+    const rounded = Math.round(rating);
+    if (rounded < 1 || rounded > 5) {
+      return undefined;
+    }
+    return rounded as UserRatingScale;
   }
 
   private normalizeWorkflowStep(step: unknown): WorkflowStepDto | null {

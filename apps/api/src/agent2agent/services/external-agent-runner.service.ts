@@ -205,7 +205,6 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
 
       try {
         const observable = this.httpService.request({
-          url: externalConfig.url,
           url: endpoint,
           method: 'POST',
           headers,

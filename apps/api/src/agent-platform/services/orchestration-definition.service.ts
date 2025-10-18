@@ -1,4 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import type {
+  JsonArray,
+  JsonObject,
+  JsonValue,
+} from '@orchestrator-ai/transport-types';
 import { OrchestrationDefinitionsRepository } from '../repositories/orchestration-definitions.repository';
 import {
   OrchestrationDefinitionCreateInput,
@@ -10,6 +15,7 @@ import {
   OrchestrationExecutionConfig,
   OrchestrationResolvedDefinition,
   OrchestrationStepDefinition,
+  OrchestrationSubDefinition,
 } from '../types/orchestration-definition.types';
 import {
   OrchestrationCacheService,
@@ -43,9 +49,7 @@ export class OrchestrationDefinitionService {
 
   async updateDefinition(
     id: string,
-    patch: OrchestrationDefinitionUpdateInput & {
-      definition?: Record<string, any>;
-    },
+    patch: OrchestrationDefinitionUpdateInput,
   ): Promise<OrchestrationDefinitionRecord> {
     let definitionPatch = patch.definition;
 
@@ -131,15 +135,17 @@ export class OrchestrationDefinitionService {
   // ---------------------------------------------------------------------------
 
   private normalizeDefinition(
-    definition: Record<string, any>,
+    definition: OrchestrationDefinitionSchema,
   ): OrchestrationDefinitionSchema {
-    const clone =
-      definition && typeof definition === 'object'
-        ? JSON.parse(JSON.stringify(definition))
-        : {};
+    const clone = JSON.parse(
+      JSON.stringify(definition),
+    ) as OrchestrationDefinitionSchema;
 
     if (!clone.orchestration) {
-      clone.orchestration = {};
+      clone.orchestration = {
+        steps: [],
+        parameters: [],
+      };
     }
 
     if (!Array.isArray(clone.orchestration.steps)) {
@@ -158,10 +164,11 @@ export class OrchestrationDefinitionService {
             ? (step.type as string).toLowerCase()
             : 'agent';
 
-        const orchestrationConfig =
-          step.orchestration && typeof step.orchestration === 'object'
-            ? JSON.parse(JSON.stringify(step.orchestration))
-            : undefined;
+        const orchestrationConfig = step.orchestration
+          ? (JSON.parse(
+              JSON.stringify(step.orchestration),
+            ) as OrchestrationSubDefinition)
+          : undefined;
 
         return {
           ...step,
@@ -353,33 +360,20 @@ export class OrchestrationDefinitionService {
   }
 
   private extractExecutionConfig(
-    rawDefinition: Record<string, any>,
+    rawDefinition: OrchestrationDefinitionSchema,
   ): OrchestrationExecutionConfig | null {
-    const orchestration = this.asRecord(
-      (rawDefinition?.orchestration as Record<string, any> | undefined) ?? null,
-    );
-    if (!orchestration) {
-      return null;
-    }
-
-    const executionRaw = this.asRecord(
-      (orchestration.execution as Record<string, any> | undefined) ?? null,
-    );
+    const orchestration = rawDefinition.orchestration;
+    const executionRaw = this.toJsonObject(orchestration.execution);
     if (!executionRaw) {
       return null;
     }
 
     const concurrency = this.normalizeConcurrencyConfig(
-      this.asRecord(
-        (executionRaw.concurrency as Record<string, any> | undefined) ??
-          (executionRaw.parallelism as Record<string, any> | undefined) ??
-          null,
-      ),
+      this.toJsonObject(executionRaw['concurrency']) ??
+        this.toJsonObject(executionRaw['parallelism']),
     );
     const caching = this.normalizeCachingConfig(
-      this.asRecord(
-        (executionRaw.caching as Record<string, any> | undefined) ?? null,
-      ),
+      this.toJsonObject(executionRaw['caching']),
     );
 
     if (!concurrency && !caching) {
@@ -393,31 +387,28 @@ export class OrchestrationDefinitionService {
   }
 
   private normalizeConcurrencyConfig(
-    raw: Record<string, any> | null,
+    raw: JsonObject | null,
   ): OrchestrationExecutionConfig['concurrency'] {
     if (!raw) {
       return null;
     }
 
     const maxParallel = this.coerceNumber(
-      raw.maxParallel,
-      raw.max_parallel,
-      raw.maxParallelSteps,
-      raw.max_parallel_steps,
-      raw.maxConcurrent,
-      raw.max_concurrent,
+      raw['maxParallel'] as JsonValue | undefined,
+      raw['max_parallel'] as JsonValue | undefined,
+      raw['maxParallelSteps'] as JsonValue | undefined,
+      raw['max_parallel_steps'] as JsonValue | undefined,
+      raw['maxConcurrent'] as JsonValue | undefined,
+      raw['max_concurrent'] as JsonValue | undefined,
     );
 
-    const queueStrategyRaw =
-      typeof raw.queueStrategy === 'string'
-        ? raw.queueStrategy
-        : typeof raw.queue_strategy === 'string'
-          ? raw.queue_strategy
-          : typeof raw.strategy === 'string'
-            ? raw.strategy
-            : undefined;
+    const queueStrategyRaw = this.coerceString(
+      raw['queueStrategy'],
+      raw['queue_strategy'],
+      raw['strategy'],
+    );
 
-    const normalized: Record<string, any> = {};
+    const normalized: JsonObject = {};
 
     if (maxParallel !== null) {
       normalized.maxParallel = Math.max(
@@ -439,68 +430,71 @@ export class OrchestrationDefinitionService {
   }
 
   private normalizeCachingConfig(
-    raw: Record<string, any> | null,
+    raw: JsonObject | null,
   ): OrchestrationExecutionConfig['caching'] {
     if (!raw) {
       return null;
     }
 
-    const enabledRaw = raw.enabled ?? raw.enable ?? raw.isEnabled;
-    const ttl = this.coerceNumber(
-      raw.ttlSeconds,
-      raw.ttl_seconds,
-      raw.ttl,
-      raw.stepTtl,
-      raw.step_ttl,
+    const enabledRaw = this.coerceBoolean(
+      raw['enabled'],
+      raw['enable'],
+      raw['isEnabled'],
     );
-    const strategyRaw =
-      typeof raw.strategy === 'string'
-        ? raw.strategy
-        : typeof raw.mode === 'string'
-          ? raw.mode
-          : undefined;
+    const ttl = this.coerceNumber(
+      raw['ttlSeconds'] as JsonValue | undefined,
+      raw['ttl_seconds'] as JsonValue | undefined,
+      raw['ttl'] as JsonValue | undefined,
+      raw['stepTtl'] as JsonValue | undefined,
+      raw['step_ttl'] as JsonValue | undefined,
+    );
+    const strategyRaw = this.coerceString(
+      raw['strategy'],
+      raw['mode'],
+    );
 
-    const steps = Array.isArray(raw.steps)
-      ? raw.steps
-          .map((entry: any) => {
-            const id = typeof entry?.id === 'string' ? entry.id : null;
-            if (!id) {
-              return null;
-            }
-            const stepEnabledRaw =
-              entry.enabled ?? entry.enable ?? entry.isEnabled;
-            const ttlValue = this.coerceNumber(
-              entry.ttlSeconds,
-              entry.ttl_seconds,
-              entry.ttl,
-            );
-            const normalizedStep: Record<string, any> = {
-              id,
-            };
-            if (stepEnabledRaw !== undefined) {
-              normalizedStep.enabled =
-                typeof stepEnabledRaw === 'string'
-                  ? stepEnabledRaw.toLowerCase() === 'true'
-                  : Boolean(stepEnabledRaw);
-            }
-            if (ttlValue !== null) {
-              normalizedStep.ttlSeconds = Math.max(
-                0,
-                Math.floor(Number(ttlValue)),
-              );
-            }
-            return normalizedStep;
-          })
-          .filter((entry) => entry !== null)
+    const stepsArray = Array.isArray(raw['steps'])
+      ? (raw['steps'] as JsonArray)
       : undefined;
 
-    const normalized: Record<string, any> = {};
+    const steps = stepsArray
+      ?.map((entry) => {
+        const stepObject = this.toJsonObject(entry);
+        if (!stepObject) {
+          return null;
+        }
+        const id = this.coerceString(stepObject['id']);
+        if (!id) {
+          return null;
+        }
+        const stepEnabledRaw = this.coerceBoolean(
+          stepObject['enabled'],
+          stepObject['enable'],
+          stepObject['isEnabled'],
+        );
+        const ttlValue = this.coerceNumber(
+          stepObject['ttlSeconds'] as JsonValue | undefined,
+          stepObject['ttl_seconds'] as JsonValue | undefined,
+          stepObject['ttl'] as JsonValue | undefined,
+        );
+        const normalizedStep: JsonObject = { id };
+        if (stepEnabledRaw !== null) {
+          normalizedStep.enabled = stepEnabledRaw;
+        }
+        if (ttlValue !== null) {
+          normalizedStep.ttlSeconds = Math.max(
+            0,
+            Math.floor(Number(ttlValue)),
+          );
+        }
+        return normalizedStep;
+      })
+      .filter((entry): entry is JsonObject => Boolean(entry));
 
-    if (enabledRaw !== undefined) {
-      normalized.enabled =
-        typeof enabledRaw === 'string'
-          ? enabledRaw.toLowerCase() === 'true'
-          : Boolean(enabledRaw);
+    const normalized: JsonObject = {};
+
+    if (enabledRaw !== null) {
+      normalized.enabled = enabledRaw;
     }
 
     if (ttl !== null) {
@@ -515,7 +509,7 @@ export class OrchestrationDefinitionService {
     }
 
     if (steps && steps.length > 0) {
-      normalized.steps = steps;
+      normalized.steps = steps as JsonArray;
     }
 
     return Object.keys(normalized).length > 0
@@ -523,7 +517,9 @@ export class OrchestrationDefinitionService {
       : null;
   }
 
-  private coerceNumber(...values: Array<any>): number | null {
+  private coerceNumber(
+    ...values: Array<JsonValue | undefined>
+  ): number | null {
     for (const value of values) {
       if (value === undefined || value === null) {
         continue;
@@ -541,10 +537,47 @@ export class OrchestrationDefinitionService {
     return null;
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
-    if (!value || typeof value !== 'object') {
+  private coerceString(
+    ...values: Array<JsonValue | undefined>
+  ): string | undefined {
+    for (const value of values) {
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+    }
+    return undefined;
+  }
+
+  private coerceBoolean(
+    ...values: Array<JsonValue | undefined>
+  ): boolean | null {
+    for (const value of values) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      if (typeof value === 'boolean') {
+        return value;
+      }
+
+      if (typeof value === 'string') {
+        const lowered = value.toLowerCase();
+        if (lowered === 'true') {
+          return true;
+        }
+        if (lowered === 'false') {
+          return false;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private toJsonObject(value: unknown): JsonObject | null {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    return value as JsonObject;
   }
 }

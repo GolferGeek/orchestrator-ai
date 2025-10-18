@@ -102,18 +102,19 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      // 1. Get tool configuration from agent definition
-      let tools = definition.config?.tools || [];
-      if (
-        Array.isArray(payloadOverrides.tools) &&
-        payloadOverrides.tools.length > 0
-      ) {
-        tools = payloadOverrides.tools;
-      }
-      const toolParams = {
-        ...(definition.config?.toolParams || {}),
-        ...(payloadOverrides.toolParams || {}),
-      };
+      const configRecord = this.asRecord(definition.config);
+      const configTools =
+        this.ensureStringArray(configRecord?.tools) ?? [];
+      const overrideTools = this.ensureStringArray(payloadOverrides.tools);
+      const tools: string[] =
+        overrideTools && overrideTools.length > 0
+          ? overrideTools
+          : configTools;
+
+      const toolParams = this.mergeToolParams(
+        this.asRecord(configRecord?.toolParams),
+        this.asRecord(payloadOverrides.toolParams),
+      );
 
       if (tools.length === 0) {
         return TaskResponseDto.failure(
@@ -127,44 +128,61 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       );
 
       // 2. Execute tools sequentially (or in parallel if configured)
-      const toolResults = [];
-      const executionMode =
-        payloadOverrides.toolExecutionMode ||
-        definition.config?.toolExecutionMode ||
-        'sequential';
+      const toolResults: Array<{
+        tool: string;
+        success: boolean;
+        result?: any;
+        error?: string;
+      }> = [];
+      const executionMode = this.resolveExecutionMode(
+        payloadOverrides.toolExecutionMode ?? configRecord?.toolExecutionMode,
+      );
       const stopOnError =
-        payloadOverrides.stopOnError ?? definition.config?.stopOnError ?? true;
+        this.ensureBoolean(payloadOverrides.stopOnError) ??
+        this.ensureBoolean(configRecord?.stopOnError) ??
+        true;
 
       if (executionMode === 'parallel') {
         // Execute all tools in parallel
-        const promises = tools.map((toolName: string) =>
-          this.executeTool(toolName, toolParams[toolName] || {}, request),
+        const promises = tools.map((toolName) =>
+          this.executeTool(
+            toolName,
+            toolParams[toolName] ?? {},
+            request,
+          ),
         );
         const results = await Promise.allSettled(promises);
 
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i];
-          if (result && result.status === 'fulfilled') {
+        tools.forEach((toolName, index) => {
+          const result = results[index];
+          if (!result) {
+            return;
+          }
+          if (result.status === 'fulfilled') {
             toolResults.push({
-              tool: tools[i],
+              tool: toolName,
               success: true,
               result: result.value,
             });
-          } else if (result && result.status === 'rejected') {
+          } else {
             const reason = result.reason;
             toolResults.push({
-              tool: tools[i],
+              tool: toolName,
               success: false,
               error: reason?.message || String(reason),
             });
           }
-        }
+        });
       } else {
         // Execute tools sequentially
         for (const toolName of tools) {
           try {
             const params = toolParams[toolName] || {};
-            const result = await this.executeTool(toolName, params, request);
+            const result = await this.executeTool(
+              toolName,
+              params,
+              request,
+            );
 
             toolResults.push({
               tool: toolName,
@@ -186,7 +204,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
             this.logger.error(`Tool ${toolName} failed: ${errorMessage}`);
 
             // Stop execution on first error if stopOnError is true
-            if (stopOnError !== false) {
+            if (stopOnError) {
               break;
             }
           }
@@ -197,9 +215,12 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       const successfulTools = toolResults.filter((r) => r.success);
       const failedTools = toolResults.filter((r) => !r.success);
 
+      const deliverableConfig = this.asRecord(configRecord?.deliverable);
+      const deliverableFormat =
+        this.ensureString(deliverableConfig?.format) ?? 'json';
       const formattedContent = this.formatToolResults(
         toolResults,
-        definition.config?.deliverable?.format || 'json',
+        deliverableFormat,
       );
 
       const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
@@ -263,6 +284,85 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         `Failed to execute tool agent: ${errorMessage}`,
       );
     }
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private toPlainRecord(
+    record: Record<string, unknown>,
+  ): Record<string, any> {
+    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  }
+
+  private ensureString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+
+  private ensureStringArray(value: unknown): string[] | null {
+    if (!value) {
+      return null;
+    }
+    if (Array.isArray(value)) {
+      const sanitized = value
+        .map((entry) => (typeof entry === 'string' ? entry.trim() : null))
+        .filter((entry): entry is string => Boolean(entry));
+      return sanitized.length ? sanitized : null;
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed ? [trimmed] : null;
+    }
+    return null;
+  }
+
+  private ensureBoolean(value: unknown): boolean | null {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') return true;
+      if (normalized === 'false') return false;
+    }
+    return null;
+  }
+
+  private resolveExecutionMode(value: unknown): 'sequential' | 'parallel' {
+    const normalized = this.ensureString(value);
+    return normalized === 'parallel' ? 'parallel' : 'sequential';
+  }
+
+  private mergeToolParams(
+    base: Record<string, unknown> | null,
+    override: Record<string, unknown> | null,
+  ): Record<string, Record<string, any>> {
+    const merged: Record<string, Record<string, any>> = {};
+
+    const apply = (source: Record<string, unknown> | null) => {
+      if (!source) {
+        return;
+      }
+      for (const [key, value] of Object.entries(source)) {
+        const record = this.asRecord(value);
+        if (record) {
+          merged[key] = this.toPlainRecord(record);
+        }
+      }
+    };
+
+    apply(base);
+    apply(override);
+
+    return merged;
   }
 
   /**

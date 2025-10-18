@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import QuickLRU from 'quick-lru';
+import QuickLRU = require('quick-lru');
 import { createHash } from 'crypto';
 import { OrchestrationResolvedDefinition } from '../types/orchestration-definition.types';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
