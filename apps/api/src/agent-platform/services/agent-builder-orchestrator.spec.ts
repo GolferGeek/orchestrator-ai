@@ -403,18 +403,18 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
   describe('Full Flow Integration', () => {
     it('should complete entire flow from intent to creation', async () => {
       // Step 1: Intent
-      let res = await dry.runFunction(
+      let res = (await dry.runFunction(
         code,
         { step: 'intent', data: { agentType: 'function', purpose: 'Test' } },
         10000,
-      );
+      )) as DryRunResult;
       expect(res.result?.state?.step).toBe('basic_info');
       let state: AgentBuilderResult['state'] = (
         res.result as AgentBuilderResult
       )?.state;
 
       // Step 2: Basic Info
-      res = await dry.runFunction(
+      res = (await dry.runFunction(
         code,
         {
           step: 'basic_info',
@@ -422,7 +422,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
           conversationState: state as Record<string, unknown>,
         },
         10000,
-      );
+      )) as DryRunResult;
       expect(res.result?.state?.step).toBe('io_contract');
       state = res.result?.state as AgentBuilderResult['state'];
 

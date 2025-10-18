@@ -244,7 +244,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       await performHealthChecks();
       // Start periodic health monitoring
       startHealthMonitoring();
-    } catch (error) {
+    } catch (_error) {
       // Failed to initialize API configuration
     }
   };
@@ -272,7 +272,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
           state.value.lastDiscoveryTime = new Date(parsed.lastDiscoveryTime);
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Failed to load saved configuration
     }
   };
@@ -286,7 +286,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
         lastUpdated: new Date(),
       };
       localStorage.setItem('apiConfiguration', JSON.stringify(toSave));
-    } catch (error) {
+    } catch (_error) {
       // Failed to save configuration
     }
   };
@@ -305,7 +305,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
         // Update endpoint availability (simplified for unified API)
       }
       saveConfiguration();
-    } catch (error) {
+    } catch (_error) {
       // Failed to test endpoint
     }
   };
@@ -381,13 +381,13 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
             };
             discovered.push(endpoint);
           }
-        } catch (error) {
+        } catch (_error) {
           // Endpoint not available, skip
         }
       }
       state.value.discoveredEndpoints = discovered;
       state.value.lastDiscoveryTime = new Date();
-    } catch (error) {
+    } catch (_error) {
       // Failed to perform health checks
     } finally {
       state.value.discoveryInProgress = false;
@@ -403,7 +403,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       // Use static feature list from endpoint configuration
       state.value.featureAvailability[endpointName] = endpoint.features;
       saveConfiguration();
-    } catch (error) {
+    } catch (_error) {
       // Fall back to static features
       const endpoint = allEndpoints.value.find(ep => ep.name === endpointName);
       if (endpoint) {

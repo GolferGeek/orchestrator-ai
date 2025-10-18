@@ -41,7 +41,6 @@ class TokenManager {
     }
     // Check if token is expired or expiring soon (within 5 minutes)
     if (isTokenExpiredOrExpiringSoon(token, 5)) {
-      const timeRemaining = getTokenTimeRemaining(token);
       await this.refreshToken();
     }
   }
@@ -61,7 +60,7 @@ class TokenManager {
     try {
       await authService.refreshToken();
       success = true;
-    } catch (error) {
+    } catch (_error) {
       success = false;
     } finally {
       this.isRefreshing = false;

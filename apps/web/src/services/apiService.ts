@@ -471,7 +471,7 @@ class ApiService {
           }
         });
         currentUser = userResponse.data;
-      } catch (error) {
+      } catch {
         // Silently ignore user fetch errors
       }
     }
@@ -588,7 +588,7 @@ class ApiService {
     try {
       const response = await this.axiosInstance.get('/health');
       return response.status === 200;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

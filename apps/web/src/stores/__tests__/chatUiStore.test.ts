@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
-import { useChatUiStore, type ChatMode, type PendingAction } from '../ui/chatUiStore';
+import { useChatUiStore, type PendingAction } from '../ui/chatUiStore';
 
 describe('ChatUiStore', () => {
   beforeEach(() => {

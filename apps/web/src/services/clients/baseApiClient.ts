@@ -64,7 +64,7 @@ export abstract class BaseApiClient implements ApiClient {
     try {
       const response = await this.axiosInstance.get('/health');
       return response.status === 200;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

@@ -334,19 +334,19 @@ export class TaskMessageService {
    * Map database record to TaskMessage type
    */
   private mapToTaskMessage(data: any): TaskMessage {
-    const converted = snakeToCamel(data);
+    const converted = snakeToCamel(data) as Record<string, unknown>;
 
     return {
-      id: converted.id,
-      taskId: converted.taskId,
-      userId: converted.userId,
-      content: converted.content,
-      messageType: converted.messageType,
-      progressPercentage: converted.progressPercentage,
-      metadata: converted.metadata || {},
-      createdAt: new Date(converted.createdAt),
+      id: converted.id as string,
+      taskId: converted.taskId as string,
+      userId: converted.userId as string,
+      content: converted.content as string,
+      messageType: converted.messageType as TaskMessage['messageType'],
+      progressPercentage: converted.progressPercentage as number | undefined,
+      metadata: (converted.metadata as Record<string, unknown>) || {},
+      createdAt: new Date(converted.createdAt as string),
       expiresAt: converted.expiresAt
-        ? new Date(converted.expiresAt)
+        ? new Date(converted.expiresAt as string)
         : this.computeExpiry(),
     };
   }

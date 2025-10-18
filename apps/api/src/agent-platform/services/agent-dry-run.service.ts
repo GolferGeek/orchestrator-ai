@@ -16,7 +16,12 @@ export class AgentDryRunService {
     timeoutMs = 2000,
   ): Promise<DryRunResult> {
     const logs: string[] = [];
-    const consoleStub: any = {
+    const consoleStub: {
+      log: (...args: any[]) => void;
+      warn: (...args: any[]) => void;
+      error: (...args: any[]) => void;
+      info: (...args: any[]) => void;
+    } = {
       log: (...args: any[]) => logs.push(args.map(String).join(' ')),
       warn: (...args: any[]) =>
         logs.push('[warn] ' + args.map(String).join(' ')),
@@ -55,8 +60,10 @@ export class AgentDryRunService {
       const timed = this.withTimeout(exec, timeoutMs);
       const result: unknown = await timed;
       return { ok: true, result, logs };
-    } catch (err: any) {
-      return { ok: false, error: err?.message || 'dry-run error', logs };
+    } catch (err: unknown) {
+      const message: string =
+        err instanceof Error ? err.message : 'dry-run error';
+      return { ok: false, error: message, logs };
     }
   }
 
@@ -71,34 +78,63 @@ export class AgentDryRunService {
     error?: string;
   } {
     try {
-      const reqT = apiConfig?.request_transform || apiConfig?.requestTransform;
-      const resT =
+      const reqT: unknown =
+        apiConfig?.request_transform || apiConfig?.requestTransform;
+      const resT: unknown =
         apiConfig?.response_transform || apiConfig?.responseTransform;
 
       let body: string | undefined;
-      if (reqT?.format === 'custom' && typeof reqT?.template === 'string') {
-        body = this.renderTemplate(reqT.template as string, input);
+      if (
+        typeof reqT === 'object' &&
+        reqT !== null &&
+        'format' in reqT &&
+        reqT.format === 'custom' &&
+        'template' in reqT &&
+        typeof reqT.template === 'string'
+      ) {
+        body = this.renderTemplate(reqT.template, input);
       } else if (typeof reqT === 'object') {
         // Best-effort stringify
         body = JSON.stringify(reqT);
       }
 
-      let extracted: any = undefined;
+      let extracted: unknown = undefined;
       if (
-        resT?.format === 'field_extraction' &&
-        typeof resT?.field === 'string'
+        typeof resT === 'object' &&
+        resT !== null &&
+        'format' in resT &&
+        resT.format === 'field_extraction' &&
+        'field' in resT &&
+        typeof resT.field === 'string'
       ) {
-        const src = mockResponse ?? {};
-        extracted = this.getByPath(src, resT.field as string);
+        const src: unknown = mockResponse ?? {};
+        extracted = this.getByPath(src, resT.field);
       }
+
+      const reqFormat: string | undefined =
+        typeof reqT === 'object' &&
+        reqT !== null &&
+        'format' in reqT &&
+        typeof reqT.format === 'string'
+          ? reqT.format
+          : undefined;
+      const resFormat: string | undefined =
+        typeof resT === 'object' &&
+        resT !== null &&
+        'format' in resT &&
+        typeof resT.format === 'string'
+          ? resT.format
+          : undefined;
 
       return {
         ok: true,
-        request: { format: reqT?.format, body },
-        response: { format: resT?.format, extracted },
+        request: { format: reqFormat, body },
+        response: { format: resFormat, extracted },
       };
-    } catch (err: any) {
-      return { ok: false, error: err?.message || 'api dry-run error' };
+    } catch (err: unknown) {
+      const message: string =
+        err instanceof Error ? err.message : 'api dry-run error';
+      return { ok: false, error: message };
     }
   }
 

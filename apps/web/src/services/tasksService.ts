@@ -239,7 +239,7 @@ class TasksService {
               if (status && (status === 'completed' || status === 'failed' || status === 'cancelled')) {
                 return;
               }
-            } catch (error) {
+            } catch {
               // Error parsing SSE data - skip this line
             }
           }

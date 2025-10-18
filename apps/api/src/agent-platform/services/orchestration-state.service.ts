@@ -255,14 +255,14 @@ export class OrchestrationStateService {
 
     // Support dotted notation (e.g., context.org.slug)
     const segments = expression.split('.');
-    let current: any = parameters;
+    let current: unknown = parameters;
     for (const segment of segments) {
       if (
         current &&
         typeof current === 'object' &&
         Object.prototype.hasOwnProperty.call(current, segment)
       ) {
-        current = current[segment];
+        current = (current as Record<string, unknown>)[segment];
       } else {
         return undefined;
       }
@@ -346,9 +346,8 @@ export class OrchestrationStateService {
   ): Record<string, any> | null {
     const orchestrationConfig =
       this.asRecord(definition.rawDefinition?.orchestration) ?? {};
-    const defaultRollback = this.asRecord(
-      orchestrationConfig.error_handling?.rollback,
-    );
+    const errorHandling = this.asRecord(orchestrationConfig.error_handling);
+    const defaultRollback = this.asRecord(errorHandling?.rollback);
     const stepMetadata = this.asRecord(step.metadata);
 
     const rollbackSource = this.asRecord(stepMetadata?.rollback);

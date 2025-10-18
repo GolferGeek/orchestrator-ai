@@ -84,7 +84,7 @@ export class ConversationService {
         const conversationDeliverables = await deliverablesService.getConversationDeliverables(conversationId);
         deliverables.push(...conversationDeliverables);
 
-      } catch (error) {
+      } catch (_error) {
         // Failed to load conversation deliverables
       }
       
@@ -100,7 +100,7 @@ export class ConversationService {
             if (parsedResponse.deliverableId) {
               taskDeliverableMap.set(task.id, parsedResponse.deliverableId);
             }
-          } catch (e) {
+          } catch (_e) {
             // Could not parse task response to extract deliverableId
           }
         }
@@ -511,7 +511,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       if (!allowedChatModes.includes(conversation.chatMode)) {
         conversation.chatMode = allowedChatModes[0] || DEFAULT_CHAT_MODES[0];
       }
-    } catch (error) {
+    } catch (_error) {
 
       conversation.supportedExecutionModes = ['immediate'];
       if (!conversation.allowedChatModes || conversation.allowedChatModes.length === 0) {

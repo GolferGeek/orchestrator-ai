@@ -72,7 +72,19 @@ export class DeliverablesService implements IActionHandler {
 
       switch (action) {
         case 'create':
-          result = await this.createOrEnhance(params, context);
+          result = await this.createOrEnhance(
+            params as {
+              title: string;
+              content: string;
+              format?: string;
+              type?: string;
+              agentName?: string;
+              taskId?: string;
+              metadata?: Record<string, any>;
+              deliverableId?: string;
+            },
+            context,
+          );
           break;
 
         case 'read':
@@ -84,27 +96,61 @@ export class DeliverablesService implements IActionHandler {
           break;
 
         case 'edit':
-          result = await this.saveManualEdit(params, context);
+          result = await this.saveManualEdit(
+            params as {
+              content: string;
+              metadata?: Record<string, any>;
+            },
+            context,
+          );
           break;
 
         case 'rerun':
-          result = await this.rerunWithLLM(params, context);
+          result = await this.rerunWithLLM(
+            params as {
+              versionId: string;
+              rerunConfig: {
+                provider: string;
+                model: string;
+                temperature?: number;
+                maxTokens?: number;
+              };
+            },
+            context,
+          );
           break;
 
         case 'set_current':
-          result = await this.setCurrentVersion(params, context);
+          result = await this.setCurrentVersion(
+            params as { versionId: string },
+            context,
+          );
           break;
 
         case 'delete_version':
-          result = await this.deleteVersion(params, context);
+          result = await this.deleteVersion(
+            params as { versionId: string },
+            context,
+          );
           break;
 
         case 'merge_versions':
-          result = await this.mergeVersions(params, context);
+          result = await this.mergeVersions(
+            params as {
+              versionIds: string[];
+              mergePrompt: string;
+              providerName?: string;
+              modelName?: string;
+            },
+            context,
+          );
           break;
 
         case 'copy_version':
-          result = await this.copyVersion(params, context);
+          result = await this.copyVersion(
+            params as { versionId: string },
+            context,
+          );
           break;
 
         case 'delete':
@@ -592,16 +638,16 @@ export class DeliverablesService implements IActionHandler {
           .select('*')
           .single();
 
-      if (deliverableError) {
+      if (deliverableError || !deliverableData) {
         throw new BadRequestException(
-          `Failed to create deliverable: ${deliverableError.message}`,
+          `Failed to create deliverable: ${deliverableError?.message || 'No data returned'}`,
         );
       }
 
       // Always create an initial version
-      await this.createInitialVersion(deliverableData.id, createDto);
+      await this.createInitialVersion(deliverableData.id as string, createDto);
 
-      return await this.findOne(deliverableData.id, userId);
+      return await this.findOne(deliverableData.id as string, userId);
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -835,7 +881,7 @@ export class DeliverablesService implements IActionHandler {
           // Get current version using the versions service
           try {
             const currentVersion = await this.versionsService.getCurrentVersion(
-              deliverableData.id,
+              deliverableData.id as string,
               userId,
             );
             if (currentVersion) {

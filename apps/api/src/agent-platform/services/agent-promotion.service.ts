@@ -96,7 +96,7 @@ export class AgentPromotionService {
 
         const policyIssues = this.policy.check({
           agent_type: agent.agent_type,
-          config: agent.config ?? undefined,
+          config: agent.config as unknown as Parameters<typeof this.policy.check>[0]['config'],
           context: agent.context ?? undefined,
         });
 

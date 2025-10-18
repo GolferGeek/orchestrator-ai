@@ -11,7 +11,7 @@ import {
 import { ModelResponseDto } from '@/llms/dto/llm-evaluation.dto';
 
 // Generic function to convert snake_case to camelCase
-export function snakeToCamel(obj: any): any {
+export function snakeToCamel(obj: unknown): unknown {
   if (obj === null || obj === undefined || typeof obj !== 'object') {
     return obj;
   }
@@ -20,20 +20,20 @@ export function snakeToCamel(obj: any): any {
     return obj.map(snakeToCamel);
   }
 
-  const camelObj: any = {};
+  const camelObj: Record<string, unknown> = {};
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
         letter.toUpperCase(),
       );
-      camelObj[camelKey] = snakeToCamel(obj[key]);
+      camelObj[camelKey] = snakeToCamel((obj as Record<string, unknown>)[key]);
     }
   }
   return camelObj;
 }
 
 // Generic function to convert camelCase to snake_case
-export function camelToSnake(obj: any): any {
+export function camelToSnake(obj: unknown): unknown {
   if (obj === null || obj === undefined || typeof obj !== 'object') {
     return obj;
   }
@@ -42,14 +42,14 @@ export function camelToSnake(obj: any): any {
     return obj.map(camelToSnake);
   }
 
-  const snakeObj: any = {};
+  const snakeObj: Record<string, unknown> = {};
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const snakeKey = key.replace(
         /[A-Z]/g,
         (letter) => `_${letter.toLowerCase()}`,
       );
-      snakeObj[snakeKey] = camelToSnake(obj[key]);
+      snakeObj[snakeKey] = camelToSnake((obj as Record<string, unknown>)[key]);
     }
   }
   return snakeObj;
@@ -57,19 +57,23 @@ export function camelToSnake(obj: any): any {
 
 // Specific converters for LLM evaluation entities
 
-export function mapProviderFromDb(dbProvider: any): Provider {
+export function mapProviderFromDb(
+  dbProvider: Record<string, unknown>,
+): Provider {
   return {
-    id: dbProvider.id,
-    name: dbProvider.name,
-    apiBaseUrl: dbProvider.api_base_url,
-    authType: dbProvider.auth_type,
-    status: dbProvider.status,
-    createdAt: dbProvider.created_at,
-    updatedAt: dbProvider.updated_at,
+    id: dbProvider.id as string,
+    name: dbProvider.name as string,
+    apiBaseUrl: dbProvider.api_base_url as string | undefined,
+    authType: dbProvider.auth_type as Provider['authType'],
+    status: dbProvider.status as Provider['status'],
+    createdAt: dbProvider.created_at as string,
+    updatedAt: dbProvider.updated_at as string,
   };
 }
 
-export function mapProviderToDb(provider: Partial<Provider>): any {
+export function mapProviderToDb(
+  provider: Partial<Provider>,
+): Record<string, unknown> {
   return {
     id: provider.id,
     name: provider.name,
@@ -81,28 +85,28 @@ export function mapProviderToDb(provider: Partial<Provider>): any {
   };
 }
 
-export function mapModelFromDb(dbModel: any): Model {
+export function mapModelFromDb(dbModel: Record<string, unknown>): Model {
   return {
-    name: dbModel.model_name,
-    providerName: dbModel.provider_name,
-    pricingInputPer1k: dbModel.pricing_input_per_1k,
-    pricingOutputPer1k: dbModel.pricing_output_per_1k,
-    supportsThinking: dbModel.supports_thinking,
-    maxTokens: dbModel.max_tokens,
-    contextWindow: dbModel.context_window,
-    strengths: dbModel.strengths,
-    weaknesses: dbModel.weaknesses,
-    useCases: dbModel.use_cases,
-    status: dbModel.status,
-    createdAt: dbModel.created_at,
-    updatedAt: dbModel.updated_at,
+    name: dbModel.model_name as string,
+    providerName: dbModel.provider_name as string,
+    pricingInputPer1k: dbModel.pricing_input_per_1k as number,
+    pricingOutputPer1k: dbModel.pricing_output_per_1k as number,
+    supportsThinking: dbModel.supports_thinking as boolean,
+    maxTokens: dbModel.max_tokens as number,
+    contextWindow: dbModel.context_window as number,
+    strengths: dbModel.strengths as string[],
+    weaknesses: dbModel.weaknesses as string[],
+    useCases: dbModel.use_cases as string[],
+    status: dbModel.status as Model['status'],
+    createdAt: dbModel.created_at as string,
+    updatedAt: dbModel.updated_at as string,
     provider: dbModel.provider
-      ? mapProviderFromDb(dbModel.provider)
+      ? mapProviderFromDb(dbModel.provider as Record<string, unknown>)
       : undefined,
   };
 }
 
-export function mapModelToDb(model: Partial<Model>): any {
+export function mapModelToDb(model: Partial<Model>): Record<string, unknown> {
   return {
     provider_name: model.providerName,
     model_name: model.name,
@@ -121,57 +125,57 @@ export function mapModelToDb(model: Partial<Model>): any {
 }
 
 // New mapping function specifically for llm_models table structure
-export function mapLLMModelFromDb(dbModel: any): ModelResponseDto {
+export function mapLLMModelFromDb(dbModel: Record<string, unknown>): ModelResponseDto {
   // Extract pricing info from JSON
-  const pricingInfo = dbModel.pricing_info_json || {};
-  const inputCostPer1k = (pricingInfo.input_cost_per_token || 0) * 1000;
-  const outputCostPer1k = (pricingInfo.output_cost_per_token || 0) * 1000;
+  const pricingInfo = (dbModel.pricing_info_json as Record<string, unknown>) || {};
+  const inputCostPer1k = ((pricingInfo.input_cost_per_token as number) || 0) * 1000;
+  const outputCostPer1k = ((pricingInfo.output_cost_per_token as number) || 0) * 1000;
 
   return {
-    providerName: dbModel.provider_name,
-    name: dbModel.display_name || dbModel.model_name, // Use display_name as the friendly name
-    modelName: dbModel.model_name, // Use model_name as the technical ID
+    providerName: dbModel.provider_name as string,
+    name: (dbModel.display_name as string) || (dbModel.model_name as string), // Use display_name as the friendly name
+    modelName: dbModel.model_name as string, // Use model_name as the technical ID
     pricingInputPer1k: inputCostPer1k,
     pricingOutputPer1k: outputCostPer1k,
-    supportsThinking: dbModel.capabilities?.includes('reasoning') || false,
-    maxTokens: dbModel.max_output_tokens,
-    contextWindow: dbModel.context_window,
+    supportsThinking: (dbModel.capabilities as string[])?.includes('reasoning') || false,
+    maxTokens: dbModel.max_output_tokens as number,
+    contextWindow: dbModel.context_window as number,
     strengths: [], // Not available in llm_models structure
     weaknesses: [], // Not available in llm_models structure
     useCases: [], // Not available in llm_models structure
-    status: dbModel.is_active ? 'active' : 'inactive',
-    createdAt: dbModel.created_at,
-    updatedAt: dbModel.updated_at,
+    status: (dbModel.is_active as boolean) ? 'active' : 'inactive',
+    createdAt: dbModel.created_at as string,
+    updatedAt: dbModel.updated_at as string,
     provider: dbModel.provider
-      ? mapLLMProviderFromDb(dbModel.provider)
+      ? mapLLMProviderFromDb(dbModel.provider as Record<string, unknown>)
       : undefined,
   };
 }
 
 // New mapping function specifically for llm_providers table structure
-export function mapLLMProviderFromDb(dbProvider: any): Provider {
+export function mapLLMProviderFromDb(dbProvider: Record<string, unknown>): Provider {
   return {
-    id: dbProvider.id,
+    id: dbProvider.id as string,
     name:
-      dbProvider.provider_name || dbProvider.name || dbProvider.display_name,
-    apiBaseUrl: dbProvider.api_base_url || dbProvider.base_url,
-    authType: dbProvider.auth_type || 'api_key',
-    status: dbProvider.is_active ? 'active' : 'inactive',
-    createdAt: dbProvider.created_at,
-    updatedAt: dbProvider.updated_at,
+      (dbProvider.provider_name as string) || (dbProvider.name as string) || (dbProvider.display_name as string),
+    apiBaseUrl: (dbProvider.api_base_url as string) || (dbProvider.base_url as string),
+    authType: (dbProvider.auth_type as Provider['authType']) || 'api_key',
+    status: (dbProvider.is_active as boolean) ? 'active' : 'inactive',
+    createdAt: dbProvider.created_at as string,
+    updatedAt: dbProvider.updated_at as string,
   };
 }
 
-export function mapCIDAFMCommandFromDb(dbCommand: any): CIDAFMCommand {
+export function mapCIDAFMCommandFromDb(dbCommand: Record<string, unknown>): CIDAFMCommand {
   return {
-    id: dbCommand.id,
-    type: dbCommand.type,
-    name: dbCommand.name,
-    description: dbCommand.description,
-    defaultActive: dbCommand.default_active,
-    isBuiltin: dbCommand.is_builtin,
-    createdAt: dbCommand.created_at,
-    updatedAt: dbCommand.updated_at,
+    id: dbCommand.id as string,
+    type: dbCommand.type as CIDAFMCommand['type'],
+    name: dbCommand.name as string,
+    description: dbCommand.description as string,
+    defaultActive: dbCommand.default_active as boolean,
+    isBuiltin: dbCommand.is_builtin as boolean,
+    createdAt: dbCommand.created_at as string,
+    updatedAt: dbCommand.updated_at as string,
   };
 }
 
@@ -188,34 +192,34 @@ export function mapCIDAFMCommandToDb(command: Partial<CIDAFMCommand>): any {
   };
 }
 
-export function mapEnhancedMessageFromDb(dbMessage: any): EnhancedMessage {
+export function mapEnhancedMessageFromDb(dbMessage: Record<string, unknown>): EnhancedMessage {
   return {
-    id: dbMessage.id,
-    sessionId: dbMessage.session_id,
-    userId: dbMessage.user_id,
-    role: dbMessage.role,
-    content: dbMessage.content,
-    timestamp: dbMessage.timestamp,
-    order: dbMessage.order,
-    metadata: dbMessage.metadata,
-    providerName: dbMessage.provider_name,
-    modelName: dbMessage.model_name,
-    inputTokens: dbMessage.input_tokens,
-    outputTokens: dbMessage.output_tokens,
-    totalCost: dbMessage.total_cost,
-    responseTimeMs: dbMessage.response_time_ms,
-    langsmithRunId: dbMessage.langsmith_run_id,
-    userRating: dbMessage.user_rating,
-    speedRating: dbMessage.speed_rating,
-    accuracyRating: dbMessage.accuracy_rating,
-    userNotes: dbMessage.user_notes,
-    evaluationTimestamp: dbMessage.evaluation_timestamp,
-    cidafmOptions: dbMessage.cidafm_options,
-    evaluationDetails: dbMessage.evaluation_details,
+    id: dbMessage.id as string,
+    sessionId: dbMessage.session_id as string,
+    userId: dbMessage.user_id as string,
+    role: dbMessage.role as EnhancedMessage['role'],
+    content: dbMessage.content as string,
+    timestamp: dbMessage.timestamp as string,
+    order: dbMessage.order as number,
+    metadata: dbMessage.metadata as Record<string, unknown> | undefined,
+    providerName: dbMessage.provider_name as string | undefined,
+    modelName: dbMessage.model_name as string | undefined,
+    inputTokens: dbMessage.input_tokens as number | undefined,
+    outputTokens: dbMessage.output_tokens as number | undefined,
+    totalCost: dbMessage.total_cost as number | undefined,
+    responseTimeMs: dbMessage.response_time_ms as number | undefined,
+    langsmithRunId: dbMessage.langsmith_run_id as string | undefined,
+    userRating: dbMessage.user_rating as EnhancedMessage['userRating'],
+    speedRating: dbMessage.speed_rating as EnhancedMessage['speedRating'],
+    accuracyRating: dbMessage.accuracy_rating as EnhancedMessage['accuracyRating'],
+    userNotes: dbMessage.user_notes as string | undefined,
+    evaluationTimestamp: dbMessage.evaluation_timestamp as string | undefined,
+    cidafmOptions: dbMessage.cidafm_options as Record<string, unknown> | undefined,
+    evaluationDetails: dbMessage.evaluation_details as Record<string, unknown> | undefined,
     provider: dbMessage.provider
-      ? mapProviderFromDb(dbMessage.provider)
+      ? mapProviderFromDb(dbMessage.provider as Record<string, unknown>)
       : undefined,
-    model: dbMessage.model ? mapModelFromDb(dbMessage.model) : undefined,
+    model: dbMessage.model ? mapModelFromDb(dbMessage.model as Record<string, unknown>) : undefined,
   };
 }
 
@@ -246,24 +250,24 @@ export function mapEnhancedMessageToDb(message: Partial<EnhancedMessage>): any {
   };
 }
 
-export function mapUserUsageStatsFromDb(dbStats: any): UserUsageStats {
+export function mapUserUsageStatsFromDb(dbStats: Record<string, unknown>): UserUsageStats {
   return {
-    id: dbStats.id,
-    userId: dbStats.user_id,
-    date: dbStats.date,
-    providerName: dbStats.provider_name,
-    modelName: dbStats.model_name,
-    totalRequests: dbStats.total_requests,
-    totalTokens: dbStats.total_tokens,
-    totalCost: dbStats.total_cost,
-    avgResponseTimeMs: dbStats.avg_response_time_ms,
-    avgUserRating: dbStats.avg_user_rating,
-    createdAt: dbStats.created_at,
-    updatedAt: dbStats.updated_at,
+    id: dbStats.id as string,
+    userId: dbStats.user_id as string,
+    date: dbStats.date as string,
+    providerName: dbStats.provider_name as string,
+    modelName: dbStats.model_name as string,
+    totalRequests: dbStats.total_requests as number,
+    totalTokens: dbStats.total_tokens as number,
+    totalCost: dbStats.total_cost as number,
+    avgResponseTimeMs: dbStats.avg_response_time_ms as number,
+    avgUserRating: dbStats.avg_user_rating as number,
+    createdAt: dbStats.created_at as string,
+    updatedAt: dbStats.updated_at as string,
     provider: dbStats.provider
-      ? mapProviderFromDb(dbStats.provider)
+      ? mapProviderFromDb(dbStats.provider as Record<string, unknown>)
       : undefined,
-    model: dbStats.model ? mapModelFromDb(dbStats.model) : undefined,
+    model: dbStats.model ? mapModelFromDb(dbStats.model as Record<string, unknown>) : undefined,
   };
 }
 

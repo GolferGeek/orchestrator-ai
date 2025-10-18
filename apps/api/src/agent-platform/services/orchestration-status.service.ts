@@ -21,7 +21,7 @@ export class OrchestrationStatusService {
       mode: string;
       stepId: string | null;
       createdAt: string | null;
-      metadata: Record<string, any> | null;
+      metadata: Record<string, unknown> | null;
       conversationId: string | null;
       organizationSlug: string | null;
     }>;

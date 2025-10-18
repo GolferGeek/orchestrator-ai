@@ -22,8 +22,7 @@ import {
   GeneratedReport,
   AnalyticsEvent,
   TimeRange,
-  PerformanceMetric,
-  MetricTrend
+  PerformanceMetric
 } from '@/types/analytics';
 import type { UnknownRecord } from '@/types';
 

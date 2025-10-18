@@ -45,7 +45,10 @@ export class PlansController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findByConversation(
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
-    @Req() req: any,
+    @Req()
+    req: {
+      user?: { sub?: string; id?: string; userId?: string };
+    },
   ): Promise<any> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {

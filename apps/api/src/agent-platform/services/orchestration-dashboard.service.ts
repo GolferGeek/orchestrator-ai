@@ -227,7 +227,10 @@ export class OrchestrationDashboardService {
       steps: status.steps,
       currentStep: status.currentStep,
       summary: status.summary,
-      pendingApprovals: status.pendingApprovals,
+      pendingApprovals: status.pendingApprovals.map(p => ({
+        ...p,
+        metadata: p.metadata as unknown as JsonObject | null,
+      })),
       approvals: {
         items: approvalViews,
         total: approvals.count ?? approvalViews.length,
@@ -507,8 +510,8 @@ export class OrchestrationDashboardService {
     }
 
     const metadata = this.mergeStepMetadata(step.metadata, {});
-    metadata.runtime = {
-      ...(metadata.runtime ?? {}),
+    const runtime: Record<string, unknown> = {
+      ...((metadata.runtime as Record<string, unknown>) ?? {}),
       skip: {
         manual: true,
         requestedAt: now,
@@ -516,6 +519,7 @@ export class OrchestrationDashboardService {
         note: options.note ?? null,
       },
     };
+    metadata.runtime = runtime;
 
     const output =
       options.replacementOutput && Object.keys(options.replacementOutput).length
@@ -717,13 +721,13 @@ export class OrchestrationDashboardService {
       createdAt: record.created_at ?? null,
       updatedAt: record.updated_at ?? null,
       decisionAt:
-        decision?.decidedAt ??
-        decision?.decided_at ??
+        (decision?.decidedAt as string | undefined) ??
+        (decision?.decided_at as string | undefined) ??
         record.decision_at ??
         null,
       decisionBy:
-        decision?.decidedBy ??
-        decision?.decided_by ??
+        (decision?.decidedBy as string | undefined) ??
+        (decision?.decided_by as string | undefined) ??
         record.approved_by ??
         null,
       metadata,
@@ -820,8 +824,8 @@ export class OrchestrationDashboardService {
 
     if (patch.stats && base.stats) {
       mergeResult.stats = {
-        ...base.stats,
-        ...patch.stats,
+        ...(base.stats as Record<string, unknown>),
+        ...(patch.stats as Record<string, unknown>),
       };
     }
 
@@ -836,7 +840,7 @@ export class OrchestrationDashboardService {
     return {
       ...current,
       [key]: {
-        ...(current[key] ?? {}),
+        ...((current[key] as Record<string, unknown>) ?? {}),
         ...entry,
       },
     };

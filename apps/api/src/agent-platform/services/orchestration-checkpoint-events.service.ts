@@ -29,6 +29,17 @@ interface CheckpointResolvedEvent {
   modifications?: Record<string, any> | null;
 }
 
+interface CheckpointStepInfo {
+  definitionId?: string;
+  [key: string]: unknown;
+}
+
+interface LastCheckpointData {
+  checkpointId?: string;
+  step?: CheckpointStepInfo;
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class OrchestrationCheckpointEventsService {
   private readonly logger = new Logger(
@@ -78,6 +89,7 @@ export class OrchestrationCheckpointEventsService {
     try {
       const run = await this.ensureRun(event.runId);
       const lastCheckpoint = this.extractLastCheckpoint(run);
+      const stepDefinitionId = lastCheckpoint?.step?.definitionId;
       const payload = {
         event: 'orchestration.checkpoint.resolved',
         runId: run.id,
@@ -94,7 +106,7 @@ export class OrchestrationCheckpointEventsService {
         step:
           (await this.describeStep(
             run,
-            lastCheckpoint?.step?.definitionId ?? null,
+            typeof stepDefinitionId === 'string' ? stepDefinitionId : null,
           )) ??
           lastCheckpoint?.step ??
           null,
@@ -153,13 +165,13 @@ export class OrchestrationCheckpointEventsService {
 
   private extractLastCheckpoint(
     run: OrchestrationRunRecord,
-  ): Record<string, any> | null {
+  ): LastCheckpointData | null {
     const metadata = run.metadata ?? {};
     const rawCheckpoint = metadata.lastCheckpoint;
     if (!rawCheckpoint || typeof rawCheckpoint !== 'object') {
       return null;
     }
-    return rawCheckpoint as Record<string, any>;
+    return rawCheckpoint as LastCheckpointData;
   }
 
   private extractStepFromMetadata(

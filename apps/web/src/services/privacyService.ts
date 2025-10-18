@@ -34,12 +34,12 @@ import type {
 } from '@/types/pii';
 import type { ActivityLog, SystemHealth } from './sanitizationAnalyticsService';
 
-interface ServiceError extends Error {
-  response?: {
-    status?: number;
-    data?: unknown;
-  };
-}
+// interface ServiceError extends Error {
+//   response?: {
+//     status?: number;
+//     data?: unknown;
+//   };
+// }
 
 // ============================================================================
 // PSEUDONYM MAPPINGS
@@ -131,7 +131,7 @@ export async function fetchMapping(id: string): Promise<PseudonymMapping | null>
   }
 }
 
-export async function fetchMappingStats(force = false): Promise<void> {
+export async function fetchMappingStats(_force = false): Promise<void> {
   const store = usePrivacyStore();
 
   if (store.mappingStatsLoading) return;

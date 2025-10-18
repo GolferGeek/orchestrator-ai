@@ -2,9 +2,36 @@ import { Injectable } from '@nestjs/common';
 
 type Issue = { message: string; path?: string };
 
+interface AgentPolicyPayload {
+  agent_type?: string;
+  input_modes?: unknown;
+  inputModes?: unknown;
+  output_modes?: unknown;
+  outputModes?: unknown;
+  yaml?: string;
+  config?: {
+    input_modes?: unknown;
+    output_modes?: unknown;
+    configuration?: {
+      function?: {
+        timeout_ms?: number;
+      };
+      api?: {
+        api_configuration?: unknown;
+      };
+    };
+  };
+  context?: {
+    input_modes?: unknown;
+    output_modes?: unknown;
+    system?: string;
+    system_prompt?: string;
+  };
+}
+
 @Injectable()
 export class AgentPolicyService {
-  check(payload: any): Issue[] {
+  check(payload: AgentPolicyPayload): Issue[] {
     const issues: Issue[] = [];
 
     // Require IO contract: input_modes/output_modes present in YAML-like config or top-level

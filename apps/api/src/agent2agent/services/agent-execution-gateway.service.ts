@@ -267,7 +267,8 @@ export class AgentExecutionGateway {
         request.payload?.action === 'resume_after_approval' &&
         request.payload.approvalId
       ) {
-        const actorIdValue = request.metadata?.actorId ?? request.metadata?.userId;
+        const actorIdValue =
+          request.metadata?.actorId ?? request.metadata?.userId;
         const actorId = typeof actorIdValue === 'string' ? actorIdValue : null;
 
         const approvalId = request.payload.approvalId;
@@ -277,10 +278,14 @@ export class AgentExecutionGateway {
 
         const resolutionResult = await this.resolveCheckpointAndMaybeResume({
           approvalId: typeof approvalId === 'string' ? approvalId : '',
-          decision: decision as unknown as Parameters<typeof this.resolveCheckpointAndMaybeResume>[0]['decision'],
+          decision: decision as Parameters<
+            typeof this.resolveCheckpointAndMaybeResume
+          >[0]['decision'],
           actorId,
           notes,
-          modifications: request.payload.modifications as unknown as Record<string, unknown> | undefined,
+          modifications: request.payload.modifications as
+            | Record<string, unknown>
+            | undefined,
         });
 
         this.publishStreamChunk(streamSession, {
@@ -358,7 +363,9 @@ export class AgentExecutionGateway {
           agentSlug: agentMetadata.slug,
           agentType: agentMetadata.type,
           agentDisplayName: agentMetadata.displayName,
-          parameters: promptInputs as unknown as Parameters<typeof this.orchestrationRunner.startRun>[0]['parameters'],
+          parameters: promptInputs as unknown as Parameters<
+            typeof this.orchestrationRunner.startRun
+          >[0]['parameters'],
           metadata: runMetadata,
         });
 
@@ -391,7 +398,9 @@ export class AgentExecutionGateway {
               planVersion: plan.version,
               conversationId: plan.conversation_id,
               promptInputs,
-            } as unknown as Parameters<typeof this.runtimeExecution.buildRunMetadata>[0],
+            } as unknown as Parameters<
+              typeof this.runtimeExecution.buildRunMetadata
+            >[0],
             agentMetadata,
           ),
           streamSession,
@@ -540,7 +549,8 @@ export class AgentExecutionGateway {
       const resolved: Record<string, any> = { ...supplied };
 
       for (const param of params) {
-        const value = supplied[param.key];
+        const suppliedRecord = supplied as Record<string, unknown>;
+        const value = suppliedRecord[param.key];
         if (value === undefined || value === null) {
           if (param.defaultValue !== undefined) {
             resolved[param.key] = param.defaultValue;
@@ -599,8 +609,11 @@ export class AgentExecutionGateway {
     }
 
     const enriched = { ...draft };
-    const existingMeta = (enriched as any)._meta ?? {};
-    (enriched as any)._meta = {
+    const draftWithMeta = enriched as Record<string, unknown> & {
+      _meta?: Record<string, unknown>;
+    };
+    const existingMeta = draftWithMeta._meta ?? {};
+    draftWithMeta._meta = {
       ...existingMeta,
       agent: {
         id: definition.id,
@@ -640,20 +653,23 @@ export class AgentExecutionGateway {
     agent: AgentRecord,
     mode: AgentTaskMode,
   ) {
-    const payloadOptions = request.payload?.options as Record<string, unknown> | undefined;
-    const metadata = request.metadata as Record<string, unknown> | undefined;
-    const payloadMetadata = request.payload?.metadata as Record<string, unknown> | undefined;
+    const payloadOptions = request.payload?.options as
+      | Record<string, unknown>
+      | undefined;
+    const metadata = request.metadata;
+    const payloadMetadata = request.payload?.metadata as
+      | Record<string, unknown>
+      | undefined;
 
-    const wantsStream = Boolean(
-      payloadOptions?.stream || metadata?.stream,
-    );
+    const wantsStream = Boolean(payloadOptions?.stream || metadata?.stream);
 
     if (!wantsStream) {
       return null;
     }
 
     const streamIdValue = metadata?.streamId || payloadMetadata?.streamId;
-    const providedStreamId = typeof streamIdValue === 'string' ? streamIdValue : undefined;
+    const providedStreamId =
+      typeof streamIdValue === 'string' ? streamIdValue : undefined;
 
     return this.streamService.start(
       {

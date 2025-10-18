@@ -595,35 +595,35 @@ export class TasksService {
    */
   private mapToTask(data: any): Task {
     // Use the case converter to handle snake_case to camelCase conversion
-    const converted = snakeToCamel(data);
+    const converted = snakeToCamel(data) as Record<string, unknown>;
 
     return {
-      id: converted.id,
-      agentConversationId: converted.conversationId,
-      userId: converted.userId,
-      method: converted.method,
-      prompt: converted.prompt,
-      params: converted.params || {},
-      response: converted.response,
-      responseMetadata: converted.responseMetadata || {},
-      status: converted.status,
-      progress: converted.progress,
-      progressMessage: converted.progressMessage,
-      evaluation: converted.evaluation || {},
-      llmMetadata: converted.llmMetadata || {},
-      errorCode: converted.errorCode,
-      errorMessage: converted.errorMessage,
-      errorData: converted.errorData,
+      id: converted.id as string,
+      agentConversationId: converted.conversationId as string,
+      userId: converted.userId as string,
+      method: converted.method as string,
+      prompt: converted.prompt as string,
+      params: (converted.params as Record<string, unknown>) || {},
+      response: converted.response as string | undefined,
+      responseMetadata: (converted.responseMetadata as Record<string, unknown>) || {},
+      status: converted.status as Task['status'],
+      progress: converted.progress as number | undefined,
+      progressMessage: converted.progressMessage as string | undefined,
+      evaluation: (converted.evaluation as Record<string, unknown>) || {},
+      llmMetadata: (converted.llmMetadata as Record<string, unknown>) || {},
+      errorCode: converted.errorCode as string | undefined,
+      errorMessage: converted.errorMessage as string | undefined,
+      errorData: converted.errorData as Record<string, unknown> | undefined,
       startedAt: converted.startedAt
-        ? new Date(converted.startedAt)
+        ? new Date(converted.startedAt as string)
         : undefined,
       completedAt: converted.completedAt
-        ? new Date(converted.completedAt)
+        ? new Date(converted.completedAt as string)
         : undefined,
-      timeoutSeconds: converted.timeoutSeconds,
-      metadata: converted.metadata || {},
-      createdAt: new Date(converted.createdAt),
-      updatedAt: new Date(converted.updatedAt),
+      timeoutSeconds: converted.timeoutSeconds as number | undefined,
+      metadata: (converted.metadata as Record<string, unknown>) || {},
+      createdAt: new Date(converted.createdAt as string),
+      updatedAt: new Date(converted.updatedAt as string),
     };
   }
 }

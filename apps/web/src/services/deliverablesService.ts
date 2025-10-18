@@ -289,7 +289,7 @@ class DeliverablesService {
   /**
    * Get deliverables created by a specific agent (by searching version metadata)
    */
-  async getAgentDeliverables(agentName: string): Promise<DeliverableSearchResult[]> {
+  async getAgentDeliverables(_agentName: string): Promise<DeliverableSearchResult[]> {
     // Note: This would need backend support to filter by version creation metadata
     const result = await this.getDeliverables({});
     // For now, return all deliverables - this could be enhanced with server-side filtering
@@ -316,8 +316,7 @@ class DeliverablesService {
       }
       // Return the most recent deliverable from this conversation
       return deliverables.length > 0 ? deliverables[0] : null;
-    } catch (error) {
-
+    } catch {
       return null;
     }
   }

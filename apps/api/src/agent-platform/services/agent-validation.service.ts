@@ -36,9 +36,15 @@ export class AgentValidationService {
     // Additional runtime checks per type
     if (type === 'function') {
       // Function code can be in function_code column (database format) or config.configuration.function.code (payload format)
+      const payloadAny = payload as unknown as Record<string, unknown>;
       const functionCode =
-        (payload as any)?.function_code ||
-        (payload as any)?.config?.configuration?.function?.code;
+        payloadAny?.function_code ||
+        (
+          (
+            (payloadAny?.config as Record<string, unknown>)
+              ?.configuration as Record<string, unknown>
+          )?.function as Record<string, unknown>
+        )?.code;
 
       if (
         !functionCode ||
@@ -52,8 +58,13 @@ export class AgentValidationService {
     }
 
     if (type === 'api') {
-      const api = (payload as any)?.config?.configuration?.api
-        ?.api_configuration;
+      const payloadAny = payload as unknown as Record<string, unknown>;
+      const api = (
+        (
+          (payloadAny?.config as Record<string, unknown>)
+            ?.configuration as Record<string, unknown>
+        )?.api as Record<string, unknown>
+      )?.api_configuration as Record<string, unknown> | undefined;
       if (!api) {
         issues.push({
           message:

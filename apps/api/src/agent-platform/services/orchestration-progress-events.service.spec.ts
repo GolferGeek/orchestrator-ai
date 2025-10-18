@@ -1,6 +1,7 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
+import type { AxiosResponse } from 'axios';
 import { OrchestrationProgressEventsService } from './orchestration-progress-events.service';
 import { TaskStatusService } from '@/agent2agent/tasks/task-status.service';
 import {
@@ -344,9 +345,14 @@ describe('OrchestrationProgressEventsService', () => {
         taskStatusService,
       );
 
-      httpService.post.mockReturnValue(
-        of({ data: { success: true }, status: 200 } as any),
-      );
+      const mockResponse: AxiosResponse<{ success: boolean }> = {
+        data: { success: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      };
+      httpService.post.mockReturnValue(of(mockResponse));
 
       const event = createEvent('orchestration.run.created');
 

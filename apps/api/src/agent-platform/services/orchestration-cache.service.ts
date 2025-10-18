@@ -27,9 +27,9 @@ export interface StepOutputCacheKey {
 }
 
 export interface StepOutputCachePayload {
-  output: Record<string, any> | null;
+  output: Record<string, unknown> | null;
   deliverableId?: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   sourceRunId: string;
   sourceStepId: string;
   conversationId?: string | null;
@@ -141,7 +141,7 @@ export class OrchestrationCacheService {
   buildStepOutputKey(params: {
     run: OrchestrationRunRecord;
     step: OrchestrationStepRecord;
-    input: Record<string, any>;
+    input: Record<string, unknown>;
   }): StepOutputCacheKey {
     const definitionKey = this.deriveDefinitionKey(params.run);
     const organizationSlug = params.run.organization_slug ?? null;
@@ -258,7 +258,7 @@ export class OrchestrationCacheService {
     return `index_${step.step_index}`;
   }
 
-  private computeFingerprint(input: Record<string, any>): string {
+  private computeFingerprint(input: Record<string, unknown>): string {
     const serialized = this.stableSerialize(input);
     return createHash('sha256').update(serialized).digest('hex');
   }
@@ -308,7 +308,7 @@ export class OrchestrationCacheService {
     }
     if (typeof value === 'object') {
       try {
-        return JSON.parse(JSON.stringify(value));
+        return JSON.parse(JSON.stringify(value)) as T;
       } catch (error) {
         this.logger.debug(
           'Failed to clone value for orchestration cache',
@@ -356,10 +356,10 @@ export class OrchestrationCacheService {
     );
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
+  private asRecord(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    return { ...(value as Record<string, unknown>) };
   }
 }

@@ -23,9 +23,6 @@ const getResponseStatus = (error: unknown): number | undefined => {
   return undefined;
 };
 
-const normalizeError = (error: unknown): Error => (
-  error instanceof Error ? error : new Error(String(error))
-);
 
 // Interface for the token data expected from authService login/signup
 interface TokenData {

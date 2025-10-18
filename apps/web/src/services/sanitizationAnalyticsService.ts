@@ -250,7 +250,7 @@ class SanitizationAnalyticsService {
       try {
         const response = await apiService.get<SystemHealth>('/system/health');
         return response;
-      } catch (healthError) {
+      } catch {
         // Fallback to basic health check
         return {
           apiStatus: 'operational',
@@ -288,7 +288,7 @@ class SanitizationAnalyticsService {
           severity: activity.severity ?? 'info',
           metadata: activity.metadata,
         }));
-      } catch (activityError) {
+      } catch {
         // Return empty array if endpoint doesn't exist
         return [];
       }
@@ -309,7 +309,7 @@ class SanitizationAnalyticsService {
     // Calculate derived metrics from basic stats with defensive programming
     const piiPatterns = basicStats.piiPatternStats?.totalPatterns || 0;
     const redactionPatterns = basicStats.redactionPatternStats?.totalPatterns || 0;
-    const totalPatterns = piiPatterns + redactionPatterns;
+    const _totalPatterns = piiPatterns + redactionPatterns;
     const totalMappings = basicStats.pseudonymizationStats?.totalMappings || 0;
     
     // Estimate metrics based on available data

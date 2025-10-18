@@ -4,7 +4,6 @@ import type { ChartType, ChartData, ChartOptions } from 'chart.js';
 
 // Lazy-loaded Chart.js for better performance
 let Chart: typeof import('chart.js').Chart | null = null;
-let _chartComponents: Record<string, unknown> | null = null;
 
 const loadChartJS = async () => {
   if (Chart) return Chart;
@@ -43,18 +42,6 @@ const loadChartJS = async () => {
   );
 
   Chart = ChartClass;
-  chartComponents = {
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    LineElement,
-    PointElement,
-    ArcElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-  };
 
   return Chart;
 };

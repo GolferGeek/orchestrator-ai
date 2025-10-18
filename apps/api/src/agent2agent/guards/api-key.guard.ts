@@ -58,7 +58,10 @@ export class ApiKeyGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, unknown>;
+      params: Record<string, unknown>;
+    }>();
     const apiKeyHeader =
       request.headers['x-agent-api-key'] || request.headers['x-api-key'];
 

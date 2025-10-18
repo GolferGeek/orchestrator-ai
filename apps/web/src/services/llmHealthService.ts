@@ -245,7 +245,7 @@ class LLMHealthService {
           success: true,
           data: complianceData,
         };
-      } catch (error) {
+      } catch {
         // Fallback to empty compliance data if services aren't available
         return {
           success: true,
@@ -296,7 +296,7 @@ class LLMHealthService {
         success: true,
         data: response as LLMUsageStats,
       };
-    } catch (error) {
+    } catch {
       const fallbackStats: LLMUsageStats = {
         userId: 'unknown',
         dateRange: {
@@ -328,7 +328,7 @@ class LLMHealthService {
    * Get dashboard data (aggregated health overview)
    * Note: For full dashboard with analytics, use llmAnalyticsService
    */
-  async getDashboardData(startDate?: string, endDate?: string): Promise<LLMDashboardResponse> {
+  async getDashboardData(_startDate?: string, _endDate?: string): Promise<LLMDashboardResponse> {
     try {
       const [operationalStatus, activeAlerts] = await Promise.all([
         this.getOperationalStatus(),
@@ -379,7 +379,7 @@ class LLMHealthService {
    */
   async getRealTimeMetrics(): Promise<RealTimeMetrics> {
     try {
-      const [systemHealth, memoryStats] = await Promise.all([
+      const [systemHealth, _memoryStats] = await Promise.all([
         this.getSystemHealth(),
         this.getMemoryStats(),
       ]);

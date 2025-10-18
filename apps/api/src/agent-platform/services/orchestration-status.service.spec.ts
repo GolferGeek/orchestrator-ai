@@ -87,12 +87,16 @@ describe('OrchestrationStatusService', () => {
         currentStepId: 'step-1',
         stats: { totalSteps: 3, completedSteps: 1, progressPercentage: 33 },
       }),
-      snapshotStep: jest.fn().mockImplementation((run, step) => ({
-        id: step.step_id,
-        index: step.step_index,
-        status: step.status,
-        agent: { slug: step.agent_slug },
-      })),
+      snapshotStep: jest
+        .fn()
+        .mockImplementation(
+          (_run: OrchestrationRunRecord, step: OrchestrationStepRecord) => ({
+            id: step.step_id,
+            index: step.step_index,
+            status: step.status,
+            agent: { slug: step.agent_slug },
+          }),
+        ),
     } as unknown as jest.Mocked<OrchestrationEventsService>;
 
     approvals = {

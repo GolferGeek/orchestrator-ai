@@ -434,19 +434,16 @@ export function useStoreExport() {
 
     try {
       let blob: Blob;
-      let mimeType: string;
       let fileExtension: string;
 
       switch (format) {
         case 'json':
           blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-          mimeType = 'application/json';
           fileExtension = '.json';
           break;
         case 'csv': {
           const csvContent = convertToCSV(data);
           blob = new Blob([csvContent], { type: 'text/csv' });
-          mimeType = 'text/csv';
           fileExtension = '.csv';
           break;
         }
@@ -455,7 +452,6 @@ export function useStoreExport() {
           // For now, export as CSV with Excel-compatible format
           const excelCsvContent = convertToCSV(data);
           blob = new Blob([excelCsvContent], { type: 'text/csv' });
-          const _mimeType = 'text/csv';
           fileExtension = '.csv';
           break;
         }

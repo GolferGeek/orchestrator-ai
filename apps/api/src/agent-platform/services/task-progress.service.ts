@@ -53,14 +53,14 @@ export class TaskProgressService {
     _status: string,
     _message?: string,
     _response?: string,
-    _metadata?: any,
+    _metadata?: unknown,
   ) {
     this.logger.debug(
       'Task completion (with response) broadcast suppressed (SSE only).',
     );
   }
 
-  sendToTask(_taskId: string, _event: string, _data: any) {
+  sendToTask(_taskId: string, _event: string, _data: unknown) {
     this.logger.debug('Direct task broadcast suppressed (SSE only).');
   }
 }

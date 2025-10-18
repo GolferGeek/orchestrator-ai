@@ -67,9 +67,11 @@ export class OrchestrationOutputMapper {
   }
 
   private defaultProjection(payload: TaskResponsePayload): JsonObject {
+    const content: JsonValue = (payload.content ?? null) as JsonValue;
+    const metadata: JsonObject = (payload.metadata ?? {}) as JsonObject;
     return {
-      content: this.cloneValue(payload.content ?? null),
-      metadata: this.cloneValue(payload.metadata ?? {}),
+      content: this.cloneValue(content),
+      metadata: this.cloneValue(metadata),
     };
   }
 

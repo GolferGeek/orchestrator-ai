@@ -73,7 +73,7 @@ export class ApiClient extends BaseApiClient {
           }
         });
         currentUser = userResponse.data.user;
-      } catch (error) {
+      } catch {
         // Failed to fetch current user for orchestrator
       }
     }

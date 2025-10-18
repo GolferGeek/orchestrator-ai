@@ -5,13 +5,14 @@ describe('AgentValidationService', () => {
   const svc = new AgentValidationService();
 
   it('requires function code for function agents', () => {
-    const res = svc.validateByType('function', {
+    const payload: Partial<CreateAgentPayload> = {
       slug: 'test-fn',
       display_name: 'Test Fn',
       agent_type: 'function',
       mode_profile: 'draft',
       config: { configuration: { function: {} } },
-    } as unknown as CreateAgentPayload);
+    };
+    const res = svc.validateByType('function', payload as never);
     expect(res.ok).toBe(false);
     expect(res.issues.some((i) => i.message.includes('function_code'))).toBe(
       true,
@@ -19,7 +20,7 @@ describe('AgentValidationService', () => {
   });
 
   it('accepts valid function agent payload', () => {
-    const res = svc.validateByType('function', {
+    const payload: Partial<CreateAgentPayload> = {
       slug: 'ok-fn',
       display_name: 'OK Fn',
       agent_type: 'function',
@@ -29,7 +30,8 @@ describe('AgentValidationService', () => {
           function: { code: 'module.exports=async()=>({ok:true})' },
         },
       },
-    } as unknown as CreateAgentPayload);
+    };
+    const res = svc.validateByType('function', payload as never);
     expect(res.ok).toBe(true);
   });
 });

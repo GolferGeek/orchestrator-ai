@@ -357,23 +357,23 @@ export class HumanLoopService {
    * Map database record to HumanInput type
    */
   private mapToHumanInput(data: any): HumanInput {
-    const converted = snakeToCamel(data);
+    const converted = snakeToCamel(data) as Record<string, unknown>;
 
     return {
-      id: converted.id,
-      taskId: converted.taskId,
-      userId: converted.userId,
-      requestType: converted.requestType,
-      prompt: converted.prompt,
-      options: converted.options ? JSON.parse(converted.options) : undefined,
-      userResponse: converted.userResponse,
-      responseMetadata: converted.responseMetadata || {},
-      status: converted.status,
+      id: converted.id as string,
+      taskId: converted.taskId as string,
+      userId: converted.userId as string,
+      requestType: converted.requestType as HumanInput['requestType'],
+      prompt: converted.prompt as string,
+      options: converted.options ? JSON.parse(converted.options as string) : undefined,
+      userResponse: converted.userResponse as string | undefined,
+      responseMetadata: (converted.responseMetadata as Record<string, unknown>) || {},
+      status: converted.status as HumanInput['status'],
       timeoutAt: converted.timeoutAt
-        ? new Date(converted.timeoutAt)
+        ? new Date(converted.timeoutAt as string)
         : undefined,
-      createdAt: new Date(converted.createdAt),
-      updatedAt: new Date(converted.updatedAt),
+      createdAt: new Date(converted.createdAt as string),
+      updatedAt: new Date(converted.updatedAt as string),
     };
   }
 }
