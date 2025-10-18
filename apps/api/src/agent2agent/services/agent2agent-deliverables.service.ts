@@ -16,7 +16,7 @@ export class Agent2AgentDeliverablesService {
    * Create deliverable from Agent2Agent task result
    */
   async createFromTaskResult(
-    result: any,
+    result: unknown,
     userId: string,
     taskId: string,
     agentSlug: string,
@@ -33,24 +33,30 @@ export class Agent2AgentDeliverablesService {
         return null;
       }
 
+      const typedResult = result as Record<string, unknown>;
+      const deliverableRec = typedResult?.deliverable as Record<string, unknown> | undefined;
+      const payloadRec = typedResult?.payload as Record<string, unknown> | undefined;
       const existingDeliverableId =
-        result?.deliverableId ||
-        result?.deliverable?.id ||
-        result?.payload?.deliverableId ||
-        result?.payload?.metadata?.deliverableId;
+        typedResult?.deliverableId ||
+        deliverableRec?.id ||
+        payloadRec?.deliverableId ||
+        (payloadRec?.metadata as Record<string, unknown> | undefined)?.deliverableId;
       if (existingDeliverableId) {
-        return existingDeliverableId;
+        return existingDeliverableId as string;
       }
 
-      const payload = result?.payload;
+      const payload = payloadRec;
       if (!payload) {
         return null;
       }
 
+      const contentRec = payload.content as Record<string, unknown> | undefined;
+      const metadataRec = payload.metadata as Record<string, unknown> | undefined;
+
       const status =
-        payload.content?.status ||
+        contentRec?.status ||
         payload.status ||
-        payload.metadata?.status ||
+        metadataRec?.status ||
         null;
 
       if (
@@ -63,16 +69,16 @@ export class Agent2AgentDeliverablesService {
       }
 
       const rawOutput: string =
-        typeof payload.content?.output === 'string'
-          ? (payload.content.output as string)
+        typeof contentRec?.output === 'string'
+          ? (contentRec.output as string)
           : '';
       const images = this.normalizeImages([
         ...(Array.isArray(payload.images) ? payload.images : []),
-        ...(Array.isArray(payload.content?.images)
-          ? payload.content.images
+        ...(Array.isArray(contentRec?.images)
+          ? contentRec.images
           : []),
-        ...(Array.isArray(payload.metadata?.images)
-          ? payload.metadata.images
+        ...(Array.isArray(metadataRec?.images)
+          ? metadataRec.images
           : []),
       ]);
 
@@ -113,7 +119,7 @@ export class Agent2AgentDeliverablesService {
         metadata: {
           agentName: agentSlug,
           agentType:
-            (payload.metadata && payload.metadata.agentType) || 'agent',
+            (metadataRec && metadataRec.agentType) || 'agent',
           mode,
           taskId,
           source: 'agent2agent',
@@ -170,7 +176,7 @@ export class Agent2AgentDeliverablesService {
     return null;
   }
 
-  private normalizeImages(entries: any[]): Array<Record<string, any>> {
+  private normalizeImages(entries: unknown[]): Array<Record<string, unknown>> {
     if (!Array.isArray(entries)) {
       return [];
     }
@@ -180,22 +186,23 @@ export class Agent2AgentDeliverablesService {
     return entries
       .filter((entry) => entry && typeof entry === 'object')
       .map((entry) => {
-        const normalized: Record<string, any> = {
-          url: typeof entry.url === 'string' ? entry.url : '',
+        const entryRec = entry as Record<string, unknown>;
+        const normalized: Record<string, unknown> = {
+          url: typeof entryRec.url === 'string' ? entryRec.url : '',
           mime:
-            typeof entry.mime === 'string'
-              ? entry.mime
-              : typeof entry.contentType === 'string'
-                ? entry.contentType
+            typeof entryRec.mime === 'string'
+              ? entryRec.mime
+              : typeof entryRec.contentType === 'string'
+                ? entryRec.contentType
                 : 'image/png',
         };
 
-        if (entry.width) normalized.width = entry.width;
-        if (entry.height) normalized.height = entry.height;
-        if (entry.size) normalized.size = entry.size;
-        if (entry.thumbnailUrl) normalized.thumbnailUrl = entry.thumbnailUrl;
-        if (entry.altText) normalized.altText = entry.altText;
-        if (entry.hash) normalized.hash = entry.hash;
+        if (entryRec.width) normalized.width = entryRec.width;
+        if (entryRec.height) normalized.height = entryRec.height;
+        if (entryRec.size) normalized.size = entryRec.size;
+        if (entryRec.thumbnailUrl) normalized.thumbnailUrl = entryRec.thumbnailUrl;
+        if (entryRec.altText) normalized.altText = entryRec.altText;
+        if (entryRec.hash) normalized.hash = entryRec.hash;
 
         return normalized;
       })
@@ -212,7 +219,7 @@ export class Agent2AgentDeliverablesService {
   }
 
   private resolveImageFormat(
-    image: Record<string, any> | undefined,
+    image: Record<string, unknown> | undefined,
   ): DeliverableFormat {
     const mime = String(image?.mime || '').toLowerCase();
     switch (mime) {
@@ -232,7 +239,7 @@ export class Agent2AgentDeliverablesService {
     }
   }
 
-  private describeImageSet(images: Array<Record<string, any>>): string {
+  private describeImageSet(images: Array<Record<string, unknown>>): string {
     if (!images.length) {
       return 'Image assets';
     }
@@ -255,7 +262,7 @@ export class Agent2AgentDeliverablesService {
     return new Date().toISOString().slice(0, 10);
   }
 
-  private renderImageLogPreview(images: Array<Record<string, any>>): string {
+  private renderImageLogPreview(images: Array<Record<string, unknown>>): string {
     if (!images.length) {
       return '';
     }
@@ -334,8 +341,8 @@ export class Agent2AgentDeliverablesService {
     createdByType: string;
     taskId?: string;
     userId: string;
-    metadata: Record<string, any>;
-    fileAttachments?: Record<string, any>;
+    metadata: Record<string, unknown>;
+    fileAttachments?: Record<string, unknown>;
   }): Promise<string> {
     const { data, error } = await this.supabaseService
       .getServiceClient()

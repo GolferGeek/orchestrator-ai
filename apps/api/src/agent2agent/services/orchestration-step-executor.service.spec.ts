@@ -275,10 +275,10 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      const startExecutionSpy = executionService.startExecution;
-      expect(startExecutionSpy).toHaveBeenCalledTimes(2);
-      const markStepCompletedSpy = executionService.markStepCompleted;
-      expect(markStepCompletedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.startExecution).toHaveBeenCalledTimes(2);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'run-123',
         'step-123',
         expect.objectContaining({
@@ -299,8 +299,8 @@ describe('OrchestrationStepExecutorService', () => {
       await promise1;
       await promise2;
 
-      const startExecutionSpy2 = executionService.startExecution;
-      expect(startExecutionSpy2).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.startExecution).toHaveBeenCalledTimes(1);
     });
 
     it('should halt on checkpoint', async () => {
@@ -358,10 +358,10 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      const requestCheckpointSpy = checkpointService.requestCheckpoint;
-      expect(requestCheckpointSpy).toHaveBeenCalled();
-      const startExecutionSpy3 = executionService.startExecution;
-      expect(startExecutionSpy3).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(checkpointService.requestCheckpoint).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.startExecution).toHaveBeenCalledTimes(1);
     });
 
     it('should handle step execution failure gracefully', async () => {
@@ -387,8 +387,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      const markStepFailedSpy = executionService.markStepFailed;
-      expect(markStepFailedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepFailed).toHaveBeenCalledWith(
         failingStep.id,
         expect.objectContaining({
           error: expect.stringContaining('missing agent'),
@@ -528,8 +528,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      const requestCheckpointSpy2 = checkpointService.requestCheckpoint;
-      expect(requestCheckpointSpy2).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(checkpointService.requestCheckpoint).toHaveBeenCalledWith(
         expect.objectContaining({
           runId: 'run-123',
           stepId: 'fetch-kpi-data',
@@ -597,10 +597,10 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      const startExecutionSpy4 = executionService.startExecution;
-      expect(startExecutionSpy4).toHaveBeenCalledTimes(2);
-      const markStepCompletedSpy2 = executionService.markStepCompleted;
-      expect(markStepCompletedSpy2).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.startExecution).toHaveBeenCalledTimes(2);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepCompleted).toHaveBeenCalled();
     });
   });
 
@@ -677,8 +677,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      const mapSpy = outputMapper.map;
-      expect(mapSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(outputMapper.map).toHaveBeenCalledWith(
         expect.objectContaining({
           content: {
             rows: [{ metric: 'revenue', value: 150000 }],
@@ -741,8 +741,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      const markStepCompletedSpy3 = executionService.markStepCompleted;
-      expect(markStepCompletedSpy3).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'run-123',
         'step-123',
         expect.objectContaining({

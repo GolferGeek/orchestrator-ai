@@ -67,8 +67,8 @@ describe('OrchestrationRunnerService', () => {
       metadata: { traceId: 'abc' },
     });
 
-    const startSpy = runsRepository.start;
-    expect(startSpy).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(runsRepository.start).toHaveBeenCalledWith(
       expect.objectContaining({
         plan_id: 'plan-1',
         origin_type: 'plan',
@@ -127,8 +127,8 @@ describe('OrchestrationRunnerService', () => {
       currentStepId: 'step-1',
     });
 
-    const updateSpy = runsRepository.update;
-    expect(updateSpy).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(runsRepository.update).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({
         status: 'in_execution',
@@ -174,8 +174,8 @@ describe('OrchestrationRunnerService', () => {
       mode: 'BUILD',
     });
 
-    const createSpy = stepsRepository.create;
-    expect(createSpy).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(stepsRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         orchestration_run_id: 'run-1',
         step_index: 0,

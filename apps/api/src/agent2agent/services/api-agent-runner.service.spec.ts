@@ -111,9 +111,8 @@ describe('ApiAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify HTTP call
-      const requestMock = httpService['request'] as jest.Mock;
-      const requestSpy = requestMock;
-      expect(requestSpy).toHaveBeenCalledWith({
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.request).toHaveBeenCalledWith({
         url: 'https://api.example.com/users',
         method: 'GET',
         headers: expect.objectContaining({
@@ -127,9 +126,8 @@ describe('ApiAgentRunnerService', () => {
       });
 
       // Verify deliverable creation
-      const executeActionMock = deliverablesService['executeAction'] as jest.Mock;
-      const executeActionSpy = executeActionMock;
-      expect(executeActionSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'User List',
@@ -193,9 +191,8 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      const requestMock1 = httpService['request'] as jest.Mock;
-      const requestSpy1 = requestMock1;
-      expect(requestSpy1).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -230,7 +227,7 @@ describe('ApiAgentRunnerService', () => {
       };
 
       httpService.request.mockReturnValue(
-        of({ status: 200, data: { id: 42 } }) as any,
+        of({ status: 200, data: { id: 42 } }) as unknown,
       );
 
       deliverablesService.executeAction.mockResolvedValue({
@@ -240,9 +237,8 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      const requestMock2 = httpService['request'] as jest.Mock;
-      const requestSpy2 = requestMock2;
-      expect(requestSpy2).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           url: 'https://api.example.com/users/42',
         }),
@@ -276,7 +272,7 @@ describe('ApiAgentRunnerService', () => {
         metadata: { userId: 'user-123' },
       };
 
-      httpService.request.mockReturnValue(of({ status: 200, data: [] }) as any);
+      httpService.request.mockReturnValue(of({ status: 200, data: [] }) as unknown);
 
       deliverablesService.executeAction.mockResolvedValue({
         success: true,
@@ -285,9 +281,8 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      const requestMock3 = httpService['request'] as jest.Mock;
-      const requestSpy3 = requestMock3;
-      expect(requestSpy3).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           params: {
             limit: '10',
@@ -368,7 +363,7 @@ describe('ApiAgentRunnerService', () => {
       };
 
       httpService.request.mockReturnValue(
-        throwError(() => new Error('Network error')) as any,
+        throwError(() => new Error('Network error')) as unknown,
       );
 
       const result = await service.execute(definition, request, null);
@@ -405,7 +400,7 @@ describe('ApiAgentRunnerService', () => {
         of({
           status: 404,
           data: { error: 'Not found' },
-        }) as any,
+        }) as unknown,
       );
 
       const result = await service.execute(definition, request, null);
@@ -444,7 +439,7 @@ describe('ApiAgentRunnerService', () => {
         of({
           status: 404,
           data: { error: 'Not found' },
-        }) as any,
+        }) as unknown,
       );
 
       deliverablesService.executeAction.mockResolvedValue({
@@ -477,7 +472,7 @@ describe('ApiAgentRunnerService', () => {
         metadata: { userId: 'user-123' },
       };
 
-      httpService.request.mockReturnValue(of({ status: 200, data: {} }) as any);
+      httpService.request.mockReturnValue(of({ status: 200, data: {} }) as unknown);
 
       deliverablesService.executeAction.mockResolvedValue({
         success: false,
@@ -518,7 +513,7 @@ describe('ApiAgentRunnerService', () => {
       };
 
       httpService.request.mockReturnValue(
-        of({ status: 200, data: { users: [] } }) as any,
+        of({ status: 200, data: { users: [] } }) as unknown,
       );
 
       let capturedContent: string = '';
@@ -571,8 +566,8 @@ describe('ApiAgentRunnerService', () => {
       expect(result.payload?.content?.id).toBe('del-123');
 
       // Should not call HTTP service for non-create actions
-      const requestSpy = httpService.request;
-      expect(requestSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.request).not.toHaveBeenCalled();
     });
   });
 });

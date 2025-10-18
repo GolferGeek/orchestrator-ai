@@ -97,7 +97,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       // Validate required context
       const userId = this.resolveUserId(request);
       const conversationId = this.resolveConversationId(request);
-      const taskId = (request.payload as any)?.taskId || null;
+      const taskId = (request.payload as Record<string, unknown>)?.taskId as string | null || null;
 
       if (!userId || !conversationId) {
         return TaskResponseDto.failure(
@@ -143,7 +143,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       );
 
       // 3. Build request body (for POST/PUT/PATCH)
-      let body: any = undefined;
+      let body: unknown = undefined;
       if (['POST', 'PUT', 'PATCH'].includes(method) && apiConfig.body) {
         const bodyRecord = this.asRecord(apiConfig.body);
         if (bodyRecord) {
@@ -159,7 +159,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       // 4. Build query parameters
-      let queryParams: Record<string, any> = {};
+      let queryParams: Record<string, unknown> = {};
       const queryParamsRecord = this.asRecord(apiConfig.queryParams);
       if (queryParamsRecord) {
         queryParams = this.interpolateObject(
@@ -170,7 +170,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
 
       // 5. Execute HTTP request
       const startTime = Date.now();
-      let response: any;
+      let response: unknown;
 
       try {
         const observable = this.httpService.request({
@@ -198,24 +198,25 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       const duration = Date.now() - startTime;
 
       // 6. Check response status
-      const statusCode = response.status;
+      const responseTyped = response as { status: number; data: unknown; headers: Record<string, unknown> };
+      const statusCode = responseTyped.status;
       const isSuccess = statusCode >= 200 && statusCode < 300;
 
       if (!isSuccess && apiConfig.failOnError !== false) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
-          `API returned error status ${statusCode}: ${JSON.stringify(response.data)}`,
+          `API returned error status ${statusCode}: ${JSON.stringify(responseTyped.data)}`,
         );
       }
 
       // 7. Format response data
-      const responseData = response.data;
+      const responseData = responseTyped.data;
       const formattedContent = this.formatApiResponse(
         responseData,
         definition.config?.deliverable?.format || 'json',
         {
           statusCode,
-          headers: response.headers,
+          headers: responseTyped.headers,
           duration,
         },
       );
@@ -227,7 +228,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         'create',
         {
           title:
-            (request.payload as any)?.title ||
+            ((request.payload as Record<string, unknown>)?.title as string) ||
             `API Response: ${definition.displayName}`,
           content: formattedContent,
           format: definition.config?.deliverable?.format || 'json',
@@ -290,8 +291,8 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     return value as Record<string, unknown>;
   }
 
-  private toPlainRecord(record: Record<string, unknown>): Record<string, any> {
-    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  private toPlainRecord(record: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(record)) as Record<string, unknown>;
   }
 
   private ensureString(value: unknown): string | null {
@@ -319,7 +320,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
    * Build request headers with interpolation and authentication
    */
   private buildHeaders(
-    configHeaders: Record<string, any>,
+    configHeaders: Record<string, unknown>,
     request: TaskRequestDto,
   ): Record<string, string> {
     const headers: Record<string, string> = {
@@ -348,11 +349,11 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       /\{\{([^}]+)\}\}/g,
       (match: string, path: string) => {
         const keys = path.trim().split('.');
-        let value: any = request;
+        let value: unknown = request;
 
         for (const key of keys) {
           if (value && typeof value === 'object' && key in value) {
-            value = value[key];
+            value = (value as Record<string, unknown>)[key];
           } else {
             return match; // Keep original if not found
           }
@@ -367,16 +368,16 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
    * Interpolate an object recursively with request data
    */
   private interpolateObject(
-    obj: Record<string, any>,
+    obj: Record<string, unknown>,
     request: TaskRequestDto,
-  ): Record<string, any> {
-    const result: Record<string, any> = {};
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'string') {
         result[key] = this.interpolateString(value, request);
       } else if (typeof value === 'object' && value !== null) {
-        result[key] = this.interpolateObject(value, request);
+        result[key] = this.interpolateObject(value as Record<string, unknown>, request);
       } else {
         result[key] = value;
       }
@@ -389,9 +390,9 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
    * Format API response based on output format
    */
   private formatApiResponse(
-    data: any,
+    data: unknown,
     format: string,
-    metadata: { statusCode: number; headers: any; duration: number },
+    metadata: { statusCode: number; headers: Record<string, unknown>; duration: number },
   ): string {
     if (format === 'json') {
       return JSON.stringify(

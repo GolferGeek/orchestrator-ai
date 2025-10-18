@@ -373,8 +373,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         version: '1.0.0',
       });
 
-      const createRunFromDefinitionSpy = mockRunFactory.createRunFromDefinition;
-      expect(createRunFromDefinitionSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           definition: mockChildDefinition,
           parameters: {
@@ -387,8 +387,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         }),
       );
 
-      const markStepCompletedSpy = mockExecution.markStepCompleted;
-      expect(markStepCompletedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockExecution.markStepCompleted).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
           orchestrationRunId: 'child-run-456',
@@ -501,7 +501,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as any).orchestration,
+            ...(mockOrchestrationStep.metadata as Record<string, unknown>).orchestration,
             inherit_conversation: false,
           },
         },
@@ -593,7 +593,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as any).orchestration,
+            ...(mockOrchestrationStep.metadata as Record<string, unknown>).orchestration,
             name: undefined,
           },
         },
@@ -631,7 +631,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as any).orchestration,
+            ...(mockOrchestrationStep.metadata as Record<string, unknown>).orchestration,
             owner: undefined,
           },
         },

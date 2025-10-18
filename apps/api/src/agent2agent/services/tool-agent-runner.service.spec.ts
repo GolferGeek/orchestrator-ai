@@ -114,20 +114,22 @@ describe('ToolAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify MCP tool calls
-      const callToolSpy = mcpService.callTool;
-      expect(callToolSpy).toHaveBeenCalledTimes(2);
-      expect(callToolSpy).toHaveBeenNthCalledWith(1, {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).toHaveBeenCalledTimes(2);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).toHaveBeenNthCalledWith(1, {
         name: 'supabase/query',
         arguments: { table: 'users', limit: 10 },
       });
-      expect(callToolSpy).toHaveBeenNthCalledWith(2, {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).toHaveBeenNthCalledWith(2, {
         name: 'slack/post-message',
         arguments: { channel: '#general', text: 'Hello' },
       });
 
       // Verify deliverable creation
-      const executeActionSpy = deliverablesService.executeAction;
-      expect(executeActionSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'Tool Execution Test',
@@ -184,8 +186,8 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       // Should only call 2 tools (stopped on error)
-      const callToolSpy2 = mcpService.callTool;
-      expect(callToolSpy2).toHaveBeenCalledTimes(2);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).toHaveBeenCalledTimes(2);
       expect(result.success).toBe(true);
       expect(result.payload?.metadata?.failedTools).toBe(1);
     });
@@ -235,8 +237,8 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       // Should call all 3 tools
-      const callToolSpy3 = mcpService.callTool;
-      expect(callToolSpy3).toHaveBeenCalledTimes(3);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).toHaveBeenCalledTimes(3);
       expect(result.success).toBe(true);
       expect(result.payload?.metadata?.successfulTools).toBe(2);
       expect(result.payload?.metadata?.failedTools).toBe(1);
@@ -279,8 +281,8 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(true);
-      const callToolSpy4 = mcpService.callTool;
-      expect(callToolSpy4).toHaveBeenCalledTimes(3);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).toHaveBeenCalledTimes(3);
       expect(result.payload?.metadata?.executionMode).toBe('parallel');
       expect(result.payload?.metadata?.successfulTools).toBe(3);
     });
@@ -373,8 +375,8 @@ describe('ToolAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      const callToolSpy5 = mcpService.callTool;
-      expect(callToolSpy5).toHaveBeenCalledWith({
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).toHaveBeenCalledWith({
         name: 'supabase/query',
         arguments: {
           table: 'users',
@@ -548,8 +550,8 @@ describe('ToolAgentRunnerService', () => {
 
       expect(result.success).toBe(true);
       expect(result.payload?.content?.id).toBe('del-123');
-      const executeActionSpy2 = deliverablesService.executeAction;
-      expect(executeActionSpy2).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'read',
         expect.objectContaining({ action: 'read', deliverableId: 'del-123' }),
         expect.objectContaining({
@@ -560,8 +562,8 @@ describe('ToolAgentRunnerService', () => {
       );
 
       // Should not call MCP service for non-create actions
-      const callToolSpy6 = mcpService.callTool;
-      expect(callToolSpy6).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mcpService.callTool).not.toHaveBeenCalled();
     });
   });
 });

@@ -205,8 +205,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -239,8 +239,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -270,8 +270,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -298,8 +298,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -330,8 +330,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -364,8 +364,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const postSpy = httpService.post;
-      expect(postSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:5678/webhook/progress',
         expect.objectContaining({
           event: 'orchestration.run.created',
@@ -391,8 +391,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const postSpy = httpService.post;
-      expect(postSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.post).not.toHaveBeenCalled();
     });
 
     it('handles webhook dispatch failures gracefully', async () => {
@@ -445,8 +445,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).not.toHaveBeenCalled();
     });
 
     it('includes step metadata in stream chunk', async () => {
@@ -465,8 +465,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const emitSpy = eventEmitter.emit;
-      expect(emitSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -490,8 +490,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const emitSpy = eventEmitter.emit;
-      expect(emitSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -518,8 +518,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -545,8 +545,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({
@@ -569,8 +569,8 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
-      const updateTaskStatusSpy = taskStatusService.updateTaskStatus;
-      expect(updateTaskStatusSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(taskStatusService.updateTaskStatus).toHaveBeenCalledWith(
         'task-1',
         'user-1',
         expect.objectContaining({

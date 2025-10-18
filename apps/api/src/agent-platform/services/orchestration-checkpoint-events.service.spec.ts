@@ -148,10 +148,10 @@ describe('OrchestrationCheckpointEventsService', () => {
         ],
       });
 
-      const getRunMock1 = runner['getRun'] as jest.Mock;
-      expect(getRunMock1).toHaveBeenCalledWith(run.id);
-      const emitMock4 = eventEmitter['emit'] as jest.Mock;
-      expect(emitMock4).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runner.getRun).toHaveBeenCalledWith(run.id);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           streamId: run.id,
@@ -170,8 +170,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       );
 
-      const postMock1 = httpService['post'] as jest.Mock;
-      expect(postMock1).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:5678/webhook/checkpoint',
         expect.objectContaining({
           event: 'orchestration.checkpoint.requested',
@@ -203,8 +203,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       ).resolves.not.toThrow();
 
-      const emitSpy = eventEmitter.emit;
-      expect(emitSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('skips webhook when URL not configured', async () => {
@@ -227,8 +227,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         question: 'Test question',
       });
 
-      const postSpy = httpService.post;
-      expect(postSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.post).not.toHaveBeenCalled();
     });
 
     it('handles webhook dispatch failures gracefully', async () => {
@@ -288,10 +288,10 @@ describe('OrchestrationCheckpointEventsService', () => {
         modifications: null,
       });
 
-      const getRunMock = runner['getRun'] as jest.Mock;
-      expect(getRunMock).toHaveBeenCalledWith(run.id);
-      const emitMock3 = eventEmitter['emit'] as jest.Mock;
-      expect(emitMock3).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runner.getRun).toHaveBeenCalledWith(run.id);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           streamId: run.id,
@@ -311,8 +311,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       );
 
-      const postMock = httpService['post'] as jest.Mock;
-      expect(postMock).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(httpService.post).toHaveBeenCalledWith(
         'http://localhost:5678/webhook/checkpoint',
         expect.objectContaining({
           event: 'orchestration.checkpoint.resolved',
@@ -347,8 +347,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         modifications: null,
       });
 
-      const emitMock2 = eventEmitter['emit'] as jest.Mock;
-      expect(emitMock2).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -380,8 +380,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         modifications: { inputOverride: 'new-value' },
       });
 
-      const emitMock1 = eventEmitter['emit'] as jest.Mock;
-      expect(emitMock1).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -410,8 +410,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       ).resolves.not.toThrow();
 
-      const emitSpy = eventEmitter.emit;
-      expect(emitSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('handles missing lastCheckpoint metadata gracefully', async () => {
@@ -433,8 +433,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         }),
       ).resolves.not.toThrow();
 
-      const emitMock5 = eventEmitter['emit'] as jest.Mock;
-      expect(emitMock5).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalled();
     });
   });
 
@@ -459,10 +459,10 @@ describe('OrchestrationCheckpointEventsService', () => {
         question: 'Approve?',
       });
 
-      const listStepsMock1 = runner['listSteps'] as jest.Mock;
-      expect(listStepsMock1).toHaveBeenCalledWith(run.id);
-      const emitMock = eventEmitter['emit'] as jest.Mock;
-      expect(emitMock).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runner.listSteps).toHaveBeenCalledWith(run.id);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
@@ -491,8 +491,8 @@ describe('OrchestrationCheckpointEventsService', () => {
         question: 'Approve?',
       });
 
-      const listStepsMock = runner['listSteps'] as jest.Mock;
-      expect(listStepsMock).toHaveBeenCalledWith(run.id);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runner.listSteps).toHaveBeenCalledWith(run.id);
     });
   });
 });

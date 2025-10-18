@@ -455,7 +455,7 @@ export class AgentCardBuilderService {
     }
 
     if (clone.metadata && typeof clone.metadata === 'object') {
-      const metadata = clone.metadata as Record<string, any>;
+      const metadata = clone.metadata as Record<string, unknown>;
       delete metadata.internal;
       delete metadata.secrets;
       delete metadata.debug;

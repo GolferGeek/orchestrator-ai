@@ -189,14 +189,14 @@ describe('ContextAgentRunnerService', () => {
       expect(result.payload?.metadata?.provider).toBe('anthropic');
 
       // Verify service calls
-      const findByConversationIdSpy = plansService.findByConversationId;
-      expect(findByConversationIdSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(plansService.findByConversationId).toHaveBeenCalledWith(
         'conv-123',
         'user-123',
       );
 
-      const generateResponseSpy = llmService.generateResponse;
-      expect(generateResponseSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(llmService.generateResponse).toHaveBeenCalledWith(
         expect.stringContaining('Test plan content'),
         'Generate analysis',
         expect.objectContaining({
@@ -208,8 +208,8 @@ describe('ContextAgentRunnerService', () => {
         }),
       );
 
-      const executeActionSpy = deliverablesService.executeAction;
-      expect(executeActionSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'Test Analysis',
@@ -388,8 +388,8 @@ describe('ContextAgentRunnerService', () => {
       expect(result.payload?.content?.deliverable?.id).toBe('del-123');
 
       // Deliverable is fetched by conversation context
-      const findOneSpy = deliverablesService.findOne;
-      expect(findOneSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(deliverablesService.findOne).toHaveBeenCalledWith(
         'del-123',
         'user-123',
       );

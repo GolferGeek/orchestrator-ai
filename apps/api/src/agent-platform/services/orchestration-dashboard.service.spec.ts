@@ -294,8 +294,8 @@ describe('OrchestrationDashboardService', () => {
       expect(result.items[0]!.pendingApprovals).toBe(2);
       expect(result.total).toBe(1);
       expect(result.hasMore).toBe(false);
-      const listSpy = runsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           statuses: ['pending', 'planning', 'running', 'checkpoint'],
         }),
@@ -350,8 +350,8 @@ describe('OrchestrationDashboardService', () => {
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0]!.status).toBe('completed');
-      const listSpy = runsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           statuses: ['completed', 'failed', 'cancelled', 'canceled', 'aborted'],
         }),
@@ -370,8 +370,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ search: 'finance' });
 
-      const listSpy = runsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           search: 'finance',
         }),
@@ -390,8 +390,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ organizationSlug: 'acme-corp' });
 
-      const listSpy = runsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationSlug: 'acme-corp',
         }),
@@ -410,8 +410,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ definitionId: 'def-123' });
 
-      const listSpy = runsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           definitionId: 'def-123',
         }),
@@ -430,8 +430,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listRuns({ parentRunId: 'parent-run-1' });
 
-      const listSpy = runsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           parentRunId: 'parent-run-1',
         }),
@@ -773,8 +773,8 @@ describe('OrchestrationDashboardService', () => {
       expect(result.items[0]!.approval.id).toBe('approval-1');
       expect(result.items[0]!.run).not.toBeNull();
       expect(result.items[0]!.run?.id).toBe('run-1');
-      const listSpy = approvalsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(approvalsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 'orchestration_checkpoint',
         }),
@@ -825,8 +825,8 @@ describe('OrchestrationDashboardService', () => {
 
       await service.listApprovals({ organizationSlug: 'acme-corp' });
 
-      const listSpy = approvalsRepo.list;
-      expect(listSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(approvalsRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationSlug: 'acme-corp',
         }),
@@ -897,8 +897,8 @@ describe('OrchestrationDashboardService', () => {
       expect(result.approval.status).toBe('approved');
       expect(result.run.id).toBe('run-1');
       expect(result.run.pendingApprovals).toBe(0);
-      const resolveCheckpointSpy = checkpointService.resolveCheckpoint;
-      expect(resolveCheckpointSpy).toHaveBeenCalledWith({
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(checkpointService.resolveCheckpoint).toHaveBeenCalledWith({
         approvalId: 'approval-1',
         decision: 'continue',
         actorId: 'user-1',
@@ -953,8 +953,8 @@ describe('OrchestrationDashboardService', () => {
         modifications,
       });
 
-      const resolveCheckpointSpy = checkpointService.resolveCheckpoint;
-      expect(resolveCheckpointSpy).toHaveBeenCalledWith({
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(checkpointService.resolveCheckpoint).toHaveBeenCalledWith({
         approvalId: 'approval-2',
         decision: 'retry',
         actorId: null,
@@ -1364,8 +1364,8 @@ describe('OrchestrationDashboardService', () => {
         note: 'Accepting previous deliverable',
       });
 
-      const markStepCompletedSpy = executionService.markStepCompleted;
-      expect(markStepCompletedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'step-rec-1',
         { skipped: true },
         expect.objectContaining({
@@ -1420,8 +1420,8 @@ describe('OrchestrationDashboardService', () => {
         replacementOutput: { content: 'Manual override data' },
       });
 
-      const markStepCompletedSpy = executionService.markStepCompleted;
-      expect(markStepCompletedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'step-rec-1',
         { content: 'Manual override data' },
         expect.any(Object),
@@ -1464,8 +1464,8 @@ describe('OrchestrationDashboardService', () => {
         actorId: 'user-123',
       });
 
-      const markStepCompletedSpy = executionService.markStepCompleted;
-      expect(markStepCompletedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'step-rec-1',
         { skipped: true },
         expect.any(Object),
@@ -1509,8 +1509,8 @@ describe('OrchestrationDashboardService', () => {
         note: 'Step no longer needed',
       });
 
-      const markStepCompletedSpy = executionService.markStepCompleted;
-      expect(markStepCompletedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
         'step-rec-1',
         { skipped: true },
         expect.objectContaining({
@@ -1587,8 +1587,8 @@ describe('OrchestrationDashboardService', () => {
         note: 'Escalated to human review',
       });
 
-      const updateRunSpy = runnerService.updateRun;
-      expect(updateRunSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(runnerService.updateRun).toHaveBeenCalledWith(
         expect.objectContaining({
           runId: 'run-1',
           status: 'aborted',
@@ -1699,8 +1699,8 @@ describe('OrchestrationDashboardService', () => {
         actorId: 'user-123',
       });
 
-      const emitRunFailedSpy = eventsService.emitRunFailed;
-      expect(emitRunFailedSpy).toHaveBeenCalledWith(
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(eventsService.emitRunFailed).toHaveBeenCalledWith(
         abortedRun,
         expect.objectContaining({
           type: 'manual_abort',
