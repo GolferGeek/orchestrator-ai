@@ -757,7 +757,7 @@ export class Agent2AgentController {
 
   private extractStreamId(result: TaskResponseDto): string | undefined {
     const metadata = result.payload?.metadata as
-      | Record<string, any>
+      | Record<string, unknown>
       | undefined;
     if (!metadata) {
       return undefined;
@@ -1171,7 +1171,7 @@ export class Agent2AgentController {
   private mapExceptionToError(error: unknown): {
     code: number;
     message: string;
-    data?: any;
+    data?: unknown;
   } {
     if (error instanceof HttpException) {
       const status = error.getStatus();
@@ -1325,7 +1325,7 @@ export class Agent2AgentController {
   /**
    * Build hierarchy structure from database agent records
    */
-  private buildDatabaseHierarchy(records: AgentRecord[]): any[] {
+  private buildDatabaseHierarchy(records: AgentRecord[]): unknown[] {
     if (!records.length) {
       return [];
     }
@@ -1340,7 +1340,7 @@ export class Agent2AgentController {
       grouped.get(key)!.push(record);
     }
 
-    const createNode = (record: AgentRecord, children: any[] = []): any => {
+    const createNode = (record: AgentRecord, children: unknown[] = []): unknown => {
       const isTool = record.config?.agent_category === 'tool';
       const isOrchestrator =
         record.agent_type === 'orchestrator' || record.config?.orchestrator;
@@ -1377,7 +1377,7 @@ export class Agent2AgentController {
       };
     };
 
-    const roots: any[] = [];
+    const roots: unknown[] = [];
 
     grouped.forEach((agents, _namespaceKey) => {
       // Group agents by logical hierarchy based on naming patterns

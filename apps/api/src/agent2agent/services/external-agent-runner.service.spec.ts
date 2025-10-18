@@ -129,7 +129,8 @@ describe('ExternalAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify external agent HTTP call
-      expect(httpService.request).toHaveBeenCalledWith({
+      const requestSpy = httpService.request;
+      expect(requestSpy).toHaveBeenCalledWith({
         url: 'https://external-agent.example.com/task',
         method: 'POST',
         headers: expect.objectContaining({
@@ -150,7 +151,8 @@ describe('ExternalAgentRunnerService', () => {
       });
 
       // Verify deliverable creation
-      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
+      const executeActionSpy = deliverablesService.executeAction;
+      expect(executeActionSpy).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'External Task Result',
@@ -206,7 +208,8 @@ describe('ExternalAgentRunnerService', () => {
       await service.execute(definition, request, null);
 
       // Verify no API key in headers
-      expect(httpService.request).toHaveBeenCalledWith(
+      const requestSpy2 = httpService.request;
+      expect(requestSpy2).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: expect.not.objectContaining({
             'X-API-Key': expect.anything(),
@@ -259,7 +262,8 @@ describe('ExternalAgentRunnerService', () => {
       );
 
       // Should not create deliverable for CONVERSE
-      expect(deliverablesService.executeAction).not.toHaveBeenCalled();
+      const executeActionSpy2 = deliverablesService.executeAction;
+      expect(executeActionSpy2).not.toHaveBeenCalled();
     });
   });
 
@@ -303,7 +307,8 @@ describe('ExternalAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.PLAN);
 
       // Should not create deliverable for PLAN
-      expect(deliverablesService.executeAction).not.toHaveBeenCalled();
+      const executeActionSpy3 = deliverablesService.executeAction;
+      expect(executeActionSpy3).not.toHaveBeenCalled();
     });
   });
 
@@ -534,7 +539,8 @@ describe('ExternalAgentRunnerService', () => {
       expect(result.payload?.content?.id).toBe('del-123');
 
       // Should not call external agent for non-create actions
-      expect(httpService.request).not.toHaveBeenCalled();
+      const requestSpy3 = httpService.request;
+      expect(requestSpy3).not.toHaveBeenCalled();
     });
   });
 });

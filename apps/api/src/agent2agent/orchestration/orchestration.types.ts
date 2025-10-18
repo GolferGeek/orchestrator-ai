@@ -38,7 +38,7 @@ export interface OrchestratorInput {
   conversationHistory?: ConversationMessage[];
   projectId?: string; // For project-related operations
   stepId?: string; // For step-specific operations
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -90,7 +90,7 @@ export interface OrchestratorResponse {
   delegationTaskId?: string; // If delegated to another agent
   projectId?: string; // If project created/updated
   planId?: string; // If plan created/updated
-  tasks?: any[]; // Task results
+  tasks?: unknown[]; // Task results
   conversationId?: string; // Conversation context
   userId?: string; // User context
   sessionId?: string; // Session context
@@ -112,7 +112,7 @@ export interface OrchestratorResponse {
     agentName: string;
     processedAt: string;
     action?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -158,7 +158,7 @@ export interface PlanDefinition {
   projectName: string;
   description: string;
   steps: PlanStep[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PlanStep {
@@ -168,7 +168,7 @@ export interface PlanStep {
   agentName?: string; // For agent_step type
   prompt: string; // Instruction for this step
   dependencies: string[]; // stepIds this depends on
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -182,8 +182,8 @@ export interface Project {
   planJson?: PlanDefinition;
   status: ProjectStatus;
   currentStepId?: string;
-  errorDetails?: Record<string, any>;
-  metadata: Record<string, any>;
+  errorDetails?: Record<string, unknown>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   // Hierarchical project support
@@ -206,11 +206,11 @@ export interface ProjectStep {
   prompt: string;
   dependencies: string[];
   status: ProjectStepStatus;
-  result?: Record<string, any>;
-  errorDetails?: Record<string, any>;
+  result?: Record<string, unknown>;
+  errorDetails?: Record<string, unknown>;
   startedAt?: Date;
   completedAt?: Date;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -227,7 +227,7 @@ export interface ConversationMessage {
   content: string;
   timestamp: string;
   taskId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -296,28 +296,28 @@ export interface ISubprojectManagementService {
     input: OrchestratorInput,
   ): Promise<{
     requiresDecomposition: boolean;
-    suggestedSubprojects: any[];
+    suggestedSubprojects: unknown[];
     reasoning: string;
     complexity: 'low' | 'medium' | 'high';
   }>;
   createSubprojects(
     parentProjectId: string,
     parentPlan: PlanDefinition,
-    subprojectScopes: any[],
+    subprojectScopes: unknown[],
     input: OrchestratorInput,
-  ): Promise<any[]>;
+  ): Promise<unknown[]>;
   delegateSubproject(
-    subproject: any,
+    subproject: unknown,
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse>;
   aggregateSubprojectProgress(
     parentProjectId: string,
-    subprojects: any[],
+    subprojects: unknown[],
   ): Promise<{
     overallProgress: number;
     completedSubprojects: number;
-    blockedSubprojects: any[];
-    upcomingMilestones: any[];
+    blockedSubprojects: unknown[];
+    upcomingMilestones: unknown[];
     riskAssessment: {
       level: 'low' | 'medium' | 'high';
       risks: string[];
@@ -333,14 +333,14 @@ export interface ILangGraphStateManagementService {
   initializeProjectState(
     projectDefinition: PlanDefinition,
     input: OrchestratorInput,
-  ): Promise<any>; // LangGraphState
+  ): Promise<unknown>; // LangGraphState
   updateStepState(
     projectId: string,
     stepId: string,
-    update: any,
+    update: unknown,
     trigger?: string,
-  ): Promise<any>; // StepResultsState
-  getState(projectId: string): Promise<any>; // LangGraphState
+  ): Promise<unknown>; // StepResultsState
+  getState(projectId: string): Promise<unknown>; // LangGraphState
   executeWorkflowStep(
     projectId: string,
     stepId: string,
@@ -350,29 +350,29 @@ export interface ILangGraphStateManagementService {
     projectId: string,
     stepId: string,
     interruptType: 'approval_required' | 'user_input_needed' | 'error_recovery',
-    context: Record<string, any>,
+    context: Record<string, unknown>,
   ): Promise<void>;
   resumeWorkflow(
     projectId: string,
     stepId: string,
     resolution: 'approved' | 'rejected' | 'modified',
-    resolutionData?: Record<string, any>,
+    resolutionData?: Record<string, unknown>,
   ): Promise<void>;
   rollbackState(
     projectId: string,
     targetVersion: number,
     reason: string,
-  ): Promise<any>; // LangGraphState
+  ): Promise<unknown>; // LangGraphState
   getWorkflowAnalytics(projectId: string): Promise<{
     overallProgress: number;
-    stepProgress: any[];
+    stepProgress: unknown[];
     performance: {
       avgStepDuration: number;
       totalDuration: number;
       errorRate: number;
       throughput: number;
     };
-    bottlenecks: any[];
+    bottlenecks: unknown[];
     recommendations: string[];
   }>;
 }
@@ -410,7 +410,7 @@ export interface ProjectStepMessage {
   stepId: string;
   stepName: string;
   status: ProjectStepStatus;
-  result?: any;
+  result?: unknown;
   error?: string;
   timestamp: string;
 }
@@ -435,7 +435,7 @@ export class OrchestratorError extends Error {
   constructor(
     message: string,
     public code: string,
-    public context?: Record<string, any>,
+    public context?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'OrchestratorError';
@@ -447,7 +447,7 @@ export class ProjectExecutionError extends OrchestratorError {
     message: string,
     public projectId: string,
     public stepId?: string,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message, 'PROJECT_EXECUTION_ERROR', {
       projectId,
@@ -462,7 +462,7 @@ export class DelegationError extends OrchestratorError {
   constructor(
     message: string,
     public agentName: string,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message, 'DELEGATION_ERROR', { agentName, ...context });
     this.name = 'DelegationError';

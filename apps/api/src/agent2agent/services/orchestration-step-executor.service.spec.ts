@@ -275,8 +275,10 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(executionService.startExecution).toHaveBeenCalledTimes(2);
-      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+      const startExecutionSpy = executionService.startExecution;
+      expect(startExecutionSpy).toHaveBeenCalledTimes(2);
+      const markStepCompletedSpy = executionService.markStepCompleted;
+      expect(markStepCompletedSpy).toHaveBeenCalledWith(
         'run-123',
         'step-123',
         expect.objectContaining({
@@ -297,7 +299,8 @@ describe('OrchestrationStepExecutorService', () => {
       await promise1;
       await promise2;
 
-      expect(executionService.startExecution).toHaveBeenCalledTimes(1);
+      const startExecutionSpy2 = executionService.startExecution;
+      expect(startExecutionSpy2).toHaveBeenCalledTimes(1);
     });
 
     it('should halt on checkpoint', async () => {
@@ -355,8 +358,10 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(checkpointService.requestCheckpoint).toHaveBeenCalled();
-      expect(executionService.startExecution).toHaveBeenCalledTimes(1);
+      const requestCheckpointSpy = checkpointService.requestCheckpoint;
+      expect(requestCheckpointSpy).toHaveBeenCalled();
+      const startExecutionSpy3 = executionService.startExecution;
+      expect(startExecutionSpy3).toHaveBeenCalledTimes(1);
     });
 
     it('should handle step execution failure gracefully', async () => {
@@ -382,7 +387,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(executionService.markStepFailed).toHaveBeenCalledWith(
+      const markStepFailedSpy = executionService.markStepFailed;
+      expect(markStepFailedSpy).toHaveBeenCalledWith(
         failingStep.id,
         expect.objectContaining({
           error: expect.stringContaining('missing agent'),
@@ -522,7 +528,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(checkpointService.requestCheckpoint).toHaveBeenCalledWith(
+      const requestCheckpointSpy2 = checkpointService.requestCheckpoint;
+      expect(requestCheckpointSpy2).toHaveBeenCalledWith(
         expect.objectContaining({
           runId: 'run-123',
           stepId: 'fetch-kpi-data',
@@ -590,8 +597,10 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(executionService.startExecution).toHaveBeenCalledTimes(2);
-      expect(executionService.markStepCompleted).toHaveBeenCalled();
+      const startExecutionSpy4 = executionService.startExecution;
+      expect(startExecutionSpy4).toHaveBeenCalledTimes(2);
+      const markStepCompletedSpy2 = executionService.markStepCompleted;
+      expect(markStepCompletedSpy2).toHaveBeenCalled();
     });
   });
 
@@ -668,7 +677,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(outputMapper.map).toHaveBeenCalledWith(
+      const mapSpy = outputMapper.map;
+      expect(mapSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           content: {
             rows: [{ metric: 'revenue', value: 150000 }],
@@ -731,7 +741,8 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      expect(executionService.markStepCompleted).toHaveBeenCalledWith(
+      const markStepCompletedSpy3 = executionService.markStepCompleted;
+      expect(markStepCompletedSpy3).toHaveBeenCalledWith(
         'run-123',
         'step-123',
         expect.objectContaining({

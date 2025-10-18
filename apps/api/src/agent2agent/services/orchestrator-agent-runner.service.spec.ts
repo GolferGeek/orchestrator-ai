@@ -165,7 +165,8 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
       status: 'running',
       orchestrationRunId: 'run-1',
     });
-    expect(executionService.startExecution).toHaveBeenCalledWith('run-1', {
+    const startExecutionSpy = executionService.startExecution;
+    expect(startExecutionSpy).toHaveBeenCalledWith('run-1', {
       maxParallel: 5,
     });
   });
@@ -199,7 +200,8 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
         orchestrationRunId: 'run-1',
       }),
     );
-    expect(executionService.startExecution).not.toHaveBeenCalled();
+    const startExecutionSpy2 = executionService.startExecution;
+    expect(startExecutionSpy2).not.toHaveBeenCalled();
   });
 });
 
@@ -387,7 +389,8 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
     const response = await service.execute(definition, request, 'org-1');
 
     expect(response).toBeInstanceOf(TaskResponseDto);
-    expect(checkpointService.resolveCheckpoint).toHaveBeenCalledWith({
+    const resolveCheckpointSpy = checkpointService.resolveCheckpoint;
+    expect(resolveCheckpointSpy).toHaveBeenCalledWith({
       approvalId: 'approval-1',
       decision: 'continue',
       actorId: 'user-1',

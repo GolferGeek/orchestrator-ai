@@ -189,12 +189,14 @@ describe('ContextAgentRunnerService', () => {
       expect(result.payload?.metadata?.provider).toBe('anthropic');
 
       // Verify service calls
-      expect(plansService.findByConversationId).toHaveBeenCalledWith(
+      const findByConversationIdSpy = plansService.findByConversationId;
+      expect(findByConversationIdSpy).toHaveBeenCalledWith(
         'conv-123',
         'user-123',
       );
 
-      expect(llmService.generateResponse).toHaveBeenCalledWith(
+      const generateResponseSpy = llmService.generateResponse;
+      expect(generateResponseSpy).toHaveBeenCalledWith(
         expect.stringContaining('Test plan content'),
         'Generate analysis',
         expect.objectContaining({
@@ -206,7 +208,8 @@ describe('ContextAgentRunnerService', () => {
         }),
       );
 
-      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
+      const executeActionSpy = deliverablesService.executeAction;
+      expect(executeActionSpy).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'Test Analysis',
@@ -385,7 +388,8 @@ describe('ContextAgentRunnerService', () => {
       expect(result.payload?.content?.deliverable?.id).toBe('del-123');
 
       // Deliverable is fetched by conversation context
-      expect(deliverablesService.findOne).toHaveBeenCalledWith(
+      const findOneSpy = deliverablesService.findOne;
+      expect(findOneSpy).toHaveBeenCalledWith(
         'del-123',
         'user-123',
       );

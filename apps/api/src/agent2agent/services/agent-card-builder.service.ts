@@ -24,7 +24,7 @@ export class AgentCardBuilderService {
     organizationSlug: string | null,
     agentSlug: string,
     options: AgentCardOptions = {},
-  ): Promise<any> {
+  ): Promise<unknown> {
     const agent = await this.agentRegistry.getAgent(
       organizationSlug,
       agentSlug,
@@ -49,9 +49,9 @@ export class AgentCardBuilderService {
           external: extSnap[`external:${agent.slug}`] ?? null,
         };
         combined.metadata = {
-          ...(combined.metadata || {}),
+          ...(combined.metadata as Record<string, unknown> || {}),
           operations: {
-            ...(combined.metadata?.operations || {}),
+            ...((combined.metadata as Record<string, unknown>)?.operations as Record<string, unknown> || {}),
             // Provide a stable location for ops metrics; safe numeric summaries only
             metrics,
           },
@@ -75,7 +75,7 @@ export class AgentCardBuilderService {
     return String(raw).trim().toLowerCase() === 'true';
   }
 
-  private composeSpecCard(agent: AgentRecord): Record<string, any> {
+  private composeSpecCard(agent: AgentRecord): Record<string, unknown> {
     const baseUrl = this.resolveBaseUrl();
     const orgSegment = agent.organization_slug ?? 'global';
     const encodedOrg = encodeURIComponent(orgSegment);
@@ -129,10 +129,10 @@ export class AgentCardBuilderService {
   }
 
   private mergeCards(
-    existing: Record<string, any>,
-    computed: Record<string, any>,
-  ): Record<string, any> {
-    const merged: Record<string, any> = {
+    existing: Record<string, unknown>,
+    computed: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const merged: Record<string, unknown> = {
       ...existing,
       ...computed,
       metadata: {
@@ -159,33 +159,34 @@ export class AgentCardBuilderService {
     return merged;
   }
 
-  private mergeCapabilities(existing: any, computed: any): Record<string, any> {
+  private mergeCapabilities(existing: unknown, computed: unknown): Record<string, unknown> {
     if (!existing) {
-      return computed;
+      return computed as Record<string, unknown>;
     }
 
     const normalizedExisting =
       Array.isArray(existing) || typeof existing !== 'object'
         ? { declared: this.ensureStringArray(existing) ?? [] }
-        : existing;
+        : (existing as Record<string, unknown>);
 
+    const computedRecord = computed as Record<string, unknown>;
     const declared = Array.from(
       new Set(
         [
-          ...(computed?.declared ?? []),
+          ...(computedRecord?.declared as unknown[] ?? []),
           ...(this.ensureStringArray(normalizedExisting.declared) ?? []),
         ].filter(Boolean),
       ),
     );
 
     return {
-      ...computed,
+      ...computedRecord,
       ...normalizedExisting,
       declared,
       extensions: Array.from(
         new Set(
           [
-            ...(computed?.extensions ?? []),
+            ...(computedRecord?.extensions as unknown[] ?? []),
             ...(this.ensureStringArray(normalizedExisting.extensions) ?? []),
           ].filter(Boolean),
         ),
@@ -193,7 +194,7 @@ export class AgentCardBuilderService {
     };
   }
 
-  private deriveCapabilities(agent: AgentRecord): Record<string, any> {
+  private deriveCapabilities(agent: AgentRecord): Record<string, unknown> {
     const config = agent.config ?? {};
     const modes = this.deriveSupportedModes(agent);
 
@@ -229,10 +230,10 @@ export class AgentCardBuilderService {
 
   private deriveSupportedModes(agent: AgentRecord): string[] {
     const sources: Array<string[] | null> = [
-      this.ensureStringArray((agent.config as any)?.supported_modes),
-      this.ensureStringArray((agent.config as any)?.modes),
-      this.ensureStringArray((agent.context as any)?.supported_modes),
-      this.ensureStringArray((agent.context as any)?.modes),
+      this.ensureStringArray((agent.config as Record<string, unknown>)?.supported_modes),
+      this.ensureStringArray((agent.config as Record<string, unknown>)?.modes),
+      this.ensureStringArray((agent.context as Record<string, unknown>)?.supported_modes),
+      this.ensureStringArray((agent.context as Record<string, unknown>)?.modes),
       this.modesFromProfile(agent.mode_profile),
     ];
 
@@ -292,7 +293,7 @@ export class AgentCardBuilderService {
     return Array.from(combined);
   }
 
-  private buildSecuritySchemes(): Record<string, any> {
+  private buildSecuritySchemes(): Record<string, unknown> {
     return {
       apiKey: {
         type: 'apiKey',
@@ -304,7 +305,7 @@ export class AgentCardBuilderService {
     };
   }
 
-  private deriveProvider(agent: AgentRecord): Record<string, any> {
+  private deriveProvider(agent: AgentRecord): Record<string, unknown> {
     const contextRecord = this.asRecord(agent.context);
     const configProvider = agent.config?.provider;
     const contextProvider = contextRecord?.provider;
@@ -424,18 +425,18 @@ export class AgentCardBuilderService {
     return trimmed.length ? trimmed : null;
   }
 
-  private lookupBoolean(source: Record<string, any>, path: string[]): boolean {
-    let cursor: any = source;
+  private lookupBoolean(source: Record<string, unknown>, path: string[]): boolean {
+    let cursor: unknown = source;
     for (const segment of path) {
-      if (cursor == null) {
+      if (cursor == null || typeof cursor !== 'object') {
         return false;
       }
-      cursor = cursor[segment];
+      cursor = (cursor as Record<string, unknown>)[segment];
     }
     return Boolean(cursor);
   }
 
-  private stripPrivateFields(card: Record<string, any>): Record<string, any> {
+  private stripPrivateFields(card: Record<string, unknown>): Record<string, unknown> {
     const clone = JSON.parse(JSON.stringify(card)) as Record<string, unknown>;
 
     delete clone.internal;

@@ -112,7 +112,8 @@ describe('ApiAgentRunnerService', () => {
 
       // Verify HTTP call
       const requestMock = httpService['request'] as jest.Mock;
-      expect(requestMock).toHaveBeenCalledWith({
+      const requestSpy = requestMock;
+      expect(requestSpy).toHaveBeenCalledWith({
         url: 'https://api.example.com/users',
         method: 'GET',
         headers: expect.objectContaining({
@@ -127,7 +128,8 @@ describe('ApiAgentRunnerService', () => {
 
       // Verify deliverable creation
       const executeActionMock = deliverablesService['executeAction'] as jest.Mock;
-      expect(executeActionMock).toHaveBeenCalledWith(
+      const executeActionSpy = executeActionMock;
+      expect(executeActionSpy).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'User List',
@@ -192,7 +194,8 @@ describe('ApiAgentRunnerService', () => {
       await service.execute(definition, request, null);
 
       const requestMock1 = httpService['request'] as jest.Mock;
-      expect(requestMock1).toHaveBeenCalledWith(
+      const requestSpy1 = requestMock1;
+      expect(requestSpy1).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -238,7 +241,8 @@ describe('ApiAgentRunnerService', () => {
       await service.execute(definition, request, null);
 
       const requestMock2 = httpService['request'] as jest.Mock;
-      expect(requestMock2).toHaveBeenCalledWith(
+      const requestSpy2 = requestMock2;
+      expect(requestSpy2).toHaveBeenCalledWith(
         expect.objectContaining({
           url: 'https://api.example.com/users/42',
         }),
@@ -282,7 +286,8 @@ describe('ApiAgentRunnerService', () => {
       await service.execute(definition, request, null);
 
       const requestMock3 = httpService['request'] as jest.Mock;
-      expect(requestMock3).toHaveBeenCalledWith(
+      const requestSpy3 = requestMock3;
+      expect(requestSpy3).toHaveBeenCalledWith(
         expect.objectContaining({
           params: {
             limit: '10',
@@ -566,7 +571,8 @@ describe('ApiAgentRunnerService', () => {
       expect(result.payload?.content?.id).toBe('del-123');
 
       // Should not call HTTP service for non-create actions
-      expect(httpService.request).not.toHaveBeenCalled();
+      const requestSpy = httpService.request;
+      expect(requestSpy).not.toHaveBeenCalled();
     });
   });
 });

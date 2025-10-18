@@ -114,18 +114,20 @@ describe('ToolAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify MCP tool calls
-      expect(mcpService.callTool).toHaveBeenCalledTimes(2);
-      expect(mcpService.callTool).toHaveBeenNthCalledWith(1, {
+      const callToolSpy = mcpService.callTool;
+      expect(callToolSpy).toHaveBeenCalledTimes(2);
+      expect(callToolSpy).toHaveBeenNthCalledWith(1, {
         name: 'supabase/query',
         arguments: { table: 'users', limit: 10 },
       });
-      expect(mcpService.callTool).toHaveBeenNthCalledWith(2, {
+      expect(callToolSpy).toHaveBeenNthCalledWith(2, {
         name: 'slack/post-message',
         arguments: { channel: '#general', text: 'Hello' },
       });
 
       // Verify deliverable creation
-      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
+      const executeActionSpy = deliverablesService.executeAction;
+      expect(executeActionSpy).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
           title: 'Tool Execution Test',
@@ -182,7 +184,8 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       // Should only call 2 tools (stopped on error)
-      expect(mcpService.callTool).toHaveBeenCalledTimes(2);
+      const callToolSpy2 = mcpService.callTool;
+      expect(callToolSpy2).toHaveBeenCalledTimes(2);
       expect(result.success).toBe(true);
       expect(result.payload?.metadata?.failedTools).toBe(1);
     });
@@ -232,7 +235,8 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       // Should call all 3 tools
-      expect(mcpService.callTool).toHaveBeenCalledTimes(3);
+      const callToolSpy3 = mcpService.callTool;
+      expect(callToolSpy3).toHaveBeenCalledTimes(3);
       expect(result.success).toBe(true);
       expect(result.payload?.metadata?.successfulTools).toBe(2);
       expect(result.payload?.metadata?.failedTools).toBe(1);
@@ -275,7 +279,8 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(true);
-      expect(mcpService.callTool).toHaveBeenCalledTimes(3);
+      const callToolSpy4 = mcpService.callTool;
+      expect(callToolSpy4).toHaveBeenCalledTimes(3);
       expect(result.payload?.metadata?.executionMode).toBe('parallel');
       expect(result.payload?.metadata?.successfulTools).toBe(3);
     });
@@ -368,7 +373,8 @@ describe('ToolAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      expect(mcpService.callTool).toHaveBeenCalledWith({
+      const callToolSpy5 = mcpService.callTool;
+      expect(callToolSpy5).toHaveBeenCalledWith({
         name: 'supabase/query',
         arguments: {
           table: 'users',
@@ -542,7 +548,8 @@ describe('ToolAgentRunnerService', () => {
 
       expect(result.success).toBe(true);
       expect(result.payload?.content?.id).toBe('del-123');
-      expect(deliverablesService.executeAction).toHaveBeenCalledWith(
+      const executeActionSpy2 = deliverablesService.executeAction;
+      expect(executeActionSpy2).toHaveBeenCalledWith(
         'read',
         expect.objectContaining({ action: 'read', deliverableId: 'del-123' }),
         expect.objectContaining({
@@ -553,7 +560,8 @@ describe('ToolAgentRunnerService', () => {
       );
 
       // Should not call MCP service for non-create actions
-      expect(mcpService.callTool).not.toHaveBeenCalled();
+      const callToolSpy6 = mcpService.callTool;
+      expect(callToolSpy6).not.toHaveBeenCalled();
     });
   });
 });
