@@ -364,7 +364,7 @@ export default defineComponent({
       }
     },
     
-    processStatusData(data: any) {
+    processStatusData(data: { system: { ollamaConnected: boolean }; memory: { currentUsageGB: number; totalAllocatedGB: number }; activeAlerts: unknown[]; loadedModels: Array<{ tier?: string; [key: string]: unknown }> }) {
       this.ollamaConnected = data.system.ollamaConnected
       this.systemHealth = data.system
       this.memoryStats = {
@@ -377,7 +377,7 @@ export default defineComponent({
       // Group models by tier
       const tierMap = new Map<string, ModelStatus[]>()
       
-      data.loadedModels?.forEach((model: any) => {
+      data.loadedModels?.forEach((model: { tier?: string; [key: string]: unknown }) => {
         const tierName = model.tier || 'general'
         if (!tierMap.has(tierName)) {
           tierMap.set(tierName, [])

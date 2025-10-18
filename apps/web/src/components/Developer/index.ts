@@ -43,5 +43,5 @@ export interface Alert {
   type: string
   modelName?: string
   tier?: string
-  metrics?: any
+  metrics?: Record<string, unknown>
 }

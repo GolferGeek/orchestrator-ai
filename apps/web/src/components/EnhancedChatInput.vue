@@ -144,8 +144,8 @@ const handleConversationEnd = () => {
   // Conversational mode no longer affects the send button
 };
 
-const handleSpeechError = (error: any) => {
-  presentToast(`Speech error: ${error.message || error}`, 3000, 'danger');
+const handleSpeechError = (error: unknown) => {
+  presentToast(`Speech error: ${error instanceof Error ? error.message : String(error)}`, 3000, 'danger');
   // Conversational mode no longer affects the send button
 };
 
@@ -159,7 +159,7 @@ const presentToast = async (message: string, duration: number = 2000, color: str
   await toast.present();
 };
 const emit = defineEmits<{
-  (e: 'sendMessage', text: string, llmSelection?: any): void;
+  (e: 'sendMessage', text: string, llmSelection?: { model: string; provider: string }): void;
 }>();
 // Computed properties
 const estimatedCost = computed(() => {

@@ -375,34 +375,38 @@ const parsedResponse = computed(() => {
   try {
     const response = JSON.parse(props.evaluation.metadata.taskResponse);
     // Extract key fields from the response
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     // Helper function to recursively look for email data
-    const findEmailData = (obj: any): any => {
-      if (!obj || typeof obj !== 'object') return null;
+    const findEmailData = (obj: unknown): unknown => {
+      if (!obj || typeof obj !== 'object' || obj === null) return null;
+      const objRecord = obj as Record<string, unknown>;
       // Direct email field
-      if (obj.email) return obj.email;
+      if (objRecord.email) return objRecord.email;
       // Look in nested objects
-      for (const key in obj) {
-        if (typeof obj[key] === 'object') {
-          const nestedEmail = findEmailData(obj[key]);
+      for (const key in objRecord) {
+        if (typeof objRecord[key] === 'object') {
+          const nestedEmail = findEmailData(objRecord[key]);
           if (nestedEmail) return nestedEmail;
         }
       }
       return null;
     };
     // Helper function to extract response text from various structures
-    const extractResponseText = (obj: any): string | null => {
+    const extractResponseText = (obj: unknown): string | null => {
+      if (!obj || typeof obj !== 'object' || obj === null) return null;
+      const objRecord = obj as Record<string, unknown>;
       // Try different fields that might contain the actual response
-      if (typeof obj.response === 'string') return obj.response;
-      if (typeof obj.content === 'string') return obj.content;
-      if (typeof obj.text === 'string') return obj.text;
-      if (typeof obj.message === 'string') return obj.message;
+      if (typeof objRecord.response === 'string') return objRecord.response;
+      if (typeof objRecord.content === 'string') return objRecord.content;
+      if (typeof objRecord.text === 'string') return objRecord.text;
+      if (typeof objRecord.message === 'string') return objRecord.message;
       // If response field contains another JSON, try to parse it
-      if (typeof obj.response === 'object') {
+      if (typeof objRecord.response === 'object' && objRecord.response !== null) {
         try {
-          if (obj.response.content) return obj.response.content;
-          if (obj.response.text) return obj.response.text;
-          if (obj.response.message) return obj.response.message;
+          const responseObj = objRecord.response as Record<string, unknown>;
+          if (responseObj.content) return responseObj.content as string;
+          if (responseObj.text) return responseObj.text as string;
+          if (responseObj.message) return responseObj.message as string;
         } catch (e) {
         }
       }

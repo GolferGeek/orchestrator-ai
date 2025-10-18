@@ -148,7 +148,7 @@ interface RecoveryAction {
   color?: string;
   disabled?: boolean;
   action: 'retry' | 'navigate' | 'report' | 'refresh' | 'settings' | 'help';
-  params?: any;
+  params?: Record<string, unknown>;
 }
 
 // Computed
