@@ -18,6 +18,32 @@ export interface OrchestrateHandlerDependencies {
   readonly placeholder?: undefined;
 }
 
+/**
+ * Runner Context Interface
+ * Defines methods available on the runner instance
+ */
+interface RunnerContext {
+  handlePlan(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto>;
+  executeBuild(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto>;
+  checkpointService?: {
+    resolveCheckpoint(params: {
+      approvalId: string;
+      decision: string;
+      actorId: string | null;
+      notes: string | null;
+      modifications: Record<string, unknown> | null;
+    }): Promise<{ run: { id: string; status: string } }>;
+  };
+}
+
 const EMPTY_USAGE = {
   inputTokens: 0 as number,
   outputTokens: 0 as number,
@@ -164,7 +190,7 @@ function handleOrchestrateCreate(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
-  runnerContext: any,
+  runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   // Delegate to existing handlePlan() method
   return runnerContext.handlePlan(definition, request, organizationSlug);
@@ -178,7 +204,7 @@ function handleOrchestrateExecute(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
-  runnerContext: any,
+  runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   // Delegate to existing executeBuild() method
   return runnerContext.executeBuild(definition, request, organizationSlug);
@@ -192,7 +218,7 @@ function handleOrchestrateContinue(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
-  runnerContext: any,
+  runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   // For now, delegate to executeBuild which handles continuation
   return runnerContext.executeBuild(definition, request, organizationSlug);
@@ -221,7 +247,7 @@ function handleOrchestratePlanManagement(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
-  runnerContext: any,
+  runnerContext: RunnerContext,
   _action: string,
 ): Promise<TaskResponseDto> {
   // Delegate to handlePlan for plan creation/update
@@ -236,7 +262,7 @@ function handleOrchestrateRunStart(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
-  runnerContext: any,
+  runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   // Delegate to executeBuild which handles run execution
   return runnerContext.executeBuild(definition, request, organizationSlug);
@@ -250,7 +276,7 @@ async function handleRunHumanResponse(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
-  runnerContext: any,
+  runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   const payload = (request.payload ?? {}) as unknown as OrchestrateModePayload;
   const { approvalId, decision, notes, modifications } = payload as any;

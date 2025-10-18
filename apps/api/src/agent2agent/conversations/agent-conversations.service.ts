@@ -172,15 +172,16 @@ export class AgentConversationsService {
   ): Promise<AgentConversation> {
     // If a conversation ID was provided, validate it exists and belongs to the user
     if (existingConversationId) {
-      const { data: existing } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations'))
-        .select()
-        .eq('id', existingConversationId)
-        .eq('user_id', userId)
-        .eq('agent_name', agentName)
-        .eq('agent_type', agentType)
-        .single();
+      const { data: existing }: { data: AgentConversationDbRecord | null } =
+        await this.supabaseService
+          .getAnonClient()
+          .from(getTableName('conversations'))
+          .select()
+          .eq('id', existingConversationId)
+          .eq('user_id', userId)
+          .eq('agent_name', agentName)
+          .eq('agent_type', agentType)
+          .single();
 
       if (existing) {
         return this.mapToAgentConversation(
@@ -386,7 +387,7 @@ export class AgentConversationsService {
   async updateConversationMetadata(
     conversationId: string,
     userId: string,
-    metadata: Record<string, any>,
+    metadata: Record<string, unknown>,
   ): Promise<void> {
     const { error } = await this.supabaseService
       .getAnonClient()
@@ -433,19 +434,23 @@ export class AgentConversationsService {
     userId: string,
     workProduct: { type: 'deliverable' | 'project'; id: string },
   ): Promise<AgentConversation | null> {
-    const { data, error } = await this.supabaseService
-      .getAnonClient()
-      .from('conversations')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('primary_work_product_type', workProduct.type)
-      .eq('primary_work_product_id', workProduct.id)
-      .limit(1)
-      .maybeSingle();
+    const {
+      data,
+      error,
+    }: { data: AgentConversationDbRecord | null; error: unknown } =
+      await this.supabaseService
+        .getAnonClient()
+        .from('conversations')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('primary_work_product_type', workProduct.type)
+        .eq('primary_work_product_id', workProduct.id)
+        .limit(1)
+        .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error && (error as { code?: string }).code !== 'PGRST116') {
       throw new Error(
-        `Failed to find conversation by work product: ${error.message}`,
+        `Failed to find conversation by work product: ${(error as Error).message}`,
       );
     }
 

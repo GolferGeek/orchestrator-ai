@@ -183,7 +183,7 @@ export class OrchestrationStateService {
           (step.metadata as Record<string, any> | undefined)?.runtime,
         );
         const retryState = this.asRecord(runtime?.retry);
-        if (retryState?.nextRetryAt) {
+        if (retryState?.nextRetryAt && typeof retryState.nextRetryAt === 'string') {
           const scheduled = Date.parse(retryState.nextRetryAt);
           if (!Number.isNaN(scheduled) && scheduled > now) {
             return false;
@@ -233,7 +233,7 @@ export class OrchestrationStateService {
 
       if (value && typeof value === 'object') {
         const resolved: Record<string, any> = {};
-        Object.entries(value).forEach(([key, entry]) => {
+        Object.entries(value as Record<string, any>).forEach(([key, entry]) => {
           resolved[key] = resolveValue(entry);
         });
         return resolved;

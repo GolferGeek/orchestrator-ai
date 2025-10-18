@@ -532,15 +532,25 @@ export interface AnalyticsResponse<T = UnknownRecord> {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface EvaluationAnalyticsResponse extends AnalyticsResponse<EvaluationAnalytics> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkflowAnalyticsResponse extends AnalyticsResponse<WorkflowAnalytics> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ProjectAnalyticsResponse extends AnalyticsResponse<ProjectAnalytics> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface UsageStatsResponse extends AnalyticsResponse<UsageStats> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface CostSummaryResponse extends AnalyticsResponse<CostSummary> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ModelPerformanceResponse extends AnalyticsResponse<ModelPerformance[]> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface TaskAnalyticsResponse extends AnalyticsResponse<TaskAnalytics> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface SystemAnalyticsResponse extends AnalyticsResponse<SystemAnalytics> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface BusinessMetricsResponse extends AnalyticsResponse<BusinessMetrics> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface DashboardDataResponse extends AnalyticsResponse<DashboardData> {}
 export interface RealTimeAnalyticsResponse extends AnalyticsResponse<RealTimeAnalytics> {}
 

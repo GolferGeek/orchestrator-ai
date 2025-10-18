@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { AgentExecutionGateway } from '../services/agent-execution-gateway.service';
 import { HumanApprovalsRepository } from '@/agent-platform/repositories/human-approvals.repository';
+import { TaskRequestDto } from '../dtos/task-request.dto';
 
 @Controller('agent-to-agent')
 export class AgentApprovalsActionsController {
@@ -46,13 +47,13 @@ export class AgentApprovalsActionsController {
       );
     }
 
-    const userId = req.user?.sub || req.user?.id || req.user?.userId || null;
+    const userId = (req.user?.sub || req.user?.id || req.user?.userId || null) as string | null;
     await this.approvals.setStatus(id, 'approved', userId);
 
     // Rehydrate the stored request and allow minimal overrides
     const stored: any = (record.metadata as any)?.request || {};
-    const request: any = {
-      mode: 'build',
+    const request = {
+      mode: 'build' as const,
       conversationId:
         record.conversation_id ?? stored.conversationId ?? undefined,
       userMessage: stored.userMessage ?? undefined,
@@ -89,7 +90,7 @@ export class AgentApprovalsActionsController {
     const response = await this.gateway.execute(
       record.organization_slug ?? orgSlug ?? null,
       agentSlug,
-      request,
+      request as unknown as TaskRequestDto,
     );
 
     // Attach approval context to response metadata (avoid mutating readonly types)

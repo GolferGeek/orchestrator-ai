@@ -52,7 +52,10 @@ export class DeliverableVersionsService {
       await this.markPreviousVersionsAsNotCurrent(deliverableId);
 
       // Create new version
-      const { data: newVersionData, error: insertError } =
+      const {
+        data: newVersionData,
+        error: insertError,
+      }: { data: Record<string, unknown> | null; error: unknown } =
         await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverable_versions'))
@@ -139,12 +142,16 @@ export class DeliverableVersionsService {
     userId: string,
   ): Promise<DeliverableVersion> {
     try {
-      const { data, error } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverable_versions'))
-        .select('*')
-        .eq('id', versionId)
-        .single();
+      const {
+        data,
+        error,
+      }: { data: Record<string, unknown> | null; error: unknown } =
+        await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverable_versions'))
+          .select('*')
+          .eq('id', versionId)
+          .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -183,13 +190,17 @@ export class DeliverableVersionsService {
       // Verify deliverable ownership
       await this.verifyDeliverableOwnership(deliverableId, userId);
 
-      const { data, error } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverable_versions'))
-        .select('*')
-        .eq('deliverable_id', deliverableId)
-        .eq('is_current_version', true)
-        .maybeSingle();
+      const {
+        data,
+        error,
+      }: { data: Record<string, unknown> | null; error: unknown } =
+        await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverable_versions'))
+          .select('*')
+          .eq('deliverable_id', deliverableId)
+          .eq('is_current_version', true)
+          .maybeSingle();
 
       if (error) {
         throw new BadRequestException('Failed to find current version');
@@ -250,13 +261,17 @@ export class DeliverableVersionsService {
       await this.markPreviousVersionsAsNotCurrent(version.deliverableId);
 
       // Set this version as current
-      const { data, error } = await this.supabaseService
-        .getServiceClient()
-        .from(getTableName('deliverable_versions'))
-        .update({ is_current_version: true })
-        .eq('id', versionId)
-        .select('*')
-        .single();
+      const {
+        data,
+        error,
+      }: { data: Record<string, unknown> | null; error: unknown } =
+        await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverable_versions'))
+          .update({ is_current_version: true })
+          .eq('id', versionId)
+          .select('*')
+          .single();
 
       if (error) {
         throw new BadRequestException(
@@ -569,13 +584,17 @@ export class DeliverableVersionsService {
     userId: string,
   ): Promise<Task | null> {
     try {
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('tasks')
-        .select('*')
-        .eq('id', taskId)
-        .eq('user_id', userId)
-        .single();
+      const {
+        data,
+        error,
+      }: { data: Record<string, unknown> | null; error: unknown } =
+        await this.supabaseService
+          .getAnonClient()
+          .from('tasks')
+          .select('*')
+          .eq('id', taskId)
+          .eq('user_id', userId)
+          .single();
 
       if (error) {
         this.logger.error(`Error fetching task ${taskId}:`, error);
@@ -828,8 +847,8 @@ export class DeliverableVersionsService {
       taskId: data.task_id,
       metadata: data.metadata || {},
       fileAttachments: data.file_attachments || {},
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
+      createdAt: new Date(data.created_at as string | number | Date),
+      updatedAt: new Date(data.updated_at as string | number | Date),
     };
   }
 

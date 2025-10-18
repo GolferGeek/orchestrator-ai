@@ -40,7 +40,15 @@ export class AgentDryRunService {
       process: undefined,
       global: {},
       Buffer: undefined,
-    });
+    }) as {
+      module: { exports: unknown };
+      exports: Record<string, unknown>;
+      console: typeof consoleStub;
+      require: undefined;
+      process: undefined;
+      global: Record<string, unknown>;
+      Buffer: undefined;
+    };
 
     try {
       const script = new vm.Script(String(code));
@@ -68,20 +76,21 @@ export class AgentDryRunService {
   }
 
   runApiTransform(
-    apiConfig: any,
-    input: any = {},
-    mockResponse?: any,
+    apiConfig: unknown,
+    input: unknown = {},
+    mockResponse?: unknown,
   ): {
     ok: boolean;
     request?: { format?: string; body?: string };
-    response?: { format?: string; extracted?: any };
+    response?: { format?: string; extracted?: unknown };
     error?: string;
   } {
     try {
+      const apiConfigObj = apiConfig as Record<string, unknown> | undefined;
       const reqT: unknown =
-        apiConfig?.request_transform || apiConfig?.requestTransform;
+        apiConfigObj?.request_transform || apiConfigObj?.requestTransform;
       const resT: unknown =
-        apiConfig?.response_transform || apiConfig?.responseTransform;
+        apiConfigObj?.response_transform || apiConfigObj?.responseTransform;
 
       let body: string | undefined;
       if (
@@ -138,19 +147,22 @@ export class AgentDryRunService {
     }
   }
 
-  private renderTemplate(tpl: string, ctx: any): string {
+  private renderTemplate(tpl: string, ctx: unknown): string {
     return String(tpl).replace(/\{\{\s*([^}]+)\s*\}\}/g, (_m, p1) => {
       const v = this.getByPath(ctx, String(p1).trim());
       return v == null ? '' : String(v);
     });
   }
 
-  private getByPath(obj: any, path: string): any {
+  private getByPath(obj: unknown, path: string): unknown {
     if (!obj || !path) return undefined;
     return String(path)
       .split('.')
       .reduce(
-        (acc: any, key: string) => (acc != null ? acc[key] : undefined),
+        (acc: unknown, key: string) =>
+          acc != null && typeof acc === 'object' && key in acc
+            ? (acc as Record<string, unknown>)[key]
+            : undefined,
         obj,
       );
   }

@@ -108,7 +108,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(planCreate.body.content).toHaveProperty('version', 1);
       expect(planCreate.body.content).toHaveProperty('isNew', true);
 
-      const planId = planCreate.body.content.plan.id;
+      const planId: string = planCreate.body.content.plan.id as string;
 
       // 4. Read plan
       const planReadRequest: TaskRequestDto = {

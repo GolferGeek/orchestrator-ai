@@ -110,7 +110,12 @@ export class CentralizedRoutingService {
   async processAgentResponse(
     agentResponse: string,
     piiMetadata: PIIProcessingMetadata,
-    options: any = {},
+    options: {
+      conversationId?: string;
+      requestId?: string;
+      userId?: string;
+      organizationId?: string;
+    } = {},
   ): Promise<{
     processedResponse: string;
     updatedMetadata: PIIProcessingMetadata;
@@ -210,7 +215,19 @@ export class CentralizedRoutingService {
    */
   async determineRoute(
     prompt: string,
-    options: any = {},
+    options: {
+      conversationId?: string;
+      userId?: string;
+      requestId?: string;
+      providerName?: string;
+      provider?: string;
+      organizationId?: string;
+      userSovereignMode?: boolean;
+      model?: string;
+      modelName?: string;
+      dataType?: string;
+      preferLocal?: boolean;
+    } = {},
   ): Promise<RoutingDecision> {
     this.logger.debug(
       `🚀 [CENTRALIZED-ROUTING] determineRoute called with prompt: "${prompt.substring(0, 100)}..."`,
@@ -369,7 +386,11 @@ export class CentralizedRoutingService {
               ).length,
               redactionTypes: (
                 piiResult.metadata.detectionResults?.showstopperMatches || []
-              ).map((m: any) => m.dataType),
+              ).map((m: unknown) =>
+                typeof m === 'object' && m !== null && 'dataType' in m
+                  ? (m as Record<string, unknown>).dataType
+                  : 'unknown',
+              ),
             } as any,
           });
         } catch {
@@ -795,7 +816,11 @@ export class CentralizedRoutingService {
   private logRoutingDecision(
     request: LLMRequest,
     decision: RoutingDecision,
-    sovereignPolicy: any,
+    sovereignPolicy: {
+      auditLevel?: string;
+      enforced?: boolean;
+      defaultMode?: string;
+    } | null,
     sovereignModeActive: boolean,
     sovereignRoutingEnabled: boolean,
     violations: string[],

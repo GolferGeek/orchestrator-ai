@@ -3,7 +3,7 @@
  * Comprehensive tests for input validation, security patterns, and composables
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { useValidation, ValidationRules, usePIIValidation, useRegexValidation } from '@/composables/useValidation';

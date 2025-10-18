@@ -200,8 +200,6 @@ describe('State Management Integration Tests - Task 24.2', () => {
 
   describe('Store Actions and Side Effects', () => {
     it('should handle action execution with proper state management', async () => {
-      const piiStore = usePIIPatternsStore();
-      
       // Test pattern validation action
       const validatePattern = (pattern: { name: string; dataType: string; regex: string }) => {
         if (!pattern.name || !pattern.dataType || !pattern.regex) {

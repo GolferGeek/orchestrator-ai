@@ -158,7 +158,7 @@ export class Agent2AgentTasksService {
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params,
-        createdAt: new Date(task.created_at),
+        createdAt: new Date(task.created_at as string),
       };
     } catch (error) {
       this.logger.error('Failed to create A2A task:', error);
@@ -214,8 +214,8 @@ export class Agent2AgentTasksService {
         params: task.params,
         result: task.result,
         error: task.error,
-        createdAt: new Date(task.created_at),
-        updatedAt: new Date(task.updated_at),
+        createdAt: new Date(task.created_at as string),
+        updatedAt: new Date(task.updated_at as string),
       };
     } catch (error) {
       this.logger.error(`Failed to get A2A task ${taskId}:`, error);

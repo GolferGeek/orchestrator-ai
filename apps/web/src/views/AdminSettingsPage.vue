@@ -781,7 +781,7 @@ async function saveModelConfig() {
       });
       await toast.present();
       closeModelConfigModal();
-    } catch (e) {
+    } catch (_e) {
       const toast = await toastController.create({
         message: 'Failed to save configuration. Please try again.',
         duration: 3000,

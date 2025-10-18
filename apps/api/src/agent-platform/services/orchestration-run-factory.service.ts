@@ -209,14 +209,13 @@ export class OrchestrationRunFactoryService {
   ): Record<string, any> | null {
     const orchestrationConfig = (definition.rawDefinition?.orchestration ??
       {}) as Record<string, any>;
-    const retryConfig = this.normalizeRetryConfig(
-      orchestrationConfig.error_handling,
-    );
+    const errorHandling = orchestrationConfig.error_handling as
+      | Record<string, any>
+      | undefined;
+    const retryConfig = this.normalizeRetryConfig(errorHandling);
 
     const retryMetadata = this.buildRunRetryMetadata(retryConfig);
-    const rollbackMetadata = this.buildRunRollbackMetadata(
-      orchestrationConfig.error_handling,
-    );
+    const rollbackMetadata = this.buildRunRollbackMetadata(errorHandling);
 
     if (!retryMetadata && !rollbackMetadata) {
       return null;

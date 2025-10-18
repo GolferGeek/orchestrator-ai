@@ -81,7 +81,7 @@ export class Agent2AgentConversationsService {
         namespace: conversation.agent_type, // agent_type column stores the namespace
         title: conversation.title,
         metadata: conversation.metadata,
-        createdAt: new Date(conversation.created_at),
+        createdAt: new Date(conversation.created_at as string),
       };
     } catch (error) {
       this.logger.error('Failed to create A2A conversation:', error);
@@ -126,8 +126,8 @@ export class Agent2AgentConversationsService {
         namespace: conversation.agent_type, // agent_type column stores the namespace
         title: conversation.title,
         metadata: conversation.metadata,
-        createdAt: new Date(conversation.created_at),
-        updatedAt: new Date(conversation.updated_at),
+        createdAt: new Date(conversation.created_at as string),
+        updatedAt: new Date(conversation.updated_at as string),
       };
     } catch (error) {
       this.logger.error(

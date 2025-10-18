@@ -132,7 +132,7 @@ export class PerformanceMonitor {
       });
       navObserver.observe({ entryTypes: ['navigation'] });
       this.observers.push(navObserver);
-    } catch (e) {
+    } catch (_e) {
       console.debug('Navigation observer not supported');
     }
 
@@ -148,7 +148,7 @@ export class PerformanceMonitor {
       });
       resourceObserver.observe({ entryTypes: ['resource'] });
       this.observers.push(resourceObserver);
-    } catch (e) {
+    } catch (_e) {
       console.debug('Resource observer not supported');
     }
 
@@ -163,7 +163,7 @@ export class PerformanceMonitor {
       });
       paintObserver.observe({ entryTypes: ['paint'] });
       this.observers.push(paintObserver);
-    } catch (e) {
+    } catch (_e) {
       console.debug('Paint observer not supported');
     }
 
@@ -176,7 +176,7 @@ export class PerformanceMonitor {
       });
       lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
       this.observers.push(lcpObserver);
-    } catch (e) {
+    } catch (_e) {
       console.debug('LCP observer not supported');
     }
   }
@@ -306,7 +306,7 @@ export class PerformanceMonitor {
           lcpObserver.disconnect();
           checkCompletion();
         }, 1000);
-      } catch (e) {
+      } catch (_e) {
         checkCompletion();
       }
 
@@ -327,7 +327,7 @@ export class PerformanceMonitor {
           clsObserver.disconnect();
           checkCompletion();
         }, 1000);
-      } catch (e) {
+      } catch (_e) {
         checkCompletion();
       }
 

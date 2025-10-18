@@ -380,7 +380,7 @@ export function getProfile(name: string): SanitizationProfile | null {
 export function testSanitization(input: string): Record<string, { output: string; modified: boolean }> {
   const results: Record<string, { output: string; modified: boolean }> = {};
   
-  for (const [profileName, profile] of Object.entries(SANITIZATION_PROFILES)) {
+  for (const [profileName, _profile] of Object.entries(SANITIZATION_PROFILES)) {
     const result = sanitizeWithProfile(input, { profile: profileName });
     results[profileName] = {
       output: result.sanitized,

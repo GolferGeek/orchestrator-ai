@@ -49,7 +49,7 @@ export class PlansController {
     req: {
       user?: { sub?: string; id?: string; userId?: string };
     },
-  ): Promise<any> {
+  ): Promise<unknown> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
       throw new Error('User not authenticated');

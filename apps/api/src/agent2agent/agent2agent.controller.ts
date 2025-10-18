@@ -982,7 +982,7 @@ export class Agent2AgentController {
     const candidate = { ...candidateSource };
 
     if (isJsonRpc && !candidate.mode && typeof payload.method === 'string') {
-      const mapped = this.mapMethodToMode(payload.method);
+      const mapped = this.mapMethodToMode(payload.method as string);
       if (mapped) {
         candidate.mode = mapped;
       }
@@ -1062,10 +1062,10 @@ export class Agent2AgentController {
     const messages = errors
       .map((error) => {
         if (error.constraints) {
-          return Object.values(error.constraints).join(', ');
+          return Object.values(error.constraints as Record<string, any>).join(', ');
         }
         if (error.children && error.children.length) {
-          return this.formatValidationErrors(error.children);
+          return this.formatValidationErrors(error.children as any[]);
         }
         return null;
       })

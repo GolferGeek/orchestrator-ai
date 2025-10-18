@@ -165,9 +165,9 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { 
-  IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
+  IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup
 } from '@ionic/vue';
-import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
+import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, settingsOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { conversation } from '@/services/conversationHelpers';
 import { useConversationsStore } from '@/stores/conversationsStore';
@@ -179,7 +179,7 @@ const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const router = useRouter();
 // State for accordion and search
-const mainNavExpanded = ref(true); // Main navigation accordion starts expanded
+const _mainNavExpanded = ref(true); // Main navigation accordion starts expanded
 const agentsExpanded = ref(true);
 const adminExpanded = ref(false); // Admin accordion starts collapsed
 // Dynamic titles based on current route

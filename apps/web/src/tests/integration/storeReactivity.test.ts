@@ -7,7 +7,6 @@ import { ref, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { useLLMHealthStore } from '@/stores/llmHealthStore';
 
 // Mock component for testing reactivity
 const TestComponent = {
@@ -141,7 +140,7 @@ describe('Store Reactivity Tests', () => {
   describe('Composable Reactivity', () => {
     it('should update component when composable state changes', async () => {
       const wrapper = mount(ComposableTestComponent);
-      const { piiPatternsStore, refreshAll } = usePIIManagement();
+      const { piiPatternsStore } = usePIIManagement();
 
       // Initial state
       expect(wrapper.find('[data-testid="is-loading"]').text()).toBe('false');
@@ -215,7 +214,6 @@ describe('Store Reactivity Tests', () => {
     it('should handle complex state updates in monitoring composables', async () => {
       const { 
         llmHealthStore, 
-        analyticsStore, 
         dashboardData, 
         systemHealthStatus 
       } = useMonitoringAnalytics();
@@ -318,7 +316,7 @@ describe('Store Reactivity Tests', () => {
 
       // Create multiple watchers
       for (let i = 0; i < 100; i++) {
-        const unwatch = store.$subscribe((mutation, state) => {
+        const unwatch = store.$subscribe((_mutation, _state) => {
           watcherCallbacks.push(i);
         });
 

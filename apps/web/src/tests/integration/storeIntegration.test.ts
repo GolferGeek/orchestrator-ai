@@ -6,7 +6,6 @@ import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useLLMAnalyticsStore } from '@/stores/llmAnalyticsStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
 
 // Test timeout for API calls (10 seconds)
 const API_TIMEOUT = 10000;
@@ -50,7 +49,7 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadPatterns();
         // If successful, that's fine too
         expect(store.error).toBeNull();
-      } catch (error) {
+      } catch (_error) {
         // If API returns error, store should handle it gracefully
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -276,7 +275,7 @@ describe('Store Integration Tests - Real API', () => {
         // If successful, error should be null
         expect(store.error).toBeNull();
         expect(store.isLoading).toBe(false);
-      } catch (error) {
+      } catch (_error) {
         // If API fails, error should be set
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -355,7 +354,7 @@ describe('Store Integration Tests - Real API', () => {
         // Success case
         expect(store.error).toBeNull();
         expect(store.isLoading).toBe(false);
-      } catch (error) {
+      } catch (_error) {
         // Error case - store should handle gracefully
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -370,7 +369,7 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadDashboardData();
         // Success case
         expect(store.error).toBeNull();
-      } catch (error) {
+      } catch (_error) {
         // Network error case
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -391,7 +390,7 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadPatterns();
         expect(store.error).toBeNull();
         expect(store.isLoading).toBe(false);
-      } catch (error) {
+      } catch (_error) {
         // If API is unavailable, that's expected
         expect(store.error).toBeDefined();
       }

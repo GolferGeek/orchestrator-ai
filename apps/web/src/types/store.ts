@@ -2,32 +2,18 @@
 // This file contains interfaces specifically designed for Pinia store implementations
 
 import type {
-  BaseStoreState,
   DataStoreState,
-  MonitoringStoreState,
-  LoadingStates,
-  ErrorState,
-  PaginationState,
-  SortOptions,
-  SelectionState,
-  StoreConfig,
-  ValidationResult,
-  BulkOperationResult,
-  ExportOptions,
-  ImportOptions,
-  UnknownRecord
+  MonitoringStoreState
 } from './index';
 
 import type {
   PIIPattern,
   PIITestResponse,
   PIIStatsResponse,
-  PIIPatternFilters,
   PseudonymDictionaryEntry,
   PseudonymGenerateResponse,
   PseudonymLookupResponse,
   PseudonymStatsResponse,
-  PIIDataType
 } from './pii';
 
 import type {
@@ -48,10 +34,6 @@ import type {
   AnalyticsEvent,
   ReportConfig,
   GeneratedReport,
-  RealTimeAnalytics,
-  PerformanceMetric,
-  ConstraintAnalytics,
-  TimeRange
 } from './analytics';
 
 // =====================================

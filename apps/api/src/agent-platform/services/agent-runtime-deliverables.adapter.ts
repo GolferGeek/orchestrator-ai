@@ -26,7 +26,7 @@ export interface BuildDeliverableInput {
   deliverableFormat?: DeliverableFormat | string | null;
 }
 
-type ImageRecord = Record<string, any>;
+type ImageRecord = Record<string, unknown>;
 
 @Injectable()
 export class AgentRuntimeDeliverablesAdapter {
@@ -41,7 +41,11 @@ export class AgentRuntimeDeliverablesAdapter {
   async maybeCreateFromBuild(
     ctx: BuildDeliverableInput,
     request: TaskRequestDto,
-  ): Promise<any> {
+  ): Promise<
+    | { kind: 'version'; deliverableId: string; version: unknown }
+    | { kind: 'deliverable'; deliverable: unknown }
+    | null
+  > {
     try {
       if (ctx.mode !== AgentTaskMode.BUILD) return null;
       const userId = this.resolveUserId(request);
@@ -51,7 +55,7 @@ export class AgentRuntimeDeliverablesAdapter {
       }
 
       const baseTitle = ctx.title || `Build output from ${ctx.agentSlug}`;
-      const payload = request.payload as Record<string, unknown> | undefined;
+      const payload = request.payload;
       const content =
         ctx.content ||
         (typeof payload?.output === 'string' ? payload.output : '') ||
@@ -151,7 +155,7 @@ export class AgentRuntimeDeliverablesAdapter {
 
   private resolveUserId(request: TaskRequestDto): string | null {
     // prefer top-level metadata, then payload.metadata
-    const topMeta = request.metadata as Record<string, unknown> | undefined;
+    const topMeta = request.metadata;
     const fromTop: string | undefined =
       (typeof topMeta?.userId === 'string' ? topMeta.userId : undefined) ||
       (typeof topMeta?.createdBy === 'string' ? topMeta.createdBy : undefined);
@@ -295,7 +299,7 @@ export class AgentRuntimeDeliverablesAdapter {
   }
 
   private async maybePersistImages(
-    images: any[],
+    images: unknown[],
     ctx: {
       organizationSlug: string | null;
       conversationId: string | null;
@@ -306,10 +310,16 @@ export class AgentRuntimeDeliverablesAdapter {
     const results: ImageRecord[] = [];
     for (let i = 0; i < images.length; i++) {
       const img = images[i] || {};
-      const hasData = typeof img.data === 'string' && img.data.length > 0;
+      const hasData =
+        typeof img === 'object' &&
+        img !== null &&
+        'data' in img &&
+        typeof img.data === 'string' &&
+        img.data.length > 0;
       if (hasData && this.assets) {
         try {
-          let mime: string = img.mime || img.contentType || 'image/png';
+          const imgObj = img as Record<string, unknown>;
+          let mime: string = (imgObj.mime as string) || (imgObj.contentType as string) || 'image/png';
           let base64 = img.data as string;
           const match = /^data:([^;]+);base64,(.*)$/i.exec(base64);
           if (match) {
@@ -318,7 +328,7 @@ export class AgentRuntimeDeliverablesAdapter {
           }
           const buffer = Buffer.from(base64, 'base64');
           const filename =
-            img.filename ||
+            (imgObj.filename as string) ||
             `image-${Date.now()}-${i}.${this.extFromMime(mime)}`;
           const rec = await this.assets.saveBuffer({
             organizationSlug: ctx.organizationSlug,
@@ -333,12 +343,12 @@ export class AgentRuntimeDeliverablesAdapter {
             assetId: rec.id,
             url: `/assets/${rec.id}`,
             mime,
-            width: img.width || undefined,
-            height: img.height || undefined,
+            width: (imgObj.width as number) || undefined,
+            height: (imgObj.height as number) || undefined,
             size: rec.size || undefined,
-            thumbnailUrl: img.thumbnailUrl || undefined,
-            altText: img.altText || undefined,
-            hash: img.hash || undefined,
+            thumbnailUrl: (imgObj.thumbnailUrl as string) || undefined,
+            altText: (imgObj.altText as string) || undefined,
+            hash: (imgObj.hash as string) || undefined,
           });
           continue;
         } catch (e) {
@@ -346,28 +356,29 @@ export class AgentRuntimeDeliverablesAdapter {
         }
       }
       // Optionally fetch-and-store external URLs
+      const imgObj = img as Record<string, unknown>;
       const hasUrl =
-        typeof img.url === 'string' && /^https?:\/\//i.test(img.url as string);
+        typeof imgObj.url === 'string' && /^https?:\/\//i.test(imgObj.url as string);
       if (hasUrl && this.assets) {
         try {
           const rec = await this.assets.saveFromUrl({
-            url: img.url as string,
+            url: imgObj.url as string,
             organizationSlug: ctx.organizationSlug,
             conversationId: ctx.conversationId,
             userId: ctx.userId,
-            filename: img.filename,
+            filename: imgObj.filename as string | undefined,
             subpath: 'images',
           });
           results.push({
             assetId: rec.id,
             url: `/assets/${rec.id}`,
             mime: rec.mime,
-            width: img.width || undefined,
-            height: img.height || undefined,
+            width: (imgObj.width as number) || undefined,
+            height: (imgObj.height as number) || undefined,
             size: rec.size || undefined,
-            thumbnailUrl: img.thumbnailUrl || undefined,
-            altText: img.altText || undefined,
-            hash: img.hash || undefined,
+            thumbnailUrl: (imgObj.thumbnailUrl as string) || undefined,
+            altText: (imgObj.altText as string) || undefined,
+            hash: (imgObj.hash as string) || undefined,
           });
           continue;
         } catch (e) {
@@ -376,19 +387,19 @@ export class AgentRuntimeDeliverablesAdapter {
           );
           try {
             const rec = await this.assets.registerExternal({
-              url: img.url,
-              mime: img.mime || img.contentType,
+              url: imgObj.url as string,
+              mime: (imgObj.mime as string) || (imgObj.contentType as string),
             });
             results.push({
               assetId: rec.id,
               url: `/assets/${rec.id}`,
-              mime: img.mime || img.contentType || 'application/octet-stream',
-              width: img.width || undefined,
-              height: img.height || undefined,
-              size: img.size || undefined,
-              thumbnailUrl: img.thumbnailUrl || undefined,
-              altText: img.altText || undefined,
-              hash: img.hash || undefined,
+              mime: (imgObj.mime as string) || (imgObj.contentType as string) || 'application/octet-stream',
+              width: (imgObj.width as number) || undefined,
+              height: (imgObj.height as number) || undefined,
+              size: (imgObj.size as number) || undefined,
+              thumbnailUrl: (imgObj.thumbnailUrl as string) || undefined,
+              altText: (imgObj.altText as string) || undefined,
+              hash: (imgObj.hash as string) || undefined,
             });
             continue;
           } catch (e2) {

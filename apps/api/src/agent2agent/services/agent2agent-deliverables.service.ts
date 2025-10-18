@@ -62,9 +62,9 @@ export class Agent2AgentDeliverablesService {
         return null;
       }
 
-      const rawOutput =
+      const rawOutput: string =
         typeof payload.content?.output === 'string'
-          ? payload.content.output
+          ? (payload.content.output as string)
           : '';
       const images = this.normalizeImages([
         ...(Array.isArray(payload.images) ? payload.images : []),
@@ -261,7 +261,7 @@ export class Agent2AgentDeliverablesService {
     }
 
     const preview = images.slice(0, 2).map((image, index) => {
-      const redactedUrl = this.redactUrlForLogs(image.url);
+      const redactedUrl = this.redactUrlForLogs(image.url as string);
       const dims =
         image.width && image.height
           ? `${image.width}x${image.height}`

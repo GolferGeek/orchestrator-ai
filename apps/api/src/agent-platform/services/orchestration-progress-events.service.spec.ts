@@ -66,7 +66,7 @@ const createStepSnapshot = (
 const createEvent = (
   type: OrchestrationEventType,
   runOverrides: Partial<OrchestrationRunSnapshot> = {},
-  dataOverrides: Record<string, any> = {},
+  dataOverrides: Record<string, unknown> = {},
 ): OrchestrationRunEventPayload => ({
   type,
   timestamp: new Date().toISOString(),
@@ -350,7 +350,7 @@ describe('OrchestrationProgressEventsService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as never,
       };
       httpService.post.mockReturnValue(of(mockResponse));
 

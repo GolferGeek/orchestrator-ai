@@ -112,7 +112,7 @@ export class AgentConversationsController {
   @HttpCode(HttpStatus.OK)
   async updateMetadata(
     @Param('id') conversationId: string,
-    @Body() metadata: Record<string, any>,
+    @Body() metadata: Record<string, unknown>,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
     await this.agentConversationsService.updateConversationMetadata(

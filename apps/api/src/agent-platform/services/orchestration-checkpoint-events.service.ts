@@ -26,7 +26,7 @@ interface CheckpointResolvedEvent {
   decision: OrchestrationCheckpointDecision;
   decidedBy?: string | null;
   notes?: string | null;
-  modifications?: Record<string, any> | null;
+  modifications?: Record<string, unknown> | null;
 }
 
 interface CheckpointStepInfo {
@@ -191,9 +191,12 @@ export class OrchestrationCheckpointEventsService {
   private emitStreamChunk(
     run: OrchestrationRunRecord,
     eventType: string,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ) {
-    const agentMetadata = (run.metadata?.agent ?? {}) as Record<string, any>;
+    const agentMetadata = (run.metadata?.agent ?? {}) as Record<
+      string,
+      unknown
+    >;
     const agentSlug =
       (agentMetadata.slug as string | undefined) ?? 'orchestration-manager';
 
@@ -219,7 +222,7 @@ export class OrchestrationCheckpointEventsService {
 
   private async dispatchWebhook(
     eventType: string,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): Promise<void> {
     if (!this.webhookUrl) {
       return;

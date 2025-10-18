@@ -40,7 +40,10 @@ export class PlansRepository {
    * Create a new plan
    */
   async create(data: CreatePlanData): Promise<PlanRecord> {
-    const { data: planData, error } = await this.supabaseService
+    const {
+      data: planData,
+      error,
+    }: { data: PlanRecord | null; error: unknown } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
       .insert([data])
@@ -61,13 +64,14 @@ export class PlansRepository {
     conversationId: string,
     userId: string,
   ): Promise<PlanRecord | null> {
-    const { data, error } = await this.supabaseService
-      .getServiceClient()
-      .from(getTableName('plans'))
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .eq('user_id', userId)
-      .maybeSingle();
+    const { data, error }: { data: PlanRecord | null; error: unknown } =
+      await this.supabaseService
+        .getServiceClient()
+        .from(getTableName('plans'))
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
+        .maybeSingle();
 
     if (error) {
       throw new BadRequestException(
