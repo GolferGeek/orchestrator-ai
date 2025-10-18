@@ -112,8 +112,14 @@ export class AgentRuntimePromptService {
     // Inject plan template for plan mode
     if (mode === 'plan') {
       const planTemplate = definition.context?.plan_template;
+      const templateLength =
+        typeof planTemplate === 'string'
+          ? planTemplate.length
+          : Array.isArray(planTemplate)
+            ? planTemplate.length
+            : 0;
       console.log(
-        `🔍 [PLAN-TEMPLATE-DEBUG] Mode: ${mode}, Has template: ${!!planTemplate}, Template length: ${planTemplate?.length || 0}, Type: ${typeof planTemplate}`,
+        `🔍 [PLAN-TEMPLATE-DEBUG] Mode: ${mode}, Has template: ${!!planTemplate}, Template length: ${templateLength}, Type: ${typeof planTemplate}`,
       );
       if (typeof planTemplate === 'string' && planTemplate.trim()) {
         const finalPrompt = `${basePrompt}\n\n${planTemplate}`;

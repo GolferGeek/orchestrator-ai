@@ -735,12 +735,11 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     const candidates = [rerunFormat, mergeFormat, configuredFormat];
 
     const selected = candidates.find(
-      (format): format is string =>
-        typeof format === 'string' && format.trim().length > 0,
+      (format) => typeof format === 'string' && format.trim().length > 0,
     );
 
-    if (selected) {
-      return selected;
+    if (typeof selected === 'string') {
+      return selected.trim();
     }
 
     return this.isJsonString(content) ? 'json' : 'markdown';

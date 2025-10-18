@@ -185,7 +185,9 @@ export class AgentPromotionService {
       }
 
       // 3. Get agent ID from metadata
-      const agentId = approval.metadata?.agentId;
+      const agentIdValue = approval.metadata?.agentId;
+      const agentId =
+        typeof agentIdValue === 'string' ? agentIdValue.trim() : '';
       if (!agentId) {
         throw new BadRequestException('Approval metadata missing agentId');
       }

@@ -4,6 +4,13 @@
 
 **THREE AGENTS RUNNING IN PARALLEL** — Follow these rules to avoid conflicts:
 
+### Task Management
+- **REQUIRED**: Update checkboxes in real-time as you work
+- Mark tasks `[x]` immediately after completing them (not in batches)
+- Add subtasks with checkboxes for large tasks to show incremental progress
+- Update progress notes in parentheses when partially complete
+- Keep the plan file current at all times - it's how progress is tracked
+
 ### Commit Strategy
 - **Commit frequency**: Every 2-4 hours or after completing a phase
 - **Commit prefix**: Use `lint(web):` or `lint(finalization):` for all commits
@@ -37,6 +44,11 @@ npm run build && npm test
 - [ ] Tighten shared `apps/web/src/types/*.ts` definitions; remove blanket `any`.
 - [ ] Refactor high-usage components (TwoPaneConversationView, AgentTaskItem, DeliverableDisplay) to typed props/emits.
 - [ ] Align Pinia stores/composables with typed state/actions and eliminate unused symbols.
+  - [x] privacyService.ts type improvements
+  - [x] llmAnalyticsService responses typed
+  - [x] agentExecutionService payload typing tightened
+  - [x] sanitizationAnalyticsService typed activity/system health
+  - [x] sovereignPolicyService model return types clarified
 - [ ] Update targeted unit tests or add new ones covering typed data flows.
 - [ ] Record lint metrics; verify ≥80% reduction of `any`/unused-var hits in Web app.
 

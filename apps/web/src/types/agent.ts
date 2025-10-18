@@ -1,4 +1,4 @@
-import type { JsonValue } from '@orchestrator-ai/transport-types';
+import type { JsonValue, JsonObject } from '@orchestrator-ai/transport-types';
 
 /**
  * Agent Type Definitions
@@ -186,6 +186,11 @@ export interface Agent {
   createdAt: string;
   updatedAt: string;
 }
+
+export type AgentHierarchyResponse = {
+  data?: HierarchyNode[];
+  metadata?: AgentNodeMetadata | null;
+} & JsonObject;
 
 // =====================================
 // AGENT STATISTICS

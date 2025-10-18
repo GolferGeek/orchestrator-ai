@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { ConversationPlansRepository } from '../repositories/conversation-plans.repository';
 import { ConversationPlanRecord } from '../interfaces/conversation-plan-record.interface';
 import { AgentRuntimeExecutionService } from './agent-runtime-execution.service';
@@ -9,7 +10,7 @@ export interface GeneratePlanInput {
   organizationSlug: string | null;
   agentSlug: string;
   summary?: string | null;
-  draftPlan: Record<string, any>;
+  draftPlan: JsonObject;
   createdBy?: string | null;
   agentMetadata?: AgentRuntimeAgentMetadata;
 }
@@ -18,7 +19,7 @@ export interface UpdatePlanStatusInput {
   planId: string;
   status: string;
   summary?: string | null;
-  updatedPlan?: Record<string, any>;
+  updatedPlan?: JsonObject;
   approvedBy?: string | null;
 }
 
@@ -62,7 +63,7 @@ export class PlanEngineService {
     return this.plansRepository.updateStatus(input.planId, {
       status: input.status,
       summary: input.summary,
-      plan_json: input.updatedPlan,
+      plan_json: input.updatedPlan ? { ...input.updatedPlan } : undefined,
       approved_by: input.approvedBy,
     });
   }

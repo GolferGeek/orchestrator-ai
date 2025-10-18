@@ -1,6 +1,10 @@
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { apiService } from './apiService';
 import type { AppError, ErrorReportPayload, ErrorLogger } from '@/stores/errorStore';
 import { useApiSanitization } from '@/composables/useApiSanitization';
+
+type SanitizedAppError = Omit<AppError, 'context'> & { context?: JsonObject };
+type ErrorStatsResponse = JsonObject;
 
 /**
  * Error Logger Service
@@ -104,7 +108,7 @@ class ErrorLoggerService implements ErrorLogger {
   /**
    * Get error statistics from backend
    */
-  async getErrorStats(timeRange?: { start: number; end: number }): Promise<any> {
+  async getErrorStats(timeRange?: { start: number; end: number }): Promise<ErrorStatsResponse> {
     try {
       const params = new URLSearchParams();
       if (timeRange) {
@@ -112,7 +116,9 @@ class ErrorLoggerService implements ErrorLogger {
         params.append('end', timeRange.end.toString());
       }
 
-      const response = await apiService.get(`${this.basePath}/stats?${params.toString()}`);
+      const response = await apiService.get<ErrorStatsResponse>(
+        `${this.basePath}/stats?${params.toString()}`
+      );
       return response;
     } catch (error) {
       console.error('Failed to get error stats:', error);
@@ -145,7 +151,9 @@ class ErrorLoggerService implements ErrorLogger {
         }
       });
 
-      const response = await apiService.get(`${this.basePath}/search?${params.toString()}`);
+      const response = await apiService.get<{ errors?: AppError[] }>(
+        `${this.basePath}/search?${params.toString()}`
+      );
       return response.errors || [];
     } catch (error) {
       console.error('Failed to search errors:', error);
@@ -215,9 +223,9 @@ class ErrorLoggerService implements ErrorLogger {
   /**
    * Sanitize error data before sending to backend
    */
-  private sanitizeError(error: AppError): any {
+  private sanitizeError(error: AppError): SanitizedAppError {
     // Remove potentially sensitive data
-    const sanitized = {
+    const sanitized: SanitizedAppError = {
       ...error,
       // Limit stack trace length
       stack: error.stack?.substring(0, 5000),
@@ -235,8 +243,8 @@ class ErrorLoggerService implements ErrorLogger {
   /**
    * Sanitize context data
    */
-  private sanitizeContext(context: Record<string, any>): Record<string, any> {
-    const sanitized: Record<string, any> = {};
+  private sanitizeContext(context: JsonObject): JsonObject {
+    const sanitized: JsonObject = {};
     
     for (const [key, value] of Object.entries(context)) {
       // Skip potentially sensitive keys
@@ -262,22 +270,24 @@ class ErrorLoggerService implements ErrorLogger {
   /**
    * Recursively sanitize context with depth limit
    */
-  private sanitizeContextRecursive(obj: any, depth: number): any {
+  private sanitizeContextRecursive(obj: JsonValue, depth: number): JsonValue {
     if (depth > 3) return '[MAX_DEPTH_REACHED]';
     
     if (Array.isArray(obj)) {
-      return obj.slice(0, 10).map(item => 
-        typeof item === 'object' ? this.sanitizeContextRecursive(item, depth + 1) : item
+      return obj.slice(0, 10).map(item =>
+        typeof item === 'object' && item !== null
+          ? this.sanitizeContextRecursive(item as JsonValue, depth + 1)
+          : item
       );
     }
     
     if (typeof obj === 'object' && obj !== null) {
-      const sanitized: Record<string, any> = {};
+      const sanitized: JsonObject = {};
       for (const [key, value] of Object.entries(obj)) {
         if (this.isSensitiveKey(key)) {
           sanitized[key] = '[REDACTED]';
         } else {
-          sanitized[key] = this.sanitizeContextRecursive(value, depth + 1);
+          sanitized[key] = this.sanitizeContextRecursive(value as JsonValue, depth + 1);
         }
       }
       return sanitized;

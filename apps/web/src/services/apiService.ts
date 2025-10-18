@@ -1,8 +1,9 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import axiosRetry from 'axios-retry';
 import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
+import type { AgentHierarchyResponse } from '@/types/agent';
 import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
 import { useApiSanitization } from '@/composables/useApiSanitization';
 import { useErrorStore } from '@/stores/errorStore';
@@ -18,6 +19,25 @@ type OrchestratorTaskResult = JsonObject & LLMContentCarrier & {
   success?: boolean;
   metadata?: JsonObject;
 };
+
+type RequestConfig = InternalAxiosRequestConfig & {
+  _suppress404Logging?: boolean;
+  _suppressStatuses?: number[];
+  _retryCount?: number;
+};
+
+interface ApiErrorContext {
+  url: string;
+  method: string;
+  status?: number;
+  statusText?: string;
+  responseData?: unknown;
+  requestData?: unknown;
+  timeout: boolean;
+  networkError: boolean;
+  retryCount: number;
+  timestamp: number;
+}
 
 type LLMContentCarrier = {
   content?: string;
@@ -121,7 +141,7 @@ class ApiService {
     this.axiosInstance.interceptors.response.use(
       (response: AxiosResponse) => {
         // Track API performance
-        const config = response.config as any;
+        const config = response.config as RequestConfig;
         if (config.metadata?.startTime) {
           const responseTime = performance.now() - config.metadata.startTime;
           const endpoint = config.url || 'unknown';
@@ -130,8 +150,8 @@ class ApiService {
         }
         return response;
       },
-      async (error) => {
-        const originalRequest = error.config;
+      async (error: AxiosError) => {
+        const originalRequest = (error.config || {}) as RequestConfig;
         
         // Track API performance for errors too
         if (originalRequest.metadata?.startTime) {
@@ -182,7 +202,10 @@ class ApiService {
             this.clearAuth();
             
             // Log the refresh token failure as a critical error
-            this.logApiFailure(refreshError, { url: '/auth/refresh', method: 'POST' });
+            this.logApiFailure(refreshError as AxiosError, {
+              url: '/auth/refresh',
+              method: 'POST',
+            } as RequestConfig);
           }
         }
         
@@ -204,7 +227,7 @@ class ApiService {
   /**
    * Global API failure detection and logging
    */
-  private logApiFailure(error: any, requestConfig: any) {
+  private logApiFailure(error: AxiosError, requestConfig?: RequestConfig) {
     try {
       // Skip logging for optional endpoints when explicitly requested
       const status = error?.response?.status;
@@ -219,16 +242,16 @@ class ApiService {
       const severity = this.determineErrorSeverity(error);
       
       // Create comprehensive error context
-      const context = {
+      const context: ApiErrorContext = {
         url: requestConfig?.url || 'unknown',
-        method: requestConfig?.method?.toUpperCase() || 'unknown',
+        method: (requestConfig?.method || 'get').toUpperCase(),
         status: error.response?.status,
         statusText: error.response?.statusText,
         responseData: error.response?.data,
         requestData: requestConfig?.data,
         timeout: error.code === 'ECONNABORTED',
         networkError: !error.response,
-        retryCount: requestConfig?._retryCount || 0,
+        retryCount: requestConfig?._retryCount ?? 0,
         timestamp: Date.now()
       };
 
@@ -267,7 +290,7 @@ class ApiService {
   /**
    * Determine the type of error for categorization
    */
-  private determineErrorType(error: any): 'network' | 'api' | 'permission' | 'validation' | 'unknown' {
+  private determineErrorType(error: AxiosError): 'network' | 'api' | 'permission' | 'validation' | 'unknown' {
     if (!error.response) {
       return 'network'; // Network/connection errors
     }
@@ -289,9 +312,9 @@ class ApiService {
   /**
    * Determine error severity based on status and context
    */
-  private determineErrorSeverity(error: any): 'low' | 'medium' | 'high' | 'critical' {
+  private determineErrorSeverity(error: AxiosError): 'low' | 'medium' | 'high' | 'critical' {
     const status = error.response?.status;
-    
+
     // Network errors are always high severity
     if (!error.response) {
       return 'high';
@@ -318,9 +341,9 @@ class ApiService {
   /**
    * Format a user-friendly error message
    */
-  private formatErrorMessage(error: any, context: any): string {
+  private formatErrorMessage(error: AxiosError, context: ApiErrorContext): string {
     const { status, method, url } = context;
-    
+
     if (!error.response) {
       return `Network connection failed for ${method} ${url}`;
     }
@@ -348,11 +371,11 @@ class ApiService {
   /**
    * Check for patterns that indicate critical system issues
    */
-  private checkForCriticalPatterns(error: any, context: any) {
+  private checkForCriticalPatterns(error: AxiosError, context: ApiErrorContext) {
     // Pattern 1: Multiple 5xx errors in short time frame
     const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
     const recentServerErrors = this.errorStore.recentErrors
-      .filter((e: any) => e.timestamp > fiveMinutesAgo && e.context?.status >= 500);
+      .filter((e: { timestamp: number; context?: ApiErrorContext }) => e.timestamp > fiveMinutesAgo && e.context?.status !== undefined && e.context.status >= 500);
     
     if (recentServerErrors.length >= 3) {
       const outageError = new Error('Critical: Multiple server errors detected - possible system outage');
@@ -546,17 +569,15 @@ class ApiService {
     return response.data.agents || [];
   }
 
-  async getAgentHierarchy(namespace?: string): Promise<any> {
+  async getAgentHierarchy(namespace?: string): Promise<AgentHierarchyResponse> {
     // All agents now use the A2A endpoint
     // Use A2A controller endpoint for all namespaces (including 'demo')
     console.log('🔍 [ApiService.getAgentHierarchy] Using A2A endpoint for namespace:', namespace);
-    
-    const response = await this.axiosInstance.get('/agent-to-agent/.well-known/hierarchy');
-    console.log('✅ [ApiService.getAgentHierarchy] A2A response:', {
-      totalAgents: response.data?.metadata?.totalAgents,
-      source: response.data?.metadata?.source,
-      rootNodes: response.data?.data?.length
-    });
+
+    const response = await this.axiosInstance.get<AgentHierarchyResponse>(
+      '/agent-to-agent/.well-known/hierarchy'
+    );
+    console.log('✅ [ApiService.getAgentHierarchy] A2A response received');
     return response.data;
   }
 

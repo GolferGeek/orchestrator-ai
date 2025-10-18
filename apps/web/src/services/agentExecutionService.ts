@@ -1,3 +1,4 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { apiService } from './apiService';
 import type { AgentTaskResponse } from '@/stores/agentChatStore/types';
 
@@ -7,10 +8,16 @@ export interface AgentExecutionRequest {
   planId?: string | null;
   orchestrationSlug?: string | null;
   orchestrationRunId?: string | null;
-  promptParameters?: Record<string, any>;
+  promptParameters?: JsonObject;
   userMessage?: string;
-  payload?: Record<string, any>;
-  metadata?: Record<string, any>;
+  payload?: JsonObject;
+  metadata?: JsonObject;
+}
+
+interface ApiError extends Error {
+  response?: {
+    status?: number;
+  };
 }
 
 const normalizeOrgSegment = (orgSlug?: string | null) => {
@@ -43,13 +50,14 @@ export async function executeAgentTask(
   };
 
   try {
-    return await apiService.post(primaryUrl, payload);
-  } catch (error: any) {
-    const status = error?.response?.status;
+    return await apiService.post<AgentTaskResponse>(primaryUrl, payload);
+  } catch (error) {
+    const typedError = error as ApiError;
+    const status = typedError.response?.status;
     if (status && status !== 404) {
       throw error;
     }
-    return apiService.post(fallbackUrl, payload);
+    return apiService.post<AgentTaskResponse>(fallbackUrl, payload);
   }
 }
 

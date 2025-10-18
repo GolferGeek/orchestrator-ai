@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 import { getSecureApiBaseUrl, getSecureHeaders } from '../utils/securityConfig';
+import type { Model } from '@/types/llm';
 
 // API endpoint configuration
 const API_BASE_URL = getSecureApiBaseUrl();
@@ -92,10 +93,10 @@ class SovereignPolicyService {
   /**
    * Fetch models with sovereign mode filtering
    */
-  async getModels(sovereignMode?: boolean): Promise<any[]> {
+  async getModels(sovereignMode?: boolean): Promise<Model[]> {
     try {
       const params = sovereignMode ? { sovereign_mode: true, include_provider: true } : { include_provider: true };
-      const response: AxiosResponse<any[]> = await this.axiosInstance.get('/models', { params });
+      const response: AxiosResponse<Model[]> = await this.axiosInstance.get('/models', { params });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch models:', error);

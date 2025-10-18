@@ -10,7 +10,7 @@ import { OrchestrationDefinitionService } from './orchestration-definition.servi
 import { OrchestrationExecutionService } from './orchestration-execution.service';
 import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
-import { HumanApprovalRecord } from '../repositories/human-approvals.repository';
+import { HumanApprovalRecord } from '../interfaces/human-approval-record.interface';
 import { OrchestrationRunSnapshot } from '../types/orchestration-events.types';
 
 function createMockSnapshot(overrides: Partial<OrchestrationRunSnapshot> = {}): OrchestrationRunSnapshot {

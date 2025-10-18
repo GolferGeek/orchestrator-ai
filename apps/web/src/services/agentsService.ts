@@ -7,6 +7,7 @@
 
 import { apiService } from './apiService';
 import type { AgentInfo } from '../types/chat';
+import type { AgentHierarchyResponse } from '@/types/agent';
 
 class AgentsService {
   /**
@@ -19,7 +20,7 @@ class AgentsService {
   /**
    * Get agent hierarchy for a specific namespace
    */
-  async getAgentHierarchy(namespace: string): Promise<any> {
+  async getAgentHierarchy(namespace: string): Promise<AgentHierarchyResponse> {
     return apiService.getAgentHierarchy(namespace);
   }
 

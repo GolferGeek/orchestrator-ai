@@ -8,7 +8,6 @@
  * State management done via privacyStore mutations
  */
 
-import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { usePrivacyStore } from '@/stores/privacyStore';
 import { pseudonymService } from './pseudonymService';
 import { piiService } from './piiService';
@@ -27,9 +26,13 @@ import type {
   PseudonymDictionaryImportData,
   PseudonymDictionaryExportData,
   PIIPatternBulkOperation,
+  PIIPatternBulkResult,
   PIITestRequest,
   PIITestResponse,
+  DashboardFilters,
+  PseudonymDictionaryBulkResult,
 } from '@/types/pii';
+import type { ActivityLog, SystemHealth } from './sanitizationAnalyticsService';
 
 interface ServiceError extends Error {
   response?: {
@@ -257,7 +260,7 @@ export async function deleteDictionary(id: string): Promise<void> {
 
 export async function bulkOperationDictionaries(
   operation: PseudonymDictionaryBulkOperation['operation']
-): Promise<any> {
+): Promise<PseudonymDictionaryBulkResult> {
   const store = usePrivacyStore();
 
   if (store.selectedDictionaryIds.length === 0) {
@@ -335,7 +338,9 @@ export async function lookupPseudonym(
   }
 }
 
-export async function importFromJSON(data: PseudonymDictionaryImportData[]): Promise<any> {
+export async function importFromJSON(
+  data: PseudonymDictionaryImportData[]
+): Promise<{ success: boolean; imported: number; errors?: string[] }> {
   const store = usePrivacyStore();
 
   store.setIsImporting(true);
@@ -367,7 +372,9 @@ export async function importFromJSON(data: PseudonymDictionaryImportData[]): Pro
   }
 }
 
-export async function importFromCSV(file: File): Promise<any> {
+export async function importFromCSV(
+  file: File
+): Promise<{ success: boolean; imported: number; errors?: string[] }> {
   const store = usePrivacyStore();
 
   store.setIsImporting(true);
@@ -523,7 +530,7 @@ export async function deletePattern(id: string): Promise<void> {
 
 export async function bulkOperationPatterns(
   operation: PIIPatternBulkOperation['operation']
-): Promise<any> {
+): Promise<PIIPatternBulkResult> {
   const store = usePrivacyStore();
 
   if (store.selectedPatternIds.length === 0) {
@@ -658,7 +665,7 @@ export async function fetchDashboardData(forceRefresh = false): Promise<void> {
   try {
     const data = await sanitizationAnalyticsService.getPrivacyDashboardData(store.dashboardFilters);
     store.setDashboardData(data);
-  } catch (err: any) {
+  } catch (err: ServiceError) {
     console.error('Failed to fetch dashboard data:', err);
     const errorMessage = err.message || 'Failed to fetch dashboard data';
     store.setDashboardError(errorMessage);
@@ -667,7 +674,7 @@ export async function fetchDashboardData(forceRefresh = false): Promise<void> {
   }
 }
 
-export async function updateDashboardFiltersAndRefresh(newFilters: Partial<any>): Promise<void> {
+export async function updateDashboardFiltersAndRefresh(newFilters: Partial<DashboardFilters>): Promise<void> {
   const store = usePrivacyStore();
 
   // Update filters
@@ -700,7 +707,7 @@ export function stopAutoRefreshDashboard(): void {
   }
 }
 
-export async function getSystemHealth(): Promise<any> {
+export async function getSystemHealth(): Promise<SystemHealth | null> {
   try {
     const health = await sanitizationAnalyticsService.getSystemHealth();
 
@@ -713,13 +720,13 @@ export async function getSystemHealth(): Promise<any> {
     }
 
     return health;
-  } catch (err: any) {
+  } catch (err: ServiceError) {
     console.error('Failed to fetch system health:', err);
     return null;
   }
 }
 
-export async function getRecentActivity(limit = 10): Promise<any[]> {
+export async function getRecentActivity(limit = 10): Promise<ActivityLog[]> {
   try {
     const activity = await sanitizationAnalyticsService.getRecentActivity(limit);
 
@@ -732,7 +739,7 @@ export async function getRecentActivity(limit = 10): Promise<any[]> {
     }
 
     return activity;
-  } catch (err: any) {
+  } catch (err: ServiceError) {
     console.error('Failed to fetch recent activity:', err);
     return [];
   }

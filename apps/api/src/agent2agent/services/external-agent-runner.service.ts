@@ -137,16 +137,26 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       }
 
       // Get external agent configuration
-      const externalConfig = definition.config?.external;
-      if (!externalConfig || !externalConfig.url) {
+      const externalConfig = this.asRecord(definition.config?.external);
+      if (!externalConfig) {
         return TaskResponseDto.failure(
           mode,
           'No external agent configuration found or URL missing',
         );
       }
 
+      const endpoint =
+        this.ensureString(externalConfig.url) ??
+        this.ensureString(externalConfig.endpoint);
+      if (!endpoint) {
+        return TaskResponseDto.failure(
+          mode,
+          'External agent configuration missing URL string',
+        );
+      }
+
       this.logger.log(
-        `Forwarding ${mode} request to external agent at ${externalConfig.url}`,
+        `Forwarding ${mode} request to external agent at ${endpoint}`,
       );
 
       // 1. Build A2A request
@@ -170,13 +180,23 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       };
 
       // Add API key if configured
-      if (externalConfig.apiKey) {
-        headers['X-API-Key'] = externalConfig.apiKey;
+      const apiKey = this.ensureString(externalConfig.apiKey);
+      if (apiKey) {
+        headers['X-API-Key'] = apiKey;
       }
 
       // Add custom headers
-      if (externalConfig.headers) {
-        Object.assign(headers, externalConfig.headers);
+      const headerOverrides = this.asRecord(externalConfig.headers);
+      if (headerOverrides) {
+        for (const [key, value] of Object.entries(
+          this.toPlainRecord(headerOverrides),
+        )) {
+          if (value === undefined || value === null) {
+            continue;
+          }
+          headers[key] =
+            typeof value === 'string' ? value : String(value);
+        }
       }
 
       // 3. Execute HTTP request
@@ -186,10 +206,11 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       try {
         const observable = this.httpService.request({
           url: externalConfig.url,
+          url: endpoint,
           method: 'POST',
           headers,
           data: a2aRequest,
-          timeout: externalConfig.timeout || 60000,
+          timeout: this.ensureNumber(externalConfig.timeout) ?? 60_000,
           validateStatus: () => true, // Don't throw on non-2xx status
         });
 
@@ -244,7 +265,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
             namespace: organizationSlug || 'default',
             taskId: taskId || undefined,
             metadata: {
-              externalUrl: externalConfig.url,
+              externalUrl: endpoint,
               duration,
               externalAgentSuccess: a2aResponse.success,
               externalMetadata: a2aResponse.payload?.metadata,
@@ -268,7 +289,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
         return TaskResponseDto.success(mode, {
           content: deliverableResult.data,
           metadata: this.buildMetadata(request, {
-            externalUrl: externalConfig.url,
+            externalUrl: endpoint,
             duration,
             externalAgentSuccess: a2aResponse.success,
             externalMetadata: a2aResponse.payload?.metadata,
@@ -292,4 +313,37 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
     }
   }
 
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private toPlainRecord(
+    record: Record<string, unknown>,
+  ): Record<string, any> {
+    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  }
+
+  private ensureString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+
+  private ensureNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value.trim());
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return undefined;
+  }
 }

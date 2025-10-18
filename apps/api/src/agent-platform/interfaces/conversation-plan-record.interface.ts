@@ -30,3 +30,7 @@ export interface ConversationPlanStatusUpdate {
   plan_json?: JsonObject;
   approved_by?: string | null;
 }
+
+export interface ConversationPlanStatusPatch extends ConversationPlanStatusUpdate {
+  updated_at: string;
+}

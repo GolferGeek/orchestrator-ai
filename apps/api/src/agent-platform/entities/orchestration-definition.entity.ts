@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import type { OrchestrationDefinitionSchema } from '../types/orchestration-definition.types';
 
 @Entity({ name: 'orchestration_definitions' })
 @Unique('orchestration_definitions_owner_version_unique', [
@@ -43,7 +44,7 @@ export class OrchestrationDefinitionEntity {
   description!: string | null;
 
   @Column({ type: 'jsonb' })
-  definition!: Record<string, any>;
+  definition!: OrchestrationDefinitionSchema;
 
   @Column({ type: 'text', default: 'active' })
   status!: string;

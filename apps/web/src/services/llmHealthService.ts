@@ -21,6 +21,8 @@ import {
   LLMDashboardResponse,
   RealTimeMetrics,
   LLMUsageStatsRequest,
+  LLMUsageStatsResponse,
+  LLMUsageStats,
   ModelHealthMetrics,
   SystemHealthMetrics,
 } from '@/types/llm-monitoring';
@@ -274,21 +276,46 @@ class LLMHealthService {
   /**
    * Helper to get usage stats for compliance calculations
    */
-  private async getUsageStatsForCompliance(request: LLMUsageStatsRequest): Promise<any> {
+  private async getUsageStatsForCompliance(
+    request: LLMUsageStatsRequest
+  ): Promise<LLMUsageStatsResponse> {
     try {
       const params = new URLSearchParams();
       if (request.startDate) params.append('start_date', request.startDate);
       if (request.endDate) params.append('end_date', request.endDate);
 
-      const response = await apiService.get(`/usage/stats?${params.toString()}`);
+      const response = await apiService.get<LLMUsageStatsResponse | LLMUsageStats>(
+        `/usage/stats?${params.toString()}`
+      );
+
+      if ('success' in (response as LLMUsageStatsResponse)) {
+        return response as LLMUsageStatsResponse;
+      }
+
       return {
         success: true,
-        data: response,
+        data: response as LLMUsageStats,
       };
     } catch (error) {
+      const fallbackStats: LLMUsageStats = {
+        userId: 'unknown',
+        dateRange: {
+          startDate: request.startDate ?? '',
+          endDate: request.endDate ?? '',
+        },
+        totalRequests: 0,
+        totalTokens: 0,
+        totalCost: 0,
+        averageResponseTime: 0,
+        successRate: 0,
+        byProvider: {},
+        byModel: {},
+        byDataClassification: {},
+      };
+
       return {
         success: false,
-        data: {},
+        data: fallbackStats,
       };
     }
   }
@@ -380,21 +407,31 @@ class LLMHealthService {
   /**
    * Calculate data classification breakdown from usage stats
    */
-  private calculateDataClassificationBreakdown(usageStats: any): Record<string, any> {
+  private calculateDataClassificationBreakdown(usageStats: LLMUsageStats): Record<string, { requests: number; cost: number; percentage: number }> {
     // This would analyze the usage data to provide classification breakdown
     // For now, return a placeholder structure
-    return {
-      public: { requests: 0, percentage: 0, averageResponseTime: 0, errorRate: 0 },
-      internal: { requests: 0, percentage: 0, averageResponseTime: 0, errorRate: 0 },
-      confidential: { requests: 0, percentage: 0, averageResponseTime: 0, errorRate: 0 },
-      restricted: { requests: 0, percentage: 0, averageResponseTime: 0, errorRate: 0 },
-    };
+    const breakdown = usageStats.byDataClassification ?? {};
+    const totalRequests = usageStats.totalRequests || 1;
+
+    return Object.entries(breakdown).reduce<Record<string, { requests: number; cost: number; percentage: number }>>(
+      (acc, [classification, stats]) => {
+        const requests = stats.requests ?? 0;
+        const cost = stats.cost ?? 0;
+        acc[classification] = {
+          requests,
+          cost,
+          percentage: requests ? Math.round((requests / totalRequests) * 100) : 0,
+        };
+        return acc;
+      },
+      {}
+    );
   }
 
   /**
    * Calculate compliance score based on PII and usage stats
    */
-  private calculateComplianceScore(piiStats: any, usageStats: any): number {
+  private calculateComplianceScore(piiStats: { sanitizationRate?: number; successRate?: number }, usageStats: LLMUsageStats): number {
     // Simple compliance score calculation
     // In reality, this would be more complex based on various compliance factors
     let score = 100;

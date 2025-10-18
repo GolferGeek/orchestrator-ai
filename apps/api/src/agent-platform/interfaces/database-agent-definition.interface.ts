@@ -146,6 +146,12 @@ export interface AgentConfigDefinition extends JsonObject {
   api?: AgentTransportApiDefinition;
   deliverable?: AgentConfigDeliverableDefinition;
   llm?: AgentLLMConfigDefinition;
+  execution_capabilities?: JsonValue;
+  executionCapabilities?: JsonValue;
+  execution_profile?: string | null;
+  executionProfile?: string | null;
+  timeout_seconds?: number | null;
+  timeoutSeconds?: number | null;
   plan_structure?: JsonValue;
   planStructure?: JsonValue;
   deliverable_structure?: JsonValue;

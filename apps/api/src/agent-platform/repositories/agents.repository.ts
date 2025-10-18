@@ -3,6 +3,7 @@ import { SupabaseService } from '@/supabase/supabase.service';
 import {
   AgentRecord,
   AgentUpsertInput,
+  AgentUpsertRow,
 } from '../interfaces/agent-record.interface';
 
 type SupabaseError = { message: string; code?: string } | null;
@@ -31,7 +32,7 @@ export class AgentsRepository {
 
   async upsert(payload: AgentUpsertInput): Promise<AgentRecord> {
     const client = this.getClient();
-    const row: Record<string, any> = {
+    const row: AgentUpsertRow = {
       organization_slug: payload.organization_slug,
       slug: payload.slug,
       display_name: payload.display_name,
@@ -43,20 +44,12 @@ export class AgentsRepository {
       yaml: payload.yaml,
       function_code: payload.function_code ?? null,
       context: payload.context ?? null,
+      plan_structure: payload.plan_structure ?? null,
+      deliverable_structure: payload.deliverable_structure ?? null,
+      io_schema: payload.io_schema ?? null,
+      config: payload.config ?? null,
       updated_at: new Date().toISOString(),
     };
-
-    if (payload.plan_structure !== undefined) {
-      row.plan_structure = payload.plan_structure;
-    }
-
-    if (payload.deliverable_structure !== undefined) {
-      row.deliverable_structure = payload.deliverable_structure;
-    }
-
-    if (payload.io_schema !== undefined) {
-      row.io_schema = payload.io_schema;
-    }
 
     const rows = [row];
 

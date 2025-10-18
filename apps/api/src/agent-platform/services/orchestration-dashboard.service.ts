@@ -7,11 +7,11 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { OrchestrationRunsRepository } from '../repositories/orchestration-runs.repository';
-import {
-  HumanApprovalsRepository,
-  HumanApprovalRecord,
+import type {
   HumanApprovalListOptions,
-} from '../repositories/human-approvals.repository';
+  HumanApprovalRecord,
+} from '../interfaces/human-approval-record.interface';
+import { HumanApprovalsRepository } from '../repositories/human-approvals.repository';
 import { OrchestrationEventsService } from './orchestration-events.service';
 import { OrchestrationStatusService } from './orchestration-status.service';
 import { OrchestrationRunnerService } from './orchestration-runner.service';

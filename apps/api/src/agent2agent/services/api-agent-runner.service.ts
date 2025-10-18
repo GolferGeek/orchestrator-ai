@@ -105,35 +105,65 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       // Get API configuration
-      const apiConfig = definition.config?.api;
-      if (!apiConfig || !apiConfig.url) {
+      const apiConfig = this.asRecord(definition.config?.api);
+      if (!apiConfig) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
           'No API configuration found or URL missing',
         );
       }
 
+      const urlTemplate =
+        this.ensureString(apiConfig.url) ??
+        this.ensureString(apiConfig.endpoint);
+      if (!urlTemplate) {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          'API configuration missing URL string',
+        );
+      }
+
       this.logger.log(
-        `Executing API call to ${apiConfig.url} for agent ${definition.slug}`,
+        `Executing API call to ${urlTemplate} for agent ${definition.slug}`,
       );
 
       // 1. Interpolate URL and parameters
-      const url = this.interpolateString(apiConfig.url, request);
-      const method = (apiConfig.method || 'GET').toUpperCase();
+      const url = this.interpolateString(urlTemplate, request);
+      const method = (
+        this.ensureString(apiConfig.method) ?? 'GET'
+      ).toUpperCase();
 
       // 2. Build headers
-      const headers = this.buildHeaders(apiConfig.headers || {}, request);
+      const headersRecord = this.asRecord(apiConfig.headers);
+      const headers = this.buildHeaders(
+        headersRecord ? this.toPlainRecord(headersRecord) : {},
+        request,
+      );
 
       // 3. Build request body (for POST/PUT/PATCH)
       let body: any = undefined;
       if (['POST', 'PUT', 'PATCH'].includes(method) && apiConfig.body) {
-        body = this.interpolateObject(apiConfig.body, request);
+        const bodyRecord = this.asRecord(apiConfig.body);
+        if (bodyRecord) {
+          body = this.interpolateObject(
+            this.toPlainRecord(bodyRecord),
+            request,
+          );
+        } else if (typeof apiConfig.body === 'string') {
+          body = this.interpolateString(apiConfig.body, request);
+        } else {
+          body = apiConfig.body;
+        }
       }
 
       // 4. Build query parameters
       let queryParams: Record<string, any> = {};
-      if (apiConfig.queryParams) {
-        queryParams = this.interpolateObject(apiConfig.queryParams, request);
+      const queryParamsRecord = this.asRecord(apiConfig.queryParams);
+      if (queryParamsRecord) {
+        queryParams = this.interpolateObject(
+          this.toPlainRecord(queryParamsRecord),
+          request,
+        );
       }
 
       // 5. Execute HTTP request
@@ -249,6 +279,27 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         `Failed to execute API agent: ${errorMessage}`,
       );
     }
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private toPlainRecord(
+    record: Record<string, unknown>,
+  ): Record<string, any> {
+    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  }
+
+  private ensureString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
   }
 
   /**

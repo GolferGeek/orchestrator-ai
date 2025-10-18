@@ -1,3 +1,4 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { apiService } from './apiService';
 import { PIIDataType } from '@/types/pii';
 
@@ -78,7 +79,7 @@ export interface ActivityLog {
   message: string;
   timestamp: Date;
   severity: 'info' | 'warning' | 'error' | 'success';
-  metadata?: Record<string, any>;
+  metadata?: JsonObject;
 }
 
 export interface PrivacyDashboardData {
@@ -98,38 +99,86 @@ export interface DashboardFilters {
   includeSystemEvents?: boolean;
 }
 
+interface SanitizationStatsApiResponse {
+  sanitizationStats?: {
+    redactionStats?: {
+      totalPatterns?: number;
+      customPatterns?: number;
+    };
+    pseudonymizationStats?: {
+      customPatterns?: number;
+      patternServiceStats?: {
+        builtInPatterns?: number;
+        customPatterns?: number;
+        totalPatterns?: number;
+        enabledPatterns?: number;
+        lastRefresh?: string;
+      };
+    };
+    productionMode?: boolean;
+    verboseLogging?: boolean;
+  };
+  databaseStats?: {
+    totalOperations?: number;
+  };
+  cacheStats?: {
+    size?: number;
+  };
+}
+
+interface ActivityResponseItem {
+  type?: ActivityLog['type'];
+  message?: string;
+  timestamp: string;
+  severity?: ActivityLog['severity'];
+  metadata?: JsonObject;
+}
+
+interface ServiceError extends Error {
+  response?: {
+    status?: number;
+  };
+}
+
 class SanitizationAnalyticsService {
   /**
    * Get basic sanitization statistics from the API
    */
   async getSanitizationStats(): Promise<SanitizationStatsResponse> {
     try {
-      const response = await apiService.getQuiet404('/llm/sanitization/stats');
+      const response = await apiService.getQuiet404<SanitizationStatsApiResponse>('/llm/sanitization/stats');
       // Map the API response to the expected format
       return {
         redactionPatternStats: {
-          totalPatterns: response.sanitizationStats?.redactionStats?.totalPatterns || 0,
-          customPatterns: response.sanitizationStats?.redactionStats?.customPatterns || 0,
-          productionMode: response.sanitizationStats?.productionMode || false,
-          verboseLogging: response.sanitizationStats?.verboseLogging || false,
+          totalPatterns: response?.sanitizationStats?.redactionStats?.totalPatterns ?? 0,
+          customPatterns: response?.sanitizationStats?.redactionStats?.customPatterns ?? 0,
+          productionMode: response?.sanitizationStats?.productionMode ?? false,
+          verboseLogging: response?.sanitizationStats?.verboseLogging ?? false,
         },
         piiPatternStats: {
-          builtInPatterns: response.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.builtInPatterns || 0,
-          customPatterns: response.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.customPatterns || 0,
-          totalPatterns: response.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.totalPatterns || 0,
-          enabledPatterns: response.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.enabledPatterns || 0,
-          lastRefresh: response.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.lastRefresh || new Date().toISOString(),
+          builtInPatterns:
+            response?.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.builtInPatterns ?? 0,
+          customPatterns:
+            response?.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.customPatterns ?? 0,
+          totalPatterns:
+            response?.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.totalPatterns ?? 0,
+          enabledPatterns:
+            response?.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.enabledPatterns ?? 0,
+          lastRefresh:
+            response?.sanitizationStats?.pseudonymizationStats?.patternServiceStats?.lastRefresh ||
+            new Date().toISOString(),
         },
         pseudonymizationStats: {
-          totalMappings: response.databaseStats?.totalOperations || 0,
-          customPatterns: response.sanitizationStats?.pseudonymizationStats?.customPatterns || 0,
-          dictionaryEntries: response.cacheStats?.size || 0,
-          cacheHitRate: response.cacheStats?.size > 0 ? 85 : 0,
+          totalMappings: response?.databaseStats?.totalOperations ?? 0,
+          customPatterns: response?.sanitizationStats?.pseudonymizationStats?.customPatterns ?? 0,
+          dictionaryEntries: response?.cacheStats?.size ?? 0,
+          cacheHitRate: (response?.cacheStats?.size ?? 0) > 0 ? 85 : 0,
         }
       };
-    } catch (error: any) {
+    } catch (error) {
+      const typedError = error as ServiceError;
       // Graceful demo fallback for missing endpoints
-      if (error?.response?.status === 404) {
+      if (typedError.response?.status === 404) {
         return {
           redactionPatternStats: {
             totalPatterns: 0,
@@ -199,7 +248,7 @@ class SanitizationAnalyticsService {
     try {
       // This endpoint may not exist yet, so we'll provide a fallback
       try {
-        const response = await apiService.get('/system/health');
+        const response = await apiService.get<SystemHealth>('/system/health');
         return response;
       } catch (healthError) {
         // Fallback to basic health check
@@ -224,10 +273,20 @@ class SanitizationAnalyticsService {
     try {
       // This endpoint may not exist yet, so we'll provide a basic implementation
       try {
-        const response = await apiService.getQuiet404(`/llm/sanitization/activity?limit=${limit}`);
-        return response.map((activity: any) => ({
-          ...activity,
-          timestamp: new Date(activity.timestamp)
+        const response = await apiService.getQuiet404<ActivityResponseItem[]>(
+          `/llm/sanitization/activity?limit=${limit}`
+        );
+
+        if (!Array.isArray(response)) {
+          return [];
+        }
+
+        return response.map<ActivityLog>(activity => ({
+          type: activity.type ?? 'system',
+          message: activity.message ?? 'Activity recorded',
+          timestamp: new Date(activity.timestamp),
+          severity: activity.severity ?? 'info',
+          metadata: activity.metadata,
         }));
       } catch (activityError) {
         // Return empty array if endpoint doesn't exist

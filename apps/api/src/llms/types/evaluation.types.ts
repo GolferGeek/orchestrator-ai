@@ -94,6 +94,13 @@ export interface TaskRecord {
   evaluation?: TaskEvaluationRecord | null;
 }
 
+export interface UserProfileRecord {
+  id: string;
+  email?: string | null;
+  display_name?: string | null;
+  roles?: string[] | null;
+}
+
 export interface EvaluationRow {
   id: string;
   user_id: string;

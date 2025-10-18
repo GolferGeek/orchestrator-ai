@@ -4,6 +4,7 @@ import { SupabaseService } from '@/supabase/supabase.service';
 import {
   MessageEvaluationDto,
   EnhancedMessageResponseDto,
+  ModelResponseDto,
 } from '@/llms/dto/llm-evaluation.dto';
 import {
   mapLLMProviderFromDb,
@@ -40,6 +41,7 @@ import type {
   EvaluationStatsRow,
   ModelComparisonMessageRow,
   TaskRecord,
+  UserProfileRecord,
 } from '@/llms/types/evaluation.types';
 import type { Provider, Model } from '@/llms/types/llm-evaluation';
 
@@ -945,6 +947,31 @@ export class EvaluationService {
     );
   }
 
+  private deriveAgentName(task: TaskRecord): string {
+    const metadataAgentName =
+      task.response_metadata?.agent_name ??
+      task.response_metadata?.agentName ??
+      task.metadata?.agent_name ??
+      (task.metadata as any)?.agentName ??
+      task.llm_metadata?.agent_name ??
+      task.llm_metadata?.agentName ??
+      null;
+
+    if (metadataAgentName && typeof metadataAgentName === 'string') {
+      return metadataAgentName;
+    }
+
+    if (task.method && task.method !== 'process') {
+      return (
+        task.method
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (l: string) => l.toUpperCase()) + ' Agent'
+      );
+    }
+
+    return 'AI Assistant';
+  }
+
   private calculateAverage(values: number[]): number {
     return values.length > 0
       ? values.reduce((sum, val) => sum + val, 0) / values.length
@@ -1220,7 +1247,10 @@ export class EvaluationService {
         models.forEach((model) => {
           const mappedModel = mapLLMModelFromDb(model);
           if (model.id) {
-            modelsMap.set(model.id, mappedModel);
+            modelsMap.set(
+              model.id,
+              this.convertToModel(model, mappedModel),
+            );
           }
         });
       }
@@ -1228,34 +1258,55 @@ export class EvaluationService {
 
     // Transform task evaluations to the expected DTO format
     const allEvaluations: EnhancedMessageResponseDto[] =
-      tasksWithEvaluations.map((task) => {
-        // Debug: log all available task fields and data
+      tasksWithEvaluations
+        .map((task): EnhancedMessageResponseDto | null => {
+          // Debug: log all available task fields and data
 
-        // Additional debug for missing response data
+          // Additional debug for missing response data
 
-        const taskContent = this.extractTaskContent(task);
+          const taskContent = this.extractTaskContent(task);
 
-        // Create more meaningful agent name from metadata
+          const sessionId =
+            this.pickString(task.session_id) ??
+            this.pickString(task.conversation_id);
+          const userIdValue = this.pickString(task.user_id);
+          if (!sessionId || !userIdValue) {
+            this.logger.warn(
+              `Skipping evaluation task ${task.id} due to missing session or user identifier`,
+            );
+            return null;
+          }
+
+          // Create more meaningful agent name from metadata
         let agentName = 'Agent';
-        if (task.response_metadata?.agent_name) {
-          agentName = task.response_metadata.agent_name;
-        } else if (task.response_metadata?.agentName) {
-          // Check for camelCase version (used by function agents)
-          agentName = task.response_metadata.agentName;
-        } else if (task.metadata?.agent_name) {
-          agentName = task.metadata.agent_name;
-        } else if (task.metadata?.agentName) {
-          // Check for camelCase version
-          agentName = task.metadata.agentName;
-        } else if (task.llm_metadata?.agent_name) {
-          agentName = task.llm_metadata.agent_name;
-        } else if (task.llm_metadata?.agentName) {
-          // Check for camelCase version
-          agentName = task.llm_metadata.agentName;
-        } else if (task.method && task.method !== 'process') {
+        const responseAgentSnake = this.pickString(
+          task.response_metadata?.agent_name,
+        );
+        const responseAgentCamel = this.pickString(
+          task.response_metadata?.agentName,
+        );
+        const metadataAgentSnake = this.pickString(task.metadata?.agent_name);
+        const metadataAgentCamel = this.pickString(task.metadata?.agentName);
+        const llmAgentSnake = this.pickString(task.llm_metadata?.agent_name);
+        const llmAgentCamel = this.pickString(task.llm_metadata?.agentName);
+        const methodName = this.pickString(task.method);
+
+        if (responseAgentSnake) {
+          agentName = responseAgentSnake;
+        } else if (responseAgentCamel) {
+          agentName = responseAgentCamel;
+        } else if (metadataAgentSnake) {
+          agentName = metadataAgentSnake;
+        } else if (metadataAgentCamel) {
+          agentName = metadataAgentCamel;
+        } else if (llmAgentSnake) {
+          agentName = llmAgentSnake;
+        } else if (llmAgentCamel) {
+          agentName = llmAgentCamel;
+        } else if (methodName && methodName !== 'process') {
           // Only use method as agent name if it's not the generic 'process' method
           agentName =
-            task.method
+            methodName
               .replace(/_/g, ' ')
               .replace(/\b\w/g, (l: string) => l.toUpperCase()) + ' Agent';
         } else {
@@ -1267,21 +1318,26 @@ export class EvaluationService {
         const displayAgentName = formatAgentNameForDisplay(agentName);
 
         // Get provider and model from LLM metadata (nested in originalLLMSelection)
-        const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
-        const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
+        const originalSelectionRecord = this.asRecord(
+          task.llm_metadata?.originalLLMSelection,
+        );
+        const providerId = this.pickString(originalSelectionRecord?.providerId);
+        const modelId = this.pickString(originalSelectionRecord?.modelId);
         const provider = providerId ? providersMap.get(providerId) : undefined;
         const model = modelId ? modelsMap.get(modelId) : undefined;
+
+        const timestamp =
+          this.pickString(task.evaluation?.evaluation_timestamp) ??
+          this.pickString(task.created_at) ??
+          new Date().toISOString();
 
         return {
           id: task.id,
           content: taskContent,
           role: 'assistant' as const,
-          sessionId: task.conversation_id || task.session_id,
-          userId: task.user_id,
-          timestamp:
-            task.evaluation?.evaluation_timestamp ||
-            task.created_at ||
-            new Date().toISOString(),
+          sessionId,
+          userId: userIdValue,
+          timestamp,
           order: 0,
           // Store agent name in metadata for frontend (since it's not in DTO)
           metadata: {
@@ -1290,33 +1346,49 @@ export class EvaluationService {
             status: task.status,
             taskPrompt: task.prompt,
             taskResponse: task.response,
-            responseMetadata: task.response_metadata,
-            llmMetadata: task.llm_metadata,
-            taskMetadata: task.metadata,
+            responseMetadata: responseMetadataRecord
+              ? this.toPlainObject(responseMetadataRecord)
+              : undefined,
+            llmMetadata: llmMetadataRecord
+              ? this.toPlainObject(llmMetadataRecord)
+              : undefined,
+            taskMetadata: taskMetadataRecord
+              ? this.toPlainObject(taskMetadataRecord)
+              : undefined,
             deliverableType: task.type,
-            deliverableMetadata: task.deliverable_metadata,
+            deliverableMetadata: deliverableMetadataRecord
+              ? this.toPlainObject(deliverableMetadataRecord)
+              : undefined,
             progressMessage: task.progress_message,
             workflowStepsCompleted:
-              task.response_metadata?.workflow_steps_completed,
+              responseMetadataRecord?.workflow_steps_completed,
           },
           // Map evaluation fields directly to DTO (not nested)
-          userRating: task.evaluation?.user_rating,
-          speedRating: task.evaluation?.speed_rating,
-          accuracyRating: task.evaluation?.accuracy_rating,
-          userNotes: task.evaluation?.user_notes,
-          evaluationTimestamp: task.evaluation?.evaluation_timestamp,
-          evaluationDetails: task.evaluation?.evaluation_details,
+          userRating: task.evaluation?.user_rating ?? undefined,
+          speedRating: task.evaluation?.speed_rating ?? undefined,
+          accuracyRating: task.evaluation?.accuracy_rating ?? undefined,
+          userNotes: task.evaluation?.user_notes ?? undefined,
+          evaluationTimestamp:
+            this.pickString(task.evaluation?.evaluation_timestamp) ??
+            undefined,
+          evaluationDetails: task.evaluation?.evaluation_details ?? undefined,
           // Include provider and model details from LLM metadata
-          providerId: providerId,
-          modelId: modelId,
-          responseTimeMs: task.llm_metadata?.response_time_ms ?? null,
-          cost: task.llm_metadata?.total_cost ?? null,
-          provider: provider,
-          model: model,
+          providerId: providerId ?? undefined,
+          modelId: modelId ?? undefined,
+          responseTimeMs:
+            this.pickNumber(llmMetadataRecord?.response_time_ms) ?? undefined,
+          cost:
+            this.pickNumber(llmMetadataRecord?.total_cost) ?? undefined,
+          provider,
+          model,
           // Include user email
-          userEmail: userEmail,
+          userEmail,
         };
-      });
+        })
+        .filter(
+          (evaluation): evaluation is EnhancedMessageResponseDto =>
+            evaluation !== null,
+        );
 
     // Apply filters using direct DTO fields
     let filteredEvaluations = allEvaluations;
@@ -2027,7 +2099,9 @@ export class EvaluationService {
   // PRIVATE HELPER METHODS
   // ============================================================================
 
-  private async fetchUsersMap(userIds: string[]): Promise<Map<string, any>> {
+  private async fetchUsersMap(
+    userIds: string[],
+  ): Promise<Map<string, UserProfileRecord>> {
     if (userIds.length === 0) return new Map();
 
     const { data: users, error } = await this.supabaseService
@@ -2040,9 +2114,11 @@ export class EvaluationService {
       return new Map();
     }
 
-    const usersMap = new Map();
+    const usersMap = new Map<string, UserProfileRecord>();
     (users || []).forEach((user) => {
-      usersMap.set(user.id, user);
+      if (user.id) {
+        usersMap.set(user.id, user as UserProfileRecord);
+      }
     });
 
     return usersMap;
@@ -2050,7 +2126,7 @@ export class EvaluationService {
 
   private async fetchProvidersMap(
     providerIds: string[],
-  ): Promise<Map<string, any>> {
+  ): Promise<Map<string, Provider>> {
     if (providerIds.length === 0) return new Map();
 
     const { data: providers, error } = await this.supabaseService
@@ -2063,16 +2139,20 @@ export class EvaluationService {
       return new Map();
     }
 
-    const providersMap = new Map();
+    const providersMap = new Map<string, Provider>();
     (providers || []).forEach((provider) => {
       const mappedProvider = mapLLMProviderFromDb(provider);
-      providersMap.set(provider.id, mappedProvider);
+      if (provider.id) {
+        providersMap.set(provider.id, mappedProvider);
+      }
     });
 
     return providersMap;
   }
 
-  private async fetchModelsMap(modelIds: string[]): Promise<Map<string, any>> {
+  private async fetchModelsMap(
+    modelIds: string[],
+  ): Promise<Map<string, Model>> {
     if (modelIds.length === 0) return new Map();
 
     const { data: models, error } = await this.supabaseService
@@ -2085,136 +2165,184 @@ export class EvaluationService {
       return new Map();
     }
 
-    const modelsMap = new Map();
+    const modelsMap = new Map<string, Model>();
     (models || []).forEach((model) => {
       const mappedModel = mapLLMModelFromDb(model);
-      modelsMap.set(model.id, mappedModel);
+      if (model.id) {
+        modelsMap.set(
+          model.id,
+          this.convertToModel(model, mappedModel),
+        );
+      }
     });
 
     return modelsMap;
   }
 
   private transformTaskToEnhancedEvaluation(
-    task: any,
-    usersMap: Map<string, any>,
-    providersMap: Map<string, any>,
-    modelsMap: Map<string, any>,
+    task: TaskRecord,
+    usersMap: Map<string, UserProfileRecord>,
+    providersMap: Map<string, Provider>,
+    modelsMap: Map<string, Model>,
   ): EnhancedEvaluationMetadataDto {
     // Get user info
-    const userProfile = usersMap.get(task.user_id);
+    const userProfile = task.user_id
+      ? usersMap.get(task.user_id)
+      : undefined;
     const user: EvaluationUserDto = {
-      id: task.user_id,
-      email: userProfile?.email || 'unknown@example.com',
+      id: task.user_id ?? 'unknown-user',
+      email: userProfile?.email ?? 'unknown@example.com',
       name:
-        userProfile?.display_name ||
-        userProfile?.email?.split('@')[0] ||
+        userProfile?.display_name ??
+        userProfile?.email?.split('@')[0] ??
         'Unknown User',
-      roles: userProfile?.roles || [UserRole.USER],
+      roles: this.normalizeUserRoles(userProfile?.roles),
     };
 
     // Extract evaluation data
+    const responseMetadataRecord = this.asRecord(task.response_metadata);
+    const llmMetadataRecord = this.asRecord(task.llm_metadata);
+    const taskMetadataRecord = this.asRecord(task.metadata);
+    const deliverableMetadataRecord = this.asRecord(
+      task.deliverable_metadata,
+    );
+
+    const evaluationRecord = task.evaluation ?? {};
     const evaluation: EvaluationDataDto = {
-      userRating: task.evaluation.user_rating || 0,
-      speedRating: task.evaluation.speed_rating,
-      accuracyRating: task.evaluation.accuracy_rating,
-      userNotes: task.evaluation.user_notes,
+      userRating: evaluationRecord.user_rating ?? 0,
+      speedRating: evaluationRecord.speed_rating ?? undefined,
+      accuracyRating: evaluationRecord.accuracy_rating ?? undefined,
+      userNotes: evaluationRecord.user_notes ?? undefined,
       evaluationTimestamp: new Date(
-        task.evaluation.evaluation_timestamp || task.created_at,
+        evaluationRecord.evaluation_timestamp ?? task.created_at ?? Date.now(),
       ),
-      evaluationDetails: task.evaluation.evaluation_details,
+      evaluationDetails: evaluationRecord.evaluation_details ?? undefined,
     };
 
     // Format agent name
-    let agentName = 'AI Assistant';
-    if (task.response_metadata?.agent_name) {
-      agentName = task.response_metadata.agent_name;
-    } else if (task.method && task.method !== 'process') {
-      agentName =
-        task.method
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, (l: string) => l.toUpperCase()) + ' Agent';
-    }
+    const agentName = this.deriveAgentName(task);
     const displayAgentName = formatAgentNameForDisplay(agentName);
 
     // Extract task info
     const taskInfo: EvaluationTaskDto = {
       id: task.id,
-      prompt: task.prompt || '',
-      response: task.response,
+      prompt: task.prompt ?? '',
+      response: task.response ?? undefined,
       agentName: displayAgentName,
-      method: task.method || '',
-      status: task.status || 'unknown',
-      createdAt: new Date(task.created_at),
-      completedAt: task.completed_at ? new Date(task.completed_at) : undefined,
-      progress: task.progress,
-      metadata: task.metadata,
+      method: task.method ?? '',
+      status: task.status ?? 'unknown',
+      createdAt: new Date(task.created_at ?? Date.now()),
+      completedAt: (() => {
+        const completedAtRaw = this.pickString(
+          llmMetadataRecord?.completed_at,
+        );
+        return completedAtRaw ? new Date(completedAtRaw) : undefined;
+      })(),
+      metadata: taskMetadataRecord
+        ? this.toPlainObject(taskMetadataRecord)
+        : undefined,
     };
 
     // Extract workflow information
     let workflowSteps: WorkflowTrackingDto | undefined;
-    if (task.response_metadata?.workflow_steps_completed) {
-      const steps = task.response_metadata.workflow_steps_completed;
-      const completedCount = steps.filter(
-        (step: any) => step.status === 'completed',
-      ).length;
-      const failedCount = steps.filter(
-        (step: any) => step.status === 'failed',
-      ).length;
+    const workflowStepsCompleted =
+      responseMetadataRecord?.workflow_steps_completed ?? null;
+    if (
+      Array.isArray(workflowStepsCompleted) &&
+      workflowStepsCompleted.length > 0
+    ) {
+      const normalizedSteps = workflowStepsCompleted
+        .map((step) => this.normalizeWorkflowStep(step))
+        .filter((step): step is WorkflowStepDto => step !== null);
 
-      workflowSteps = {
-        totalSteps: steps.length,
-        completedSteps: completedCount,
-        failedSteps: failedCount,
-        progressPercent: Math.round((completedCount / steps.length) * 100),
-        stepDetails: steps.map((step: any) => ({
-          name: step.name,
-          status: step.status,
-          duration: step.duration,
-          error: step.error,
-          metadata: step.metadata,
-          startTime: step.startTime ? new Date(step.startTime) : undefined,
-          endTime: step.endTime ? new Date(step.endTime) : undefined,
-        })),
-        totalDuration: steps.reduce(
-          (sum: number, step: any) => sum + (step.duration || 0),
-          0,
-        ),
-        failedStep: steps.find((step: any) => step.status === 'failed')?.name,
-      };
+      if (normalizedSteps.length > 0) {
+        const completedCount = normalizedSteps.filter(
+          (step) => step.status === 'completed',
+        ).length;
+        const failedSteps = normalizedSteps.filter(
+          (step) => step.status === 'failed',
+        );
+
+        workflowSteps = {
+          totalSteps: normalizedSteps.length,
+          completedSteps: completedCount,
+          failedSteps: failedSteps.length,
+          progressPercent:
+            normalizedSteps.length > 0
+              ? Math.round((completedCount / normalizedSteps.length) * 100)
+              : 0,
+          stepDetails: normalizedSteps,
+          totalDuration: normalizedSteps.reduce(
+            (sum, step) => sum + (step.duration ?? 0),
+            0,
+          ),
+          failedStep: failedSteps[0]?.name ?? undefined,
+        };
+      }
     }
 
     // Extract CIDAFM constraint information
     let llmConstraints: LLMConstraintsDto | undefined;
+    const originalSelectionRecord = this.asRecord(
+      llmMetadataRecord?.originalLLMSelection,
+    );
     const cidafmOptions =
-      task.llm_metadata?.originalLLMSelection?.cidafmOptions;
+      originalSelectionRecord?.cidafmOptions ?? null;
     if (cidafmOptions) {
-      llmConstraints = {
-        activeStateModifiers: cidafmOptions.activeStateModifiers || [],
-        responseModifiers: cidafmOptions.responseModifiers || [],
-        executedCommands: cidafmOptions.executedCommands || [],
-        constraintEffectiveness: undefined, // Could be enhanced with actual effectiveness tracking
-        processingNotes: cidafmOptions.customOptions,
-      };
+      const cidafmRecord = this.asRecord(cidafmOptions);
+      if (cidafmRecord) {
+        llmConstraints = {
+          activeStateModifiers: this.pickStringArray(
+            cidafmRecord.activeStateModifiers,
+          ),
+          responseModifiers: this.pickStringArray(
+            cidafmRecord.responseModifiers,
+          ),
+          executedCommands: this.pickStringArray(
+            cidafmRecord.executedCommands,
+          ),
+          constraintEffectiveness: undefined,
+          processingNotes: this.extractProcessingNotes(
+            cidafmRecord.customOptions,
+          ),
+        };
+      }
     }
 
     // Get LLM info
-    const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
-    const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
+    const providerId = this.pickString(originalSelectionRecord?.providerId);
+    const modelId = this.pickString(originalSelectionRecord?.modelId);
     const provider = providerId ? providersMap.get(providerId) : undefined;
     const model = modelId ? modelsMap.get(modelId) : undefined;
+    const providerRecord = this.asRecord(provider);
+    const modelRecord = this.asRecord(model);
+    const llmMetadataRecord = this.asRecord(task.llm_metadata);
+    const originalSelectionRecord = this.asRecord(
+      task.llm_metadata?.originalLLMSelection,
+    );
 
     const llmInfo: EnhancedLLMInfoDto = {
-      provider: provider?.name || provider?.display_name || 'Unknown Provider',
-      model: model?.display_name || model?.model_name || 'Unknown Model',
-      responseTimeMs: task.llm_metadata?.response_time_ms || 0,
-      cost: task.llm_metadata?.total_cost || 0,
+      provider:
+        provider?.name ??
+        this.pickString(providerRecord?.display_name) ??
+        'Unknown Provider',
+      model:
+        model?.name ??
+        this.pickString(modelRecord?.model_name) ??
+        this.pickString(modelRecord?.display_name) ??
+        'Unknown Model',
+      responseTimeMs:
+        this.pickNumber(llmMetadataRecord?.response_time_ms) ?? 0,
+      cost: this.pickNumber(llmMetadataRecord?.total_cost) ?? 0,
       tokenUsage: {
-        input: task.llm_metadata?.input_tokens || 0,
-        output: task.llm_metadata?.output_tokens || 0,
+        input: this.pickNumber(llmMetadataRecord?.input_tokens) ?? 0,
+        output: this.pickNumber(llmMetadataRecord?.output_tokens) ?? 0,
       },
-      modelVersion: model?.model_id,
-      temperature: task.llm_metadata?.originalLLMSelection?.temperature,
-      maxTokens: task.llm_metadata?.originalLLMSelection?.maxTokens,
+      modelVersion: this.pickString(modelRecord?.model_id) ?? undefined,
+      temperature:
+        this.pickNumber(originalSelectionRecord?.temperature) ?? undefined,
+      maxTokens:
+        this.pickNumber(originalSelectionRecord?.maxTokens) ?? undefined,
     };
 
     return {
@@ -2230,6 +2358,144 @@ export class EvaluationService {
         llmMetadata: task.llm_metadata,
       },
     };
+  }
+
+  private normalizeUserRoles(
+    roles: string[] | null | undefined,
+  ): UserRole[] {
+    if (!Array.isArray(roles) || roles.length === 0) {
+      return [UserRole.USER];
+    }
+
+    const validRoles = roles
+      .map((role) =>
+        Object.values(UserRole).includes(role as UserRole)
+          ? (role as UserRole)
+          : null,
+      )
+      .filter((role): role is UserRole => role !== null);
+
+    return validRoles.length ? validRoles : [UserRole.USER];
+  }
+
+  private convertToModel(dbModel: any, mappedModel: ModelResponseDto): Model {
+    return {
+      name: mappedModel.name,
+      providerName: mappedModel.providerName,
+      pricingInputPer1k: mappedModel.pricingInputPer1k,
+      pricingOutputPer1k: mappedModel.pricingOutputPer1k,
+      supportsThinking: mappedModel.supportsThinking,
+      maxTokens: mappedModel.maxTokens,
+      contextWindow: mappedModel.contextWindow,
+      strengths: mappedModel.strengths,
+      weaknesses: mappedModel.weaknesses,
+      useCases: mappedModel.useCases,
+      status: mappedModel.status,
+      createdAt: mappedModel.createdAt,
+      updatedAt: dbModel.updated_at ?? mappedModel.createdAt,
+      provider: mappedModel.provider,
+    };
+  }
+
+  private normalizeWorkflowStep(step: unknown): WorkflowStepDto | null {
+    const record = this.asRecord(step);
+    if (!record) {
+      return null;
+    }
+
+    const duration = this.pickNumber(record.duration);
+    const metadataRecord = this.asRecord(record.metadata);
+
+    return {
+      name: this.pickString(record.name) ?? 'Unknown Step',
+      status: this.normalizeWorkflowStatus(record.status),
+      duration,
+      error: this.pickString(record.error) ?? undefined,
+      metadata: metadataRecord ? this.toPlainObject(metadataRecord) : undefined,
+      startTime: this.normalizeDate(record.startTime),
+      endTime: this.normalizeDate(record.endTime),
+    };
+  }
+
+  private normalizeWorkflowStatus(
+    value: unknown,
+  ): WorkflowStepDto['status'] {
+    if (typeof value === 'string') {
+      const normalized = value.toLowerCase();
+      switch (normalized) {
+        case 'pending':
+        case 'in_progress':
+        case 'completed':
+        case 'failed':
+          return normalized;
+        case 'in-progress':
+          return 'in_progress';
+        default:
+          break;
+      }
+    }
+    return 'pending';
+  }
+
+  private normalizeDate(value: unknown): Date | undefined {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? undefined : value;
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? undefined : date;
+    }
+    return undefined;
+  }
+
+  private pickNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value.trim());
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return undefined;
+  }
+
+  private pickString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
+  }
+
+  private pickStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .map((entry) => this.pickString(entry))
+      .filter((entry): entry is string => Boolean(entry));
+  }
+
+  private extractProcessingNotes(
+    value: unknown,
+  ): Record<string, any> | undefined {
+    const record = this.asRecord(value);
+    return record ? this.toPlainObject(record) : undefined;
+  }
+
+  private toPlainObject(
+    record: Record<string, unknown>,
+  ): Record<string, any> {
+    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, unknown>;
   }
 
   private calculateAgentPerformance(tasks: any[]): Array<{

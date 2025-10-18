@@ -420,11 +420,14 @@ export class AgentRuntimeDispatchService {
     const external = options.definition.transport!.external!;
     const url = external.endpoint;
 
-    const mergedHeaders: Record<string, any> = {
+    const payloadRecord = this.asRecord(options.request.payload);
+    const payloadOptions = this.asRecord(payloadRecord?.options);
+    const payloadHeaders = this.coerceHeaderRecord(payloadOptions?.headers);
+
+    const mergedHeaders: Record<string, string> = {
       'content-type': 'application/json',
-      ...(external.authentication?.headers ?? {}),
-      ...((options.request.payload?.options?.headers as Record<string, any>) ||
-        {}),
+      ...this.coerceHeaderRecord(external.authentication?.headers),
+      ...payloadHeaders,
     };
     const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
@@ -767,7 +770,13 @@ export class AgentRuntimeDispatchService {
     data: any,
   ): string {
     const rt = api?.responseTransform;
-    if (rt && rt.format === 'field_extraction' && rt.field) {
+    if (
+      rt &&
+      rt.format === 'field_extraction' &&
+      typeof rt.field === 'string' &&
+      rt.field.trim()
+    ) {
+      const fieldPath = rt.field.trim();
       try {
         // Support dotted/bracket paths like "a.b[0].c"
         const tryExtract = (obj: any, path: string): any => {
@@ -792,14 +801,14 @@ export class AgentRuntimeDispatchService {
           return cur;
         };
 
-        const fromRoot = tryExtract(data, rt.field);
+        const fromRoot = tryExtract(data, fieldPath);
         if (fromRoot !== undefined) {
           return typeof fromRoot === 'string'
             ? fromRoot
             : this.stringifyContent(fromRoot);
         }
         if (data && typeof data === 'object' && data.result) {
-          const fromResult = tryExtract(data.result, rt.field);
+          const fromResult = tryExtract(data.result, fieldPath);
           if (fromResult !== undefined) {
             return typeof fromResult === 'string'
               ? fromResult
@@ -811,5 +820,30 @@ export class AgentRuntimeDispatchService {
       }
     }
     return this.stringifyContent(data);
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private coerceHeaderRecord(value: unknown): Record<string, string> {
+    const source = this.asRecord(value);
+    if (!source) {
+      return {};
+    }
+
+    const result: Record<string, string> = {};
+    for (const [key, raw] of Object.entries(source)) {
+      if (raw === undefined || raw === null) {
+        continue;
+      }
+      result[String(key)] =
+        typeof raw === 'string' ? raw : String(raw);
+    }
+
+    return result;
   }
 }

@@ -1,15 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  JsonObject,
+  JsonValue,
+} from '@orchestrator-ai/transport-types';
 import { AgentRuntimeDefinition } from '../interfaces/database-agent-definition.interface';
 import { AgentRuntimeAgentMetadata } from '../interfaces/agent-runtime-agent-metadata.interface';
 
-export interface RuntimeMetadataExtras {
-  [key: string]: any;
-}
-
-export interface RuntimeMetadataEnvelope {
-  agent?: AgentRuntimeAgentMetadata;
-  [key: string]: any;
-}
+export type RuntimeMetadataExtras = JsonObject;
 
 @Injectable()
 export class AgentRuntimeExecutionService {
@@ -27,45 +24,71 @@ export class AgentRuntimeExecutionService {
   }
 
   collectRequestMetadata(request: {
-    payload?: { metadata?: Record<string, any> };
-    metadata?: Record<string, any>;
-  }): Record<string, any> {
-    return {
-      ...(request.payload?.metadata ?? {}),
-      ...(request.metadata ?? {}),
-    };
+    payload?: { metadata?: unknown };
+    metadata?: unknown;
+  }): JsonObject {
+    const result: JsonObject = {};
+
+    const payloadMetadata = this.asJsonObject(request.payload?.metadata);
+    if (payloadMetadata) {
+      Object.assign(result, payloadMetadata);
+    }
+
+    const requestMetadata = this.asJsonObject(request.metadata);
+    if (requestMetadata) {
+      Object.assign(result, requestMetadata);
+    }
+
+    return result;
   }
 
   enrichPlanDraft(
-    draft: Record<string, any>,
+    draft: unknown,
     agent: AgentRuntimeAgentMetadata,
-  ): Record<string, any> {
-    if (!draft || typeof draft !== 'object') {
-      return draft;
-    }
+  ): JsonObject {
+    const planDraft = this.asJsonObject(draft) ?? {};
+    const result = this.cloneJsonObject(planDraft);
+    const existingMeta = this.getJsonObject(result['_meta']);
 
-    const result = { ...draft };
-    const existingMeta = (result as any)._meta ?? {};
-    (result as any)._meta = {
-      ...existingMeta,
+    const meta: JsonObject = {
+      ...(existingMeta ?? {}),
       agent,
     };
+
+    result['_meta'] = meta;
 
     return result;
   }
 
   buildRunMetadata(
-    base: Record<string, any>,
+    base: JsonObject,
     agent: AgentRuntimeAgentMetadata,
     extras: RuntimeMetadataExtras = {},
-  ): Record<string, any> {
-    return {
-      ...base,
-      ...extras,
-      agentId: agent.id,
-      agentSlug: agent.slug,
-      agentType: agent.type,
-      organizationSlug: agent.organizationSlug,
-    };
+  ): JsonObject {
+    const merged = this.cloneJsonObject(base);
+    Object.assign(merged, extras);
+
+    merged.agentId = agent.id;
+    merged.agentSlug = agent.slug;
+    merged.agentType = agent.type ?? null;
+    merged.organizationSlug = agent.organizationSlug ?? null;
+
+    return merged;
+  }
+
+  private asJsonObject(value: unknown): JsonObject | undefined {
+    return this.isJsonObject(value) ? (value as JsonObject) : undefined;
+  }
+
+  private cloneJsonObject(source: JsonObject): JsonObject {
+    return { ...source } as JsonObject;
+  }
+
+  private getJsonObject(value: JsonValue | undefined): JsonObject | undefined {
+    return this.isJsonObject(value) ? (value as JsonObject) : undefined;
+  }
+
+  private isJsonObject(value: unknown): value is JsonObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 }

@@ -4,6 +4,13 @@
 
 **THREE AGENTS RUNNING IN PARALLEL** — Follow these rules to avoid conflicts:
 
+### Task Management
+- **REQUIRED**: Update checkboxes in real-time as you work
+- Mark tasks `[x]` immediately after completing them (not in batches)
+- Add subtasks with checkboxes for large tasks to show incremental progress
+- Update progress notes in parentheses when partially complete
+- Keep the plan file current at all times - it's how progress is tracked
+
 ### Commit Strategy
 - **Commit frequency**: Every 2-4 hours or after completing a phase
 - **Commit prefix**: Use `lint(tooling):` or `lint(llm):` for all commits

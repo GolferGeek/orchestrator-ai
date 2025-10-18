@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
@@ -168,11 +169,18 @@ export class AgentExecutionGateway {
       );
     }
 
-    const draftPlan = request.payload?.planDraft ?? {
+    const fallbackPlan: JsonObject = {
       summary: request.userMessage ?? 'Plan draft not provided',
     };
+    const draftPlan = this.toJsonObject(
+      request.payload?.planDraft,
+      fallbackPlan,
+    );
 
     const metadata = this.runtimeExecution.collectRequestMetadata(request);
+    const createdByValue = metadata.createdBy;
+    const createdBy =
+      typeof createdByValue === 'string' ? createdByValue : null;
 
     const planRecord = await this.planEngine.generateDraft({
       conversationId,
@@ -180,7 +188,7 @@ export class AgentExecutionGateway {
       agentSlug: agent.slug,
       summary: request.payload?.summary ?? null,
       draftPlan,
-      createdBy: metadata.createdBy ?? null,
+      createdBy,
       agentMetadata,
     });
 
@@ -756,5 +764,20 @@ export class AgentExecutionGateway {
       readySteps: resumeResult.readySteps,
       steps: stepList,
     };
+  }
+
+  private toJsonObject(
+    value: unknown,
+    fallback: JsonObject,
+  ): JsonObject {
+    if (this.isJsonObject(value)) {
+      return { ...value } as JsonObject;
+    }
+
+    return { ...fallback } as JsonObject;
+  }
+
+  private isJsonObject(value: unknown): value is JsonObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 }

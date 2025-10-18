@@ -1307,10 +1307,19 @@ function resolveNamespace(
   definition: AgentRuntimeDefinition,
   organizationSlug: string | null,
 ): string {
+  const namespaceRaw =
+    definition.context && typeof definition.context === 'object'
+      ? definition.context['namespace']
+      : null;
+  const namespace =
+    typeof namespaceRaw === 'string' && namespaceRaw.trim().length
+      ? namespaceRaw.trim()
+      : null;
+
   return (
     organizationSlug ??
     definition.organizationSlug ??
-    definition.context?.namespace ??
+    namespace ??
     'global'
   );
 }

@@ -8,6 +8,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type {
+  OrchestrationCheckpointMetadata,
+  OrchestrationStepStateEntry,
+} from '../types/orchestration-run.types';
 import { OrchestrationRunEntity } from './orchestration-run.entity';
 
 @Entity({ name: 'orchestration_steps' })
@@ -62,7 +67,7 @@ export class OrchestrationStepEntity {
   attemptNumber!: number;
 
   @Column({ name: 'checkpoint_decision', type: 'jsonb', nullable: true })
-  checkpointDecision!: Record<string, any> | null;
+  checkpointDecision!: OrchestrationCheckpointMetadata | null;
 
   @Column({ name: 'checkpoint_decided_by', type: 'uuid', nullable: true })
   checkpointDecidedBy!: string | null;
@@ -81,16 +86,16 @@ export class OrchestrationStepEntity {
   invalidatedReason!: string | null;
 
   @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
-  input!: Record<string, any>;
+  input!: JsonObject;
 
   @Column({ type: 'jsonb', nullable: true })
-  output!: Record<string, any> | null;
+  output!: JsonObject | null;
 
   @Column({ name: 'metadata', type: 'jsonb', default: () => "'{}'::jsonb" })
-  metadata!: Record<string, any>;
+  metadata!: OrchestrationStepStateEntry;
 
   @Column({ name: 'error_details', type: 'jsonb', nullable: true })
-  errorDetails!: Record<string, any> | null;
+  errorDetails!: JsonObject | null;
 
   @Column({ name: 'started_at', type: 'timestamptz', nullable: true })
   startedAt!: Date | null;

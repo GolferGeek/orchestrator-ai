@@ -3,6 +3,7 @@ import { SupabaseService } from '@/supabase/supabase.service';
 import {
   ConversationPlanDraftInput,
   ConversationPlanRecord,
+  ConversationPlanStatusPatch,
   ConversationPlanStatusUpdate,
 } from '../interfaces/conversation-plan-record.interface';
 
@@ -64,7 +65,7 @@ export class ConversationPlansRepository {
     id: string,
     update: ConversationPlanStatusUpdate,
   ): Promise<ConversationPlanRecord> {
-    const patch: Record<string, any> = {
+    const patch: ConversationPlanStatusPatch = {
       ...update,
       updated_at: new Date().toISOString(),
     };

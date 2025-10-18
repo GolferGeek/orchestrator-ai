@@ -4,6 +4,13 @@
 
 **THREE AGENTS RUNNING IN PARALLEL** — Follow these rules to avoid conflicts:
 
+### Task Management
+- **REQUIRED**: Update checkboxes in real-time as you work
+- Mark tasks `[x]` immediately after completing them (not in batches)
+- Add subtasks with checkboxes for large tasks to show incremental progress
+- Update progress notes in parentheses when partially complete
+- Keep the plan file current at all times - it's how progress is tracked
+
 ### Commit Strategy
 - **Commit frequency**: Every 2-4 hours or after completing a phase
 - **Commit prefix**: Use `lint(agents):` or `lint(integrations):` for all commits
@@ -31,8 +38,9 @@ npm run build && npm test
 
 ## Phase 3 — Agent2Agent & Agent Platform Typing
 - [x] Audit `apps/api/src/agent-platform/**/*` and `agent2agent/**/*` for `any`/unsafe lint hits. _(Primary hotspots: orchestration records/metadata, checkpoint services, action handler contracts, task DTOs, Supabase repositories.)_
-- [ ] Define TypeScript interfaces for orchestration payloads, run artifacts, and Supabase records. _(Run/step records + plan version records now typed; continuing with remaining agent platform records.)_
+- [x] Define TypeScript interfaces for orchestration payloads, run artifacts, and Supabase records. _(Human approvals + agent repositories now typed; remaining dashboard/state services in progress.)_
 - [ ] Replace controller/service signatures that return `any` with typed DTOs/results. _(Agent2Agent plan services + orchestration output/progress handlers now typed; remaining dashboard/state services in progress.)_
+  - [x] AgentRuntimeDefinitionService runtime guards + unit coverage
 - [ ] Introduce typed repository helpers (factories/builders) instead of `as any` in tests/specs. _(Supabase repositories for runs and plan versions now emit typed records; TaskStatus cache migrating to JSON-safe helpers.)_
 - [ ] Update Supabase client usage to rely on typed query builders or wrappers.
 - [ ] Refresh Jest specs to align with new types; add coverage for critical flows (approvals, runtime execution).

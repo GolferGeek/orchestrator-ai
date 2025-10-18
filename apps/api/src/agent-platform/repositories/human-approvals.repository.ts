@@ -1,41 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
-
-export interface HumanApprovalRecord {
-  id: string;
-  organization_slug: string | null;
-  agent_slug: string;
-  conversation_id: string | null;
-  task_id: string | null;
-  orchestration_run_id: string | null;
-  orchestration_step_id: string | null;
-  mode: string;
-  status: 'pending' | 'approved' | 'rejected';
-  approved_by?: string | null;
-  decision_at?: string | null;
-  metadata?: Record<string, any> | null;
-  created_at?: string;
-  updated_at?: string;
-}
+import type {
+  HumanApprovalCreateInput,
+  HumanApprovalDecisionInput,
+  HumanApprovalListOptions,
+  HumanApprovalMetadata,
+  HumanApprovalRecord,
+} from '../interfaces/human-approval-record.interface';
 
 interface SupabaseListResponse<T> {
   data: T[] | null;
   error: { message: string; code?: string } | null;
   count: number | null;
-}
-
-export interface HumanApprovalListOptions {
-  organizationSlug?: string | null;
-  statuses?: Array<'pending' | 'approved' | 'rejected'>;
-  status?: 'pending' | 'approved' | 'rejected';
-  mode?: string;
-  orchestrationRunId?: string;
-  limit?: number;
-  offset?: number;
-  sortBy?: 'created_at' | 'updated_at' | 'decision_at';
-  sortDirection?: 'asc' | 'desc';
-  createdAfter?: string;
-  createdBefore?: string;
 }
 
 @Injectable()
@@ -49,16 +25,7 @@ export class HumanApprovalsRepository {
     return this.supabase.getServiceClient();
   }
 
-  async create(input: {
-    organizationSlug: string | null;
-    agentSlug: string;
-    conversationId?: string | null;
-    taskId?: string | null;
-    orchestrationRunId?: string | null;
-    orchestrationStepId?: string | null;
-    mode: string;
-    metadata?: Record<string, any>;
-  }): Promise<HumanApprovalRecord> {
+  async create(input: HumanApprovalCreateInput): Promise<HumanApprovalRecord> {
     const { data, error } = await this.client()
       .from(this.table)
       .insert({
@@ -70,7 +37,7 @@ export class HumanApprovalsRepository {
         orchestration_step_id: input.orchestrationStepId ?? null,
         mode: input.mode,
         status: 'pending',
-        metadata: input.metadata ?? {},
+        metadata: this.ensureMetadata(input.metadata),
       })
       .select('*')
       .single();
@@ -79,18 +46,23 @@ export class HumanApprovalsRepository {
   }
 
   async setStatus(
-    id: string,
-    status: 'approved' | 'rejected',
-    approvedBy?: string | null,
-    metadata?: Record<string, any>,
+    id: HumanApprovalDecisionInput['id'],
+    status: HumanApprovalDecisionInput['status'],
+    approvedBy?: HumanApprovalDecisionInput['approvedBy'],
+    metadata?: HumanApprovalMetadata,
   ): Promise<HumanApprovalRecord> {
-    const payload: Record<string, any> = {
+    const payload: {
+      status: HumanApprovalDecisionInput['status'];
+      approved_by: string | null;
+      decision_at: string;
+      metadata?: HumanApprovalMetadata;
+    } = {
       status,
       approved_by: approvedBy ?? null,
       decision_at: new Date().toISOString(),
     };
     if (metadata) {
-      payload.metadata = metadata;
+      payload.metadata = this.ensureMetadata(metadata);
     }
     const { data, error } = await this.client()
       .from(this.table)
@@ -259,5 +231,19 @@ export class HumanApprovalsRepository {
     }
 
     return Math.min(Math.floor(limit), 200);
+  }
+
+  private ensureMetadata(
+    metadata: HumanApprovalMetadata | undefined,
+  ): HumanApprovalMetadata {
+    if (metadata === undefined) {
+      return {};
+    }
+
+    if (typeof metadata === 'object' && metadata !== null && !Array.isArray(metadata)) {
+      return metadata;
+    }
+
+    throw new Error('Human approval metadata must be a JSON object');
   }
 }

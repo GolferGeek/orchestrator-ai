@@ -40,3 +40,22 @@ export interface AgentUpsertInput {
   io_schema?: JsonObject | null;
   config?: AgentConfigDefinition | null;
 }
+
+export interface AgentUpsertRow {
+  organization_slug: string | null;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  agent_type: string;
+  mode_profile: string;
+  version: string | null;
+  status: string | null;
+  yaml: string;
+  function_code: string | null;
+  context: JsonObject | null;
+  plan_structure?: string | JsonObject | null;
+  deliverable_structure?: string | JsonObject | null;
+  io_schema?: JsonObject | null;
+  config?: AgentConfigDefinition | null;
+  updated_at: string;
+}

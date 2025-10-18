@@ -8,36 +8,26 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { AgentInfo } from '../types/chat';
-import type { HierarchyNode, AgentNodeMetadata } from '@/types/agent';
-
-type AdditionalHierarchyFields = Record<string, HierarchyNode[] | AgentNodeMetadata | string | number | boolean | null | undefined>;
-
-type HierarchyResponseEnvelope = {
-  data?: HierarchyNode[];
-  metadata?: AgentNodeMetadata | null;
-} & AdditionalHierarchyFields;
+import type { HierarchyNode, AgentNodeMetadata, AgentHierarchyResponse } from '@/types/agent';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 
 interface NormalizedHierarchyResponse {
   data: HierarchyNode[];
   metadata?: AgentNodeMetadata | null;
-  rest: AdditionalHierarchyFields;
+  rest: JsonObject;
 }
-
-const isHierarchyResponseEnvelope = (input: unknown): input is HierarchyResponseEnvelope => (
-  typeof input === 'object' && input !== null
-);
 
 // Re-export for backward compatibility
 export type { HierarchyNode, AgentNodeMetadata };
 
-export function normalizeHierarchyResponse(input: HierarchyNode[] | HierarchyResponseEnvelope | null | undefined): NormalizedHierarchyResponse {
-  if (isHierarchyResponseEnvelope(input)) {
-    const { data, metadata, ...rest } = input;
+export function normalizeHierarchyResponse(input: HierarchyNode[] | AgentHierarchyResponse | null | undefined): NormalizedHierarchyResponse {
+  if (input && typeof input === 'object' && !Array.isArray(input)) {
+    const { data, metadata, ...rest } = input as AgentHierarchyResponse;
 
     return {
       data: Array.isArray(data) ? data : [],
       metadata: metadata ?? null,
-      rest,
+      rest: rest as JsonObject,
     };
   }
 
@@ -49,7 +39,7 @@ export function normalizeHierarchyResponse(input: HierarchyNode[] | HierarchyRes
 }
 
 export function filterHierarchyByNamespace(
-  hierarchy: HierarchyNode[] | HierarchyResponseEnvelope | null | undefined,
+  hierarchy: HierarchyNode[] | AgentHierarchyResponse | null | undefined,
   namespace: string,
 ) {
   const { data, metadata, rest } = normalizeHierarchyResponse(hierarchy);

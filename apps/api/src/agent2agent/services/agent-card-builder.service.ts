@@ -267,10 +267,14 @@ export class AgentCardBuilderService {
   }
 
   private deriveSkills(agent: AgentRecord): string[] {
-    const contextSkills = this.ensureStringArray(agent.context?.skills) ?? [];
+    const contextRecord = this.asRecord(agent.context);
+    const metadataRecord = this.asRecord(contextRecord?.metadata);
+
+    const contextSkills =
+      this.ensureStringArray(contextRecord?.skills) ?? [];
     const configSkills = this.ensureStringArray(agent.config?.skills) ?? [];
     const yamlSkills =
-      this.ensureStringArray(agent.context?.metadata?.skills) ?? [];
+      this.ensureStringArray(metadataRecord?.skills) ?? [];
 
     const combined = new Set<string>([
       ...contextSkills,
@@ -298,44 +302,54 @@ export class AgentCardBuilderService {
   }
 
   private deriveProvider(agent: AgentRecord): Record<string, any> {
+    const contextRecord = this.asRecord(agent.context);
     const configProvider = agent.config?.provider;
-    const contextProvider = agent.context?.provider;
+    const contextProvider = contextRecord?.provider;
     const globalProvider =
       this.configService.get<string>('AGENT_PROVIDER_NAME') ??
       AgentCardBuilderService.DEFAULT_PROVIDER;
 
-    if (typeof configProvider === 'string') {
+    const configProviderName = this.pickString(configProvider);
+    if (configProviderName) {
       return {
-        name: configProvider,
+        name: configProviderName,
         slug: agent.organization_slug ?? 'global',
       };
     }
 
-    if (typeof contextProvider === 'string') {
+    const contextProviderName = this.pickString(contextProvider);
+    if (contextProviderName) {
       return {
-        name: contextProvider,
+        name: contextProviderName,
         slug: agent.organization_slug ?? 'global',
       };
     }
 
     const providerObject =
-      configProvider && typeof configProvider === 'object'
-        ? configProvider
-        : contextProvider && typeof contextProvider === 'object'
-          ? contextProvider
-          : null;
+      this.asRecord(configProvider) ?? this.asRecord(contextProvider);
 
     if (providerObject) {
+      const name =
+        this.pickString(providerObject.name) ??
+        this.pickString(providerObject.displayName) ??
+        globalProvider;
+      const slug =
+        this.pickString(providerObject.slug) ??
+        this.pickString(providerObject.id) ??
+        agent.organization_slug ??
+        'global';
+      const contactValue = providerObject.contact;
+      const contact =
+        typeof contactValue === 'string'
+          ? contactValue
+          : this.asRecord(contactValue) ?? null;
+      const url = this.pickString(providerObject.url);
+
       return {
-        name:
-          providerObject.name ?? providerObject.displayName ?? globalProvider,
-        slug:
-          providerObject.slug ??
-          providerObject.id ??
-          agent.organization_slug ??
-          'global',
-        contact: providerObject.contact ?? null,
-        url: providerObject.url ?? null,
+        name,
+        slug,
+        contact,
+        url,
       };
     }
 
@@ -390,6 +404,21 @@ export class AgentCardBuilderService {
     }
 
     return null;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private pickString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : null;
   }
 
   private lookupBoolean(source: Record<string, any>, path: string[]): boolean {
