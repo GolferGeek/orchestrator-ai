@@ -317,7 +317,6 @@ import { useGlobalErrorHandler } from '@/composables/useGlobalErrorHandler';
 
 const errorStore = useErrorStore();
 const { 
-  handleVueError,
   handleApiError,
   handleNetworkError,
   handleChunkError,
@@ -431,7 +430,7 @@ const processRetryQueue = async () => {
 };
 
 // Error boundary event handlers
-const onBoundaryError = (error: Error, errorInfo: { componentStack: string }) => {
+const onBoundaryError = (error: Error) => {
   console.log('🚨 Error boundary caught error:', error);
   hasBoundaryError.value = true;
 };

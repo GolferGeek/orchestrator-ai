@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, getCurrentInstance } from 'vue';
+import { ref, getCurrentInstance } from 'vue';
 import {
   IonCard, IonCardContent, IonButton, IonIcon
 } from '@ionic/vue';
@@ -115,7 +115,7 @@ import {
   cloudOfflineOutline, lockClosedOutline, refreshOutline,
   chevronUpOutline, chevronDownOutline, closeOutline,
   homeOutline, settingsOutline, helpCircleOutline,
-  bugOutline, timeOutline, wifiOutline
+  bugOutline, wifiOutline
 } from 'ionicons/icons';
 import type { AppError } from '@/stores/errorStore';
 

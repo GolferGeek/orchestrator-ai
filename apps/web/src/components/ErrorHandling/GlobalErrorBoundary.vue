@@ -129,7 +129,7 @@ import {
 import {
   alertCircleOutline, warningOutline, informationCircleOutline,
   closeOutline, checkmarkCircleOutline, cloudOfflineOutline,
-  refreshOutline, bugOutline, homeOutline
+  refreshOutline
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useErrorStore, type AppError } from '@/stores/errorStore';
