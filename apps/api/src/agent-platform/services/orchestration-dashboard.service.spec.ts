@@ -118,6 +118,25 @@ const createStepRecord = (
   };
 };
 
+const createApprovalRecord = (
+  overrides: Partial<HumanApprovalRecord> = {},
+): HumanApprovalRecord => ({
+  id: overrides.id ?? uuidv4(),
+  organization_slug: overrides.organization_slug ?? null,
+  agent_slug: overrides.agent_slug ?? 'test-agent',
+  conversation_id: overrides.conversation_id ?? null,
+  task_id: overrides.task_id ?? null,
+  orchestration_run_id: overrides.orchestration_run_id ?? null,
+  orchestration_step_id: overrides.orchestration_step_id ?? null,
+  mode: overrides.mode ?? 'orchestration_checkpoint',
+  status: overrides.status ?? 'pending',
+  approved_by: overrides.approved_by ?? null,
+  decision_at: overrides.decision_at ?? null,
+  metadata: overrides.metadata ?? {},
+  created_at: overrides.created_at ?? null,
+  updated_at: overrides.updated_at ?? null,
+});
+
 describe('OrchestrationDashboardService', () => {
   let service: OrchestrationDashboardService;
   let runsRepo: jest.Mocked<OrchestrationRunsRepository>;
@@ -215,7 +234,7 @@ describe('OrchestrationDashboardService', () => {
   describe('listRuns', () => {
     it('should return paginated runs with active lifecycle filter', async () => {
       const mockRuns: OrchestrationRunRecord[] = [
-        {
+        createRunRecord({
           id: 'run-1',
           status: 'running',
           orchestration_name: 'Test Orchestration',
@@ -223,7 +242,7 @@ describe('OrchestrationDashboardService', () => {
           created_at: '2025-10-12T10:00:00Z',
           orchestration_definition_id: 'def-1',
           orchestration_slug: 'test-orch',
-        } as OrchestrationRunRecord,
+        }),
       ];
 
       runsRepo.list.mockResolvedValue({
@@ -284,14 +303,14 @@ describe('OrchestrationDashboardService', () => {
 
     it('should return paginated runs with completed lifecycle filter', async () => {
       const mockRuns: OrchestrationRunRecord[] = [
-        {
+        createRunRecord({
           id: 'run-2',
           status: 'completed',
           orchestration_name: 'Completed Orchestration',
           organization_slug: 'test-org',
           created_at: '2025-10-12T09:00:00Z',
           orchestration_definition_id: 'def-2',
-        } as OrchestrationRunRecord,
+        }),
       ];
 
       runsRepo.list.mockResolvedValue({
@@ -414,11 +433,13 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should calculate hasMore correctly when more results exist', async () => {
-      const mockRuns = Array.from({ length: 25 }, (_, i) => ({
-        id: `run-${i}`,
-        status: 'running',
-        created_at: '2025-10-12T10:00:00Z',
-      })) as OrchestrationRunRecord[];
+      const mockRuns = Array.from({ length: 25 }, (_, i) =>
+        createRunRecord({
+          id: `run-${i}`,
+          status: 'running',
+          created_at: '2025-10-12T10:00:00Z',
+        }),
+      );
 
       runsRepo.list.mockResolvedValue({
         data: mockRuns,
@@ -451,7 +472,7 @@ describe('OrchestrationDashboardService', () => {
 
   describe('getRunDetail', () => {
     it('should return full run detail with related data', async () => {
-      const mockRunRecord = {
+      const mockRunRecord = createRunRecord({
         id: 'run-1',
         status: 'running',
         orchestration_name: 'Test Run',
@@ -467,7 +488,7 @@ describe('OrchestrationDashboardService', () => {
             step: { label: 'Review Step' },
           },
         },
-      } as unknown as OrchestrationRunRecord;
+      });
 
       const mockStatus = {
         run: { id: 'run-1', status: 'running', name: 'Test Run' },
@@ -482,7 +503,7 @@ describe('OrchestrationDashboardService', () => {
         pendingApprovals: [],
       };
 
-      statusService.getRunStatus.mockResolvedValue(mockStatus as any);
+      statusService.getRunStatus.mockResolvedValue(mockStatus);
       runnerService.getRun.mockResolvedValue(mockRunRecord);
 
       runsRepo.list.mockResolvedValue({
@@ -527,22 +548,22 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should include parent run summary if parent exists', async () => {
-      const mockRunRecord: OrchestrationRunRecord = {
+      const mockRunRecord = createRunRecord({
         id: 'run-child',
         status: 'running',
         orchestration_name: 'Child Run',
         organization_slug: 'test-org',
         created_at: '2025-10-12T10:00:00Z',
         parent_orchestration_run_id: 'run-parent',
-      } as OrchestrationRunRecord;
+      });
 
-      const mockParentRecord: OrchestrationRunRecord = {
+      const mockParentRecord = createRunRecord({
         id: 'run-parent',
         status: 'running',
         orchestration_name: 'Parent Run',
         organization_slug: 'test-org',
         created_at: '2025-10-12T09:00:00Z',
-      } as OrchestrationRunRecord;
+      });
 
       statusService.getRunStatus.mockResolvedValue({
         run: { id: 'run-child', status: 'running', name: 'Child Run' },
@@ -555,7 +576,7 @@ describe('OrchestrationDashboardService', () => {
           pendingApprovals: 0,
         },
         pendingApprovals: [],
-      } as any);
+      });
 
       runnerService.getRun.mockImplementation(async (runId: string) => {
         if (runId === 'run-child') return mockRunRecord;
@@ -604,29 +625,29 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should include child runs if they exist', async () => {
-      const mockRunRecord: OrchestrationRunRecord = {
+      const mockRunRecord = createRunRecord({
         id: 'run-parent',
         status: 'running',
         orchestration_name: 'Parent Run',
         organization_slug: 'test-org',
         created_at: '2025-10-12T10:00:00Z',
-      } as OrchestrationRunRecord;
+      });
 
       const mockChildRuns: OrchestrationRunRecord[] = [
-        {
+        createRunRecord({
           id: 'run-child-1',
           status: 'completed',
           orchestration_name: 'Child 1',
           organization_slug: 'test-org',
           created_at: '2025-10-12T10:05:00Z',
-        } as OrchestrationRunRecord,
-        {
+        }),
+        createRunRecord({
           id: 'run-child-2',
           status: 'running',
           orchestration_name: 'Child 2',
           organization_slug: 'test-org',
           created_at: '2025-10-12T10:10:00Z',
-        } as OrchestrationRunRecord,
+        }),
       ];
 
       statusService.getRunStatus.mockResolvedValue({
@@ -640,7 +661,7 @@ describe('OrchestrationDashboardService', () => {
           pendingApprovals: 0,
         },
         pendingApprovals: [],
-      } as any);
+      });
 
       runnerService.getRun.mockResolvedValue(mockRunRecord);
 
@@ -690,7 +711,7 @@ describe('OrchestrationDashboardService', () => {
   describe('listApprovals', () => {
     it('should return paginated approvals with run context', async () => {
       const mockApprovals: HumanApprovalRecord[] = [
-        {
+        createApprovalRecord({
           id: 'approval-1',
           status: 'pending',
           mode: 'orchestration_checkpoint',
@@ -700,17 +721,17 @@ describe('OrchestrationDashboardService', () => {
           organization_slug: 'test-org',
           created_at: '2025-10-12T10:00:00Z',
           metadata: {},
-        } as HumanApprovalRecord,
+        }),
       ];
 
       const mockRuns: OrchestrationRunRecord[] = [
-        {
+        createRunRecord({
           id: 'run-1',
           status: 'checkpoint',
           orchestration_name: 'Test Run',
           organization_slug: 'test-org',
           created_at: '2025-10-12T09:00:00Z',
-        } as OrchestrationRunRecord,
+        }),
       ];
 
       approvalsRepo.list.mockResolvedValue({
@@ -935,7 +956,7 @@ describe('OrchestrationDashboardService', () => {
 
   describe('getReplayContext', () => {
     it('should return replay context for existing run', async () => {
-      const mockRun = {
+      const mockRun = createRunRecord({
         id: 'run-replay',
         status: 'completed',
         orchestration_name: 'Replay Test',
@@ -959,7 +980,7 @@ describe('OrchestrationDashboardService', () => {
             type: 'orchestrator',
           },
         },
-      } as unknown as OrchestrationRunRecord;
+      });
 
       const mockDefinition = {
         id: 'def-1',
@@ -970,9 +991,7 @@ describe('OrchestrationDashboardService', () => {
       };
 
       runnerService.getRun.mockResolvedValue(mockRun);
-      definitionService.getDefinitionById.mockResolvedValue(
-        mockDefinition as any,
-      );
+      definitionService.getDefinitionById.mockResolvedValue(mockDefinition);
 
       const result = await service.getReplayContext('run-replay');
 
@@ -1131,16 +1150,16 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should merge modifications into step input on retry', async () => {
-      const mockRun: OrchestrationRunRecord = {
+      const mockRun = createRunRecord({
         id: 'run-1',
         status: 'running',
         parameters: {},
         plan: {},
         results: {},
         metadata: {},
-      } as OrchestrationRunRecord;
+      });
 
-      const failedStep = {
+      const failedStep = createStepRecord({
         id: 'step-rec-1',
         orchestration_run_id: 'run-1',
         step_id: 'step-1',
@@ -1149,16 +1168,16 @@ describe('OrchestrationDashboardService', () => {
         attempt_number: 1,
         input: { param1: 'original', param2: 'unchanged' },
         metadata: {},
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
       runnerService.updateStep.mockResolvedValue({
         ...failedStep,
         status: 'pending',
-      } as any);
+      });
       runnerService.updateRun.mockResolvedValue(mockRun);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
         createMockSnapshot({ id: 'run-1', status: 'running' }),
@@ -1179,16 +1198,16 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should track retry history with manual flag', async () => {
-      const mockRun: OrchestrationRunRecord = {
+      const mockRun = createRunRecord({
         id: 'run-1',
         status: 'running',
         parameters: {},
         plan: {},
         results: {},
         metadata: {},
-      } as OrchestrationRunRecord;
+      });
 
-      const failedStep = {
+      const failedStep = createStepRecord({
         id: 'step-rec-1',
         orchestration_run_id: 'run-1',
         step_id: 'step-1',
@@ -1206,16 +1225,16 @@ describe('OrchestrationDashboardService', () => {
             },
           },
         },
-      } as any;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([failedStep]);
       runnerService.updateStep.mockResolvedValue({
         ...failedStep,
         status: 'pending',
-      } as any);
+      });
       runnerService.updateRun.mockResolvedValue(mockRun);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
         createMockSnapshot({ id: 'run-1', status: 'running' }),
@@ -1246,14 +1265,14 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should throw BadRequestException when no failed step exists', async () => {
-      const mockRun: OrchestrationRunRecord = {
+      const mockRun = createRunRecord({
         id: 'run-1',
         status: 'running',
         parameters: {},
         plan: {},
         results: {},
         metadata: {},
-      } as OrchestrationRunRecord;
+      });
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([
@@ -1267,14 +1286,14 @@ describe('OrchestrationDashboardService', () => {
     });
 
     it('should throw BadRequestException when specified step is not failed', async () => {
-      const mockRun: OrchestrationRunRecord = {
+      const mockRun = createRunRecord({
         id: 'run-1',
         status: 'running',
         parameters: {},
         plan: {},
         results: {},
         metadata: {},
-      } as OrchestrationRunRecord;
+      });
 
       const completedStep = {
         id: 'step-rec-1',
@@ -1322,7 +1341,7 @@ describe('OrchestrationDashboardService', () => {
         step: failedStep,
         run: mockRun,
       } as any);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
         createMockSnapshot({ id: 'run-1', status: 'running' }),
@@ -1376,7 +1395,7 @@ describe('OrchestrationDashboardService', () => {
         step: failedStep,
         run: mockRun,
       } as any);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
         createMockSnapshot({ id: 'run-1', status: 'running' }),
@@ -1419,7 +1438,7 @@ describe('OrchestrationDashboardService', () => {
         step: failedStep,
         run: mockRun,
       } as any);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
         createMockSnapshot({ id: 'run-1', status: 'running' }),
@@ -1461,7 +1480,7 @@ describe('OrchestrationDashboardService', () => {
         step: failedStep,
         run: mockRun,
       } as any);
-      stepExecutorService.processRun.mockResolvedValue(undefined as any);
+      stepExecutorService.processRun.mockResolvedValue(undefined);
       approvalsRepo.countPendingByRunIds.mockResolvedValue({ 'run-1': 0 });
       eventsService.snapshotRun.mockReturnValue(
         createMockSnapshot({ id: 'run-1', status: 'running' }),

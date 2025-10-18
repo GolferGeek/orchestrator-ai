@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
 import {
   GenerateResponseParams,
@@ -13,6 +13,7 @@ import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import {
   GoogleGenerativeAI,
+  FinishReason,
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/generative-ai';
@@ -115,6 +116,11 @@ export class GoogleLLMService extends BaseLLMService {
           `🔍 [PII-METADATA-DEBUG] GoogleLLMService - Using preprocessed text and PII metadata`,
         );
       }
+      if (dictionaryMappings.length > 0) {
+        this.logger.debug(
+          `📓 [DICTIONARY] Applying ${dictionaryMappings.length} dictionary mappings for Google request ${requestId}`,
+        );
+      }
 
       // Get the model
       const model = this.genAI.getGenerativeModel({
@@ -150,10 +156,9 @@ export class GoogleLLMService extends BaseLLMService {
       const prompt = `${params.systemPrompt}\n\nUser: ${processedText}\n\nAssistant:`;
 
       // Make Google API call
-      const result: GoogleGenerateContentResult = await model.generateContent(
-        prompt,
-      );
-      const response = result.response as GoogleGenerateContentResponse;
+      const result: GoogleGenerateContentResult =
+        await model.generateContent(prompt);
+      const response: GoogleGenerateContentResponse = result.response;
 
       if (typeof response?.text !== 'function') {
         throw new Error('Unexpected Google response shape: missing text()');
@@ -233,8 +238,7 @@ export class GoogleLLMService extends BaseLLMService {
     requestId: string,
   ): GoogleResponseMetadata {
     const usageMetadata: GoogleUsageMetadata | undefined =
-      response.usageMetadata ??
-      (result.response?.usageMetadata as GoogleUsageMetadata | undefined);
+      response.usageMetadata ?? result.response?.usageMetadata;
     const candidate: GoogleGenerateContentCandidate | undefined =
       response.candidates?.[0];
 
@@ -315,7 +319,9 @@ export class GoogleLLMService extends BaseLLMService {
       try {
         // This would integrate with LangSmith for Google-specific tracing
         const runId = `google-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        this.logger.debug(`LangSmith integration for Google: ${runId}`);
+        this.logger.debug(
+          `LangSmith integration for Google model ${params.config.model} (run: ${runId}, tokens: ${response.metadata.usage.totalTokens})`,
+        );
         return runId;
       } catch (error) {
         this.logger.warn('LangSmith integration failed:', error);
@@ -328,13 +334,13 @@ export class GoogleLLMService extends BaseLLMService {
     candidate?: GoogleGenerateContentCandidate,
   ): GoogleResponseMetadata['providerSpecific']['finish_reason'] {
     switch (candidate?.finishReason) {
-      case 'STOP':
+      case FinishReason.STOP:
         return 'STOP';
-      case 'MAX_TOKENS':
+      case FinishReason.MAX_TOKENS:
         return 'MAX_TOKENS';
-      case 'SAFETY':
+      case FinishReason.SAFETY:
         return 'SAFETY';
-      case 'RECITATION':
+      case FinishReason.RECITATION:
         return 'RECITATION';
       default:
         return 'OTHER';

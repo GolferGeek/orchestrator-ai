@@ -28,7 +28,7 @@ import {
   OrchestrationRunDetail,
   OrchestrationRunSummary,
 } from '../types/orchestration-dashboard.types';
-import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { OrchestrationExecutionService } from './orchestration-execution.service';
 import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 import type {

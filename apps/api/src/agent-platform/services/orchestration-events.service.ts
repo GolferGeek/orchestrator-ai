@@ -183,7 +183,9 @@ export class OrchestrationEventsService {
     run: OrchestrationRunRecord,
     context?: RunEventContext,
   ): OrchestrationRunSnapshot {
-    const metadata = (run.metadata ?? {}) as OrchestrationRunMetadata;
+    const metadata: OrchestrationRunMetadata = {
+      ...run.metadata,
+    };
     const stats = this.buildStats(run, context);
 
     return {
@@ -229,10 +231,21 @@ export class OrchestrationEventsService {
     } else if (Array.isArray(metadata.outputSummary)) {
       outputSummary = [...metadata.outputSummary];
     } else {
-      const nestedMetadata = metadata.metadata as JsonObject | undefined;
+      const nestedMetadata = this.isJsonObject(metadata.metadata)
+        ? metadata.metadata
+        : undefined;
       const preview = nestedMetadata?.outputPreview;
       if (Array.isArray(preview)) {
-        outputSummary = preview.map((value) => String(value));
+        outputSummary = preview
+          .map((value) => {
+            const jsonValue = this.toJsonValue(value);
+            if (jsonValue === undefined) {
+              return undefined;
+            }
+            const formatted = this.formatJsonValue(jsonValue);
+            return formatted.length > 0 ? formatted : undefined;
+          })
+          .filter((summary): summary is string => summary !== undefined);
       }
     }
 
@@ -259,8 +272,7 @@ export class OrchestrationEventsService {
     context?: RunEventContext,
   ): OrchestrationRunStats {
     const metadataStats: OrchestrationRunMetricsMetadata =
-      (run.metadata?.stats as OrchestrationRunMetricsMetadata | undefined) ??
-      {};
+      this.isRunMetricsMetadata(metadata.stats) ? metadata.stats : {};
 
     const totalSteps =
       this.extractNumber(context?.totalSteps ?? metadataStats.totalSteps) ??
@@ -349,6 +361,37 @@ export class OrchestrationEventsService {
       return value;
     }
     return undefined;
+  }
+
+  private isJsonObject(value: unknown): value is JsonObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private isRunMetricsMetadata(
+    value: unknown,
+  ): value is OrchestrationRunMetricsMetadata {
+    return this.isJsonObject(value);
+  }
+
+  private formatJsonValue(value: JsonValue): string {
+    if (value === null) {
+      return 'null';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      this.logger.debug(
+        'Failed to stringify JSON value for output summary',
+        error,
+      );
+      return '';
+    }
   }
 
   private toJsonObject(value: Record<string, unknown>): JsonObject {

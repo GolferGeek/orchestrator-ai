@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SupabaseService } from '../supabase/supabase.service';
 import { IsOptional, IsObject, IsString } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
+import { cpus } from 'os';
 
 class UpdateGlobalModelConfigDto {
   @IsObject()
@@ -161,7 +162,7 @@ export class SystemController {
           },
           cpu: {
             usage: Math.round(process.cpuUsage().user / 1000), // Convert microseconds to milliseconds
-            cores: require('os').cpus().length,
+            cores: cpus().length,
           },
         },
         performance: {

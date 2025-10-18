@@ -47,10 +47,13 @@ export class OrchestrationOutputMapper {
 
     Object.entries(mapping).forEach(([key, expression]) => {
       try {
-        if (typeof expression === 'string' && expression.trim().startsWith('$')) {
+        if (
+          typeof expression === 'string' &&
+          expression.trim().startsWith('$')
+        ) {
           result[key] = this.resolveJsonPath(root, expression.trim());
         } else {
-          result[key] = this.cloneValue((expression ?? null) as JsonValue);
+          result[key] = this.cloneValue(expression ?? null);
         }
       } catch (error) {
         this.logger.warn(
@@ -65,7 +68,7 @@ export class OrchestrationOutputMapper {
 
   private defaultProjection(payload: TaskResponsePayload): JsonObject {
     return {
-      content: this.cloneValue((payload.content ?? null) as JsonValue),
+      content: this.cloneValue(payload.content ?? null),
       metadata: this.cloneValue(payload.metadata ?? {}),
     };
   }
@@ -87,8 +90,9 @@ export class OrchestrationOutputMapper {
       };
     }
 
-    const contentDeliverable =
-      (candidate.content as JsonObject | undefined)?.deliverable;
+    const contentDeliverable = (
+      candidate.content as JsonObject | undefined
+    )?.deliverable;
     if (contentDeliverable && typeof contentDeliverable === 'object') {
       const deliverable = contentDeliverable as JsonObject;
       return {
@@ -131,10 +135,13 @@ export class OrchestrationOutputMapper {
       current = this.accessSegment(current, segment);
     }
 
-    return this.cloneValue((current ?? null) as JsonValue);
+    return this.cloneValue(current ?? null);
   }
 
-  private accessSegment(target: JsonValue, segment: string): JsonValue | undefined {
+  private accessSegment(
+    target: JsonValue,
+    segment: string,
+  ): JsonValue | undefined {
     if (segment.length === 0) {
       return target;
     }
@@ -142,7 +149,7 @@ export class OrchestrationOutputMapper {
     let remainder = segment;
     let current: JsonValue | undefined = target;
 
-    const fieldMatch = remainder.match(/^([^\[\]]+)/);
+    const fieldMatch = remainder.match(/^([^[]+)/);
     if (fieldMatch?.[1]) {
       const fieldName = fieldMatch[1];
       if (current && typeof current === 'object' && !Array.isArray(current)) {
@@ -174,7 +181,7 @@ export class OrchestrationOutputMapper {
     if (typeof value === 'object') {
       try {
         return JSON.parse(JSON.stringify(value));
-      } catch (_error) {
+      } catch {
         // Fallback to original reference if cloning fails
         return value;
       }

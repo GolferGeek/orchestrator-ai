@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { LangChainClientService } from './langchain-client.service';
 import { DynamicTool } from '@langchain/core/tools';
-import { firstValueFrom } from 'rxjs';
 
 /**
  * LangChain Notion Tools Service
@@ -47,6 +46,7 @@ export class LangChainNotionService {
             content: content || '',
             url: `https://notion.so/page_${Date.now()}`,
             createdAt: new Date().toISOString(),
+            parentDatabaseId: databaseId ?? null,
           };
 
           return JSON.stringify(mockResponse);
@@ -94,6 +94,8 @@ export class LangChainNotionService {
               },
             ],
             hasMore: false,
+            appliedFilter: filter ?? null,
+            appliedSorts: sorts ?? null,
           };
 
           return JSON.stringify(mockResponse);

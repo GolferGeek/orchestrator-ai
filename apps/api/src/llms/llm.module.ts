@@ -8,7 +8,6 @@ import { ProvidersModule } from './providers/providers.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { UsageModule } from './usage/usage.module';
 import { LangChainModule } from './langchain/langchain.module';
-import { SimplifiedPIIModule } from './pii/pii-simplified.module';
 import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { ModelConfigurationModule } from './config/model-configuration.module';
 import { FeatureFlagModule } from '../config/feature-flag.module';
@@ -50,7 +49,6 @@ import { GrokLLMService } from './services/grok-llm.service';
     EvaluationModule,
     UsageModule,
     LangChainModule,
-    SimplifiedPIIModule,
   ],
   controllers: [
     LLMController,
