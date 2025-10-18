@@ -185,6 +185,8 @@ async function executeQueryOnCompanyDB(
   client: unknown,
   query: string,
 ): Promise<{ data: unknown; error?: string }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabaseClient = client as any;
   // Simple query parsing for basic SELECT statements on company schema
   // This is a simplified approach - for production you'd want more robust SQL parsing
   const lowerQuery = query.toLowerCase().trim();
@@ -195,7 +197,7 @@ async function executeQueryOnCompanyDB(
       lowerQuery.includes('select count(*)') &&
       lowerQuery.includes('companies')
     ) {
-      const { data, error } = await client
+      const { data, error } = await supabaseClient
         .from('companies')
         .select('*', { count: 'exact' });
       return { data: [{ count: data?.length || 0 }], error: error?.message };
@@ -203,7 +205,7 @@ async function executeQueryOnCompanyDB(
 
     // Handle public schema table queries
     if (lowerQuery.includes('from companies')) {
-      const { data, error } = await client
+      const { data, error } = await supabaseClient
         .from('companies')
         .select('*')
         .limit(100);
@@ -211,7 +213,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from departments')) {
-      const { data, error } = await client
+      const { data, error } = await supabaseClient
         .from('departments')
         .select('*')
         .limit(100);
@@ -219,7 +221,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from kpi_data')) {
-      const { data, error } = await client
+      const { data, error } = await supabaseClient
         .from('kpi_data')
         .select('*')
         .limit(100);
@@ -227,7 +229,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from kpi_metrics')) {
-      const { data, error } = await client
+      const { data, error } = await supabaseClient
         .from('kpi_metrics')
         .select('*')
         .limit(100);
@@ -235,7 +237,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from kpi_goals')) {
-      const { data, error } = await client
+      const { data, error } = await supabaseClient
         .from('kpi_goals')
         .select('*')
         .limit(100);

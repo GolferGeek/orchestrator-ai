@@ -26,6 +26,7 @@ import {
   ConversationMessage,
 } from '../context-optimization/context-optimization.service';
 import type { ActionExecutionContext } from '../common/interfaces/action-handler.interface';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { PlansService } from '../plans/services/plans.service';
 import type { Plan } from '../plans/types/plan.types';
@@ -165,7 +166,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         userId,
         agentSlug: definition.slug,
         taskId,
-        metadata: (request.metadata ?? {}) as Record<string, unknown>,
+        metadata: (request.metadata ?? {}) as JsonObject,
       };
 
       const requestedPlanVersionId =

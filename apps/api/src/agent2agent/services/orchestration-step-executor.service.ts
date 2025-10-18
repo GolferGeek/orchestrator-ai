@@ -282,7 +282,7 @@ export class OrchestrationStepExecutorService {
     );
 
     const unsupportedResponse = this.checkUnsupportedMode(
-      definition,
+      definition as unknown as Record<string, unknown>,
       taskRequest.mode!,
     );
     if (unsupportedResponse) {

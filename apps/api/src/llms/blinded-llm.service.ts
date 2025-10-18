@@ -158,12 +158,14 @@ export class BlindedLLMService {
         const axiosConfig = this.convertFetchToAxios(url, init);
 
         // Make the blinded request
-        const response = await blindedClient.post(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const blindedClientAny = blindedClient as any;
+        const response = await blindedClientAny.post(
           axiosConfig.url,
           axiosConfig.data,
           {
             headers: axiosConfig.headers,
-            ...axiosConfig.options,
+            ...(axiosConfig.options as Record<string, unknown>),
           },
         );
 
@@ -188,21 +190,25 @@ export class BlindedLLMService {
     headers: Record<string, string>;
     options: unknown;
   } {
-    const requestUrl =
-      typeof url === 'string'
-        ? url
-        : url instanceof URL
-          ? url.toString()
-          : ((url as Record<string, unknown>)?.url ?? '');
+    let requestUrl = '';
+    if (typeof url === 'string') {
+      requestUrl = url;
+    } else if (url instanceof URL) {
+      requestUrl = url.toString();
+    } else if (url && typeof (url as { url?: string }).url === 'string') {
+      requestUrl = (url as { url: string }).url;
+    }
+
     const headers: Record<string, string> = {};
 
     // Extract headers from init
     if (init?.headers) {
-      const headerEntries = init.headers as Record<string, unknown>;
-      if (headerEntries.entries) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const headerEntries = init.headers as any;
+      if (typeof headerEntries.entries === 'function') {
         // Headers object
         for (const [key, value] of headerEntries.entries()) {
-          headers[key] = value;
+          headers[key] = String(value);
         }
       } else if (typeof headerEntries === 'object') {
         // Plain object
@@ -225,10 +231,12 @@ export class BlindedLLMService {
    * Convert axios response to fetch Response
    */
   private convertAxiosToFetchResponse(axiosResponse: unknown): Response {
-    const response = new Response(JSON.stringify(axiosResponse.data), {
-      status: axiosResponse.status,
-      statusText: axiosResponse.statusText,
-      headers: new Headers(axiosResponse.headers),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const axiosResp = axiosResponse as any;
+    const response = new Response(JSON.stringify(axiosResp.data), {
+      status: axiosResp.status,
+      statusText: axiosResp.statusText,
+      headers: new Headers(axiosResp.headers),
     });
 
     return response;
@@ -258,7 +266,10 @@ export class BlindedLLMService {
 
             try {
               // Call the original LLM method (which will use our blinded fetch)
-              const result = await (target as Record<string, unknown>)[prop](
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const method = (target as any)[prop];
+              const result = await method.call(
+                target,
                 messages,
                 options,
                 callbacks,
@@ -280,7 +291,8 @@ export class BlindedLLMService {
           };
         }
 
-        return (target as Record<string, unknown>)[prop];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (target as any)[prop];
       },
     });
   }
@@ -348,7 +360,8 @@ export class BlindedLLMService {
       ];
 
       // This should trigger our blinded HTTP client
-      await blindedLLM.call(testMessages as unknown);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await blindedLLM.call(testMessages as any);
 
       return {
         success: true,

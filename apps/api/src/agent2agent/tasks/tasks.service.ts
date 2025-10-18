@@ -21,7 +21,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { snakeToCamel } from '@/utils/case-converter';
 import { TaskMessageService } from './task-message.service';
-import { TaskStatusService } from './task-status.service';
+import { TaskStatusService, TaskStatusState } from './task-status.service';
 import {
   MessageEmitter,
   TaskMessageEmitter,
@@ -344,7 +344,7 @@ export class TasksService {
 
     // Sync with TaskStatusService for live tracking
     await this.taskStatusService.updateTaskStatus(taskId, userId, {
-      status: updates.status as string,
+      status: updates.status as TaskStatusState | undefined,
       progress: updates.progress,
       progressMessage: updates.progressMessage,
       result: updates.response
@@ -620,13 +620,13 @@ export class TasksService {
       }
 
       const enhancedResult = {
-        ...result,
+        ...(result as Record<string, unknown>),
         deliverableId,
       };
 
       return JSON.stringify(enhancedResult);
     } catch {
-      return response;
+      return response as string;
     }
   }
 

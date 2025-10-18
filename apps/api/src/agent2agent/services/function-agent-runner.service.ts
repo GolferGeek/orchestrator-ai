@@ -100,9 +100,11 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         );
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const configAny = definition.config as any;
       const fnConfig =
-        (definition.config as Record<string, unknown>)?.configuration?.function ||
-        (definition.config as Record<string, unknown>)?.function ||
+        configAny?.configuration?.function ||
+        configAny?.function ||
         {};
 
       const prompt =
@@ -113,13 +115,17 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         string,
         unknown
       >;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const metadataAny = request.metadata as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payloadAny = request.payload as any;
       const userId =
-        (request.metadata as Record<string, unknown>)?.userId ||
-        (request.payload as Record<string, unknown>)?.metadata?.userId ||
+        metadataAny?.userId ||
+        payloadAny?.metadata?.userId ||
         process.env.SYSTEM_USER_ID ||
         null;
       const conversationId = request.conversationId || null;
-      const taskId = (request.payload as Record<string, unknown>)?.taskId || null;
+      const taskId = payloadAny?.taskId || null;
 
       const allowedModules = new Set(this.allowedModules);
       const moduleMap: Record<string, unknown> = {};
@@ -164,8 +170,8 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         conversationId,
         userId,
         agentSlug: definition.slug,
-        config: definition.config,
-        taskId,
+        config: (definition.config || {}) as Record<string, unknown>,
+        taskId: typeof taskId === 'string' ? taskId : null,
       });
 
       const execPromise = Promise.resolve(exported(input, ctx));
@@ -188,14 +194,18 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   private resolveFunctionCode(
     definition: AgentRuntimeDefinition,
   ): string | null {
-    const recordCode = (definition as Record<string, unknown>)?.record?.function_code;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const defAny = definition as any;
+    const recordCode = defAny?.record?.function_code;
     if (typeof recordCode === 'string' && recordCode.trim().length > 0) {
       return recordCode;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const configAny = definition.config as any;
     const configCode =
-      (definition.config as Record<string, unknown>)?.configuration?.function?.code ||
-      (definition.config as Record<string, unknown>)?.function?.code;
+      configAny?.configuration?.function?.code ||
+      configAny?.function?.code;
     if (typeof configCode === 'string' && configCode.trim().length > 0) {
       return configCode;
     }
@@ -332,9 +342,12 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
 
     let content =
       typeof result === 'object' && result !== null ? { ...result } : result;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resultAny = result as any;
     const deliverable =
       typeof result === 'object' && result
-        ? (result.deliverable as
+        ? (resultAny.deliverable as
             | {
                 id: string;
                 title?: string;
@@ -344,14 +357,16 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         : undefined;
 
     const metadata =
-      typeof result === 'object' && result.metadata
-        ? { ...(result.metadata as Record<string, any>) }
+      typeof result === 'object' && resultAny.metadata
+        ? { ...(resultAny.metadata as Record<string, any>) }
         : {};
 
     if (typeof content === 'object' && content) {
-      delete content.deliverable;
-      delete content.version;
-      delete content.metadata;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contentAny = content as any;
+      delete contentAny.deliverable;
+      delete contentAny.version;
+      delete contentAny.metadata;
     }
 
     if (
