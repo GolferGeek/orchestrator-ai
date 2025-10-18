@@ -83,7 +83,7 @@
               </ion-button>
             </div>
             <div v-else-if="transcriptContent" class="transcript-content">
-              <div v-html="renderedTranscript" class="transcript-markdown"></div>
+              <div class="transcript-markdown" v-text="transcriptContent"></div>
             </div>
             <div v-else class="transcript-placeholder">
               <ion-icon :icon="documentTextOutline" />

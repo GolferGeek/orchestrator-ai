@@ -50,7 +50,7 @@
           <!-- DEBUG: showing content, willHideForDeliverable = {{ willHideForDeliverable }} -->
           <!-- Render markdown for assistant messages -->
           <div v-if="message.role === 'assistant'" class="rendered-content">
-            <div v-if="renderedContent" v-html="renderedContent"></div>
+            <div v-if="message.content">{{ message.content }}</div>
             <div v-else class="fallback-content">{{ message.content }}</div>
           </div>
           <!-- Plain text for user messages -->

@@ -83,7 +83,7 @@
                   />
                   <span class="section-label">{{ section.type }}</span>
                 </div>
-                <div class="section-content" v-html="renderSection(section)"></div>
+                <div class="section-content" {{ section.content }}></div>
               </div>
             </div>
           </div>
@@ -104,7 +104,7 @@
                   />
                   <span class="section-label">{{ section.type }}</span>
                 </div>
-                <div class="section-content" v-html="renderSection(section)"></div>
+                <div class="section-content" {{ section.content }}></div>
               </div>
             </div>
           </div>

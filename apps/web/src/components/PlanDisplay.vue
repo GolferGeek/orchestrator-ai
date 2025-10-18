@@ -322,8 +322,7 @@
             <div
               v-if="displayVersion?.format === 'markdown'"
               class="markdown-content"
-              v-html="renderedMarkdown"
-            ></div>
+            >{{ displayVersion?.content }}</div>
             <!-- JSON Content -->
             <pre
               v-else-if="displayVersion?.format === 'json'"

@@ -169,7 +169,7 @@
                     </ion-chip>
                   </ion-label>
                   
-                  <div class="highlighted-text" v-html="highlightedText"></div>
+                  <div class="highlighted-text">{{ sampleText }}</div>
                   
                   <div v-if="previewMatches.length > 0" class="matches-list">
                     <ion-label><strong>Extracted Matches:</strong></ion-label>

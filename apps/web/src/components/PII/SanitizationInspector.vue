@@ -136,7 +136,7 @@
           <div class="text-visualization">
             <div class="text-section">
               <h4>{{ currentPhase.inputLabel || 'Input Text' }}</h4>
-              <div class="text-content" v-html="highlightedInputText"></div>
+              <div class="text-content">{{ currentPhase?.inputText || '' }}</div>
             </div>
             
             <div class="transformation-arrow">
@@ -145,7 +145,7 @@
             
             <div class="text-section">
               <h4>{{ currentPhase.outputLabel || 'Output Text' }}</h4>
-              <div class="text-content" v-html="highlightedOutputText"></div>
+              <div class="text-content">{{ currentPhase?.outputText || '' }}</div>
             </div>
           </div>
 

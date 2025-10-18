@@ -345,14 +345,14 @@
         <div 
           v-if="displayVersion?.format === 'markdown'"
           class="markdown-content"
-          v-html="renderedMarkdown"
-        ></div>
+        >{{ displayVersion?.content }}</div>
         <!-- JSON Content -->
         <pre 
           v-else-if="displayVersion?.format === 'json'"
           class="json-content"
         ><code>{{ formatJson(displayVersion?.content) }}</code></pre>
         <!-- HTML Content -->
+        <!-- Note: sanitizedHtml is sanitized with DOMPurify for security -->
         <div 
           v-else-if="displayVersion?.format === 'html'"
           class="html-content"
