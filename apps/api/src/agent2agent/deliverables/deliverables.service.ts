@@ -1027,7 +1027,12 @@ export class DeliverablesService implements IActionHandler {
       // First verify the deliverable exists and belongs to the user
       await this.findOne(id, userId);
 
-      const updateData: any = {
+      const updateData: {
+        updated_at: string;
+        title?: string;
+        type?: string;
+        agent_name?: string;
+      } = {
         updated_at: new Date().toISOString(),
       };
 
