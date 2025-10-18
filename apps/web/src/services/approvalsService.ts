@@ -10,7 +10,7 @@ export interface HumanApprovalRecord {
   status: 'pending' | 'approved' | 'rejected';
   approved_by?: string | null;
   decision_at?: string | null;
-  metadata?: any;
+  metadata?: unknown;
   created_at?: string;
 }
 
@@ -36,7 +36,7 @@ export const approvalsService = {
     orgSlug: string | null | undefined,
     agentSlug: string,
     id: string,
-    body?: { options?: Record<string, any>; payload?: Record<string, any> },
+    body?: { options?: Record<string, unknown>; payload?: Record<string, unknown> },
   ) {
     const org = !orgSlug || orgSlug.trim().length === 0 ? 'global' : orgSlug;
     const url = `/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(agentSlug)}/approvals/${encodeURIComponent(id)}/continue`;

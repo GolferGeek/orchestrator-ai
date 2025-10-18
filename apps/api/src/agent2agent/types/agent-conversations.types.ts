@@ -1,20 +1,8 @@
 // Agent organizational categories - supports both file structure and explicit configuration
-export type AgentType =
-  | 'orchestrator' // Special type for delegation and management
-  | 'specialist' // Cross-organizational specialists
-  | 'marketing' // Marketing department agents
-  | 'finance' // Finance department agents
-  | 'hr' // Human resources agents
-  | 'operations' // Operations and logistics agents
-  | 'sales' // Sales and customer-facing agents
-  | 'legal' // Legal and compliance agents
-  | 'engineering' // Engineering and technical agents
-  | 'product' // Product management agents
-  | 'research' // Research and analytics agents
-  | 'context' // Context-based database agents
-  | 'function' // Function-based database agents
-  | 'tool' // Tool-based database agents
-  | string; // Allow any string for database namespaces (my-org, etc.)
+// Common values include: orchestrator, specialist, marketing, finance, hr, operations,
+// sales, legal, engineering, product, research, context, function, tool
+// Also supports any string for database namespaces (my-org, etc.)
+export type AgentType = string;
 
 export interface AgentConversation {
   id: string;

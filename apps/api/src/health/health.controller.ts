@@ -49,7 +49,7 @@ export class HealthController {
       },
     },
   })
-  async healthCheck() {
+  healthCheck() {
     return {
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -101,7 +101,7 @@ export class HealthController {
       },
     },
   })
-  async getSupabaseConfig() {
+  getSupabaseConfig() {
     return {
       ...this.supabaseService.getConfig(),
       timestamp: new Date().toISOString(),

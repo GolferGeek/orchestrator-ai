@@ -22,7 +22,7 @@ interface RequestMetadata {
   conversationId: string;
   userMessage?: string;
   messages?: StrictTaskMessage[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -47,7 +47,7 @@ export const buildPlanRequest = {
    */
   create: (
     metadata: RequestMetadata & { userMessage: string },
-    planData?: Record<string, any>,
+    planData?: Record<string, unknown>,
   ): StrictPlanRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
     validateRequired(metadata.userMessage, 'userMessage');
@@ -268,7 +268,7 @@ export const buildBuildRequest = {
    */
   execute: (
     metadata: RequestMetadata & { userMessage: string },
-    buildData?: { planId?: string; [key: string]: any },
+    buildData?: { planId?: string; [key: string]: unknown },
   ): StrictBuildRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
     validateRequired(metadata.userMessage, 'userMessage');
@@ -342,7 +342,7 @@ export const buildBuildRequest = {
    */
   rerun: (
     metadata: RequestMetadata & { userMessage: string },
-    rerunData: { versionId: string; config?: Record<string, any> },
+    rerunData: { versionId: string; config?: Record<string, unknown> },
   ): StrictBuildRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
     validateRequired(metadata.userMessage, 'userMessage');
@@ -552,7 +552,7 @@ export const buildRequest = {
 /**
  * Validation helper
  */
-function validateRequired(value: any, fieldName: string): void {
+function validateRequired(value: unknown, fieldName: string): void {
   if (value === undefined || value === null || value === '') {
     throw new StrictRequestValidationError(
       fieldName,
@@ -564,7 +564,7 @@ function validateRequired(value: any, fieldName: string): void {
 /**
  * Type guard to check if a value is a strict request
  */
-export function isStrictRequest(value: any): value is StrictA2ARequest {
+export function isStrictRequest(value: unknown): value is StrictA2ARequest {
   return (
     value &&
     typeof value === 'object' &&
@@ -598,7 +598,7 @@ export function validateStrictRequest(
   }
 
   // Validate params
-  const params = request.params as any;
+  const params = request.params as Record<string, unknown>;
   if (params) {
     if (!params.mode) {
       errors.push('Missing mode in params');

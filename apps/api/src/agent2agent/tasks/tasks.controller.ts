@@ -143,7 +143,7 @@ export class TasksController {
    * GET /tasks/:id/status
    */
   @Get(':id/status')
-  async getTaskStatus(
+  getTaskStatus(
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {

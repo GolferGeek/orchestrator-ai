@@ -50,9 +50,9 @@ export abstract class BaseApiClient implements ApiClient {
   abstract postTaskToOrchestrator(
     userInputText: string, 
     sessionId?: string | null, 
-    conversationHistory?: Array<{role: string, content: string, metadata?: any}>
-  ): Promise<any>;
-  abstract getAvailableAgents(): Promise<any[]>;
+    conversationHistory?: Array<{role: string, content: string, metadata?: unknown}>
+  ): Promise<unknown>;
+  abstract getAvailableAgents(): Promise<unknown[]>;
   // Concrete implementations
   getEndpointInfo(): ApiEndpoint {
     return { ...this.endpoint };
@@ -93,7 +93,7 @@ export abstract class BaseApiClient implements ApiClient {
     }
     return apiError;
   }
-  private extractErrorMessage(data: any): string {
+  private extractErrorMessage(data: unknown): string {
     if (typeof data === 'string') {
       return data;
     }

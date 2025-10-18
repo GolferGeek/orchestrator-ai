@@ -407,12 +407,12 @@ describe('ToolAgentRunnerService', () => {
 
       let capturedContent: string = '';
       deliverablesService.executeAction.mockImplementation(
-        async (action, params) => {
+        (action, params) => {
           capturedContent = params.content;
-          return {
+          return Promise.resolve({
             success: true,
             data: { deliverable: {}, version: {} },
-          };
+          });
         },
       );
 

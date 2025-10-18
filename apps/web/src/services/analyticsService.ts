@@ -83,7 +83,7 @@ class AnalyticsService {
   /**
    * Get constraint effectiveness analytics
    */
-  async getConstraintAnalytics(filters: AnalyticsFilters = {}): Promise<any> {
+  async getConstraintAnalytics(filters: AnalyticsFilters = {}): Promise<unknown> {
     try {
       const params = new URLSearchParams();
       if (filters.timeRange?.startDate) params.append('startDate', filters.timeRange.startDate);
@@ -127,7 +127,7 @@ class AnalyticsService {
   /**
    * Get aggregated project metrics
    */
-  async getProjectMetrics(filters: AnalyticsFilters = {}): Promise<any> {
+  async getProjectMetrics(filters: AnalyticsFilters = {}): Promise<unknown> {
     try {
       const params = new URLSearchParams();
       if (filters.timeRange?.startDate) params.append('startDate', filters.timeRange.startDate);
@@ -250,7 +250,7 @@ class AnalyticsService {
     callerName?: string;
     conversationId?: string;
     limit?: number;
-  } = {}): Promise<any> {
+  } = {}): Promise<unknown> {
     try {
       const params = new URLSearchParams();
       if (filters.userId) params.append('userId', filters.userId);
@@ -272,7 +272,7 @@ class AnalyticsService {
   /**
    * Get LLM usage analytics
    */
-  async getLLMUsageAnalytics(filters: AnalyticsFilters & { callerType?: string } = {}): Promise<any> {
+  async getLLMUsageAnalytics(filters: AnalyticsFilters & { callerType?: string } = {}): Promise<unknown> {
     try {
       const params = new URLSearchParams();
       if (filters.timeRange?.startDate) params.append('startDate', filters.timeRange.startDate);
@@ -290,7 +290,7 @@ class AnalyticsService {
   /**
    * Get LLM service statistics
    */
-  async getLLMServiceStats(): Promise<any> {
+  async getLLMServiceStats(): Promise<unknown> {
     try {
       const response = await apiService.get('/api/llm-usage/stats');
       return response;

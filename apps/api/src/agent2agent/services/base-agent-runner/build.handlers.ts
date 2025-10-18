@@ -1375,7 +1375,7 @@ function coerceDeliverableContent(content: unknown): unknown {
   return content ?? '';
 }
 
-function tryParseJson(value: string): any | null {
+function tryParseJson(value: string): any {
   if (!value) {
     return null;
   }

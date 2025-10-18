@@ -18,7 +18,7 @@ import type {
 export class StrictResponseValidationError extends Error {
   constructor(
     message: string,
-    public response?: any,
+    public response?: unknown,
   ) {
     super(`Response validation failed: ${message}`);
     this.name = 'StrictResponseValidationError';
@@ -28,7 +28,7 @@ export class StrictResponseValidationError extends Error {
 /**
  * Validate that response is a valid JSON-RPC response
  */
-export function validateJsonRpcEnvelope(response: any): {
+export function validateJsonRpcEnvelope(response: unknown): {
   valid: boolean;
   errors: string[];
 } {
@@ -58,7 +58,7 @@ export function validateJsonRpcEnvelope(response: any): {
  * Validate success response structure
  */
 export function validateSuccessResponse(
-  response: any,
+  response: unknown,
   expectedMode?: string,
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
@@ -92,7 +92,7 @@ export function validateSuccessResponse(
 /**
  * Validate error response structure
  */
-export function validateErrorResponse(response: any): {
+export function validateErrorResponse(response: unknown): {
   valid: boolean;
   errors: string[];
 } {
@@ -141,7 +141,7 @@ export function extractErrorDetails(response: StrictA2AErrorResponse): {
   code: number;
   message: string;
   mode?: string;
-  data?: any;
+  data?: unknown;
 } {
   return {
     code: response.error.code,
@@ -154,12 +154,12 @@ export function extractErrorDetails(response: StrictA2AErrorResponse): {
 /**
  * Extract success payload from success response
  */
-export function extractSuccessPayload<T = any>(
+export function extractSuccessPayload<T = unknown>(
   response: StrictA2ASuccessResponse,
 ): {
   mode: string;
   content: T;
-  metadata: any;
+  metadata: unknown;
 } {
   return {
     mode: response.result.mode,
@@ -171,7 +171,7 @@ export function extractSuccessPayload<T = any>(
 /**
  * Type guard functions for mode-specific responses
  */
-export function isStrictPlanResponse(response: any): response is StrictPlanResponse {
+export function isStrictPlanResponse(response: unknown): response is StrictPlanResponse {
   return (
     response &&
     response.jsonrpc === '2.0' &&
@@ -180,7 +180,7 @@ export function isStrictPlanResponse(response: any): response is StrictPlanRespo
   );
 }
 
-export function isStrictBuildResponse(response: any): response is StrictBuildResponse {
+export function isStrictBuildResponse(response: unknown): response is StrictBuildResponse {
   return (
     response &&
     response.jsonrpc === '2.0' &&
@@ -189,7 +189,7 @@ export function isStrictBuildResponse(response: any): response is StrictBuildRes
   );
 }
 
-export function isStrictConverseResponse(response: any): response is StrictConverseResponse {
+export function isStrictConverseResponse(response: unknown): response is StrictConverseResponse {
   return (
     response &&
     response.jsonrpc === '2.0' &&
@@ -198,7 +198,7 @@ export function isStrictConverseResponse(response: any): response is StrictConve
   );
 }
 
-export function isStrictErrorResponse(response: any): response is StrictA2AErrorResponse {
+export function isStrictErrorResponse(response: unknown): response is StrictA2AErrorResponse {
   return (
     response &&
     response.jsonrpc === '2.0' &&
@@ -206,7 +206,7 @@ export function isStrictErrorResponse(response: any): response is StrictA2AError
   );
 }
 
-export function isStrictSuccessResponse(response: any): response is StrictA2ASuccessResponse {
+export function isStrictSuccessResponse(response: unknown): response is StrictA2ASuccessResponse {
   return (
     response &&
     response.jsonrpc === '2.0' &&

@@ -19,7 +19,7 @@ export class AppService implements OnModuleInit {
     private readonly agentRegistry: AgentRegistryService,
   ) {}
 
-  async onModuleInit() {
+  onModuleInit() {
     // Legacy file-based agent discovery removed
     // Now using agent-platform for all agent execution
     this.discoveredAgents = [];

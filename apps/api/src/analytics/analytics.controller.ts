@@ -8,7 +8,7 @@ export class AnalyticsController {
    */
   @Post('events')
   @HttpCode(HttpStatus.OK)
-  async trackEvent(@Body() _event: any): Promise<{ success: boolean }> {
+  trackEvent(@Body() _event: any): { success: boolean } {
     // In development, we don't persist analytics. Avoid noisy errors.
     return { success: true };
   }
@@ -18,7 +18,7 @@ export class AnalyticsController {
    */
   @Post('events/batch')
   @HttpCode(HttpStatus.OK)
-  async trackEventBatch(@Body() _payload: any): Promise<{ success: boolean }> {
+  trackEventBatch(@Body() _payload: any): { success: boolean } {
     return { success: true };
   }
 }

@@ -66,7 +66,7 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     expect(res.result?.content).toContain('Organization slug');
   });
 
-  it('validates Agent Builder Chat payload', async () => {
+  it('validates Agent Builder Chat payload', () => {
     const chatBuilder = JSON.parse(readFileSync(chatBuilderPath, 'utf8'));
     const v = validator.validateByType(chatBuilder.agent_type, chatBuilder);
     const p = policy.check(chatBuilder);

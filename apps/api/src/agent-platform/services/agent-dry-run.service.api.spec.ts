@@ -3,7 +3,7 @@ import { AgentDryRunService } from './agent-dry-run.service';
 describe('AgentDryRunService (API transforms)', () => {
   const svc = new AgentDryRunService();
 
-  it('renders custom request template and extracts response field', async () => {
+  it('renders custom request template and extracts response field', () => {
     const apiConfig = {
       request_transform: {
         format: 'custom',

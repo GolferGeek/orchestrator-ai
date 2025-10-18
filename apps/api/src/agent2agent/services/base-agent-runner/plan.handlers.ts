@@ -1309,7 +1309,7 @@ function coercePlanContent(planContent: unknown): unknown {
   return planContent ?? '';
 }
 
-function tryParseJson(value: string): any | null {
+function tryParseJson(value: string): any {
   if (!value) {
     return null;
   }

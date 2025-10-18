@@ -434,7 +434,7 @@ class ApiService {
       llmSelection: messageRequest.llmSelection
     };
 
-    const response = await this.axiosInstance.post<any>(
+    const response = await this.axiosInstance.post<unknown>(
       `/sessions/${sessionId}/messages`,
       apiRequest,
       {
@@ -596,7 +596,7 @@ class ApiService {
   /**
    * Get NestJS agent pool statistics
    */
-  async getAgentPoolStats(): Promise<any> {
+  async getAgentPoolStats(): Promise<unknown> {
     const response = await this.axiosInstance.get('/agent-pool/stats');
     return response.data;
   }
@@ -604,7 +604,7 @@ class ApiService {
   /**
    * Get NestJS registered agents
    */
-  async getRegisteredAgents(): Promise<any> {
+  async getRegisteredAgents(): Promise<unknown> {
     const response = await this.axiosInstance.get('/agent-pool/agents');
     return response.data;
   }
@@ -652,7 +652,7 @@ class ApiService {
   /**
    * Create a new session
    */
-  async createSession(name: string): Promise<any> {
+  async createSession(name: string): Promise<unknown> {
     const authToken = localStorage.getItem('authToken');
 
     const response = await this.axiosInstance.post('/sessions',
@@ -702,7 +702,7 @@ class ApiService {
   /**
    * Get user sessions
    */
-  async getUserSessions(skip: number = 0, limit: number = 100): Promise<any> {
+  async getUserSessions(skip: number = 0, limit: number = 100): Promise<unknown> {
     const authToken = localStorage.getItem('authToken');
 
     const response = await this.axiosInstance.get(
@@ -733,7 +733,7 @@ class ApiService {
   /**
    * Get agents list for modal display (UI endpoint)
    */
-  async getAgentsList(): Promise<any> {
+  async getAgentsList(): Promise<unknown> {
     const authToken = localStorage.getItem('authToken');
     const response = await this.axiosInstance.get('/orchestrator/ui/agents-list', {
       headers: {
@@ -747,7 +747,7 @@ class ApiService {
   /**
    * Get agent capabilities for modal display (UI endpoint)
    */
-  async getAgentCapabilities(agentName: string): Promise<any> {
+  async getAgentCapabilities(agentName: string): Promise<unknown> {
     const authToken = localStorage.getItem('authToken');
     const response = await this.axiosInstance.get(`/orchestrator/ui/agent-capabilities/${encodeURIComponent(agentName)}`, {
       headers: {
@@ -761,7 +761,7 @@ class ApiService {
   /**
    * Get current user profile
    */
-  async getCurrentUser(): Promise<any> {
+  async getCurrentUser(): Promise<unknown> {
     const authToken = localStorage.getItem('authToken');
     const response = await this.axiosInstance.get('/auth/me', {
       headers: {
@@ -775,7 +775,7 @@ class ApiService {
   /**
    * Login with email and password
    */
-  async login(credentials: { email: string; password: string }): Promise<any> {
+  async login(credentials: { email: string; password: string }): Promise<unknown> {
     const response = await this.axiosInstance.post('/auth/login', credentials);
     return response.data;
   }
@@ -783,7 +783,7 @@ class ApiService {
   /**
    * Sign up with email and password
    */
-  async signup(credentials: { email: string; password: string }): Promise<any> {
+  async signup(credentials: { email: string; password: string }): Promise<unknown> {
     const response = await this.axiosInstance.post('/auth/signup', credentials);
     return response.data;
   }
@@ -791,7 +791,7 @@ class ApiService {
   /**
    * Refresh auth token
    */
-  async refreshToken(refreshToken: string): Promise<any> {
+  async refreshToken(refreshToken: string): Promise<unknown> {
     const response = await this.axiosInstance.post('/auth/refresh', {
       refreshToken
     });
@@ -801,7 +801,7 @@ class ApiService {
   /**
    * Generic GET method
    */
-  async get<T = any>(url: string, options?: { suppressErrors?: boolean }): Promise<T> {
+  async get<T = unknown>(url: string, options?: { suppressErrors?: boolean }): Promise<T> {
 
     
     try {
@@ -824,7 +824,7 @@ console.error(`ApiService.get error for ${url}:`, error);
   /**
    * GET but suppress error-store logging for 404s (for optional/demo endpoints)
    */
-  async getQuiet404<T = any>(url: string): Promise<T> {
+  async getQuiet404<T = unknown>(url: string): Promise<T> {
     const response = await this.axiosInstance.get<T>(
       url,
       { _suppress404Logging: true } as InternalAxiosRequestConfig
@@ -835,7 +835,7 @@ console.error(`ApiService.get error for ${url}:`, error);
   /**
    * Generic POST method
    */
-  async post<T = any, Body = unknown>(url: string, data?: Body): Promise<T> {
+  async post<T = unknown, Body = unknown>(url: string, data?: Body): Promise<T> {
 
     
     try {
@@ -855,7 +855,7 @@ console.error(`ApiService.post error for ${url}:`, error);
   /**
    * Generic PUT method
    */
-  async put<T = any, Body = unknown>(url: string, data?: Body): Promise<T> {
+  async put<T = unknown, Body = unknown>(url: string, data?: Body): Promise<T> {
     const response = await this.axiosInstance.put<T>(url, data);
     return response.data;
   }
@@ -863,7 +863,7 @@ console.error(`ApiService.post error for ${url}:`, error);
   /**
    * Generic DELETE method
    */
-  async delete<T = any>(url: string): Promise<T> {
+  async delete<T = unknown>(url: string): Promise<T> {
     const response = await this.axiosInstance.delete<T>(url);
     return response.data;
   }

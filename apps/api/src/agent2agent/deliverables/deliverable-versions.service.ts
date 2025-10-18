@@ -530,7 +530,7 @@ export class DeliverableVersionsService {
 
       // TODO: Integrate with LLM service for task-based content modification
       // For now, append the task prompt as a comment
-      const modifiedContent = await this.performTaskBasedModification(
+      const modifiedContent = this.performTaskBasedModification(
         baseVersion.content || '',
         taskPrompt,
       );
