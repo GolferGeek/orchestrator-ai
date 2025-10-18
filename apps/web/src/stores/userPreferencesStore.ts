@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
-import { ApiEndpoint, ApiVersion, ApiTechnology } from '../types/api';
-import { apiService } from '../services/apiService';
+import { ApiVersion, ApiTechnology } from '../types/api';
 /**
  * Generate a UUID - polyfill for crypto.randomUUID()
  */
@@ -167,7 +166,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       await loadPreferences();
       applyPreferences();
       setupAutoSave();
-    } catch (error) {
+    } catch (_error) {
       // Failed to load preferences, continue with defaults
     } finally {
       isLoading.value = false;
@@ -193,7 +192,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         };
         saveUserProfile();
       }
-    } catch (error) {
+    } catch (_error) {
       // Create fallback profile
       currentUser.value = {
         id: 'fallback',
@@ -213,7 +212,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         // Merge with defaults to handle new preference fields
         preferences.value = { ...DEFAULT_PREFERENCES, ...loadedPrefs };
       }
-    } catch (error) {
+    } catch (_error) {
       preferences.value = { ...DEFAULT_PREFERENCES };
     }
   };
@@ -227,7 +226,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         currentUser.value.lastActive = new Date();
         saveUserProfile();
       }
-    } catch (error) {
+    } catch (_error) {
       // Failed to save preferences
     }
   };
@@ -236,7 +235,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       if (currentUser.value) {
         localStorage.setItem('userProfile', JSON.stringify(currentUser.value));
       }
-    } catch (error) {
+    } catch (_error) {
       // Failed to save user profile
     }
   };
@@ -296,7 +295,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     if (preferences.value.rememberApiSelection && preferredEndpoint.value) {
       try {
         // Simplified for unified API - no switching needed
-      } catch (error) {
+      } catch (_error) {
         // Failed to apply API preferences
       }
     }
