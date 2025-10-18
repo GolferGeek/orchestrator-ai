@@ -321,11 +321,13 @@ export class AgentRuntimeDispatchService {
     const method = (api.method || 'POST').toUpperCase();
     const url = api.endpoint;
 
+    const payloadOptions = options.request.payload?.options as
+      | Record<string, unknown>
+      | undefined;
     const mergedHeaders: Record<string, any> = {
       'content-type': 'application/json',
       ...(api.headers ?? {}),
-      ...(((options.request.payload?.options as any)?.headers as Record<string, any>) ||
-        {}),
+      ...((payloadOptions?.headers as Record<string, any>) || {}),
     };
     const headers = this.sanitizeForwardHeaders(mergedHeaders);
 
@@ -347,7 +349,8 @@ export class AgentRuntimeDispatchService {
       );
     } catch (err: any) {
       const end = Date.now();
-      const status = Number(err?.response?.status ?? -1);
+      const errObj = err as { response?: { status?: number } };
+      const status = Number(errObj?.response?.status ?? -1);
       this.safeLog('api', url, status, end - start);
       this.metrics.record(
         'api',
@@ -465,7 +468,8 @@ export class AgentRuntimeDispatchService {
       );
     } catch (err: any) {
       const end = Date.now();
-      const status = Number(err?.response?.status ?? -1);
+      const errObj = err as { response?: { status?: number } };
+      const status = Number(errObj?.response?.status ?? -1);
       this.safeLog('external', url, status, end - start);
       this.metrics.record(
         'external',
@@ -478,16 +482,17 @@ export class AgentRuntimeDispatchService {
     }
     const end = Date.now();
 
+    const resData = res.data as Record<string, unknown> | undefined;
     const hasRpcError =
-      res.data &&
-      typeof res.data === 'object' &&
-      'error' in res.data &&
-      res.data.error;
+      resData &&
+      typeof resData === 'object' &&
+      'error' in resData &&
+      resData.error;
     const envelope = hasRpcError
-      ? res.data.error
-      : res.data && res.data.result
-        ? res.data.result
-        : res.data;
+      ? resData.error
+      : resData && resData.result
+        ? resData.result
+        : resData;
     const content = this.stringifyContent(envelope);
 
     const isOk = res.status >= 200 && res.status < 300 && !hasRpcError;

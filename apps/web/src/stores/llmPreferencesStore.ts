@@ -208,7 +208,6 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
       if (!state.selectedProvider || !state.selectedModel) return 'medium';
 
       const providerName = state.selectedProvider.name.toLowerCase();
-      const modelName = state.selectedModel.modelName.toLowerCase();
 
       // Local models (Ollama) get high trust
       if (providerName.includes('ollama')) {
@@ -334,7 +333,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
         }
         this._systemModelLoaded = true;
         return this._systemModelSelection;
-      } catch (e) {
+      } catch (_e) {
         this._systemModelLoaded = true;
         this._systemModelSelection = null;
         return null;
@@ -492,7 +491,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
                 updatedAt: ''
               }));
             }
-          } catch (secondaryError) {
+          } catch (_secondaryError) {
             // Keep original error context
           }
         }
@@ -697,7 +696,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
           this.temperature = preferences.temperature ?? 0.7;
           this.maxTokens = preferences.maxTokens;
         }
-      } catch (error) {
+      } catch (_error) {
         // Failed to load LLM preferences from localStorage
       }
     },
@@ -713,7 +712,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
           maxTokens: this.maxTokens,
         };
         localStorage.setItem('llm-preferences', JSON.stringify(preferences));
-      } catch (error) {
+      } catch (_error) {
         // Failed to save LLM preferences to localStorage
       }
     },

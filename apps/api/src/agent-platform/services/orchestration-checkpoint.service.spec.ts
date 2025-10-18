@@ -4,6 +4,7 @@ import { HumanApprovalsRepository } from '../repositories/human-approvals.reposi
 import { OrchestrationRunnerService } from './orchestration-runner.service';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
+import { HumanApprovalRecord } from '../interfaces/human-approval-record.interface';
 
 const createRun = (
   overrides: Partial<OrchestrationRunRecord> = {},
@@ -190,7 +191,7 @@ describe('OrchestrationCheckpointService', () => {
         question: 'Approve?',
         options: [],
       },
-    } as any);
+    } satisfies HumanApprovalRecord);
 
     approvals.setStatus.mockResolvedValue({
       id: 'approval-1',
@@ -203,7 +204,7 @@ describe('OrchestrationCheckpointService', () => {
       mode: 'orchestration_checkpoint',
       status: 'approved',
       metadata: {},
-    } as any);
+    } satisfies HumanApprovalRecord);
 
     const result = await service.resolveCheckpoint({
       approvalId: 'approval-1',
@@ -267,7 +268,7 @@ describe('OrchestrationCheckpointService', () => {
           index: 0,
         },
       },
-    } as any);
+    } satisfies HumanApprovalRecord);
 
     approvals.setStatus.mockResolvedValue({
       id: 'approval-1',
@@ -280,7 +281,7 @@ describe('OrchestrationCheckpointService', () => {
       mode: 'orchestration_checkpoint',
       status: 'approved',
       metadata: {},
-    } as any);
+    } satisfies HumanApprovalRecord);
 
     await service.resolveCheckpoint({
       approvalId: 'approval-1',

@@ -312,7 +312,7 @@ export class LocalLLMService {
       // Prefer already loaded models to avoid loading delays
       const loadedModelNames = loadedModels.map((m) => m.name);
       const alreadyLoaded = data.find((model) =>
-        loadedModelNames.includes(model.model_name),
+        loadedModelNames.includes(String(model.model_name)),
       );
 
       if (alreadyLoaded) {

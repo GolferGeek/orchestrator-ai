@@ -247,7 +247,7 @@ describe('OrchestrationOutputMapper', () => {
 
   describe('map - deliverable reference resolution', () => {
     it('should extract deliverable from payload.deliverables array', () => {
-      const payload: any = {
+      const payload: TaskResponsePayload = {
         content: {},
         metadata: {},
         deliverables: [
@@ -266,7 +266,7 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should handle version_id snake_case variant', () => {
-      const payload: any = {
+      const payload: TaskResponsePayload = {
         content: {},
         metadata: {},
         deliverables: [
@@ -284,7 +284,7 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should fallback to content.deliverable when no deliverables array', () => {
-      const payload: any = {
+      const payload: TaskResponsePayload = {
         content: {
           deliverable: {
             id: 'deliv-content',
@@ -301,7 +301,7 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should handle currentVersion nested structure', () => {
-      const payload: any = {
+      const payload: TaskResponsePayload = {
         content: {
           deliverable: {
             id: 'deliv-nested',
@@ -330,7 +330,7 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should prioritize deliverables array over content.deliverable', () => {
-      const payload: any = {
+      const payload: TaskResponsePayload = {
         content: {
           deliverable: { id: 'content-id', versionId: 'content-version' },
         },
@@ -401,7 +401,7 @@ describe('OrchestrationOutputMapper', () => {
 
   describe('map - kpi-tracking orchestration scenario', () => {
     it('should map Supabase agent query results for summarizer consumption', () => {
-      const supabasePayload: any = {
+      const supabasePayload: TaskResponsePayload = {
         content: {
           sql: 'SELECT * FROM kpis WHERE month = $1',
           rows: [

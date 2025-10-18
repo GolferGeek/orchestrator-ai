@@ -1548,13 +1548,17 @@ export class OrchestrationStepExecutorService {
       step.input && typeof step.input === 'object'
         ? this.cloneValue(step.input)
         : {};
-    const resolved = this.interpolateValues(baseInput, run);
+    const resolved = this.interpolateValues(baseInput, run) as Record<
+      string,
+      any
+    >;
 
     const stepKey = step.step_id ?? step.id;
     const checkpointState =
       run.step_state?.[stepKey]?.checkpoint ?? ({} as Record<string, any>);
     if (checkpointState?.modifications) {
-      this.mergeInto(resolved, checkpointState.modifications);
+      const modifications = checkpointState.modifications as Record<string, any>;
+      this.mergeInto(resolved, modifications);
     }
 
     const { userMessage, ...rest } = resolved as Record<string, any>;
@@ -1578,7 +1582,8 @@ export class OrchestrationStepExecutorService {
 
     if (value && typeof value === 'object') {
       const result: Record<string, any> = {};
-      Object.entries(value).forEach(([key, entry]) => {
+      const valueAsObject = value as Record<string, any>;
+      Object.entries(valueAsObject).forEach(([key, entry]) => {
         result[key] = this.interpolateValues(entry, run);
       });
       return result;
@@ -1599,7 +1604,8 @@ export class OrchestrationStepExecutorService {
     }
 
     return template.replace(/\{\{\s*([^}]+)\s*\}\}/g, (_match, expr) => {
-      const value = this.resolveExpression(expr, run);
+      const exprStr = String(expr);
+      const value = this.resolveExpression(exprStr, run);
       if (value === null || value === undefined) {
         return '';
       }
@@ -1701,7 +1707,9 @@ export class OrchestrationStepExecutorService {
         typeof target[key] === 'object' &&
         !Array.isArray(target[key])
       ) {
-        this.mergeInto(target[key], value);
+        const targetValue = target[key] as Record<string, any>;
+        const patchValue = value as Record<string, any>;
+        this.mergeInto(targetValue, patchValue);
       } else {
         target[key] = this.cloneValue(value);
       }

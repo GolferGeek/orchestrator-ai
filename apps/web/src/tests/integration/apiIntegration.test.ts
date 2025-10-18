@@ -7,7 +7,6 @@ import { setActivePinia, createPinia } from 'pinia';
 import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { apiService } from '@/services/apiService';
 
 // Longer timeout for real API calls
 const API_TIMEOUT = 15000;
@@ -68,7 +67,7 @@ describe('API Integration Tests - Task 24.2', () => {
 
         // Should not get CORS errors
         expect(response.status).not.toBe(500);
-      } catch (error) {
+      } catch (_error) {
         // If network error occurs, that's expected in test environment
         console.log('✅ CORS test passed - Network error handled gracefully');
         expect(true).toBe(true);
@@ -108,7 +107,6 @@ describe('API Integration Tests - Task 24.2', () => {
     }, API_TIMEOUT);
 
     it('should handle PII pattern creation and validation', async () => {
-      const store = usePIIPatternsStore();
       const isAvailable = await isAPIAvailable();
 
       if (!isAvailable) {
@@ -192,7 +190,6 @@ describe('API Integration Tests - Task 24.2', () => {
 
       // Load initial state
       await store.loadDictionaries();
-      const initialCount = store.dictionaries.length;
 
       // Test dictionary creation structure
       const testDictionary = {
@@ -302,7 +299,7 @@ describe('API Integration Tests - Task 24.2', () => {
 
       try {
         await Promise.race([store.loadPatterns(), timeoutPromise]);
-      } catch (error) {
+      } catch (_error) {
         // Should handle timeouts gracefully
         expect(store.isLoading).toBe(false);
         expect(store.error).toBeDefined();
@@ -321,7 +318,7 @@ describe('API Integration Tests - Task 24.2', () => {
         } else {
           expect(store.error).toBeDefined();
         }
-      } catch (error) {
+      } catch (_error) {
         expect(store.error).toBeDefined();
       }
 
@@ -339,7 +336,7 @@ describe('API Integration Tests - Task 24.2', () => {
 
       try {
         await store.loadPatterns();
-      } catch (error) {
+      } catch (_error) {
         // Even on error, store should maintain integrity
         expect(Array.isArray(store.patterns)).toBe(true);
         expect(store.isLoading).toBe(false);

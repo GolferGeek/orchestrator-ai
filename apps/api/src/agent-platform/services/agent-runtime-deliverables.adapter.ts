@@ -51,9 +51,13 @@ export class AgentRuntimeDeliverablesAdapter {
       }
 
       const baseTitle = ctx.title || `Build output from ${ctx.agentSlug}`;
-      const content = ctx.content || (request.payload as any)?.output || '';
-      const images = Array.isArray((request.payload as any)?.images)
-        ? ((request.payload as any).images as any[]).filter(Boolean)
+      const payload = request.payload as Record<string, unknown> | undefined;
+      const content =
+        ctx.content ||
+        (typeof payload?.output === 'string' ? payload.output : '') ||
+        '';
+      const images = Array.isArray(payload?.images)
+        ? (payload.images as unknown[]).filter(Boolean)
         : [];
       const storedImages = await this.maybePersistImages(images, {
         organizationSlug: ctx.organizationSlug,
@@ -65,12 +69,19 @@ export class AgentRuntimeDeliverablesAdapter {
       const imageFormat = this.resolveImageFormat(storedImages);
 
       // Enhancement path: if a target deliverableId is provided, create a new version instead
+      const payloadMeta = payload?.metadata as
+        | Record<string, unknown>
+        | undefined;
       const targetDeliverableId: string | undefined =
-        (request.payload as any)?.deliverableId ||
-        (request.payload as any)?.metadata?.deliverableId;
+        (typeof payload?.deliverableId === 'string'
+          ? payload.deliverableId
+          : undefined) ||
+        (typeof payloadMeta?.deliverableId === 'string'
+          ? payloadMeta.deliverableId
+          : undefined);
       if (targetDeliverableId) {
         const version = await this.versions.createVersion(
-          targetDeliverableId as string,
+          targetDeliverableId,
           {
             content:
               content || (hasImages ? this.describeImageSet(storedImages) : ''),
@@ -79,7 +90,10 @@ export class AgentRuntimeDeliverablesAdapter {
               this.coerceDeliverableFormat(ctx.deliverableFormat) ??
               DeliverableFormat.TEXT,
             createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
-            taskId: (request as any).taskId,
+            taskId:
+              typeof (request as Record<string, unknown>).taskId === 'string'
+                ? ((request as Record<string, unknown>).taskId as string)
+                : undefined,
             metadata: {
               organizationSlug: ctx.organizationSlug,
               agentSlug: ctx.agentSlug,
@@ -107,7 +121,10 @@ export class AgentRuntimeDeliverablesAdapter {
           this.coerceDeliverableFormat(ctx.deliverableFormat) ??
           DeliverableFormat.TEXT,
         initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
-        initialTaskId: (request as any).taskId,
+        initialTaskId:
+          typeof (request as Record<string, unknown>).taskId === 'string'
+            ? ((request as Record<string, unknown>).taskId as string)
+            : undefined,
         initialMetadata: {
           organizationSlug: ctx.organizationSlug,
           agentSlug: ctx.agentSlug,
@@ -134,10 +151,21 @@ export class AgentRuntimeDeliverablesAdapter {
 
   private resolveUserId(request: TaskRequestDto): string | null {
     // prefer top-level metadata, then payload.metadata
-    const fromTop = (request.metadata as any)?.userId || (request.metadata as any)?.createdBy;
-    const fromPayload =
-      (request.payload?.metadata as any)?.userId || (request.payload?.metadata as any)?.createdBy;
-    return (fromTop as string) || (fromPayload as string) || null;
+    const topMeta = request.metadata as Record<string, unknown> | undefined;
+    const fromTop: string | undefined =
+      (typeof topMeta?.userId === 'string' ? topMeta.userId : undefined) ||
+      (typeof topMeta?.createdBy === 'string' ? topMeta.createdBy : undefined);
+    const payloadMetadata = request.payload?.metadata as
+      | Record<string, unknown>
+      | undefined;
+    const fromPayload: string | undefined =
+      (typeof payloadMetadata?.userId === 'string'
+        ? payloadMetadata.userId
+        : undefined) ||
+      (typeof payloadMetadata?.createdBy === 'string'
+        ? payloadMetadata.createdBy
+        : undefined);
+    return fromTop || fromPayload || null;
   }
 
   private computeTitle(
@@ -235,7 +263,7 @@ export class AgentRuntimeDeliverablesAdapter {
     }
 
     const lines = images.map((img, index) => {
-      const label = img.mime ? img.mime : 'image';
+      const label: string = img.mime ? String(img.mime) : 'image';
       const dims =
         img.width && img.height
           ? `${img.width}x${img.height}`
@@ -248,9 +276,12 @@ export class AgentRuntimeDeliverablesAdapter {
     return ['Generated image set:', ...lines].join('\n');
   }
 
-  private normalizeImageAttachment(input: any) {
-    const obj = typeof input === 'object' && input ? input : {};
-    const out: Record<string, any> = {
+  private normalizeImageAttachment(input: unknown): ImageRecord {
+    const obj: Record<string, unknown> =
+      typeof input === 'object' && input
+        ? (input as Record<string, unknown>)
+        : {};
+    const out: ImageRecord = {
       url: obj.url || obj.href || '',
       mime: obj.mime || obj.contentType || null,
     };

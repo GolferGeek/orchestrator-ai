@@ -3,7 +3,7 @@ import * as vm from 'vm';
 
 type DryRunResult = {
   ok: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   logs?: string[];
 };
@@ -12,22 +12,22 @@ type DryRunResult = {
 export class AgentDryRunService {
   async runFunction(
     code: string,
-    input: any = {},
+    input: unknown = {},
     timeoutMs = 2000,
   ): Promise<DryRunResult> {
     const logs: string[] = [];
     const consoleStub: {
-      log: (...args: any[]) => void;
-      warn: (...args: any[]) => void;
-      error: (...args: any[]) => void;
-      info: (...args: any[]) => void;
+      log: (...args: unknown[]) => void;
+      warn: (...args: unknown[]) => void;
+      error: (...args: unknown[]) => void;
+      info: (...args: unknown[]) => void;
     } = {
-      log: (...args: any[]) => logs.push(args.map(String).join(' ')),
-      warn: (...args: any[]) =>
+      log: (...args: unknown[]) => logs.push(args.map(String).join(' ')),
+      warn: (...args: unknown[]) =>
         logs.push('[warn] ' + args.map(String).join(' ')),
-      error: (...args: any[]) =>
+      error: (...args: unknown[]) =>
         logs.push('[error] ' + args.map(String).join(' ')),
-      info: (...args: any[]) =>
+      info: (...args: unknown[]) =>
         logs.push('[info] ' + args.map(String).join(' ')),
     };
 

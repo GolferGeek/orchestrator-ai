@@ -9,6 +9,29 @@ import {
 } from '@/agent2agent/types/agent-conversations.types';
 import { getTableName } from '@/supabase/supabase.config';
 
+interface AgentConversationDbRecord {
+  id: string;
+  user_id: string;
+  agent_name: string;
+  agent_type: string;
+  organization_slug?: string | null;
+  started_at?: string;
+  ended_at?: string;
+  last_active_at?: string;
+  metadata?: Record<string, unknown>;
+  primary_work_product_type?: string;
+  primary_work_product_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AgentConversationWithStatsDbRecord extends AgentConversationDbRecord {
+  task_count: string | number;
+  completed_tasks: string | number;
+  failed_tasks: string | number;
+  active_tasks: string | number;
+}
+
 @Injectable()
 export class AgentConversationsService {
   private readonly logger = new Logger(AgentConversationsService.name);
@@ -70,7 +93,7 @@ export class AgentConversationsService {
     const validatedAgentType = this.validateAgentType(dto.agentType);
 
     const now = new Date().toISOString();
-    const { data, error } = await this.supabaseService
+    const result = await this.supabaseService
       .getAnonClient()
       .from(getTableName('conversations'))
       .insert({
@@ -89,11 +112,13 @@ export class AgentConversationsService {
       .select()
       .single();
 
-    if (error) {
-      throw new Error(`Failed to create conversation: ${error.message}`);
+    if (result.error) {
+      throw new Error(`Failed to create conversation: ${result.error.message}`);
     }
 
-    return this.mapToAgentConversation(data);
+    return this.mapToAgentConversation(
+      result.data as AgentConversationDbRecord,
+    );
   }
 
   /**
@@ -107,7 +132,7 @@ export class AgentConversationsService {
       `🔍 getConversationById: Looking for conversation ${conversationId} for user ${userId}`,
     );
 
-    const { data, error } = await this.supabaseService
+    const result = await this.supabaseService
       .getAnonClient()
       .from(getTableName('conversations'))
       .select()
@@ -117,18 +142,23 @@ export class AgentConversationsService {
 
     this.logger.debug(
       `🔍 getConversationById: Query result - data:`,
-      data ? 'Found' : 'Null',
+      result.data ? 'Found' : 'Null',
       'error:',
-      error?.message || 'None',
+      result.error?.message || 'None',
     );
 
-    if (error && error.code !== 'PGRST116') {
+    if (result.error && result.error.code !== 'PGRST116') {
       // PGRST116 is "no rows found"
-      this.logger.error(`🔍 getConversationById: Database error:`, error);
-      throw new Error(`Failed to fetch conversation: ${error.message}`);
+      this.logger.error(
+        `🔍 getConversationById: Database error:`,
+        result.error,
+      );
+      throw new Error(`Failed to fetch conversation: ${result.error.message}`);
     }
 
-    return data ? this.mapToAgentConversation(data) : null;
+    return result.data
+      ? this.mapToAgentConversation(result.data as AgentConversationDbRecord)
+      : null;
   }
 
   /**
@@ -153,7 +183,9 @@ export class AgentConversationsService {
         .single();
 
       if (existing) {
-        return this.mapToAgentConversation(existing);
+        return this.mapToAgentConversation(
+          existing as AgentConversationDbRecord,
+        );
       }
 
       // If provided conversation ID doesn't exist or doesn't match, log warning and create new
@@ -172,7 +204,9 @@ export class AgentConversationsService {
       .limit(1);
 
     if (existing && existing.length > 0) {
-      return this.mapToAgentConversation(existing[0]);
+      return this.mapToAgentConversation(
+        existing[0] as AgentConversationDbRecord,
+      );
     }
 
     // Create new conversation if none exists
@@ -222,7 +256,9 @@ export class AgentConversationsService {
 
     return {
       conversations: data.map((item) =>
-        this.mapToAgentConversationWithStats(item),
+        this.mapToAgentConversationWithStats(
+          item as AgentConversationWithStatsDbRecord,
+        ),
       ),
       total: count || 0,
     };
@@ -385,7 +421,9 @@ export class AgentConversationsService {
       throw new Error(`Failed to fetch active conversations: ${error.message}`);
     }
 
-    return data.map((item) => this.mapToAgentConversation(item));
+    return data.map((item) =>
+      this.mapToAgentConversation(item as AgentConversationDbRecord),
+    );
   }
 
   /**
@@ -411,7 +449,9 @@ export class AgentConversationsService {
       );
     }
 
-    return data ? this.mapToAgentConversation(data) : null;
+    return data
+      ? this.mapToAgentConversation(data as AgentConversationDbRecord)
+      : null;
   }
 
   /**
@@ -480,7 +520,9 @@ export class AgentConversationsService {
   /**
    * Map database record to AgentConversation type
    */
-  private mapToAgentConversation(data: any): AgentConversation {
+  private mapToAgentConversation(
+    data: AgentConversationDbRecord,
+  ): AgentConversation {
     return {
       id: data.id,
       userId: data.user_id,
@@ -498,7 +540,7 @@ export class AgentConversationsService {
       workProduct:
         data.primary_work_product_type && data.primary_work_product_id
           ? {
-              type: data.primary_work_product_type,
+              type: data.primary_work_product_type as 'project' | 'deliverable',
               id: data.primary_work_product_id,
             }
           : undefined,
@@ -511,14 +553,14 @@ export class AgentConversationsService {
    * Map database record to AgentConversationWithStats type
    */
   private mapToAgentConversationWithStats(
-    data: any,
+    data: AgentConversationWithStatsDbRecord,
   ): AgentConversationWithStats {
     return {
       ...this.mapToAgentConversation(data),
-      taskCount: parseInt(data.task_count) || 0,
-      completedTasks: parseInt(data.completed_tasks) || 0,
-      failedTasks: parseInt(data.failed_tasks) || 0,
-      activeTasks: parseInt(data.active_tasks) || 0,
+      taskCount: parseInt(String(data.task_count)) || 0,
+      completedTasks: parseInt(String(data.completed_tasks)) || 0,
+      failedTasks: parseInt(String(data.failed_tasks)) || 0,
+      activeTasks: parseInt(String(data.active_tasks)) || 0,
     };
   }
 }

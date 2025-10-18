@@ -607,7 +607,7 @@ export class TasksService {
       response: converted.response as string | undefined,
       responseMetadata: (converted.responseMetadata as Record<string, unknown>) || {},
       status: converted.status as Task['status'],
-      progress: converted.progress as number | undefined,
+      progress: (converted.progress as number | undefined) ?? 0,
       progressMessage: converted.progressMessage as string | undefined,
       evaluation: (converted.evaluation as Record<string, unknown>) || {},
       llmMetadata: (converted.llmMetadata as Record<string, unknown>) || {},
@@ -620,7 +620,7 @@ export class TasksService {
       completedAt: converted.completedAt
         ? new Date(converted.completedAt as string)
         : undefined,
-      timeoutSeconds: converted.timeoutSeconds as number | undefined,
+      timeoutSeconds: (converted.timeoutSeconds as number | undefined) ?? 30,
       metadata: (converted.metadata as Record<string, unknown>) || {},
       createdAt: new Date(converted.createdAt as string),
       updatedAt: new Date(converted.updatedAt as string),

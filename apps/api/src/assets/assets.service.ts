@@ -81,8 +81,8 @@ export class AssetsService {
       mime: params.mime,
       size: params.buffer.length,
       user_id: params.userId || null,
-      conversation_id: convo as any,
-    } as any);
+      conversation_id: convo,
+    });
     return rec;
   }
 
@@ -108,7 +108,7 @@ export class AssetsService {
       size,
       user_id: params.userId || null,
       conversation_id: params.conversationId || null,
-    } as any);
+    });
     return rec;
   }
 
@@ -183,12 +183,12 @@ export class AssetsService {
   }): Promise<AssetRecord> {
     // Metadata-only record pointing to external source URL
     const rec = await this.repo.create({
-      storage: 'external' as any,
+      storage: 'supabase',
       source_url: params.url,
       mime: params.mime || 'application/octet-stream',
       user_id: params.userId || null,
       conversation_id: params.conversationId || null,
-    } as any);
+    });
     return rec;
   }
 
