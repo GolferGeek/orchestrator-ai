@@ -46,14 +46,8 @@ const temporaryTypeSafetyAllowlist = {
     level: 'off',
     reason: 'Async strategy under review; will move to error post Phase 6.',
   },
-  '@typescript-eslint/await-thenable': {
-    level: 'off',
-    reason: 'Ensuring staged rollout before flipping to error in Phase 6.',
-  },
-  '@typescript-eslint/require-await': {
-    level: 'off',
-    reason: 'Async helpers will be revisited during residual cleanup (Phase 6).',
-  },
+  // REMOVED: '@typescript-eslint/await-thenable' - Now enabled
+  // REMOVED: '@typescript-eslint/require-await' - Now enabled
   '@typescript-eslint/restrict-template-expressions': {
     level: 'off',
     reason: 'String interpolation refactors scheduled for Phase 6.',
@@ -62,10 +56,7 @@ const temporaryTypeSafetyAllowlist = {
     level: 'off',
     reason: 'Promise utilities to be hardened alongside agent runtime updates (Phase 3).',
   },
-  '@typescript-eslint/no-redundant-type-constituents': {
-    level: 'off',
-    reason: 'Type normalization dependent on DTO workstreams (Phase 2–3).',
-  },
+  // REMOVED: '@typescript-eslint/no-redundant-type-constituents' - Now enabled
   '@typescript-eslint/unbound-method': {
     level: 'off',
     reason: 'Transitioning to arrow functions/binds during cleanup (Phase 6).',

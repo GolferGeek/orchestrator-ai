@@ -578,10 +578,10 @@ describe('OrchestrationDashboardService', () => {
         pendingApprovals: [],
       });
 
-      runnerService.getRun.mockImplementation(async (runId: string) => {
-        if (runId === 'run-child') return mockRunRecord;
-        if (runId === 'run-parent') return mockParentRecord;
-        return null;
+      runnerService.getRun.mockImplementation((runId: string) => {
+        if (runId === 'run-child') return Promise.resolve(mockRunRecord);
+        if (runId === 'run-parent') return Promise.resolve(mockParentRecord);
+        return Promise.resolve(null);
       });
 
       runsRepo.list.mockResolvedValue({

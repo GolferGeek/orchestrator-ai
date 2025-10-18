@@ -74,7 +74,7 @@ export interface OrchestrationApprovalMetadata extends JsonObject {
 }
 
 export interface OrchestrationManualRecoveryMetadata extends JsonObject {
-  lastAction?: 'retry' | 'skip' | 'rollback' | string;
+  lastAction?: string;
   requestedAt?: string;
   requestedBy?: string | null;
   stepId?: string | null;

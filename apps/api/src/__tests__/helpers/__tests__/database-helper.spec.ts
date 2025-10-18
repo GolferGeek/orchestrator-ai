@@ -19,53 +19,47 @@ describe('DatabaseTestHelper', () => {
   // Test prefix for cleanup
   const TEST_PREFIX = 'test-db-helper-';
 
-  beforeAll(async () => {
+  beforeAll(() => {
     if (!isSupabaseConfigured) {
       console.warn(
         '⚠️  Supabase not configured - skipping database helper tests',
       );
       return;
     }
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
   });
 
   afterAll(async () => {
     if (!isSupabaseConfigured) return;
     // Cleanup any test data that might have leaked
     await DatabaseTestHelper.cleanupTestData(TEST_PREFIX);
-    await DatabaseTestHelper.teardownTestDatabase();
+    DatabaseTestHelper.teardownTestDatabase();
   });
 
   describe('Setup and Teardown', () => {
-    it('should setup test database connection', async () => {
+    it('should setup test database connection', () => {
       if (!isSupabaseConfigured) {
         return expect(true).toBe(true); // Skip
       }
 
-      await expect(
-        DatabaseTestHelper.setupTestDatabase(),
-      ).resolves.not.toThrow();
+      expect(() => DatabaseTestHelper.setupTestDatabase()).not.toThrow();
     });
 
-    it('should teardown test database connection', async () => {
+    it('should teardown test database connection', () => {
       if (!isSupabaseConfigured) {
         return expect(true).toBe(true); // Skip
       }
 
-      await expect(
-        DatabaseTestHelper.teardownTestDatabase(),
-      ).resolves.not.toThrow();
+      expect(() => DatabaseTestHelper.teardownTestDatabase()).not.toThrow();
     });
 
-    it('should handle multiple setup calls idempotently', async () => {
+    it('should handle multiple setup calls idempotently', () => {
       if (!isSupabaseConfigured) {
         return expect(true).toBe(true); // Skip
       }
 
-      await DatabaseTestHelper.setupTestDatabase();
-      await expect(
-        DatabaseTestHelper.setupTestDatabase(),
-      ).resolves.not.toThrow();
+      DatabaseTestHelper.setupTestDatabase();
+      expect(() => DatabaseTestHelper.setupTestDatabase()).not.toThrow();
     });
   });
 
@@ -108,7 +102,7 @@ describe('DatabaseTestHelper', () => {
       process.env.SUPABASE_TEST_PASSWORD = 'invalid-password';
 
       // Reset cached token
-      await DatabaseTestHelper.teardownTestDatabase();
+      DatabaseTestHelper.teardownTestDatabase();
 
       await expect(DatabaseTestHelper.authenticateTestUser()).rejects.toThrow();
 
@@ -124,8 +118,8 @@ describe('DatabaseTestHelper', () => {
         return expect(true).toBe(true); // Skip
       }
 
-      const result = await DatabaseTestHelper.withTransaction(async () => {
-        return 'test-result';
+      const result = await DatabaseTestHelper.withTransaction(() => {
+        return Promise.resolve('test-result');
       });
 
       expect(result).toBe('test-result');
@@ -136,8 +130,8 @@ describe('DatabaseTestHelper', () => {
         return expect(true).toBe(true); // Skip
       }
 
-      const result = await DatabaseTestHelper.withTransaction(async () => {
-        return { data: 'test', count: 42 };
+      const result = await DatabaseTestHelper.withTransaction(() => {
+        return Promise.resolve({ data: 'test', count: 42 });
       });
 
       expect(result).toEqual({ data: 'test', count: 42 });
@@ -425,7 +419,7 @@ describe('DatabaseTestHelper', () => {
       process.env.SUPABASE_TEST_USER = 'invalid@test.com';
 
       // Reset cached auth
-      await DatabaseTestHelper.teardownTestDatabase();
+      DatabaseTestHelper.teardownTestDatabase();
 
       await expect(DatabaseTestHelper.authenticateTestUser()).rejects.toThrow(
         /authentication failed/i,

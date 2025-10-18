@@ -75,7 +75,7 @@ export class AgentPromotionService {
 
       // 3. Validate agent (unless explicitly skipped)
       if (!options?.skipValidation) {
-        const validation = await this.validator.validateByType(
+        const validation = this.validator.validateByType(
           agent.agent_type as any,
           {
             agent_type: agent.agent_type as any,

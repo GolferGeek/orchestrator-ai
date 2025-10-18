@@ -60,16 +60,16 @@ export class AgentDryRunService {
     }
   }
 
-  async runApiTransform(
+  runApiTransform(
     apiConfig: any,
     input: any = {},
     mockResponse?: any,
-  ): Promise<{
+  ): {
     ok: boolean;
     request?: { format?: string; body?: string };
     response?: { format?: string; extracted?: any };
     error?: string;
-  }> {
+  } {
     try {
       const reqT = apiConfig?.request_transform || apiConfig?.requestTransform;
       const resT =

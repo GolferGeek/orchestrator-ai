@@ -872,7 +872,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
    * Note: This test uses direct database queries - implementation depends on your DB setup
    */
   describe('Test 10: Database State Verification', () => {
-    it('should have correct database state after integration tests', async () => {
+    it('should have correct database state after integration tests', () => {
       // Note: This test would require database service injection
       // Placeholder assertions - implement based on your database setup
 

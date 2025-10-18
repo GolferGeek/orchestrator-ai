@@ -39,7 +39,7 @@ export class AgentRuntimeDeliverablesAdapter {
   async maybeCreateFromBuild(
     ctx: BuildDeliverableInput,
     request: TaskRequestDto,
-  ): Promise<any | null> {
+  ): Promise<any> {
     try {
       if (ctx.mode !== AgentTaskMode.BUILD) return null;
       const userId = this.resolveUserId(request);

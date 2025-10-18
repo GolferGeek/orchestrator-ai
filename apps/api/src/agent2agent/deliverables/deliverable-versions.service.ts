@@ -903,10 +903,10 @@ Please output ONLY the merged content, maintaining the same format as the origin
    * Perform task-based content modification using LLM
    * TODO: Integrate with actual LLM service
    */
-  private async performTaskBasedModification(
+  private performTaskBasedModification(
     baseContent: string,
     taskPrompt: string,
-  ): Promise<string> {
+  ): string {
     // Placeholder implementation - will be replaced with actual LLM integration
     return `${baseContent}\n\n=== TASK MODIFICATION ===\n${taskPrompt}\n\n[TODO: This will be replaced with LLM-modified content]`;
   }

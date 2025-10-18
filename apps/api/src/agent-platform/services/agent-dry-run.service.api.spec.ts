@@ -16,7 +16,7 @@ describe('AgentDryRunService (API transforms)', () => {
     };
     const input = { sessionId: 'abc', userMessage: 'hi there' };
     const mockResponse = { output: 'ok' };
-    const res = await svc.runApiTransform(apiConfig, input, mockResponse);
+    const res = svc.runApiTransform(apiConfig, input, mockResponse);
     expect(res.ok).toBe(true);
     expect(res.request?.body).toContain('"sessionId": "abc"');
     expect(res.request?.body).toContain('"prompt": "hi there"');

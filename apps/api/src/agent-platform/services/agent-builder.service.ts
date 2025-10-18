@@ -63,7 +63,7 @@ export class AgentBuilderService {
           ?.sample_input || { test: 'input' };
         const sampleResp = payload?.config?.configuration?.api
           ?.sample_response || { test: 'output' };
-        response.dryRun = await this.dryRun.runApiTransform(
+        response.dryRun = this.dryRun.runApiTransform(
           apiCfg,
           sampleInput,
           sampleResp,

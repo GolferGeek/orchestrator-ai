@@ -146,7 +146,7 @@ export class AgentRuntimeNormalizationService {
     return typeof candidate === 'string' && candidate.trim() ? candidate : null;
   }
 
-  private extractFencedJson(text: string): any | null {
+  private extractFencedJson(text: string): any {
     const re = /```json\s*([\s\S]*?)\s*```/i;
     const m = re.exec(text);
     if (!m) return null;
@@ -157,7 +157,7 @@ export class AgentRuntimeNormalizationService {
     }
   }
 
-  private tryParseYaml(text: string): any | null {
+  private tryParseYaml(text: string): any {
     // Heuristic: contains ':' pairs or starts with '-'
     if (!text || (!text.includes(':') && !/^\s*-\s/m.test(text))) return null;
     try {

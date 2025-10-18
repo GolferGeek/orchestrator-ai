@@ -112,7 +112,7 @@ export class AgentsAdminController {
           ?.sample_input || { sessionId: 'dryrun', userMessage: 'hello' };
         const sampleResp = (dto as any)?.config?.configuration?.api
           ?.sample_response || { output: 'dry-run-ok' };
-        response.dryRun = await this.dryRun.runApiTransform(
+        response.dryRun = this.dryRun.runApiTransform(
           apiCfg,
           sampleInput,
           sampleResp,
@@ -232,7 +232,7 @@ export class AgentsAdminController {
           } else if (type === 'api') {
             const apiCfg = dto?.config?.configuration?.api?.api_configuration;
             if (apiCfg) {
-              item.dryRun = await this.dryRun.runApiTransform(
+              item.dryRun = this.dryRun.runApiTransform(
                 apiCfg,
                 dto?.config?.configuration?.api?.sample_input || {
                   sessionId: 'dryrun',

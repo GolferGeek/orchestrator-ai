@@ -78,7 +78,7 @@ export async function handleOrchestrateAction(
           runnerContext,
         );
       case 'save_recipe':
-        return await handleOrchestrateSaveRecipe(
+        return handleOrchestrateSaveRecipe(
           definition,
           request,
           organizationSlug,
@@ -160,7 +160,7 @@ export async function handleOrchestrateAction(
  * Handle orchestrate 'create' action
  * Maps to existing handlePlan() logic
  */
-async function handleOrchestrateCreate(
+function handleOrchestrateCreate(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
@@ -174,7 +174,7 @@ async function handleOrchestrateCreate(
  * Handle orchestrate 'execute' action
  * Maps to existing executeBuild() logic
  */
-async function handleOrchestrateExecute(
+function handleOrchestrateExecute(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
@@ -188,7 +188,7 @@ async function handleOrchestrateExecute(
  * Handle orchestrate 'continue' action
  * Continues an existing orchestration run
  */
-async function handleOrchestrateContinue(
+function handleOrchestrateContinue(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
@@ -202,12 +202,12 @@ async function handleOrchestrateContinue(
  * Handle orchestrate 'save_recipe' action
  * Saves an orchestration as a reusable recipe
  */
-async function handleOrchestrateSaveRecipe(
+function handleOrchestrateSaveRecipe(
   _definition: AgentRuntimeDefinition,
   _request: TaskRequestDto,
   _organizationSlug: string | null,
   _runnerContext: any,
-): Promise<TaskResponseDto> {
+): TaskResponseDto {
   return TaskResponseDto.failure(
     AgentTaskMode.ORCHESTRATE,
     'save_recipe action not yet implemented',
@@ -217,7 +217,7 @@ async function handleOrchestrateSaveRecipe(
 /**
  * Handle orchestrate plan management actions
  */
-async function handleOrchestratePlanManagement(
+function handleOrchestratePlanManagement(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,
@@ -232,7 +232,7 @@ async function handleOrchestratePlanManagement(
  * Handle orchestrate 'run_start' action
  * Starts an orchestration run
  */
-async function handleOrchestrateRunStart(
+function handleOrchestrateRunStart(
   definition: AgentRuntimeDefinition,
   request: TaskRequestDto,
   organizationSlug: string | null,

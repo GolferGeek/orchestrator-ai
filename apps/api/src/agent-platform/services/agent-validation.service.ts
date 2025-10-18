@@ -71,7 +71,7 @@ export class AgentValidationService {
     return { ok: issues.length === 0 && !!valid, issues };
   }
 
-  private formatAjvError(err: AjvNS.ErrorObject | any): ValidationIssue {
+  private formatAjvError(err: any): ValidationIssue {
     const msg = err?.message || 'validation error';
     const instancePath =
       (err && (err.instancePath || err.dataPath)) || undefined;

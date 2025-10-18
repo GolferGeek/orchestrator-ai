@@ -24,7 +24,7 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     'docs/feature/matt/payloads/agent_builder_chat.json',
   );
 
-  it('validates Blog Post Writer (context agent)', async () => {
+  it('validates Blog Post Writer (context agent)', () => {
     const blog = JSON.parse(readFileSync(blogPath, 'utf8'));
     const v = validator.validateByType(blog.agent_type, blog);
     const p = policy.check(blog);
@@ -34,7 +34,7 @@ describe('Seed payloads (local smoke without HTTP)', () => {
     expect(blog.agent_type).toBe('context');
   });
 
-  it('validates HR Assistant (context agent)', async () => {
+  it('validates HR Assistant (context agent)', () => {
     const hr = JSON.parse(readFileSync(hrPath, 'utf8'));
     const v = validator.validateByType(hr.agent_type, hr);
     const p = policy.check(hr);

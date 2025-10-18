@@ -53,7 +53,7 @@ export class DatabaseTestHelper {
    * Setup test database connection
    * Call this in beforeAll() hooks
    */
-  static async setupTestDatabase(): Promise<void> {
+  static setupTestDatabase(): void {
     // Initialize Supabase client if not already done
     if (!DatabaseTestHelper.supabaseClient) {
       DatabaseTestHelper.supabaseClient = createClient(
@@ -73,7 +73,7 @@ export class DatabaseTestHelper {
    * Teardown test database connection
    * Call this in afterAll() hooks if needed
    */
-  static async teardownTestDatabase(): Promise<void> {
+  static teardownTestDatabase(): void {
     // Supabase client doesn't need explicit cleanup
     DatabaseTestHelper.supabaseClient = null;
     DatabaseTestHelper.authToken = null;
@@ -111,7 +111,7 @@ export class DatabaseTestHelper {
     }
 
     // Fallback: authenticate via Supabase client directly
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const { data, error } =
       await DatabaseTestHelper.supabaseClient!.auth.signInWithPassword({
         email: TEST_DB_CONFIG.testUser,
@@ -132,7 +132,7 @@ export class DatabaseTestHelper {
    * Get test user ID
    */
   static async getTestUserId(): Promise<string> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const { data } = await DatabaseTestHelper.supabaseClient!.auth.getUser();
     if (!data.user) {
       throw new Error('Test user not authenticated');
@@ -152,7 +152,7 @@ export class DatabaseTestHelper {
    * @returns Result of the function
    */
   static async withTransaction<T>(fn: () => Promise<T>): Promise<T> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
 
     // Note: Supabase client doesn't expose transaction control directly
     // For true transaction support, tests should use raw SQL via rawQuery()
@@ -177,7 +177,7 @@ export class DatabaseTestHelper {
    * @param prefix - Prefix to match (e.g., 'test-orch-')
    */
   static async cleanupTestData(prefix: string): Promise<void> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     // Clean up orchestration data
@@ -222,7 +222,7 @@ export class DatabaseTestHelper {
       );
     }
 
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     // Delete all rows (Supabase doesn't expose TRUNCATE)
@@ -237,7 +237,7 @@ export class DatabaseTestHelper {
    * Useful for afterAll() hooks
    */
   static async cleanupAllTestOrchestrations(): Promise<void> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     // Clean up test organization data
@@ -275,7 +275,7 @@ export class DatabaseTestHelper {
     sql: string,
     params: any[] = [],
   ): Promise<T[]> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     // Use Supabase RPC for raw SQL execution
@@ -318,7 +318,7 @@ export class DatabaseTestHelper {
    * @returns True if record exists
    */
   static async recordExists(tableName: string, id: string): Promise<boolean> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     const { data, error } = await client
@@ -347,7 +347,7 @@ export class DatabaseTestHelper {
     column: string,
     value: any,
   ): Promise<number> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     const { count, error } = await client
@@ -373,7 +373,7 @@ export class DatabaseTestHelper {
    * @returns Seeded agent
    */
   static async seedTestAgent(agentData: any): Promise<any> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     const { data, error } = await client
@@ -398,7 +398,7 @@ export class DatabaseTestHelper {
    * @returns Seeded definition
    */
   static async seedTestOrchestration(definitionData: any): Promise<any> {
-    await DatabaseTestHelper.setupTestDatabase();
+    DatabaseTestHelper.setupTestDatabase();
     const client = DatabaseTestHelper.supabaseClient!;
 
     const { data, error } = await client

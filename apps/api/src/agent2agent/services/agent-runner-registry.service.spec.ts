@@ -14,11 +14,13 @@ import { AgentTaskMode } from '../dto/task-request.dto';
 class MockAgentRunner implements IAgentRunner {
   constructor(private readonly name: string) {}
 
-  async execute(): Promise<TaskResponseDto> {
-    return TaskResponseDto.success(AgentTaskMode.CONVERSE, {
-      content: { message: `Response from ${this.name}` },
-      metadata: {},
-    });
+  execute(): Promise<TaskResponseDto> {
+    return Promise.resolve(
+      TaskResponseDto.success(AgentTaskMode.CONVERSE, {
+        content: { message: `Response from ${this.name}` },
+        metadata: {},
+      }),
+    );
   }
 }
 

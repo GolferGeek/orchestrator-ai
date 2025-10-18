@@ -95,16 +95,16 @@ describe('ApiKeyGuard', () => {
     };
     const provided = 'alias-secret';
     const digest = createHash('sha256').update(provided).digest('base64');
-    repo.get.mockImplementation(async (_org, alias) => {
+    repo.get.mockImplementation((_org, alias) => {
       if (alias === 'custom_alias') {
-        return {
+        return Promise.resolve({
           ...baseRecord,
           alias,
           encrypted_value: digest,
           encryption_metadata: credentialMetadata,
-        };
+        });
       }
-      return null;
+      return Promise.resolve(null);
     });
 
     const result = await guard.canActivate(

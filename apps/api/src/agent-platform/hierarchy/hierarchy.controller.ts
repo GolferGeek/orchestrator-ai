@@ -15,7 +15,7 @@ export class HierarchyController {
    */
   @Get('test')
   @Public()
-  async testHierarchy() {
+  testHierarchy() {
     return {
       message: 'Hierarchy controller working',
       timestamp: new Date().toISOString(),

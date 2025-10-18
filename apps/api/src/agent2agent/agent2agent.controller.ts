@@ -892,7 +892,7 @@ export class Agent2AgentController {
   }
 
   @Get('agent-to-agent/:orgSlug/:agentSlug/health')
-  async getHealth(
+  getHealth(
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,
   ) {
