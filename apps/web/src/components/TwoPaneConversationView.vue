@@ -344,7 +344,12 @@ import { usePrivacyStore } from '@/stores/privacyStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
-import type { AgentChatMessage, AgentChatMode } from '@/types/conversation';
+import type {
+  AgentConversation,
+  AgentChatMessage,
+  AgentChatMode,
+  LLMRunConfiguration,
+} from '@/types/conversation';
 import type { AgentLLMRecommendation } from '@/types/evaluation';
 import { rerunPlan, rerunDeliverable } from '@/services/agent2agent/actions';
 import AgentTaskItem from './AgentTaskItem.vue';
@@ -362,10 +367,28 @@ import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
 import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
 import SovereignModeBanner from './SovereignMode/SovereignModeBanner.vue';
 import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
+import type { Deliverable, DeliverableVersion } from '@/services/deliverablesService';
+import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
+
 interface Props {
-  conversation?: any;
+  conversation?: AgentConversation | null;
 }
 const props = defineProps<Props>();
+
+interface DeliverableRerunContext {
+  deliverable: Deliverable;
+  version: DeliverableVersion;
+}
+
+interface PlanRerunContext {
+  plan: PlanData;
+  version: PlanVersionData;
+}
+
+type RerunContext = DeliverableRerunContext | PlanRerunContext;
+
+const isPlanRerunContext = (context: RerunContext): context is PlanRerunContext =>
+  'plan' in context;
 // Stores
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
@@ -381,50 +404,45 @@ const messagesContainer = ref<HTMLElement | null>(null);
 const showWorkProductPane = ref(false);
 const showDeliverableSelector = ref(false);
 const showMergeModal = ref(false);
-const mergeDeliverable = ref<any>(null);
+const mergeDeliverable = ref<Deliverable | null>(null);
 const showLLMRerunModal = ref(false);
-const rerunDeliverableData = ref<{ deliverable: any; version: any } | null>(null);
-const activeWorkProduct = ref<{ type: 'deliverable'; data: any } | null>(null);
+const rerunDeliverableData = ref<RerunContext | null>(null);
+const activeWorkProduct = ref<{ type: 'deliverable'; data: Deliverable } | null>(null);
 const activeTab = ref<'plan' | 'deliverable'>('plan');
 const isMobile = ref(false);
 // Computed properties
 const currentAgent = computed(() => props.conversation?.agent);
-const currentAgentIdentifier = computed(() => currentAgent.value?.name || '');
-const messages = computed(() => props.conversation?.messages || []);
+const currentAgentIdentifier = computed(() => currentAgent.value?.name ?? '');
+const messages = computed<AgentChatMessage[]>(() => props.conversation?.messages ?? []);
 
 // Video-related computed properties  
-const agentSlug = computed(() => {
-  // Extract agent slug from currentAgent data if available
-  return currentAgent.value?.slug || currentAgent.value?.id || '';
-});
+const agentSlug = computed(() => currentAgent.value?.slug ?? currentAgent.value?.id ?? '');
 
 const agentVideoIds = computed(() => {
   const agentIdentifier = agentSlug.value || currentAgent.value?.name || '';
-  if (!agentIdentifier) return [];
+  if (!agentIdentifier) return [] as string[];
   return videoService.getAgentVideoIdsByNameOrSlug(agentIdentifier);
 });
 
-const fallbackVideoIds = computed(() => {
-  return videoService.getDefaultVideoIds();
-});
+const fallbackVideoIds = computed(() => videoService.getDefaultVideoIds());
 
-const allVideos = computed(() => {
-  return videoService.getAllVideos();
-});
+const allVideos = computed(() => videoService.getAllVideos());
 
 const shouldShowAgentResources = computed(() => {
-  // Show panel if we have a current agent and at least one video to display
-  return currentAgent.value && (agentVideoIds.value.length > 0 || fallbackVideoIds.value.length > 0);
+  if (!currentAgent.value) return false;
+  return agentVideoIds.value.length > 0 || fallbackVideoIds.value.length > 0;
 });
 const isLoading = computed(() => chatUiStore.isLoading);
 const error = computed(() => chatUiStore.error);
 const isSendingMessage = computed(() => chatUiStore.isSendingMessage);
 const canSend = computed(() => {
-  return messageText.value.trim().length > 0 && 
-         !isSendingMessage.value && 
-         currentAgent.value;
+  return (
+    messageText.value.trim().length > 0 &&
+    !isSendingMessage.value &&
+    Boolean(currentAgent.value)
+  );
 });
-const currentChatMode = computed(() => props.conversation?.chatMode || chatUiStore.chatMode);
+const currentChatMode = computed<AgentChatMode | string | undefined>(() => props.conversation?.chatMode || chatUiStore.chatMode);
 const agentRecommendations = computed(() =>
   currentAgentIdentifier.value
     ? llmStore.getRecommendationsForAgent(currentAgentIdentifier.value)
@@ -505,7 +523,7 @@ const handleConversationEnd = () => {
   uiStore.setConversationalMode(false);
 };
 
-const handleSpeechError = (error: any) => {
+const handleSpeechError = (error: unknown) => {
   console.error('Speech error:', error);
   uiStore.setConversationalMode(false);
 };
@@ -694,19 +712,15 @@ const getWorkProductLabel = () => {
   }
   return 'Deliverable';
 };
-const messageHasDeliverable = (message: any) => {
-  // Check if message has associated deliverable (support both snake_case and camelCase)
-  return message.deliverableId ||
-         (message.metadata && message.metadata.deliverableId);
+const messageHasDeliverable = (message: AgentChatMessage) => {
+  return Boolean(message.deliverableId || message.metadata?.deliverableId);
 };
-const getMessageDeliverable = (message: any) => {
-  const deliverableId = message.deliverableId ||
-                        message.metadata?.deliverableId;
-  return deliverablesStore.getDeliverableById(deliverableId);
+const getMessageDeliverable = (message: AgentChatMessage) => {
+  const deliverableId = message.deliverableId || message.metadata?.deliverableId;
+  return deliverableId ? deliverablesStore.getDeliverableById(deliverableId) : null;
 };
-const selectDeliverable = async (deliverable: any) => {
+const selectDeliverable = async (deliverable: Deliverable | null) => {
   if (!deliverable) {
-
     return;
   }
   // Versions are already loaded by openExistingConversation, but load them if missing
@@ -735,7 +749,7 @@ const selectDeliverable = async (deliverable: any) => {
 const cancelEnhancement = async () => {
   try { await deliverablesStore.stopEnhancement(); } catch (_) {}
 };
-const handleDeliverableCreated = async (deliverable: any) => {
+const handleDeliverableCreated = async (deliverable: Deliverable) => {
   console.log('🎉 [TwoPaneConversationView.handleDeliverableCreated] Called with deliverable:', deliverable.id, 'title:', deliverable.title);
   console.log('🎉 [TwoPaneConversationView.handleDeliverableCreated] Current conversation:', props.conversation?.id);
   console.log('🎉 [TwoPaneConversationView.handleDeliverableCreated] Deliverable conversationId:', deliverable.conversationId);
@@ -790,22 +804,28 @@ const handleDeliverableCreated = async (deliverable: any) => {
     console.error('❌ [TwoPaneConversationView.handleDeliverableCreated] Error showing toast:', error);
   }
 };
-const handleDeliverableUpdated = (deliverable: any) => {
+const handleDeliverableUpdated = (deliverable: Deliverable) => {
   // Update active work product if it's the same deliverable
   if (activeWorkProduct.value?.type === 'deliverable' && 
       activeWorkProduct.value.data.id === deliverable.id) {
     activeWorkProduct.value = { type: 'deliverable', data: deliverable };
   }
 };
-const handleVersionChanged = (version: any) => {
+const handleVersionChanged = (version: DeliverableVersion) => {
   if (activeWorkProduct.value?.type === 'deliverable') {
-    activeWorkProduct.value = { type: 'deliverable', data: version };
+    const owningDeliverable = deliverablesStore.getDeliverableById(version.deliverableId);
+    if (owningDeliverable) {
+      activeWorkProduct.value = { type: 'deliverable', data: owningDeliverable };
+    }
   }
 };
-const handleVersionCreated = async (newVersion: any) => {
+const handleVersionCreated = async (newVersion: DeliverableVersion) => {
   // When a new version is created, update the active work product to show the new version
   if (activeWorkProduct.value?.type === 'deliverable') {
-    activeWorkProduct.value = { type: 'deliverable', data: newVersion };
+    const owningDeliverable = deliverablesStore.getDeliverableById(newVersion.deliverableId);
+    if (owningDeliverable) {
+      activeWorkProduct.value = { type: 'deliverable', data: owningDeliverable };
+    }
   }
   // Reload the deliverables for this conversation to update the list
   if (props.conversation?.id) {
@@ -815,11 +835,11 @@ const handleVersionCreated = async (newVersion: any) => {
     });
   }
 };
-const handleMergeRequested = (deliverable: any) => {
+const handleMergeRequested = (deliverable: Deliverable) => {
   mergeDeliverable.value = deliverable;
   showMergeModal.value = true;
 };
-const handleEditRequested = (workProduct: any) => {
+const handleEditRequested = (workProduct: { type: 'deliverable'; data: Deliverable }) => {
   // Navigate to edit view or open edit modal
   // Implementation depends on editing strategy
   const productType = activeWorkProduct.value?.type || 'deliverable';
@@ -829,34 +849,34 @@ const closeMergeModal = () => {
   showMergeModal.value = false;
   mergeDeliverable.value = null;
 };
-const handleMergeCompleted = (mergedDeliverable: any) => {
+const handleMergeCompleted = (mergedDeliverable: Deliverable) => {
   activeWorkProduct.value = { type: 'deliverable', data: mergedDeliverable };
   closeMergeModal();
 };
 
 // LLM Rerun handlers
-const handleRunWithDifferentLLM = (data: { deliverable: any; version: any }) => {
+const handleRunWithDifferentLLM = (data: DeliverableRerunContext) => {
   rerunDeliverableData.value = data;
   showLLMRerunModal.value = true;
 };
 
 // Plan event handlers
-const handlePlanVersionChanged = (version: any) => {
+const handlePlanVersionChanged = (version: PlanVersionData) => {
   console.log('Plan version changed:', version);
   // TODO: Update plan state if needed
 };
 
-const handlePlanVersionCreated = (version: any) => {
+const handlePlanVersionCreated = (version: PlanVersionData) => {
   console.log('Plan version created:', version);
   // TODO: Update plan state if needed
 };
 
-const handlePlanCurrentVersionChanged = (version: any) => {
+const handlePlanCurrentVersionChanged = (version: PlanVersionData) => {
   console.log('Plan current version changed:', version);
   // TODO: Update plan state if needed
 };
 
-const handleRunPlanWithDifferentLLM = (data: { plan: any; version: any }) => {
+const handleRunPlanWithDifferentLLM = (data: PlanRerunContext) => {
   console.log('Run plan with different LLM:', data);
   // Store plan data separately from deliverable data
   rerunDeliverableData.value = { plan: data.plan, version: data.version };
@@ -868,14 +888,14 @@ const closeLLMRerunModal = () => {
   rerunDeliverableData.value = null;
 };
 
-const handleLLMExecute = async (llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }) => {
+const handleLLMExecute = async (llmConfig: LLMRunConfiguration) => {
   if (!rerunDeliverableData.value) {
     console.error('No rerun data available');
     return;
   }
 
   // Capture the rerun data before closing modal
-  const capturedRerunData = { ...rerunDeliverableData.value };
+  const capturedRerunData = { ...rerunDeliverableData.value } as RerunContext;
 
   // Close modal immediately to start conversation flow
   closeLLMRerunModal();
@@ -892,15 +912,15 @@ const canExecuteRerun = computed(() => {
 });
 
 const executeRerunWithConfig = async (
-  capturedRerunData: { plan?: any; deliverable?: any; version: any },
-  llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
+  capturedRerunData: RerunContext,
+  llmConfig: LLMRunConfiguration
 ) => {
   console.log('🔍 [executeRerunWithConfig] Rerun data:', capturedRerunData);
 
-  const plan = capturedRerunData.plan;
-  const deliverable = capturedRerunData.deliverable;
-  const isDeliverable = !!deliverable;
-  const isPlan = !!plan;
+  const plan = isPlanRerunContext(capturedRerunData) ? capturedRerunData.plan : null;
+  const deliverable = 'deliverable' in capturedRerunData ? capturedRerunData.deliverable : null;
+  const isDeliverable = Boolean(deliverable);
+  const isPlan = Boolean(plan);
 
   // Find the original user message that generated this plan
   let originalUserPrompt = '';

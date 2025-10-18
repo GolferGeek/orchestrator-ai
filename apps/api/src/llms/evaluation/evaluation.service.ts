@@ -5,7 +5,6 @@ import {
   MessageEvaluationDto,
   EnhancedMessageResponseDto,
 } from '@/llms/dto/llm-evaluation.dto';
-import { UserRatingScale } from '@/llms/types/llm-evaluation';
 import {
   mapLLMProviderFromDb,
   mapLLMModelFromDb,
@@ -25,38 +24,22 @@ import {
   AgentLLMRecommendationDto,
 } from '@/llms/dto/enhanced-evaluation.dto';
 import { UserRole } from '@/auth/decorators/roles.decorator';
-
-interface EvaluationFilters {
-  minRating?: number;
-  hasNotes?: boolean;
-}
-
-interface EvaluationStatsFilters {
-  startDate?: string;
-  endDate?: string;
-  providerId?: string;
-  modelId?: string;
-}
-
-interface ModelComparisonFilters {
-  startDate?: string;
-  endDate?: string;
-}
-
-interface FeedbackExportOptions {
-  format: 'json' | 'csv';
-  startDate?: string;
-  endDate?: string;
-  includeContent?: boolean;
-}
-
-interface AllUserEvaluationsFilters {
-  page: number;
-  limit: number;
-  minRating?: number;
-  hasNotes?: boolean;
-  agentName?: string;
-}
+import {
+  enhancedMessageResponseSchema,
+  enhancedMessageResponseArraySchema,
+  evaluationStatsRowsSchema,
+  modelComparisonRowsSchema,
+} from '@/llms/types/evaluation.schemas';
+import type {
+  EvaluationFilters,
+  EvaluationStatsFilters,
+  ModelComparisonFilters,
+  FeedbackExportOptions,
+  AllUserEvaluationsFilters,
+  EvaluationRow,
+  EvaluationAggregationRow,
+  EvaluationStatsRow,
+} from '@/llms/types/evaluation.types';
 
 /**
  * Format agent names for display by converting from database format to human-readable format
@@ -84,6 +67,18 @@ export class EvaluationService {
   private readonly logger = new Logger(EvaluationService.name);
 
   constructor(private readonly supabaseService: SupabaseService) {}
+
+  private parseEnhancedMessage(
+    row: unknown,
+  ): EnhancedMessageResponseDto {
+    return enhancedMessageResponseSchema.parse(row);
+  }
+
+  private parseEnhancedMessages(
+    rows: unknown[],
+  ): EnhancedMessageResponseDto[] {
+    return enhancedMessageResponseArraySchema.parse(rows);
+  }
 
   async evaluateMessage(
     userId: string,
@@ -136,7 +131,7 @@ export class EvaluationService {
     // Note: Usage statistics tracking removed during database cleanup
     // User rating is stored in the message evaluation data
 
-    return updatedMessage;
+    return this.parseEnhancedMessage(updatedMessage);
   }
 
   async getMessageWithEvaluation(
@@ -168,7 +163,7 @@ export class EvaluationService {
       );
     }
 
-    return message;
+    return this.parseEnhancedMessage(message);
   }
 
   async getSessionEvaluations(
@@ -209,7 +204,11 @@ export class EvaluationService {
       );
     }
 
-    return messages || [];
+    if (!messages) {
+      return [];
+    }
+
+    return this.parseEnhancedMessages(messages);
   }
 
   async getEvaluationStats(
@@ -271,8 +270,12 @@ export class EvaluationService {
       );
     }
 
-    const stats = this.calculateEvaluationStats(evaluations || []);
-    const modelPerformance = this.calculateModelPerformance(evaluations || []);
+    const evaluationRows = evaluations
+      ? evaluationStatsRowsSchema.parse(evaluations)
+      : [];
+
+    const stats = this.calculateEvaluationStats(evaluationRows);
+    const modelPerformance = this.calculateModelPerformance(evaluationRows);
 
     return {
       ...stats,
@@ -399,7 +402,11 @@ export class EvaluationService {
       );
     }
 
-    const comparison = this.calculateModelComparison(messages || []);
+    const comparisonRows = messages
+      ? modelComparisonRowsSchema.parse(messages)
+      : [];
+
+    const comparison = this.calculateModelComparison(comparisonRows);
     const recommendations = this.generateModelRecommendations(comparison);
 
     return {
@@ -685,7 +692,7 @@ export class EvaluationService {
 
   // Helper methods
 
-  private calculateEvaluationStats(evaluations: any[]): {
+  private calculateEvaluationStats(evaluations: EvaluationStatsRow[]): {
     totalEvaluations: number;
     averageOverallRating: number;
     averageSpeedRating: number;
@@ -744,40 +751,45 @@ export class EvaluationService {
     };
   }
 
-  private calculateModelPerformance(evaluations: any[]): Array<{
-    model: any;
+  private calculateModelPerformance(
+    evaluations: EvaluationStatsRow[],
+  ): Array<{
+    model: EvaluationStatsRow['model'];
     avgRating: number;
     evaluationCount: number;
   }> {
-    const modelGroups = evaluations.reduce((groups, evaluation) => {
-      const modelId = evaluation.model?.id || 'unknown';
-      if (!groups[modelId]) {
-        groups[modelId] = {
-          model: evaluation.model,
-          ratings: [],
-        };
-      }
-      if (evaluation.user_rating) {
-        groups[modelId].ratings.push(evaluation.user_rating);
-      }
-      return groups;
-    }, {});
+    const groups = new Map<
+      string,
+      { model: EvaluationStatsRow['model']; ratings: number[] }
+    >();
 
-    return Object.values(modelGroups).map((group: any) => ({
-      model: group.model,
-      avgRating:
-        group.ratings.length > 0
-          ? group.ratings.reduce(
-              (sum: number, rating: number) => sum + rating,
-              0,
-            ) / group.ratings.length
-          : 0,
-      evaluationCount: group.ratings.length,
-    }));
+    evaluations.forEach((evaluation) => {
+      const modelId = evaluation.model?.id ?? 'unknown';
+      const group =
+        groups.get(modelId) ??
+        groups
+          .set(modelId, { model: evaluation.model ?? null, ratings: [] })
+          .get(modelId)!;
+
+      if (typeof evaluation.user_rating === 'number') {
+        group.ratings.push(evaluation.user_rating);
+      }
+    });
+
+    return Array.from(groups.values())
+      .filter((group) => group.model?.id && group.ratings.length > 0)
+      .map((group) => ({
+        model: group.model,
+        avgRating:
+          group.ratings.reduce((sum, rating) => sum + rating, 0) /
+          group.ratings.length,
+        evaluationCount: group.ratings.length,
+      }))
+      .sort((a, b) => b.avgRating - a.avgRating);
   }
 
-  private calculateModelComparison(messages: any[]): Array<{
-    model: any;
+  private calculateModelComparison(messages: ModelComparisonMessageRow[]): Array<{
+    model: ModelComparisonMessageRow['model'];
     metrics: {
       avgOverallRating: number;
       avgSpeedRating: number;
@@ -787,47 +799,81 @@ export class EvaluationService {
       evaluationCount: number;
     };
   }> {
-    const modelGroups = messages.reduce((groups, msg) => {
-      const modelId = msg.model?.id || 'unknown';
-      if (!groups[modelId]) {
-        groups[modelId] = {
-          model: msg.model,
-          overall_ratings: [],
-          speed_ratings: [],
-          accuracy_ratings: [],
-          response_times: [],
-          costs: [],
-        };
+    const groups = new Map<
+      string,
+      {
+        model: ModelComparisonMessageRow['model'];
+        overall: number[];
+        speed: number[];
+        accuracy: number[];
+        responseTimes: number[];
+        costs: number[];
       }
+    >();
 
-      if (msg.user_rating)
-        groups[modelId].overall_ratings.push(msg.user_rating);
-      if (msg.speed_rating)
-        groups[modelId].speed_ratings.push(msg.speed_rating);
-      if (msg.accuracy_rating)
-        groups[modelId].accuracy_ratings.push(msg.accuracy_rating);
-      if (msg.response_time_ms)
-        groups[modelId].response_times.push(msg.response_time_ms);
-      if (msg.total_cost) groups[modelId].costs.push(msg.total_cost);
+    messages.forEach((message) => {
+      const modelId = message.model?.id ?? 'unknown';
+      const group =
+        groups.get(modelId) ??
+        groups
+          .set(modelId, {
+            model: message.model ?? null,
+            overall: [],
+            speed: [],
+            accuracy: [],
+            responseTimes: [],
+            costs: [],
+          })
+          .get(modelId)!;
 
-      return groups;
-    }, {});
+      if (typeof message.user_rating === 'number') {
+        group.overall.push(message.user_rating);
+      }
+      if (typeof message.speed_rating === 'number') {
+        group.speed.push(message.speed_rating);
+      }
+      if (typeof message.accuracy_rating === 'number') {
+        group.accuracy.push(message.accuracy_rating);
+      }
+      if (typeof message.response_time_ms === 'number') {
+        group.responseTimes.push(message.response_time_ms);
+      }
+      if (typeof message.total_cost === 'number') {
+        group.costs.push(message.total_cost);
+      }
+    });
 
-    return Object.values(modelGroups).map((group: any) => ({
+    return Array.from(groups.values()).map((group) => ({
       model: group.model,
       metrics: {
-        avgOverallRating: this.calculateAverage(group.overall_ratings),
-        avgSpeedRating: this.calculateAverage(group.speed_ratings),
-        avgAccuracyRating: this.calculateAverage(group.accuracy_ratings),
-        avgResponseTimeMs: this.calculateAverage(group.response_times),
+        avgOverallRating: this.calculateAverage(group.overall),
+        avgSpeedRating: this.calculateAverage(group.speed),
+        avgAccuracyRating: this.calculateAverage(group.accuracy),
+        avgResponseTimeMs: this.calculateAverage(group.responseTimes),
         avgCost: this.calculateAverage(group.costs),
-        evaluationCount: group.overall_ratings.length,
+        evaluationCount: group.overall.length,
       },
     }));
   }
 
-  private generateModelRecommendations(comparison: any[]): string[] {
-    const recommendations = [];
+  private generateModelRecommendations(
+    comparison: Array<{
+      model: ModelComparisonMessageRow['model'];
+      metrics: {
+        avgOverallRating: number;
+        avgSpeedRating: number;
+        avgAccuracyRating: number;
+        avgResponseTimeMs: number;
+        avgCost: number;
+        evaluationCount: number;
+      };
+    }>,
+  ): string[] {
+    if (comparison.length === 0) {
+      return [];
+    }
+
+    const recommendations: string[] = [];
 
     // Find best performer by rating
     const bestRated = comparison.reduce((best, current) =>

@@ -24,15 +24,17 @@ export interface Agent {
   display_name: string;
   description: string;
   agent_type: 'context' | 'api' | 'tool' | 'function' | 'orchestrator';
+  runner_type: string;
   mode_profile: string;
   version: string;
   status: string;
   yaml: string;
   agent_card: Record<string, any>;
   context: Record<string, any>;
+  configuration: Record<string, any>;
   config: Record<string, any>;
-  created_at: string;
-  updated_at: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface OrchestrationDefinition {
@@ -42,64 +44,70 @@ export interface OrchestrationDefinition {
   display_name: string;
   description: string;
   owner_agent_slug: string;
-  version: string;
-  status: string;
-  definition: Record<string, any>;
-  created_at: string;
-  updated_at: string;
+  version: number;
+  is_active: boolean;
+  configuration: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface OrchestrationRun {
   id: string;
   organization_slug: string;
   orchestration_definition_id: string;
-  orchestration_slug: string;
+  orchestration_definition_slug: string;
+  orchestration_version: number;
   conversation_id: string;
   task_id: string;
   status:
+    | 'pending'
     | 'planning'
     | 'running'
     | 'checkpoint'
     | 'completed'
     | 'failed'
-    | 'aborted';
+    | 'aborted'
+    | 'in_progress';
   parameters: Record<string, any>;
+  metadata: Record<string, any>;
   parent_run_id: string | null;
-  started_at: string;
-  completed_at: string | null;
-  error: string | null;
-  created_at: string;
-  updated_at: string;
+  started_at: Date | null;
+  completed_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface OrchestrationStep {
   id: string;
   orchestration_run_id: string;
   step_index: number;
+  step_name: string;
+  step_order: number;
   agent_slug: string;
-  conversation_id: string;
+  conversation_id: string | null;
   task_id: string | null;
   deliverable_id: string | null;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'cancelled';
   depends_on: number[];
   checkpoint_after: boolean;
   attempt: number;
-  started_at: string | null;
-  completed_at: string | null;
-  error: string | null;
-  created_at: string;
-  updated_at: string;
+  parent_step_id: string | null;
+  started_at: Date | null;
+  completed_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface Conversation {
   id: string;
   organization_slug: string;
   user_id: string;
-  agent_id: string;
+  agent_slug: string;
   title: string;
   status: string;
-  created_at: string;
-  updated_at: string;
+  metadata: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface Deliverable {
@@ -110,8 +118,9 @@ export interface Deliverable {
   content_type: string;
   version: number;
   status: string;
-  created_at: string;
-  updated_at: string;
+  metadata: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface Task {
@@ -119,8 +128,11 @@ export interface Task {
   conversation_id: string;
   user_message: string;
   status: string;
-  created_at: string;
-  updated_at: string;
+  task_type: string;
+  description: string;
+  metadata: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
 }
 
 // ============================================================================
@@ -136,14 +148,15 @@ export class MockFactories {
    * Create a generic agent with default values
    */
   static createAgent(overrides: Partial<Agent> = {}): Agent {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     return {
       id: uuidv4(),
       organization_slug: 'test-org',
-      slug: `test-agent-${Date.now()}`,
+      slug: 'test-agent',
       display_name: 'Test Agent',
       description: 'A test agent for automated testing',
       agent_type: 'context',
+      runner_type: 'openai',
       mode_profile: 'context_full',
       version: '1.0.0',
       status: 'active',
@@ -155,7 +168,13 @@ export class MockFactories {
       }),
       agent_card: { protocol: 'a2a' },
       context: { prompt: 'You are a helpful test agent' },
-      config: { capabilities: [] },
+      configuration: {
+        model: 'gpt-4o',
+        temperature: 0.7,
+      },
+      config: {
+        capabilities: [],
+      },
       created_at: timestamp,
       updated_at: timestamp,
       ...overrides,
@@ -167,16 +186,17 @@ export class MockFactories {
    */
   static createContextAgent(overrides: Partial<Agent> = {}): Agent {
     return MockFactories.createAgent({
+      slug: 'context-agent',
       agent_type: 'context',
       mode_profile: 'context_full',
-      slug: `context-agent-${Date.now()}`,
-      display_name: 'Context Agent',
+      runner_type: 'openai',
       context: {
         prompt_prefix: 'You analyze and summarize information',
       },
-      config: {
-        supported_modes: ['converse', 'build'],
-        streaming: { enabled: true },
+      configuration: {
+        model: 'gpt-4o',
+        temperature: 0.6,
+        streaming: true,
       },
       ...overrides,
     });
@@ -187,17 +207,14 @@ export class MockFactories {
    */
   static createApiAgent(overrides: Partial<Agent> = {}): Agent {
     return MockFactories.createAgent({
+      slug: 'api-agent',
       agent_type: 'api',
       mode_profile: 'api_full',
-      slug: `api-agent-${Date.now()}`,
-      display_name: 'API Agent',
-      config: {
-        api: {
-          endpoint: 'http://localhost:8055/test',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        },
-        supported_modes: ['build'],
+      runner_type: 'openai',
+      configuration: {
+        method: 'GET',
+        url: 'https://api.example.com/test',
+        headers: { 'Content-Type': 'application/json' },
       },
       ...overrides,
     });
@@ -208,16 +225,11 @@ export class MockFactories {
    */
   static createToolAgent(overrides: Partial<Agent> = {}): Agent {
     return MockFactories.createAgent({
+      slug: 'tool-agent',
       agent_type: 'tool',
       mode_profile: 'tool_full',
-      slug: `tool-agent-${Date.now()}`,
-      display_name: 'Tool Agent',
-      config: {
-        mcp: {
-          server: 'sandbox',
-          tools: ['noop'],
-        },
-        supported_modes: ['converse', 'build'],
+      configuration: {
+        tools: ['mcp_tool_example'],
       },
       ...overrides,
     });
@@ -228,15 +240,12 @@ export class MockFactories {
    */
   static createFunctionAgent(overrides: Partial<Agent> = {}): Agent {
     return MockFactories.createAgent({
+      slug: 'function-agent',
       agent_type: 'function',
       mode_profile: 'function_full',
-      slug: `function-agent-${Date.now()}`,
-      display_name: 'Function Agent',
-      config: {
-        function: {
-          code: 'module.exports = async (input) => ({ result: input });',
-        },
-        supported_modes: ['build'],
+      runner_type: 'custom',
+      configuration: {
+        code: 'function handler(input) { return { result: input }; }',
       },
       ...overrides,
     });
@@ -247,13 +256,12 @@ export class MockFactories {
    */
   static createOrchestratorAgent(overrides: Partial<Agent> = {}): Agent {
     return MockFactories.createAgent({
+      slug: 'orchestrator-agent',
       agent_type: 'orchestrator',
       mode_profile: 'orchestrator_full',
-      slug: `orchestrator-agent-${Date.now()}`,
-      display_name: 'Orchestrator Agent',
-      config: {
-        orchestrations: ['kpi-tracking'],
-        supported_modes: ['converse', 'plan', 'build'],
+      runner_type: 'orchestrator',
+      configuration: {
+        orchestration_slug: 'test-orchestration',
       },
       ...overrides,
     });
@@ -269,23 +277,20 @@ export class MockFactories {
   static createOrchestrationDefinition(
     overrides: Partial<OrchestrationDefinition> = {},
   ): OrchestrationDefinition {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     return {
       id: uuidv4(),
       organization_slug: 'test-org',
-      slug: `test-orchestration-${Date.now()}`,
+      slug: 'test-orchestration',
       display_name: 'Test Orchestration',
       description: 'A test orchestration for automated testing',
       owner_agent_slug: 'test-orchestrator',
-      version: '1.0.0',
-      status: 'active',
-      definition: {
+      version: 1,
+      is_active: true,
+      configuration: {
         steps: [
-          {
-            agent_slug: 'step-1-agent',
-            depends_on: [],
-            checkpoint_after: false,
-          },
+          { name: 'step1', agent_slug: 'agent1' },
+          { name: 'step2', agent_slug: 'agent2' },
         ],
       },
       created_at: timestamp,
@@ -300,20 +305,21 @@ export class MockFactories {
   static createOrchestrationRun(
     overrides: Partial<OrchestrationRun> = {},
   ): OrchestrationRun {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     return {
       id: uuidv4(),
       organization_slug: 'test-org',
       orchestration_definition_id: uuidv4(),
-      orchestration_slug: `test-orchestration-${Date.now()}`,
+      orchestration_definition_slug: 'test-orchestration',
+      orchestration_version: 1,
       conversation_id: uuidv4(),
       task_id: uuidv4(),
-      status: 'planning',
+      status: 'pending',
       parameters: {},
+      metadata: {},
       parent_run_id: null,
-      started_at: timestamp,
+      started_at: null,
       completed_at: null,
-      error: null,
       created_at: timestamp,
       updated_at: timestamp,
       ...overrides,
@@ -326,22 +332,24 @@ export class MockFactories {
   static createOrchestrationStep(
     overrides: Partial<OrchestrationStep> = {},
   ): OrchestrationStep {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     return {
       id: uuidv4(),
       orchestration_run_id: uuidv4(),
       step_index: 0,
-      agent_slug: `test-agent-${Date.now()}`,
-      conversation_id: uuidv4(),
+      step_name: 'test-step',
+      step_order: 0,
+      agent_slug: 'test-agent',
+      conversation_id: null,
       task_id: null,
       deliverable_id: null,
       status: 'pending',
       depends_on: [],
       checkpoint_after: false,
       attempt: 1,
+      parent_step_id: null,
       started_at: null,
       completed_at: null,
-      error: null,
       created_at: timestamp,
       updated_at: timestamp,
       ...overrides,
@@ -358,14 +366,15 @@ export class MockFactories {
   static createConversation(
     overrides: Partial<Conversation> = {},
   ): Conversation {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     return {
       id: uuidv4(),
       organization_slug: 'test-org',
       user_id: uuidv4(),
-      agent_id: uuidv4(),
+      agent_slug: 'test-agent',
       title: 'Test Conversation',
       status: 'active',
+      metadata: {},
       created_at: timestamp,
       updated_at: timestamp,
       ...overrides,
@@ -376,15 +385,16 @@ export class MockFactories {
    * Create a deliverable
    */
   static createDeliverable(overrides: Partial<Deliverable> = {}): Deliverable {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     return {
       id: uuidv4(),
       conversation_id: uuidv4(),
       task_id: uuidv4(),
       content: 'Test deliverable content',
-      content_type: 'text/markdown',
+      content_type: 'text/plain',
       version: 1,
       status: 'completed',
+      metadata: {},
       created_at: timestamp,
       updated_at: timestamp,
       ...overrides,
@@ -395,12 +405,15 @@ export class MockFactories {
    * Create a task
    */
   static createTask(overrides: Partial<Task> = {}): Task {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     return {
       id: uuidv4(),
       conversation_id: uuidv4(),
       user_message: 'Test task message',
       status: 'pending',
+      task_type: 'user_request',
+      description: 'Test task description',
+      metadata: {},
       created_at: timestamp,
       updated_at: timestamp,
       ...overrides,
@@ -421,12 +434,13 @@ export class MockFactories {
     const definition = MockFactories.createOrchestrationDefinition();
     const run = MockFactories.createOrchestrationRun({
       orchestration_definition_id: definition.id,
-      orchestration_slug: definition.slug,
+      orchestration_definition_slug: definition.slug,
     });
     const steps = Array.from({ length: stepCount }, (_, index) =>
       MockFactories.createOrchestrationStep({
         orchestration_run_id: run.id,
         step_index: index,
+        step_order: index,
         depends_on: index > 0 ? [index - 1] : [],
       }),
     );

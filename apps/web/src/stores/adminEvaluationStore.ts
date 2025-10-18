@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import type { ConstraintAnalytics, WorkflowAnalytics } from '@/types/analytics';
+import type { JsonObject } from '@/types';
 import { apiService } from '@/services/apiService';
 export interface AdminEvaluationFilters {
   page?: number;
@@ -20,7 +22,7 @@ export interface AdminEvaluationFilters {
   provider?: string;
   model?: string;
 }
-export interface EvaluationAnalytics {
+interface AdminEvaluationAnalytics {
   totalEvaluations: number;
   averageRating: number;
   averageSpeedRating: number;
@@ -58,7 +60,7 @@ export interface EnhancedEvaluationMetadata {
     accuracyRating?: number;
     userNotes?: string;
     evaluationTimestamp: string;
-    evaluationDetails?: Record<string, unknown>;
+    evaluationDetails?: JsonObject;
   };
   task: {
     id: string;
@@ -70,7 +72,7 @@ export interface EnhancedEvaluationMetadata {
     createdAt: string;
     completedAt?: string;
     progress?: number;
-    metadata?: Record<string, unknown>;
+    metadata?: JsonObject;
   };
   workflowSteps?: {
     totalSteps: number;
@@ -82,7 +84,7 @@ export interface EnhancedEvaluationMetadata {
       status: string;
       duration?: number;
       error?: string;
-      metadata?: Record<string, unknown>;
+      metadata?: JsonObject;
       startTime?: string;
       endTime?: string;
     }>;
@@ -98,7 +100,7 @@ export interface EnhancedEvaluationMetadata {
       constraintImpact: string;
       overallEffectiveness?: number;
     };
-    processingNotes?: Record<string, unknown>;
+    processingNotes?: JsonObject;
   };
   llmInfo: {
     provider: string;
@@ -113,7 +115,7 @@ export interface EnhancedEvaluationMetadata {
     temperature?: number;
     maxTokens?: number;
   };
-  systemMetadata?: Record<string, unknown>;
+  systemMetadata?: JsonObject;
 }
 const resolveErrorMessage = (error: unknown, fallback: string): string => (
   error instanceof Error && error.message ? error.message : fallback
@@ -122,6 +124,59 @@ const resolveErrorMessage = (error: unknown, fallback: string): string => (
 const normalizeError = (error: unknown): Error => (
   error instanceof Error ? error : new Error(String(error))
 );
+
+const isAdminEvaluationAnalytics = (
+  value: unknown,
+): value is AdminEvaluationAnalytics => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<AdminEvaluationAnalytics>;
+
+  return (
+    typeof candidate.totalEvaluations === 'number'
+    && typeof candidate.averageRating === 'number'
+    && typeof candidate.averageSpeedRating === 'number'
+    && typeof candidate.averageAccuracyRating === 'number'
+    && typeof candidate.averageWorkflowCompletionRate === 'number'
+    && typeof candidate.averageResponseTime === 'number'
+    && typeof candidate.averageCost === 'number'
+    && candidate.ratingDistribution != null
+    && typeof candidate.ratingDistribution === 'object'
+    && Array.isArray(candidate.topPerformingAgents)
+    && Array.isArray(candidate.topConstraints)
+    && Array.isArray(candidate.workflowFailurePoints)
+  );
+};
+
+const isWorkflowAnalytics = (value: unknown): value is WorkflowAnalytics => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<WorkflowAnalytics>;
+
+  return (
+    Array.isArray(candidate.workflowPerformance)
+    && Array.isArray(candidate.commonFailurePatterns)
+    && Array.isArray(candidate.workflowEfficiencyTrends)
+  );
+};
+
+const isConstraintAnalytics = (value: unknown): value is ConstraintAnalytics => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<ConstraintAnalytics>;
+
+  return (
+    Array.isArray(candidate.constraintUsage)
+    && Array.isArray(candidate.constraintCombinations)
+    && Array.isArray(candidate.constraintImpactOnPerformance)
+  );
+};
 
 export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   const isLoading = ref(false);
@@ -133,9 +188,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
     total: 0,
     totalPages: 0
   });
-  const analytics = ref<EvaluationAnalytics | null>(null);
-  const workflowAnalytics = ref<Record<string, unknown> | null>(null);
-  const constraintAnalytics = ref<Record<string, unknown> | null>(null);
+  const analytics = ref<AdminEvaluationAnalytics | null>(null);
+  const workflowAnalytics = ref<WorkflowAnalytics | null>(null);
+  const constraintAnalytics = ref<ConstraintAnalytics | null>(null);
   /**
    * Fetch all evaluations with admin filters
    */
@@ -172,7 +227,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   /**
    * Fetch evaluation analytics overview
    */
-  async function fetchAnalytics(filters: { startDate?: string; endDate?: string; userRole?: string } = {}) {
+  async function fetchAnalytics(
+    filters: { startDate?: string; endDate?: string; userRole?: string } = {},
+  ): Promise<AdminEvaluationAnalytics> {
     isLoading.value = true;
     error.value = null;
     try {
@@ -182,9 +239,12 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
           params.append(key, value.toString());
         }
       });
-      const response = await apiService.get(`/evaluation/admin/analytics/overview?${params.toString()}`);
-      analytics.value = response;
-      return response;
+      const rawResponse: unknown = await apiService.get(`/evaluation/admin/analytics/overview?${params.toString()}`);
+      if (!isAdminEvaluationAnalytics(rawResponse)) {
+        throw new Error('Received malformed admin evaluation analytics response');
+      }
+      analytics.value = rawResponse;
+      return rawResponse;
     } catch (err) {
       error.value = resolveErrorMessage(err, 'Failed to fetch analytics');
       throw normalizeError(err);
@@ -195,7 +255,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   /**
    * Fetch workflow analytics
    */
-  async function fetchWorkflowAnalytics(filters: { stepName?: string; agentName?: string; startDate?: string; endDate?: string } = {}) {
+  async function fetchWorkflowAnalytics(
+    filters: { stepName?: string; agentName?: string; startDate?: string; endDate?: string } = {},
+  ): Promise<WorkflowAnalytics> {
     isLoading.value = true;
     error.value = null;
     try {
@@ -205,9 +267,12 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
           params.append(key, value.toString());
         }
       });
-      const response = await apiService.get(`/evaluation/admin/analytics/workflow?${params.toString()}`);
-      workflowAnalytics.value = response;
-      return response;
+      const rawResponse: unknown = await apiService.get(`/evaluation/admin/analytics/workflow?${params.toString()}`);
+      if (!isWorkflowAnalytics(rawResponse)) {
+        throw new Error('Received malformed workflow analytics response');
+      }
+      workflowAnalytics.value = rawResponse;
+      return rawResponse;
     } catch (err) {
       error.value = resolveErrorMessage(err, 'Failed to fetch workflow analytics');
       throw normalizeError(err);
@@ -218,7 +283,9 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   /**
    * Fetch constraint analytics
    */
-  async function fetchConstraintAnalytics(filters: { constraintType?: string; minEffectiveness?: number; startDate?: string; endDate?: string } = {}) {
+  async function fetchConstraintAnalytics(
+    filters: { constraintType?: string; minEffectiveness?: number; startDate?: string; endDate?: string } = {},
+  ): Promise<ConstraintAnalytics> {
     isLoading.value = true;
     error.value = null;
     try {
@@ -228,9 +295,12 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
           params.append(key, value.toString());
         }
       });
-      const response = await apiService.get(`/evaluation/admin/analytics/constraints?${params.toString()}`);
-      constraintAnalytics.value = response;
-      return response;
+      const rawResponse: unknown = await apiService.get(`/evaluation/admin/analytics/constraints?${params.toString()}`);
+      if (!isConstraintAnalytics(rawResponse)) {
+        throw new Error('Received malformed constraint analytics response');
+      }
+      constraintAnalytics.value = rawResponse;
+      return rawResponse;
     } catch (err) {
       error.value = resolveErrorMessage(err, 'Failed to fetch constraint analytics');
       throw normalizeError(err);

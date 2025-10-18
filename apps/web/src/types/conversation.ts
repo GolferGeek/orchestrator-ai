@@ -138,6 +138,13 @@ export interface AgentChatCompletedStepSummary {
   total: number;
 }
 
+export interface LLMRunConfiguration {
+  provider: string;
+  model: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
 export interface AgentChatMessageMetadata extends MessageMetadata {
   isPlaceholder?: boolean;
   isCompleted?: boolean;
@@ -176,6 +183,15 @@ export interface AgentChatMessageMetadata extends MessageMetadata {
   };
   llmMetadata?: JsonObject;
   llmUsed?: JsonObject;
+  isRerunRequest?: boolean;
+  isRerunResponse?: boolean;
+  isRerunError?: boolean;
+  isRegeneratedPrompt?: boolean;
+  originalVersionId?: string;
+  newVersionId?: string;
+  sourceVersionId?: string;
+  rerunLLMConfig?: LLMRunConfiguration;
+  errorDetails?: string;
   /**
    * Container for auxiliary metadata that does not yet have a dedicated field.
    */
