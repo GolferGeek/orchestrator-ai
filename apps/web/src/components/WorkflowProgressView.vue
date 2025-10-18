@@ -176,7 +176,7 @@ const getVisibleMetadata = (metadata: Record<string, unknown>): Record<string, u
     'estimated_effort',
     'optimization_changes'
   ];
-  const visible: Record<string, any> = {};
+  const visible: Record<string, unknown> = {};
   for (const key of visibleKeys) {
     if (metadata[key] !== undefined) {
       visible[key] = metadata[key];
@@ -189,7 +189,7 @@ const formatMetadataKey = (key: string): string => {
     .replace(/_/g, ' ')
     .replace(/\b\w/g, l => l.toUpperCase());
 };
-const formatMetadataValue = (value: any): string => {
+const formatMetadataValue = (value: unknown): string => {
   if (typeof value === 'number') {
     return value.toFixed(2);
   }
