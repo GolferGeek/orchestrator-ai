@@ -16,7 +16,7 @@ console.log('🔍 [DEBUG] PIIService: useApiSanitization imported');
 class PIIService {
   // Align with backend routes under /llm/sanitization
   private readonly basePath = '/llm/sanitization';
-  private _apiSanitization: any = null;
+  private _apiSanitization: unknown = null;
   
   private get apiSanitization() {
     console.log('🔍 [DEBUG] PIIService: Accessing apiSanitization getter');
@@ -41,7 +41,7 @@ class PIIService {
       return response.patterns || [];
     } catch (error) {
       // Graceful demo fallback without noisy logs for 404
-      if ((error as any)?.response?.status === 404) {
+      if ((error as { response?: { status?: number } })?.response?.status === 404) {
         return [];
       }
       console.error('Error fetching PII patterns:', error);
@@ -159,14 +159,14 @@ class PIIService {
       const response = await apiService.getQuiet404(`${this.basePath}/stats`);
       return response;
     } catch (error) {
-      if ((error as any)?.response?.status === 404) {
+      if ((error as { response?: { status?: number } })?.response?.status === 404) {
         return {
           totalPatterns: 0,
           customPatterns: 0,
           enabledPatterns: 0,
           detectionsByType: {},
           lastUpdated: new Date().toISOString()
-        } as any;
+        } as unknown;
       }
       console.error('Error fetching PII stats:', error);
       throw error;

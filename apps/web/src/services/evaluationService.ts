@@ -70,7 +70,7 @@ class EvaluationService {
     dateFrom?: string;
     dateTo?: string;
     sessionId?: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     const authToken = localStorage.getItem('authToken');
     const queryParams = new URLSearchParams();
     if (filters) {
