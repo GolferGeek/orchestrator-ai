@@ -617,15 +617,13 @@ console.error(`Failed to get conversation ${conversationId}:`, error);
   /**
    * Persist conversation state to backend
    */
-  async persistConversationState(conversation: AgentConversation): Promise<void> {
+  async persistConversationState(_conversation: AgentConversation): Promise<void> {
     try {
       // This could be extended to save conversation metadata
-
-      
       // For now, we don't need to persist the entire state
       // The messages are persisted separately when created
       
-    } catch (error) {
+    } catch {
       // Failed to persist conversation state
     }
   }
@@ -633,13 +631,13 @@ console.error(`Failed to get conversation ${conversationId}:`, error);
   /**
    * Archive or delete conversation
    */
-  async archiveConversation(conversationId: string): Promise<void> {
+  async archiveConversation(_conversationId: string): Promise<void> {
     try {
 
       // Implementation depends on backend support for archiving
       // For now, we just log it
-    } catch (error) {
-console.error(`Failed to archive conversation ${conversationId}:`, error);
+    } catch {
+      // Failed to archive conversation
     }
   }
 
@@ -651,8 +649,7 @@ console.error(`Failed to archive conversation ${conversationId}:`, error);
     try {
       const response = await agentConversationsService.listConversations();
       return response.conversations;
-    } catch (error) {
-console.error('Failed to get user conversations:', error);
+    } catch {
       return [];
     }
   }
@@ -661,53 +658,50 @@ console.error('Failed to get user conversations:', error);
    * Update conversation metadata
    */
   updateConversationMetadata(
-    conversation: AgentConversation, 
-    metadata: Partial<{
+    _conversation: AgentConversation, 
+    _metadata: Partial<{
       executionMode: ExecutionMode;
       isExecutionModeOverride: boolean;
       lastActiveAt: Date;
       error?: string;
     }>
   ): void {
-    Object.assign(conversation, metadata);
-    
-    if (metadata.lastActiveAt) {
-      conversation.lastActiveAt = metadata.lastActiveAt;
-    }
+    // Implementation would update conversation metadata
+    // For now, this is a placeholder
   }
 
   /**
    * Find conversation by ID
    */
-  findConversationById(conversations: AgentConversation[], conversationId: string): AgentConversation | undefined {
-    return conversations.find(conv => conv.id === conversationId);
+  findConversationById(conversations: AgentConversation[], _conversationId: string): AgentConversation | undefined {
+    return conversations.find(conv => conv.id === _conversationId);
   }
 
   /**
    * Filter conversations by agent
    */
-  filterConversationsByAgent(conversations: AgentConversation[], agentName: string): AgentConversation[] {
-    return conversations.filter(conv => conv.agent.name === agentName);
+  filterConversationsByAgent(conversations: AgentConversation[], _agentName: string): AgentConversation[] {
+    return conversations.filter(conv => conv.agent.name === _agentName);
   }
 
   /**
    * Sort conversations by last active time
    */
-  sortConversationsByActivity(conversations: AgentConversation[]): AgentConversation[] {
-    return conversations.sort((a, b) => b.lastActiveAt.getTime() - a.lastActiveAt.getTime());
+  sortConversationsByActivity(_conversations: AgentConversation[]): AgentConversation[] {
+    return _conversations.sort((a, b) => b.lastActiveAt.getTime() - a.lastActiveAt.getTime());
   }
 
   /**
    * Get conversation statistics
    */
-  getConversationStats(conversation: AgentConversation): {
+  getConversationStats(_conversation: AgentConversation): {
     messageCount: number;
     userMessages: number;
     assistantMessages: number;
     hasActiveTask: boolean;
     lastActivity: string;
   } {
-    const messages = conversation.messages;
+    const messages = _conversation.messages;
     const userMessages = messages.filter(m => m.role === 'user').length;
     const assistantMessages = messages.filter(m => m.role === 'assistant').length;
     const hasActiveTask = messages.some(m => m.metadata?.isPlaceholder);
@@ -717,22 +711,21 @@ console.error('Failed to get user conversations:', error);
       userMessages,
       assistantMessages,
       hasActiveTask,
-      lastActivity: conversation.lastActiveAt.toISOString()
+      lastActivity: _conversation.lastActiveAt.toISOString()
     };
   }
 
   /**
    * Clean up conversation resources
    */
-  cleanupConversation(conversation: AgentConversation): void {
+  cleanupConversation(_conversation: AgentConversation): void {
     // Clean up any active tasks
-    const activeTasks = conversation.messages
+    const activeTasks = _conversation.messages
       .filter(m => m.metadata?.isPlaceholder)
       .map(m => m.taskId)
       .filter(Boolean);
     
-    activeTasks.forEach(taskId => {
-
+    activeTasks.forEach(_taskId => {
       // This could unsubscribe from WebSocket events, etc.
     });
   }
@@ -740,16 +733,16 @@ console.error('Failed to get user conversations:', error);
   /**
    * Validate conversation object
    */
-  validateConversation(conversation: unknown): conversation is AgentConversation {
+  validateConversation(_conversation: unknown): _conversation is AgentConversation {
     return (
-      conversation &&
-      typeof conversation.id === 'string' &&
-      conversation.agent &&
-      Array.isArray(conversation.messages) &&
-      conversation.createdAt instanceof Date &&
-      conversation.lastActiveAt instanceof Date &&
-      typeof conversation.executionMode === 'string' &&
-      Array.isArray(conversation.supportedExecutionModes)
+      _conversation &&
+      typeof _conversation.id === 'string' &&
+      _conversation.agent &&
+      Array.isArray(_conversation.messages) &&
+      _conversation.createdAt instanceof Date &&
+      _conversation.lastActiveAt instanceof Date &&
+      typeof _conversation.executionMode === 'string' &&
+      Array.isArray(_conversation.supportedExecutionModes)
     );
   }
 }
