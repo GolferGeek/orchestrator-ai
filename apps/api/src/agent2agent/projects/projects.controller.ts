@@ -21,7 +21,6 @@ import {
   ProjectStep,
   PlanDefinition,
   ProjectStatus,
-  ProjectWebSocketMessage,
 } from '@/agent2agent/orchestration/orchestration.types';
 
 export interface CreateProjectDto {

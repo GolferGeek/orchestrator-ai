@@ -55,8 +55,12 @@ export class AgentCardBuilderService {
             metrics,
           },
         };
-      } catch (_e) {
-        // ignore metrics errors for card composition
+      } catch (error) {
+        // ignore metrics errors for card composition but log at debug level
+        this.logger.debug('Failed to attach private metrics to agent card', {
+          agent: agent.slug,
+          cause: error instanceof Error ? error.message : error,
+        });
       }
     }
 

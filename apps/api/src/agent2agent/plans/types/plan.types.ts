@@ -1,4 +1,7 @@
-import type { JsonObject, PlanVersionData } from '@orchestrator-ai/transport-types';
+import type {
+  JsonObject,
+  PlanVersionData,
+} from '@orchestrator-ai/transport-types';
 
 /**
  * Plan - Main plan entity

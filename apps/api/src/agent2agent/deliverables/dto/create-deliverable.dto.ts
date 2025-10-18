@@ -57,7 +57,7 @@ function RequireConversationId(validationOptions?: ValidationOptions) {
           const obj = args.object as CreateDeliverableDto;
           return !!obj.conversationId;
         },
-        defaultMessage(args: ValidationArguments) {
+        defaultMessage(_args: ValidationArguments) {
           return 'conversationId must be provided';
         },
       },

@@ -3,7 +3,6 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { Agent2AgentModule } from '../agent2agent.module';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
-import { TaskResponseDto } from '../dto/task-response.dto';
 
 /**
  * Phase 6: Backend Integration Testing
@@ -490,7 +489,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       });
 
       // Server should still work
-      const healthCheck = await request(httpServer).get('/health').expect(200);
+      await request(httpServer).get('/health').expect(200);
     });
   });
 

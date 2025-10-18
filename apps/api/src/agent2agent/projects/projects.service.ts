@@ -198,25 +198,21 @@ export class ProjectsService {
   async getProject(projectId: string): Promise<Project | null> {
     const client = this.supabaseService.getServiceClient();
 
-    try {
-      const { data, error } = await client
-        .from(getTableName('projects'))
-        .select('*')
-        .eq('id', projectId)
-        .single();
+    const { data, error } = await client
+      .from(getTableName('projects'))
+      .select('*')
+      .eq('id', projectId)
+      .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return null; // Not found
-        }
-
-        throw new Error(`Failed to get project: ${error.message}`);
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
       }
 
-      return this.mapDatabaseToProject(data);
-    } catch (error) {
-      throw error;
+      throw new Error(`Failed to get project: ${error.message}`);
     }
+
+    return this.mapDatabaseToProject(data);
   }
 
   /**
@@ -228,50 +224,46 @@ export class ProjectsService {
   ): Promise<Project> {
     const client = this.supabaseService.getServiceClient();
 
-    try {
-      const updateData: any = {
-        updated_at: new Date().toISOString(),
-      };
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
 
-      if (params.name !== undefined) updateData.name = params.name;
-      if (params.description !== undefined)
-        updateData.description = params.description;
-      if (params.status !== undefined) updateData.status = params.status;
-      if (params.planJson !== undefined) updateData.plan_json = params.planJson;
-      if (params.currentStepId !== undefined)
-        updateData.current_step_id = params.currentStepId;
-      if (params.errorDetails !== undefined)
-        updateData.error_details = params.errorDetails;
-      if (params.metadata !== undefined) updateData.metadata = params.metadata;
+    if (params.name !== undefined) updateData.name = params.name;
+    if (params.description !== undefined)
+      updateData.description = params.description;
+    if (params.status !== undefined) updateData.status = params.status;
+    if (params.planJson !== undefined) updateData.plan_json = params.planJson;
+    if (params.currentStepId !== undefined)
+      updateData.current_step_id = params.currentStepId;
+    if (params.errorDetails !== undefined)
+      updateData.error_details = params.errorDetails;
+    if (params.metadata !== undefined) updateData.metadata = params.metadata;
 
-      const { data, error } = await client
-        .from(getTableName('projects'))
-        .update(updateData)
-        .eq('id', projectId)
-        .select()
-        .single();
+    const { data, error } = await client
+      .from(getTableName('projects'))
+      .update(updateData)
+      .eq('id', projectId)
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Failed to update project: ${error.message}`);
-      }
-
-      const project = this.mapDatabaseToProject(data);
-
-      // Emit WebSocket event if status changed
-      if (params.status) {
-        this.emitProjectEvent({
-          type: 'project.status.changed',
-          projectId: project.id,
-          status: project.status,
-          message: `Project status changed to ${params.status}`,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      return project;
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to update project: ${error.message}`);
     }
+
+    const project = this.mapDatabaseToProject(data);
+
+    // Emit WebSocket event if status changed
+    if (params.status) {
+      this.emitProjectEvent({
+        type: 'project.status.changed',
+        projectId: project.id,
+        status: project.status,
+        message: `Project status changed to ${params.status}`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return project;
   }
 
   /**
@@ -280,17 +272,13 @@ export class ProjectsService {
   async deleteProject(projectId: string): Promise<void> {
     const client = this.supabaseService.getServiceClient();
 
-    try {
-      const { error } = await client
-        .from(getTableName('projects'))
-        .delete()
-        .eq('id', projectId);
+    const { error } = await client
+      .from(getTableName('projects'))
+      .delete()
+      .eq('id', projectId);
 
-      if (error) {
-        throw new Error(`Failed to delete project: ${error.message}`);
-      }
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to delete project: ${error.message}`);
     }
   }
 

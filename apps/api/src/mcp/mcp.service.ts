@@ -180,8 +180,12 @@ export class MCPService {
         const isHealthy =
           typeof handler.ping === 'function' ? await handler.ping() : true;
         namespaceHealth[namespace] = isHealthy;
-      } catch (_error) {
+      } catch (error) {
         namespaceHealth[namespace] = false;
+        this.logger.warn(
+          `MCP namespace ${namespace} failed health check`,
+          error instanceof Error ? error : { message: String(error) },
+        );
       }
     }
 

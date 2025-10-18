@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { PlansRepository, PlanRecord } from '../repositories/plans.repository';
 import { PlanVersionsService } from './plan-versions.service';
-import type { JsonObject, PlanVersionData } from '@orchestrator-ai/transport-types';
+import type {
+  JsonObject,
+  PlanVersionData,
+} from '@orchestrator-ai/transport-types';
 import {
   IActionHandler,
   ActionExecutionContext,
@@ -390,10 +393,7 @@ export class PlansService implements IActionHandler {
       context.userId,
     );
 
-    const result = await this.versionsService.deleteVersion(
-      params.versionId,
-      context.userId,
-    );
+    await this.versionsService.deleteVersion(params.versionId, context.userId);
 
     const planData = await this.plansRepo.findById(
       version.planId,
@@ -561,7 +561,10 @@ export class PlansService implements IActionHandler {
       }
     } catch (error) {
       // Continue without current version
-      this.logger.warn(`No current version found for plan ${planId}`);
+      this.logger.warn(
+        `No current version found for plan ${planId}`,
+        error instanceof Error ? error : { message: String(error) },
+      );
     }
 
     return plan;
