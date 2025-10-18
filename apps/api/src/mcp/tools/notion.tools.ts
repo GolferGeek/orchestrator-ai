@@ -310,6 +310,11 @@ export class NotionMCPTools implements IMCPToolHandler {
     const { parent, title, content = [], properties = {} } = args;
 
     try {
+      const propsObj = typeof properties === 'object' && properties !== null
+        ? properties as Record<string, unknown>
+        : {};
+      const contentArray = Array.isArray(content) ? content : [];
+
       const payload: any = {
         parent,
         properties: {
@@ -323,12 +328,12 @@ export class NotionMCPTools implements IMCPToolHandler {
               },
             ],
           },
-          ...properties,
+          ...propsObj,
         },
       };
 
-      if (content.length > 0) {
-        payload.children = content;
+      if (contentArray.length > 0) {
+        payload.children = contentArray;
       }
 
       const response = await this.makeNotionRequest('pages', 'POST', payload);

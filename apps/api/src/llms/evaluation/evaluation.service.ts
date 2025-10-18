@@ -279,7 +279,11 @@ export class EvaluationService {
 
     return {
       ...stats,
-      modelPerformance: modelPerformance,
+      modelPerformance: modelPerformance.map(perf => ({
+        model: perf.model?.id ?? perf.model?.name ?? perf.model?.model_name ?? 'unknown',
+        avgRating: perf.avgRating,
+        evaluationCount: perf.evaluationCount,
+      })),
     };
   }
 
@@ -410,7 +414,10 @@ export class EvaluationService {
     const recommendations = this.generateModelRecommendations(comparison);
 
     return {
-      comparison,
+      comparison: comparison.map(comp => ({
+        model: comp.model?.id ?? comp.model?.name ?? comp.model?.model_name ?? 'unknown',
+        metrics: comp.metrics,
+      })),
       recommendations,
     };
   }
@@ -2500,7 +2507,7 @@ export class EvaluationService {
     evaluationCount: number;
   }> {
     const agentGroups = tasks.reduce(
-      (groups, task: any) => {
+      (groups: Record<string, { ratings: number[]; count: number }>, task: any) => {
         let agentName = 'AI Assistant';
         if (task.response_metadata?.agent_name) {
           agentName = task.response_metadata.agent_name;
@@ -2547,7 +2554,12 @@ export class EvaluationService {
     modelId?: string;
     modelName?: string;
   } | null {
-    const llmMetadata = task.llm_metadata || {};
+    if (!task || typeof task !== 'object') {
+      return null;
+    }
+
+    const taskObj = task as Record<string, any>;
+    const llmMetadata = (taskObj.llm_metadata as Record<string, any>) || {};
     const selection =
       llmMetadata.originalLLMSelection ||
       llmMetadata.currentLLMSelection ||
@@ -2560,16 +2572,16 @@ export class EvaluationService {
       selection.provider_id ||
       llmMetadata.providerId ||
       llmMetadata.provider_id ||
-      task.provider_id ||
-      task.provider?.id ||
+      taskObj.provider_id ||
+      taskObj.provider?.id ||
       undefined;
     const modelId =
       selection.modelId ||
       selection.model_id ||
       llmMetadata.modelId ||
       llmMetadata.model_id ||
-      task.model_id ||
-      task.model?.id ||
+      taskObj.model_id ||
+      taskObj.model?.id ||
       undefined;
 
     const providerName =
@@ -2578,14 +2590,14 @@ export class EvaluationService {
       llmMetadata.providerName ||
       llmMetadata.provider ||
       llmMetadata.provider_name ||
-      task.provider_name ||
-      task.provider?.display_name ||
-      task.provider?.provider_name ||
-      task.provider?.name ||
-      task.metadata?.providerName ||
-      task.metadata?.provider?.name ||
-      task.metadata?.provider?.displayName ||
-      task.metadata?.provider ||
+      taskObj.provider_name ||
+      taskObj.provider?.display_name ||
+      taskObj.provider?.provider_name ||
+      taskObj.provider?.name ||
+      taskObj.metadata?.providerName ||
+      taskObj.metadata?.provider?.name ||
+      taskObj.metadata?.provider?.displayName ||
+      taskObj.metadata?.provider ||
       undefined;
 
     const modelName =
@@ -2594,14 +2606,14 @@ export class EvaluationService {
       llmMetadata.modelName ||
       llmMetadata.model ||
       llmMetadata.model_name ||
-      task.model_name ||
-      task.model?.model_name ||
-      task.model?.display_name ||
-      task.model?.name ||
-      task.metadata?.modelName ||
-      task.metadata?.model?.name ||
-      task.metadata?.model?.displayName ||
-      task.metadata?.model ||
+      taskObj.model_name ||
+      taskObj.model?.model_name ||
+      taskObj.model?.display_name ||
+      taskObj.model?.name ||
+      taskObj.metadata?.modelName ||
+      taskObj.metadata?.model?.name ||
+      taskObj.metadata?.model?.displayName ||
+      taskObj.metadata?.model ||
       undefined;
 
     if (!providerId && !providerName) {

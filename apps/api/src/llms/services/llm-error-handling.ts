@@ -1058,7 +1058,7 @@ export class LLMErrorUtils {
       /5\d\d/,
     ];
 
-    const errorMessage = error.message || '';
+    const errorMessage = error instanceof Error ? error.message : '';
     return retryablePatterns.some((pattern) => pattern.test(errorMessage));
   }
 
@@ -1071,9 +1071,19 @@ export class LLMErrorUtils {
     }
 
     // Check for retry-after header
-    const retryAfter = error.response?.headers?.['retry-after'];
-    if (retryAfter) {
-      return parseInt(retryAfter) * 1000;
+    if (
+      error &&
+      typeof error === 'object' &&
+      'response' in error &&
+      error.response &&
+      typeof error.response === 'object' &&
+      'headers' in error.response
+    ) {
+      const headers = error.response.headers as Record<string, unknown>;
+      const retryAfter = headers['retry-after'];
+      if (typeof retryAfter === 'string') {
+        return parseInt(retryAfter) * 1000;
+      }
     }
 
     return undefined;

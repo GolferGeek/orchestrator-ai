@@ -217,9 +217,11 @@ export class MCPController {
    * Validate JSON-RPC 2.0 request format
    */
   private isValidJsonRpcRequest(request: unknown): request is MCPJsonRpcRequest {
+    if (!request || typeof request !== 'object') {
+      return false;
+    }
     const req = request as { jsonrpc?: string; method?: unknown; id?: unknown };
     return (
-      request &&
       req.jsonrpc === '2.0' &&
       typeof req.method === 'string' &&
       req.id !== undefined // id can be string, number, or null

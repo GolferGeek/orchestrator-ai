@@ -242,7 +242,7 @@ function processColumn(
     name: col.column_name,
     type: col.data_type,
     nullable: col.is_nullable === 'YES',
-    default: col.column_default,
+    default: col.column_default ?? undefined,
     isPrimaryKey: col.column_name === 'id', // Common convention
     isForeignKey: !!fkRelation,
     referencedTable: fkRelation?.toTable,

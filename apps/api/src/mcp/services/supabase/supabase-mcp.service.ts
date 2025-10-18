@@ -188,7 +188,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
 
     const response = await this.mcpServer.callTool({
       name: toolName,
-      arguments: args,
+      arguments: args && typeof args === 'object' ? args as Record<string, unknown> : undefined,
     });
 
     if (response.isError) {
@@ -215,7 +215,13 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
       tables,
       domain,
     });
-    return typeof result === 'string' ? result : result.toString();
+    if (typeof result === 'string') {
+      return result;
+    }
+    if (result && typeof result === 'object' && 'toString' in result) {
+      return String(result);
+    }
+    return String(result);
   }
 
   /**
@@ -285,7 +291,12 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
     if (!this.isReady) {
       throw new Error('MCP server is not ready');
     }
-    return await this.mcpServer.callTool(request);
+    return await this.mcpServer.callTool({
+      name: request.name,
+      arguments: request.arguments && typeof request.arguments === 'object'
+        ? request.arguments as Record<string, unknown>
+        : undefined,
+    });
   }
 
   /**

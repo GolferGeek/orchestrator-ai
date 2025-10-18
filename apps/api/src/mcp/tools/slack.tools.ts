@@ -339,9 +339,9 @@ export class SlackMCPTools implements IMCPToolHandler {
 
     try {
       const params = new URLSearchParams({
-        types,
-        exclude_archived: exclude_archived.toString(),
-        limit: limit.toString(),
+        types: String(types),
+        exclude_archived: String(exclude_archived),
+        limit: String(limit),
       });
 
       const response = await this.makeSlackRequest(
@@ -508,9 +508,9 @@ export class SlackMCPTools implements IMCPToolHandler {
       }
 
       const params = new URLSearchParams({
-        query: searchQuery,
-        count: count.toString(),
-        sort,
+        query: String(searchQuery),
+        count: String(count),
+        sort: String(sort),
       });
 
       const response = await this.makeSlackRequest(
