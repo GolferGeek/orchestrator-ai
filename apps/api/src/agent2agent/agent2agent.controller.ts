@@ -439,7 +439,7 @@ export class Agent2AgentController {
         // Return JSON-RPC 2.0 success response
         return {
           jsonrpc: '2.0',
-          id: (jsonrpc.id ?? null) as string | number | null,
+          id: jsonrpc.id ?? null,
           result,
         } as A2ATaskSuccessResponse;
       }
@@ -1259,8 +1259,8 @@ export class Agent2AgentController {
       orchestrationRunId: dto.orchestrationRunId ?? null,
       jsonrpc: jsonrpc
         ? {
-            id: (jsonrpc.id ?? null) as string | number | null,
-            method: (jsonrpc.method ?? null) as string | null,
+            id: jsonrpc.id ?? null,
+            method: jsonrpc.method ?? null,
           }
         : null,
     };

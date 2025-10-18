@@ -209,11 +209,11 @@ export class OrchestrationRunFactoryService {
 
   private extractErrorHandlingMetadata(
     definition: OrchestrationResolvedDefinition,
-  ): Record<string, any> | null {
+  ): Record<string, unknown> | null {
     const orchestrationConfig = (definition.rawDefinition?.orchestration ??
-      {}) as Record<string, any>;
+      {}) as Record<string, unknown>;
     const errorHandling = orchestrationConfig.error_handling as
-      | Record<string, any>
+      | Record<string, unknown>
       | undefined;
     const retryConfig = this.normalizeRetryConfig(errorHandling);
 
@@ -224,7 +224,7 @@ export class OrchestrationRunFactoryService {
       return null;
     }
 
-    const summary: Record<string, any> = {};
+    const summary: Record<string, unknown> = {};
 
     if (retryMetadata) {
       summary.onStepFailure = retryMetadata;
@@ -239,8 +239,8 @@ export class OrchestrationRunFactoryService {
 
   private extractExecutionMetadata(
     definition: OrchestrationResolvedDefinition,
-  ): Record<string, any> | null {
-    const metadata: Record<string, any> = {};
+  ): Record<string, unknown> | null {
+    const metadata: Record<string, unknown> = {};
     const executionConfig = definition.execution ?? null;
     const defaultConcurrency = this.resolveDefaultConcurrency();
 
@@ -272,16 +272,16 @@ export class OrchestrationRunFactoryService {
     return Object.keys(metadata).length > 0 ? metadata : null;
   }
 
-  private resolveRunConcurrency(metadata: Record<string, any>): number | null {
+  private resolveRunConcurrency(metadata: Record<string, unknown>): number | null {
     const execution = this.asRecord(
-      metadata.execution as Record<string, any> | undefined,
+      metadata.execution as Record<string, unknown> | undefined,
     );
     if (!execution) {
       return null;
     }
 
     const concurrency = this.asRecord(
-      execution.concurrency as Record<string, any> | undefined,
+      execution.concurrency as Record<string, unknown> | undefined,
     );
     if (!concurrency) {
       return null;
@@ -322,8 +322,8 @@ export class OrchestrationRunFactoryService {
   }
 
   private buildRunRetryMetadata(
-    config: Record<string, any>,
-  ): Record<string, any> | null {
+    config: Record<string, unknown>,
+  ): Record<string, unknown> | null {
     const maxAttempts = this.resolveMaxAttempts(config);
     if (maxAttempts <= 1) {
       return null;
@@ -378,8 +378,8 @@ export class OrchestrationRunFactoryService {
   }
 
   private buildRunRollbackMetadata(
-    errorHandling: Record<string, any> | undefined,
-  ): Record<string, any> | null {
+    errorHandling: Record<string, unknown> | undefined,
+  ): Record<string, unknown> | null {
     if (!errorHandling || typeof errorHandling !== 'object') {
       return null;
     }
@@ -410,8 +410,8 @@ export class OrchestrationRunFactoryService {
   }
 
   private normalizeRetryConfig(
-    raw: Record<string, any> | undefined,
-  ): Record<string, any> {
+    raw: Record<string, unknown> | undefined,
+  ): Record<string, unknown> {
     if (!raw || typeof raw !== 'object') {
       return {};
     }
@@ -422,7 +422,7 @@ export class OrchestrationRunFactoryService {
     }
 
     if (Array.isArray(onFailureRaw)) {
-      return onFailureRaw.reduce<Record<string, any>>((acc, entry) => {
+      return onFailureRaw.reduce<Record<string, unknown>>((acc, entry) => {
         if (entry && typeof entry === 'object') {
           Object.assign(acc, entry);
         }
@@ -440,7 +440,7 @@ export class OrchestrationRunFactoryService {
     return {};
   }
 
-  private resolveMaxAttempts(config: Record<string, any>): number {
+  private resolveMaxAttempts(config: Record<string, unknown>): number {
     const attemptConfig = this.coerceNumber(
       config.maxAttempts,
       config.max_attempts,
@@ -458,7 +458,7 @@ export class OrchestrationRunFactoryService {
     return 1;
   }
 
-  private coerceNumber(...values: Array<any>): number | null {
+  private coerceNumber(...values: Array<unknown>): number | null {
     for (const value of values) {
       if (value === null || value === undefined) {
         continue;

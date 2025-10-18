@@ -519,12 +519,12 @@ export class DeliverableVersionsService {
           mergedAt: new Date().toISOString(),
           llmMetadata: mergedContent.metadata
             ? {
-                provider: (mergedContent.metadata as Record<string, unknown>).provider as string | undefined,
-                model: (mergedContent.metadata as Record<string, unknown>).model as string | undefined,
-                inputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.inputTokens as number | undefined,
-                outputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.outputTokens as number | undefined,
-                cost: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.cost as number | undefined,
-                duration: ((mergedContent.metadata as Record<string, unknown>).timing as Record<string, unknown> | undefined)?.duration as number | undefined,
+                provider: (mergedContent.metadata as Record<string, unknown>).provider,
+                model: (mergedContent.metadata as Record<string, unknown>).model,
+                inputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.inputTokens,
+                outputTokens: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.outputTokens,
+                cost: ((mergedContent.metadata as Record<string, unknown>).usage as Record<string, unknown> | undefined)?.cost,
+                duration: ((mergedContent.metadata as Record<string, unknown>).timing as Record<string, unknown> | undefined)?.duration,
               }
             : undefined,
         },
@@ -692,8 +692,8 @@ export class DeliverableVersionsService {
 
       // Create system prompt based on agent type and original context
       const systemPrompt = this.buildSystemPromptForRerun(
-        agentName as string,
-        agentType as string,
+        agentName,
+        agentType,
         sourceVersion,
       );
 

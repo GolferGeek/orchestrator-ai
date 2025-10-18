@@ -611,10 +611,10 @@ export class OrchestrationExecutionService {
   }
 
   private extractTotalSteps(
-    metadata: Record<string, any> | undefined,
+    metadata: Record<string, unknown> | undefined,
   ): number | undefined {
     const stats =
-      (metadata?.stats as Record<string, any> | undefined) ?? undefined;
+      (metadata?.stats as Record<string, unknown> | undefined) ?? undefined;
     if (!stats) {
       return undefined;
     }
@@ -663,14 +663,14 @@ export class OrchestrationExecutionService {
   }
 
   private mergeResults(
-    current: Record<string, any>,
+    current: Record<string, unknown>,
     stepKey: string,
-    output: Record<string, any>,
-  ): Record<string, any> {
+    output: Record<string, unknown>,
+  ): JsonObject {
     return {
       ...current,
       [stepKey]: output,
-    };
+    } as JsonObject;
   }
 
   private cloneStepStateEntry(

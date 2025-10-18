@@ -12,6 +12,7 @@ import {
 import type {
   OrchestrationStepStateEntry,
   OrchestrationCheckpointMetadata,
+  OrchestrationStepBehaviorConfig,
 } from '../types/orchestration-run.types';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 
@@ -82,8 +83,8 @@ export class OrchestrationStateService {
           | undefined;
         metadata.behavior = {
           ...(existingBehavior ?? {}),
-          retry: retryBehavior,
-        };
+          retry: retryBehavior as JsonObject,
+        } as OrchestrationStepBehaviorConfig;
         const existingRuntime = metadata.runtime as
           | Record<string, unknown>
           | undefined;
@@ -104,8 +105,8 @@ export class OrchestrationStateService {
           | undefined;
         metadata.behavior = {
           ...(existingBehavior ?? {}),
-          rollback: rollbackBehavior,
-        };
+          rollback: rollbackBehavior as JsonObject,
+        } as OrchestrationStepBehaviorConfig;
       }
 
       const insert: OrchestrationStepInsertInput = {
@@ -120,7 +121,7 @@ export class OrchestrationStateService {
             ? 'ORCHESTRATION'
             : (stepDefinition.mode ?? 'BUILD'),
         depends_on: stepDefinition.depends_on ?? [],
-        input: inputPayload,
+        input: inputPayload as JsonObject,
         metadata,
       };
 
@@ -196,7 +197,7 @@ export class OrchestrationStateService {
           return false;
         }
         const runtime = this.asRecord(
-          (step.metadata as Record<string, any> | undefined)?.runtime,
+          (step.metadata as Record<string, unknown> | undefined)?.runtime,
         );
         const retryState = this.asRecord(runtime?.retry);
         if (
@@ -227,10 +228,10 @@ export class OrchestrationStateService {
    * remain intact for downstream resolution.
    */
   private prepareStepInput(
-    template: Record<string, any>,
-    parameters: Record<string, any>,
-  ): Record<string, any> {
-    const resolveValue = (value: any): any => {
+    template: Record<string, unknown>,
+    parameters: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const resolveValue = (value: unknown): unknown => {
       if (typeof value === 'string') {
         return value.replace(
           /{{\s*([a-zA-Z0-9_.]+)\s*}}/g,
@@ -265,8 +266,8 @@ export class OrchestrationStateService {
       }
 
       if (value && typeof value === 'object') {
-        const resolved: Record<string, any> = {};
-        Object.entries(value as Record<string, any>).forEach(([key, entry]) => {
+        const resolved: Record<string, unknown> = {};
+        Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
           resolved[key] = resolveValue(entry) as unknown;
         });
         return resolved;
@@ -275,13 +276,13 @@ export class OrchestrationStateService {
       return value;
     };
 
-    return resolveValue(template);
+    return resolveValue(template) as Record<string, unknown>;
   }
 
   private lookupParameter(
     expression: string,
-    parameters: Record<string, any>,
-  ): any {
+    parameters: Record<string, unknown>,
+  ): unknown {
     if (expression in parameters) {
       return parameters[expression];
     }
@@ -306,7 +307,7 @@ export class OrchestrationStateService {
   private buildStepRetryMetadata(
     definition: OrchestrationResolvedDefinition,
     step: OrchestrationStepDefinition,
-  ): Record<string, any> | null {
+  ): Record<string, unknown> | null {
     const orchestrationConfig =
       this.asRecord(definition.rawDefinition?.orchestration) ?? {};
     const defaultRetryConfig = this.normalizeRetryConfig(
@@ -376,7 +377,7 @@ export class OrchestrationStateService {
   private buildStepRollbackMetadata(
     definition: OrchestrationResolvedDefinition,
     step: OrchestrationStepDefinition,
-  ): Record<string, any> | null {
+  ): Record<string, unknown> | null {
     const orchestrationConfig =
       this.asRecord(definition.rawDefinition?.orchestration) ?? {};
     const errorHandling = this.asRecord(orchestrationConfig.error_handling);
@@ -419,8 +420,8 @@ export class OrchestrationStateService {
   }
 
   private normalizeRetryConfig(
-    raw: Record<string, any> | null | undefined,
-  ): Record<string, any> {
+    raw: Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> {
     if (!raw) {
       return {};
     }
@@ -431,7 +432,7 @@ export class OrchestrationStateService {
     }
 
     if (Array.isArray(onFailureRaw)) {
-      return onFailureRaw.reduce<Record<string, any>>((acc, entry) => {
+      return onFailureRaw.reduce<Record<string, unknown>>((acc, entry) => {
         if (entry && typeof entry === 'object') {
           Object.assign(acc, entry);
         }
@@ -449,7 +450,7 @@ export class OrchestrationStateService {
     return {};
   }
 
-  private resolveMaxAttempts(config: Record<string, any>): number {
+  private resolveMaxAttempts(config: Record<string, unknown>): number {
     const attemptConfig = this.coerceNumber(
       config.maxAttempts,
       config.max_attempts,
@@ -467,7 +468,7 @@ export class OrchestrationStateService {
     return 1;
   }
 
-  private coerceNumber(...values: Array<any>): number | null {
+  private coerceNumber(...values: Array<unknown>): number | null {
     for (const value of values) {
       if (value === null || value === undefined) {
         continue;
@@ -485,12 +486,12 @@ export class OrchestrationStateService {
     return null;
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
+  private asRecord(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') {
       return null;
     }
     if (Array.isArray(value)) {
-      return value.reduce<Record<string, any>>((acc, entry, index) => {
+      return value.reduce<Record<string, unknown>>((acc, entry, index) => {
         acc[index] = entry as unknown;
         return acc;
       }, {});
@@ -501,7 +502,7 @@ export class OrchestrationStateService {
       return {};
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const [key, entry] of entries) {
       result[key] = entry as unknown;
     }

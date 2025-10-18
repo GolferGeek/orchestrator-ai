@@ -64,7 +64,7 @@ export class AgentBuilderService {
     };
 
     // Run dry-run for function agents
-    if (validation.ok && type === 'function') {
+    if (validation.ok && type === AgentType.FUNCTION) {
       const config = payload?.config;
       if (config && typeof config === 'object' && !Array.isArray(config)) {
         const configuration = (config as Record<string, unknown>).configuration;
@@ -97,7 +97,7 @@ export class AgentBuilderService {
     }
 
     // Run dry-run for API agents
-    if (validation.ok && type === 'api') {
+    if (validation.ok && type === AgentType.API) {
       const config = payload?.config;
       if (config && typeof config === 'object' && !Array.isArray(config)) {
         const configuration = (config as Record<string, unknown>).configuration;

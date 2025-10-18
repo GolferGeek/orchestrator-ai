@@ -104,7 +104,7 @@ const createRunSnapshot = (
   ...overrides,
 });
 
-const createStepSnapshot = (
+const _createStepSnapshot = (
   overrides: Partial<OrchestrationStepSnapshot> = {},
 ): OrchestrationStepSnapshot => ({
   id: 'step-0',
