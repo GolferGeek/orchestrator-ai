@@ -81,7 +81,6 @@ import {
   checkmarkCircleOutline,
   alertCircleOutline,
   warningOutline,
-  eyeOffOutline,
   timeOutline,
   lockClosedOutline,
   globeOutline,
@@ -237,17 +236,17 @@ const formattedProcessingTime = computed(() => {
 });
 
 // PII Severity computed properties
-const highestPiiSeverity = computed(() => {
-  if (!props.piiSeverityLevels || props.piiSeverityLevels.length === 0) {
-    return 'none';
-  }
-  
-  // Priority order: showstopper > pseudonymizer > flagger
-  if (props.piiSeverityLevels.includes('showstopper')) return 'showstopper';
-  if (props.piiSeverityLevels.includes('pseudonymizer')) return 'pseudonymizer';
-  if (props.piiSeverityLevels.includes('flagger')) return 'flagger';
-  return 'unknown';
-});
+// const highestPiiSeverity = computed(() => {
+//   if (!props.piiSeverityLevels || props.piiSeverityLevels.length === 0) {
+//     return 'none';
+//   }
+//   
+//   // Priority order: showstopper > pseudonymizer > flagger
+//   if (props.piiSeverityLevels.includes('showstopper')) return 'showstopper';
+//   if (props.piiSeverityLevels.includes('pseudonymizer')) return 'pseudonymizer';
+//   if (props.piiSeverityLevels.includes('flagger')) return 'flagger';
+//   return 'unknown';
+// });
 
 // const piiSeverityClass = computed(() => ({
 //   'pii-showstopper': highestPiiSeverity.value === 'showstopper',
