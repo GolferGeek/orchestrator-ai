@@ -1,7 +1,7 @@
 import { apiService } from './apiService';
 import {
   AnalyticsFilters,
-  AnalyticsRequest,
+  // AnalyticsRequest,
   EvaluationAnalyticsResponse,
   WorkflowAnalyticsResponse,
   ProjectAnalyticsResponse,
@@ -10,7 +10,7 @@ import {
   ModelPerformanceResponse,
   TaskAnalyticsResponse,
   SystemAnalyticsResponse,
-  BusinessMetricsResponse,
+  // BusinessMetricsResponse,
   DashboardDataResponse,
   RealTimeAnalyticsResponse,
   ReportConfig,
@@ -417,10 +417,10 @@ class AnalyticsService {
   async getDashboardData(filters: AnalyticsFilters = {}): Promise<DashboardDataResponse> {
     try {
       const [
-        evaluationAnalytics,
+        _evaluationAnalytics,
         usageStats,
-        projectMetrics,
-        taskMetrics,
+        _projectMetrics,
+        _taskMetrics,
         systemAnalytics
       ] = await Promise.allSettled([
         this.getEvaluationAnalytics(filters),
@@ -499,7 +499,7 @@ class AnalyticsService {
    */
   async getRealTimeAnalytics(): Promise<RealTimeAnalyticsResponse> {
     try {
-      const [llmStats, taskMetrics] = await Promise.allSettled([
+      const [_llmStats, taskMetrics] = await Promise.allSettled([
         this.getLLMServiceStats(),
         this.getTaskMetrics()
       ]);
@@ -557,7 +557,7 @@ class AnalyticsService {
       };
 
       // Send to backend analytics endpoint
-      const response = await apiService.post('/analytics/events', fullEvent);
+      const _response = await apiService.post('/analytics/events', fullEvent);
       return {
         success: true,
         eventId: fullEvent.id
@@ -580,7 +580,7 @@ class AnalyticsService {
         timestamp: new Date().toISOString()
       }));
 
-      const response = await apiService.post('/analytics/events/batch', { events: fullEvents });
+      const _response = await apiService.post('/analytics/events/batch', { events: fullEvents });
       return {
         success: true,
         eventIds: fullEvents.map(e => e.id)
