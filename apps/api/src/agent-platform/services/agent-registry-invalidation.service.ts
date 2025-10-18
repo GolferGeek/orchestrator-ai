@@ -26,7 +26,9 @@ export class AgentRegistryInvalidationService
       `Starting agent registry poller (interval=${intervalMs}ms)`,
     );
     await this.tick(true);
-    this.timer = setInterval(() => this.tick(false), intervalMs);
+    this.timer = setInterval(() => {
+      void this.tick(false);
+    }, intervalMs);
   }
 
   onModuleDestroy() {

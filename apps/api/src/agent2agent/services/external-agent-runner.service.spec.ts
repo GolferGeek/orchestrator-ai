@@ -23,6 +23,30 @@ describe('ExternalAgentRunnerService', () => {
           },
         },
         {
+          provide: 'LLMService',
+          useValue: {
+            generateResponse: jest.fn(),
+          },
+        },
+        {
+          provide: 'ContextOptimizationService',
+          useValue: {
+            optimize: jest.fn(),
+          },
+        },
+        {
+          provide: 'PlansService',
+          useValue: {
+            create: jest.fn(),
+          },
+        },
+        {
+          provide: 'Agent2AgentConversationsService',
+          useValue: {
+            create: jest.fn(),
+          },
+        },
+        {
           provide: DeliverablesService,
           useValue: {
             executeAction: jest.fn(),

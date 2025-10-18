@@ -365,7 +365,7 @@ describe('DatabaseTestHelper', () => {
         const testDefinition = MockFactories.createOrchestrationDefinition({
           slug: `${TEST_PREFIX}orch-upsert-test`,
           organization_slug: 'test-org',
-          version: '1',
+          version: 1,
         });
 
         // Seed first time

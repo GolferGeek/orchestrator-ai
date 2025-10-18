@@ -269,7 +269,9 @@ describe('OrchestrationsController', () => {
       );
 
       const body = { decision: 'continue', notes: 'Approved' };
-      const req = { user: { sub: 'user-123' } };
+      const req = { user: { sub: 'user-123' } } as Parameters<
+        typeof controller.resolveApproval
+      >[2];
 
       const result = await controller.resolveApproval(
         'approval-1',
@@ -305,7 +307,9 @@ describe('OrchestrationsController', () => {
         notes: 'Retry with changes',
         modifications: { timeout: 120 },
       };
-      const req = { user: { id: 'user-456' } };
+      const req = { user: { id: 'user-456' } } as Parameters<
+        typeof controller.resolveApproval
+      >[2];
 
       await controller.resolveApproval(
         'approval-2',
@@ -335,7 +339,9 @@ describe('OrchestrationsController', () => {
       );
 
       const body = { decision: 'abort' };
-      const req = { user: { userId: 'user-789' } };
+      const req = { user: { userId: 'user-789' } } as Parameters<
+        typeof controller.resolveApproval
+      >[2];
 
       await controller.resolveApproval(
         'approval-3',
@@ -361,7 +367,7 @@ describe('OrchestrationsController', () => {
       );
 
       const body = { decision: 'continue' };
-      const req = {};
+      const req = {} as Parameters<typeof controller.resolveApproval>[2];
 
       await controller.resolveApproval(
         'approval-4',

@@ -58,7 +58,8 @@ export class DeliverableVersionsController {
     @Body() createVersionDto: CreateVersionDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -86,7 +87,8 @@ export class DeliverableVersionsController {
     @Param('deliverableId', ParseUUIDPipe) deliverableId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion[]> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -113,7 +115,8 @@ export class DeliverableVersionsController {
     @Param('deliverableId', ParseUUIDPipe) deliverableId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion | null> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -137,7 +140,8 @@ export class DeliverableVersionsController {
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -162,7 +166,8 @@ export class DeliverableVersionsController {
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -185,7 +190,8 @@ export class DeliverableVersionsController {
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<{ success: boolean; message: string }> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -218,7 +224,8 @@ export class DeliverableVersionsController {
     console.log('🔄 Rerun request received:', { versionId, rerunDto });
     console.log('🔄 Request body validation passed');
 
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     console.log('🔄 User ID extracted:', userId);
 
     if (!userId) {
@@ -262,7 +269,8 @@ export class DeliverableVersionsController {
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) throw new Error('User not authenticated');
     return this.versionsService.copyVersion(versionId, userId);
   }
@@ -287,7 +295,8 @@ export class DeliverableVersionsController {
     @Body() dto: EnhanceVersionDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
+    const userId: string =
+      req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) throw new Error('User not authenticated');
     return this.versionsService.enhanceVersion(versionId, dto, userId);
   }

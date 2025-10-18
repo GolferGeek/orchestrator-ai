@@ -20,6 +20,7 @@ const createRun = (
   orchestration_slug: null,
   parameters: {},
   organization_slug: 'org-1',
+  user_id: null,
   status: 'running',
   current_step_index: 0,
   current_step_id: 'step-1',

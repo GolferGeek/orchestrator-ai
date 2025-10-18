@@ -605,7 +605,8 @@ export class TasksService {
       prompt: converted.prompt as string,
       params: (converted.params as Record<string, unknown>) || {},
       response: converted.response as string | undefined,
-      responseMetadata: (converted.responseMetadata as Record<string, unknown>) || {},
+      responseMetadata:
+        (converted.responseMetadata as Record<string, unknown>) || {},
       status: converted.status as Task['status'],
       progress: (converted.progress as number | undefined) ?? 0,
       progressMessage: converted.progressMessage as string | undefined,

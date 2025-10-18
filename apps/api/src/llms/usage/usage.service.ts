@@ -276,7 +276,10 @@ export class UsageService {
       .filter((model) => model.requests >= options.minUsage)
       .map((model) => {
         const modelGroup: ModelGroup = {
-          model: model.model as unknown as { id?: string; [key: string]: unknown },
+          model: model.model as unknown as {
+            id?: string;
+            [key: string]: unknown;
+          },
           requests: model.requests,
           tokens: model.tokens,
           cost: model.cost,

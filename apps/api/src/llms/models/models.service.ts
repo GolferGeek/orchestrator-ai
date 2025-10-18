@@ -199,7 +199,9 @@ export class ModelsService {
       );
     }
 
-    return data && typeof data === 'object' && !('error' in data) ? mapLLMModelFromDb(data as Record<string, unknown>) : null;
+    return data && typeof data === 'object' && !('error' in data)
+      ? mapLLMModelFromDb(data as Record<string, unknown>)
+      : null;
   }
 
   async findByModelId(
@@ -229,7 +231,9 @@ export class ModelsService {
       );
     }
 
-    return data && typeof data === 'object' && !('error' in data) ? mapLLMModelFromDb(data as Record<string, unknown>) : null;
+    return data && typeof data === 'object' && !('error' in data)
+      ? mapLLMModelFromDb(data as Record<string, unknown>)
+      : null;
   }
 
   async create(createModelDto: CreateModelDto): Promise<ModelResponseDto> {

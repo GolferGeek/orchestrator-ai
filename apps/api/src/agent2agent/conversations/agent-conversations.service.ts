@@ -184,9 +184,7 @@ export class AgentConversationsService {
           .single();
 
       if (existing) {
-        return this.mapToAgentConversation(
-          existing as AgentConversationDbRecord,
-        );
+        return this.mapToAgentConversation(existing);
       }
 
       // If provided conversation ID doesn't exist or doesn't match, log warning and create new
@@ -454,9 +452,7 @@ export class AgentConversationsService {
       );
     }
 
-    return data
-      ? this.mapToAgentConversation(data as AgentConversationDbRecord)
-      : null;
+    return data ? this.mapToAgentConversation(data) : null;
   }
 
   /**

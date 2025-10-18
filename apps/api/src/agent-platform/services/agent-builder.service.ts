@@ -50,8 +50,13 @@ export class AgentBuilderService {
    */
   async validateAgent(payload: JsonObject): Promise<ValidationResult> {
     const type = payload.agent_type as AgentType;
-    const validation = this.validator.validateByType(type, payload as unknown as Parameters<typeof this.validator.validateByType>[1]);
-    const policyIssues = this.policy.check(payload as unknown as Parameters<typeof this.policy.check>[0]);
+    const validation = this.validator.validateByType(
+      type,
+      payload as unknown as Parameters<typeof this.validator.validateByType>[1],
+    );
+    const policyIssues = this.policy.check(
+      payload as unknown as Parameters<typeof this.policy.check>[0],
+    );
 
     const response: ValidationResult = {
       ok: validation.ok && policyIssues.length === 0,
@@ -63,13 +68,28 @@ export class AgentBuilderService {
       const config = payload?.config;
       if (config && typeof config === 'object' && !Array.isArray(config)) {
         const configuration = (config as Record<string, unknown>).configuration;
-        if (configuration && typeof configuration === 'object' && !Array.isArray(configuration)) {
-          const functionConfig = (configuration as Record<string, unknown>).function;
-          if (functionConfig && typeof functionConfig === 'object' && !Array.isArray(functionConfig)) {
+        if (
+          configuration &&
+          typeof configuration === 'object' &&
+          !Array.isArray(configuration)
+        ) {
+          const functionConfig = (configuration as Record<string, unknown>)
+            .function;
+          if (
+            functionConfig &&
+            typeof functionConfig === 'object' &&
+            !Array.isArray(functionConfig)
+          ) {
             const code = (functionConfig as Record<string, unknown>).code;
-            const timeout = Number((functionConfig as Record<string, unknown>).timeout_ms) || 2000;
+            const timeout =
+              Number((functionConfig as Record<string, unknown>).timeout_ms) ||
+              2000;
             if (typeof code === 'string' && code.length < 50000) {
-              response.dryRun = await this.dryRun.runFunction(code, {}, timeout);
+              response.dryRun = await this.dryRun.runFunction(
+                code,
+                {},
+                timeout,
+              );
             }
           }
         }
@@ -81,13 +101,24 @@ export class AgentBuilderService {
       const config = payload?.config;
       if (config && typeof config === 'object' && !Array.isArray(config)) {
         const configuration = (config as Record<string, unknown>).configuration;
-        if (configuration && typeof configuration === 'object' && !Array.isArray(configuration)) {
+        if (
+          configuration &&
+          typeof configuration === 'object' &&
+          !Array.isArray(configuration)
+        ) {
           const apiConfig = (configuration as Record<string, unknown>).api;
-          if (apiConfig && typeof apiConfig === 'object' && !Array.isArray(apiConfig)) {
-            const apiCfg = (apiConfig as Record<string, unknown>).api_configuration;
+          if (
+            apiConfig &&
+            typeof apiConfig === 'object' &&
+            !Array.isArray(apiConfig)
+          ) {
+            const apiCfg = (apiConfig as Record<string, unknown>)
+              .api_configuration;
             if (apiCfg) {
-              const sampleInput = (apiConfig as Record<string, unknown>).sample_input || { test: 'input' };
-              const sampleResp = (apiConfig as Record<string, unknown>).sample_response || { test: 'output' };
+              const sampleInput = (apiConfig as Record<string, unknown>)
+                .sample_input || { test: 'input' };
+              const sampleResp = (apiConfig as Record<string, unknown>)
+                .sample_response || { test: 'output' };
               response.dryRun = this.dryRun.runApiTransform(
                 apiCfg,
                 sampleInput,
@@ -118,16 +149,30 @@ export class AgentBuilderService {
 
       // Create the agent
       const record = await this.agents.upsert({
-        organization_slug: typeof payload.organization_slug === 'string' ? payload.organization_slug : null,
+        organization_slug:
+          typeof payload.organization_slug === 'string'
+            ? payload.organization_slug
+            : null,
         slug: typeof payload.slug === 'string' ? payload.slug : '',
-        display_name: typeof payload.display_name === 'string' ? payload.display_name : '',
-        description: typeof payload.description === 'string' ? payload.description : null,
-        agent_type: typeof payload.agent_type === 'string' ? payload.agent_type : '',
-        mode_profile: typeof payload.mode_profile === 'string' ? payload.mode_profile : 'draft',
+        display_name:
+          typeof payload.display_name === 'string' ? payload.display_name : '',
+        description:
+          typeof payload.description === 'string' ? payload.description : null,
+        agent_type:
+          typeof payload.agent_type === 'string' ? payload.agent_type : '',
+        mode_profile:
+          typeof payload.mode_profile === 'string'
+            ? payload.mode_profile
+            : 'draft',
         version: null,
         status: 'draft', // Start as draft
         yaml: typeof payload.yaml === 'string' ? payload.yaml : '',
-        context: (payload.context && typeof payload.context === 'object' && !Array.isArray(payload.context)) ? payload.context as JsonObject : null,
+        context:
+          payload.context &&
+          typeof payload.context === 'object' &&
+          !Array.isArray(payload.context)
+            ? payload.context
+            : null,
       });
 
       return { success: true, data: record };

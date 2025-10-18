@@ -365,9 +365,12 @@ export class HumanLoopService {
       userId: converted.userId as string,
       requestType: converted.requestType as HumanInput['requestType'],
       prompt: converted.prompt as string,
-      options: converted.options ? JSON.parse(converted.options as string) : undefined,
+      options: converted.options
+        ? JSON.parse(converted.options as string)
+        : undefined,
       userResponse: converted.userResponse as string | undefined,
-      responseMetadata: (converted.responseMetadata as Record<string, unknown>) || {},
+      responseMetadata:
+        (converted.responseMetadata as Record<string, unknown>) || {},
       status: converted.status as HumanInput['status'],
       timeoutAt: converted.timeoutAt
         ? new Date(converted.timeoutAt as string)

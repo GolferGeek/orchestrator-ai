@@ -2,6 +2,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import type { AxiosResponse } from 'axios';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { OrchestrationProgressEventsService } from './orchestration-progress-events.service';
 import { TaskStatusService } from '@/agent2agent/tasks/task-status.service';
 import {
@@ -66,7 +67,7 @@ const createStepSnapshot = (
 const createEvent = (
   type: OrchestrationEventType,
   runOverrides: Partial<OrchestrationRunSnapshot> = {},
-  dataOverrides: Record<string, unknown> = {},
+  dataOverrides: JsonObject = {},
 ): OrchestrationRunEventPayload => ({
   type,
   timestamp: new Date().toISOString(),

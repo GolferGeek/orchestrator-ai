@@ -51,7 +51,9 @@ export class PlansRepository {
       .single();
 
     if (error) {
-      throw new BadRequestException(`Failed to create plan: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`);
+      throw new BadRequestException(
+        `Failed to create plan: ${error && typeof error === 'object' && 'message' in error ? (error as Error).message : String(error)}`,
+      );
     }
 
     return planData as PlanRecord;
@@ -79,7 +81,7 @@ export class PlansRepository {
       );
     }
 
-    return (data as PlanRecord | null) ?? null;
+    return data ?? null;
   }
 
   /**

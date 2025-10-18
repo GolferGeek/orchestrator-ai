@@ -96,7 +96,7 @@ export async function handlePlanCreate(
     const existingPlan = (await fetchExistingPlan(
       services.plansService,
       request,
-    )) as unknown as Plan | null;
+    )) as Plan | null;
 
     if (existingPlan && payload.forceNew !== true) {
       const currentVersion = existingPlan.currentVersion ?? null;
@@ -277,7 +277,7 @@ export async function handlePlanRead(
       ((await fetchExistingPlan(
         services.plansService,
         request,
-      )) as unknown as Plan | null) ?? null;
+      )) as Plan | null) ?? null;
     if (!plan) {
       return TaskResponseDto.failure(
         AgentTaskMode.PLAN,
@@ -623,7 +623,8 @@ export async function handlePlanDeleteVersion(
 ): Promise<TaskResponseDto> {
   void organizationSlug;
   try {
-    const payload = (request.payload ?? {}) as unknown as PlanDeleteVersionPayload;
+    const payload = (request.payload ??
+      {}) as unknown as PlanDeleteVersionPayload;
     if (!payload.versionId) {
       return TaskResponseDto.failure(
         AgentTaskMode.PLAN,
@@ -691,7 +692,8 @@ export async function handlePlanMergeVersions(
 ): Promise<TaskResponseDto> {
   void organizationSlug;
   try {
-    const payload = (request.payload ?? {}) as unknown as PlanMergeVersionsPayload;
+    const payload = (request.payload ??
+      {}) as unknown as PlanMergeVersionsPayload;
     if (!payload.versionIds || payload.versionIds.length < 2) {
       return TaskResponseDto.failure(
         AgentTaskMode.PLAN,
@@ -775,7 +777,8 @@ export async function handlePlanCopyVersion(
 ): Promise<TaskResponseDto> {
   void organizationSlug;
   try {
-    const payload = (request.payload ?? {}) as unknown as PlanCopyVersionPayload;
+    const payload = (request.payload ??
+      {}) as unknown as PlanCopyVersionPayload;
     if (!payload.versionId) {
       return TaskResponseDto.failure(
         AgentTaskMode.PLAN,

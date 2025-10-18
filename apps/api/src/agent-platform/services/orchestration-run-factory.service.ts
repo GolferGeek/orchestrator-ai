@@ -491,7 +491,7 @@ export class OrchestrationRunFactoryService {
 
     const result: Record<string, any> = {};
     for (const [key, entry] of entries) {
-      result[key] = entry as any;
+      result[key] = entry;
     }
     return result;
   }

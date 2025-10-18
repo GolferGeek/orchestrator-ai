@@ -113,7 +113,10 @@ export class AgentRuntimeDispatchService {
           controller.push({
             type: 'final',
             content: result.response.content,
-            metadata: result.response.metadata as unknown as Record<string, unknown>,
+            metadata: result.response.metadata as unknown as Record<
+              string,
+              unknown
+            >,
           });
           controller.close();
           return result;
@@ -196,18 +199,36 @@ export class AgentRuntimeDispatchService {
     const { request, prompt, routingDecision, overrides } = options;
     const payload = request.payload ?? {};
     const rawOptions: Record<string, unknown> = { ...(payload.options ?? {}) };
-    const { metadata: _ignoredMetadata, stream, maxComplexity: _rawMaxComplexity, ...restOptions } = rawOptions;
+    const {
+      metadata: _ignoredMetadata,
+      stream,
+      maxComplexity: _rawMaxComplexity,
+      ...restOptions
+    } = rawOptions;
 
     const overrideOptions = overrides?.options ?? {};
-    const { maxComplexity: overrideMaxComplexity, stream: overrideStream, ...otherOverrides } = overrideOptions;
+    const {
+      maxComplexity: overrideMaxComplexity,
+      stream: overrideStream,
+      ...otherOverrides
+    } = overrideOptions;
 
     // Determine maxComplexity value early to avoid type issues
-    const finalMaxComplexity: 'simple' | 'medium' | 'complex' | 'reasoning' | undefined =
+    const finalMaxComplexity:
+      | 'simple'
+      | 'medium'
+      | 'complex'
+      | 'reasoning'
+      | undefined =
       typeof overrideMaxComplexity === 'string'
-        ? (overrideMaxComplexity as 'simple' | 'medium' | 'complex' | 'reasoning')
-        : (typeof prompt.metadata?.maxComplexity === 'string'
-          ? (prompt.metadata.maxComplexity as 'simple' | 'medium' | 'complex' | 'reasoning')
-          : undefined);
+        ? overrideMaxComplexity
+        : typeof prompt.metadata?.maxComplexity === 'string'
+          ? (prompt.metadata.maxComplexity as
+              | 'simple'
+              | 'medium'
+              | 'complex'
+              | 'reasoning')
+          : undefined;
 
     const finalOptions: NonNullable<GenerateResponseParams['options']> = {
       callerType: 'agent',
@@ -224,7 +245,11 @@ export class AgentRuntimeDispatchService {
       preferLocal: routingDecision.isLocal,
       organizationSlug: options.definition.organizationSlug ?? null,
       agentSlug: options.definition.slug,
-      stream: (overrideStream as boolean | undefined) ?? options.stream ?? (stream as boolean | undefined) ?? false,
+      stream:
+        overrideStream ??
+        options.stream ??
+        (stream as boolean | undefined) ??
+        false,
       maxComplexity: finalMaxComplexity,
       ...restOptions,
       ...otherOverrides,
@@ -520,7 +545,8 @@ export class AgentRuntimeDispatchService {
       metadata: {
         provider: 'external_a2a',
         model: 'a2a',
-        requestId: (res.headers['x-request-id'] as string | undefined) || String(id),
+        requestId:
+          (res.headers['x-request-id'] as string | undefined) || String(id),
         timestamp: new Date(end).toISOString(),
         usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         timing: { startTime: start, endTime: end, duration: end - start },
@@ -654,9 +680,10 @@ export class AgentRuntimeDispatchService {
       try {
         return await fn();
       } catch (err: unknown) {
-        lastError = err as unknown;
+        lastError = err;
         // Axios/network errors: retry on ECONNRESET/ETIMEDOUT/5xx indicated by response
-        const status = (err as { response?: { status?: number } })?.response?.status as number | undefined;
+        const status = (err as { response?: { status?: number } })?.response
+          ?.status;
         const retriable = status ? status >= 500 : true;
         if (attempt === retries || !retriable) {
           throw err;
@@ -686,7 +713,8 @@ export class AgentRuntimeDispatchService {
     const statusText = status ? ` (HTTP ${status})` : '';
     if (!error) return `External A2A error${statusText}`;
     const errorObj = error as { code?: unknown; message?: unknown };
-    const code = errorObj.code !== undefined ? ` [code ${String(errorObj.code)}]` : '';
+    const code =
+      errorObj.code !== undefined ? ` [code ${String(errorObj.code)}]` : '';
     const raw: string =
       typeof errorObj.message === 'string'
         ? errorObj.message
@@ -827,9 +855,9 @@ export class AgentRuntimeDispatchService {
           for (const p of parts) {
             if (cur == null) return undefined;
             const curRecord = cur as Record<string | number, unknown>;
-            cur = curRecord[p] as unknown;
+            cur = curRecord[p];
           }
-          return cur as unknown;
+          return cur;
         };
 
         const fromRoot = tryExtract(data, fieldPath);

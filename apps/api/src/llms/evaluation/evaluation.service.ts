@@ -448,7 +448,10 @@ export class EvaluationService {
         .from('tasks')
         .select('*')
         .not('evaluation', 'is', null)
-        .not('llm_metadata', 'is', null) as unknown as Promise<{ data: TaskRecord[] | null; error: unknown }>,
+        .not('llm_metadata', 'is', null) as unknown as Promise<{
+        data: TaskRecord[] | null;
+        error: unknown;
+      }>,
       client
         .from('messages')
         .select(
@@ -458,7 +461,10 @@ export class EvaluationService {
             model:llm_models(*)
           `,
         )
-        .not('user_rating', 'is', null) as unknown as Promise<{ data: MessageRecord[] | null; error: unknown }>,
+        .not('user_rating', 'is', null) as unknown as Promise<{
+        data: MessageRecord[] | null;
+        error: unknown;
+      }>,
     ]);
 
     if (taskError) {
@@ -478,7 +484,10 @@ export class EvaluationService {
         const { data: fallbackMessages, error: fallbackError } = (await client
           .from('messages')
           .select('*')
-          .not('user_rating', 'is', null)) as { data: MessageRecord[] | null; error: unknown };
+          .not('user_rating', 'is', null)) as {
+          data: MessageRecord[] | null;
+          error: unknown;
+        };
 
         if (fallbackError) {
           this.logger.warn(

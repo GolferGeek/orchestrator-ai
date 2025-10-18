@@ -279,10 +279,8 @@ async function handleRunHumanResponse(
   runnerContext: RunnerContext,
 ): Promise<TaskResponseDto> {
   const payload = (request.payload ?? {}) as unknown as OrchestrateModePayload;
-  const { approvalId, decision, notes, modifications } = payload as unknown as Record<
-    string,
-    unknown
-  >;
+  const { approvalId, decision, notes, modifications } =
+    payload as unknown as Record<string, unknown>;
 
   if (!approvalId) {
     return TaskResponseDto.failure(

@@ -41,7 +41,10 @@ describe('AppController', () => {
 
   describe('agents', () => {
     it('should return agent status', async () => {
-      const result = (await appController.getAgentStatus()) as Record<string, unknown>;
+      const result = (await appController.getAgentStatus()) as Record<
+        string,
+        unknown
+      >;
       expect(result).toHaveProperty('status');
       expect(result).toHaveProperty('agents');
     });

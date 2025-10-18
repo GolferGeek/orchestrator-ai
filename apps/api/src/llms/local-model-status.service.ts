@@ -110,9 +110,12 @@ export class LocalModelStatusService {
   async checkOllamaConnection(): Promise<boolean> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get<OllamaVersionResponse>(`${this.ollamaBaseUrl}/api/version`, {
-          timeout: 5000,
-        }),
+        this.httpService.get<OllamaVersionResponse>(
+          `${this.ollamaBaseUrl}/api/version`,
+          {
+            timeout: 5000,
+          },
+        ),
       );
 
       this.ollamaStatus.connected = true;
@@ -144,9 +147,12 @@ export class LocalModelStatusService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.get<OllamaProcessResponse>(`${this.ollamaBaseUrl}/api/ps`, {
-          timeout: 5000,
-        }),
+        this.httpService.get<OllamaProcessResponse>(
+          `${this.ollamaBaseUrl}/api/ps`,
+          {
+            timeout: 5000,
+          },
+        ),
       );
 
       const loadedModels = response.data?.models || [];
@@ -179,9 +185,12 @@ export class LocalModelStatusService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.get<OllamaTagsResponse>(`${this.ollamaBaseUrl}/api/tags`, {
-          timeout: 10000,
-        }),
+        this.httpService.get<OllamaTagsResponse>(
+          `${this.ollamaBaseUrl}/api/tags`,
+          {
+            timeout: 10000,
+          },
+        ),
       );
 
       const models: OllamaModel[] = response.data?.models || [];

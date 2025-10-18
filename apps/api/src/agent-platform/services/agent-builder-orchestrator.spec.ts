@@ -424,7 +424,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         10000,
       )) as DryRunResult;
       expect(res.result?.state?.step).toBe('io_contract');
-      state = res.result?.state as AgentBuilderResult['state'];
+      state = res.result?.state;
 
       // Step 3: IO Contract
       res = await dry.runFunction(
@@ -440,7 +440,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         10000,
       );
       expect(res.result?.state?.step).toBe('agent_config');
-      state = res.result?.state as AgentBuilderResult['state'];
+      state = res.result?.state;
 
       // Step 4: Agent Config
       res = await dry.runFunction(
@@ -456,7 +456,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         10000,
       );
       expect(res.result?.state?.step).toBe('validate');
-      state = res.result?.state as AgentBuilderResult['state'];
+      state = res.result?.state;
 
       // Step 5: Validate
       res = await dry.runFunction(
@@ -468,7 +468,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         10000,
       );
       expect(res.result?.state?.step).toBe('review');
-      state = res.result?.state as AgentBuilderResult['state'];
+      state = res.result?.state;
 
       // Step 6: Review
       res = await dry.runFunction(
@@ -481,7 +481,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         10000,
       );
       expect(res.result?.state?.step).toBe('create');
-      state = res.result?.state as AgentBuilderResult['state'];
+      state = res.result?.state;
 
       // Step 7: Create
       res = await dry.runFunction(

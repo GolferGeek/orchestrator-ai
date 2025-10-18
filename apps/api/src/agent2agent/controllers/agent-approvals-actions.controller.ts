@@ -54,7 +54,10 @@ export class AgentApprovalsActionsController {
       );
     }
 
-    const userId = (req.user?.sub || req.user?.id || req.user?.userId || null) as string | null;
+    const userId = (req.user?.sub ||
+      req.user?.id ||
+      req.user?.userId ||
+      null) as string | null;
     await this.approvals.setStatus(id, 'approved', userId);
 
     // Rehydrate the stored request and allow minimal overrides

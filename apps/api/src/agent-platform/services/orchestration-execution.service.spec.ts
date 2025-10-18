@@ -20,6 +20,7 @@ const createRunRecord = (
   orchestration_slug: null,
   parameters: {},
   organization_slug: 'org',
+  user_id: null,
   status: 'planning',
   current_step_index: null,
   current_step_id: null,

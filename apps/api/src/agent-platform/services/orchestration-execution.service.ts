@@ -32,8 +32,12 @@ export class OrchestrationExecutionService {
 
   getConcurrencyLimit(run: OrchestrationRunRecord): number {
     const metadata = this.asRecord(run.metadata as JsonObject | undefined);
-    const execution = this.asRecord(metadata?.execution as JsonObject | undefined);
-    const concurrency = this.asRecord(execution?.concurrency as JsonObject | undefined);
+    const execution = this.asRecord(
+      metadata?.execution as JsonObject | undefined,
+    );
+    const concurrency = this.asRecord(
+      execution?.concurrency as JsonObject | undefined,
+    );
 
     const configured = this.coercePositiveInteger(
       concurrency?.maxParallelSteps,

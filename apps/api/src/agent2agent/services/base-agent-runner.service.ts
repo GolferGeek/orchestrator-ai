@@ -780,7 +780,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
 
     // Check payload metadata
     const fromPayload =
-      (request.payload?.metadata as any)?.userId || (request.payload?.metadata as any)?.createdBy;
+      (request.payload?.metadata as any)?.userId ||
+      (request.payload?.metadata as any)?.createdBy;
     if (fromPayload) {
       return String(fromPayload);
     }
@@ -890,7 +891,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    */
   protected shouldStream(request: TaskRequestDto): boolean {
     return Boolean(
-      (request.payload?.options as any)?.stream || (request.metadata as any)?.stream,
+      (request.payload?.options as any)?.stream ||
+        (request.metadata as any)?.stream,
     );
   }
 

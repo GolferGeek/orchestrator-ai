@@ -747,13 +747,8 @@ export class Agent2AgentController {
       return undefined;
     }
 
-    const streaming = metadata.streaming as
-      | { streamId?: unknown }
-      | undefined;
-    const candidates: Array<unknown> = [
-      metadata.streamId,
-      streaming?.streamId,
-    ];
+    const streaming = metadata.streaming as { streamId?: unknown } | undefined;
+    const candidates: Array<unknown> = [metadata.streamId, streaming?.streamId];
 
     for (const candidate of candidates) {
       const value = this.asString(candidate);
@@ -1031,7 +1026,7 @@ export class Agent2AgentController {
       !(candidate as Record<string, unknown>).mode &&
       typeof typedPayload.method === 'string'
     ) {
-      const mapped = this.mapMethodToMode(typedPayload.method as string);
+      const mapped = this.mapMethodToMode(typedPayload.method);
       if (mapped) {
         (candidate as Record<string, unknown>).mode = mapped;
       }
@@ -1058,7 +1053,8 @@ export class Agent2AgentController {
     if (isJsonRpc) {
       const jsonrpcContext: { id: unknown; method?: string | null } = {
         id: typedPayload.id ?? null,
-        method: typeof typedPayload.method === 'string' ? typedPayload.method : null,
+        method:
+          typeof typedPayload.method === 'string' ? typedPayload.method : null,
       };
 
       dto.metadata = {
@@ -1122,13 +1118,15 @@ export class Agent2AgentController {
           return Object.values(error.constraints).join(', ');
         }
         if (error.children && error.children.length) {
-          return this.formatValidationErrors(error.children as unknown as Array<{
-            constraints?: Record<string, string>;
-            children?: Array<{
+          return this.formatValidationErrors(
+            error.children as unknown as Array<{
               constraints?: Record<string, string>;
-              children?: unknown[];
-            }>;
-          }>);
+              children?: Array<{
+                constraints?: Record<string, string>;
+                children?: unknown[];
+              }>;
+            }>,
+          );
         }
         return null;
       })
@@ -1221,10 +1219,7 @@ export class Agent2AgentController {
     if (typeof typedPayload.message === 'string') {
       return typedPayload.message;
     }
-    if (
-      Array.isArray(typedPayload.message) &&
-      typedPayload.message.length
-    ) {
+    if (Array.isArray(typedPayload.message) && typedPayload.message.length) {
       return typedPayload.message.join(', ');
     }
     return null;

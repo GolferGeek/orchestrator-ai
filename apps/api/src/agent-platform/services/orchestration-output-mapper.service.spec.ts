@@ -247,7 +247,7 @@ describe('OrchestrationOutputMapper', () => {
 
   describe('map - deliverable reference resolution', () => {
     it('should extract deliverable from payload.deliverables array', () => {
-      const payload: TaskResponsePayload = {
+      const payload = {
         content: {},
         metadata: {},
         deliverables: [
@@ -257,7 +257,7 @@ describe('OrchestrationOutputMapper', () => {
             title: 'Test Deliverable',
           },
         ],
-      };
+      } as TaskResponsePayload;
 
       const result = service.map(payload, null);
 
@@ -266,7 +266,7 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should handle version_id snake_case variant', () => {
-      const payload: TaskResponsePayload = {
+      const payload = {
         content: {},
         metadata: {},
         deliverables: [
@@ -275,7 +275,7 @@ describe('OrchestrationOutputMapper', () => {
             version_id: 'ver-abc',
           },
         ],
-      };
+      } as TaskResponsePayload;
 
       const result = service.map(payload, null);
 
@@ -330,13 +330,13 @@ describe('OrchestrationOutputMapper', () => {
     });
 
     it('should prioritize deliverables array over content.deliverable', () => {
-      const payload: TaskResponsePayload = {
+      const payload = {
         content: {
           deliverable: { id: 'content-id', versionId: 'content-version' },
         },
         metadata: {},
         deliverables: [{ id: 'array-id', versionId: 'array-version' }],
-      };
+      } as TaskResponsePayload;
 
       const result = service.map(payload, null);
 

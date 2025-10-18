@@ -66,8 +66,14 @@ export class AppService implements OnModuleInit {
         let executionCapabilities = { ...DEFAULT_EXECUTION_CAPABILITIES };
 
         try {
-          if (instance && typeof (instance as Record<string, unknown>).getAgentCard === 'function') {
-            agentCard = await (instance as { getAgentCard: () => Promise<any> }).getAgentCard();
+          if (
+            instance &&
+            typeof (instance as Record<string, unknown>).getAgentCard ===
+              'function'
+          ) {
+            agentCard = await (
+              instance as { getAgentCard: () => Promise<any> }
+            ).getAgentCard();
 
             if (agentCard?.configuration?.execution_modes) {
               executionModes = agentCard.configuration.execution_modes;

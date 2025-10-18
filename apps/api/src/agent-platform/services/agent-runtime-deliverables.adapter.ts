@@ -319,7 +319,10 @@ export class AgentRuntimeDeliverablesAdapter {
       if (hasData && this.assets) {
         try {
           const imgObj = img as Record<string, unknown>;
-          let mime: string = (imgObj.mime as string) || (imgObj.contentType as string) || 'image/png';
+          let mime: string =
+            (imgObj.mime as string) ||
+            (imgObj.contentType as string) ||
+            'image/png';
           let base64 = img.data as string;
           const match = /^data:([^;]+);base64,(.*)$/i.exec(base64);
           if (match) {
@@ -358,7 +361,7 @@ export class AgentRuntimeDeliverablesAdapter {
       // Optionally fetch-and-store external URLs
       const imgObj = img as Record<string, unknown>;
       const hasUrl =
-        typeof imgObj.url === 'string' && /^https?:\/\//i.test(imgObj.url as string);
+        typeof imgObj.url === 'string' && /^https?:\/\//i.test(imgObj.url);
       if (hasUrl && this.assets) {
         try {
           const rec = await this.assets.saveFromUrl({
@@ -393,7 +396,10 @@ export class AgentRuntimeDeliverablesAdapter {
             results.push({
               assetId: rec.id,
               url: `/assets/${rec.id}`,
-              mime: (imgObj.mime as string) || (imgObj.contentType as string) || 'application/octet-stream',
+              mime:
+                (imgObj.mime as string) ||
+                (imgObj.contentType as string) ||
+                'application/octet-stream',
               width: (imgObj.width as number) || undefined,
               height: (imgObj.height as number) || undefined,
               size: (imgObj.size as number) || undefined,

@@ -1234,9 +1234,13 @@ export class DeliverablesService implements IActionHandler {
     }
 
     if (!data) {
-      throw new BadRequestException('Failed to create initial version: No data returned');
+      throw new BadRequestException(
+        'Failed to create initial version: No data returned',
+      );
     }
-    return this.mapToVersion(data as unknown as Parameters<typeof this.mapToVersion>[0]);
+    return this.mapToVersion(
+      data as unknown as Parameters<typeof this.mapToVersion>[0],
+    );
   }
 
   /**

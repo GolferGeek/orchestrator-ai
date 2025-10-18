@@ -1558,11 +1558,14 @@ export class OrchestrationStepExecutorService {
     const checkpointState =
       run.step_state?.[stepKey]?.checkpoint ?? ({} as Record<string, any>);
     if (checkpointState?.modifications) {
-      const modifications = checkpointState.modifications as Record<string, any>;
+      const modifications = checkpointState.modifications as Record<
+        string,
+        any
+      >;
       this.mergeInto(resolved, modifications);
     }
 
-    const { userMessage, ...rest } = resolved as Record<string, any>;
+    const { userMessage, ...rest } = resolved;
     const payload = rest && Object.keys(rest).length > 0 ? rest : undefined;
 
     return {

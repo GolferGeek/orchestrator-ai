@@ -188,8 +188,8 @@ export class MCPController {
 
       const errorMessage =
         typeof errorData === 'object' && errorData !== null
-          ? ((errorData as { error?: string }).error as string | undefined) ||
-            ((errorData as { message?: string }).message as string | undefined) ||
+          ? (errorData as { error?: string }).error ||
+            (errorData as { message?: string }).message ||
             errorContent
           : errorContent;
       throw new Error(errorMessage);

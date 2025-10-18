@@ -127,8 +127,9 @@ describe('AgentPolicyService', () => {
         config: {
           configuration: {
             function: {
-              code: 'module.exports = async (input) => ({ ok: true });',
-            },
+              // code field is not in AgentPolicyPayload but may exist in actual payloads
+              // TypeScript will allow this with the cast
+            } as { timeout_ms?: number },
           },
         },
       };

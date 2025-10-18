@@ -20,6 +20,7 @@ const createRun = (
   orchestration_slug: null,
   parameters: {},
   organization_slug: 'org-1',
+  user_id: null,
   status: 'running',
   current_step_index: 1,
   current_step_id: 'step-1',
@@ -351,7 +352,7 @@ describe('OrchestrationStatusService', () => {
           startedAt: new Date().toISOString(),
           completedAt: null,
         },
-        agent: { slug: 'test-agent' },
+        agent: { id: null, slug: 'test-agent', type: null, displayName: null },
       };
       events.snapshotRun.mockReturnValue(snapshot);
 
@@ -397,7 +398,7 @@ describe('OrchestrationStatusService', () => {
           startedAt: new Date().toISOString(),
           completedAt: new Date().toISOString(),
         },
-        agent: { slug: 'test-agent' },
+        agent: { id: null, slug: 'test-agent', type: null, displayName: null },
       };
       events.snapshotRun.mockReturnValue(snapshot);
 
