@@ -281,7 +281,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive } from 'vue';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
 import { useLLMHealthStore } from '@/stores/llmHealthStore';
 import {
@@ -324,11 +324,11 @@ const emit = defineEmits<{
 }>();
 // Enhanced store integration
 // Direct store usage
-const analyticsStore = useAnalyticsStore();
-const llmHealthStore = useLLMHealthStore();
+// const analyticsStore = useAnalyticsStore();
+// const llmHealthStore = useLLMHealthStore();
 
 // Auto-refresh functionality (simplified)
-const isAutoRefreshEnabled = ref(false);
+// const isAutoRefreshEnabled = ref(false);
 
 const analyticsFilters = reactive({
   startDate: '',

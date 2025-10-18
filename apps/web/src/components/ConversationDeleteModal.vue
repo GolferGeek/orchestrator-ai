@@ -96,8 +96,8 @@ const emit = defineEmits<{
 }>();
 const deleteDeliverables = ref(false);
 // Debug logging
-watch(() => props.hasDeliverables, (hasDeliverables) => {
-});
+// watch(() => props.hasDeliverables, (hasDeliverables) => {
+// });
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     // Reset checkbox when modal opens

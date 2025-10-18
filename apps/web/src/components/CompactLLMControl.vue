@@ -49,15 +49,8 @@
 import { ref, computed, onMounted } from 'vue';
 import {
   IonIcon,
-  IonModal,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
-  IonContent,
 } from '@ionic/vue';
-import { settingsOutline, closeOutline } from 'ionicons/icons';
+import { settingsOutline } from 'ionicons/icons';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import LLMSelectorModal from './LLMSelectorModal.vue';
@@ -83,7 +76,7 @@ onMounted(async () => {
 
     // Warm the system model selection cache so Converse can use it immediately
     await llmStore.ensureSystemModelSelection?.();
-  } catch (e) {
+  } catch {
     // Swallow initialization errors here; modal handles errors explicitly
   }
 

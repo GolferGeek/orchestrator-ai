@@ -344,8 +344,8 @@ import { useLLMHealthStore } from '@/stores/llmHealthStore';
 import { storeToRefs } from 'pinia';
 
 const store = useLLMAnalyticsStore();
-const llmHealthStore = useLLMHealthStore();
-const analyticsStore = useAnalyticsStore();
+// const llmHealthStore = useLLMHealthStore();
+// const analyticsStore = useAnalyticsStore();
 
 // Reactive data
 const localFilters = ref<{ startDate: string; endDate: string; callerType: string; route: '' | 'local' | 'remote' }>({

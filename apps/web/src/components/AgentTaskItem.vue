@@ -207,7 +207,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import { marked } from 'marked';
+// import { marked } from 'marked';
 import { IonIcon, IonButton, IonSpinner, IonChip, IonPopover } from '@ionic/vue';
 import { 
   informationCircleOutline, 
@@ -815,7 +815,7 @@ const handleCalloutClick = () => {
 };
 
 // Smart CTA detection
-const contentText = computed(() => (props.message.content || '').toLowerCase());
+// const contentText = computed(() => (props.message.content || '').toLowerCase());
 const suggestsPlan = computed(() => {
   // Simple regex-based detection - assume modes are allowed (no permission check here)
   return /would you like.*plan|should i.*plan|plan (it|this)|create (a|the) (plan|prd)|requirements|spec/i.test(props.message.content || '');

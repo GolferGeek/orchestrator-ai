@@ -36,7 +36,7 @@ import { radioButtonOnOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
-import { useAgentChatStore } from '@/services/conversationHelpers';
+// import { useAgentChatStore } from '@/services/conversationHelpers';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 
 // Define conversation states

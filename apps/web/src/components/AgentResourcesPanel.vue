@@ -121,7 +121,7 @@ import { computed, ref, watch } from 'vue';
 import { IonButton, IonIcon, IonModal, IonSegment, IonSegmentButton, IonLabel, IonBadge, IonSpinner } from '@ionic/vue';
 import { playCircleOutline, closeOutline, documentTextOutline, alertCircleOutline } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
-import { marked } from 'marked';
+// import { marked } from 'marked';
 import { analyticsService } from '@/services/analyticsService';
 import { agentDefaultOverviewTranscript } from '@/data/transcripts/agent-default-overview';
 

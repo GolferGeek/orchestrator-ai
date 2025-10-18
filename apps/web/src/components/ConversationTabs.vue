@@ -57,20 +57,20 @@ import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';
-const route = useRoute();
+// const route = useRoute();
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 // Computed
 const activeConversation = computed(() => chatUiStore.activeConversation);
 
-const isOrchestratorConversation = computed(() => {
-  const agentName = activeConversation.value?.agent?.name;
-  // Ensure agentName is a string before calling toLowerCase
-  if (typeof agentName === 'string') {
-    return agentName.toLowerCase().includes('orchestrator');
-  }
-  return false;
-});
+// const isOrchestratorConversation = computed(() => {
+//   const agentName = activeConversation.value?.agent?.name;
+//   // Ensure agentName is a string before calling toLowerCase
+//   if (typeof agentName === 'string') {
+//     return agentName.toLowerCase().includes('orchestrator');
+//   }
+//   return false;
+// });
 
 const shouldUseTwoPaneView = computed(() => {
   // Enable two-pane view for all conversations

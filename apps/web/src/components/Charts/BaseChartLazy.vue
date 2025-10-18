@@ -59,7 +59,7 @@ const canvasRef = ref<HTMLCanvasElement | null>(null);
 const chartConfig = computed(() => props.config);
 
 // Use lazy-loaded chart composable
-const { chartInstance, isLoading, error, createChart, updateChart, destroyChart } = useChart(
+const { chartInstance, isLoading, error, createChart, destroyChart } = useChart(
   canvasRef,
   chartConfig
 );

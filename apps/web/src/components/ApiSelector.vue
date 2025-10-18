@@ -221,7 +221,7 @@ import {
   refresh,
   cloudDone,
   cloudOffline,
-  settings,
+  // settings,
   closeOutline
 } from 'ionicons/icons';
 import { useApiConfigStore } from '../stores/apiConfigStore';
@@ -276,9 +276,9 @@ const allFeatures = computed(() => {
   return Array.from(features).sort();
 });
 // Methods
-const getHealthyEndpointsForVersion = (version: string) => {
-  return availableEndpoints.value.filter(ep => ep.version === version);
-};
+// const getHealthyEndpointsForVersion = (version: string) => {
+//   return availableEndpoints.value.filter(ep => ep.version === version);
+// };
 const getEndpointHealth = (endpointName: string) => {
   return apiConfigStore.getEndpointHealth(endpointName);
 };
