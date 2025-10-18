@@ -4,7 +4,7 @@
  */
 
 import { SanitizationHelpers } from '@/utils/sanitizationProfiles';
-import type { SanitizationOptions } from '@/utils/sanitizationProfiles';
+// import type { SanitizationOptions } from '@/utils/sanitizationProfiles';
 
 // =====================================
 // TYPES

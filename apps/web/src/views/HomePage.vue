@@ -58,7 +58,7 @@
   </ion-page>
 </template>
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   IonContent,
   IonHeader,

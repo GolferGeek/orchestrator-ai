@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+// import { ref } from 'vue';
 import { IonIcon } from '@ionic/vue';
 import { playCircleOutline } from 'ionicons/icons';
 

@@ -140,7 +140,7 @@ import AdminExportModal from '@/components/Admin/AdminExportModal.vue';
 import { useAdminEvaluationStore } from '@/stores/adminEvaluationStore';
 const adminStore = useAdminEvaluationStore();
 const route = useRoute();
-const router = useRouter();
+const _router = useRouter();
 // Reactive state
 const activeTab = ref('overview');
 const refreshInterval = ref<NodeJS.Timeout | null>(null);

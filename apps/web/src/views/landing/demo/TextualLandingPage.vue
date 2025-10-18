@@ -1004,7 +1004,7 @@ import { videoService, type Video } from '@/services/videoService';
 import { useRouter } from 'vue-router';
 
 const { initializeViewMode } = useViewToggle();
-const router = useRouter();
+const _router = useRouter();
 
 // Video modal state
 const isVideoModalOpen = ref(false);

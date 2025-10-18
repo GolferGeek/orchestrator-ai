@@ -113,9 +113,9 @@ function toggleSection(sectionId: string) {
   }
 }
 // Computed property for completion percentage
-const completionPercentage = computed(() => 
-  (activeSections.value.length / sections.length) * 100
-);
+// const completionPercentage = computed(() => 
+//   (activeSections.value.length / sections.length) * 100
+// );
 </script>
 <style scoped>
 .disclosure-section {

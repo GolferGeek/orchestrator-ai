@@ -27,7 +27,7 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { IonButton, IonIcon } from '@ionic/vue';
+import { IonIcon } from '@ionic/vue';
 import { 
   playCircleOutline
 } from 'ionicons/icons';
@@ -35,7 +35,7 @@ import { useLandingStore } from '@/stores/landingStore';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import VideoPlayer from './VideoPlayer.vue';
-import { videoService, type Video } from '@/services/videoService';
+import { videoService } from '@/services/videoService';
 
 // Interface for video player (simplified)
 interface VideoPlayerVideo {
@@ -46,8 +46,8 @@ interface VideoPlayerVideo {
 }
 
 const landingStore = useLandingStore();
-const router = useRouter();
-const authStore = useAuthStore();
+const _router = useRouter();
+const _authStore = useAuthStore();
 
 // Get featured videos for the hero section
 const featuredVideos = computed(() => {
@@ -71,9 +71,9 @@ function selectVideo(video: VideoPlayerVideo) {
   currentVideo.value = video;
 }
 
-function openVideoModal(video: VideoPlayerVideo) {
-  emit('openVideoModal', video);
-}
+// function openVideoModal(video: VideoPlayerVideo) {
+//   emit('openVideoModal', video);
+// }
 
 onMounted(() => {
   // Track hero section view

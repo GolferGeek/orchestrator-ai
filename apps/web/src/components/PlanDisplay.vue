@@ -434,7 +434,7 @@ import {
   ellipsisVerticalOutline,
   hardwareChipOutline,
 } from 'ionicons/icons';
-import { marked } from 'marked';
+// import { marked } from 'marked';
 import TaskRating from './TaskRating.vue';
 import type { Plan, PlanVersion } from '@/services/agent2agent/types';
 import { usePlanStore } from '@/stores/planStore';

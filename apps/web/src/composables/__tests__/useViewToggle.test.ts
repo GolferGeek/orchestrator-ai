@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { nextTick } from 'vue';
+// import { nextTick } from 'vue';
 import { useViewToggle, resetViewMode } from '../useViewToggle';
 
 // Mock Vue Router
