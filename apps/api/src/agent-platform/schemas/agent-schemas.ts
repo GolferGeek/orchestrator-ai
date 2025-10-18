@@ -1,3 +1,5 @@
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+
 export type AgentType = 'function' | 'context' | 'api' | 'orchestrator';
 
 export interface CreateAgentPayload {
@@ -8,13 +10,16 @@ export interface CreateAgentPayload {
   mode_profile: string;
   yaml?: string;
   description?: string | null;
-  agent_card?: Record<string, any> | null;
-  context?: Record<string, any> | null;
-  config?: Record<string, any> | null;
+  agent_card?: JsonObject | null;
+  context?: JsonObject | null;
+  config?: JsonObject | null;
 }
 
+// Type for JSON schema objects
+type JsonSchema = Record<string, unknown>;
+
 // Common base schema for all agents
-export const baseAgentSchema: any = {
+export const baseAgentSchema: JsonSchema = {
   type: 'object',
   properties: {
     organization_slug: { type: 'string', nullable: true, optional: true },
@@ -51,7 +56,7 @@ export const baseAgentSchema: any = {
 };
 
 // Function agent must include configuration.function.code
-export const functionAgentSchema: any = {
+export const functionAgentSchema: JsonSchema = {
   ...baseAgentSchema,
   allOf: [
     {
@@ -91,17 +96,17 @@ export const functionAgentSchema: any = {
 };
 
 // Context agent should provide either `context` object or `yaml`
-export const contextAgentSchema: any = {
+export const contextAgentSchema: JsonSchema = {
   ...baseAgentSchema,
 };
 
 // API agent expects api_configuration under config
-export const apiAgentSchema: any = {
+export const apiAgentSchema: JsonSchema = {
   ...baseAgentSchema,
 };
 
 // Orchestrator agent – no extra requireds yet
-export const orchestratorAgentSchema: any = {
+export const orchestratorAgentSchema: JsonSchema = {
   ...baseAgentSchema,
 };
 

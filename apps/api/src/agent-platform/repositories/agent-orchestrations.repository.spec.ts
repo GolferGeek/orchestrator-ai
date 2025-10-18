@@ -67,11 +67,16 @@ describe('AgentOrchestrationsRepository', () => {
     const order = jest.fn().mockResolvedValue({ data: [], error: null });
     const eqAfterOrg = jest.fn().mockReturnValue({ order });
     const is = jest.fn().mockReturnValue({ order });
+    interface MockQueryChain {
+      eq?: jest.Mock;
+      is?: jest.Mock;
+      order: jest.Mock;
+    }
     const eq = jest.fn().mockImplementation((column: string) => {
       if (column === 'agent_slug') {
-        return { eq: eqAfterOrg, is, order } as any;
+        return { eq: eqAfterOrg, is, order } as MockQueryChain;
       }
-      return { order } as any;
+      return { order } as MockQueryChain;
     });
     const select = jest.fn().mockReturnValue({ eq });
     fromMock.mockReturnValue({ select });

@@ -194,7 +194,7 @@ export class AgentRuntimeDispatchService {
   ): GenerateResponseParams {
     const { request, prompt, routingDecision, overrides } = options;
     const payload = request.payload ?? {};
-    const rawOptions = { ...(payload.options ?? {}) };
+    const rawOptions: any = { ...(payload.options ?? {}) };
     const { metadata: _ignoredMetadata, stream, ...restOptions } = rawOptions;
 
     const overrideOptions = overrides?.options ?? {};
@@ -204,7 +204,7 @@ export class AgentRuntimeDispatchService {
       callerName: options.definition.displayName ?? options.definition.slug,
       temperature: config.temperature,
       piiMetadata: routingDecision.piiMetadata,
-      routingDecision,
+      routingDecision: routingDecision as any,
       preferLocal: routingDecision.isLocal,
       organizationSlug: options.definition.organizationSlug ?? null,
       agentSlug: options.definition.slug,
@@ -324,7 +324,7 @@ export class AgentRuntimeDispatchService {
     const mergedHeaders: Record<string, any> = {
       'content-type': 'application/json',
       ...(api.headers ?? {}),
-      ...((options.request.payload?.options?.headers as Record<string, any>) ||
+      ...(((options.request.payload?.options as any)?.headers as Record<string, any>) ||
         {}),
     };
     const headers = this.sanitizeForwardHeaders(mergedHeaders);

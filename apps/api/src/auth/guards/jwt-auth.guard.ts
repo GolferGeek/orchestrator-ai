@@ -19,7 +19,7 @@ interface AuthenticatedRequest extends Request {
   user?: SupabaseAuthUserDto;
   streamTokenClaims?: StreamTokenClaims;
   sanitizedUrl?: string;
-  originalUrl?: string;
+  originalUrl: string;
 }
 
 @Injectable()

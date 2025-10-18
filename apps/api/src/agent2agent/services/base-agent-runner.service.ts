@@ -773,14 +773,14 @@ export abstract class BaseAgentRunner implements IAgentRunner {
   protected resolveUserId(request: TaskRequestDto): string | null {
     // Check top-level metadata
     const fromMetadata =
-      request.metadata?.userId || request.metadata?.createdBy;
+      (request.metadata as any)?.userId || (request.metadata as any)?.createdBy;
     if (fromMetadata) {
       return String(fromMetadata);
     }
 
     // Check payload metadata
     const fromPayload =
-      request.payload?.metadata?.userId || request.payload?.metadata?.createdBy;
+      (request.payload?.metadata as any)?.userId || (request.payload?.metadata as any)?.createdBy;
     if (fromPayload) {
       return String(fromPayload);
     }
@@ -890,7 +890,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    */
   protected shouldStream(request: TaskRequestDto): boolean {
     return Boolean(
-      request.payload?.options?.stream || request.metadata?.stream,
+      (request.payload?.options as any)?.stream || (request.metadata as any)?.stream,
     );
   }
 

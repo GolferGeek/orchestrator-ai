@@ -132,9 +132,9 @@ export class AgentRuntimeDeliverablesAdapter {
 
   private resolveUserId(request: TaskRequestDto): string | null {
     // prefer top-level metadata, then payload.metadata
-    const fromTop = request.metadata?.userId || request.metadata?.createdBy;
+    const fromTop = (request.metadata as any)?.userId || (request.metadata as any)?.createdBy;
     const fromPayload =
-      request.payload?.metadata?.userId || request.payload?.metadata?.createdBy;
+      (request.payload?.metadata as any)?.userId || (request.payload?.metadata as any)?.createdBy;
     return (fromTop as string) || (fromPayload as string) || null;
   }
 

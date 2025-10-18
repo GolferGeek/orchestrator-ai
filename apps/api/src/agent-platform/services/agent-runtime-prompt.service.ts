@@ -48,7 +48,7 @@ export class AgentRuntimePromptService {
 
     const payload = options.request.payload ?? {};
     const optionMetadata = {
-      ...(payload.options?.metadata ?? {}),
+      ...((payload.options as any)?.metadata ?? {}),
       ...metadata,
     };
 

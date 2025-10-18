@@ -54,7 +54,7 @@ export class MCPController {
 
       switch (method) {
         case 'initialize':
-          result = await this.handleInitialize(params);
+          result = await this.handleInitialize(params || {});
           break;
 
         case 'tools/list':
@@ -62,7 +62,7 @@ export class MCPController {
           break;
 
         case 'tools/call':
-          result = await this.handleCallTool(params);
+          result = await this.handleCallTool(params || { name: '', arguments: {} });
           break;
 
         case 'ping':

@@ -634,13 +634,13 @@ export class DeliverableVersionsService {
       }
 
       // Extract agent information from source version metadata
-      const agentName = sourceVersion.metadata?.agentName || 'unknown';
-      const agentType = sourceVersion.metadata?.agentType || 'context';
+      const agentName = (sourceVersion.metadata as any)?.agentName || 'unknown';
+      const agentType = (sourceVersion.metadata as any)?.agentType || 'context';
 
       // Create system prompt based on agent type and original context
       const systemPrompt = this.buildSystemPromptForRerun(
-        agentName,
-        agentType,
+        agentName as string,
+        agentType as string,
         sourceVersion,
       );
 
@@ -660,7 +660,7 @@ export class DeliverableVersionsService {
           userId: userId,
           callerType: 'deliverable_rerun',
           callerName: `${agentName}_rerun`,
-          conversationId: sourceVersion.metadata?.conversationId,
+          conversationId: (sourceVersion.metadata as any)?.conversationId as string | undefined,
           includeMetadata: true, // We need the full response object
         },
       });

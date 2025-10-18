@@ -59,11 +59,11 @@ describe('AgentPromotionService', () => {
         display_name: 'Simple Context Agent',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       agentsRepo.updateStatus.mockResolvedValue({
         ...agent,
         status: 'active',
-      } as any);
+      } as never);
 
       const result = await service.requestPromotion('agent-1');
 
@@ -90,12 +90,12 @@ describe('AgentPromotionService', () => {
         },
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       approvalsRepo.create.mockResolvedValue({
         id: 'approval-1',
         agent_slug: agent.slug,
         status: 'pending',
-      } as any);
+      } as never);
 
       const result = await service.requestPromotion('agent-2', {
         requestedBy: 'user-123',
@@ -119,12 +119,12 @@ describe('AgentPromotionService', () => {
         display_name: 'API Agent',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       approvalsRepo.create.mockResolvedValue({
         id: 'approval-2',
         agent_slug: agent.slug,
         status: 'pending',
-      } as any);
+      } as never);
 
       const result = await service.requestPromotion('agent-3');
 
@@ -140,7 +140,7 @@ describe('AgentPromotionService', () => {
         status: 'active',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
 
       const result = await service.requestPromotion('agent-4');
 
@@ -157,7 +157,7 @@ describe('AgentPromotionService', () => {
         config: {},
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       validator.validateByType.mockReturnValue({
         ok: false,
         issues: [{ message: 'Missing function code' }],
@@ -177,11 +177,11 @@ describe('AgentPromotionService', () => {
         status: 'draft',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       agentsRepo.updateStatus.mockResolvedValue({
         ...agent,
         status: 'active',
-      } as any);
+      } as never);
 
       await service.requestPromotion('agent-6', { skipValidation: true });
 
@@ -206,12 +206,12 @@ describe('AgentPromotionService', () => {
         status: 'draft',
       };
 
-      approvalsRepo.get.mockResolvedValue(approval as any);
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      approvalsRepo.get.mockResolvedValue(approval as never);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       agentsRepo.updateStatus.mockResolvedValue({
         ...agent,
         status: 'active',
-      } as any);
+      } as never);
 
       const result = await service.completePromotionAfterApproval('approval-1');
 
@@ -228,7 +228,7 @@ describe('AgentPromotionService', () => {
         metadata: { agentId: 'agent-2' },
       };
 
-      approvalsRepo.get.mockResolvedValue(approval as any);
+      approvalsRepo.get.mockResolvedValue(approval as never);
 
       await expect(
         service.completePromotionAfterApproval('approval-2'),
@@ -244,11 +244,11 @@ describe('AgentPromotionService', () => {
         status: 'active',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
       agentsRepo.updateStatus.mockResolvedValue({
         ...agent,
         status: 'draft',
-      } as any);
+      } as never);
 
       const result = await service.demote('agent-7', 'Needs fixes');
 
@@ -265,7 +265,7 @@ describe('AgentPromotionService', () => {
         status: 'draft',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
 
       const result = await service.demote('agent-8');
 
@@ -318,7 +318,7 @@ describe('AgentPromotionService', () => {
         agent_type: 'orchestrator',
       };
 
-      agentsRepo.getById.mockResolvedValue(agent as any);
+      agentsRepo.getById.mockResolvedValue(agent as never);
 
       const requirements = await service.getPromotionRequirements('agent-11');
 

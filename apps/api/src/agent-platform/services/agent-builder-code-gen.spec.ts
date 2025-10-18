@@ -124,8 +124,8 @@ async function handler(input, ctx) {
       ['text/markdown'],
     );
 
-    const systemPromptCall = (llmService.generateResponse as jest.Mock).mock
-      .calls[0][0];
+    const mockCalls = (llmService.generateResponse as jest.Mock).mock.calls;
+    const systemPromptCall = (mockCalls[0] as unknown[])[0] as string;
     expect(systemPromptCall).toContain('application/json, text/plain');
     expect(systemPromptCall).toContain('text/markdown');
   });
@@ -137,8 +137,8 @@ async function handler(input, ctx) {
       ['application/json'],
     );
 
-    const systemPromptCall = (llmService.generateResponse as jest.Mock).mock
-      .calls[0][0];
+    const mockCalls = (llmService.generateResponse as jest.Mock).mock.calls;
+    const systemPromptCall = (mockCalls[0] as unknown[])[0] as string;
     expect(systemPromptCall).toContain("ctx.require('axios')");
     expect(systemPromptCall).toContain('ctx.deliverables.create');
   });

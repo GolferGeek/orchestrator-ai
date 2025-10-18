@@ -67,7 +67,8 @@ export class AgentPolicyService {
 
     // For API agents, ensure api_configuration presence hint (detailed validation is in type checks)
     if (payload?.agent_type === 'api') {
-      const api = payload?.config?.configuration?.api?.api_configuration;
+      const api: unknown =
+        payload?.config?.configuration?.api?.api_configuration;
       if (!api)
         issues.push({
           message:

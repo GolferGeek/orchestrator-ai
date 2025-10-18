@@ -77,7 +77,7 @@ export class AgentDryRunService {
 
       let body: string | undefined;
       if (reqT?.format === 'custom' && typeof reqT?.template === 'string') {
-        body = this.renderTemplate(reqT.template, input);
+        body = this.renderTemplate(reqT.template as string, input);
       } else if (typeof reqT === 'object') {
         // Best-effort stringify
         body = JSON.stringify(reqT);
@@ -89,7 +89,7 @@ export class AgentDryRunService {
         typeof resT?.field === 'string'
       ) {
         const src = mockResponse ?? {};
-        extracted = this.getByPath(src, resT.field);
+        extracted = this.getByPath(src, resT.field as string);
       }
 
       return {

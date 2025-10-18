@@ -106,10 +106,10 @@ export async function fetchExistingPlan(
 
   const planIdCandidates: Array<unknown> = [
     request.planId,
-    request.payload?.planId,
-    request.payload?.plan?.id,
-    request.metadata?.planId,
-    request.metadata?.plan_id,
+    (request.payload as any)?.planId,
+    (request.payload as any)?.plan?.id,
+    (request.metadata as any)?.planId,
+    (request.metadata as any)?.plan_id,
   ];
 
   const planId = planIdCandidates.find(
@@ -152,10 +152,10 @@ export async function fetchExistingDeliverable(
   }
 
   const deliverableIdCandidates: Array<unknown> = [
-    request.payload?.deliverableId,
-    request.payload?.deliverable?.id,
-    request.metadata?.deliverableId,
-    request.metadata?.deliverable_id,
+    (request.payload as any)?.deliverableId,
+    (request.payload as any)?.deliverable?.id,
+    (request.metadata as any)?.deliverableId,
+    (request.metadata as any)?.deliverable_id,
   ];
 
   const deliverableId = deliverableIdCandidates.find(

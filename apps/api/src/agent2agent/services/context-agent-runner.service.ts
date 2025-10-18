@@ -138,7 +138,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    const payload = (request.payload ?? {}) as ExtendedBuildCreatePayload;
+    const payload = (request.payload ?? {}) as unknown as ExtendedBuildCreatePayload;
 
     try {
       const userId = this.resolveUserId(request);
@@ -164,7 +164,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         userId,
         agentSlug: definition.slug,
         taskId,
-        metadata: request.metadata ?? {},
+        metadata: (request.metadata ?? {}) as any,
       };
 
       const requestedPlanVersionId =

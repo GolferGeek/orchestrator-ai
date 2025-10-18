@@ -1,10 +1,13 @@
 import { OrchestrationRunsRepository } from './orchestration-runs.repository';
 import { SupabaseService } from '@/supabase/supabase.service';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const createSupabaseMock = () => {
   const fromMock = jest.fn();
   const service: Partial<SupabaseService> = {
-    getServiceClient: jest.fn(() => ({ from: fromMock }) as any),
+    getServiceClient: jest.fn(
+      () => ({ from: fromMock }) as unknown as SupabaseClient,
+    ),
   };
   return { fromMock, service: service as SupabaseService };
 };
@@ -58,7 +61,14 @@ describe('OrchestrationRunsRepository', () => {
 
     expect(fromMock).toHaveBeenCalledWith('orchestration_runs');
     expect(insert).toHaveBeenCalled();
-    const payload = insert.mock.calls[0][0][0];
+    const callArgs = insert.mock.calls[0] as unknown[];
+    const payloadArray = callArgs[0] as unknown[];
+    const payload = payloadArray[0] as {
+      origin_type: string;
+      parameters: Record<string, unknown>;
+      plan: Record<string, unknown>;
+      results: Record<string, unknown>;
+    };
     expect(payload.origin_type).toBe('plan');
     expect(payload.parameters).toEqual({});
     expect(payload.plan).toEqual({});

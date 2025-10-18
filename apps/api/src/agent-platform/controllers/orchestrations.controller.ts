@@ -15,6 +15,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { OrchestrationStatusService } from '../services/orchestration-status.service';
 import { OrchestrationDashboardService } from '../services/orchestration-dashboard.service';
 import {
@@ -115,7 +116,7 @@ export class OrchestrationsController {
       approvalId,
       decision: body.decision,
       notes: body.notes ?? null,
-      modifications: body.modifications,
+      modifications: body.modifications as JsonObject | undefined,
       actorId: actor,
     });
 
@@ -149,7 +150,7 @@ export class OrchestrationsController {
       runId,
       stepRecordId: body.stepRecordId,
       delaySeconds: body.delaySeconds,
-      modifications: body.modifications,
+      modifications: body.modifications as JsonObject | undefined,
       note: body.note ?? null,
       actorId: actor,
     });
@@ -184,7 +185,10 @@ export class OrchestrationsController {
       runId,
       stepRecordId: body.stepRecordId,
       note: body.note ?? null,
-      replacementOutput: body.replacementOutput ?? undefined,
+      replacementOutput: body.replacementOutput as
+        | JsonObject
+        | null
+        | undefined,
       actorId: actor,
     });
 

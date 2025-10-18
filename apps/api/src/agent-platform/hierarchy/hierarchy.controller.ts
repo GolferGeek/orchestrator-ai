@@ -2,6 +2,28 @@ import { Controller, Get, Headers, Logger } from '@nestjs/common';
 import { Public } from '@/auth/decorators/public.decorator';
 import { AgentRegistryService } from '../services/agent-registry.service';
 import { load as yamlLoad } from 'js-yaml';
+import type { AgentRecord } from '../interfaces/agent.interface';
+
+interface HierarchyNode {
+  id: string;
+  name: string;
+  displayName: string;
+  type: string;
+  description: string | null;
+  status: string | null;
+  namespace: string;
+  metadata: {
+    execution_profile?: string | null;
+    execution_capabilities?: unknown;
+  };
+  children: HierarchyNode[];
+}
+
+interface YamlAgentData {
+  reports_to?: string | null;
+  reportsTo?: string | null;
+  [key: string]: unknown;
+}
 
 @Controller('hierarchy')
 export class HierarchyController {
@@ -88,8 +110,8 @@ export class HierarchyController {
     return this.getAgentHierarchy(namespaceHeader);
   }
 
-  private buildHierarchyFromAgents(agents: any[]): any[] {
-    const byNamespace = new Map<string, any[]>();
+  private buildHierarchyFromAgents(agents: AgentRecord[]): HierarchyNode[] {
+    const byNamespace = new Map<string, AgentRecord[]>();
 
     // Group agents by namespace
     for (const agent of agents) {
@@ -100,11 +122,11 @@ export class HierarchyController {
       byNamespace.get(namespace)!.push(agent);
     }
 
-    const roots: any[] = [];
+    const roots: HierarchyNode[] = [];
 
     // Build hierarchy for each namespace
     byNamespace.forEach((namespaceAgents, _namespace) => {
-      const agentMap = new Map<string, any>();
+      const agentMap = new Map<string, HierarchyNode>();
 
       // Create nodes for all agents
       for (const agent of namespaceAgents) {
@@ -126,7 +148,7 @@ export class HierarchyController {
       }
 
       // Build parent-child relationships based on reports_to
-      const topLevelNodes: any[] = [];
+      const topLevelNodes: HierarchyNode[] = [];
 
       for (const agent of namespaceAgents) {
         const node = agentMap.get(agent.slug);
@@ -138,7 +160,7 @@ export class HierarchyController {
         // Parse YAML to get reports_to
         if (agent.yaml) {
           try {
-            const yamlData = yamlLoad(agent.yaml) as any;
+            const yamlData = yamlLoad(agent.yaml) as YamlAgentData;
             reportsTo = yamlData?.reports_to || yamlData?.reportsTo || null;
           } catch {
             // YAML parse error - reportsTo remains null

@@ -1,10 +1,13 @@
 import { AgentsRepository } from './agents.repository';
 import { SupabaseService } from '@/supabase/supabase.service';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const createSupabaseMock = () => {
   const fromMock = jest.fn();
   const service: Partial<SupabaseService> = {
-    getServiceClient: jest.fn(() => ({ from: fromMock }) as any),
+    getServiceClient: jest.fn(
+      () => ({ from: fromMock }) as unknown as SupabaseClient,
+    ),
   };
   return { fromMock, service: service as SupabaseService };
 };
@@ -84,14 +87,22 @@ describe('AgentsRepository', () => {
 
   it('lists agents by organization', async () => {
     const { fromMock, service } = createSupabaseMock();
-    const listChain = {
+    interface QueryChain {
+      select: jest.Mock;
+      eq: jest.Mock;
+      is: jest.Mock;
+      order: jest.Mock;
+      data: (typeof sampleAgent)[];
+      error: null;
+    }
+    const listChain: QueryChain = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       is: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
       data: [sampleAgent],
       error: null,
-    } as any;
+    };
 
     listChain.order = jest
       .fn()

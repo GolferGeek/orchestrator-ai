@@ -2494,8 +2494,8 @@ export class EvaluationService {
       {} as Record<string, { ratings: number[]; count: number }>,
     );
 
-    return Object.entries(agentGroups as Record<string, unknown>).map(
-      ([agentName, data]: [string, { ratings: number[]; count: number }]) => ({
+    return Object.entries(agentGroups as Record<string, any>).map(
+      ([agentName, data]: [string, any]) => ({
         agentName,
         averageRating:
           data.ratings.length > 0

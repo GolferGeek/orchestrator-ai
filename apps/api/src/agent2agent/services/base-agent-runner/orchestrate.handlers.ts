@@ -43,7 +43,7 @@ export async function handleOrchestrateAction(
   // Pass runner instance for access to existing methods
   runnerContext: any,
 ): Promise<TaskResponseDto> {
-  const payload = (request.payload ?? {}) as OrchestrateModePayload;
+  const payload = (request.payload ?? {}) as unknown as OrchestrateModePayload;
   const action = payload.action;
 
   if (!action) {
@@ -252,7 +252,7 @@ async function handleRunHumanResponse(
   organizationSlug: string | null,
   runnerContext: any,
 ): Promise<TaskResponseDto> {
-  const payload = (request.payload ?? {}) as OrchestrateModePayload;
+  const payload = (request.payload ?? {}) as unknown as OrchestrateModePayload;
   const { approvalId, decision, notes, modifications } = payload as any;
 
   if (!approvalId) {

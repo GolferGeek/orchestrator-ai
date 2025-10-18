@@ -245,7 +245,7 @@ export class OrchestrationCacheService {
       (plan?.name as string | undefined) ?? run.orchestration_name ?? 'ad_hoc';
     const version =
       (plan?.version as string | undefined) ??
-      metadata?.definitionVersion ??
+      (metadata?.definitionVersion as string | undefined) ??
       'latest';
 
     return `name:${owner}:${name}:${version}`;

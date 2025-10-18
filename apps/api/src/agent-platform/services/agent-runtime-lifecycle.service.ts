@@ -35,7 +35,7 @@ export class AgentRuntimeLifecycleService {
     );
   }
 
-  complete(ctx: LifecycleContext, result?: any) {
+  complete(ctx: LifecycleContext, result?: unknown) {
     this.emitter.emit(
       'agent.lifecycle.complete',
       this.envelope(ctx, { result }),

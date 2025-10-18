@@ -2,6 +2,22 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { AgentDryRunService } from './agent-dry-run.service';
 
+interface AgentBuilderResult {
+  content?: string;
+  needsInput?: boolean;
+  state?: {
+    step?: string;
+    agentConfig?: {
+      agent_type?: string;
+      slug?: string;
+      [key: string]: unknown;
+    };
+    validationResults?: unknown;
+  };
+  format?: string;
+  action?: string;
+}
+
 describe('Agent Builder Orchestrator (Full Flow)', () => {
   const dry = new AgentDryRunService();
   const root = resolve(__dirname, '../../../../../');
@@ -9,17 +25,26 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
     root,
     'docs/feature/matt/payloads/agent_builder_orchestrator.json',
   );
-  const builder = JSON.parse(readFileSync(builderPath, 'utf8'));
-  const code = builder?.config?.configuration?.function?.code as string;
+  const builder = JSON.parse(readFileSync(builderPath, 'utf8')) as {
+    config?: {
+      configuration?: {
+        function?: {
+          code?: string;
+        };
+      };
+    };
+  };
+  const code = (builder?.config?.configuration?.function?.code ?? '') as string;
 
   describe('Step 1: Intent Collection', () => {
     it('should prompt for agent type and purpose when no data provided', async () => {
       const res = await dry.runFunction(code, { step: 'intent' }, 10000);
+      const result = res.result as AgentBuilderResult;
 
       expect(res.ok).toBe(true);
-      expect(res.result?.content).toContain('What type of agent');
-      expect(res.result?.needsInput).toBe(true);
-      expect(res.result?.state?.step).toBe('intent');
+      expect(result?.content).toContain('What type of agent');
+      expect(result?.needsInput).toBe(true);
+      expect(result?.state?.step).toBe('intent');
     });
 
     it('should collect intent and move to basic_info', async () => {
@@ -31,11 +56,12 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         },
         10000,
       );
+      const result = res.result as AgentBuilderResult;
 
       expect(res.ok).toBe(true);
-      expect(res.result?.state?.step).toBe('basic_info');
-      expect(res.result?.state?.agentConfig?.agent_type).toBe('function');
-      expect(res.result?.content).toContain('Organization slug');
+      expect(result?.state?.step).toBe('basic_info');
+      expect(result?.state?.agentConfig?.agent_type).toBe('function');
+      expect(result?.content).toContain('Organization slug');
     });
   });
 
@@ -52,10 +78,11 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         },
         10000,
       );
+      const result = res.result as AgentBuilderResult;
 
       expect(res.ok).toBe(true);
-      expect(res.result?.content).toContain('required fields');
-      expect(res.result?.needsInput).toBe(true);
+      expect(result?.content).toContain('required fields');
+      expect(result?.needsInput).toBe(true);
     });
 
     it('should collect basic info and move to io_contract', async () => {
@@ -75,11 +102,12 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         },
         10000,
       );
+      const result = res.result as AgentBuilderResult;
 
       expect(res.ok).toBe(true);
-      expect(res.result?.state?.step).toBe('io_contract');
-      expect(res.result?.state?.agentConfig?.slug).toBe('doc_processor');
-      expect(res.result?.content).toContain('IO Contract');
+      expect(result?.state?.step).toBe('io_contract');
+      expect(result?.state?.agentConfig?.slug).toBe('doc_processor');
+      expect(result?.content).toContain('IO Contract');
     });
   });
 
@@ -355,7 +383,7 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         10000,
       );
       expect(res.result?.state?.step).toBe('basic_info');
-      let state = res.result?.state;
+      let state: AgentBuilderResult['state'] = (res.result as AgentBuilderResult)?.state;
 
       // Step 2: Basic Info
       res = await dry.runFunction(
@@ -363,12 +391,12 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
         {
           step: 'basic_info',
           data: { slug: 'test_flow', displayName: 'Test Flow Agent' },
-          conversationState: state,
+          conversationState: state as Record<string, any>,
         },
         10000,
       );
       expect(res.result?.state?.step).toBe('io_contract');
-      state = res.result?.state;
+      state = res.result?.state as AgentBuilderResult['state'];
 
       // Step 3: IO Contract
       res = await dry.runFunction(
@@ -379,12 +407,12 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
             inputModes: ['application/json'],
             outputModes: ['text/markdown'],
           },
-          conversationState: state,
+          conversationState: state as Record<string, any>,
         },
         10000,
       );
       expect(res.result?.state?.step).toBe('agent_config');
-      state = res.result?.state;
+      state = res.result?.state as AgentBuilderResult['state'];
 
       // Step 4: Agent Config
       res = await dry.runFunction(
@@ -395,35 +423,35 @@ describe('Agent Builder Orchestrator (Full Flow)', () => {
             code: 'module.exports = async () => ({ ok: true });',
             timeoutMs: 5000,
           },
-          conversationState: state,
+          conversationState: state as Record<string, any>,
         },
         10000,
       );
       expect(res.result?.state?.step).toBe('validate');
-      state = res.result?.state;
+      state = res.result?.state as AgentBuilderResult['state'];
 
       // Step 5: Validate
       res = await dry.runFunction(
         code,
-        { step: 'validate', conversationState: state },
+        { step: 'validate', conversationState: state as Record<string, any> },
         10000,
       );
       expect(res.result?.state?.step).toBe('review');
-      state = res.result?.state;
+      state = res.result?.state as AgentBuilderResult['state'];
 
       // Step 6: Review
       res = await dry.runFunction(
         code,
-        { step: 'review', data: { approved: true }, conversationState: state },
+        { step: 'review', data: { approved: true }, conversationState: state as Record<string, any> },
         10000,
       );
       expect(res.result?.state?.step).toBe('create');
-      state = res.result?.state;
+      state = res.result?.state as AgentBuilderResult['state'];
 
       // Step 7: Create
       res = await dry.runFunction(
         code,
-        { step: 'create', conversationState: state },
+        { step: 'create', conversationState: state as Record<string, any> },
         10000,
       );
       expect(res.result?.state?.step).toBe('complete');

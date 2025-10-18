@@ -280,8 +280,8 @@ export class UsageService {
             model.requests > 0 ? model.cost / model.requests : 0,
           totalCost: model.cost,
           totalTokens: model.tokens,
-          costEfficiencyScore: this.calculateCostEfficiency(model),
-          performanceScore: this.calculatePerformanceScore(model),
+          costEfficiencyScore: this.calculateCostEfficiency({ ...model, avg_rating: model.avgRating || 0 } as any),
+          performanceScore: this.calculatePerformanceScore({ ...model, avg_rating: model.avgRating || 0 } as any),
         },
         rank: 0, // Will be assigned after sorting
       }));

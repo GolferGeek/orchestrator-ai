@@ -5,6 +5,7 @@ import { AgentDryRunService } from './agent-dry-run.service';
 import { AgentsRepository } from '../repositories/agents.repository';
 import { LLMService } from '@/llms/llm.service';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
+import { AgentType } from '../dto/agent-admin.dto';
 
 interface ValidationIssue {
   message: string;
@@ -48,7 +49,7 @@ export class AgentBuilderService {
    * Validate an agent configuration
    */
   async validateAgent(payload: JsonObject): Promise<ValidationResult> {
-    const type = payload.agent_type;
+    const type = payload.agent_type as AgentType;
     const validation = this.validator.validateByType(type, payload);
     const policyIssues = this.policy.check(payload);
 
@@ -59,27 +60,42 @@ export class AgentBuilderService {
 
     // Run dry-run for function agents
     if (validation.ok && type === 'function') {
-      const code = payload?.config?.configuration?.function?.code;
-      const timeout =
-        Number(payload?.config?.configuration?.function?.timeout_ms) || 2000;
-      if (code && code.length < 50000) {
-        response.dryRun = await this.dryRun.runFunction(code, {}, timeout);
+      const config = payload?.config;
+      if (config && typeof config === 'object' && !Array.isArray(config)) {
+        const configuration = (config as Record<string, unknown>).configuration;
+        if (configuration && typeof configuration === 'object' && !Array.isArray(configuration)) {
+          const functionConfig = (configuration as Record<string, unknown>).function;
+          if (functionConfig && typeof functionConfig === 'object' && !Array.isArray(functionConfig)) {
+            const code = (functionConfig as Record<string, unknown>).code;
+            const timeout = Number((functionConfig as Record<string, unknown>).timeout_ms) || 2000;
+            if (typeof code === 'string' && code.length < 50000) {
+              response.dryRun = await this.dryRun.runFunction(code, {}, timeout);
+            }
+          }
+        }
       }
     }
 
     // Run dry-run for API agents
     if (validation.ok && type === 'api') {
-      const apiCfg = payload?.config?.configuration?.api?.api_configuration;
-      if (apiCfg) {
-        const sampleInput = payload?.config?.configuration?.api
-          ?.sample_input || { test: 'input' };
-        const sampleResp = payload?.config?.configuration?.api
-          ?.sample_response || { test: 'output' };
-        response.dryRun = this.dryRun.runApiTransform(
-          apiCfg,
-          sampleInput,
-          sampleResp,
-        );
+      const config = payload?.config;
+      if (config && typeof config === 'object' && !Array.isArray(config)) {
+        const configuration = (config as Record<string, unknown>).configuration;
+        if (configuration && typeof configuration === 'object' && !Array.isArray(configuration)) {
+          const apiConfig = (configuration as Record<string, unknown>).api;
+          if (apiConfig && typeof apiConfig === 'object' && !Array.isArray(apiConfig)) {
+            const apiCfg = (apiConfig as Record<string, unknown>).api_configuration;
+            if (apiCfg) {
+              const sampleInput = (apiConfig as Record<string, unknown>).sample_input || { test: 'input' };
+              const sampleResp = (apiConfig as Record<string, unknown>).sample_response || { test: 'output' };
+              response.dryRun = this.dryRun.runApiTransform(
+                apiCfg,
+                sampleInput,
+                sampleResp,
+              );
+            }
+          }
+        }
       }
     }
 
@@ -102,16 +118,16 @@ export class AgentBuilderService {
 
       // Create the agent
       const record = await this.agents.upsert({
-        organization_slug: payload.organization_slug ?? null,
-        slug: payload.slug,
-        display_name: payload.display_name,
-        description: payload.description ?? null,
-        agent_type: payload.agent_type,
-        mode_profile: payload.mode_profile || 'draft',
+        organization_slug: typeof payload.organization_slug === 'string' ? payload.organization_slug : null,
+        slug: typeof payload.slug === 'string' ? payload.slug : '',
+        display_name: typeof payload.display_name === 'string' ? payload.display_name : '',
+        description: typeof payload.description === 'string' ? payload.description : null,
+        agent_type: typeof payload.agent_type === 'string' ? payload.agent_type : '',
+        mode_profile: typeof payload.mode_profile === 'string' ? payload.mode_profile : 'draft',
         version: null,
         status: 'draft', // Start as draft
-        yaml: payload.yaml ?? '',
-        context: payload.context ?? null,
+        yaml: typeof payload.yaml === 'string' ? payload.yaml : '',
+        context: (payload.context && typeof payload.context === 'object' && !Array.isArray(payload.context)) ? payload.context as JsonObject : null,
       });
 
       return { success: true, data: record };

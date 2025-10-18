@@ -98,9 +98,15 @@ export class AgentsAdminController {
       status: dto.status ?? null,
       yaml: dto.yaml ?? '',
       function_code: dto.function_code ?? null,
-      context: dto.context ?? null,
-      plan_structure: dto.plan_structure ?? null,
-      deliverable_structure: dto.deliverable_structure ?? null,
+      context: dto.context as Record<string, unknown> | null,
+      plan_structure: dto.plan_structure as
+        | string
+        | Record<string, unknown>
+        | null,
+      deliverable_structure: dto.deliverable_structure as
+        | string
+        | Record<string, unknown>
+        | null,
     });
 
     return { success: true, data: record };

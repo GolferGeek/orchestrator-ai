@@ -1,11 +1,14 @@
 import { SupabaseService } from '@/supabase/supabase.service';
 import { ConversationPlanRecord } from '../interfaces/conversation-plan-record.interface';
 import { ConversationPlansRepository } from './conversation-plans.repository';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const createSupabaseMock = () => {
   const fromMock = jest.fn();
   const service: Partial<SupabaseService> = {
-    getServiceClient: jest.fn(() => ({ from: fromMock }) as any),
+    getServiceClient: jest.fn(
+      () => ({ from: fromMock }) as unknown as SupabaseClient,
+    ),
   };
   return { fromMock, service: service as SupabaseService };
 };
