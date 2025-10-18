@@ -112,13 +112,13 @@
         <!-- Merge Preview -->
         <div class="merge-preview">
           <h4>Merged Result Preview</h4>
-          <div class="preview-content" v-html="mergedPreview"></div>
+          <div class="preview-content">{{ mergedContent }}</div>
         </div>
       </div>
       <!-- Text Diff Mode -->
       <div v-if="mergeMode === 'text'" class="text-diff-container">
         <div class="diff-display">
-          <pre class="diff-content" v-html="textDiffHtml"></pre>
+          <pre class="diff-content">{{ textDiffContent }}</pre>
         </div>
         <div class="merge-controls">
           <ion-button fill="outline" @click="acceptAllChanges">
@@ -249,17 +249,16 @@ const compareSections = computed(() => {
   const version = getVersionByType(compareVersion.value);
   return parseContentIntoSections(version?.content || '');
 });
-const textDiffHtml = computed(() => {
+const textDiffContent = computed(() => {
   const baseContent = getVersionByType(baseVersion.value)?.content || '';
   const compareContent = getVersionByType(compareVersion.value)?.content || '';
   const diffResult = diff.diffLines(baseContent, compareContent);
   return diffResult.map(part => {
-    const className = part.added ? 'diff-added' : part.removed ? 'diff-removed' : 'diff-unchanged';
-    const escapedValue = part.value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return `<span class="${className}">${escapedValue}</span>`;
+    const prefix = part.added ? '+ ' : part.removed ? '- ' : '  ';
+    return prefix + part.value;
   }).join('');
 });
-const mergedPreview = computed(() => {
+const mergedContent = computed(() => {
   const selectedBaseSections = baseSections.value.filter((_, index) => 
     isSectionSelected(index, 'base')
   );
@@ -267,11 +266,7 @@ const mergedPreview = computed(() => {
     isSectionSelected(index, 'compare')
   );
   const allSelected = [...selectedBaseSections, ...selectedCompareSections];
-  const mergedContent = allSelected.map(section => section.content).join('\n\n');
-  if (currentVersion.value.format === 'markdown') {
-    return marked(mergedContent);
-  }
-  return `<pre>${mergedContent}</pre>`;
+  return allSelected.map(section => section.content).join('\n\n');
 });
 // Methods
 const loadVersions = async () => {

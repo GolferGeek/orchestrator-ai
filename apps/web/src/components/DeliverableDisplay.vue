@@ -352,12 +352,10 @@
           class="json-content"
         ><code>{{ formatJson(displayVersion?.content) }}</code></pre>
         <!-- HTML Content -->
-        <!-- Note: sanitizedHtml is sanitized with DOMPurify for security -->
         <div 
           v-else-if="displayVersion?.format === 'html'"
           class="html-content"
-          v-html="sanitizedHtml"
-        ></div>
+        >{{ displayVersion?.content }}</div>
         <!-- Plain Text Content -->
         <div 
           v-else
