@@ -169,7 +169,9 @@ export class HumanLoopService {
           clearAll(checkInterval);
           this.handleHumanInputTimeout(inputId)
             .then(resolve)
-            .catch((err) => reject(err instanceof Error ? err : new Error(String(err))));
+            .catch((err) =>
+              reject(err instanceof Error ? err : new Error(String(err))),
+            );
         }, timeoutMs);
       }
 

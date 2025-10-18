@@ -372,7 +372,9 @@ export class CentralizedRoutingService {
               ).map((m: any) => m.dataType),
             } as any,
           });
-        } catch {}
+        } catch {
+          // Continue if logging fails
+        }
 
         return {
           provider: 'policy-blocked',
@@ -878,7 +880,9 @@ export class CentralizedRoutingService {
   /**
    * Get external provider fallback for the given tier
    */
-  private getExternalFallback(tier: string): Omit<
+  private getExternalFallback(
+    tier: string,
+  ): Omit<
     RoutingDecision,
     'complexityScore' | 'reasoningPath' | 'fallbackUsed'
   > {

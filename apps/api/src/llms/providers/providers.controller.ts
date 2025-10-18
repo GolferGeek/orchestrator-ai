@@ -28,7 +28,6 @@ import {
   ProviderResponseDto,
   ModelResponseDto,
   ProviderNameDto,
-  ModelNameDto,
   ProviderWithModelsDto,
 } from '@/llms/dto/llm-evaluation.dto';
 

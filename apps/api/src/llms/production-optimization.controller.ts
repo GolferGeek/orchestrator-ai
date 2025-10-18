@@ -55,20 +55,9 @@ export class ProductionOptimizationController {
    */
   @Post('memory/load/:modelName')
   @HttpCode(HttpStatus.OK)
-  async loadModel(
-    @Param('modelName') modelName: string,
-    @Body()
-    body: {
-      taskComplexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
-      priority?: 'high' | 'medium' | 'low';
-    } = {},
-  ) {
+  async loadModel(@Param('modelName') modelName: string) {
     try {
-      const result = await this.memoryManagerService.loadModel(
-        modelName,
-        body.taskComplexity,
-        body.priority || 'medium',
-      );
+      const result = await this.memoryManagerService.loadModel(modelName);
 
       return {
         success: result.success,

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { BaseLLMService } from './base-llm.service';
@@ -112,7 +112,6 @@ export class OllamaLLMService extends BaseLLMService {
       };
 
       // Make Ollama API call
-      const apiStartTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.post(
           `${this.ollamaBaseUrl}/api/generate`,
@@ -131,7 +130,6 @@ export class OllamaLLMService extends BaseLLMService {
           },
         ),
       );
-      const apiDuration = Date.now() - apiStartTime;
 
       const parsedResponse: OllamaResponseParsed = ollamaResponseSchema.parse(
         response.data,
@@ -157,7 +155,6 @@ export class OllamaLLMService extends BaseLLMService {
         endTime,
         requestId,
         modelLoadResult,
-        apiDuration,
       );
 
       // Track usage with full metadata for database persistence (local models have different cost structure)
@@ -267,7 +264,6 @@ export class OllamaLLMService extends BaseLLMService {
     endTime: number,
     requestId: string,
     modelLoadResult: { success: boolean; loadTime?: number },
-    apiDuration: number,
   ): OllamaResponseMetadata {
     // Estimate tokens for local models (Ollama doesn't always provide exact counts)
     const inputTokens =
@@ -377,7 +373,7 @@ export class OllamaLLMService extends BaseLLMService {
         version: versionResponse.data.version,
         models: modelsResponse.data.models?.map((m: any) => m.name) || [],
       };
-    } catch (_error) {
+    } catch {
       return { healthy: false };
     }
   }

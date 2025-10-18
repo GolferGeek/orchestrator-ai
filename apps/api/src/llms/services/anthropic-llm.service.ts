@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
 import {
   GenerateResponseParams,
@@ -175,7 +175,6 @@ export class AnthropicLLMService extends BaseLLMService {
       // Use LLM Service level PII pre-processing when provided
       const processedText = params.userMessage;
       const piiMetadata = params.options?.piiMetadata || null;
-      const dictionaryMappings = params.options?.dictionaryMappings || [];
       if (!piiMetadata) {
         this.logger.warn(
           `⚠️ [PII-METADATA-DEBUG] AnthropicLLMService - No PII metadata from LLM Service, using raw message`,
@@ -339,8 +338,8 @@ export class AnthropicLLMService extends BaseLLMService {
    * Override LangSmith integration for Anthropic-specific tracing
    */
   protected async integrateLangSmith(
-    params: GenerateResponseParams,
-    response: LLMResponse,
+    _params: GenerateResponseParams,
+    _response: LLMResponse,
   ): Promise<string | undefined> {
     // Example Anthropic-specific LangSmith integration
     if (

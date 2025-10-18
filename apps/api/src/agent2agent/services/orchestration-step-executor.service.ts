@@ -1073,7 +1073,7 @@ export class OrchestrationStepExecutorService {
       requestMetadata.createdBy ??
       process.env.SYSTEM_USER_ID ??
       null;
-    return (fromRun as string | null) ?? (fallback as string | null);
+    return fromRun ?? fallback;
   }
 
   private async ensureConversation(
@@ -1485,7 +1485,7 @@ export class OrchestrationStepExecutorService {
     userId: string | null,
     resolvedInput: Record<string, any>,
     userMessage?: string,
-    payload?: Record<string, any> | undefined,
+    payload?: Record<string, any>,
     agentMetadata?: AgentRuntimeAgentMetadata,
   ): TaskRequestDto {
     const request = new TaskRequestDto();
@@ -1562,8 +1562,7 @@ export class OrchestrationStepExecutorService {
 
     return {
       resolvedInput: resolved,
-      userMessage:
-        typeof userMessage === 'string' ? (userMessage as string) : undefined,
+      userMessage: typeof userMessage === 'string' ? userMessage : undefined,
       payload,
     };
   }
@@ -1672,7 +1671,7 @@ export class OrchestrationStepExecutorService {
     let remainder = segment;
     let current = target;
 
-    const fieldMatch = remainder.match(/^([^\[\]]+)/);
+    const fieldMatch = remainder.match(/^([^[\]]+)/);
     if (fieldMatch?.[1]) {
       const fieldName = fieldMatch[1];
       current = current?.[fieldName];

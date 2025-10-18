@@ -6,7 +6,6 @@ import {
   ProviderResponseDto,
   ModelResponseDto,
   ProviderNameDto,
-  ModelNameDto,
   ProviderWithModelsDto,
 } from '@/llms/dto/llm-evaluation.dto';
 import { ProviderStatus, ModelStatus } from '@/llms/types/llm-evaluation';

@@ -263,7 +263,7 @@ export class LocalModelStatusService {
     try {
       this.logger.log(`Pulling model: ${modelName}`);
 
-      const response = await firstValueFrom(
+      await firstValueFrom(
         this.httpService.post(
           `${this.ollamaBaseUrl}/api/pull`,
           {

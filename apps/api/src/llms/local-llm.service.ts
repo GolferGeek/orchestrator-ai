@@ -1,10 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import {
-  LocalModelStatusService,
-  ModelStatus,
-} from './local-model-status.service';
+import { LocalModelStatusService } from './local-model-status.service';
 import { SupabaseService } from '@/supabase/supabase.service';
 
 export interface LocalLLMRequest {
@@ -89,13 +86,11 @@ export class LocalLLMService {
       };
 
       // Make the API call to Ollama
-      const apiStartTime = Date.now();
       const response = await firstValueFrom(
         this.httpService.post(`${this.ollamaBaseUrl}/api/generate`, payload, {
           timeout: 120000, // 2 minute timeout
         }),
       );
-      const apiDuration = Date.now() - apiStartTime;
 
       if (response.data.response?.length === 0) {
         this.logger.warn(
@@ -258,7 +253,6 @@ export class LocalLLMService {
   async getBestModelForTask(
     taskComplexity: 'simple' | 'medium' | 'complex' | 'reasoning',
     requiresThinking?: boolean,
-    speedPreference?: 'ultra-fast' | 'fast' | 'medium' | 'slow',
   ): Promise<string | null> {
     try {
       // First, get currently loaded models
@@ -281,11 +275,7 @@ export class LocalLLMService {
         query = query.eq('thinking_mode', true);
       }
 
-      // Order by speed preference and loading priority
-      const speedOrder = speedPreference
-        ? `speed_tier.${speedPreference}, loading_priority desc`
-        : 'loading_priority desc';
-
+      // Order by loading priority
       const { data, error } = await query.order('loading_priority', {
         ascending: false,
       });
@@ -359,16 +349,9 @@ export class LocalLLMService {
       'high-quality': 'reasoning',
     };
 
-    const speedMap = {
-      'ultra-fast': 'ultra-fast',
-      balanced: 'fast',
-      'high-quality': 'medium',
-    };
-
     return this.getBestModelForTask(
       complexityMap[tier] as any,
       tier === 'high-quality', // Only high-quality tier requires thinking
-      speedMap[tier] as any,
     );
   }
 

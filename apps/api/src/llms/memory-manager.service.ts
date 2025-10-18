@@ -165,11 +165,7 @@ export class MemoryManagerService implements OnModuleInit {
   /**
    * Attempt to load a model, managing memory if necessary
    */
-  async loadModel(
-    modelName: string,
-    taskComplexity?: string,
-    priority: 'high' | 'medium' | 'low' = 'medium',
-  ): Promise<{
+  async loadModel(modelName: string): Promise<{
     success: boolean;
     message?: string;
     memoryFreed?: number;
@@ -205,7 +201,6 @@ export class MemoryManagerService implements OnModuleInit {
           modelName,
           modelSize,
           isThreeTier,
-          priority,
         );
         if (!freeResult.success) {
           return {
@@ -280,7 +275,6 @@ export class MemoryManagerService implements OnModuleInit {
     targetModel: string,
     requiredSize: number,
     isThreeTier: boolean,
-    priority: 'high' | 'medium' | 'low',
   ): Promise<{
     success: boolean;
     message?: string;
@@ -301,7 +295,6 @@ export class MemoryManagerService implements OnModuleInit {
         targetModel,
         requiredSize,
         isThreeTier,
-        priority,
       );
 
       if (modelsToUnload.length === 0) {
@@ -362,7 +355,6 @@ export class MemoryManagerService implements OnModuleInit {
     targetModel: string,
     requiredSize: number,
     targetIsThreeTier: boolean,
-    targetPriority: 'high' | 'medium' | 'low',
   ): ModelMemoryInfo[] {
     const candidates = Array.from(this.loadedModels.values())
       .filter((model) => {
@@ -580,7 +572,7 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       return data.speed_tier || 'general';
-    } catch (_error) {
+    } catch {
       return 'general';
     }
   }
@@ -603,7 +595,7 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       return data.loading_priority || 50;
-    } catch (_error) {
+    } catch {
       return 50;
     }
   }
@@ -688,7 +680,7 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       try {
-        const result = await this.loadModel(modelName, 'medium', 'high');
+        const result = await this.loadModel(modelName);
         if (result.success) {
           this.logger.log(`Preloaded three-tier model: ${modelName}`);
         } else {

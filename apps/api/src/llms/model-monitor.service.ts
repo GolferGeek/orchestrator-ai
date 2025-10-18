@@ -4,13 +4,9 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import {
-  LocalModelStatusService,
-  ModelHealth,
-} from './local-model-status.service';
+import { LocalModelStatusService } from './local-model-status.service';
 import { MemoryManagerService, MemoryStats } from './memory-manager.service';
 import { SupabaseService } from '@/supabase/supabase.service';
-import { getTableName } from '@/supabase/supabase.config';
 
 export interface AlertThresholds {
   responseTime: number; // milliseconds
@@ -563,7 +559,6 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     }
 
     const memoryStats = this.memoryManagerService.getMemoryStats();
-    const stats = this.localModelStatusService.getStats();
 
     const healthyModels = Array.from(this.modelMetrics.values()).filter(
       (m) => m.isAvailable,

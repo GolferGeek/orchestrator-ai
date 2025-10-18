@@ -193,7 +193,7 @@ export class BlindedLLMService {
         ? url
         : url instanceof URL
           ? url.toString()
-          : (url as any)?.url ?? '';
+          : ((url as any)?.url ?? '');
     const headers: Record<string, string> = {};
 
     // Extract headers from init

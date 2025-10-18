@@ -101,7 +101,6 @@ export class LLMService {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
-    } else {
     }
 
     // Deprecated: SYSTEM_* .env model defaults replaced by ModelConfigurationService
@@ -832,7 +831,7 @@ export class LLMService {
           mapped.getTechnicalDetails(),
         );
         throw mapped;
-      } catch (_mappingFailure) {
+      } catch {
         const fallback = new LLMError(
           `Unified LLM service error: ${error instanceof Error ? error.message : String(error)}`,
           'unknown' as any,
@@ -987,10 +986,6 @@ export class LLMService {
 
     // NEW ARCHITECTURE: All PII processing is handled in the unified response method
     // This method receives already-processed content and just calls the LLM
-    const requestId =
-      options.conversationId ||
-      options.sessionId ||
-      `callprovider-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Use LangChain for external providers
     const llm = this.createCustomLangGraphLLM({
@@ -1399,14 +1394,15 @@ export class LLMService {
 
     // For all other providers, let LangChain handle the conversion properly
     switch (provider.toLowerCase()) {
-      case 'openai':
+      case 'openai': {
         // OpenAI with ChatOpenAI: use HumanMessage only to avoid system role issues
         const combinedOpenAI = systemPrompt
           ? `${systemPrompt}\n\nUser: ${userMessage}`
           : userMessage;
         return [new HumanMessage(combinedOpenAI)];
+      }
 
-      case 'anthropic':
+      case 'anthropic': {
         // Anthropic: can handle SystemMessage + HumanMessage properly
         const messages = [];
         if (systemPrompt) {
@@ -1414,27 +1410,31 @@ export class LLMService {
         }
         messages.push(new HumanMessage(userMessage));
         return messages;
+      }
 
-      case 'ollama':
+      case 'ollama': {
         // Ollama: use HumanMessage only for consistency
         const combinedOllama = systemPrompt
           ? `${systemPrompt}\n\nUser: ${userMessage}`
           : userMessage;
         return [new HumanMessage(combinedOllama)];
+      }
 
-      case 'google':
+      case 'google': {
         // Google: use HumanMessage only for consistency
         const combinedGoogle = systemPrompt
           ? `${systemPrompt}\n\nUser: ${userMessage}`
           : userMessage;
         return [new HumanMessage(combinedGoogle)];
+      }
 
-      default:
+      default: {
         // Default: use HumanMessage approach
         const combinedDefault = systemPrompt
           ? `${systemPrompt}\n\nUser: ${userMessage}`
           : userMessage;
         return [new HumanMessage(combinedDefault)];
+      }
     }
   }
 
@@ -1539,7 +1539,7 @@ export class LLMService {
       let llm: BaseChatModel;
 
       switch (config.provider) {
-        case 'openai':
+        case 'openai': {
           // Check if this is an o1 model (doesn't support custom temperature)
           const isO1Model = config.model?.includes('o1') || false;
           const temperature = isO1Model
@@ -1573,8 +1573,9 @@ export class LLMService {
             },
           });
           break;
+        }
 
-        case 'anthropic':
+        case 'anthropic': {
           // Use source-blinded LLM for external providers
           llm = this.blindedLLMService.createBlindedLLM({
             provider: 'anthropic',
@@ -1599,8 +1600,9 @@ export class LLMService {
             },
           });
           break;
+        }
 
-        case 'ollama':
+        case 'ollama': {
           llm = new ChatOllama({
             baseUrl:
               config.baseUrl ||
@@ -1612,8 +1614,9 @@ export class LLMService {
               parseFloat(process.env.OLLAMA_TEMPERATURE || '0.7'),
           });
           break;
+        }
 
-        case 'google':
+        case 'google': {
           // Use source-blinded LLM for external providers
           llm = this.blindedLLMService.createBlindedLLM({
             provider: 'google',
@@ -1634,6 +1637,7 @@ export class LLMService {
             },
           });
           break;
+        }
 
         default:
           throw new Error(`Unsupported provider: ${String(config.provider)}`);

@@ -70,7 +70,7 @@ export class PseudonymizationService {
       const pseudonym = await this.createNewPseudonym(dataType, originalValue);
 
       // Store in database
-      const mappingId = await this.storePseudonymMapping(
+      await this.storePseudonymMapping(
         originalHash,
         pseudonym,
         dataType,
@@ -138,10 +138,10 @@ export class PseudonymizationService {
             match.value,
             pseudonymResult.pseudonym,
           );
-        } catch (_error) {
+        } catch (error) {
           this.logger.warn(
             `Failed to pseudonymize ${match.dataType}: ${match.value}`,
-            _error,
+            error,
           );
         }
       }
@@ -336,7 +336,7 @@ export class PseudonymizationService {
       const suffix = hash.substring(0, 3);
 
       return `${firstName.toLowerCase()}.${lastName.toLowerCase()}${suffix}@${domain}`;
-    } catch (_error) {
+    } catch {
       // Fallback if database lookup fails
       const hash = this.hashValue(originalEmail);
       return `user${hash.substring(0, 6)}@example.com`;
@@ -384,7 +384,7 @@ export class PseudonymizationService {
       const lastName = this.getRandomFromResult(lastNameResult.data) || 'Doe';
 
       return `${firstName} ${lastName}`;
-    } catch (_error) {
+    } catch {
       return 'John Doe';
     }
   }
@@ -427,7 +427,7 @@ export class PseudonymizationService {
       const suffix = hash.substring(0, 4);
 
       return `@${name.toLowerCase()}${suffix}`;
-    } catch (_error) {
+    } catch {
       const hash = this.hashValue(originalUsername);
       return `@user${hash.substring(0, 6)}`;
     }
@@ -453,7 +453,7 @@ export class PseudonymizationService {
         streetTypes[Math.floor(Math.random() * streetTypes.length)];
 
       return `${streetNumber} ${streetName} ${streetType}`;
-    } catch (_error) {
+    } catch {
       return '123 Main St';
     }
   }

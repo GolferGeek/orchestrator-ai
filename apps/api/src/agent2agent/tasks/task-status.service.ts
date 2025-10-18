@@ -483,9 +483,7 @@ export class TaskStatusService {
     };
 
     if (taskStatus.metadata) {
-      taskStatus.metadata = this.cloneJsonValue(
-        taskStatus.metadata,
-      ) as JsonObject;
+      taskStatus.metadata = this.cloneJsonValue(taskStatus.metadata);
     }
     if (taskStatus.result) {
       taskStatus.result = this.cloneJsonValue(taskStatus.result);
@@ -547,9 +545,7 @@ export class TaskStatusService {
     };
 
     if (newStatus.metadata) {
-      newStatus.metadata = this.cloneJsonValue(
-        newStatus.metadata,
-      ) as JsonObject;
+      newStatus.metadata = this.cloneJsonValue(newStatus.metadata);
     }
     if (newStatus.result) {
       newStatus.result = this.cloneJsonValue(newStatus.result);
@@ -667,9 +663,7 @@ export class TaskStatusService {
     );
 
     const normalizedMetadata =
-      metadata !== undefined
-        ? (this.cloneJsonValue(metadata) as JsonObject)
-        : undefined;
+      metadata !== undefined ? this.cloneJsonValue(metadata) : undefined;
     const progressPercentage =
       this.extractProgress(normalizedMetadata) ?? undefined;
 
@@ -706,7 +700,7 @@ export class TaskStatusService {
       ...message,
       metadata:
         message.metadata !== undefined
-          ? (this.cloneJsonValue(message.metadata) as JsonObject)
+          ? this.cloneJsonValue(message.metadata)
           : undefined,
     }));
   }
@@ -726,11 +720,11 @@ export class TaskStatusService {
         userTasks.push({
           ...status,
           metadata: status.metadata
-            ? (this.cloneJsonValue(status.metadata) as JsonObject)
+            ? this.cloneJsonValue(status.metadata)
             : undefined,
           result: status.result
             ? this.cloneJsonValue(status.result)
-            : status.result,
+            : undefined,
         });
       }
     }

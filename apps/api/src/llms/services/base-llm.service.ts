@@ -179,8 +179,6 @@ export abstract class BaseLLMService {
         };
       }
 
-      // Use standard pseudonymizer
-      const requestId = this.generateRequestId('pii');
       // Note: Pseudonymization is now handled at the LLM service level via DictionaryPseudonymizerService
       const result = { pseudonymizedText: text, mappings: [] }; // No-op since pattern-based pseudonymization is removed
 
@@ -260,21 +258,6 @@ export abstract class BaseLLMService {
 
       // Start metadata tracking if we have the necessary info
       if (requestMetadata?.startTime && requestMetadata?.userId) {
-        const routingDecision = {
-          provider,
-          model,
-          isLocal: provider === 'ollama',
-          modelTier: 'general',
-          fallbackUsed: false,
-        };
-
-        const options = {
-          userId: requestMetadata.userId,
-          callerType: requestMetadata.callerType || 'llm_service',
-          callerName: requestMetadata.callerName || 'direct_call',
-          conversationId: requestMetadata.conversationId,
-        };
-
         // Insert a single completed usage record (simpler, no two-phase update)
         this.logger.debug(
           `🔍 [PII-METADATA-DEBUG] trackUsage - requestMetadata.piiMetadata exists:`,
@@ -518,7 +501,7 @@ export abstract class BaseLLMService {
       );
       LLMErrorMonitor.recordError(mappedError);
       throw mappedError;
-    } catch (_mappingFailure) {
+    } catch {
       const fallback = new LLMError(
         `${context}: ${error?.message || 'Unknown error occurred'}`,
         LLMErrorType.UNKNOWN,
@@ -550,8 +533,8 @@ export abstract class BaseLLMService {
    * Subclasses can override this to provide LangSmith integration
    */
   protected async integrateLangSmith(
-    params: GenerateResponseParams,
-    response: LLMResponse,
+    _params: GenerateResponseParams,
+    _response: LLMResponse,
   ): Promise<string | undefined> {
     // Default implementation returns undefined (no LangSmith integration)
     // Subclasses can override this method to provide actual integration
