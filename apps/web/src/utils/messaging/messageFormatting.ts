@@ -1,9 +1,5 @@
-import type {
-  AgentChatMessage,
-  ConversationPlanRecord,
-  OrchestrationRunRecord,
-  AgentOrchestrationRecord,
-} from './types';
+import type { AgentChatMessage } from '@/types/conversation';
+import type { Task } from '@/types/task';
 
 /**
  * Service for formatting and processing agent response messages
@@ -13,10 +9,10 @@ export class MessageFormattingService {
   /**
    * Create a response message from a completed task
    */
-  createResponseMessage(conversationId: string, task: any): AgentChatMessage | null {
+  createResponseMessage(conversationId: string, task: Task): AgentChatMessage | null {
     
     let responseContent = 'Task completed successfully.';
-    let responseMetadata: Record<string, any> = {};
+    let responseMetadata: Record<string, unknown> = {};
     
     // Check both task.response (database field) and task.result (immediate mode field)
     const responseData = task.response || task.result;
@@ -95,7 +91,7 @@ export class MessageFormattingService {
       }
     }
 
-    const message: any = {
+    const message: AgentChatMessage = {
       id: `response-${Date.now()}`,
       role: 'assistant' as const,
       content: responseContent,
@@ -165,7 +161,7 @@ export class MessageFormattingService {
   /**
    * Extract and format deliverable content from task response
    */
-  extractDeliverableContent(task: any): string {
+  extractDeliverableContent(task: Task): string {
     
     let finalContent = '';
     
@@ -238,7 +234,7 @@ export class MessageFormattingService {
   /**
    * Format progress messages for display
    */
-  formatProgressContent(messages: any[]): string {
+  formatProgressContent(messages: AgentChatMessage[]): string {
     const progressMessages = messages.filter(msg => msg.messageType === 'progress');
     let progressContent = 'Processing your request...\n\n';
     

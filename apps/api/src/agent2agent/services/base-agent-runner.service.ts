@@ -394,14 +394,16 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * Handle orchestrate - Abstract, each runner implements specific orchestrate logic.
    * For most runners, this will return "not supported". Only orchestrator agent runner implements this.
    */
-  protected async handleOrchestrate(
+  protected handleOrchestrate(
     _definition: AgentRuntimeDefinition,
     _request: TaskRequestDto,
     _organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    return TaskResponseDto.failure(
-      AgentTaskMode.ORCHESTRATE,
-      'Orchestrate mode not supported by this agent type',
+    return Promise.resolve(
+      TaskResponseDto.failure(
+        AgentTaskMode.ORCHESTRATE,
+        'Orchestrate mode not supported by this agent type',
+      ),
     );
   }
 
@@ -913,7 +915,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * const results = await this.handleOrchestration(subAgents, request, organizationSlug);
    * ```
    */
-  protected async handleOrchestration(
+  protected handleOrchestration(
     subAgents: Array<{
       slug: string;
       mode: AgentTaskMode;
@@ -982,6 +984,6 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       }
     }
 
-    return results;
+    return Promise.resolve(results);
   }
 }

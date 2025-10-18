@@ -54,28 +54,32 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   /**
    * Function agents only support BUILD mode
    */
-  protected async handleConverse(
+  protected handleConverse(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     _organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    return TaskResponseDto.failure(
-      request.mode!,
-      'Function agents only support BUILD mode',
+    return Promise.resolve(
+      TaskResponseDto.failure(
+        request.mode!,
+        'Function agents only support BUILD mode',
+      ),
     );
   }
 
   /**
    * Function agents only support BUILD mode
    */
-  protected async handlePlan(
+  protected handlePlan(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     _organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    return TaskResponseDto.failure(
-      request.mode!,
-      'Function agents only support BUILD mode',
+    return Promise.resolve(
+      TaskResponseDto.failure(
+        request.mode!,
+        'Function agents only support BUILD mode',
+      ),
     );
   }
 

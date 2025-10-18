@@ -22,10 +22,29 @@ export interface SimplifiedPIIMetadata {
   blockingReason?: string;
 }
 
+// Interface for legacy PII metadata structure
+interface LegacyPIIMatch {
+  value: string;
+  dataType: string;
+  severity: string;
+  confidence: number;
+  pattern: string;
+  pseudonym?: string;
+}
+
+interface LegacyPIIMetadata {
+  detectionResults?: {
+    flaggedMatches?: LegacyPIIMatch[];
+  };
+  pseudonymResults?: {
+    processedMatches?: LegacyPIIMatch[];
+  };
+}
+
 /**
  * Converts legacy PII metadata to simplified structure
  */
-export function convertToSimplifiedPII(legacyMetadata: any): SimplifiedPIIMetadata | null {
+export function convertToSimplifiedPII(legacyMetadata: LegacyPIIMetadata): SimplifiedPIIMetadata | null {
   if (!legacyMetadata) {
     return null;
   }
@@ -39,7 +58,7 @@ export function convertToSimplifiedPII(legacyMetadata: any): SimplifiedPIIMetada
 
   // Extract flags from detectionResults.flaggedMatches
   if (legacyMetadata.detectionResults?.flaggedMatches) {
-    simplified.flags = legacyMetadata.detectionResults.flaggedMatches.map((match: any) => ({
+    simplified.flags = legacyMetadata.detectionResults.flaggedMatches.map((match: LegacyPIIMatch) => ({
       value: match.value,
       dataType: match.dataType,
       severity: match.severity,
@@ -52,8 +71,8 @@ export function convertToSimplifiedPII(legacyMetadata: any): SimplifiedPIIMetada
   // Extract pseudonyms from pseudonymResults.processedMatches
   if (legacyMetadata.pseudonymResults?.processedMatches) {
     simplified.pseudonyms = legacyMetadata.pseudonymResults.processedMatches
-      .filter((match: any) => match.pseudonym)
-      .map((match: any) => ({
+      .filter((match: LegacyPIIMatch) => match.pseudonym)
+      .map((match: LegacyPIIMatch) => ({
         original: match.value,
         pseudonym: match.pseudonym,
         dataType: match.dataType

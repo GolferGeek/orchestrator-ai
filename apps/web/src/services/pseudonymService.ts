@@ -34,7 +34,7 @@ class PseudonymService {
     } catch (error) {
       console.error('Error fetching pseudonym mappings:', error);
       // For now, return empty array if endpoint doesn't exist
-      if ((error as any)?.response?.status === 404) {
+      if ((error as { response?: { status: number } })?.response?.status === 404) {
         return [];
       }
       throw error;
@@ -167,7 +167,7 @@ class PseudonymService {
       return response.dictionaries || [];
     } catch (error) {
       // Graceful fallback without noisy logs for 404
-      if ((error as any)?.response?.status === 404) {
+      if ((error as { response?: { status: number } })?.response?.status === 404) {
         return [];
       }
       console.error('Error fetching pseudonym dictionaries:', error);
@@ -423,7 +423,7 @@ class PseudonymService {
     } catch (error) {
       console.error(`Error fetching mappings for run ${runId}:`, error);
       // Return empty array if not found
-      if ((error as any)?.response?.status === 404) {
+      if ((error as { response?: { status: number } })?.response?.status === 404) {
         return [];
       }
       throw error;

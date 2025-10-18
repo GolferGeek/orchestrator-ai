@@ -27,7 +27,7 @@ export class LangChainNotionService {
     return new DynamicTool({
       name: 'notion-create-page',
       description: 'Create a new page in Notion with title and content',
-      func: async (input: string) => {
+      func: (input: string) => {
         try {
           // Parse input - expect JSON with title and content
           const params = JSON.parse(input);
@@ -49,12 +49,14 @@ export class LangChainNotionService {
             parentDatabaseId: databaseId ?? null,
           };
 
-          return JSON.stringify(mockResponse);
+          return Promise.resolve(JSON.stringify(mockResponse));
         } catch (error) {
-          return JSON.stringify({
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+          return Promise.resolve(
+            JSON.stringify({
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          );
         }
       },
     });
@@ -67,7 +69,7 @@ export class LangChainNotionService {
     return new DynamicTool({
       name: 'notion-query-database',
       description: 'Query a Notion database for pages matching criteria',
-      func: async (input: string) => {
+      func: (input: string) => {
         try {
           const params = JSON.parse(input);
           const { databaseId, filter, sorts } = params;
@@ -98,12 +100,14 @@ export class LangChainNotionService {
             appliedSorts: sorts ?? null,
           };
 
-          return JSON.stringify(mockResponse);
+          return Promise.resolve(JSON.stringify(mockResponse));
         } catch (error) {
-          return JSON.stringify({
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+          return Promise.resolve(
+            JSON.stringify({
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          );
         }
       },
     });
@@ -116,7 +120,7 @@ export class LangChainNotionService {
     return new DynamicTool({
       name: 'notion-update-page',
       description: 'Update an existing Notion page with new content',
-      func: async (input: string) => {
+      func: (input: string) => {
         try {
           const params = JSON.parse(input);
           const { pageId, updates } = params;
@@ -133,12 +137,14 @@ export class LangChainNotionService {
             updatedAt: new Date().toISOString(),
           };
 
-          return JSON.stringify(mockResponse);
+          return Promise.resolve(JSON.stringify(mockResponse));
         } catch (error) {
-          return JSON.stringify({
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+          return Promise.resolve(
+            JSON.stringify({
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          );
         }
       },
     });
@@ -221,33 +227,33 @@ Respond with JSON containing:
   /**
    * Health check for Notion service
    */
-  async healthCheck(): Promise<{
+  healthCheck(): Promise<{
     status: 'healthy' | 'unhealthy';
     details: any;
   }> {
     try {
       if (!this.isConfigured()) {
-        return {
+        return Promise.resolve({
           status: 'unhealthy',
           details: { error: 'LLM not configured for Notion operations' },
-        };
+        });
       }
 
-      return {
+      return Promise.resolve({
         status: 'healthy',
         details: {
           toolsAvailable: this.getAllNotionTools().length,
           llmProviders: this.langchainClient.getAvailableProviders(),
           note: 'Using mock Notion API - integrate with real API for production',
         },
-      };
+      });
     } catch (error) {
-      return {
+      return Promise.resolve({
         status: 'unhealthy',
         details: {
           error: error instanceof Error ? error.message : 'Unknown error',
         },
-      };
+      });
     }
   }
 }

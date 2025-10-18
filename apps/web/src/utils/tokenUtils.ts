@@ -5,7 +5,7 @@ interface JWTPayload {
   exp?: number; // Expiration time (seconds since epoch)
   iat?: number; // Issued at time
   sub?: string; // Subject
-  [key: string]: any;
+  [key: string]: unknown;
 }
 /**
  * Decode JWT token without verification (client-side only for expiration checking)

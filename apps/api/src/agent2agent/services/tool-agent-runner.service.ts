@@ -65,14 +65,16 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
   /**
    * PLAN mode - not yet implemented for tool agents
    */
-  protected async handlePlan(
+  protected handlePlan(
     _definition: AgentRuntimeDefinition,
     _request: TaskRequestDto,
     _organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    return TaskResponseDto.failure(
-      AgentTaskMode.PLAN,
-      'PLAN mode not yet implemented for tool agents',
+    return Promise.resolve(
+      TaskResponseDto.failure(
+        AgentTaskMode.PLAN,
+        'PLAN mode not yet implemented for tool agents',
+      ),
     );
   }
 

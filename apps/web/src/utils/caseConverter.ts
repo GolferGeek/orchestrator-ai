@@ -1,29 +1,34 @@
 // Utility functions for case conversion - simplified after backend standardization
 // The API now consistently returns camelCase, so most conversions are no longer needed
 // Keep this function for any legacy compatibility needs
-export function snakeToCamel(obj: any): any {
+
+// Generic object type for case conversion
+type GenericObject = Record<string, unknown>;
+
+export function snakeToCamel(obj: unknown): unknown {
   if (obj === null || obj === undefined || typeof obj !== 'object') {
     return obj;
   }
   if (Array.isArray(obj)) {
     return obj.map(snakeToCamel);
   }
-  const camelObj: any = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+  const camelObj: GenericObject = {};
+  const sourceObj = obj as GenericObject;
+  for (const key in sourceObj) {
+    if (Object.prototype.hasOwnProperty.call(sourceObj, key)) {
       const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-      camelObj[camelKey] = snakeToCamel(obj[key]);
+      camelObj[camelKey] = snakeToCamel(sourceObj[key]);
     }
   }
   return camelObj;
 }
 // Legacy support for LLM Selection - API now expects camelCase directly
-export function convertLLMSelectionToAPI(selection: any): any {
+export function convertLLMSelectionToAPI(selection: unknown): unknown {
   // API now expects camelCase, so return as-is
   return selection;
 }
 // Legacy support for API responses - API now returns camelCase directly  
-export function convertAPIResponseToFrontend(response: any): any {
+export function convertAPIResponseToFrontend(response: unknown): unknown {
   // API now returns camelCase, so return as-is
   return response;
 }

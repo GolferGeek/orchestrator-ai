@@ -501,15 +501,13 @@ describe('ApiAgentRunnerService', () => {
       );
 
       let capturedContent: string = '';
-      deliverablesService.executeAction.mockImplementation(
-        (action, params) => {
-          capturedContent = params.content;
-          return Promise.resolve({
-            success: true,
-            data: { deliverable: {}, version: {} },
-          });
-        },
-      );
+      deliverablesService.executeAction.mockImplementation((action, params) => {
+        capturedContent = params.content;
+        return Promise.resolve({
+          success: true,
+          data: { deliverable: {}, version: {} },
+        });
+      });
 
       await service.execute(definition, request, null);
 

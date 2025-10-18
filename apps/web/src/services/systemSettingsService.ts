@@ -3,9 +3,9 @@ import apiService from './apiService';
 export interface GlobalModelConfig {
   provider?: string;
   model?: string;
-  parameters?: Record<string, any>;
-  default?: { provider: string; model: string; parameters?: Record<string, any> };
-  localOnly?: { provider: string; model: string; parameters?: Record<string, any> };
+  parameters?: Record<string, unknown>;
+  default?: { provider: string; model: string; parameters?: Record<string, unknown> };
+  localOnly?: { provider: string; model: string; parameters?: Record<string, unknown> };
 }
 
 export async function fetchGlobalModelConfig() {

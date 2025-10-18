@@ -386,13 +386,13 @@ export class LocalLLMService {
   /**
    * Unload a model from memory (if Ollama supports it in the future)
    */
-  async unloadModel(modelName: string): Promise<boolean> {
+  unloadModel(modelName: string): Promise<boolean> {
     // Ollama doesn't currently have an explicit unload API
     // Models are automatically unloaded when memory is needed
     this.logger.debug(
       `Unload requested for model: ${modelName} (not supported by Ollama)`,
     );
-    return false;
+    return Promise.resolve(false);
   }
 
   /**

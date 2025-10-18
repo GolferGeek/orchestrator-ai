@@ -78,7 +78,7 @@ export class ConversationService {
 
       
       // Load deliverables for this conversation to link them to messages
-      const deliverables: any[] = [];
+      const deliverables: unknown[] = [];
       try {
         const { deliverablesService } = await import('@/services/deliverablesService');
         const conversationDeliverables = await deliverablesService.getConversationDeliverables(conversationId);
@@ -143,7 +143,7 @@ export class ConversationService {
         if (task.status === 'completed' && task.response) {
           // Parse the JSON response to extract the actual content and metadata
           let responseContent = task.response;
-          let mergedResponseMetadata: any = {};
+          let mergedResponseMetadata: Record<string, unknown> = {};
           let planId: string | undefined;
 
           try {
@@ -605,7 +605,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
   /**
    * Get conversation from backend
    */
-  async getBackendConversation(conversationId: string): Promise<any> {
+  async getBackendConversation(conversationId: string): Promise<AgentConversation> {
     try {
       return await agentConversationsService.getConversation(conversationId);
     } catch (error) {
@@ -647,7 +647,7 @@ console.error(`Failed to archive conversation ${conversationId}:`, error);
    * Get all conversations for current user
    * @deprecated Use useAgentConversationsStore().fetchConversations() instead for reactive updates
    */
-  async getUserConversations(): Promise<any[]> {
+  async getUserConversations(): Promise<AgentConversation[]> {
     try {
       const response = await agentConversationsService.listConversations();
       return response.conversations;
@@ -740,7 +740,7 @@ console.error('Failed to get user conversations:', error);
   /**
    * Validate conversation object
    */
-  validateConversation(conversation: any): conversation is AgentConversation {
+  validateConversation(conversation: unknown): conversation is AgentConversation {
     return (
       conversation &&
       typeof conversation.id === 'string' &&

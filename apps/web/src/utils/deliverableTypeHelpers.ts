@@ -1,4 +1,39 @@
 import { DeliverableType, DeliverableFormat } from '@/services/deliverablesService';
+
+// Interface for service deliverable (API response format)
+interface ServiceDeliverable {
+  id: string;
+  user_id: string;
+  conversation_id?: string;
+  project_step_id?: string;
+  agent_name?: string;
+  title: string;
+  description?: string;
+  type?: string;
+  format?: string;
+  created_at: string;
+  updated_at: string;
+  content_preview?: string;
+  content?: string;
+}
+
+// Interface for store deliverable (frontend format with Date objects)
+interface StoreDeliverable {
+  id: string;
+  user_id: string;
+  conversation_id?: string;
+  project_step_id?: string;
+  agent_name?: string;
+  title: string;
+  description?: string;
+  type?: DeliverableType;
+  format?: DeliverableFormat;
+  created_at: Date;
+  updated_at: Date;
+  content_preview?: string;
+  content?: string;
+}
+
 // Helper to ensure string is a valid DeliverableType
 export function toDeliverableType(type: string | DeliverableType): DeliverableType {
   if (Object.values(DeliverableType).includes(type as DeliverableType)) {
@@ -16,7 +51,7 @@ export function toDeliverableFormat(format: string | DeliverableFormat): Deliver
   return DeliverableFormat.MARKDOWN;
 }
 // Convert service deliverable (with string dates) to store deliverable (with Date objects)
-export function convertServiceToStoreDeliverable(serviceDeliverable: any): any {
+export function convertServiceToStoreDeliverable(serviceDeliverable: ServiceDeliverable): StoreDeliverable {
   return {
     ...serviceDeliverable,
     type: toDeliverableType(serviceDeliverable.type),
@@ -27,7 +62,7 @@ export function convertServiceToStoreDeliverable(serviceDeliverable: any): any {
   };
 }
 // Convert store deliverable to service format
-export function convertStoreToServiceDeliverable(storeDeliverable: any): any {
+export function convertStoreToServiceDeliverable(storeDeliverable: StoreDeliverable): ServiceDeliverable {
   return {
     ...storeDeliverable,
     created_at: storeDeliverable.created_at instanceof Date 

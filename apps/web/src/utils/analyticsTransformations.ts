@@ -277,7 +277,7 @@ export function generateAnalyticsInsights(
 /**
  * Validates and cleans analytics data
  */
-export function validateAnalyticsData(data: any[]): boolean {
+export function validateAnalyticsData(data: unknown[]): boolean {
   if (!Array.isArray(data) || data.length === 0) {
     return false;
   }

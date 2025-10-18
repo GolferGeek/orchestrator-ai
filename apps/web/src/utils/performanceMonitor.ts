@@ -7,13 +7,13 @@ export interface PerformanceMetric {
   startTime: number;
   endTime?: number;
   duration?: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface RenderMetric {
   component: string;
   renderTime: number;
-  props: Record<string, any>;
+  props: Record<string, unknown>;
   timestamp: number;
 }
 
@@ -38,7 +38,7 @@ export class PerformanceMonitor {
   /**
    * Start timing a performance metric
    */
-  startMetric(name: string, details?: Record<string, any>): void {
+  startMetric(name: string, details?: Record<string, unknown>): void {
     const metric: PerformanceMetric = {
       name,
       startTime: performance.now(),
@@ -66,7 +66,7 @@ export class PerformanceMonitor {
   /**
    * Track component render times
    */
-  trackComponentRender(component: string, renderTime: number, props: Record<string, any> = {}): void {
+  trackComponentRender(component: string, renderTime: number, props: Record<string, unknown> = {}): void {
     const metric: RenderMetric = {
       component,
       renderTime,
@@ -315,8 +315,8 @@ export class PerformanceMonitor {
         let clsValue = 0;
         const clsObserver = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
-            if (!(entry as any).hadRecentInput) {
-              clsValue += (entry as any).value;
+            if (!(entry as { hadRecentInput?: boolean }).hadRecentInput) {
+              clsValue += (entry as { value: number }).value;
             }
           }
         });
@@ -358,7 +358,7 @@ export class PerformanceMonitor {
 export const performanceMonitor = new PerformanceMonitor();
 
 // Global performance monitoring functions
-export const startTiming = (name: string, details?: Record<string, any>) => {
+export const startTiming = (name: string, details?: Record<string, unknown>) => {
   performanceMonitor.startMetric(name, details);
 };
 
@@ -366,7 +366,7 @@ export const endTiming = (name: string) => {
   performanceMonitor.endMetric(name);
 };
 
-export const trackRender = (component: string, renderTime: number, props?: Record<string, any>) => {
+export const trackRender = (component: string, renderTime: number, props?: Record<string, unknown>) => {
   performanceMonitor.trackComponentRender(component, renderTime, props);
 };
 

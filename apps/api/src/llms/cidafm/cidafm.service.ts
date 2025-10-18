@@ -341,7 +341,7 @@ export class CIDAFMService {
           executedCommands.push(foundCommand.name);
           processingNotes.push(`Executed command: ${foundCommand.name}`);
           // Handle specific execution commands
-          await this.handleExecutionCommand(
+          this.handleExecutionCommand(
             foundCommand.name,
             state,
             processingNotes,
@@ -400,7 +400,7 @@ export class CIDAFMService {
     };
   }
 
-  async resetSessionState(
+  resetSessionState(
     _userId: string,
     _sessionId: string,
   ): Promise<{
@@ -412,10 +412,10 @@ export class CIDAFMService {
       custom_options: {},
     };
 
-    return {
+    return Promise.resolve({
       message: 'Session state reset successfully',
       reset_state: resetState,
-    };
+    });
   }
 
   async getHelp(): Promise<{
@@ -463,11 +463,11 @@ export class CIDAFMService {
     };
   }
 
-  private async handleExecutionCommand(
+  private handleExecutionCommand(
     commandName: string,
     state: Record<string, any>,
     processingNotes: string[],
-  ): Promise<void> {
+  ): void {
     switch (commandName) {
       case 'state-check':
         processingNotes.push(
