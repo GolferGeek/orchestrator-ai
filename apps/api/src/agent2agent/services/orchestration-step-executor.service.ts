@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
@@ -446,7 +447,7 @@ export class OrchestrationStepExecutorService {
 
     const completion = await this.executionService.markStepCompleted(
       runningStep.id,
-      cached.payload.output,
+      cached.payload.output as unknown as JsonObject | null,
       {
         deliverable_id: cached.payload.deliverableId ?? null,
         metadata,

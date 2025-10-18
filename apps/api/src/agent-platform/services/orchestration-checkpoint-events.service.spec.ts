@@ -162,8 +162,8 @@ describe('OrchestrationCheckpointEventsService', () => {
               event: 'orchestration.checkpoint.requested',
               approvalId: 'approval-1',
               checkpointId: 'review-step',
-            }),
-          }),
+            }) as never,
+          }) as never,
         }),
       );
 
@@ -176,7 +176,7 @@ describe('OrchestrationCheckpointEventsService', () => {
             approvalId: 'approval-1',
             checkpointId: 'review-step',
             question: 'Approve the output?',
-          }),
+          }) as never,
         }),
       );
     });
@@ -298,8 +298,8 @@ describe('OrchestrationCheckpointEventsService', () => {
               approvalId: 'approval-1',
               checkpointId: 'review-step',
               decision: 'continue',
-            }),
-          }),
+            }) as never,
+          }) as never,
         }),
       );
 
@@ -313,7 +313,7 @@ describe('OrchestrationCheckpointEventsService', () => {
             decision: 'continue',
             decidedBy: 'user-1',
             notes: 'Looks good',
-          }),
+          }) as never,
         }),
       );
     });
@@ -344,8 +344,8 @@ describe('OrchestrationCheckpointEventsService', () => {
           chunk: expect.objectContaining({
             metadata: expect.objectContaining({
               decision: 'abort',
-            }),
-          }),
+            }) as never,
+          }) as never,
         }),
       );
     });
@@ -376,8 +376,8 @@ describe('OrchestrationCheckpointEventsService', () => {
           chunk: expect.objectContaining({
             metadata: expect.objectContaining({
               decision: 'retry',
-            }),
-          }),
+            }) as never,
+          }) as never,
         }),
       );
     });
@@ -451,9 +451,9 @@ describe('OrchestrationCheckpointEventsService', () => {
         'agent.stream.chunk',
         expect.objectContaining({
           chunk: expect.objectContaining({
-            content: expect.stringContaining('step-1'),
-          }),
-        }),
+            content: expect.stringContaining('step-1') as string,
+          }) as { content: string },
+        }) as { chunk: { content: string } },
       );
     });
 

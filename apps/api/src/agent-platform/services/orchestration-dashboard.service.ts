@@ -28,7 +28,7 @@ import {
   OrchestrationRunDetail,
   OrchestrationRunSummary,
 } from '../types/orchestration-dashboard.types';
-import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { OrchestrationExecutionService } from './orchestration-execution.service';
 import { OrchestrationStepExecutorService } from '@/agent2agent/services/orchestration-step-executor.service';
 import type {
@@ -227,7 +227,7 @@ export class OrchestrationDashboardService {
       steps: status.steps,
       currentStep: status.currentStep,
       summary: status.summary,
-      pendingApprovals: status.pendingApprovals.map(p => ({
+      pendingApprovals: status.pendingApprovals.map((p) => ({
         ...p,
         metadata: p.metadata as unknown as JsonObject | null,
       })),
@@ -500,7 +500,7 @@ export class OrchestrationDashboardService {
     }
 
     const behavior = this.asRecord(
-      (step.metadata as Record<string, any> | undefined)?.behavior,
+      (step.metadata as JsonObject | undefined)?.behavior,
     );
     const retryBehavior = this.asRecord(behavior?.retry);
     if (retryBehavior && retryBehavior.allowSkip === false) {
@@ -519,7 +519,7 @@ export class OrchestrationDashboardService {
         note: options.note ?? null,
       },
     };
-    metadata.runtime = runtime;
+    metadata.runtime = runtime as unknown as JsonValue;
 
     const output =
       options.replacementOutput && Object.keys(options.replacementOutput).length
@@ -705,9 +705,9 @@ export class OrchestrationDashboardService {
   private buildApprovalView(
     record: HumanApprovalRecord,
   ): OrchestrationApprovalView {
-    const metadata = ((record.metadata ?? {}) as Record<string, any>) || null;
+    const metadata = (record.metadata ?? {}) || null;
     const decision =
-      (metadata?.decision as Record<string, any> | undefined) ?? undefined;
+      (metadata?.decision as JsonObject | undefined) ?? undefined;
 
     return {
       id: record.id,
@@ -737,15 +737,14 @@ export class OrchestrationDashboardService {
   private extractLatestCheckpoint(
     run: OrchestrationRunRecord,
   ): OrchestrationRunSummary['latestCheckpoint'] {
-    const metadata = (run.metadata ?? {}) as Record<string, any>;
+    const metadata = run.metadata ?? {};
     const checkpoint =
-      (metadata.lastCheckpoint as Record<string, any> | undefined) ?? undefined;
+      (metadata.lastCheckpoint as JsonObject | undefined) ?? undefined;
     if (!checkpoint) {
       return null;
     }
 
-    const step =
-      (checkpoint.step as Record<string, any> | undefined) ?? undefined;
+    const step = (checkpoint.step as JsonObject | undefined) ?? undefined;
 
     return {
       approvalId: this.asString(checkpoint.approvalId),
@@ -773,9 +772,9 @@ export class OrchestrationDashboardService {
   }
 
   private mergeStepMetadata(
-    current: Record<string, any> | undefined,
-    patch: Record<string, any>,
-  ): Record<string, any> {
+    current: JsonObject | undefined,
+    patch: JsonObject,
+  ): JsonObject {
     const base =
       current && typeof current === 'object' ? this.cloneRecord(current) : {};
     this.mergeInto(base, patch);
@@ -783,7 +782,7 @@ export class OrchestrationDashboardService {
   }
 
   private resolveConfiguredMaxAttempts(
-    metadata: Record<string, any>,
+    metadata: JsonObject,
     original: Record<string, any> | undefined,
   ): number | null {
     const behavior = this.asRecord(metadata.behavior);

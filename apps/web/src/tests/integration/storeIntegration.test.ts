@@ -49,7 +49,7 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadPatterns();
         // If successful, that's fine too
         expect(store.error).toBeNull();
-      } catch (_error) {
+      } catch {
         // If API returns error, store should handle it gracefully
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -275,7 +275,7 @@ describe('Store Integration Tests - Real API', () => {
         // If successful, error should be null
         expect(store.error).toBeNull();
         expect(store.isLoading).toBe(false);
-      } catch (_error) {
+      } catch {
         // If API fails, error should be set
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -354,7 +354,7 @@ describe('Store Integration Tests - Real API', () => {
         // Success case
         expect(store.error).toBeNull();
         expect(store.isLoading).toBe(false);
-      } catch (_error) {
+      } catch {
         // Error case - store should handle gracefully
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -369,7 +369,7 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadDashboardData();
         // Success case
         expect(store.error).toBeNull();
-      } catch (_error) {
+      } catch {
         // Network error case
         expect(store.error).toBeDefined();
         expect(store.isLoading).toBe(false);
@@ -390,7 +390,7 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadPatterns();
         expect(store.error).toBeNull();
         expect(store.isLoading).toBe(false);
-      } catch (_error) {
+      } catch {
         // If API is unavailable, that's expected
         expect(store.error).toBeDefined();
       }

@@ -61,7 +61,7 @@ export class ContextOptimizationService {
     workProductId?: string;
     tokenBudget: number;
   }): Promise<ConversationMessage[]> {
-    const essentialContext = await this.extractWorkProductContext(
+    const essentialContext: any = await this.extractWorkProductContext(
       request.workProductType,
       request.workProductId,
     );

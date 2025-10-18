@@ -673,7 +673,7 @@ const deleteDeliverable = async (deliverable: Record<string, unknown>) => {
     await toast.present();
     // Refresh the list
     await loadDeliverables();
-  } catch (_err) {
+  } catch {
 
     // Show error toast
     const toast = await toastController.create({
@@ -739,7 +739,7 @@ const viewVersion = async (_versionId: string) => {
     // TODO: Implement navigation to version view
     // router.push(`/deliverables/version/${versionId}`);
     hideVersionsModal();
-  } catch (_err) {
+  } catch {
 
   }
 };
@@ -787,7 +787,7 @@ const makeCurrentVersion = async (version: Record<string, unknown>) => {
                 color: 'success'
               });
               await toast.present();
-            } catch (_error) {
+            } catch {
 
               // Show error toast
               const toast = await toastController.create({
@@ -803,7 +803,7 @@ const makeCurrentVersion = async (version: Record<string, unknown>) => {
       ]
     });
     await alert.present();
-  } catch (_err) {
+  } catch {
 
   }
 };

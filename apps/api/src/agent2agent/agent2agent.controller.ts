@@ -68,6 +68,38 @@ interface NormalizedTaskRequest {
   };
 }
 
+interface TaskExecutionResult {
+  taskCompletionHandled?: boolean;
+  metadata?: {
+    taskCompletionHandled?: boolean;
+    [key: string]: any;
+  };
+  deliverableId?: string;
+  [key: string]: any;
+}
+
+interface RequestWithStreamData extends Request {
+  sanitizedUrl?: string;
+  streamTokenClaims?: StreamTokenClaims;
+}
+
+interface FrontendTaskRequest {
+  jsonrpc?: string;
+  mode?: string;
+  method?: string;
+  prompt?: string;
+  conversationHistory?: Array<{ role: string; content: string }>;
+  conversationId?: string;
+  params?: Record<string, any>;
+  llmSelection?: any;
+  executionMode?: any;
+  taskId?: string;
+  timeoutSeconds?: number;
+  metadata?: Record<string, any>;
+  id?: any;
+  [key: string]: any;
+}
+
 // Use shared protocol types
 type JsonRpcSuccessEnvelope = A2ATaskSuccessResponse;
 type JsonRpcErrorEnvelope = A2ATaskErrorResponse;
@@ -202,9 +234,9 @@ export class Agent2AgentController {
   async executeTask(
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,
-    @Body() body: any,
+    @Body() body: FrontendTaskRequest,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Req() request: Request,
+    @Req() request: RequestWithStreamData,
   ): Promise<TaskResponseDto | JsonRpcSuccessEnvelope | JsonRpcErrorEnvelope> {
     // CRITICAL: Log that this controller method was called
     console.log(
@@ -342,11 +374,12 @@ export class Agent2AgentController {
       });
 
       // Check if task completion was already handled by the agent (to avoid duplicate completion)
+      const typedResult = result as TaskExecutionResult;
       const taskAlreadyHandled =
         result &&
-        ((result as any).taskCompletionHandled === true ||
-          ((result as any).metadata &&
-            (result as any).metadata.taskCompletionHandled === true));
+        (typedResult.taskCompletionHandled === true ||
+          (typedResult.metadata &&
+            typedResult.metadata.taskCompletionHandled === true));
 
       if (!taskAlreadyHandled) {
         // Create deliverable using Agent2Agent deliverable service
@@ -362,7 +395,7 @@ export class Agent2AgentController {
 
         // Attach deliverable ID to result if created
         if (deliverableId && typeof result === 'object' && result !== null) {
-          (result as any).deliverableId = deliverableId;
+          typedResult.deliverableId = deliverableId;
         }
 
         // Update task with result
@@ -435,11 +468,11 @@ export class Agent2AgentController {
     @Param('taskId') taskId: string,
     @Body() body: CreateStreamTokenDto,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Req() request: Request,
+    @Req() request: RequestWithStreamData,
   ) {
     const organizationSlug = this.normalizeOrgSlug(orgSlug);
     const sanitizedUrl =
-      (request as any).sanitizedUrl ??
+      request.sanitizedUrl ??
       this.streamTokenService.stripTokenFromUrl(
         request.originalUrl || request.url,
       );
@@ -481,13 +514,11 @@ export class Agent2AgentController {
     @Param('taskId') taskId: string,
     @Query('streamId') streamIdParam: string | undefined,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Req() request: Request,
+    @Req() request: RequestWithStreamData,
     @Res() response: Response,
   ): Promise<void> {
     const organizationSlug = this.normalizeOrgSlug(orgSlug);
-    const claims = (request as any).streamTokenClaims as
-      | StreamTokenClaims
-      | undefined;
+    const claims = request.streamTokenClaims;
 
     if (claims) {
       if (
@@ -507,7 +538,7 @@ export class Agent2AgentController {
     const expectedConversationId = task.agentConversationId ?? null;
 
     const sanitizedUrl =
-      (request as any).sanitizedUrl ??
+      request.sanitizedUrl ??
       this.streamTokenService.stripTokenFromUrl(
         request.originalUrl || request.url,
       );
@@ -716,9 +747,12 @@ export class Agent2AgentController {
       return undefined;
     }
 
+    const streaming = metadata.streaming as
+      | { streamId?: unknown }
+      | undefined;
     const candidates: Array<unknown> = [
       metadata.streamId,
-      metadata.streaming?.streamId,
+      streaming?.streamId,
     ];
 
     for (const candidate of candidates) {
@@ -912,7 +946,7 @@ export class Agent2AgentController {
    * Frontend sends: { method, prompt, conversationHistory, llmSelection, ... }
    * Backend expects: { mode, userMessage, messages, payload, metadata, ... }
    */
-  private adaptFrontendRequest(body: any): any {
+  private adaptFrontendRequest(body: FrontendTaskRequest): FrontendTaskRequest {
     // Check if it's JSON-RPC format (frontend now sends this for database agents)
     if (body.jsonrpc === '2.0') {
       this.logger.debug(
@@ -932,7 +966,7 @@ export class Agent2AgentController {
     );
 
     // Transform frontend format to backend format
-    const adapted: any = {
+    const adapted: FrontendTaskRequest = {
       // Map 'method' to 'mode' enum
       mode: body.method || 'converse',
 
@@ -940,7 +974,7 @@ export class Agent2AgentController {
       userMessage: body.prompt,
 
       // Map 'conversationHistory' to 'messages'
-      messages: body.conversationHistory?.map((msg: any) => ({
+      messages: body.conversationHistory?.map((msg) => ({
         role: msg.role,
         content: msg.content,
       })),
@@ -969,22 +1003,37 @@ export class Agent2AgentController {
   }
 
   private async normalizeTaskRequest(
-    payload: any,
+    payload: unknown,
   ): Promise<NormalizedTaskRequest> {
     if (!payload || typeof payload !== 'object') {
       throw new BadRequestException('Request body must be a JSON object.');
     }
 
+    const typedPayload = payload as {
+      jsonrpc?: unknown;
+      params?: unknown;
+      method?: unknown;
+      mode?: unknown;
+      id?: unknown;
+    };
+
     const isJsonRpc =
-      typeof payload.jsonrpc === 'string' && payload.jsonrpc.length > 0;
+      typeof typedPayload.jsonrpc === 'string' &&
+      typedPayload.jsonrpc.length > 0;
 
-    const candidateSource = isJsonRpc ? (payload.params ?? {}) : payload;
-    const candidate = { ...candidateSource };
+    const candidateSource = isJsonRpc
+      ? (typedPayload.params ?? {})
+      : typedPayload;
+    const candidate = { ...(candidateSource as Record<string, unknown>) };
 
-    if (isJsonRpc && !candidate.mode && typeof payload.method === 'string') {
-      const mapped = this.mapMethodToMode(payload.method as string);
+    if (
+      isJsonRpc &&
+      !(candidate as Record<string, unknown>).mode &&
+      typeof typedPayload.method === 'string'
+    ) {
+      const mapped = this.mapMethodToMode(typedPayload.method as string);
       if (mapped) {
-        candidate.mode = mapped;
+        (candidate as Record<string, unknown>).mode = mapped;
       }
     }
 
@@ -1007,9 +1056,9 @@ export class Agent2AgentController {
     let jsonrpc: NormalizedTaskRequest['jsonrpc'] | undefined;
 
     if (isJsonRpc) {
-      const jsonrpcContext = {
-        id: payload.id ?? null,
-        method: payload.method ?? null,
+      const jsonrpcContext: { id: unknown; method?: string | null } = {
+        id: typedPayload.id ?? null,
+        method: typeof typedPayload.method === 'string' ? typedPayload.method : null,
       };
 
       dto.metadata = {
@@ -1058,14 +1107,28 @@ export class Agent2AgentController {
     }
   }
 
-  private formatValidationErrors(errors: any[]): string {
+  private formatValidationErrors(
+    errors: Array<{
+      constraints?: Record<string, string>;
+      children?: Array<{
+        constraints?: Record<string, string>;
+        children?: unknown[];
+      }>;
+    }>,
+  ): string {
     const messages = errors
       .map((error) => {
         if (error.constraints) {
-          return Object.values(error.constraints as Record<string, any>).join(', ');
+          return Object.values(error.constraints).join(', ');
         }
         if (error.children && error.children.length) {
-          return this.formatValidationErrors(error.children as any[]);
+          return this.formatValidationErrors(error.children as unknown as Array<{
+            constraints?: Record<string, string>;
+            children?: Array<{
+              constraints?: Record<string, string>;
+              children?: unknown[];
+            }>;
+          }>);
         }
         return null;
       })
@@ -1145,18 +1208,24 @@ export class Agent2AgentController {
     }
   }
 
-  private extractMessage(payload: any): string | null {
+  private extractMessage(payload: unknown): string | null {
     if (!payload) {
       return null;
     }
     if (typeof payload === 'string') {
       return payload;
     }
-    if (typeof payload.message === 'string') {
-      return payload.message;
+    const typedPayload = payload as {
+      message?: unknown;
+    };
+    if (typeof typedPayload.message === 'string') {
+      return typedPayload.message;
     }
-    if (Array.isArray(payload.message) && payload.message.length) {
-      return payload.message.join(', ');
+    if (
+      Array.isArray(typedPayload.message) &&
+      typedPayload.message.length
+    ) {
+      return typedPayload.message.join(', ');
     }
     return null;
   }

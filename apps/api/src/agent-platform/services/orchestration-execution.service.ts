@@ -31,15 +31,9 @@ export class OrchestrationExecutionService {
   ) {}
 
   getConcurrencyLimit(run: OrchestrationRunRecord): number {
-    const metadata = this.asRecord(
-      run.metadata as Record<string, any> | undefined,
-    );
-    const execution = this.asRecord(
-      metadata?.execution as Record<string, any> | undefined,
-    );
-    const concurrency = this.asRecord(
-      execution?.concurrency as Record<string, any> | undefined,
-    );
+    const metadata = this.asRecord(run.metadata as JsonObject | undefined);
+    const execution = this.asRecord(metadata?.execution as JsonObject | undefined);
+    const concurrency = this.asRecord(execution?.concurrency as JsonObject | undefined);
 
     const configured = this.coercePositiveInteger(
       concurrency?.maxParallelSteps,
@@ -130,7 +124,7 @@ export class OrchestrationExecutionService {
     const queuedSteps = await Promise.all(
       readySteps.map((step) => {
         const metadata = this.cloneMetadata(
-          step.metadata as Record<string, any> | undefined,
+          step.metadata as JsonObject | undefined,
         );
         metadata.queuedAt = now;
 
@@ -257,7 +251,7 @@ export class OrchestrationExecutionService {
    */
   async markStepCompleted(
     stepId: string,
-    output: Record<string, any> | null,
+    output: JsonObject | null,
     additional?: Partial<OrchestrationStepUpdateInput>,
   ): Promise<{
     step: OrchestrationStepRecord;
@@ -529,14 +523,12 @@ export class OrchestrationExecutionService {
     return merged;
   }
 
-  private cloneMetadata(
-    metadata: Record<string, any> | undefined,
-  ): Record<string, any> {
+  private cloneMetadata(metadata: JsonObject | undefined): JsonObject {
     if (!metadata) {
       return {};
     }
     try {
-      return JSON.parse(JSON.stringify(metadata));
+      return JSON.parse(JSON.stringify(metadata)) as JsonObject;
     } catch (error) {
       this.logger.warn(
         `Failed to deep clone step metadata, falling back to shallow copy: ${error instanceof Error ? error.message : String(error)}`,
@@ -578,7 +570,7 @@ export class OrchestrationExecutionService {
     return diff >= 0 ? diff : null;
   }
 
-  private coercePositiveInteger(...values: Array<any>): number | null {
+  private coercePositiveInteger(...values: unknown[]): number | null {
     for (const value of values) {
       if (value === null || value === undefined) {
         continue;
@@ -597,11 +589,11 @@ export class OrchestrationExecutionService {
     return null;
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
+  private asRecord(value: unknown): JsonObject | null {
     if (!value || typeof value !== 'object') {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    return { ...(value as JsonObject) };
   }
 
   private extractTotalSteps(

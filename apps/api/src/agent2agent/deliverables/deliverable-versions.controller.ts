@@ -24,6 +24,14 @@ import { DeliverableVersionsService } from './deliverable-versions.service';
 import { CreateVersionDto, RerunWithLLMDto, EnhanceVersionDto } from './dto';
 import { DeliverableVersion } from './entities/deliverable.entity';
 
+interface AuthenticatedRequest {
+  user?: {
+    sub?: string;
+    id?: string;
+    userId?: string;
+  };
+}
+
 @ApiTags('deliverable-versions')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -48,9 +56,9 @@ export class DeliverableVersionsController {
   async createVersion(
     @Param('deliverableId', ParseUUIDPipe) deliverableId: string,
     @Body() createVersionDto: CreateVersionDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -76,9 +84,9 @@ export class DeliverableVersionsController {
   @ApiResponse({ status: 404, description: 'Deliverable not found' })
   async getVersionHistory(
     @Param('deliverableId', ParseUUIDPipe) deliverableId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion[]> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -103,9 +111,9 @@ export class DeliverableVersionsController {
   })
   async getCurrentVersion(
     @Param('deliverableId', ParseUUIDPipe) deliverableId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion | null> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -127,9 +135,9 @@ export class DeliverableVersionsController {
   @ApiResponse({ status: 404, description: 'Version not found' })
   async getVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -152,9 +160,9 @@ export class DeliverableVersionsController {
   @ApiResponse({ status: 404, description: 'Version not found' })
   async setCurrentVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -175,9 +183,9 @@ export class DeliverableVersionsController {
   @ApiResponse({ status: 404, description: 'Version not found' })
   async deleteVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<{ success: boolean; message: string }> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -205,12 +213,12 @@ export class DeliverableVersionsController {
   async rerunWithDifferentLLM(
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Body() rerunDto: RerunWithLLMDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
     console.log('🔄 Rerun request received:', { versionId, rerunDto });
     console.log('🔄 Request body validation passed');
 
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     console.log('🔄 User ID extracted:', userId);
 
     if (!userId) {
@@ -252,9 +260,9 @@ export class DeliverableVersionsController {
   })
   async copyVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) throw new Error('User not authenticated');
     return this.versionsService.copyVersion(versionId, userId);
   }
@@ -277,9 +285,9 @@ export class DeliverableVersionsController {
   async enhanceVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Body() dto: EnhanceVersionDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DeliverableVersion> {
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId: string = req.user?.sub || req.user?.id || req.user?.userId || '';
     if (!userId) throw new Error('User not authenticated');
     return this.versionsService.enhanceVersion(versionId, dto, userId);
   }

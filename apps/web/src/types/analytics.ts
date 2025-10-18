@@ -548,11 +548,9 @@ export interface ModelPerformanceResponse extends AnalyticsResponse<ModelPerform
 export interface TaskAnalyticsResponse extends AnalyticsResponse<TaskAnalytics> {}
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface SystemAnalyticsResponse extends AnalyticsResponse<SystemAnalytics> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface BusinessMetricsResponse extends AnalyticsResponse<BusinessMetrics> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface DashboardDataResponse extends AnalyticsResponse<DashboardData> {}
-export interface RealTimeAnalyticsResponse extends AnalyticsResponse<RealTimeAnalytics> {}
+export type BusinessMetricsResponse = AnalyticsResponse<BusinessMetrics>;
+export type DashboardDataResponse = AnalyticsResponse<DashboardData>;
+export type RealTimeAnalyticsResponse = AnalyticsResponse<RealTimeAnalytics>;
 
 // =====================================
 // FILTER AND SORT OPTIONS

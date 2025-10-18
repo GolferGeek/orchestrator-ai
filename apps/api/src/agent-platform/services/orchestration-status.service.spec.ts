@@ -326,12 +326,34 @@ describe('OrchestrationStatusService', () => {
       runner.getRun.mockResolvedValue(run);
       runner.listSteps.mockResolvedValue(steps);
 
-      events.snapshotRun.mockReturnValue({
+      const snapshot: OrchestrationRunSnapshot = {
         id: 'run-1',
         status: 'running',
         currentStepId: 'step-1',
         stats: { totalSteps: 3, completedSteps: 2, progressPercentage: 67 },
-      } as any);
+        definitionId: 'def-1',
+        name: 'test-orchestration',
+        planId: null,
+        conversationId: 'conv-1',
+        parentRunId: null,
+        organizationSlug: 'org-1',
+        currentStepIndex: 1,
+        completedSteps: ['step-0'],
+        humanCheckpointId: null,
+        plan: {},
+        results: {},
+        parameters: {},
+        errorDetails: {},
+        metadata: { agent: { slug: 'test-agent' } },
+        timings: {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          startedAt: new Date().toISOString(),
+          completedAt: null,
+        },
+        agent: { slug: 'test-agent' },
+      };
+      events.snapshotRun.mockReturnValue(snapshot);
 
       const result = await service.getRunStatus('run-1');
 
@@ -350,12 +372,34 @@ describe('OrchestrationStatusService', () => {
       runner.getRun.mockResolvedValue(run);
       runner.listSteps.mockResolvedValue(steps);
 
-      events.snapshotRun.mockReturnValue({
+      const snapshot: OrchestrationRunSnapshot = {
         id: 'run-1',
         status: 'completed',
         currentStepId: null,
         stats: { totalSteps: 1, completedSteps: 1, progressPercentage: 100 },
-      } as any);
+        definitionId: 'def-1',
+        name: 'test-orchestration',
+        planId: null,
+        conversationId: 'conv-1',
+        parentRunId: null,
+        organizationSlug: 'org-1',
+        currentStepIndex: null,
+        completedSteps: ['step-0'],
+        humanCheckpointId: null,
+        plan: {},
+        results: {},
+        parameters: {},
+        errorDetails: {},
+        metadata: { agent: { slug: 'test-agent' } },
+        timings: {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+        },
+        agent: { slug: 'test-agent' },
+      };
+      events.snapshotRun.mockReturnValue(snapshot);
 
       const result = await service.getRunStatus('run-1');
 

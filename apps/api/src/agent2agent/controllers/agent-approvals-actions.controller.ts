@@ -10,6 +10,13 @@ import { AgentExecutionGateway } from '../services/agent-execution-gateway.servi
 import { HumanApprovalsRepository } from '@/agent-platform/repositories/human-approvals.repository';
 import { TaskRequestDto } from '../dto/task-request.dto';
 
+interface StoredRequest {
+  conversationId?: string;
+  userMessage?: string;
+  payload?: Record<string, any>;
+  [key: string]: any;
+}
+
 @Controller('agent-to-agent')
 export class AgentApprovalsActionsController {
   constructor(
@@ -51,7 +58,8 @@ export class AgentApprovalsActionsController {
     await this.approvals.setStatus(id, 'approved', userId);
 
     // Rehydrate the stored request and allow minimal overrides
-    const stored: any = (record.metadata as any)?.request || {};
+    const metadata = record.metadata as Record<string, any> | null | undefined;
+    const stored: StoredRequest = (metadata?.request as StoredRequest) || {};
     const request = {
       mode: 'build' as const,
       conversationId:

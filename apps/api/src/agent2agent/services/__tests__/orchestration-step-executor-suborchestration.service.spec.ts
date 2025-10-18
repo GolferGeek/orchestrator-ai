@@ -18,6 +18,7 @@ import { OrchestrationRunFactoryService } from '@agent-platform/services/orchest
 import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '@agent-platform/interfaces/orchestration-step-record.interface';
 import { OrchestrationResolvedDefinition } from '@agent-platform/types/orchestration-definition.types';
+import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 
 describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
   let service: OrchestrationStepExecutorService;
@@ -162,6 +163,31 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
     created_by: 'user-123',
   };
 
+  const createMockAgentRecord = (
+    overrides: Partial<AgentRecord> = {},
+  ): AgentRecord => ({
+    id: 'agent-123',
+    organization_slug: 'global',
+    slug: 'finance-manager',
+    display_name: 'Finance Manager',
+    description: null,
+    agent_type: 'orchestrator',
+    mode_profile: 'standard',
+    version: null,
+    status: null,
+    yaml: '',
+    function_code: null,
+    agent_card: null,
+    context: null,
+    config: null,
+    plan_structure: null,
+    deliverable_structure: null,
+    io_schema: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides,
+  });
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -299,12 +325,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-        agent_type: 'orchestrator',
-        display_name: 'Finance Manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+          agent_type: 'orchestrator',
+          display_name: 'Finance Manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'running' as const },
@@ -368,12 +396,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-        agent_type: 'orchestrator',
-        display_name: 'Finance Manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+          agent_type: 'orchestrator',
+          display_name: 'Finance Manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'completed' as const },
@@ -417,10 +447,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'completed' as const },
@@ -471,10 +503,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'completed' as const },
@@ -669,10 +703,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'running' as const },
@@ -716,10 +752,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'running' as const },
@@ -761,10 +799,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'running' as const },
@@ -824,10 +864,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       mockDefinitionService.getDefinitionForExecution.mockResolvedValue(
         mockChildDefinition,
       );
-      mockAgentRegistry.getAgent.mockResolvedValue({
-        id: 'agent-123',
-        slug: 'finance-manager',
-      } as any);
+      mockAgentRegistry.getAgent.mockResolvedValue(
+        createMockAgentRecord({
+          id: 'agent-123',
+          slug: 'finance-manager',
+        }),
+      );
 
       mockRunFactory.createRunFromDefinition.mockResolvedValue({
         run: { ...mockChildRun, status: 'running' as const },

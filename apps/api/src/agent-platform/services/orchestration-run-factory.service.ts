@@ -413,7 +413,7 @@ export class OrchestrationRunFactoryService {
       return {};
     }
 
-    const onFailureRaw = raw.on_step_failure;
+    const onFailureRaw: unknown = raw.on_step_failure;
     if (!onFailureRaw) {
       return {};
     }
@@ -478,8 +478,8 @@ export class OrchestrationRunFactoryService {
       return null;
     }
     if (Array.isArray(value)) {
-      return value.reduce<Record<string, any>>((acc, entry, index) => {
-        acc[index] = entry;
+      return value.reduce<Record<string, any>>((acc, entry: unknown, index) => {
+        acc[index] = entry as any;
         return acc;
       }, {});
     }
@@ -491,7 +491,7 @@ export class OrchestrationRunFactoryService {
 
     const result: Record<string, any> = {};
     for (const [key, entry] of entries) {
-      result[key] = entry;
+      result[key] = entry as any;
     }
     return result;
   }

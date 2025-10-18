@@ -32,7 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
   forceShow: false
 });
 
-const emit = defineEmits<{
+defineEmits<{
   click: [];
 }>();
 

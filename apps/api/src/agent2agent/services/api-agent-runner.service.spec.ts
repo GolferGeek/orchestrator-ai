@@ -5,6 +5,19 @@ import { DeliverablesService } from '../deliverables/deliverables.service';
 import { AgentRuntimeDefinition } from '../../agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { of, throwError } from 'rxjs';
+import type { AxiosResponse } from 'axios';
+
+const createMockAxiosResponse = <T = unknown>(
+  data: T,
+  status = 200,
+  statusText = 'OK',
+): AxiosResponse<T> => ({
+  data,
+  status,
+  statusText,
+  headers: {},
+  config: { headers: {} as never },
+});
 
 describe('ApiAgentRunnerService', () => {
   let service: ApiAgentRunnerService;
@@ -76,17 +89,12 @@ describe('ApiAgentRunnerService', () => {
       };
 
       // Mock HTTP response
-      const httpResponse = {
-        status: 200,
-        statusText: 'OK',
-        headers: { 'content-type': 'application/json' },
-        data: [
-          { id: 1, name: 'User 1' },
-          { id: 2, name: 'User 2' },
-        ],
-      };
+      const httpResponse = createMockAxiosResponse([
+        { id: 1, name: 'User 1' },
+        { id: 2, name: 'User 2' },
+      ]);
 
-      httpService.request.mockReturnValue(of(httpResponse) as any);
+      httpService.request.mockReturnValue(of(httpResponse));
 
       // Mock deliverable creation
       deliverablesService.executeAction.mockResolvedValue({
@@ -165,10 +173,13 @@ describe('ApiAgentRunnerService', () => {
       };
 
       httpService.request.mockReturnValue(
-        of({
-          status: 201,
-          data: { id: 3, name: 'John Doe', email: 'john@example.com' },
-        }) as any,
+        of(
+          createMockAxiosResponse(
+            { id: 3, name: 'John Doe', email: 'john@example.com' },
+            201,
+            'Created',
+          ),
+        ),
       );
 
       deliverablesService.executeAction.mockResolvedValue({

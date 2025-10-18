@@ -299,7 +299,7 @@ describe('API Integration Tests - Task 24.2', () => {
 
       try {
         await Promise.race([store.loadPatterns(), timeoutPromise]);
-      } catch (_error) {
+      } catch {
         // Should handle timeouts gracefully
         expect(store.isLoading).toBe(false);
         expect(store.error).toBeDefined();
@@ -318,7 +318,7 @@ describe('API Integration Tests - Task 24.2', () => {
         } else {
           expect(store.error).toBeDefined();
         }
-      } catch (_error) {
+      } catch {
         expect(store.error).toBeDefined();
       }
 
@@ -336,7 +336,7 @@ describe('API Integration Tests - Task 24.2', () => {
 
       try {
         await store.loadPatterns();
-      } catch (_error) {
+      } catch {
         // Even on error, store should maintain integrity
         expect(Array.isArray(store.patterns)).toBe(true);
         expect(store.isLoading).toBe(false);

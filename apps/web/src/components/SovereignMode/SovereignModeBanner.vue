@@ -51,7 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
   customDescription: ''
 });
 
-const emit = defineEmits<{
+defineEmits<{
   dismiss: [];
 }>();
 

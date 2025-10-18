@@ -99,14 +99,14 @@ const handleConversationSelected = async (conv: { id: string }) => {
     // TODO: Load conversation messages if not already loaded
     // await conversation.loadConversationMessages(conv.id);
     chatUiStore.setActiveConversation(conv.id);
-  } catch (_error) {
+  } catch {
 
   }
 };
 const handleAgentSelected = async (agent: { type: string }) => {
   try {
     await conversation.createConversation(agent);
-  } catch (_error) {
+  } catch {
 
   }
 };
@@ -127,7 +127,7 @@ const handleQuickAction = async (agentType: string) => {
     } else {
 
     }
-  } catch (error) {
+  } catch {
 
   }
 };
