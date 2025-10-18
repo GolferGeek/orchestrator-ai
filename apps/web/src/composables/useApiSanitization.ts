@@ -231,7 +231,7 @@ export function useApiSanitization() {
   ): T {
     return (async (...args: Parameters<T>) => {
       // Sanitize all string arguments
-      const sanitizedArgs = args.map((arg, index) => {
+      const sanitizedArgs = args.map((arg, _index) => {
         if (typeof arg === 'string') {
           return getSanitizedValue(arg, sanitizationOptions.profile || 'apiInput');
         }

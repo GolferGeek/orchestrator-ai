@@ -455,7 +455,7 @@ export function useStoreExport() {
           // For now, export as CSV with Excel-compatible format
           const excelCsvContent = convertToCSV(data);
           blob = new Blob([excelCsvContent], { type: 'text/csv' });
-          mimeType = 'text/csv';
+          const _mimeType = 'text/csv';
           fileExtension = '.csv';
           break;
         }

@@ -4,8 +4,8 @@
  */
 
 import { ref, reactive, computed, onUnmounted, readonly } from 'vue';
-import DOMPurify from 'dompurify';
-import * as yup from 'yup';
+// import DOMPurify from 'dompurify';
+// import * as yup from 'yup';
 import {
   ValidationResult,
   ValidationError,
@@ -48,13 +48,13 @@ const DEFAULT_CONFIG: ValidationConfig = {
  * Sanitize input to prevent XSS and other security issues
  * Enhanced with profile support for different input types
  */
-function sanitizeInput(value: unknown, options?: SanitizationOptions): unknown {
-  if (typeof value === 'string') {
-    const result = sanitizeWithProfile(value, options || { profile: 'moderate' });
-    return result.sanitized;
-  }
-  return value;
-}
+// function sanitizeInput(value: unknown, options?: SanitizationOptions): unknown {
+//   if (typeof value === 'string') {
+//     const result = sanitizeWithProfile(value, options || { profile: 'moderate' });
+//     return result.sanitized;
+//   }
+//   return value;
+// }
 
 /**
  * Check for common security patterns
@@ -302,7 +302,7 @@ export const ValidationRules = {
     })
   }),
 
-  regexPattern: (message = 'Invalid regex pattern'): ValidationRule => ({
+  regexPattern: (_message = 'Invalid regex pattern'): ValidationRule => ({
     name: 'regexPattern',
     priority: 4,
     description: 'Valid regex pattern',

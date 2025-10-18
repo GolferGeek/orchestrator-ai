@@ -55,7 +55,7 @@ export function usePrivacyIndicators(options: PrivacyIndicatorOptions = {}) {
   // =====================================
   
   const sanitizationStore = useSanitizationStore();
-  const llmAnalyticsStore = useLLMAnalyticsStore();
+  const _llmAnalyticsStore = useLLMAnalyticsStore();
   const chatUiStore = useChatUiStore();
   
   // =====================================
