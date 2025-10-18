@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2025-10-17T22:00:39.069Z",
+  "generatedAt": "2025-10-18T00:14:31.950Z",
   "targets": [
     {
       "workspace": "api",
       "displayName": "API",
       "ruleCounts": {
-        "@typescript-eslint/no-explicit-any": 1782,
-        "@typescript-eslint/no-unsafe-assignment": 2251,
-        "@typescript-eslint/no-unsafe-member-access": 2743,
-        "@typescript-eslint/no-unsafe-call": 219,
-        "@typescript-eslint/no-unsafe-argument": 627,
-        "@typescript-eslint/no-unsafe-return": 183,
+        "@typescript-eslint/no-explicit-any": 1674,
+        "@typescript-eslint/no-unsafe-assignment": 2048,
+        "@typescript-eslint/no-unsafe-member-access": 2508,
+        "@typescript-eslint/no-unsafe-call": 206,
+        "@typescript-eslint/no-unsafe-argument": 592,
+        "@typescript-eslint/no-unsafe-return": 166,
         "@typescript-eslint/no-floating-promises": 0,
         "@typescript-eslint/await-thenable": 1,
         "@typescript-eslint/require-await": 80,
-        "@typescript-eslint/restrict-template-expressions": 5,
+        "@typescript-eslint/restrict-template-expressions": 6,
         "@typescript-eslint/no-misused-promises": 1,
-        "@typescript-eslint/no-redundant-type-constituents": 41,
+        "@typescript-eslint/no-redundant-type-constituents": 28,
         "@typescript-eslint/unbound-method": 156,
-        "@typescript-eslint/no-unused-vars": 234,
+        "@typescript-eslint/no-unused-vars": 230,
         "no-empty": 22
       }
     },
@@ -26,8 +26,8 @@
       "workspace": "web",
       "displayName": "Web",
       "ruleCounts": {
-        "@typescript-eslint/no-explicit-any": 934,
-        "@typescript-eslint/no-unused-vars": 435,
+        "@typescript-eslint/no-explicit-any": 634,
+        "@typescript-eslint/no-unused-vars": 443,
         "@typescript-eslint/no-empty-object-type": 11,
         "no-prototype-builtins": 0
       }

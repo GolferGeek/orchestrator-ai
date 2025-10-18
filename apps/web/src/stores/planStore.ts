@@ -7,8 +7,113 @@
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
-import type { PlanCreateResult, PlanReadResult, PlanEditResult } from '@/services/agent2agent/utils/handlers';
+import type { JsonObject } from '@/types';
 import { apiService } from '@/services/apiService';
+
+type PlanVersionApiResponse = {
+  id: string;
+  planId: string;
+  versionNumber: number;
+  content: string;
+  format: string;
+  createdByType: 'agent' | 'user';
+  createdById?: string | null;
+  taskId?: string | null;
+  metadata?: JsonObject | null;
+  isCurrentVersion?: boolean;
+  createdAt: string | Date;
+};
+
+type PlanConversationApiResponse = {
+  id: string;
+  conversationId: string;
+  userId: string;
+  agentName: string;
+  namespace?: string | null;
+  title?: string | null;
+  currentVersionId?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  versions?: PlanVersionApiResponse[];
+};
+
+const isJsonObject = (value: unknown): value is JsonObject => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const isPlanVersionApiResponse = (value: unknown): value is PlanVersionApiResponse => {
+  if (!isJsonObject(value)) {
+    return false;
+  }
+
+  const candidate = value as Partial<PlanVersionApiResponse>;
+  return (
+    typeof candidate.id === 'string'
+    && typeof candidate.planId === 'string'
+    && typeof candidate.versionNumber === 'number'
+    && typeof candidate.content === 'string'
+    && typeof candidate.format === 'string'
+    && (candidate.createdByType === 'agent' || candidate.createdByType === 'user')
+    && (typeof candidate.createdAt === 'string' || candidate.createdAt instanceof Date)
+  );
+};
+
+const isPlanConversationApiResponse = (value: unknown): value is PlanConversationApiResponse => {
+  if (!isJsonObject(value)) {
+    return false;
+  }
+
+  const candidate = value as Partial<PlanConversationApiResponse>;
+
+  const versionsValid =
+    candidate.versions === undefined
+    || (Array.isArray(candidate.versions)
+      && candidate.versions.every(isPlanVersionApiResponse));
+
+  return (
+    typeof candidate.id === 'string'
+    && typeof candidate.conversationId === 'string'
+    && typeof candidate.userId === 'string'
+    && typeof candidate.agentName === 'string'
+    && (typeof candidate.createdAt === 'string' || candidate.createdAt instanceof Date)
+    && (typeof candidate.updatedAt === 'string' || candidate.updatedAt instanceof Date)
+    && versionsValid
+  );
+};
+
+const toIsoString = (value: string | Date): string => (
+  typeof value === 'string' ? value : value.toISOString()
+);
+
+const normalizePlanVersion = (version: PlanVersionApiResponse): PlanVersionData => {
+  const format = version.format === 'json' ? 'json' : 'markdown';
+
+  return {
+    id: version.id,
+    planId: version.planId,
+    versionNumber: version.versionNumber,
+    content: version.content,
+    format,
+    createdByType: version.createdByType,
+    createdById: version.createdById ?? null,
+    taskId: version.taskId ?? undefined,
+    metadata: isJsonObject(version.metadata) ? version.metadata : undefined,
+    isCurrentVersion: Boolean(version.isCurrentVersion),
+    createdAt: toIsoString(version.createdAt),
+  };
+};
+
+const normalizePlan = (plan: PlanConversationApiResponse): PlanData => ({
+  id: plan.id,
+  conversationId: plan.conversationId,
+  userId: plan.userId,
+  agentName: plan.agentName,
+  namespace: plan.namespace ?? '',
+  title: plan.title ?? '',
+  currentVersionId: plan.currentVersionId ?? '',
+  createdAt: toIsoString(plan.createdAt),
+  updatedAt: toIsoString(plan.updatedAt),
+});
 
 export const usePlanStore = defineStore('plan', () => {
   // State - using Maps for O(1) lookups
@@ -133,6 +238,15 @@ export const usePlanStore = defineStore('plan', () => {
    */
   function setCurrentVersion(planId: string, versionId: string): void {
     currentVersionId.value.set(planId, versionId);
+
+    const existing = plans.value.get(planId);
+    if (existing) {
+      plans.value.set(planId, {
+        ...existing,
+        currentVersionId: versionId,
+        updatedAt: new Date().toISOString(),
+      });
+    }
   }
 
   /**
@@ -191,49 +305,33 @@ export const usePlanStore = defineStore('plan', () => {
    */
   async function loadPlansByConversation(conversationId: string): Promise<PlanData | null> {
     try {
-      const response = await apiService.get(`/plans/conversation/${conversationId}`);
+      const rawResponse: unknown = await apiService.get(`/plans/conversation/${conversationId}`);
 
-      if (!response || !response.id) {
+      if (!rawResponse) {
         console.log('[planStore.loadPlansByConversation] No plan found for conversation:', conversationId);
         return null;
       }
 
+      if (!isPlanConversationApiResponse(rawResponse)) {
+        throw new Error('Received malformed plan conversation response');
+      }
+
+      const response = rawResponse;
+
       // Map the API response to PlanData
-      const plan: PlanData = {
-        id: response.id,
-        conversationId: response.conversationId,
-        agentName: response.agentName,
-        namespace: response.namespace,
-        title: response.title,
-        createdAt: new Date(response.createdAt),
-        updatedAt: new Date(response.updatedAt),
-      };
+      const plan = normalizePlan(response);
 
       // Add the plan to the store
       addPlan(plan);
 
+      if (response.currentVersionId) {
+        setCurrentVersion(plan.id, response.currentVersionId);
+      }
+
       // Add versions if they exist
       if (response.versions && Array.isArray(response.versions)) {
-        response.versions.forEach((versionData: {
-          id: string;
-          plan_id: string;
-          version_number: number;
-          content: string;
-          format?: string;
-          created_at: string;
-          is_current_version?: boolean;
-          metadata?: Record<string, unknown>;
-        }) => {
-          const version: PlanVersionData = {
-            id: versionData.id,
-            planId: versionData.plan_id,
-            versionNumber: versionData.version_number,
-            content: versionData.content,
-            format: versionData.format,
-            createdAt: new Date(versionData.created_at),
-            isCurrentVersion: versionData.is_current_version,
-            metadata: versionData.metadata,
-          };
+        response.versions.forEach((versionData) => {
+          const version = normalizePlanVersion(versionData);
           addVersion(plan.id, version);
 
           // Set as current version if flagged

@@ -247,7 +247,7 @@ export class PlansService implements IActionHandler {
           content: params.content,
           format: params.format || 'markdown',
           createdByType: 'agent',
-          taskId: params.taskId || context.taskId,
+          taskId: params.taskId ?? context.taskId ?? undefined,
           metadata: params.metadata || {},
         },
       );
@@ -259,7 +259,7 @@ export class PlansService implements IActionHandler {
       const planData = await this.plansRepo.create({
         conversation_id: context.conversationId,
         user_id: context.userId,
-        agent_name: params.agentName || context.agentSlug || 'unknown',
+        agent_name: params.agentName ?? context.agentSlug ?? 'unknown',
         namespace: params.namespace || 'default',
         title: params.title,
       });
@@ -272,7 +272,7 @@ export class PlansService implements IActionHandler {
           content: params.content,
           format: params.format || 'markdown',
           createdByType: 'agent',
-          taskId: params.taskId || context.taskId,
+          taskId: params.taskId ?? context.taskId ?? undefined,
           metadata: params.metadata || {},
         },
       );

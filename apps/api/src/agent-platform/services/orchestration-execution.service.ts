@@ -8,14 +8,11 @@ import {
 } from '../interfaces/orchestration-step-record.interface';
 import { OrchestrationEventsService } from './orchestration-events.service';
 import { OrchestrationMetricsService } from './orchestration-metrics.service';
-
-interface StepStateEntry {
-  status: string;
-  startedAt?: string | null;
-  completedAt?: string | null;
-  attemptNumber?: number;
-  metadata?: Record<string, any>;
-}
+import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type {
+  OrchestrationStepState,
+  OrchestrationStepStateEntry,
+} from '../types/orchestration-run.types';
 
 interface StepFailureOptions {
   allowRetry?: boolean;
@@ -629,20 +626,17 @@ export class OrchestrationExecutionService {
   }
 
   private mergeStepState(
-    current: Record<string, StepStateEntry>,
-    patches: Array<{ key: string; state: StepStateEntry }>,
-  ): Record<string, StepStateEntry> {
-    const next = { ...current };
+    current: OrchestrationStepState,
+    patches: Array<{ key: string; state: OrchestrationStepStateEntry }>,
+  ): OrchestrationStepState {
+    const next: OrchestrationStepState = { ...current };
 
     patches.forEach(({ key, state }) => {
-      const existing = next[key] ?? {};
+      const existing = this.cloneStepStateEntry(next[key]);
       next[key] = {
         ...existing,
         ...state,
-        metadata: {
-          ...((existing as any).metadata ?? {}),
-          ...(state.metadata ?? {}),
-        },
+        metadata: this.mergeJsonObjects(existing.metadata, state.metadata),
       };
     });
 
@@ -658,5 +652,36 @@ export class OrchestrationExecutionService {
       ...current,
       [stepKey]: output,
     };
+  }
+
+  private cloneStepStateEntry(
+    entry: OrchestrationStepStateEntry | undefined,
+  ): OrchestrationStepStateEntry {
+    if (!entry) {
+      return {} as OrchestrationStepStateEntry;
+    }
+
+    return {
+      ...entry,
+      metadata: entry.metadata ? { ...entry.metadata } : undefined,
+      runtime: entry.runtime ? { ...entry.runtime } : undefined,
+      behavior: entry.behavior ? { ...entry.behavior } : undefined,
+      checkpoint: entry.checkpoint ? { ...entry.checkpoint } : undefined,
+      outputSummary: entry.outputSummary ? [...entry.outputSummary] : undefined,
+    };
+  }
+
+  private mergeJsonObjects(
+    base: JsonObject | undefined,
+    patch: JsonObject | undefined,
+  ): JsonObject | undefined {
+    if (!base && !patch) {
+      return undefined;
+    }
+
+    return {
+      ...(base ?? {}),
+      ...(patch ?? {}),
+    } as JsonObject;
   }
 }

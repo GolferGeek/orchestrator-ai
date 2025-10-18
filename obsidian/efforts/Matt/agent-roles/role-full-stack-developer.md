@@ -32,6 +32,38 @@ When starting work, you MUST be provided with:
 - Write clean, maintainable, well-documented code
 - No shortcuts or workarounds
 
+#### Type Safety with JSON Types
+When using `JSON` types (common for dynamic payloads, Supabase JSONB columns, external API responses):
+- **ALWAYS add runtime validation/type guards** before accessing properties
+- Never directly access properties on `JSON` typed values without checking
+- Use Zod schemas or manual type guards to validate shape at runtime
+
+```typescript
+// ❌ WRONG - No validation
+function processResponse(data: JSON) {
+  return data.content; // Unsafe!
+}
+
+// ✅ CORRECT - With type guard
+function processResponse(data: JSON) {
+  if (typeof data === 'object' && data !== null && 'content' in data) {
+    return String((data as { content: unknown }).content);
+  }
+  throw new Error('Invalid response shape');
+}
+
+// ✅ BEST - With Zod schema
+const ResponseSchema = z.object({
+  content: z.string(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+function processResponse(data: JSON) {
+  const parsed = ResponseSchema.parse(data);
+  return parsed.content; // Type-safe!
+}
+```
+
 ### 4. Testing
 - Execute all test tasks defined in the plan
 - Verify success criteria for each task before marking complete

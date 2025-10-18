@@ -21,7 +21,6 @@ import type {
   GoogleGenerateContentResponse,
   GoogleGenerateContentCandidate,
   GoogleUsageMetadata,
-  GoogleFinishReason,
   GoogleCitationSource,
 } from '../types/provider-payload.types';
 
@@ -328,18 +327,15 @@ export class GoogleLLMService extends BaseLLMService {
   private mapFinishReason(
     candidate?: GoogleGenerateContentCandidate,
   ): GoogleResponseMetadata['providerSpecific']['finish_reason'] {
-    const reason = candidate?.finishReason;
-    switch (reason) {
-      case GoogleFinishReason.STOP:
+    switch (candidate?.finishReason) {
+      case 'STOP':
         return 'STOP';
-      case GoogleFinishReason.MAX_TOKENS:
+      case 'MAX_TOKENS':
         return 'MAX_TOKENS';
-      case GoogleFinishReason.SAFETY:
+      case 'SAFETY':
         return 'SAFETY';
-      case GoogleFinishReason.RECITATION:
+      case 'RECITATION':
         return 'RECITATION';
-      case GoogleFinishReason.OTHER:
-        return 'OTHER';
       default:
         return 'OTHER';
     }

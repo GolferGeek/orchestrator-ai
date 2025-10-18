@@ -84,7 +84,7 @@ export interface OrchestrationManualRecoveryMetadata extends JsonObject {
 
 export interface OrchestrationAgentMetadata extends JsonObject {
   id?: string | null;
-  slug?: string;
+  slug?: string | null;
   type?: string | null;
   displayName?: string | null;
   organizationSlug?: string | null;

@@ -50,7 +50,7 @@ export class OrchestrationOutputMapper {
         if (typeof expression === 'string' && expression.trim().startsWith('$')) {
           result[key] = this.resolveJsonPath(root, expression.trim());
         } else {
-          result[key] = this.cloneValue(expression);
+          result[key] = this.cloneValue((expression ?? null) as JsonValue);
         }
       } catch (error) {
         this.logger.warn(
@@ -65,7 +65,7 @@ export class OrchestrationOutputMapper {
 
   private defaultProjection(payload: TaskResponsePayload): JsonObject {
     return {
-      content: this.cloneValue(payload.content),
+      content: this.cloneValue((payload.content ?? null) as JsonValue),
       metadata: this.cloneValue(payload.metadata ?? {}),
     };
   }
@@ -122,7 +122,7 @@ export class OrchestrationOutputMapper {
     }
 
     const segments = path.split('.');
-    let current: JsonValue = root;
+    let current: JsonValue | undefined = root;
 
     for (const segment of segments) {
       if (current === null || current === undefined) {
@@ -131,10 +131,10 @@ export class OrchestrationOutputMapper {
       current = this.accessSegment(current, segment);
     }
 
-    return this.cloneValue(current);
+    return this.cloneValue((current ?? null) as JsonValue);
   }
 
-  private accessSegment(target: JsonValue, segment: string): JsonValue {
+  private accessSegment(target: JsonValue, segment: string): JsonValue | undefined {
     if (segment.length === 0) {
       return target;
     }
@@ -148,7 +148,7 @@ export class OrchestrationOutputMapper {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
         current = (current as JsonObject)[fieldName];
       } else {
-        current = undefined;
+        current = null;
       }
       remainder = remainder.slice(fieldName.length);
     }
@@ -163,7 +163,7 @@ export class OrchestrationOutputMapper {
       current = current[index];
     }
 
-    return current;
+    return current ?? null;
   }
 
   private cloneValue<T extends JsonValue>(value: T): T {

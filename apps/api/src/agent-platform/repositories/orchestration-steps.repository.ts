@@ -32,8 +32,6 @@ export class OrchestrationStepsRepository {
   async create(
     input: OrchestrationStepInsertInput,
   ): Promise<OrchestrationStepRecord> {
-    const now = new Date().toISOString();
-
     const payload = {
       orchestration_run_id: input.orchestration_run_id,
       step_index: input.step_index,
@@ -57,8 +55,6 @@ export class OrchestrationStepsRepository {
       error_details: input.error_details ?? null,
       started_at: input.started_at ?? null,
       completed_at: input.completed_at ?? null,
-      created_at: now,
-      updated_at: now,
     } satisfies OrchestrationStepInsertInput;
 
     const { data, error } = (await this.client()
@@ -88,17 +84,9 @@ export class OrchestrationStepsRepository {
     const payload: Partial<OrchestrationStepUpdateInput> & {
       updated_at: string;
     } = {
+      ...this.filterUndefined(patch),
       updated_at: new Date().toISOString(),
     };
-
-    (Object.keys(patch) as Array<keyof OrchestrationStepUpdateInput>).forEach(
-      (key) => {
-        const value = patch[key];
-        if (value !== undefined) {
-          payload[key] = value;
-        }
-      },
-    );
 
     const { data, error } = (await this.client()
       .from(TABLE)
@@ -157,5 +145,13 @@ export class OrchestrationStepsRepository {
     }
 
     return data ?? [];
+  }
+
+  private filterUndefined<T extends Record<string, unknown>>(
+    value: T,
+  ): Partial<T> {
+    return Object.fromEntries(
+      Object.entries(value).filter(([, entry]) => entry !== undefined),
+    ) as Partial<T>;
   }
 }

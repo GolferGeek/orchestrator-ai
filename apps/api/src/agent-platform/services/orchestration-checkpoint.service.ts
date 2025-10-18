@@ -14,6 +14,7 @@ import type {
   OrchestrationCheckpointDecision,
   OrchestrationCheckpointMetadata,
   OrchestrationCheckpointOptionState,
+  OrchestrationRunMetadata,
   OrchestrationStepState,
   OrchestrationStepStateEntry,
 } from '../types/orchestration-run.types';
@@ -41,6 +42,22 @@ export interface ResolveOrchestrationCheckpointOptions {
   modifications?: JsonObject;
 }
 
+interface CheckpointStatePatch {
+  checkpointId?: string;
+  question?: string;
+  options?: OrchestrationCheckpointOptionState[];
+  status?: string;
+  requestedAt?: string;
+  resolvedAt?: string;
+  resolvedBy?: string | null;
+  notes?: string | null;
+  modifications?: JsonObject | null;
+  stepRecordId?: string | null;
+  stepDefinitionId?: string | null;
+  stepLabel?: string | null;
+  stepIndex?: number | null;
+}
+
 @Injectable()
 export class OrchestrationCheckpointService {
   private readonly logger = new Logger(OrchestrationCheckpointService.name);
@@ -60,21 +77,11 @@ export class OrchestrationCheckpointService {
     const run = await this.ensureRun(options.runId);
 
     const requestedAt = new Date().toISOString();
-    const checkpointMetadata: OrchestrationCheckpointMetadata = {
-      ...(options.metadata ?? {}),
-      runId: run.id,
-      checkpointId: options.checkpointId,
-      step: {
-        recordId: options.stepRecordId ?? null,
-        definitionId: options.stepId ?? null,
-        label: options.stepLabel ?? null,
-        index: options.stepIndex ?? null,
-      },
-      question: options.question,
-      options: options.options ?? [],
-      status: 'pending',
+    const checkpointMetadata = this.createRequestMetadata(
+      run,
+      options,
       requestedAt,
-    };
+    );
 
     const approval = await this.approvals.create({
       organizationSlug: options.organizationSlug ?? run.organization_slug,
@@ -89,6 +96,8 @@ export class OrchestrationCheckpointService {
     const stepState = this.buildUpdatedStepState(run, approval.id, {
       stepRecordId: options.stepRecordId ?? null,
       stepDefinitionId: options.stepId ?? null,
+      stepLabel: options.stepLabel ?? null,
+      stepIndex: options.stepIndex ?? null,
       checkpointId: options.checkpointId,
       question: options.question,
       options: options.options ?? [],
@@ -101,15 +110,14 @@ export class OrchestrationCheckpointService {
       status: 'checkpoint',
       humanCheckpointId: approval.id,
       stepState,
-      metadata: {
-        ...(run.metadata ?? {}),
+      metadata: this.mergeRunMetadata(run.metadata, {
         lastCheckpoint: {
           approvalId: approval.id,
           checkpointId: options.checkpointId,
           step: checkpointMetadata.step,
           requestedAt,
         },
-      },
+      }),
     });
 
     this.eventEmitter.emit('orchestration.checkpoint.requested', {
@@ -176,6 +184,11 @@ export class OrchestrationCheckpointService {
     const stepState = this.buildUpdatedStepState(run, options.approvalId, {
       stepRecordId: metadata.step?.recordId ?? null,
       stepDefinitionId: metadata.step?.definitionId ?? null,
+      stepLabel: metadata.step?.label ?? null,
+      stepIndex: metadata.step?.index ?? null,
+      checkpointId: metadata.checkpointId,
+      question: metadata.question,
+      options: metadata.options,
       status: options.decision,
       resolvedAt: now,
       resolvedBy: options.actorId ?? null,
@@ -223,25 +236,24 @@ export class OrchestrationCheckpointService {
   private buildUpdatedStepState(
     run: OrchestrationRunRecord,
     approvalId: string,
-    checkpointPatch: OrchestrationCheckpointMetadata,
+    patch: CheckpointStatePatch,
   ): OrchestrationStepState {
+    const lastCheckpoint = run.metadata?.lastCheckpoint;
     const stepDefinitionId =
-      checkpointPatch.stepDefinitionId ??
-      (run.metadata?.lastCheckpoint?.step?.definitionId as string | null) ??
+      patch.stepDefinitionId ??
+      (lastCheckpoint?.step?.definitionId as string | null) ??
       null;
     const stepRecordId =
-      checkpointPatch.stepRecordId ??
-      (run.metadata?.lastCheckpoint?.step?.recordId as string | null) ??
+      patch.stepRecordId ??
+      (lastCheckpoint?.step?.recordId as string | null) ??
       null;
     const key = stepDefinitionId ?? stepRecordId ?? 'plan';
-    const existingState: OrchestrationStepStateEntry = {
-      ...(run.step_state?.[key] ?? {}),
-    };
 
-    const checkpointState = {
+    const existingState = this.cloneStepStateEntry(run.step_state?.[key]);
+    const checkpointState: OrchestrationCheckpointMetadata = {
       ...(existingState.checkpoint ?? {}),
       approvalId,
-      ...checkpointPatch,
+      ...this.createCheckpointPatch(patch, existingState.checkpoint),
     };
 
     return {
@@ -264,8 +276,7 @@ export class OrchestrationCheckpointService {
       runId: run.id,
       humanCheckpointId: null as string | null,
       stepState,
-      metadata: {
-        ...(run.metadata ?? {}),
+      metadata: this.mergeRunMetadata(run.metadata, {
         lastCheckpoint: {
           ...(run.metadata?.lastCheckpoint ?? {}),
           decision: options.decision,
@@ -273,7 +284,7 @@ export class OrchestrationCheckpointService {
           decidedBy: options.actorId ?? null,
           notes: options.notes ?? null,
         },
-      },
+      }),
     } as Parameters<OrchestrationRunnerService['updateRun']>[0];
 
     switch (options.decision) {
@@ -316,5 +327,132 @@ export class OrchestrationCheckpointService {
     }
 
     return update;
+  }
+
+  private createRequestMetadata(
+    run: OrchestrationRunRecord,
+    options: RequestOrchestrationCheckpointOptions,
+    requestedAt: string,
+  ): OrchestrationCheckpointMetadata {
+    const base = this.cloneCheckpointMetadata(options.metadata);
+    const step = {
+      ...(base.step ?? {}),
+      recordId: options.stepRecordId ?? null,
+      definitionId: options.stepId ?? null,
+      label: options.stepLabel ?? null,
+      index: options.stepIndex ?? null,
+    };
+
+    return {
+      ...base,
+      runId: run.id,
+      checkpointId: options.checkpointId,
+      step,
+      question: options.question,
+      options: this.normalizeCheckpointOptions(options.options ?? base.options ?? []),
+      status: 'pending',
+      requestedAt,
+    };
+  }
+
+  private mergeRunMetadata(
+    current: OrchestrationRunMetadata | undefined,
+    patch: JsonObject,
+  ): OrchestrationRunMetadata {
+    return {
+      ...(current ?? {}),
+      ...patch,
+    } as OrchestrationRunMetadata;
+  }
+
+  private cloneCheckpointMetadata(
+    metadata: JsonObject | undefined,
+  ): OrchestrationCheckpointMetadata {
+    return metadata
+      ? { ...(metadata as OrchestrationCheckpointMetadata) }
+      : ({} as OrchestrationCheckpointMetadata);
+  }
+
+  private normalizeCheckpointOptions(
+    options: OrchestrationCheckpointOptionState[],
+  ): OrchestrationCheckpointOptionState[] {
+    return options.map((option) => ({ ...option }));
+  }
+
+  private cloneStepStateEntry(
+    entry: OrchestrationStepStateEntry | undefined,
+  ): OrchestrationStepStateEntry {
+    if (!entry) {
+      return {} as OrchestrationStepStateEntry;
+    }
+
+    return {
+      ...entry,
+      checkpoint: entry.checkpoint ? { ...entry.checkpoint } : undefined,
+      metadata: entry.metadata ? { ...entry.metadata } : undefined,
+      runtime: entry.runtime ? { ...entry.runtime } : undefined,
+      behavior: entry.behavior ? { ...entry.behavior } : undefined,
+      outputSummary: entry.outputSummary ? [...entry.outputSummary] : undefined,
+    };
+  }
+
+  private createCheckpointPatch(
+    patch: CheckpointStatePatch,
+    existing: OrchestrationCheckpointMetadata | undefined,
+  ): Partial<OrchestrationCheckpointMetadata> {
+    const result: Partial<OrchestrationCheckpointMetadata> = {};
+
+    if (patch.checkpointId !== undefined) {
+      result.checkpointId = patch.checkpointId;
+    }
+    if (patch.question !== undefined) {
+      result.question = patch.question;
+    }
+    if (patch.status !== undefined) {
+      result.status = patch.status;
+    }
+    if (patch.requestedAt !== undefined) {
+      result.requestedAt = patch.requestedAt;
+    }
+    if (patch.resolvedAt !== undefined) {
+      result.resolvedAt = patch.resolvedAt;
+    }
+    if (patch.resolvedBy !== undefined) {
+      result.resolvedBy = patch.resolvedBy;
+    }
+    if (patch.notes !== undefined) {
+      result.notes = patch.notes;
+    }
+    if (patch.modifications !== undefined) {
+      result.modifications = patch.modifications ?? null;
+    }
+    if (patch.options !== undefined) {
+      result.options = this.normalizeCheckpointOptions(
+        patch.options ?? existing?.options ?? [],
+      );
+    }
+
+    const step = {
+      ...(existing?.step ?? {}),
+    } as OrchestrationCheckpointMetadata['step'];
+
+    if (patch.stepRecordId !== undefined) {
+      step.recordId = patch.stepRecordId;
+    }
+    if (patch.stepDefinitionId !== undefined) {
+      step.definitionId = patch.stepDefinitionId;
+    }
+    if (patch.stepLabel !== undefined) {
+      step.label = patch.stepLabel;
+    }
+    if (patch.stepIndex !== undefined) {
+      step.index = patch.stepIndex;
+    }
+
+    if (Object.keys(step ?? {}).length > 0) {
+      result.step = step;
+    }
+
+    return result;
   }
 }

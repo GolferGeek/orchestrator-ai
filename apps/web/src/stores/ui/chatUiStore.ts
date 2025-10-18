@@ -14,6 +14,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
+import type { JsonObject } from '@/types';
 
 // ============================================================================
 // Types
@@ -31,8 +32,26 @@ export interface PendingAction {
   type: 'plan' | 'build' | 'orchestration';
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   conversationId?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 }
+
+const isJsonObject = (value: unknown): value is JsonObject => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const sanitizePendingAction = (
+  action: PendingAction | null,
+): PendingAction | null => {
+  if (!action) {
+    return null;
+  }
+
+  const metadata = action.metadata;
+  return {
+    ...action,
+    metadata: metadata && isJsonObject(metadata) ? metadata : undefined,
+  };
+};
 
 // ============================================================================
 // Store Definition
@@ -121,7 +140,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
    * Set pending action
    */
   function setPendingAction(action: PendingAction | null): void {
-    pendingAction.value = action;
+    pendingAction.value = sanitizePendingAction(action);
   }
 
   /**

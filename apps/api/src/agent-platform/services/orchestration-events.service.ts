@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import type { JsonObject } from '@orchestrator-ai/transport-types';
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import { OrchestrationRunRecord } from '../interfaces/orchestration-run-record.interface';
 import { OrchestrationStepRecord } from '../interfaces/orchestration-step-record.interface';
 import {
@@ -36,7 +36,7 @@ export class OrchestrationEventsService {
 
   emitRunUpdated(
     run: OrchestrationRunRecord,
-    data: JsonObject = {},
+    data: Record<string, unknown> = {},
     context?: RunEventContext,
   ): void {
     this.dispatch(
@@ -62,7 +62,7 @@ export class OrchestrationEventsService {
 
   emitRunFailed(
     run: OrchestrationRunRecord,
-    error: JsonObject = {},
+    error: Record<string, unknown> = {},
     context?: RunEventContext,
   ): void {
     this.dispatch(
@@ -128,7 +128,7 @@ export class OrchestrationEventsService {
   emitStepFailed(
     run: OrchestrationRunRecord,
     step: OrchestrationStepRecord,
-    error: JsonObject = {},
+    error: Record<string, unknown> = {},
     context?: RunEventContext,
   ): void {
     const payload = this.buildRunEventPayload(
@@ -169,13 +169,13 @@ export class OrchestrationEventsService {
     type: OrchestrationEventType,
     run: OrchestrationRunRecord,
     context?: RunEventContext,
-    data?: JsonObject,
+    data?: Record<string, unknown>,
   ): OrchestrationRunEventPayload {
     return {
       type,
       timestamp: new Date().toISOString(),
       run: this.buildRunSnapshot(run, context),
-      data,
+      data: data ? this.toJsonObject(data) : undefined,
     };
   }
 
@@ -348,6 +348,41 @@ export class OrchestrationEventsService {
     if (typeof value === 'string' && value.trim().length > 0) {
       return value;
     }
+    return undefined;
+  }
+
+  private toJsonObject(value: Record<string, unknown>): JsonObject {
+    const result: JsonObject = {};
+    Object.entries(value).forEach(([key, entry]) => {
+      const jsonValue = this.toJsonValue(entry);
+      if (jsonValue !== undefined) {
+        result[key] = jsonValue;
+      }
+    });
+    return result;
+  }
+
+  private toJsonValue(value: unknown): JsonValue | undefined {
+    if (
+      value === null ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      const mapped = value
+        .map((item) => this.toJsonValue(item))
+        .filter((item): item is JsonValue => item !== undefined);
+      return mapped as JsonValue;
+    }
+
+    if (typeof value === 'object') {
+      return this.toJsonObject(value as Record<string, unknown>);
+    }
+
     return undefined;
   }
 

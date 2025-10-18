@@ -24,6 +24,7 @@ import {
   UnifiedGenerateResponseParams,
   LLMResponse,
   LLMServiceConfig,
+  ResponseMetadata,
   LLMRequestOptions,
 } from './services/llm-interfaces';
 import {
@@ -121,6 +122,7 @@ export class LLMService {
     userMessage: string,
     options?: GenerateResponseOptions,
   ): Promise<string | LLMResponse> {
+    const startTime = Date.now();
     if (this.debugEnabled) {
       this.logger.debug(
         `🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`,
@@ -517,7 +519,8 @@ export class LLMService {
 
         // Return metadata if requested (for HTTP API calls)
         if (options?.includeMetadata) {
-          // Create metadata from dictionary-based pseudonymization results
+          const endTime = Date.now();
+
           const pseudonymizationMetadata = sanitizationContext
             ? {
                 pseudonymizationApplied:
@@ -537,9 +540,35 @@ export class LLMService {
                 mappings: [],
               };
 
+          const metadata: ResponseMetadata = {
+            provider: options?.providerName ?? 'unknown',
+            model: options?.modelName ?? 'unknown',
+            requestId: `legacy-${startTime}`,
+            timestamp: new Date(endTime).toISOString(),
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0,
+            },
+            timing: {
+              startTime,
+              endTime,
+              duration: endTime - startTime,
+            },
+            tier:
+              options?.providerName?.toLowerCase() === 'ollama'
+                ? 'local'
+                : 'external',
+            status: 'completed',
+            providerSpecific: {
+              sanitizationMetadata: pseudonymizationMetadata,
+            },
+          };
+
           return {
-            content: content,
-            response: content, // For backward compatibility
+            content,
+            metadata,
+            piiMetadata: options?.piiMetadata ?? null,
             sanitizationMetadata: pseudonymizationMetadata,
           };
         }

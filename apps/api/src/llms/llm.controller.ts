@@ -9,6 +9,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { LLMService } from './llm.service';
+import { isLLMResponse } from './services/llm-interfaces';
 import { LocalModelStatusService } from './local-model-status.service';
 
 @Controller('llm')
@@ -103,22 +104,35 @@ export class LLMController {
 
       // Handle both string and object responses
       if (typeof result === 'string') {
-        return { response: result };
-      } else {
-        // Return all relevant fields from the LLM service response
-        const response = {
-          response: result.content || result.response || result,
-          content: result.content || result.response || result,
-          sanitizationMetadata: result.sanitizationMetadata,
-          piiMetadata: result.piiMetadata,
+        return { response: result, content: result };
+      }
+
+      if (isLLMResponse(result)) {
+        const sanitizationMetadata =
+          result.sanitizationMetadata ??
+          (result.metadata.providerSpecific as Record<string, unknown> | undefined)
+            ?.sanitizationMetadata ??
+          null;
+
+        const normalized = {
+          response: result.content,
+          content: result.content,
+          sanitizationMetadata,
+          piiMetadata: result.piiMetadata ?? null,
           metadata: result.metadata,
         };
+
         console.log(
           '🎮 [CONTROLLER] Returning response with piiMetadata?',
-          !!response.piiMetadata,
+          !!normalized.piiMetadata,
         );
-        return response;
+
+        return normalized;
       }
+
+      // Fallback: convert to string
+      const fallback = String(result);
+      return { response: fallback, content: fallback };
     } catch (error) {
       this.logger.error('Failed to generate response', error);
       throw error;

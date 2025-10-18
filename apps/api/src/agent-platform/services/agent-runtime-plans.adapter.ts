@@ -1,6 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PlansService } from '@/agent2agent/plans/services/plans.service';
-import { PlanVersionsService } from '@/agent2agent/plans/services/plan-versions.service';
+import type {
+  JsonObject,
+  JsonValue,
+} from '@orchestrator-ai/transport-types';
+import type { ActionResult } from '@/agent2agent/common/interfaces/action-handler.interface';
+import {
+  Plan,
+  PlansService,
+} from '@/agent2agent/plans/services/plans.service';
+import type { PlanVersion } from '@/agent2agent/plans/services/plan-versions.service';
 import {
   AgentTaskMode,
   TaskRequestDto,
@@ -17,36 +25,42 @@ export interface CreatePlanInput {
   namespace?: string | null;
 }
 
+interface CreatePlanActionResult {
+  plan: Plan;
+  version: PlanVersion | null;
+  isNew: boolean;
+}
+
+interface EditPlanActionResult {
+  plan: Plan;
+  version: PlanVersion | null;
+}
+
 /**
- * AgentRuntimePlansAdapter
- *
- * Translates between AgentRuntime execution results and PlansService operations.
- * Determines when to create/update plans based on mode and context.
+ * Adapter that converts agent runtime outputs into plan operations.
  */
 @Injectable()
 export class AgentRuntimePlansAdapter {
   private readonly logger = new Logger(AgentRuntimePlansAdapter.name);
 
-  constructor(
-    private readonly plansService: PlansService,
-    private readonly versionsService: PlanVersionsService,
-  ) {}
+  constructor(private readonly plansService: PlansService) {}
 
-  /**
-   * Create plan from agent task execution if mode is 'plan'
-   */
   async maybeCreateFromPlanTask(
     ctx: CreatePlanInput,
     request: TaskRequestDto,
-  ): Promise<any | null> {
+  ): Promise<{
+    kind: 'plan' | 'plan_version';
+    plan: Plan;
+    version: PlanVersion | null;
+  } | null> {
     try {
-      // Only create plans for PLAN mode
       if (ctx.mode !== AgentTaskMode.PLAN) {
         return null;
       }
 
-      const userId = this.resolveUserId(request);
-      const conversationId = ctx.conversationId;
+      const userId = this.resolveUserId(request) ?? ctx.userId ?? null;
+      const conversationId =
+        ctx.conversationId ?? request.conversationId ?? null;
 
       if (!userId || !conversationId) {
         this.logger.warn(
@@ -55,12 +69,15 @@ export class AgentRuntimePlansAdapter {
         return null;
       }
 
-      const title = ctx.title || `Plan from ${ctx.agentSlug}`;
-      const content = ctx.content || (request.payload as any)?.output || '';
+      const title = ctx.title ?? `Plan from ${ctx.agentSlug}`;
+      const content =
+        ctx.content ??
+        this.extractString(request.payload ?? {}, 'output') ??
+        '';
       const namespace = ctx.namespace || ctx.organizationSlug || 'default';
+      const taskId = this.resolveTaskId(request);
 
-      // Use PlansService.executeAction to create/refine plan
-      const result = await this.plansService.executeAction(
+      const result = await this.plansService.executeAction<CreatePlanActionResult>(
         'create',
         {
           title,
@@ -68,30 +85,28 @@ export class AgentRuntimePlansAdapter {
           format: 'markdown',
           agentName: ctx.agentSlug,
           namespace,
-          taskId: (request as any).taskId,
-          metadata: {
+          taskId,
+          metadata: this.buildMetadataObject({
             organizationSlug: ctx.organizationSlug,
             agentSlug: ctx.agentSlug,
             mode: ctx.mode,
-          },
+          }),
         },
         {
           conversationId,
           userId,
           agentSlug: ctx.agentSlug,
-          taskId: (request as any).taskId,
+          taskId: taskId ?? null,
+          metadata: this.buildMetadataObject(request.metadata ?? {}),
         },
       );
 
-      if (!result.success) {
-        this.logger.error('Failed to create plan:', result.error);
-        return null;
-      }
+      const data = this.ensureSuccess(result, 'Failed to create plan');
 
       return {
-        kind: result.data.isNew ? 'plan' : 'plan_version',
-        plan: result.data.plan,
-        version: result.data.version,
+        kind: data.isNew ? 'plan' : 'plan_version',
+        plan: data.plan,
+        version: data.version,
       };
     } catch (error) {
       this.logger.warn(
@@ -101,44 +116,35 @@ export class AgentRuntimePlansAdapter {
     }
   }
 
-  /**
-   * Create a new version from manual edit
-   */
   async createVersionFromManualEdit(
     conversationId: string,
     userId: string,
     editedContent: string,
     metadata?: Record<string, any>,
-  ): Promise<any> {
-    const result = await this.plansService.executeAction(
+  ): Promise<EditPlanActionResult> {
+    const result = await this.plansService.executeAction<EditPlanActionResult>(
       'edit',
       {
         content: editedContent,
-        metadata,
+        metadata: this.buildMetadataObject(metadata ?? {}),
       },
       {
         conversationId,
         userId,
+        metadata: this.buildMetadataObject(metadata ?? {}),
       },
     );
 
-    if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to save manual edit');
-    }
-
-    return result.data;
+    return this.ensureSuccess(result, 'Failed to save manual edit');
   }
 
-  /**
-   * Merge multiple versions using LLM
-   */
   async mergeVersions(
     conversationId: string,
     userId: string,
     versionIds: string[],
     mergePrompt: string,
-  ): Promise<any> {
-    const result = await this.plansService.executeAction(
+  ): Promise<JsonObject> {
+    const result = await this.plansService.executeAction<JsonObject>(
       'merge_versions',
       {
         versionIds,
@@ -150,22 +156,15 @@ export class AgentRuntimePlansAdapter {
       },
     );
 
-    if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to merge versions');
-    }
-
-    return result.data;
+    return this.ensureSuccess(result, 'Failed to merge versions');
   }
 
-  /**
-   * Copy a version to create a new version
-   */
   async copyVersion(
     conversationId: string,
     userId: string,
     versionId: string,
-  ): Promise<any> {
-    const result = await this.plansService.executeAction(
+  ): Promise<JsonObject> {
+    const result = await this.plansService.executeAction<JsonObject>(
       'copy_version',
       { versionId },
       {
@@ -174,20 +173,86 @@ export class AgentRuntimePlansAdapter {
       },
     );
 
-    if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to copy version');
+    return this.ensureSuccess(result, 'Failed to copy version');
+  }
+
+  private resolveUserId(request: TaskRequestDto): string | undefined {
+    const fromTop = request.metadata?.userId ?? request.metadata?.createdBy;
+    const fromPayload =
+      (request.payload as Record<string, unknown> | undefined)?.metadata?.userId ??
+      (request.payload as Record<string, unknown> | undefined)?.metadata?.createdBy;
+
+    const candidate = fromTop ?? fromPayload;
+    return typeof candidate === 'string' && candidate.length > 0
+      ? candidate
+      : undefined;
+  }
+
+  private resolveTaskId(request: TaskRequestDto): string | undefined {
+    const candidate = request.metadata?.taskId ?? request.metadata?.task_id;
+    return typeof candidate === 'string' && candidate.length > 0
+      ? candidate
+      : undefined;
+  }
+
+  private extractString(object: unknown, field: string): string | undefined {
+    if (!object || typeof object !== 'object') {
+      return undefined;
+    }
+
+    const value = (object as Record<string, unknown>)[field];
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private buildMetadataObject(value: Record<string, any>): JsonObject {
+    const parsed = this.toJsonValue(value);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as JsonObject;
+    }
+    return {};
+  }
+
+  private toJsonValue(input: unknown): JsonValue | undefined {
+    if (
+      input === null ||
+      typeof input === 'string' ||
+      typeof input === 'number' ||
+      typeof input === 'boolean'
+    ) {
+      return input;
+    }
+
+    if (Array.isArray(input)) {
+      const mapped = input
+        .map((entry) => this.toJsonValue(entry))
+        .filter((entry): entry is JsonValue => entry !== undefined);
+      return mapped as JsonValue;
+    }
+
+    if (typeof input === 'object') {
+      const result: JsonObject = {};
+      Object.entries(input as Record<string, unknown>).forEach(
+        ([key, entry]) => {
+          const value = this.toJsonValue(entry);
+          if (value !== undefined) {
+            result[key] = value;
+          }
+        },
+      );
+      return result;
+    }
+
+    return undefined;
+  }
+
+  private ensureSuccess<T>(
+    result: ActionResult<T>,
+    defaultMessage: string,
+  ): T {
+    if (!result.success || result.data === undefined || result.data === null) {
+      throw new Error(result.error?.message ?? defaultMessage);
     }
 
     return result.data;
-  }
-
-  // Helper methods
-
-  private resolveUserId(request: TaskRequestDto): string | null {
-    // Prefer top-level metadata, then payload.metadata
-    const fromTop = request.metadata?.userId || request.metadata?.createdBy;
-    const fromPayload =
-      request.payload?.metadata?.userId || request.payload?.metadata?.createdBy;
-    return (fromTop as string) || (fromPayload as string) || null;
   }
 }

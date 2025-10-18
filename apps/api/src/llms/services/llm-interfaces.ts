@@ -136,12 +136,26 @@ export interface LLMResponse {
   content: string;
   metadata: ResponseMetadata;
   piiMetadata?: PIIProcessingMetadata | null;
+  sanitizationMetadata?: Record<string, unknown> | null;
   error?: {
     code: string;
     message: string;
     details?: unknown;
   };
 }
+
+export const isLLMResponse = (value: unknown): value is LLMResponse => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<LLMResponse>;
+  return (
+    typeof candidate.content === 'string' &&
+    typeof candidate.metadata === 'object' &&
+    candidate.metadata !== null
+  );
+};
 
 /**
  * Options for PII processing

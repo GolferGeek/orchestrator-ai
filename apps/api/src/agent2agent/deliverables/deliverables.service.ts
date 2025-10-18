@@ -204,7 +204,7 @@ export class DeliverablesService implements IActionHandler {
           content: params.content,
           format: (params.format as any) || 'markdown',
           createdByType: DeliverableVersionCreationType.AI_RESPONSE,
-          taskId: params.taskId || context.taskId,
+          taskId: params.taskId ?? context.taskId ?? undefined,
           metadata: params.metadata || {},
         },
         context.userId,
@@ -224,11 +224,11 @@ export class DeliverablesService implements IActionHandler {
         conversationId: context.conversationId,
         title: params.title,
         type: params.type as any,
-        agentName: params.agentName || context.agentSlug,
+        agentName: params.agentName ?? context.agentSlug ?? undefined,
         initialContent: params.content,
         initialFormat: (params.format as any) || 'markdown',
         initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
-        initialTaskId: params.taskId || context.taskId,
+        initialTaskId: params.taskId ?? context.taskId ?? undefined,
         initialMetadata: params.metadata || {},
       };
 

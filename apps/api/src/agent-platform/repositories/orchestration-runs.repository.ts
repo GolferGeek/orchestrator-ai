@@ -112,17 +112,9 @@ export class OrchestrationRunsRepository {
     const payload: Partial<OrchestrationRunUpdateInput> & {
       updated_at: string;
     } = {
+      ...this.filterUndefined(patch),
       updated_at: new Date().toISOString(),
     };
-
-    (Object.keys(patch) as Array<keyof OrchestrationRunUpdateInput>).forEach(
-      (key) => {
-        const value = patch[key];
-        if (value !== undefined) {
-          payload[key] = value;
-        }
-      },
-    );
 
     const { data, error } = (await this.client()
       .from(TABLE)
@@ -143,6 +135,14 @@ export class OrchestrationRunsRepository {
     }
 
     return data;
+  }
+
+  private filterUndefined<T extends Record<string, unknown>>(
+    value: T,
+  ): Partial<T> {
+    return Object.fromEntries(
+      Object.entries(value).filter(([, entry]) => entry !== undefined),
+    ) as Partial<T>;
   }
 
   async getById(id: string): Promise<OrchestrationRunRecord | null> {

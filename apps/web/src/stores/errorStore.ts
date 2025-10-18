@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import type { JsonObject } from '@/types';
 
 // Error types
 export interface AppError {
@@ -15,7 +16,7 @@ export interface AppError {
   userId?: string;
   sessionId?: string;
   severity: ErrorSeverity;
-  context?: Record<string, unknown>;
+  context?: JsonObject;
   resolved?: boolean;
   retryCount?: number;
   reportSent?: boolean;
@@ -152,7 +153,7 @@ export const useErrorStore = defineStore('error', () => {
       url?: string;
       userId?: string;
       sessionId?: string;
-      additionalContext?: Record<string, unknown>;
+      additionalContext?: JsonObject;
     }
   ): Promise<AppError> => {
     const errorType = determineErrorType(error);

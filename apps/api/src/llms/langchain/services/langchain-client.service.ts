@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '@/llms/llm.service';
+import { isLLMResponse } from '@/llms/services/llm-interfaces';
 
 /**
  * LangChain Client Service
@@ -50,7 +51,15 @@ export class LangChainClientService {
       },
     );
 
-    return result.response;
+    if (typeof result === 'string') {
+      return result;
+    }
+
+    if (isLLMResponse(result)) {
+      return result.content;
+    }
+
+    return String(result ?? '');
   }
 
   /**

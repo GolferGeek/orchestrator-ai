@@ -1,7 +1,53 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import type { JsonObject, JsonValue } from '@/types';
 import { ApiEndpoint, API_FEATURES, ApiVersion, ApiTechnology } from '../types/api';
 import { apiService } from '../services/apiService';
+
+type EndpointHealthStatus = {
+  isHealthy: boolean;
+  lastChecked: Date;
+  responseTime?: number;
+  error?: string;
+};
+
+type EndpointHealthMap = Record<string, EndpointHealthStatus>;
+type FeatureAvailabilityMap = Record<string, string[]>;
+
+type EndpointDiscoveryInfo = JsonObject & {
+  version?: JsonValue;
+  technology?: JsonValue;
+  name?: JsonValue;
+  description?: JsonValue;
+  features?: JsonValue;
+};
+
+const isJsonObject = (value: unknown): value is JsonObject => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+interface PersistedEndpointHealthRecord {
+  isHealthy: boolean;
+  lastChecked: string;
+  responseTime?: number;
+  error?: string;
+}
+
+interface PersistedApiConfiguration {
+  endpointHealthStatus?: Record<string, PersistedEndpointHealthRecord>;
+  featureAvailability?: Record<string, string[]>;
+  lastDiscoveryTime?: string;
+  configurationVersion?: string;
+  lastUpdated?: string;
+}
+
+interface EndpointInfoPayload {
+  version?: ApiVersion;
+  technology?: ApiTechnology;
+  name?: string;
+  description?: string;
+  features?: string[];
+}
 interface ApiConfigState {
   // Environment configuration
   environment: 'development' | 'staging' | 'production';
@@ -10,14 +56,9 @@ interface ApiConfigState {
   lastDiscoveryTime: Date | null;
   discoveryInProgress: boolean;
   // Health monitoring
-  endpointHealthStatus: Record<string, {
-    isHealthy: boolean;
-    lastChecked: Date;
-    responseTime?: number;
-    error?: string;
-  }>;
+  endpointHealthStatus: EndpointHealthMap;
   // Feature availability cache
-  featureAvailability: Record<string, string[]>; // endpoint name -> features
+  featureAvailability: FeatureAvailabilityMap; // endpoint name -> features
   // Configuration metadata
   configurationVersion: string;
   lastUpdated: Date;
@@ -30,23 +71,99 @@ const resolveEnvironment = (): ApiConfigState['environment'] => {
   return 'development';
 };
 
-const asString = (value: unknown, fallback = ''): string =>
-  typeof value === 'string' ? value : fallback;
+const asString = (value: JsonValue | undefined, fallback = ''): string => (
+  typeof value === 'string' ? value : fallback
+);
 
-const asStringArray = (value: unknown): string[] | undefined => {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string');
+const asStringArray = (value: JsonValue | undefined): string[] | undefined => (
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : undefined
+);
+
+const toApiVersion = (value: JsonValue | undefined): ApiVersion => (
+  typeof value === 'string' && value === 'v2' ? 'v2' : 'v1'
+);
+
+const toApiTechnology = (value: JsonValue | undefined): ApiTechnology => (
+  typeof value === 'string' && value === 'typescript-nestjs' ? 'typescript-nestjs' : 'typescript-nestjs'
+);
+
+const parseEndpointInfo = (raw: unknown): EndpointInfoPayload | null => {
+  if (!isJsonObject(raw)) {
+    return null;
   }
-  return undefined;
+
+  const candidate = raw as EndpointDiscoveryInfo;
+  const features = asStringArray(candidate.features);
+  const version = typeof candidate.version === 'string' ? toApiVersion(candidate.version) : undefined;
+  const technology = typeof candidate.technology === 'string' ? toApiTechnology(candidate.technology) : undefined;
+  const name = typeof candidate.name === 'string' ? candidate.name : undefined;
+  const description = typeof candidate.description === 'string' ? candidate.description : undefined;
+
+  return {
+    version,
+    technology,
+    name,
+    description,
+    features,
+  };
 };
 
-const toApiVersion = (value: unknown): ApiVersion => {
-  const version = asString(value);
-  return version === 'v2' ? 'v2' : 'v1';
-};
+const parsePersistedConfiguration = (raw: unknown): PersistedApiConfiguration | null => {
+  if (!isJsonObject(raw)) {
+    return null;
+  }
 
-const toApiTechnology = (value: unknown): ApiTechnology => {
-  return asString(value) === 'typescript-nestjs' ? 'typescript-nestjs' : 'typescript-nestjs';
+  const candidate = raw as JsonObject;
+
+  const endpointHealthSource = candidate.endpointHealthStatus;
+  const endpointHealthStatus = isJsonObject(endpointHealthSource)
+    ? Object.entries(endpointHealthSource).reduce<Record<string, PersistedEndpointHealthRecord>>((acc, [key, value]) => {
+        if (!isJsonObject(value)) {
+          return acc;
+        }
+
+        const isHealthy = value.isHealthy;
+        const lastChecked = value.lastChecked;
+
+        if (typeof isHealthy !== 'boolean' || typeof lastChecked !== 'string') {
+          return acc;
+        }
+
+        acc[key] = {
+          isHealthy,
+          lastChecked,
+          responseTime: typeof value.responseTime === 'number' ? value.responseTime : undefined,
+          error: typeof value.error === 'string' ? value.error : undefined,
+        };
+
+        return acc;
+      }, {})
+    : undefined;
+
+  const featureAvailabilitySource = candidate.featureAvailability;
+  const featureAvailability = isJsonObject(featureAvailabilitySource)
+    ? Object.entries(featureAvailabilitySource).reduce<Record<string, string[]>>((acc, [key, value]) => {
+        if (!Array.isArray(value)) {
+          return acc;
+        }
+
+        const features = value.filter((item): item is string => typeof item === 'string');
+        acc[key] = features;
+        return acc;
+      }, {})
+    : undefined;
+
+  const lastDiscoveryTime = typeof candidate.lastDiscoveryTime === 'string' ? candidate.lastDiscoveryTime : undefined;
+  const configurationVersion = typeof candidate.configurationVersion === 'string' ? candidate.configurationVersion : undefined;
+  const lastUpdated = typeof candidate.lastUpdated === 'string' ? candidate.lastUpdated : undefined;
+
+  return {
+    endpointHealthStatus,
+    featureAvailability,
+    lastDiscoveryTime,
+    configurationVersion,
+    lastUpdated,
+  };
 };
 export const useApiConfigStore = defineStore('apiConfig', () => {
   // Reactive state
@@ -135,16 +252,24 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
     try {
       const saved = localStorage.getItem('apiConfiguration');
       if (saved) {
-        const config = JSON.parse(saved);
-        // Validate and merge saved configuration
-        if (config.endpointHealthStatus) {
-          state.value.endpointHealthStatus = config.endpointHealthStatus;
+        const parsed = parsePersistedConfiguration(JSON.parse(saved));
+        if (parsed?.endpointHealthStatus) {
+          const mapped: EndpointHealthMap = {};
+          for (const [endpoint, record] of Object.entries(parsed.endpointHealthStatus)) {
+            mapped[endpoint] = {
+              isHealthy: record.isHealthy,
+              lastChecked: new Date(record.lastChecked),
+              responseTime: record.responseTime,
+              error: record.error,
+            };
+          }
+          state.value.endpointHealthStatus = mapped;
         }
-        if (config.featureAvailability) {
-          state.value.featureAvailability = config.featureAvailability;
+        if (parsed?.featureAvailability) {
+          state.value.featureAvailability = parsed.featureAvailability;
         }
-        if (config.lastDiscoveryTime) {
-          state.value.lastDiscoveryTime = new Date(config.lastDiscoveryTime);
+        if (parsed?.lastDiscoveryTime) {
+          state.value.lastDiscoveryTime = new Date(parsed.lastDiscoveryTime);
         }
       }
     } catch (error) {
@@ -233,20 +358,24 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
             const infoResponse = await fetch(`${baseUrl}/api/info`, {
               signal: AbortSignal.timeout(environmentConfig.value.defaultTimeout),
             });
-            let endpointInfo: Record<string, unknown> = {};
+            let endpointInfo: EndpointDiscoveryInfo = {};
+            let parsedInfo: EndpointInfoPayload | null = null;
             if (infoResponse.ok) {
               const rawInfo: unknown = await infoResponse.json();
-              if (typeof rawInfo === 'object' && rawInfo) {
-                endpointInfo = rawInfo as Record<string, unknown>;
+              if (isJsonObject(rawInfo)) {
+                endpointInfo = rawInfo as EndpointDiscoveryInfo;
+                parsedInfo = parseEndpointInfo(endpointInfo);
               }
             }
-            const features = asStringArray(endpointInfo.features) ?? [API_FEATURES.ORCHESTRATOR];
+            const features = parsedInfo?.features
+              ?? asStringArray(endpointInfo.features)
+              ?? [API_FEATURES.ORCHESTRATOR];
             const endpoint: ApiEndpoint = {
-              version: toApiVersion(endpointInfo.version),
-              technology: toApiTechnology(endpointInfo.technology),
+              version: parsedInfo?.version ?? toApiVersion(endpointInfo.version),
+              technology: parsedInfo?.technology ?? toApiTechnology(endpointInfo.technology),
               baseUrl,
-              name: asString(endpointInfo.name, `Discovered ${baseUrl}`),
-              description: asString(endpointInfo.description, `Auto-discovered endpoint at ${baseUrl}`),
+              name: parsedInfo?.name ?? asString(endpointInfo.name, `Discovered ${baseUrl}`),
+              description: parsedInfo?.description ?? asString(endpointInfo.description, `Auto-discovered endpoint at ${baseUrl}`),
               features,
               isAvailable: true,
             };
@@ -309,9 +438,9 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       lastUpdated: new Date(),
     };
   };
-  const getEndpointHealth = (endpointName: string) => {
-    return state.value.endpointHealthStatus[endpointName] || null;
-  };
+  const getEndpointHealth = (endpointName: string): EndpointHealthStatus | null => (
+    state.value.endpointHealthStatus[endpointName] || null
+  );
   return {
     // State
     state,
