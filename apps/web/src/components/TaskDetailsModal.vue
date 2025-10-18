@@ -247,21 +247,21 @@ interface Task {
   userId: string;
   method: string;
   prompt: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   response?: string;
-  responseMetadata?: Record<string, any>;
+  responseMetadata?: Record<string, unknown>;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   progressMessage?: string;
-  evaluation?: Record<string, any>;
-  llmMetadata?: Record<string, any>;
+  evaluation?: Record<string, unknown>;
+  llmMetadata?: Record<string, unknown>;
   errorCode?: string;
   errorMessage?: string;
-  errorData?: Record<string, any>;
+  errorData?: Record<string, unknown>;
   startedAt?: string;
   completedAt?: string;
   timeoutSeconds: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -276,7 +276,7 @@ interface Conversation {
   completedTasks: number;
   failedTasks: number;
   activeTasks: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 // Props
 const props = defineProps<{

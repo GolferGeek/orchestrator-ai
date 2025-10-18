@@ -173,7 +173,7 @@ const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
 const contextStore = useContextStore();
 // Reactive state
-const selectedAgent = ref<any>(null);
+const selectedAgent = ref<Record<string, unknown> | null>(null);
 const initialPrompt = ref('');
 const deliverableType = ref('');
 const deliverableFormat = ref('');

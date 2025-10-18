@@ -247,7 +247,7 @@ const permissionCategories = computed(() => [
 ]);
 
 // Methods
-const switchToUser = async (testUser: any) => {
+const switchToUser = async (testUser: Record<string, unknown>) => {
   // Store original user if not already stored
   if (!originalUser.value) {
     originalUser.value = auth.user;
@@ -297,7 +297,7 @@ const toggleCustomRole = (role: UserRole, checked: boolean) => {
   }
 };
 
-const isCurrentUser = (testUser: any): boolean => {
+const isCurrentUser = (testUser: Record<string, unknown>): boolean => {
   return auth.user?.id === testUser.id;
 };
 

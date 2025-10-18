@@ -684,7 +684,18 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     ) {
       return content.toString();
     }
-    return `${content}`;
+    if (typeof content === 'symbol') {
+      return content.toString();
+    }
+    if (typeof content === 'function') {
+      return '[function]';
+    }
+    // Fallback
+    try {
+      return JSON.stringify(content);
+    } catch {
+      return '';
+    }
   }
 
   /**

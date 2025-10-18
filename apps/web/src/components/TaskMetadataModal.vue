@@ -273,7 +273,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   close: [];
 }>();
-const taskData = ref<any>(null);
+const taskData = ref<Record<string, unknown> | null>(null);
 const isLoading = ref(false);
 const llmStore = useLLMPreferencesStore();
 const handleClose = () => {

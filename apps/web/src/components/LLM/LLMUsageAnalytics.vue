@@ -433,11 +433,23 @@ const props = withDefaults(defineProps<Props>(), {
   refreshInterval: 30000 // 30 seconds
 });
 
+// Types
+interface AnalyticsData {
+  [key: string]: unknown;
+}
+
+interface FilterOptions {
+  dateRange?: string;
+  provider?: string;
+  model?: string;
+  [key: string]: unknown;
+}
+
 // Emits
 const emit = defineEmits<{
-  'data-loaded': [data: any];
+  'data-loaded': [data: AnalyticsData];
   'refresh-requested': [];
-  'filter-changed': [filters: any];
+  'filter-changed': [filters: FilterOptions];
 }>();
 
 // Store
@@ -534,10 +546,10 @@ const requestVolumeOptions = computed(() => ({
       borderColor: 'rgba(75, 192, 192, 1)',
       borderWidth: 1,
       callbacks: {
-        title: (tooltipItems: any) => {
+        title: (tooltipItems: { label: string }[]) => {
           return `Date: ${tooltipItems[0].label}`;
         },
-        label: (context: any) => {
+        label: (context: { parsed: { y: number } }) => {
           return `Requests: ${context.parsed.y.toLocaleString()}`;
         }
       }
@@ -580,7 +592,7 @@ const requestVolumeOptions = computed(() => ({
       },
       ticks: {
         color: 'var(--ion-color-medium)',
-        callback: (value: any) => value.toLocaleString()
+        callback: (value: number) => value.toLocaleString()
       }
     }
   }
@@ -660,8 +672,8 @@ const providerDistributionOptions = computed(() => ({
       borderColor: 'rgba(255, 255, 255, 0.3)',
       borderWidth: 1,
       callbacks: {
-        title: (tooltipItems: any) => `Provider: ${tooltipItems[0].label}`,
-        label: (context: any) => {
+        title: (tooltipItems: { label: string }[]) => `Provider: ${tooltipItems[0].label}`,
+        label: (context: { label?: string; parsed?: number }) => {
           const label = context.label || '';
           const value = context.parsed || 0;
           const count = Math.round(totalRequests.value * value / 100);
@@ -724,8 +736,8 @@ const responseTimeOptions = computed(() => ({
       borderColor: 'rgba(54, 162, 235, 1)',
       borderWidth: 1,
       callbacks: {
-        title: (tooltipItems: any) => `Provider: ${tooltipItems[0].label}`,
-        label: (context: any) => `Average Response Time: ${context.parsed.y}ms`
+        title: (tooltipItems: { label: string }[]) => `Provider: ${tooltipItems[0].label}`,
+        label: (context: { parsed: { y: number } }) => `Average Response Time: ${context.parsed.y}ms`
       }
     }
   },
@@ -765,7 +777,7 @@ const responseTimeOptions = computed(() => ({
       },
       ticks: {
         color: 'var(--ion-color-medium)',
-        callback: (value: any) => `${value}ms`
+        callback: (value: number) => `${value}ms`
       }
     }
   }
@@ -811,8 +823,8 @@ const costTrendsOptions = computed(() => ({
       borderColor: 'rgba(255, 159, 64, 1)',
       borderWidth: 1,
       callbacks: {
-        title: (tooltipItems: any) => `Date: ${tooltipItems[0].label}`,
-        label: (context: any) => `Daily Cost: $${context.parsed.y.toFixed(2)}`
+        title: (tooltipItems: { label: string }[]) => `Date: ${tooltipItems[0].label}`,
+        label: (context: { parsed: { y: number } }) => `Daily Cost: $${context.parsed.y.toFixed(2)}`
       }
     }
   },
@@ -853,7 +865,7 @@ const costTrendsOptions = computed(() => ({
       },
       ticks: {
         color: 'var(--ion-color-medium)',
-        callback: function(value: any) {
+        callback: function(value: number) {
           return '$' + value.toFixed(2);
         }
       }
@@ -924,8 +936,8 @@ const sanitizationOverheadOptions = computed(() => ({
       borderColor: 'rgba(153, 102, 255, 1)',
       borderWidth: 1,
       callbacks: {
-        title: (tooltipItems: any) => `Process: ${tooltipItems[0].label}`,
-        label: (context: any) => `Processing Time: ${context.parsed.x}ms`
+        title: (tooltipItems: { label: string }[]) => `Process: ${tooltipItems[0].label}`,
+        label: (context: { parsed: { x: number } }) => `Processing Time: ${context.parsed.x}ms`
       }
     }
   },
@@ -947,7 +959,7 @@ const sanitizationOverheadOptions = computed(() => ({
       },
       ticks: {
         color: 'var(--ion-color-medium)',
-        callback: (value: any) => `${value}ms`
+        callback: (value: number) => `${value}ms`
       }
     },
     y: {
@@ -1008,13 +1020,13 @@ const refreshData = async () => {
       cost: totalCost.value,
       sanitization: sanitizationOverhead.value
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to refresh analytics data:', err);
   }
 };
 
 // Tab change handler
-const onTabChange = (event: any) => {
+const onTabChange = (event: CustomEvent) => {
   selectedTab.value = event.detail.value;
 };
 

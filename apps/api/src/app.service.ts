@@ -66,7 +66,9 @@ export class AppService implements OnModuleInit {
               };
             }
           }
-        } catch {}
+        } catch {
+          // Swallow agent-card errors; continue building status
+        }
 
         return {
           id: this.generateAgentId(

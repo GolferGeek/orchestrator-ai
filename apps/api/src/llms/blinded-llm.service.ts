@@ -138,11 +138,7 @@ export class BlindedLLMService {
     }
 
     // Wrap the LLM to add logging and validation
-    return this.wrapWithSourceBlindingValidation(
-      llm,
-      config.provider,
-      blindingOptions,
-    );
+    return this.wrapWithSourceBlindingValidation(llm, config.provider);
   }
 
   /**
@@ -192,7 +188,12 @@ export class BlindedLLMService {
     headers: Record<string, string>;
     options: any;
   } {
-    const requestUrl = typeof url === 'string' ? url : url.toString();
+    const requestUrl =
+      typeof url === 'string'
+        ? url
+        : url instanceof URL
+          ? url.toString()
+          : (url as any)?.url ?? '';
     const headers: Record<string, string> = {};
 
     // Extract headers from init
@@ -239,7 +240,6 @@ export class BlindedLLMService {
   private wrapWithSourceBlindingValidation(
     llm: BaseChatModel,
     provider: string,
-    blindingOptions: any,
   ): BaseChatModel {
     // Create a proxy to intercept all LLM calls
     return new Proxy(llm, {
@@ -348,7 +348,7 @@ export class BlindedLLMService {
       ];
 
       // This should trigger our blinded HTTP client
-      const response = await blindedLLM.call(testMessages as any);
+      await blindedLLM.call(testMessages as any);
 
       return {
         success: true,

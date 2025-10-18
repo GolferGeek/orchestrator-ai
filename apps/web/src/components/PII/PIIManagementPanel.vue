@@ -382,13 +382,13 @@ const {
 // PII Testing
 const testInput = ref('');
 const isTestingPII = ref(false);
-const testResults = ref<any>(null);
+const testResults = ref<Record<string, unknown> | null>(null);
 
 // Pseudonymization Testing
 const pseudonymInput = ref('');
 const preserveFormat = ref(true);
 const isPseudonymizing = ref(false);
-const pseudonymResults = ref<any>(null);
+const pseudonymResults = ref<Record<string, unknown> | null>(null);
 
 // Methods
 const runPIITest = async () => {

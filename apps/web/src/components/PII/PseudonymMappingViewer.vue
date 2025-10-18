@@ -803,7 +803,7 @@ const filteredMappings = computed(() => {
 
   // Apply sorting
   filtered.sort((a, b) => {
-    let aVal: any, bVal: any;
+    let aVal: unknown, bVal: unknown;
     
     switch (sortField.value) {
       case 'usageCount':
@@ -1004,7 +1004,7 @@ const getDataTypeColor = (dataType: PIIDataType): string => {
 };
 
 const getDataTypeIcon = (dataType: PIIDataType) => {
-  const iconMap: Record<PIIDataType, any> = {
+  const iconMap: Record<PIIDataType, string> = {
     email: mailOutline,
     phone: callOutline,
     name: personOutline,
@@ -1055,7 +1055,7 @@ const getMappingStatusColor = (mapping: PseudonymMapping): string => {
 
 const getMappingStatusIcon = (mapping: PseudonymMapping) => {
   const status = getMappingStatus(mapping);
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, string> = {
     'Active': refreshOutline,
     'Frequent': arrowUpOutline,
     'New': documentOutline,

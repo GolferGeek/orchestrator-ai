@@ -337,8 +337,19 @@ import { llmUsageService } from '@/services/llmUsageService';
 import { analyticsService } from '@/services/analyticsService';
 
 // Component Props
+interface RequestData {
+  id: string;
+  provider: string;
+  model: string;
+  runMetadata?: {
+    sanitizationTimeMs?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 interface Props {
-  requestData?: any;
+  requestData?: RequestData;
   autoStart?: boolean;
   animationSpeed?: number;
   liveMode?: boolean;
@@ -356,7 +367,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   'request-selected': [requestId: string];
-  'data-updated': [data: any];
+  'data-updated': [data: RequestData];
 }>();
 
 // Reactive State
@@ -370,7 +381,7 @@ const liveDataTimer = ref<NodeJS.Timeout>();
 const llmUsageStore = useLlmUsageStore();
 
 // Live Data State (using reactive computed from store)
-const liveRequestData = ref<any>(null);
+const liveRequestData = ref<RequestData | null>(null);
 const isLoadingLiveData = computed(() => llmUsageStore.loading);
 const liveDataError = computed(() => llmUsageStore.error);
 const recentRequests = computed(() => llmUsageStore.usageRecords.slice(0, 10)); // Last 10 requests
@@ -763,7 +774,7 @@ const fetchLiveData = async () => {
   }
 };
 
-const updateFlowWithLiveData = (requestData: any) => {
+const updateFlowWithLiveData = (requestData: RequestData) => {
   if (!requestData) return;
   
   // Update provider indicators
@@ -832,7 +843,7 @@ const updateFlowWithLiveData = (requestData: any) => {
   updateTimingDataFromLive(requestData);
 };
 
-const updateTimingDataFromLive = (requestData: any) => {
+const updateTimingDataFromLive = (requestData: RequestData) => {
   if (!requestData.runMetadata) return;
   
   const metadata = requestData.runMetadata;

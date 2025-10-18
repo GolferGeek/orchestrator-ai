@@ -160,7 +160,7 @@ interface TaskEvaluation {
   speedRating?: UserRatingScale;
   accuracyRating?: UserRatingScale;
   userNotes?: string;
-  evaluationDetails?: any;
+  evaluationDetails?: Record<string, unknown>;
   evaluationTimestamp?: string;
 }
 const props = defineProps<Props>();
@@ -252,7 +252,7 @@ const quickRate = async (type: 'positive' | 'negative') => {
   }
 };
 const setRating = (type: keyof EvaluationRequest, value: number) => {
-  (draftRating.value as any)[type] = value as UserRatingScale;
+  (draftRating.value as Record<string, unknown>)[type] = value as UserRatingScale;
 };
 const saveRating = async () => {
   if (!hasRatingData.value) return;

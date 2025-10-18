@@ -809,7 +809,7 @@ const parseCSVFile = (file: File): Promise<void> => {
       skipEmptyLines: true,
       complete: (results) => {
         try {
-          const data = results.data as any[];
+          const data = results.data as Record<string, unknown>[];
           const dictionaries: PseudonymDictionaryImportData[] = [];
           
           data.forEach((row, index) => {

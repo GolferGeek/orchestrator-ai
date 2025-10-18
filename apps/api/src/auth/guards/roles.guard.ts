@@ -91,7 +91,6 @@ export class RolesGuard implements CanActivate {
       );
 
       if (!hasRequiredRole) {
-        const userRoles = userProfile.roles.join(', ');
         const requiredRolesList = requiredRoles.join(', ');
 
         throw new ForbiddenException(
@@ -116,27 +115,23 @@ export class RolesGuard implements CanActivate {
    * Fetch user profile with roles from the database
    */
   private async getUserProfile(userId: string): Promise<UserProfile | null> {
-    try {
-      // Use service client to bypass RLS issues
-      const { data, error } = await this.supabaseService
-        .getServiceClient()
-        .from('users')
-        .select('id, email, display_name, roles, created_at, updated_at')
-        .eq('id', userId)
-        .single();
+    // Use service client to bypass RLS issues
+    const { data, error } = await this.supabaseService
+      .getServiceClient()
+      .from('users')
+      .select('id, email, display_name, roles, created_at, updated_at')
+      .eq('id', userId)
+      .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Not found
-          return null;
-        }
-        throw new Error(`Database error: ${error.message}`);
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Not found
+        return null;
       }
-
-      return data;
-    } catch (error) {
-      throw error;
+      throw new Error(`Database error: ${error.message}`);
     }
+
+    return data;
   }
 
   /**

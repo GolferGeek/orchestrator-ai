@@ -251,7 +251,7 @@ const exportMetrics = () => {
   URL.revokeObjectURL(url);
 };
 
-const onSegmentChange = (event: any) => {
+const onSegmentChange = (event: CustomEvent) => {
   selectedTab.value = event.detail.value;
 };
 

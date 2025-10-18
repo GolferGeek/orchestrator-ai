@@ -23,10 +23,7 @@ import {
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { CIDAFMService } from './cidafm.service';
-import {
-  CreateCIDAFMCommandDto,
-  CIDAFMCommandResponseDto,
-} from '@/llms/dto/llm-evaluation.dto';
+import { CIDAFMCommandResponseDto } from '@/llms/dto/llm-evaluation.dto';
 
 @ApiTags('CIDAFM Commands')
 @Controller('cidafm')

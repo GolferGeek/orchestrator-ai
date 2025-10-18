@@ -190,7 +190,7 @@ export class AuthService {
       // Use service role client to bypass RLS issues temporarily
       const serviceClient = this.supabaseService.getServiceClient();
 
-      const { data: userData, error: queryError } = await serviceClient
+      const { data: userData } = await serviceClient
         .from(getTableName('users'))
         .select('id, email, display_name, roles, created_at, namespace_access')
         .eq('id', currentAuthUser.id)
@@ -265,7 +265,7 @@ export class AuthService {
         updatedAt: user.updated_at ? new Date(user.updated_at) : undefined,
         identities: user.identities,
       };
-    } catch (_error) {
+    } catch {
       throw new UnauthorizedException('Invalid token');
     }
   }
@@ -302,7 +302,7 @@ export class AuthService {
           ? (data.namespace_access as string[])
           : [],
       };
-    } catch (_error) {
+    } catch {
       throw new HttpException(
         'Could not fetch user profile.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -528,7 +528,7 @@ export class AuthService {
 
       if (error) {
       }
-    } catch (_error) {}
+    } catch {}
   }
 
   /**
@@ -562,7 +562,7 @@ export class AuthService {
       const roles = createUserDto.roles || [UserRole.USER];
 
       // Create user profile record
-      const { data: profileUser, error: profileError } = await serviceClient
+      const { error: profileError } = await serviceClient
         .from(getTableName('users'))
         .insert({
           id: authUser.user.id,

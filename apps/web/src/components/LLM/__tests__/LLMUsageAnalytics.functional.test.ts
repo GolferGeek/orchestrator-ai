@@ -63,7 +63,7 @@ const mockUsageRecords = [
     total_cost: 'invalid', // Invalid type
     sanitization_time_ms: null,
     status: 'error'
-  } as any
+  } as Record<string, unknown>
 ];
 
 const mockAnalytics = [
@@ -188,7 +188,7 @@ describe('LLMUsageAnalytics Functional Integration Tests', () => {
       expect(validateAnalyticsData(mockAnalytics)).toBe(true);
       expect(validateAnalyticsData([])).toBe(false);
       expect(validateAnalyticsData([{ invalid: 'data' }])).toBe(false);
-      expect(validateAnalyticsData(null as any)).toBe(false);
+      expect(validateAnalyticsData(null as unknown)).toBe(false);
     });
 
     it('handles edge cases gracefully', () => {
@@ -270,7 +270,7 @@ describe('LLMUsageAnalytics Functional Integration Tests', () => {
         { ...mockUsageRecords[0], total_cost: NaN },
         { ...mockUsageRecords[0], provider_name: '' },
         { ...mockUsageRecords[0], id: null }
-      ] as any;
+      ] as Record<string, unknown>[];
 
       expect(() => {
         const sanitized = sanitizeUsageRecords(corruptedData);
@@ -295,7 +295,7 @@ describe('LLMUsageAnalytics Functional Integration Tests', () => {
         { id: '1', provider_name: 'openai' }, // Missing other fields
         { id: '2', duration_ms: 1000 }, // Missing provider
         { provider_name: 'anthropic', total_cost: 0.02 } // Missing id
-      ] as any;
+      ] as Record<string, unknown>[];
 
       const sanitized = sanitizeUsageRecords(incompleteData);
       expect(sanitized.length).toBeLessThanOrEqual(1); // Most should be filtered out

@@ -9,7 +9,7 @@ import {
   ModelNameDto,
 } from '@/llms/dto/llm-evaluation.dto';
 import { ModelStatus, CostCalculation } from '@/llms/types/llm-evaluation';
-import { mapModelFromDb, mapLLMModelFromDb } from '@/utils/case-converter';
+import { mapLLMModelFromDb } from '@/utils/case-converter';
 import { getTableName } from '@/supabase/supabase.config';
 
 interface ModelFilters {

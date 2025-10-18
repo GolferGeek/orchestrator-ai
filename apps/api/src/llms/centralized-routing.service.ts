@@ -8,10 +8,7 @@ import {
 } from '../config/feature-flag.service';
 import { PIIService } from './pii/pii.service';
 import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
-import {
-  PIIProcessingMetadata,
-  RoutingDecisionWithPII,
-} from './types/pii-metadata.types';
+import { PIIProcessingMetadata } from './types/pii-metadata.types';
 import { RunMetadataService } from './run-metadata.service';
 import { createHash } from 'crypto';
 
@@ -149,7 +146,6 @@ export class CentralizedRoutingService {
 
           processedResponse = reversalResult.originalText;
           reversalCount = reversalResult.reversalCount || 0;
-          processingTimeMs = Date.now() - startTime;
 
           this.logger.debug(
             `🔄 [CENTRALIZED-ROUTING] Successfully reversed ${reversalCount} pseudonyms`,
@@ -306,8 +302,8 @@ export class CentralizedRoutingService {
           const localModel = explicitLocal
             ? options.model ||
               options.modelName ||
-              (await this.selectBestLocalModel(tier, sovereignPolicy))
-            : await this.selectBestLocalModel(tier, sovereignPolicy);
+              (await this.selectBestLocalModel(tier))
+            : await this.selectBestLocalModel(tier);
 
           // Create minimal local PII metadata (no-op) for consistency
           const localPii = await this.piiService.checkPolicy(prompt, {
@@ -713,10 +709,7 @@ export class CentralizedRoutingService {
   /**
    * Select the best local model for the given tier
    */
-  private async selectBestLocalModel(
-    tier: string,
-    sovereignPolicy?: any,
-  ): Promise<string> {
+  private async selectBestLocalModel(tier: string): Promise<string> {
     try {
       const models = await this.localModelStatusService.getModelsByTier(tier);
       const availableModels = models.filter(
@@ -890,10 +883,7 @@ export class CentralizedRoutingService {
   /**
    * Get external provider fallback for the given tier
    */
-  private getExternalFallback(
-    tier: string,
-    request: LLMRequest,
-  ): Omit<
+  private getExternalFallback(tier: string): Omit<
     RoutingDecision,
     'complexityScore' | 'reasoningPath' | 'fallbackUsed'
   > {

@@ -7,12 +7,7 @@ import {
   HttpException,
   Logger,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   SovereignPolicyService,
   SovereignPolicy,
@@ -165,11 +160,14 @@ export class SovereignPolicyController {
       }
 
       // Additional validation warnings
-      if (request.enforced === true && request.defaultMode === 'relaxed') {
+      if (
+        request.enforced === true &&
+        String(request.defaultMode) === 'relaxed'
+      ) {
         warnings.push('Enforced mode with relaxed default may cause confusion');
       }
 
-      if (request.enforced === true && request.auditLevel === 'none') {
+      if (request.enforced === true && String(request.auditLevel) === 'none') {
         warnings.push(
           'Enforced mode should have audit logging enabled for compliance',
         );

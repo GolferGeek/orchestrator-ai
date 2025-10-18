@@ -515,7 +515,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 // Emits
 const emit = defineEmits<{
-  preferencesChanged: [category: string, preferences: any];
+  preferencesChanged: [category: string, preferences: Record<string, unknown>];
   preferencesReset: [category: string];
 }>();
 // Store
@@ -527,11 +527,11 @@ const fileInput = ref<HTMLInputElement>();
 const preferences = computed(() => userPreferencesStore.preferences);
 const isAdvancedUser = computed(() => userPreferencesStore.isAdvancedUser);
 // Methods
-const handleCategoryChange = (event: any) => {
+const handleCategoryChange = (event: CustomEvent) => {
   activeCategory.value = event.detail.value;
 };
-const updatePreference = (key: string, value: any) => {
-  userPreferencesStore.updatePreference(key as any, value);
+const updatePreference = (key: string, value: unknown) => {
+  userPreferencesStore.updatePreference(key as string, value);
   emit('preferencesChanged', activeCategory.value, preferences.value);
 };
 const resetCategory = async () => {

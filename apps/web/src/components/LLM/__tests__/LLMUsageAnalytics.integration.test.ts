@@ -328,7 +328,7 @@ describe('LLMUsageAnalytics Integration Tests', () => {
           sanitization_time_ms: null,
           status: 'unknown'
         }
-      ] as any;
+      ] as Record<string, unknown>[];
 
       await nextTick();
 
@@ -480,7 +480,7 @@ describe('LLMUsageAnalytics Integration Tests', () => {
           total_cost: -0.5, // Negative cost - should be filtered
           sanitization_time_ms: 0,
           status: 'error'
-        } as any
+        } as Record<string, unknown>
       ];
 
       await nextTick();

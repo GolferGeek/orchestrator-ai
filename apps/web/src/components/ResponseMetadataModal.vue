@@ -204,7 +204,7 @@ import {
 import { closeOutline } from 'ionicons/icons';
 interface Props {
   isOpen: boolean;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 const props = defineProps<Props>();
 const emit = defineEmits<{

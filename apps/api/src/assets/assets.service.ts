@@ -159,7 +159,9 @@ export class AssetsService {
       const url = new URL(u);
       const last = url.pathname.split('/').filter(Boolean).pop();
       if (last && /\.[a-zA-Z0-9]+$/.test(last)) return last;
-    } catch {}
+    } catch {
+      // Non-URL input; fall back to generated name
+    }
     const ext = this.extFromMime(mime);
     return `image-${Date.now()}.${ext}`;
   }

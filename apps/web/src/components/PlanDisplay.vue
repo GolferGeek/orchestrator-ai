@@ -467,7 +467,7 @@ const isEditing = ref(false);
 const editedContent = ref('');
 const editedTitle = ref('');
 const isSaving = ref(false);
-const contentTextarea = ref<any>(null);
+const contentTextarea = ref<HTMLTextAreaElement | null>(null);
 
 // Computed - get versions from store for reactivity
 const versions = computed(() => {
@@ -641,8 +641,8 @@ const saveEdits = async () => {
     isEditing.value = false;
     editedContent.value = '';
     editedTitle.value = '';
-  } catch (error: any) {
-    alert(`Failed to save plan: ${error.message || 'Unknown error'}`);
+  } catch (error: unknown) {
+    alert(`Failed to save plan: ${error instanceof Error ? error.message : 'Unknown error'}`);
   } finally {
     isSaving.value = false;
   }
@@ -759,8 +759,8 @@ const makeCurrentVersion = async () => {
     console.log('Set current version:', selectedVersion.value.id);
     selectedVersion.value.isCurrentVersion = true;
     emit('current-version-changed', selectedVersion.value);
-  } catch (error: any) {
-    alert(`Failed to set current version: ${error.message || 'Unknown error'}`);
+  } catch (error: unknown) {
+    alert(`Failed to set current version: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
@@ -798,7 +798,7 @@ const getMimeType = () => {
   return mimeTypes[format as keyof typeof mimeTypes] || 'text/plain';
 };
 
-const getVersionLLMInfo = (version: any): string | null => {
+const getVersionLLMInfo = (version: Record<string, unknown>): string | null => {
   if (!version?.metadata) return null;
 
   // Check for general LLM metadata
@@ -820,7 +820,7 @@ const getVersionLLMInfo = (version: any): string | null => {
   return null;
 };
 
-const getVersionCost = (version: any): string | null => {
+const getVersionCost = (version: Record<string, unknown>): string | null => {
   if (!version?.metadata) return null;
 
   const cost = version.metadata.llmMetadata?.cost ||

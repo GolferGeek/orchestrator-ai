@@ -7,11 +7,7 @@ import { AgentConversationsModule } from '../conversations/agent-conversations.m
 import { DeliverablesModule } from '../deliverables/deliverables.module';
 
 @Module({
-  imports: [
-    SupabaseModule,
-    AgentConversationsModule,
-    DeliverablesModule,
-  ],
+  imports: [SupabaseModule, AgentConversationsModule, DeliverablesModule],
   controllers: [ContextMetricsController],
   providers: [ContextOptimizationService, ContextMetricsListener],
   exports: [ContextOptimizationService],

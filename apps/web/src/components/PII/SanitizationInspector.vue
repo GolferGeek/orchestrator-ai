@@ -376,7 +376,7 @@ const emit = defineEmits<{
   'phase-changed': [phase: number];
   'animation-complete': [];
   'processing-started': [];
-  'processing-complete': [result: any];
+  'processing-complete': [result: Record<string, unknown>];
   'processing-error': [error: string];
 }>();
 

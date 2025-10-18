@@ -36,7 +36,7 @@ import { useRouter } from 'vue-router';
 import { apiService } from '@/services/apiService';
 
 const router = useRouter();
-const calls = ref<any[]>([]);
+const calls = ref<Record<string, unknown>[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 

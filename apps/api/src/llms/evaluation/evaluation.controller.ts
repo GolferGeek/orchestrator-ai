@@ -726,12 +726,10 @@ export class EvaluationController {
   async getEvaluationAnalytics(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('userRole') userRole?: string,
   ): Promise<EvaluationAnalyticsDto> {
     return this.evaluationService.getEvaluationAnalytics({
       startDate,
       endDate,
-      // userRole, // TODO: Add userRole filter to AdminEvaluationFiltersDto
     });
   }
 
@@ -946,7 +944,6 @@ export class EvaluationController {
     @Query('includeContent') includeContent?: boolean,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('userRole') userRole?: string,
   ): Promise<any[] | string> {
     return this.evaluationService.exportEnhancedEvaluations(
       {
@@ -999,7 +996,6 @@ export class EvaluationController {
     @Param('userId') userId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
-    @Query('includeDetails') includeDetails?: boolean,
   ): Promise<{
     evaluations: EnhancedEvaluationMetadataDto[];
     user: {
@@ -1082,7 +1078,6 @@ export class EvaluationController {
   async getAgentPerformance(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('minEvaluations') minEvaluations?: number,
   ): Promise<any[]> {
     // TODO: Implement getAgentPerformanceComparison method
     const analytics = await this.evaluationService.getEvaluationAnalytics({
@@ -1153,11 +1148,8 @@ export class EvaluationController {
   })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async getEvaluationTrends(
-    @Query('timeframe') timeframe: 'daily' | 'weekly' | 'monthly' = 'weekly',
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('metric')
-    metric: 'rating' | 'volume' | 'cost' | 'response_time' = 'rating',
   ): Promise<any> {
     // TODO: Implement getEvaluationTrends method
     return this.evaluationService.getEvaluationAnalytics({

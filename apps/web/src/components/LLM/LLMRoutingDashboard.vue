@@ -492,7 +492,7 @@ const pieChartOptions = {
     },
     tooltip: {
       callbacks: {
-        label: function(context: any) {
+        label: function(context: { label?: string; parsed: number; dataset: { data: number[] } }) {
           const label = context.label || '';
           const value = context.parsed;
           const total = context.dataset.data.reduce((sum: number, val: number) => sum + val, 0);

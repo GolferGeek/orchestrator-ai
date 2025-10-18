@@ -541,9 +541,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Emits
 const emit = defineEmits<{
-  'data-loaded': [data: any];
+  'data-loaded': [data: Record<string, unknown>];
   'refresh-requested': [];
-  'filter-changed': [filters: any];
+  'filter-changed': [filters: Record<string, unknown>];
 }>();
 
 // Store
@@ -619,7 +619,7 @@ const refreshData = async () => {
         savings: metrics.value.costSavings
       });
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to refresh dashboard data:', err);
   }
 };

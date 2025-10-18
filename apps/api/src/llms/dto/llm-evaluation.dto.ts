@@ -9,7 +9,6 @@ import {
   IsEnum,
   IsArray,
   IsObject,
-  IsUUID,
   IsDateString,
   Min,
   Max,

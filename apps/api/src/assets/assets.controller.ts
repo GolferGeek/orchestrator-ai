@@ -18,7 +18,7 @@ export class AssetsController {
   async stream(@Param('id') id: string, @Res() res: Response) {
     try {
       await this.assets.streamByIdOrRedirect(id, res);
-    } catch (e) {
+    } catch {
       throw new NotFoundException('Asset not found');
     }
   }

@@ -21,7 +21,6 @@ import {
   LLMConstraintsDto,
   EnhancedLLMInfoDto,
   WorkflowStepDto,
-  ConstraintEffectivenessDto,
   AgentLLMRecommendationDto,
 } from '@/llms/dto/enhanced-evaluation.dto';
 import { UserRole } from '@/auth/decorators/roles.decorator';
@@ -1195,7 +1194,7 @@ export class EvaluationService {
 
     // Fetch user email
 
-    const { data: userProfile, error: userError } = await client
+    const { data: userProfile } = await client
       .from('profiles')
       .select('email')
       .eq('id', userId)
@@ -1203,20 +1202,8 @@ export class EvaluationService {
 
     const userEmail = userProfile?.email || 'Unknown';
 
-    // Test direct query with known IDs
-
-    const { data: testProvider, error: testProviderError } = await client
-      .from('llm_providers')
-      .select('*')
-      .eq('id', '11111111-1111-1111-1111-111111111111');
-
-    const { data: testModel, error: testModelError } = await client
-      .from('llm_models')
-      .select('*')
-      .eq('id', 'bb7bd9b6-f120-4847-807e-b0455bad6f31');
-
     if (providerIds.size > 0) {
-      const { data: providers, error: providerError } = await client
+      const { data: providers } = await client
         .from('llm_providers')
         .select('*')
         .in('id', Array.from(providerIds));

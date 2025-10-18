@@ -1,9 +1,6 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { SupabaseService } from '@/supabase/supabase.service';
-import {
-  CreateCIDAFMCommandDto,
-  CIDAFMCommandResponseDto,
-} from '@/llms/dto/llm-evaluation.dto';
+import { CIDAFMCommandResponseDto } from '@/llms/dto/llm-evaluation.dto';
 import { CIDAFMCommandType } from '@/llms/types/llm-evaluation';
 
 interface CommandFilters {

@@ -98,7 +98,7 @@ interface WorkflowStep {
   totalSteps: number;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   message?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
 }
 interface WorkflowDeliverable {
@@ -106,7 +106,7 @@ interface WorkflowDeliverable {
   content: string;
   deliverableType: 'document' | 'analysis' | 'report' | 'plan' | 'requirements';
   format: 'markdown' | 'text' | 'json' | 'html';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   downloadable?: boolean;
   timestamp: Date;
 }
@@ -166,7 +166,7 @@ const formatTimestamp = (timestamp: Date): string => {
     second: '2-digit'
   });
 };
-const getVisibleMetadata = (metadata: Record<string, any>): Record<string, any> => {
+const getVisibleMetadata = (metadata: Record<string, unknown>): Record<string, unknown> => {
   const visibleKeys = [
     'validation_score',
     'review_score',

@@ -154,31 +154,37 @@ export class HumanLoopService {
     timeoutMs?: number,
   ): Promise<HumanInput> {
     return new Promise((resolve, reject) => {
-      let timeoutHandle: NodeJS.Timeout;
-      let checkInterval: NodeJS.Timeout;
+      let timeoutHandle: NodeJS.Timeout | undefined;
 
       // Set up timeout
+      const clearAll = (interval: NodeJS.Timeout) => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        clearInterval(interval);
+      };
+
       if (timeoutMs) {
         timeoutHandle = setTimeout(() => {
-          clearInterval(checkInterval);
-          this.handleHumanInputTimeout(inputId).then(resolve).catch(reject);
+          clearAll(checkInterval);
+          this.handleHumanInputTimeout(inputId)
+            .then(resolve)
+            .catch((err) => reject(err instanceof Error ? err : new Error(String(err))));
         }, timeoutMs);
       }
 
       // Poll for completion
-      checkInterval = setInterval(() => {
+      const checkInterval = setInterval(() => {
         void (async () => {
           try {
             const humanInput = await this.getHumanInputById(inputId);
             if (humanInput && humanInput.status !== 'pending') {
-              clearTimeout(timeoutHandle);
-              clearInterval(checkInterval);
+              clearAll(checkInterval);
               resolve(humanInput);
             }
           } catch (error) {
-            clearTimeout(timeoutHandle);
-            clearInterval(checkInterval);
-            reject(error);
+            clearAll(checkInterval);
+            reject(error instanceof Error ? error : new Error(String(error)));
           }
         })();
       }, 1000); // Check every second
@@ -335,6 +341,7 @@ export class HumanLoopService {
 
       const count = data?.length || 0;
       if (count > 0) {
+        // Emitted timeout events for expired inputs above
       }
 
       return count;
