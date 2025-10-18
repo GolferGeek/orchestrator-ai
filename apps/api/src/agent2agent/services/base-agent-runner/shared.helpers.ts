@@ -340,44 +340,33 @@ export async function callLLM(
   const stream = typeof config.stream === 'boolean' ? config.stream : undefined;
   const conversationId =
     typeof config.conversationId === 'string'
-      ? (config.conversationId as string)
+      ? config.conversationId
       : undefined;
   const sessionId =
-    typeof config.sessionId === 'string'
-      ? (config.sessionId as string)
-      : undefined;
+    typeof config.sessionId === 'string' ? config.sessionId : undefined;
   const userId =
-    typeof config.userId === 'string' ? (config.userId as string) : undefined;
+    typeof config.userId === 'string' ? config.userId : undefined;
   const callerType =
-    typeof config.callerType === 'string'
-      ? (config.callerType as string)
-      : 'agent';
+    typeof config.callerType === 'string' ? config.callerType : 'agent';
   const callerName =
     typeof config.callerName === 'string'
-      ? (config.callerName as string)
+      ? config.callerName
       : 'agent-converse-mode';
   const organizationSlug =
     typeof config.organizationSlug === 'string'
-      ? (config.organizationSlug as string)
+      ? config.organizationSlug
       : config.organizationSlug === null
         ? null
         : undefined;
   const agentSlug =
-    typeof config.agentSlug === 'string'
-      ? (config.agentSlug as string)
-      : undefined;
+    typeof config.agentSlug === 'string' ? config.agentSlug : undefined;
 
   try {
-    const options: Record<string, any> = {
+    const options: Record<string, unknown> = {
       temperature,
       maxTokens,
       stream,
-      provider: provider as
-        | 'openai'
-        | 'anthropic'
-        | 'ollama'
-        | 'google'
-        | string,
+      provider,
       providerName: provider,
       conversationId,
       sessionId,

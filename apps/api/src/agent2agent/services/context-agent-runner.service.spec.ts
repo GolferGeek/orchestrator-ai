@@ -117,8 +117,6 @@ describe('ContextAgentRunnerService', () => {
         content: 'Test plan content',
       };
 
-      const deliverablesData = [{ id: 'del-1', title: 'First deliverable' }];
-
       const optimizedContext = [
         {
           role: 'user',

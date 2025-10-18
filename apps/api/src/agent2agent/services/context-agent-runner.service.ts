@@ -27,7 +27,8 @@ import {
 } from '../context-optimization/context-optimization.service';
 import type { ActionExecutionContext } from '../common/interfaces/action-handler.interface';
 import { DeliverablesService } from '../deliverables/deliverables.service';
-import { PlansService } from '../plans/services/plans.service'; import type { Plan } from '../plans/types/plan.types';
+import { PlansService } from '../plans/services/plans.service';
+import type { Plan } from '../plans/types/plan.types';
 import type { PlanVersion } from '@/agent2agent/plans/types/plan.types';
 
 type ExtendedBuildCreatePayload = BuildCreatePayload & {
@@ -672,7 +673,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       try {
         return JSON.stringify(content, null, 2);
       } catch {
-        return String(content);
+        return '[unserializable content]';
       }
     }
 
@@ -686,7 +687,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
    */
   private extractDeliverableContent(
     rawContent: string,
-    deliverableStructure: unknown,
+    _deliverableStructure: unknown,
   ): string {
     // Try to parse as JSON
     let parsed: any;

@@ -585,7 +585,7 @@ export class TasksService {
       };
 
       return JSON.stringify(enhancedResult);
-    } catch (_error) {
+    } catch {
       return response;
     }
   }

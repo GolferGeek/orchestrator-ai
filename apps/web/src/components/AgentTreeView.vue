@@ -660,7 +660,7 @@ const hierarchyGroups = computed(() => {
 
     // Add direct child agents (not their sub-children)
     if (node.children && node.children.length > 0) {
-      node.children.forEach((child: any) => {
+      node.children.forEach((child: Agent) => {
         // Check if this direct child matches the search
         const childMatchesSearch = !searchQuery.value ||
           child.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -734,7 +734,7 @@ const hierarchyGroups = computed(() => {
   
   // First, find the top-level orchestrator (could be CEO, Hiverarchy, etc.)
   // Take the first root node that has children as the main orchestrator
-  const topOrchestrator = hierarchy.data.find((agent: any) =>
+  const topOrchestrator = hierarchy.data.find((agent: Agent) =>
     agent.children && agent.children.length > 0
   ) || hierarchy.data[0]; // Fallback to first node if none have children
 
@@ -772,7 +772,7 @@ const hierarchyGroups = computed(() => {
 
       // Add non-manager children directly to the orchestrator's agents array
       if (topOrchestrator.children) {
-        topOrchestrator.children.forEach((child: any) => {
+        topOrchestrator.children.forEach((child: Agent) => {
           if (!child.children || child.children.length === 0) {
             // This is a non-manager child - add it to the orchestrator's team
             // For database agents (with namespace), match by organizationSlug; otherwise match by agentType
@@ -820,7 +820,7 @@ const hierarchyGroups = computed(() => {
 
     // Process manager children as separate accordions
     if (topOrchestrator.children) {
-      topOrchestrator.children.forEach((child: any) => {
+      topOrchestrator.children.forEach((child: Agent) => {
         // Only process as separate group if it has its own children (is a manager)
         if (child.children && child.children.length > 0) {
           processNode(child);
@@ -830,12 +830,12 @@ const hierarchyGroups = computed(() => {
   }
   
   // Process any remaining root nodes that aren't the top orchestrator
-  const otherRootNodes = hierarchy.data.filter((agent: any) =>
+  const otherRootNodes = hierarchy.data.filter((agent: Agent) =>
     topOrchestrator ? agent.name !== topOrchestrator.name : true
   );
-  const specialistAgents: any[] = [];
+  const specialistAgents: Agent[] = [];
 
-  otherRootNodes.forEach((agent: any) => {
+  otherRootNodes.forEach((agent: Agent) => {
     // If this node has children, it's an orchestrator - process it as a manager group
     if (agent.children && agent.children.length > 0) {
       processNode(agent);
@@ -899,11 +899,11 @@ const hierarchyGroups = computed(() => {
     groupSummary: groups.map(g => ({
       type: g.type,
       totalConversations: g.totalConversations,
-      agents: g.agents.map((a: any) => ({
+      agents: g.agents.map((a: Agent) => ({
         name: a.name,
         namespace: a.namespace,
         conversationCount: a.conversations?.length || 0,
-        conversations: a.conversations?.map((c: any) => ({
+        conversations: a.conversations?.map((c: AgentConversation) => ({
           id: c.id,
           agentName: c.agentName,
           organizationSlug: c.organizationSlug
@@ -917,10 +917,10 @@ const hierarchyGroups = computed(() => {
 
 // Flat list of all agents for display
 const flatAgentList = computed(() => {
-  const allAgents: any[] = [];
+  const allAgents: Agent[] = [];
   
   hierarchyGroups.value.forEach(group => {
-    group.agents.forEach((agent: any) => {
+    group.agents.forEach((agent: Agent) => {
       allAgents.push({
         ...agent,
         isManager: group.isManager || group.isCEOAgent,
@@ -985,7 +985,7 @@ const filterAgents = () => {
   // Filtering is handled in computed property
 };
 
-const createNewConversation = async (agent: any) => {
+const createNewConversation = async (agent: Agent) => {
   try {
     console.log('🔍 [AgentTreeView] Creating conversation with agent:', {
       name: agent.name,
@@ -1002,7 +1002,7 @@ const createNewConversation = async (agent: any) => {
 };
 
 // Wrapper methods for header buttons that also expand the accordion
-const startNewConversation = async (agent: any, groupType: string) => {
+const startNewConversation = async (agent: Agent, groupType: string) => {
   try {
     // Expand the accordion if not already expanded
     if (!expandedAccordions.value.includes(groupType)) {
