@@ -1099,7 +1099,7 @@ watch(() => props.conversation?.id, async (newId, _oldId) => {
     let hasPlan = false;
 
     // Check if we already have the plan in the store
-    let conversationPlans = planStore.plansByConversationId(newId);
+    const conversationPlans = planStore.plansByConversationId(newId);
     console.log('🔍 [TwoPaneConversationView] Plans in store:', conversationPlans.length);
 
     if (conversationPlans.length === 0) {
