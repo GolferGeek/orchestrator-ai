@@ -193,7 +193,7 @@ const handleLogout = async () => {
 const navigateToLanding = () => {
   router.push('/');
 };
-const handleConversationSelected = async (conversation: any) => {
+const handleConversationSelected = async (conversation: Record<string, unknown>) => {
   try {
     console.log('Conversation selected:', conversation);
 
@@ -209,7 +209,7 @@ const handleConversationSelected = async (conversation: any) => {
     console.error('Error selecting conversation:', error);
   }
 };
-const handleAgentSelected = async (agent: any) => {
+const handleAgentSelected = async (agent: Record<string, unknown>) => {
   try {
     if (agent.createProject) {
       // Navigate to projects page with agent info for creating new project
