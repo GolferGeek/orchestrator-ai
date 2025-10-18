@@ -39,7 +39,7 @@ import { sendMessage, createPlan, createDeliverable } from '@/services/agent2age
 // Define speech states
 type SpeechState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
 
-const props = defineProps<{
+defineProps<{
   disabled?: boolean;
 }>();
 
@@ -61,7 +61,6 @@ const currentAudio = ref<HTMLAudioElement | null>(null);
 
 // Computed
 const currentAgent = computed(() => chatUiStore.activeConversation?.agent);
-const conversationId = computed(() => chatUiStore.activeConversation?.id);
 
 const isListening = computed(() => speechState.value === 'listening');
 const isProcessing = computed(() => speechState.value === 'processing');
