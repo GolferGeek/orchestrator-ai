@@ -289,7 +289,9 @@ const copySpecificVersion = async (versionId: string) => {
         : `Copied to v${newVersion.versionNumber}`;
       const toast = await toastController.create({ message: msg, duration: 2000, color: 'success' });
       await toast.present();
-    } catch (_) {}
+    } catch {
+      // Ignore toast errors
+    }
   } catch (e) {
     console.warn('Failed to copy version', e);
   }
@@ -316,7 +318,9 @@ const executeMerge = async () => {
         color: 'success',
       });
       await toast.present();
-    } catch (_) {}
+    } catch {
+      // Ignore toast errors
+    }
 
     // Emit event to refresh versions list
     // The parent component should be listening for this and refresh the deliverable data
@@ -334,7 +338,9 @@ const executeMerge = async () => {
         color: 'danger',
       });
       await toast.present();
-    } catch (_) {}
+    } catch {
+      // Ignore toast errors
+    }
   } finally {
     mergeSelectedVersions.value = [];
     mergePrompt.value = '';

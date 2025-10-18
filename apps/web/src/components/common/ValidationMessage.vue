@@ -108,6 +108,10 @@ const props = withDefaults(defineProps<Props>(), {
   errors: () => [],
   warnings: () => [],
   isValidating: false,
+  type: undefined,
+  message: undefined,
+  suggestion: undefined,
+  context: undefined,
   showIcon: true,
   showDetails: false,
   showActions: false,
@@ -115,6 +119,7 @@ const props = withDefaults(defineProps<Props>(), {
   canRetry: false,
   inline: false,
   compact: false,
+  severity: undefined,
 });
 
 interface Emits {
