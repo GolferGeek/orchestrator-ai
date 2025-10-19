@@ -562,7 +562,7 @@ export abstract class BaseLLMService {
     } catch {
       const err = error as Record<string, unknown>;
       const fallback = new LLMError(
-        `${context}: ${err?.message || 'Unknown error occurred'}`,
+        `${context}: ${String(err?.message) || 'Unknown error occurred'}`,
         LLMErrorType.UNKNOWN,
         this.config?.provider || 'unknown',
         { model: this.config?.model, originalError: error },
