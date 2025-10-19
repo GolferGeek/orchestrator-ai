@@ -9,7 +9,7 @@ import { MCPClientService } from '../../mcp/clients/mcp-client.service';
 
 // Global state for Supabase tools
 let orchestratorClient: any = null;
-let companyClient: any = null;
+let companyClient: SupabaseClient | null = null;
 let orchestratorSqlDatabase: any = null;
 let companySqlDatabase: any = null;
 let mcpClientService: MCPClientService | null = null;

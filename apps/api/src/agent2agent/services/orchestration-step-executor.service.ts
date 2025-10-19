@@ -453,7 +453,7 @@ export class OrchestrationStepExecutorService {
       cached.payload.output as unknown as JsonObject | null,
       {
         deliverable_id: cached.payload.deliverableId ?? null,
-        metadata,
+        metadata: metadata as unknown as JsonObject,
       },
     );
 
@@ -1203,9 +1203,9 @@ export class OrchestrationStepExecutorService {
   }
 
   private resolveChildParameters(
-    template: Record<string, any> | undefined,
+    template: Record<string, unknown> | undefined,
     run: OrchestrationRunRecord,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     if (!template || typeof template !== 'object') {
       return {};
     }
@@ -1215,7 +1215,7 @@ export class OrchestrationStepExecutorService {
     if (!resolved || typeof resolved !== 'object') {
       return {};
     }
-    return resolved as Record<string, any>;
+    return resolved as Record<string, unknown>;
   }
 
   private async resolveAgentRecord(
@@ -1235,9 +1235,9 @@ export class OrchestrationStepExecutorService {
   }
 
   private mergeStepMetadata(
-    current: Record<string, any> | undefined,
-    patch: Record<string, any>,
-  ): Record<string, any> {
+    current: Record<string, unknown> | undefined,
+    patch: Record<string, unknown>,
+  ): Record<string, unknown> {
     const base =
       current && typeof current === 'object' ? this.cloneValue(current) : {};
     this.mergeInto(base, patch);
