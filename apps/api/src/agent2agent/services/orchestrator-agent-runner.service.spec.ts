@@ -58,7 +58,7 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
   let runFactory: jest.Mocked<OrchestrationRunFactoryService>;
   let service: OrchestratorAgentRunnerService;
 
-  const baseRun = {
+  const baseRun: OrchestrationRunRecord = {
     id: 'run-1',
     orchestration_definition_id: 'def-1',
     status: 'running',
@@ -188,7 +188,7 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
 
     checkpointService.resolveCheckpoint.mockResolvedValue({
       approval: {} as Record<string, unknown>,
-      run: { ...baseRun, status: 'aborted' },
+      run: { ...baseRun, status: 'aborted' } as OrchestrationRunRecord,
       decision: 'abort',
     });
 
@@ -224,7 +224,7 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
   let runFactory: jest.Mocked<OrchestrationRunFactoryService>;
   let service: OrchestratorAgentRunnerService;
 
-  const baseRun = {
+  const baseRun: OrchestrationRunRecord = {
     id: 'run-1',
     orchestration_definition_id: 'def-1',
     status: 'running',
@@ -394,7 +394,7 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
         id: 'approval-1',
         status: 'approved',
       } as { id: string; status: string },
-      run: { ...baseRun, status: 'running' },
+      run: { ...baseRun, status: 'running' } as OrchestrationRunRecord,
       decision: 'continue',
     });
 
