@@ -543,7 +543,7 @@ export class OrchestrationStepExecutorService {
     );
 
     await this.runner.updateStep(runningStep.id, {
-      metadata: stepMetadata,
+      metadata: stepMetadata as unknown as JsonObject,
     });
 
     const childRunMetadata = this.buildChildRunMetadata(run, runningStep, {
@@ -580,7 +580,7 @@ export class OrchestrationStepExecutorService {
     });
 
     await this.runner.updateStep(runningStep.id, {
-      metadata: stepMetadata,
+      metadata: stepMetadata as unknown as JsonObject,
     });
 
     let finalChildRun: OrchestrationRunRecord | null = null;
@@ -636,7 +636,7 @@ export class OrchestrationStepExecutorService {
 
     if (!finalChildRun || !this.isSuccessfulRun(finalChildRun.status)) {
       await this.runner.updateStep(runningStep.id, {
-        metadata: stepMetadata,
+        metadata: stepMetadata as unknown as JsonObject,
       });
 
       const failureDetails = {
@@ -661,7 +661,7 @@ export class OrchestrationStepExecutorService {
       runningStep.id,
       output,
       {
-        metadata: stepMetadata,
+        metadata: stepMetadata as unknown as JsonObject,
       },
     );
 
@@ -1017,8 +1017,9 @@ export class OrchestrationStepExecutorService {
     }
 
     const optionsArray: unknown = checkpoint.options;
+    const questionValue: unknown = checkpoint.question;
     return {
-      question: String(checkpoint.question),
+      question: typeof questionValue === 'object' && questionValue !== null ? JSON.stringify(questionValue) : String(questionValue),
       options: Array.isArray(optionsArray)
         ? optionsArray.map((option: unknown) => {
             const opt = option as Record<string, unknown>;
@@ -1244,7 +1245,7 @@ export class OrchestrationStepExecutorService {
     return base;
   }
 
-  private resolveMaxAttempts(config: Record<string, any>): number {
+  private resolveMaxAttempts(config: Record<string, unknown>): number {
     const maxAttempts = this.coerceNumber(
       config.maxAttempts,
       config.max_attempts,
@@ -1262,7 +1263,7 @@ export class OrchestrationStepExecutorService {
   }
 
   private computeBackoffDelay(
-    config: Record<string, any>,
+    config: Record<string, unknown>,
     attempt: number,
   ): number {
     const initialDelay =
@@ -1315,7 +1316,7 @@ export class OrchestrationStepExecutorService {
     return Math.max(250, delay);
   }
 
-  private coerceNumber(...values: Array<any>): number | null {
+  private coerceNumber(...values: Array<unknown>): number | null {
     for (const value of values) {
       if (value === null || value === undefined) {
         continue;
@@ -1333,19 +1334,19 @@ export class OrchestrationStepExecutorService {
     return null;
   }
 
-  private asRecord(value: unknown): Record<string, any> | null {
+  private asRecord(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') {
       return null;
     }
-    return { ...(value as Record<string, any>) };
+    return { ...(value as Record<string, unknown>) };
   }
 
   private buildInitialChildMetadataPatch(
     config: OrchestrationSubDefinition,
     definition: OrchestrationResolvedDefinition,
-    context: { ownerSlug: string; parameters: Record<string, any> },
-  ): Record<string, any> {
-    const patch: Record<string, any> = {
+    context: { ownerSlug: string; parameters: Record<string, unknown> },
+  ): Record<string, unknown> {
+    const patch: Record<string, unknown> = {
       type: 'orchestration',
       runtime: {
         subOrchestration: {
@@ -1375,7 +1376,7 @@ export class OrchestrationStepExecutorService {
       ownerSlug: string;
       definition: OrchestrationResolvedDefinition;
     },
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     return {
       parent: {
         runId: run.id,
@@ -1395,7 +1396,7 @@ export class OrchestrationStepExecutorService {
   private buildChildRequestMetadata(
     run: OrchestrationRunRecord,
     step: OrchestrationStepRecord,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     return {
       parentRunId: run.id,
       parentStepId: step.step_id ?? null,
@@ -1430,7 +1431,7 @@ export class OrchestrationStepExecutorService {
 
   private buildChildRunOutput(
     childRun: OrchestrationRunRecord,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     return {
       orchestrationRunId: childRun.id,
       status: childRun.status,
@@ -1515,9 +1516,9 @@ export class OrchestrationStepExecutorService {
     step: OrchestrationStepRecord,
     conversationId: string | null,
     userId: string | null,
-    resolvedInput: Record<string, any>,
+    resolvedInput: Record<string, unknown>,
     userMessage?: string,
-    payload?: Record<string, any>,
+    payload?: Record<string, unknown>,
     agentMetadata?: AgentRuntimeAgentMetadata,
   ): TaskRequestDto {
     const request = new TaskRequestDto();
@@ -1543,9 +1544,9 @@ export class OrchestrationStepExecutorService {
     run: OrchestrationRunRecord,
     step: OrchestrationStepRecord,
     userId: string | null,
-    resolvedInput: Record<string, any>,
+    resolvedInput: Record<string, unknown>,
     agentMetadata?: AgentRuntimeAgentMetadata,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     const baseMetadata = {
       ...(run.metadata?.requestMetadata ?? {}),
       orchestrationRunId: run.id,
@@ -1572,9 +1573,9 @@ export class OrchestrationStepExecutorService {
     step: OrchestrationStepRecord,
     run: OrchestrationRunRecord,
   ): {
-    resolvedInput: Record<string, any>;
+    resolvedInput: Record<string, unknown>;
     userMessage?: string;
-    payload?: Record<string, any>;
+    payload?: Record<string, unknown>;
   } {
     const baseInput =
       step.input && typeof step.input === 'object'
@@ -1582,16 +1583,16 @@ export class OrchestrationStepExecutorService {
         : {};
     const resolved = this.interpolateValues(baseInput, run) as Record<
       string,
-      any
+      unknown
     >;
 
     const stepKey = step.step_id ?? step.id;
     const checkpointState =
-      run.step_state?.[stepKey]?.checkpoint ?? ({} as Record<string, any>);
+      run.step_state?.[stepKey]?.checkpoint ?? ({} as Record<string, unknown>);
     if (checkpointState?.modifications) {
       const modifications = checkpointState.modifications as Record<
         string,
-        any
+        unknown
       >;
       this.mergeInto(resolved, modifications);
     }
@@ -1658,7 +1659,7 @@ export class OrchestrationStepExecutorService {
   private resolveExpression(
     expression: string,
     run: OrchestrationRunRecord,
-  ): any {
+  ): unknown {
     const tokens = this.tokenizeExpression(expression);
     if (!tokens.length) {
       return undefined;
@@ -1710,7 +1711,7 @@ export class OrchestrationStepExecutorService {
     }
 
     let remainder = segment;
-    let current: any = target;
+    let current: unknown = target;
 
     const fieldMatch = remainder.match(/^([^[\]]+)/);
     if (fieldMatch?.[1]) {
@@ -1734,7 +1735,10 @@ export class OrchestrationStepExecutorService {
     return current;
   }
 
-  private mergeInto(target: Record<string, any>, patch: Record<string, any>) {
+  private mergeInto(
+    target: Record<string, unknown>,
+    patch: Record<string, unknown>,
+  ) {
     Object.entries(patch).forEach(([key, value]) => {
       if (
         value &&
@@ -1744,8 +1748,8 @@ export class OrchestrationStepExecutorService {
         typeof target[key] === 'object' &&
         !Array.isArray(target[key])
       ) {
-        const targetValue = target[key] as Record<string, any>;
-        const patchValue = value as Record<string, any>;
+        const targetValue = target[key] as Record<string, unknown>;
+        const patchValue = value as Record<string, unknown>;
         this.mergeInto(targetValue, patchValue);
       } else {
         const clonedValue: unknown = this.cloneValue(value);
@@ -1756,16 +1760,16 @@ export class OrchestrationStepExecutorService {
 
   private buildMetadataPatch(
     step: OrchestrationStepRecord,
-    resolvedInput: Record<string, any>,
+    resolvedInput: Record<string, unknown>,
     response: TaskResponseDto,
-  ): Record<string, any> {
-    const baseMetadata = (step.metadata ?? {}) as Record<string, any>;
+  ): Record<string, unknown> {
+    const baseMetadata = (step.metadata ?? {}) as Record<string, unknown>;
     const runtimeMeta =
-      (baseMetadata.runtime as Record<string, any> | undefined) ?? {};
+      (baseMetadata.runtime as Record<string, unknown> | undefined) ?? {};
 
     const snapshot: {
       content: unknown;
-      metadata: Record<string, any>;
+      metadata: Record<string, unknown>;
       deliverables?: Array<{
         id: string | null;
         title: string | null;

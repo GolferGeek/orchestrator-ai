@@ -43,7 +43,7 @@ const createAgentDefinition = (
   },
   agentCard: null,
   rawDescriptor: null,
-  record: {} as any,
+  record: {} as Record<string, unknown>,
   ...overrides,
 });
 
@@ -62,7 +62,7 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
     id: 'run-1',
     orchestration_definition_id: 'def-1',
     status: 'running',
-  } as any;
+  } as OrchestrationRunRecord;
 
   beforeEach(() => {
     definitionService = {
@@ -106,11 +106,11 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
       createRunFromDefinition: jest.fn(),
     } as unknown as jest.Mocked<OrchestrationRunFactoryService>;
 
-    const llmService = {} as any;
-    const contextOptimization = {} as any;
-    const plansService = {} as any;
-    const conversationsService = {} as any;
-    const deliverablesService = {} as any;
+    const llmService = {} as Record<string, unknown>;
+    const contextOptimization = {} as Record<string, unknown>;
+    const plansService = {} as Record<string, unknown>;
+    const conversationsService = {} as Record<string, unknown>;
+    const deliverablesService = {} as Record<string, unknown>;
 
     service = new OrchestratorAgentRunnerService(
       definitionService,
@@ -141,7 +141,7 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
     } as TaskRequestDto;
 
     checkpointService.resolveCheckpoint.mockResolvedValue({
-      approval: {} as any,
+      approval: {} as Record<string, unknown>,
       run: { ...baseRun, status: 'running' },
       decision: 'continue',
     });
@@ -153,11 +153,15 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
 
     runnerService.listSteps.mockResolvedValue([]);
 
-    const response = await (service as any).resumeAfterApproval(
-      definition,
-      request,
-      request.payload as any,
-    );
+    const response = await (
+      service as {
+        resumeAfterApproval: (
+          definition: unknown,
+          request: unknown,
+          payload: unknown,
+        ) => Promise<TaskResponseDto>;
+      }
+    ).resumeAfterApproval(definition, request, request.payload);
 
     expect(response).toBeInstanceOf(TaskResponseDto);
     expect(response.success).toBe(true);
@@ -183,16 +187,20 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
     } as TaskRequestDto;
 
     checkpointService.resolveCheckpoint.mockResolvedValue({
-      approval: {} as any,
+      approval: {} as Record<string, unknown>,
       run: { ...baseRun, status: 'aborted' },
       decision: 'abort',
     });
 
-    const response = await (service as any).resumeAfterApproval(
-      definition,
-      request,
-      request.payload as any,
-    );
+    const response = await (
+      service as {
+        resumeAfterApproval: (
+          definition: unknown,
+          request: unknown,
+          payload: unknown,
+        ) => Promise<TaskResponseDto>;
+      }
+    ).resumeAfterApproval(definition, request, request.payload);
 
     expect(response.payload.content).toEqual(
       expect.objectContaining({
@@ -220,7 +228,7 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
     id: 'run-1',
     orchestration_definition_id: 'def-1',
     status: 'running',
-  } as any;
+  } as OrchestrationRunRecord;
 
   beforeEach(() => {
     definitionService = {
@@ -264,11 +272,11 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
       createRunFromDefinition: jest.fn(),
     } as unknown as jest.Mocked<OrchestrationRunFactoryService>;
 
-    const llmService = {} as any;
-    const contextOptimization = {} as any;
-    const plansService = {} as any;
-    const conversationsService = {} as any;
-    const deliverablesService = {} as any;
+    const llmService = {} as Record<string, unknown>;
+    const contextOptimization = {} as Record<string, unknown>;
+    const plansService = {} as Record<string, unknown>;
+    const conversationsService = {} as Record<string, unknown>;
+    const deliverablesService = {} as Record<string, unknown>;
 
     service = new OrchestratorAgentRunnerService(
       definitionService,

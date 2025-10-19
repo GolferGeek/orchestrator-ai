@@ -195,7 +195,17 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
           if (value === undefined || value === null) {
             continue;
           }
-          headers[key] = typeof value === 'string' ? value : typeof value === 'object' ? JSON.stringify(value) : String(value);
+          if (typeof value === 'string') {
+            headers[key] = value;
+          } else if (typeof value === 'object') {
+            try {
+              headers[key] = JSON.stringify(value);
+            } catch {
+              headers[key] = '[object]';
+            }
+          } else {
+            headers[key] = String(value);
+          }
         }
       }
 
