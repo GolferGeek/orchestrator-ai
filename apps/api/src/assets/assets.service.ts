@@ -194,7 +194,7 @@ export class AssetsService {
 
   async streamByIdOrRedirect(id: string, res: import('express').Response) {
     const rec = await this.getMetadata(id);
-    if ((rec.storage as any) === 'external') {
+    if ((rec.storage as string) === 'external') {
       const url = rec.source_url || '';
       if (!url) throw new NotFoundException('External asset URL missing');
       if (this.externalStrategy === 'redirect') {

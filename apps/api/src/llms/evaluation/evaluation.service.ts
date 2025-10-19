@@ -1185,7 +1185,7 @@ export class EvaluationService {
         filteredTasks = filteredTasks.filter(
           (task) =>
             task.evaluation?.user_notes &&
-            task.evaluation.user_notes.trim().length > 0,
+            (task.evaluation.user_notes as string).trim().length > 0,
         );
       }
 
@@ -1460,7 +1460,7 @@ export class EvaluationService {
       filteredEvaluations = filteredEvaluations.filter(
         (evaluation) =>
           evaluation.metadata?.agentName &&
-          evaluation.metadata.agentName
+          (evaluation.metadata.agentName as string)
             .toLowerCase()
             .includes(filters.agentName!.toLowerCase()),
       );
@@ -1567,7 +1567,7 @@ export class EvaluationService {
       if (filters.hasNotes !== undefined) {
         const hasNotes =
           task.evaluation?.user_notes &&
-          task.evaluation.user_notes.trim().length > 0;
+          (task.evaluation.user_notes as string).trim().length > 0;
         if (filters.hasNotes !== hasNotes) {
           return false;
         }
@@ -1836,7 +1836,7 @@ export class EvaluationService {
       workflowTasks.length > 0
         ? workflowTasks.reduce((sum, task): number => {
             const steps = task.response_metadata.workflow_steps_completed || [];
-            const completedCount = steps.filter(
+            const completedCount = (steps as unknown[]).filter(
               (step: unknown) => (step as Record<string, unknown>).status === 'completed',
             ).length;
             return sum + (completedCount / steps.length) * 100;
@@ -2568,7 +2568,7 @@ export class EvaluationService {
         agentName,
         averageRating:
           data.ratings.length > 0
-            ? data.ratings.reduce(
+            ? (data.ratings as number[]).reduce(
                 (sum: number, rating: number) => sum + rating,
                 0,
               ) / data.ratings.length

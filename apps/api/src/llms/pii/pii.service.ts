@@ -92,8 +92,8 @@ export class PIIService {
     try {
       // STEP 0: Check if this is a local provider (Ollama) - skip ALL PII processing
       const isLocalProvider =
-        options.providerName?.toLowerCase() === 'ollama' ||
-        options.provider?.toLowerCase() === 'ollama';
+        (options.providerName as string | undefined)?.toLowerCase() === 'ollama' ||
+        (options.provider as string | undefined)?.toLowerCase() === 'ollama';
 
       if (isLocalProvider) {
         this.logger.debug(

@@ -206,7 +206,7 @@ export class BlindedLLMService {
       const headerEntries = init.headers as any;
       if (typeof headerEntries.entries === 'function') {
         // Headers object
-        for (const [key, value] of headerEntries.entries()) {
+        for (const [key, value] of (headerEntries as { entries: () => Iterable<[string, string]> }).entries()) {
           headers[key] = String(value);
         }
       } else if (typeof headerEntries === 'object') {
@@ -266,7 +266,7 @@ export class BlindedLLMService {
             try {
               // Call the original LLM method (which will use our blinded fetch)
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const method = (target as any)[prop];
+              const method = (target as any)[prop] as (...args: any[]) => Promise<any>;
               const result = await method.call(
                 target,
                 messages,

@@ -122,7 +122,7 @@ export class DictionaryPseudonymizerService {
           : r.organization_slug
             ? 'org'
             : 'global';
-        const key = `${(r.original_value || '').toLowerCase()}::${r.data_type || 'unknown'}`;
+        const key = `${((r.original_value as string | null | undefined) || '').toLowerCase()}::${r.data_type || 'unknown'}`;
         if (!key.trim()) continue;
         const existing = byOriginal[key];
         if (!existing) {

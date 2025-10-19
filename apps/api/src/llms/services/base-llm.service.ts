@@ -353,8 +353,8 @@ export abstract class BaseLLMService {
                 requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches
                   ?.length || 0,
               pseudonymTypes:
-                requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.map(
-                  (m: unknown) => (m as Record<string, unknown>).dataType,
+                (requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches as unknown[] | undefined)?.map(
+                  (m: unknown) => (m as Record<string, unknown>).dataType as string,
                 ) || [],
               pseudonymMappings: derivePseudonymMappings(
                 requestMetadata.piiMetadata,
@@ -364,8 +364,8 @@ export abstract class BaseLLMService {
                 requestMetadata.piiMetadata.detectionResults?.flaggedMatches
                   ?.length || 0,
               redactionTypes:
-                requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.map(
-                  (m: unknown) => (m as Record<string, unknown>).dataType,
+                (requestMetadata.piiMetadata.detectionResults?.flaggedMatches as unknown[] | undefined)?.map(
+                  (m: unknown) => (m as Record<string, unknown>).dataType as string,
                 ) || [],
             }
           : ({

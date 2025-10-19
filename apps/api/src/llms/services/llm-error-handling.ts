@@ -611,7 +611,7 @@ export class LLMErrorMapper {
     requestId?: string,
   ): LLMError {
     const err = error as Record<string, any>;
-    const message = err.message || '';
+    const message = (err.message as string | undefined) || '';
 
     // Authentication errors
     if (message.includes('API_KEY_INVALID')) {
@@ -702,7 +702,7 @@ export class LLMErrorMapper {
     }
 
     // Model not available
-    if (err.message?.includes('model not found')) {
+    if ((err.message as string | undefined)?.includes('model not found')) {
       return new LLMError(
         `Ollama model not available: ${model}`,
         LLMErrorType.MODEL_UNAVAILABLE,

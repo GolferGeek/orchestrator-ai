@@ -99,9 +99,9 @@ export class AuthController {
     description: 'Unauthorized - Invalid or expired token',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(@Request() req: any): Promise<void> {
+  async logout(@Request() req: Record<string, unknown>): Promise<void> {
     // Extract token from Authorization header
-    const authHeader = req.headers.authorization as string | undefined;
+    const authHeader = (req.headers as Record<string, unknown> | undefined)?.authorization as string | undefined;
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
@@ -159,10 +159,10 @@ export class AuthController {
   })
   async getCurrentUser(
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
-    @Request() req: any,
+    @Request() req: Record<string, unknown>,
   ): Promise<AuthenticatedUserResponseDto> {
     // Extract token from Authorization header
-    const authHeader = req.headers.authorization as string | undefined;
+    const authHeader = (req.headers as Record<string, unknown> | undefined)?.authorization as string | undefined;
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
@@ -293,7 +293,7 @@ export class AuthController {
   ): Promise<{ success: boolean; message: string }> {
     await this.authService.removeUserRole(
       userId,
-      role as any,
+      role as string,
       currentAuthUser.id,
       removeUserRoleDto.reason,
     );

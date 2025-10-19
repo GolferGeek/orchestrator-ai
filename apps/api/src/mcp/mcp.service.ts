@@ -92,7 +92,7 @@ export class MCPService {
         const namespaceTools = await handler.getTools();
 
         // Add namespace prefix to tool names
-        const prefixedTools = namespaceTools.map((tool: MCPToolDefinition) => ({
+        const prefixedTools = (namespaceTools as MCPToolDefinition[]).map((tool: MCPToolDefinition) => ({
           ...tool,
           name: `${namespace}/${tool.name}`,
           description: `[${this.getNamespaceType(namespace)}] ${tool.description}`,

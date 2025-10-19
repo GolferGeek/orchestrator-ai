@@ -637,7 +637,7 @@ export class AuthService {
   /**
    * Get all users (admin only)
    */
-  async getAllUsers(_adminUserId: string): Promise<any[]> {
+  async getAllUsers(_adminUserId: string): Promise<unknown[]> {
     try {
       const serviceClient = this.supabaseService.getServiceClient();
 
@@ -663,7 +663,7 @@ export class AuthService {
   /**
    * Get user by ID (admin only)
    */
-  async getUserById(userId: string, _adminUserId: string): Promise<any> {
+  async getUserById(userId: string, _adminUserId: string): Promise<unknown> {
     try {
       const serviceClient = this.supabaseService.getServiceClient();
 

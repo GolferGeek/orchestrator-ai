@@ -284,11 +284,11 @@ export class GrokLLMService extends BaseLLMService {
    */
   protected handleError(error: any, context: string): never {
     // Handle Grok-specific errors
-    if (error.message?.includes('401')) {
+    if ((error.message as string | undefined)?.includes('401')) {
       throw new Error(`${context}: Invalid Grok API key`);
-    } else if (error.message?.includes('429')) {
+    } else if ((error.message as string | undefined)?.includes('429')) {
       throw new Error(`${context}: Rate limit exceeded for Grok API`);
-    } else if (error.message?.includes('400')) {
+    } else if ((error.message as string | undefined)?.includes('400')) {
       throw new Error(`${context}: Invalid request to Grok API`);
     }
 

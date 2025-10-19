@@ -13,7 +13,7 @@ export interface AgentConversation {
   startedAt: Date;
   endedAt?: Date;
   lastActiveAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   workProduct?: WorkProductContext; // Optional 1:1 bound work product
   createdAt: Date;
   updatedAt: Date;
@@ -26,29 +26,29 @@ export interface Task {
   // Request fields
   method: string;
   prompt: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   // Response fields
   response?: string;
-  responseMetadata?: Record<string, any>;
+  responseMetadata?: Record<string, unknown>;
   // Status tracking
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   progressMessage?: string;
   // Evaluation fields
-  evaluation?: Record<string, any>;
-  llmMetadata?: Record<string, any>;
+  evaluation?: Record<string, unknown>;
+  llmMetadata?: Record<string, unknown>;
   // PII Processing metadata
   piiMetadata?: import('@/llms/types/pii-metadata.types').PIIProcessingMetadata;
   // Error tracking
   errorCode?: string;
   errorMessage?: string;
-  errorData?: Record<string, any>;
+  errorData?: Record<string, unknown>;
   // Timing
   startedAt?: Date;
   completedAt?: Date;
   timeoutSeconds: number;
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,7 +64,7 @@ export interface CreateAgentConversationDto {
   agentName: string;
   agentType: AgentType;
   namespace?: string; // Organization slug for database agents (e.g., 'my-org')
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   workProduct?: WorkProductContext;
 }
 
@@ -75,7 +75,7 @@ export interface LLMSelection {
     activeStateModifiers?: string[];
     responseModifiers?: string[];
     executedCommands?: string[];
-    customOptions?: Record<string, any>;
+    customOptions?: Record<string, unknown>;
   };
   temperature?: number;
   maxTokens?: number;
@@ -85,7 +85,7 @@ export interface WorkProductContext {
   type: 'project' | 'deliverable';
   id: string;
   version?: number;
-  state?: any;
+  state?: unknown;
 }
 
 export interface CreateTaskDto {
@@ -93,21 +93,21 @@ export interface CreateTaskDto {
   prompt: string;
   params?: {
     workProduct?: WorkProductContext;
-  } & Record<string, any>;
+  } & Record<string, unknown>;
   conversationId?: string; // Optional, creates new conversation if not provided
   taskId?: string; // Optional, pre-generated task ID from frontend to enable early WebSocket subscription
   timeoutSeconds?: number;
   llmSelection?: LLMSelection; // LLM and CIDAFM configuration
-  llmMetadata?: Record<string, any>; // Additional metadata such as context optimization details
+  llmMetadata?: Record<string, unknown>; // Additional metadata such as context optimization details
   executionMode?: 'immediate' | 'polling' | 'websocket'; // Execution mode for backend processing
   conversationHistory?: Array<{
     role: string;
     content: string;
     timestamp: string;
     taskId?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>; // Conversation history array passed from frontend
-  metadata?: Record<string, any>; // Context metadata for deliverable/project operations
+  metadata?: Record<string, unknown>; // Context metadata for deliverable/project operations
 }
 
 export interface UpdateTaskDto {
@@ -115,13 +115,13 @@ export interface UpdateTaskDto {
   progress?: number;
   progressMessage?: string;
   response?: string;
-  responseMetadata?: Record<string, any>;
-  evaluation?: Record<string, any>;
-  llmMetadata?: Record<string, any>;
+  responseMetadata?: Record<string, unknown>;
+  evaluation?: Record<string, unknown>;
+  llmMetadata?: Record<string, unknown>;
   piiMetadata?: import('@/llms/types/pii-metadata.types').PIIProcessingMetadata;
   errorCode?: string;
   errorMessage?: string;
-  errorData?: Record<string, any>;
+  errorData?: Record<string, unknown>;
 }
 
 export interface TaskProgressEvent {
@@ -129,7 +129,7 @@ export interface TaskProgressEvent {
   progress: number;
   message?: string;
   status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface WorkflowStepProgressEvent {

@@ -11,7 +11,7 @@ export interface TaskMessage {
   content: string;
   messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
   progressPercentage?: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   expiresAt: Date;
 }
@@ -22,7 +22,7 @@ export interface CreateTaskMessageDto {
   content: string;
   messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
   progressPercentage?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TaskMessageQueryParams {
@@ -43,7 +43,7 @@ interface TaskMessageDbRecord {
   content: string;
   message_type: string;
   progress_percentage?: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   expires_at: string;
 }
@@ -360,7 +360,7 @@ export class TaskMessageService {
   /**
    * Map database record to TaskMessage type
    */
-  private mapToTaskMessage(data: any): TaskMessage {
+  private mapToTaskMessage(data: unknown): TaskMessage {
     const converted = snakeToCamel(data) as Record<string, unknown>;
 
     return {

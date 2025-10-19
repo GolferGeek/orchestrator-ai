@@ -316,12 +316,12 @@ export class CIDAFMService {
 
         case '&': {
           // State modifier
-          const isActive = state.active_state_modifiers.includes(
+          const isActive = (state.active_state_modifiers as string[]).includes(
             foundCommand.name,
           );
           if (isActive) {
             // Toggle off
-            state.active_state_modifiers = state.active_state_modifiers.filter(
+            state.active_state_modifiers = (state.active_state_modifiers as string[]).filter(
               (mod: string) => mod !== foundCommand.name,
             );
             processingNotes.push(
@@ -329,7 +329,7 @@ export class CIDAFMService {
             );
           } else {
             // Toggle on
-            state.active_state_modifiers.push(foundCommand.name);
+            (state.active_state_modifiers as string[]).push(foundCommand.name);
             processingNotes.push(
               `Enabled state modifier: ${foundCommand.name}`,
             );
@@ -473,7 +473,7 @@ export class CIDAFMService {
     switch (commandName) {
       case 'state-check':
         processingNotes.push(
-          `Active state modifiers: ${state.active_state_modifiers?.join(', ') || 'none'}`,
+          `Active state modifiers: ${(state.active_state_modifiers as string[] | undefined)?.join(', ') || 'none'}`,
         );
         break;
       case 'export-context':

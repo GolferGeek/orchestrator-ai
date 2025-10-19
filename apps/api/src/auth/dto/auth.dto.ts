@@ -124,13 +124,13 @@ export class SupabaseAuthUserDto {
   lastSignInAt?: Date;
 
   @ApiPropertyOptional()
-  appMetadata?: Record<string, any>;
+  appMetadata?: Record<string, unknown>;
 
   @ApiPropertyOptional()
-  userMetadata?: Record<string, any>;
+  userMetadata?: Record<string, unknown>;
 
   @ApiPropertyOptional()
-  identities?: any[];
+  identities?: unknown[];
 
   @ApiPropertyOptional()
   createdAt?: Date;

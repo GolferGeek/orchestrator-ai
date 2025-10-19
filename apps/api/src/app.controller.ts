@@ -11,7 +11,7 @@ export class AppController {
   }
 
   @Get('agents')
-  async getAgentStatus(): Promise<any> {
+  async getAgentStatus(): Promise<unknown> {
     return await this.appService.getAgentStatus();
   }
 }

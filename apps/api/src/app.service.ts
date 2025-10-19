@@ -50,7 +50,7 @@ export class AppService implements OnModuleInit {
     return 'NestJS A2A Agent Framework - Ready!';
   }
 
-  async getAgentStatus(namespaces?: string[]): Promise<any> {
+  async getAgentStatus(namespaces?: string[]): Promise<unknown> {
     const filteredRecords = namespaces?.length
       ? this.agentRecords.filter((record) =>
           record.agent?.namespace

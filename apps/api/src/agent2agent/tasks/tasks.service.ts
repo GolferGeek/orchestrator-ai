@@ -467,7 +467,9 @@ export class TasksService {
   /**
    * Get task metrics and analytics for the user
    */
-  async getTaskMetrics(userId: string): Promise<any> {
+  async getTaskMetrics(
+    userId: string,
+  ): Promise<Record<string, unknown>> {
     try {
       const { data: result, error } = await this.supabaseService
         .getAnonClient()
@@ -607,7 +609,7 @@ export class TasksService {
     content: string,
     type: 'progress' | 'status' | 'info' | 'warning' | 'error' = 'info',
     progressPercentage?: number,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     await this.taskMessageService.createTaskMessage({
       taskId,
@@ -622,7 +624,7 @@ export class TasksService {
   /**
    * Get messages for a task
    */
-  async getTaskMessages(taskId: string, userId: string): Promise<any[]> {
+  async getTaskMessages(taskId: string, userId: string): Promise<unknown[]> {
     const { messages } = await this.taskMessageService.getTaskMessages(
       taskId,
       userId,

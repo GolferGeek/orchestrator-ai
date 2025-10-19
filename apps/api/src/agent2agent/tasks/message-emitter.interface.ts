@@ -16,7 +16,7 @@ export interface MessageEmitter {
     content: string,
     type?: 'progress' | 'status' | 'info' | 'warning' | 'error',
     progressPercentage?: number,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<void>;
 
   /**
@@ -28,7 +28,7 @@ export interface MessageEmitter {
   progress(
     content: string,
     progressPercentage: number,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<void>;
 
   /**
@@ -74,7 +74,7 @@ export class TaskMessageEmitter implements MessageEmitter {
     content: string,
     type: 'progress' | 'status' | 'info' | 'warning' | 'error' = 'info',
     progressPercentage?: number,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     await this.messageService.createTaskMessage({
       taskId: this.taskId,
@@ -89,7 +89,7 @@ export class TaskMessageEmitter implements MessageEmitter {
   async progress(
     content: string,
     progressPercentage: number,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     await this.emit(content, 'progress', progressPercentage, metadata);
   }
@@ -104,7 +104,7 @@ export class TaskMessageEmitter implements MessageEmitter {
 
   async warning(
     content: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     await this.emit(content, 'warning', undefined, metadata);
   }

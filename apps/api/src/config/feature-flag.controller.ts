@@ -69,7 +69,7 @@ export class FeatureFlagController {
     const context: FeatureFlagContext = { userId, organizationId };
 
     // Get the raw configuration
-    const config = (this.featureFlagService as { getFlagConfig: (name: string) => unknown }).getFlagConfig(flagName);
+    const config = (this.featureFlagService as unknown as { getFlagConfig: (name: string) => unknown }).getFlagConfig(flagName) as FeatureFlagConfig;
     const enabled = this.featureFlagService.isEnabled(flagName, context);
 
     // Debug information
