@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import {
   initializeDatabaseSchema,
   getSchemaContext,
@@ -74,7 +74,7 @@ function getOrchestratorClient() {
 /**
  * Get Company Database Client (Company/KPI data - same database, company schema)
  */
-function getCompanyClient() {
+function getCompanyClient(): SupabaseClient {
   if (!companyClient) {
     // Use same database as orchestrator (single-instance demo)
     const supabaseUrl =

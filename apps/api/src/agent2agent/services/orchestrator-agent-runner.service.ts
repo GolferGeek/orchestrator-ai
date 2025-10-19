@@ -503,7 +503,8 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     const result: Record<string, any> = {};
     for (const key of allowedKeys) {
       if (metadata[key] !== undefined) {
-        result[key] = metadata[key];
+        const value: unknown = metadata[key];
+        result[key] = value;
       }
     }
 

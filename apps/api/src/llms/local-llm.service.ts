@@ -320,11 +320,11 @@ export class LocalLLMService {
         this.logger.debug(
           `Using already loaded model: ${alreadyLoaded.model_name}`,
         );
-        return alreadyLoaded.model_name as string;
+        return alreadyLoaded.model_name;
       }
 
       // Otherwise return the best match
-      return (typedData[0]?.model_name as string | undefined) || null;
+      return typedData[0]?.model_name || null;
     } catch (error) {
       this.logger.error('Failed to query best model for task', error);
       return null;
@@ -395,7 +395,7 @@ export class LocalLLMService {
       }
 
       const typedData = data as Array<{ model_name: string }> | null;
-      return typedData?.map((row) => row.model_name as string) || [];
+      return typedData?.map((row) => row.model_name) || [];
     } catch (error) {
       this.logger.error('Failed to query available models', error);
       return [];

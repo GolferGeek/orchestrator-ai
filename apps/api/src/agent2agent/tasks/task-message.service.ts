@@ -76,13 +76,17 @@ export class TaskMessageService {
       expires_at: expiresAt.toISOString(),
     };
 
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getAnonClient()
       .from('task_messages')
       .insert(taskMessageData)
       .select()
       .single();
 
+    const dataRaw: unknown = response.data;
+    const errorRaw: unknown = response.error;
+    const result = dataRaw as TaskMessageDbRecord | null;
+    const error = errorRaw as { message?: string } | null;
     const data = result as TaskMessageDbRecord | null;
 
     if (error || !data) {

@@ -576,7 +576,7 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       const typedData = data as { speed_tier?: string };
-      return (typedData.speed_tier as string | undefined) || 'general';
+      return typedData.speed_tier || 'general';
     } catch {
       return 'general';
     }
@@ -600,7 +600,7 @@ export class MemoryManagerService implements OnModuleInit {
       }
 
       const typedData = data as { loading_priority?: number };
-      return (typedData.loading_priority as number | undefined) || 50;
+      return typedData.loading_priority || 50;
     } catch {
       return 50;
     }

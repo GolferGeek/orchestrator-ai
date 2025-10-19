@@ -115,8 +115,8 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         string,
         unknown
       >;
-      const metadata = request.metadata as Record<string, unknown> | undefined;
-      const payload = request.payload as Record<string, unknown> | undefined;
+      const metadata = request.metadata;
+      const payload = request.payload;
       const payloadMetadata = payload?.metadata as Record<string, unknown> | undefined;
       const userIdFromMetadata: unknown = metadata?.userId;
       const userIdFromPayload: unknown = payloadMetadata?.userId;

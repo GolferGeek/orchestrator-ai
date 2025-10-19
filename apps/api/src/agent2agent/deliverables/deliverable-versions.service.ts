@@ -541,7 +541,7 @@ export class DeliverableVersionsService {
           mergedAt: new Date().toISOString(),
           llmMetadata: mergedContent.metadata
             ? (() => {
-                const metadata = mergedContent.metadata as Record<string, unknown>;
+                const metadata = mergedContent.metadata;
                 const usage = metadata.usage as Record<string, unknown>;
                 const timing = metadata.timing as Record<string, unknown>;
                 return {

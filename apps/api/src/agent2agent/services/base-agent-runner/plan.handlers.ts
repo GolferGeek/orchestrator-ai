@@ -90,7 +90,6 @@ export async function handlePlanCreate(
 ): Promise<TaskResponseDto> {
   try {
     const payload = (request.payload ?? {}) as Partial<PlanCreatePayload>;
-    const payloadRec = payload as Record<string, unknown>;
     const { userId, conversationId, taskId, executionContext } =
       buildPlanActionContext(definition, request);
 
@@ -1156,13 +1155,17 @@ function serializePlan(
       record.current_version_id ??
       record.currentVersion?.id;
 
+  const idRaw: unknown = record.id;
+  const conversationIdAlt: unknown = record.conversationId ?? record.conversation_id;
+  const titleAlt: unknown = record.title ?? record.name;
+
   return {
-    id: record.id,
-    conversationId: record.conversationId ?? record.conversation_id,
+    id: String(idRaw),
+    conversationId: String(conversationIdAlt),
     userId: String(userIdRaw),
     agentName: String(agentNameRaw),
     namespace: String(namespaceRaw),
-    title: record.title ?? record.name ?? 'Plan',
+    title: typeof titleAlt === 'string' ? titleAlt : 'Plan',
     currentVersionId: typeof currentVersionIdRaw === 'string' ? currentVersionIdRaw : '',
     createdAt,
     updatedAt,

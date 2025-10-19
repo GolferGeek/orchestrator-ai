@@ -74,7 +74,7 @@ export async function handleBuildRead(
     const existingDeliverable = (await fetchExistingDeliverable(
       services.deliverablesService,
       request,
-    )) as Record<string, any> | null;
+    )) as Record<string, unknown> | null;
 
     if (!existingDeliverable) {
       return TaskResponseDto.failure(
@@ -387,7 +387,7 @@ export async function handleBuildRerun(
     const existingDeliverable = (await fetchExistingDeliverable(
       services.deliverablesService,
       request,
-    )) as Record<string, any> | null;
+    )) as Record<string, unknown> | null;
 
     if (!existingDeliverable) {
       return TaskResponseDto.failure(
@@ -457,7 +457,7 @@ export async function handleBuildRerun(
 
     const rerunRequest: TaskRequestDto = {
       ...request,
-      payload: rerunPayload as Record<string, any>,
+      payload: rerunPayload as Record<string, unknown>,
       metadata: {
         ...(request.metadata ?? {}),
         buildRerun: {
@@ -704,7 +704,7 @@ export async function handleBuildMergeVersions(
     const existingDeliverable = (await fetchExistingDeliverable(
       services.deliverablesService,
       request,
-    )) as Record<string, any> | null;
+    )) as Record<string, unknown> | null;
 
     if (!existingDeliverable) {
       return TaskResponseDto.failure(

@@ -228,11 +228,12 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       const duration = Date.now() - startTime;
 
       // 4. Check response status
-      const statusCode = response.status;
+      const statusCodeRaw: unknown = response.status;
+      const statusCode = statusCodeRaw;
       if (statusCode !== 200) {
         return TaskResponseDto.failure(
           mode,
-          `External agent returned error status ${statusCode}: ${JSON.stringify(response.data)}`,
+          `External agent returned error status ${String(statusCode)}: ${JSON.stringify(response.data)}`,
         );
       }
 
@@ -252,7 +253,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
         const targetDeliverableId =
           this.resolveDeliverableIdFromRequest(request);
 
-        const payload = request.payload as Record<string, unknown> | undefined;
+        const payload = request.payload;
         const titleRaw: unknown = payload?.title;
         const deliverableResult = await this.deliverablesService.executeAction(
           'create',

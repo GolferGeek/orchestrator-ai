@@ -464,7 +464,7 @@ export class PseudonymizationService {
   private getRandomFromResult(data: any[] | null): string | null {
     if (!data || data.length === 0) return null;
     const randomItem = data[Math.floor(Math.random() * data.length)] as { value?: string } | undefined;
-    return (randomItem?.value as string | undefined) || null;
+    return randomItem?.value || null;
   }
 
   /**
@@ -493,7 +493,7 @@ export class PseudonymizationService {
 
       if (error) throw error;
       const typedData = data as { id: string };
-      return typedData.id as string;
+      return typedData.id;
     } catch (error) {
       this.logger.error(
         `Failed to store pseudonym mapping: ${error instanceof Error ? error.message : 'Unknown error'}`,

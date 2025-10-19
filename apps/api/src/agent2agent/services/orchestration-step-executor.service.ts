@@ -333,7 +333,9 @@ export class OrchestrationStepExecutorService {
     }
 
     if (!agentResponse.success) {
-      const payloadMetadata = agentResponse.payload?.metadata as Record<string, unknown> | undefined;
+      const payloadMetadata = agentResponse.payload?.metadata as
+        | Record<string, unknown>
+        | undefined;
       const reasonRaw: unknown = payloadMetadata?.reason;
       const errorTypeRaw: unknown = payloadMetadata?.errorType;
       return this.handleStepFailure(run, runningStep, {
@@ -945,9 +947,8 @@ export class OrchestrationStepExecutorService {
     const retryRaw: unknown = runtime.retry;
     const retryRuntime = this.asRecord(retryRaw) ?? {};
     const historyRaw: unknown = retryRuntime.history;
-    const history: unknown[] = Array.isArray(historyRaw)
-      ? [...historyRaw]
-      : [];
+    const historyArr = Array.isArray(historyRaw) ? (historyRaw as unknown[]) : [];
+    const history: unknown[] = [...historyArr];
 
     history.push({
       attempt: failedStep.attempt_number,
@@ -1061,7 +1062,7 @@ export class OrchestrationStepExecutorService {
     const run = options.run;
     const step = options.step;
     const checkpointIdRaw: unknown = step.step_id ?? step.id;
-    const checkpointId = `${checkpointIdRaw}-checkpoint`;
+    const checkpointId = `${String(checkpointIdRaw)}-checkpoint`;
 
     const agentMeta = run.metadata?.agent as Record<string, unknown> | undefined;
     const agentSlugRaw: unknown = agentMeta?.slug;
@@ -1146,21 +1147,21 @@ export class OrchestrationStepExecutorService {
   private extractOrchestrationConfig(
     step: OrchestrationStepRecord,
   ): OrchestrationSubDefinition | null {
-    const metadata = (step.metadata ?? {}) as Record<string, any>;
-    const config = metadata.orchestration;
+    const metadata = (step.metadata ?? {}) as Record<string, unknown>;
+    const config: unknown = metadata.orchestration;
     if (!config || typeof config !== 'object') {
       return null;
     }
     try {
-      const clone = JSON.parse(JSON.stringify(config));
+      const clone: unknown = JSON.parse(JSON.stringify(config));
       if (clone && typeof clone === 'object') {
-        delete (clone as Record<string, any>).runtime;
+        delete (clone as Record<string, unknown>).runtime;
       }
       return clone as OrchestrationSubDefinition;
     } catch {
-      const fallback = { ...(config as OrchestrationSubDefinition) };
-      delete (fallback as Record<string, any>).runtime;
-      return fallback;
+      const fallback = { ...(config as Record<string, unknown>) };
+      delete (fallback as Record<string, unknown>).runtime;
+      return fallback as OrchestrationSubDefinition;
     }
   }
 
@@ -1631,17 +1632,17 @@ export class OrchestrationStepExecutorService {
   private interpolateString(
     template: string,
     run: OrchestrationRunRecord,
-  ): any {
+  ): unknown {
     const trimmed = template.trim();
     const singleMatch = trimmed.match(/^\{\{\s*([^}]+)\s*\}\}$/);
     if (singleMatch?.[1]) {
-      const value = this.resolveExpression(singleMatch[1], run);
+      const value: unknown = this.resolveExpression(singleMatch[1], run);
       return value ?? null;
     }
 
     return template.replace(/\{\{\s*([^}]+)\s*\}\}/g, (_match, expr) => {
       const exprStr = String(expr);
-      const value = this.resolveExpression(exprStr, run);
+      const value: unknown = this.resolveExpression(exprStr, run);
       if (value === null || value === undefined) {
         return '';
       }
@@ -1728,7 +1729,8 @@ export class OrchestrationStepExecutorService {
       if (!Array.isArray(current)) {
         return undefined;
       }
-      current = current[index];
+      const arrCurrent = current as unknown[];
+      current = arrCurrent[index];
     }
 
     return current;
@@ -1748,7 +1750,8 @@ export class OrchestrationStepExecutorService {
         const patchValue = value as Record<string, any>;
         this.mergeInto(targetValue, patchValue);
       } else {
-        target[key] = this.cloneValue(value);
+        const clonedValue: unknown = this.cloneValue(value);
+        target[key] = clonedValue;
       }
     });
   }
@@ -1797,13 +1800,14 @@ export class OrchestrationStepExecutorService {
       });
     }
 
+    const outputMapping: unknown = baseMetadata.outputMapping;
     return {
       ...baseMetadata,
       runtime: {
         ...runtimeMeta,
         resolvedInput,
         agentResponse: snapshot,
-        mappingRules: baseMetadata.outputMapping ?? null,
+        mappingRules: outputMapping ?? null,
         completedAt: new Date().toISOString(),
       },
     };

@@ -34,12 +34,12 @@ const createAgentDefinition = (
   config: {},
   agentCard: null,
   rawDescriptor: null,
-  record: {} as any,
+  record: {} as Record<string, unknown>,
   ...overrides,
 });
 
 const createRequest = (
-  payload: Record<string, any>,
+  payload: Record<string, unknown>,
   overrides: Partial<TaskRequestDto> = {},
 ): TaskRequestDto => ({
   mode: AgentTaskMode.ORCHESTRATE,

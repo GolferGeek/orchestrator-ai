@@ -5,6 +5,7 @@ import { AgentRecord } from './agent-platform/interfaces/agent.interface';
 import {
   DEFAULT_EXECUTION_CAPABILITIES,
   DEFAULT_EXECUTION_PROFILE,
+  AgentExecutionProfile,
 } from './agent-platform/types/agent-execution.types';
 
 @Injectable()
@@ -71,28 +72,43 @@ export class AppService implements OnModuleInit {
             typeof (instance as Record<string, unknown>).getAgentCard ===
               'function'
           ) {
-            agentCard = await (
-              instance as { getAgentCard: () => Promise<any> }
+            const cardRaw: unknown = await (
+              instance as { getAgentCard: () => Promise<unknown> }
             ).getAgentCard();
+            agentCard = cardRaw as Record<string, unknown>;
 
-            if (agentCard?.configuration?.execution_modes) {
-              executionModes = agentCard.configuration.execution_modes;
+            const config = agentCard?.configuration as Record<string, unknown> | undefined;
+            if (config?.execution_modes) {
+              const modes: unknown = config.execution_modes;
+              if (Array.isArray(modes)) {
+                executionModes = modes as string[];
+              }
             }
 
-            if (agentCard?.execution?.profile) {
-              executionProfile = agentCard.execution.profile;
+            const execution = agentCard?.execution as Record<string, unknown> | undefined;
+            if (execution?.profile) {
+              const profile: unknown = execution.profile;
+              if (typeof profile === 'string') {
+                executionProfile = profile as AgentExecutionProfile;
+              }
             }
 
-            if (agentCard?.execution?.capabilities) {
-              executionCapabilities = {
-                ...executionCapabilities,
-                ...agentCard.execution.capabilities,
-              };
+            if (execution?.capabilities) {
+              const capabilities: unknown = execution.capabilities;
+              if (capabilities && typeof capabilities === 'object' && !Array.isArray(capabilities)) {
+                executionCapabilities = {
+                  ...executionCapabilities,
+                  ...(capabilities as Record<string, unknown>),
+                };
+              }
             }
           }
         } catch {
           // Swallow agent-card errors; continue building status
         }
+
+        const displayNameRaw: unknown = agentCard?.name;
+        const descriptionRaw: unknown = agentCard?.description;
 
         return {
           id: this.generateAgentId(
@@ -100,11 +116,11 @@ export class AppService implements OnModuleInit {
             agent.namespacedPath || agent.path || '',
           ),
           name: agent.name,
-          displayName: agentCard?.name || agent.name,
+          displayName: displayNameRaw || agent.name,
           type: agent.type,
           namespace: agent.namespace ?? undefined,
           description:
-            agentCard?.description ||
+            descriptionRaw ||
             `${agent.name} - A specialized agent for handling specific tasks`,
           serviceClass: agent.serviceClass?.name,
           hasInstance: !!instance,

@@ -1834,7 +1834,7 @@ export class EvaluationService {
     );
     const averageWorkflowCompletionRate =
       workflowTasks.length > 0
-        ? workflowTasks.reduce((sum, task) => {
+        ? workflowTasks.reduce((sum, task): number => {
             const steps = task.response_metadata.workflow_steps_completed || [];
             const completedCount = steps.filter(
               (step: unknown) => (step as Record<string, unknown>).status === 'completed',
@@ -1870,7 +1870,7 @@ export class EvaluationService {
       '5': 0,
     };
     ratings.forEach((rating) => {
-      const key = Math.floor(rating as number).toString();
+      const key = Math.floor(rating).toString();
       if (ratingDistribution[key] !== undefined) {
         ratingDistribution[key]++;
       }

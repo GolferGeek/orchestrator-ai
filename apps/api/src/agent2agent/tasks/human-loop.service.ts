@@ -83,18 +83,22 @@ export class HumanLoopService {
       status: 'pending',
     };
 
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getAnonClient()
       .from('human_inputs')
       .insert(humanInputData)
       .select()
       .single();
 
+    const dataRaw: unknown = response.data;
+    const errorRaw: unknown = response.error;
+    const error = errorRaw as { message?: string } | null;
+
     if (error) {
       throw new Error(`Failed to create human input: ${error.message}`);
     }
 
-    const data = result as HumanInputDbRecord | null;
+    const data = dataRaw as HumanInputDbRecord | null;
     if (!data) {
       throw new Error('Failed to create human input: No data returned');
     }
@@ -130,7 +134,7 @@ export class HumanLoopService {
       updated_at: new Date().toISOString(),
     };
 
-    const { data: result, error } = await this.supabaseService
+    const response2 = await this.supabaseService
       .getAnonClient()
       .from('human_inputs')
       .update(updateData)
@@ -140,11 +144,16 @@ export class HumanLoopService {
       .select()
       .single();
 
+    const dataRaw2: unknown = response2.data;
+    const errorRaw2: unknown = response2.error;
+    const result = dataRaw2 as HumanInputDbRecord | null;
+    const error = errorRaw2 as { message?: string } | null;
+
     if (error) {
       throw new Error(`Failed to update human input: ${error.message}`);
     }
 
-    const data = result as HumanInputDbRecord | null;
+    const data = result;
     if (!data) {
       throw new Error('Human input not found or already completed');
     }
@@ -221,12 +230,17 @@ export class HumanLoopService {
    * Get human input by ID
    */
   async getHumanInputById(inputId: string): Promise<HumanInput | null> {
-    const { data: result, error } = await this.supabaseService
+    const response3 = await this.supabaseService
       .getAnonClient()
       .from('human_inputs')
       .select()
       .eq('id', inputId)
       .single();
+
+    const dataRaw3: unknown = response3.data;
+    const errorRaw3: unknown = response3.error;
+    const result = dataRaw3 as HumanInputDbRecord | null;
+    const error = errorRaw3 as { message?: string; code?: string } | null;
 
     if (error && error.code !== 'PGRST116') {
       throw new Error(`Failed to fetch human input: ${error.message}`);
@@ -295,7 +309,7 @@ export class HumanLoopService {
    */
   async handleHumanInputTimeout(inputId: string): Promise<HumanInput> {
     try {
-      const { data: result, error } = await this.supabaseService
+      const response4 = await this.supabaseService
         .getAnonClient()
         .from('human_inputs')
         .update({
@@ -306,6 +320,11 @@ export class HumanLoopService {
         .eq('status', 'pending')
         .select()
         .single();
+
+      const dataRaw4: unknown = response4.data;
+      const errorRaw4: unknown = response4.error;
+      const result = dataRaw4 as HumanInputDbRecord | null;
+      const error = errorRaw4 as { message?: string } | null;
 
       if (error) {
         throw new Error(`Failed to handle timeout: ${error.message}`);
@@ -343,7 +362,7 @@ export class HumanLoopService {
    */
   async cleanupExpiredInputs(): Promise<number> {
     try {
-      const { data, error } = await this.supabaseService
+      const response5 = await this.supabaseService
         .getAnonClient()
         .from('human_inputs')
         .update({
@@ -353,6 +372,11 @@ export class HumanLoopService {
         .eq('status', 'pending')
         .lt('timeout_at', new Date().toISOString())
         .select('id, task_id, user_id');
+
+      const dataRaw5: unknown = response5.data;
+      const errorRaw5: unknown = response5.error;
+      const data = dataRaw5 as Array<{ id: string; task_id: string; user_id: string }> | null;
+      const error = errorRaw5 as { message?: string } | null;
 
       if (error) {
         throw new Error(`Failed to cleanup expired inputs: ${error.message}`);
@@ -397,7 +421,7 @@ export class HumanLoopService {
       requestType: converted.requestType as HumanInput['requestType'],
       prompt: converted.prompt as string,
       options: converted.options
-        ? JSON.parse(converted.options as string)
+        ? (JSON.parse(converted.options as string) as any[])
         : undefined,
       userResponse: converted.userResponse as string | undefined,
       responseMetadata:

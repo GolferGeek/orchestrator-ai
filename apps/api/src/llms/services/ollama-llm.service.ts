@@ -215,7 +215,7 @@ export class OllamaLLMService extends BaseLLMService {
       const modelExists = availableModels.some((m: any) => m.name === model);
 
       if (!modelExists) {
-        const modelNames = availableModels.map((m: any) => (m as { name: string }).name as string);
+        const modelNames = availableModels.map((m: any) => (m as { name: string }).name);
         return {
           success: false,
           message: `Model ${model} not found. Available models: ${modelNames.join(', ')}`,
@@ -347,7 +347,7 @@ export class OllamaLLMService extends BaseLLMService {
         this.httpService.get(`${this.ollamaBaseUrl}/api/tags`),
       );
       const models = response.data.models as Array<{ name: string }> | undefined;
-      return models?.map((model) => model.name as string) || [];
+      return models?.map((model) => model.name) || [];
     } catch (error) {
       this.logger.error('Failed to get available models:', error);
       return [];
@@ -374,7 +374,7 @@ export class OllamaLLMService extends BaseLLMService {
       return {
         healthy: true,
         version: versionResponse.data.version as string | undefined,
-        models: models?.map((m) => m.name as string) || [],
+        models: models?.map((m) => m.name) || [],
       };
     } catch {
       return { healthy: false };

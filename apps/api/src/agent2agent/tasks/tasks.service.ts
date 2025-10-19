@@ -141,12 +141,17 @@ export class TasksService {
 
     while (attempts < maxAttempts) {
       try {
-        const { data: result, error } = await this.supabaseService
+        const response = await this.supabaseService
           .getAnonClient()
           .from('tasks')
           .insert(finalTaskData)
           .select()
           .single();
+
+        const dataRaw: unknown = response.data;
+        const errorRaw: unknown = response.error;
+        const result = dataRaw as TaskRow | null;
+        const error = errorRaw as { message?: string; code?: string } | null;
 
         if (error) {
           // If it's a duplicate key error and we have attempts left, generate new ID
@@ -206,7 +211,7 @@ export class TasksService {
    * Get task by ID
    */
   async getTaskById(taskId: string, userId: string): Promise<Task | null> {
-    const { data: taskData, error } = await this.supabaseService
+    const response2 = await this.supabaseService
       .getAnonClient()
       .from('tasks')
       .select()
@@ -214,10 +219,14 @@ export class TasksService {
       .eq('user_id', userId)
       .single();
 
+    const dataRaw2: unknown = response2.data;
+    const errorRaw2: unknown = response2.error;
+    const taskData = dataRaw2 as TaskRow | null;
+    const error = errorRaw2 as { code?: string; message?: string } | null;
     const data = taskData as TaskRow | null;
 
     if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to fetch task: ${error.message}`);
+      throw new Error(`Failed to fetch task: ${error.message || 'Unknown error'}`);
     }
 
     const result = data ? this.mapToTask(data) : null;
@@ -334,7 +343,7 @@ export class TasksService {
       delete anyUpdateData.llmMetadata;
     }
 
-    const { data: result, error } = await this.supabaseService
+    const response3 = await this.supabaseService
       .getAnonClient()
       .from('tasks')
       .update(updateData)
@@ -342,6 +351,11 @@ export class TasksService {
       .eq('user_id', userId)
       .select()
       .single();
+
+    const dataRaw3: unknown = response3.data;
+    const errorRaw3: unknown = response3.error;
+    const result = dataRaw3 as TaskRow | null;
+    const error = errorRaw3 as { message?: string } | null;
 
     if (error) {
       throw new Error(`Failed to update task: ${error.message}`);

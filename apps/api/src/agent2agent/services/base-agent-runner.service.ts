@@ -802,8 +802,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    */
   protected buildMetadata(
     request: TaskRequestDto,
-    additional?: Record<string, any>,
-  ): Record<string, any> {
+    additional?: Record<string, unknown>,
+  ): Record<string, unknown> {
     return {
       ...(request.payload?.metadata ?? {}),
       ...(request.metadata ?? {}),
@@ -891,8 +891,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    */
   protected shouldStream(request: TaskRequestDto): boolean {
     return Boolean(
-      (request.payload?.options as any)?.stream ||
-        (request.metadata as any)?.stream,
+      (request.payload?.options as Record<string, unknown>)?.stream ||
+        (request.metadata as Record<string, unknown>)?.stream,
     );
   }
 
@@ -922,7 +922,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       slug: string;
       mode: AgentTaskMode;
       userMessage: string;
-      payload?: any;
+      payload?: Record<string, unknown>;
     }>,
     request: TaskRequestDto,
     _organizationSlug: string | null,
@@ -936,12 +936,13 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     for (const subAgent of subAgents) {
       try {
         // Build sub-agent request
+        const payloadAny: unknown = subAgent.payload;
         const _subRequest: TaskRequestDto = {
           mode: subAgent.mode,
           conversationId: request.conversationId,
           sessionId: request.sessionId,
           userMessage: subAgent.userMessage,
-          payload: subAgent.payload || {},
+          payload: (payloadAny as Record<string, unknown>) || {},
           metadata: {
             ...request.metadata,
             parentRequest: true,

@@ -92,7 +92,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       // Validate required context
       const userId = this.resolveUserId(request);
       const conversationId = this.resolveConversationId(request);
-      const taskId = payloadOverrides.taskId || null;
+      const taskIdRaw: unknown = payloadOverrides.taskId;
+      const taskId = taskIdRaw || null;
 
       if (!userId || !conversationId) {
         return TaskResponseDto.failure(
@@ -151,17 +152,19 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
             return;
           }
           if (result.status === 'fulfilled') {
+            const resultValue: unknown = result.value;
             toolResults.push({
               tool: toolName,
               success: true,
-              result: result.value,
+              result: resultValue,
             });
           } else {
-            const reason = result.reason;
+            const reason: unknown = result.reason;
+            const reasonObj = reason as { message?: string } | undefined;
             toolResults.push({
               tool: toolName,
               success: false,
-              error: reason?.message || String(reason),
+              error: reasonObj?.message || String(reason),
             });
           }
         });
@@ -170,7 +173,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         for (const toolName of tools) {
           try {
             const params = toolParams[toolName] || {};
-            const result = await this.executeTool(toolName, params, request);
+            const result: unknown = await this.executeTool(toolName, params, request);
 
             toolResults.push({
               tool: toolName,
@@ -214,6 +217,11 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
 
       // 4. Save deliverable
+      const configAny = definition.config as Record<string, unknown> | undefined;
+      const deliverableConfigAny = configAny?.deliverable as Record<string, unknown> | undefined;
+      const formatRaw: unknown = deliverableConfigAny?.format;
+      const typeRaw: unknown = deliverableConfigAny?.type;
+
       const deliverableResult = await this.deliverablesService.executeAction(
         'create',
         {
@@ -221,8 +229,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
             (request.payload as Record<string, unknown>)?.title ||
             `Tool Execution: ${definition.displayName}`,
           content: formattedContent,
-          format: definition.config?.deliverable?.format || 'json',
-          type: definition.config?.deliverable?.type || 'tool-result',
+          format: formatRaw || 'json',
+          type: typeRaw || 'tool-result',
           deliverableId: targetDeliverableId ?? undefined,
           agentName: definition.slug,
           namespace: organizationSlug || 'default',
@@ -415,11 +423,12 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           /\{\{([^}]+)\}\}/g,
           (match: string, path: string) => {
             const keys = path.trim().split('.');
-            let val: any = request;
+            let val: unknown = request;
 
             for (const k of keys) {
               if (val && typeof val === 'object' && k in val) {
-                val = val[k];
+                const objVal = val as Record<string, unknown>;
+                val = objVal[k];
               } else {
                 return match; // Keep original if not found
               }
@@ -429,7 +438,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           },
         );
       } else {
-        interpolated[key] = value;
+        const valueAny: unknown = value;
+        interpolated[key] = valueAny;
       }
     }
 
