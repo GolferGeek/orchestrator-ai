@@ -126,7 +126,7 @@ export class DictionaryPseudonymizerService {
           : r.organization_slug
             ? 'org'
             : 'global';
-        const key = `${String((r.original_value as string | null | undefined) || '').toLowerCase()}::${r.data_type || 'unknown'}`;
+        const key = `${String((r.original_value as string | null | undefined) || '').toLowerCase()}::${String(r.data_type || 'unknown')}`;
         if (!key.trim()) continue;
         const existing = byOriginal[key];
         if (!existing) {
@@ -139,7 +139,7 @@ export class DictionaryPseudonymizerService {
         if (rank(src) > rank(existing.src)) {
           if (existing.pseudonym !== r.pseudonym) {
             this.logger.warn(
-              `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${r.pseudonym}'`,
+              `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${String(r.pseudonym)}'`,
             );
           }
           byOriginal[key] = { pseudonym: r.pseudonym as string, src, row: row as Record<string, unknown> };

@@ -476,7 +476,7 @@ export class LLMErrorMapper {
       }
 
       return new LLMError(
-        `Invalid OpenAI request: ${err.message}`,
+        `Invalid OpenAI request: ${String(err.message)}`,
         LLMErrorType.INVALID_REQUEST,
         provider,
         { model, originalError: error, requestId },
@@ -524,7 +524,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown OpenAI error: ${err.message}`,
+      `Unknown OpenAI error: ${String(err.message)}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -574,7 +574,7 @@ export class LLMErrorMapper {
     if (Number.isFinite(status) && status === 400) {
       if (errorType === 'invalid_request_error') {
         return new LLMError(
-          `Invalid Anthropic request: ${(err.error as Record<string, unknown> | undefined)?.message}`,
+          `Invalid Anthropic request: ${String((err.error as Record<string, unknown> | undefined)?.message)}`,
           LLMErrorType.INVALID_REQUEST,
           provider,
           { model, originalError: error, requestId },
@@ -594,7 +594,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Anthropic error: ${err.message}`,
+      `Unknown Anthropic error: ${String(err.message)}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -654,7 +654,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Google error: ${err.message}`,
+      `Unknown Google error: ${String(err.message)}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -713,7 +713,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Ollama error: ${err.message}`,
+      `Unknown Ollama error: ${String(err.message)}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -762,7 +762,7 @@ export class LLMErrorMapper {
     // Invalid request
     if (Number.isFinite(status) && status === 400) {
       return new LLMError(
-        `Invalid Grok request: ${err.message}`,
+        `Invalid Grok request: ${String(err.message)}`,
         LLMErrorType.INVALID_REQUEST,
         provider,
         { model, originalError: error, requestId },
@@ -781,7 +781,7 @@ export class LLMErrorMapper {
 
     // Unknown error
     return new LLMError(
-      `Unknown Grok error: ${err.message}`,
+      `Unknown Grok error: ${String(err.message)}`,
       LLMErrorType.UNKNOWN,
       provider,
       { model, originalError: error, requestId },
@@ -811,7 +811,7 @@ export class LLMErrorMapper {
         return this.fromGrokError(error, provider, model, requestId);
       default:
         return new LLMError(
-          `Unknown error from ${provider}: ${err.message}`,
+          `Unknown error from ${provider}: ${String(err.message)}`,
           LLMErrorType.UNKNOWN,
           provider,
           { model, originalError: error, requestId },
