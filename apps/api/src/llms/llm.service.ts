@@ -1723,8 +1723,8 @@ export class LLMService {
 
       if (providerResult.data && modelResult.data) {
         return {
-          provider: mapProviderFromDb(providerResult.data),
-          model: mapModelFromDb(modelResult.data),
+          provider: mapProviderFromDb(providerResult.data as Record<string, unknown>),
+          model: mapModelFromDb(modelResult.data as Record<string, unknown>),
         };
       }
 
@@ -1763,7 +1763,7 @@ export class LLMService {
       throw new Error(`Provider not found for model ${model.name}`);
     }
 
-    const mappedProvider = mapProviderFromDb(provider);
+    const mappedProvider = mapProviderFromDb(provider as Record<string, unknown>);
 
     // Map provider names to our LLM creation logic
     // Note: Database provider names are lowercase, display_names are title case

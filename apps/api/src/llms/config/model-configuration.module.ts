@@ -107,7 +107,7 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
 
         if (!baseConfig && !globalConfig) {
           // Allow service construction; validation can be invoked by consumer
-          return new ModelConfigurationService();
+          return new ModelConfigurationService(undefined);
         }
 
         if (patchJson && baseConfig) {

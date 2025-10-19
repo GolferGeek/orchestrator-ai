@@ -876,15 +876,15 @@ Return ONLY the SQL query, no explanation or formatting.`;
       // Try to parse as JSON in case model returned structured response
       if (sql.startsWith('{') && sql.endsWith('}')) {
         try {
-          const parsed = JSON.parse(sql);
+          const parsed = JSON.parse(sql) as Record<string, unknown>;
           if (parsed.sql) {
-            sql = parsed.sql;
+            sql = parsed.sql as string;
             console.log('[MCP-SQL-DEBUG] Extracted SQL from JSON response');
           } else if (parsed.query) {
-            sql = parsed.query;
+            sql = parsed.query as string;
             console.log('[MCP-SQL-DEBUG] Extracted query from JSON response');
           } else if (parsed.result) {
-            sql = parsed.result;
+            sql = parsed.result as string;
             console.log('[MCP-SQL-DEBUG] Extracted result from JSON response');
           }
         } catch {
