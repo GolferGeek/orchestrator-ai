@@ -111,7 +111,7 @@ describe('ExternalAgentRunnerService', () => {
         of({
           status: 200,
           data: externalResponse,
-        }) as any,
+        }) as unknown as ReturnType<typeof httpService.request>,
       );
 
       // Mock deliverable creation
@@ -197,7 +197,7 @@ describe('ExternalAgentRunnerService', () => {
             content: {},
             metadata: {},
           }),
-        }) as any,
+        }) as unknown as ReturnType<typeof httpService.request>,
       );
 
       deliverablesService.executeAction.mockResolvedValue({
@@ -250,7 +250,7 @@ describe('ExternalAgentRunnerService', () => {
         of({
           status: 200,
           data: externalResponse,
-        }) as any,
+        }) as unknown as ReturnType<typeof httpService.request>,
       );
 
       const result = await service.execute(definition, request, null);
@@ -298,7 +298,7 @@ describe('ExternalAgentRunnerService', () => {
         of({
           status: 200,
           data: externalResponse,
-        }) as any,
+        }) as unknown as ReturnType<typeof httpService.request>,
       );
 
       const result = await service.execute(definition, request, null);
@@ -381,7 +381,9 @@ describe('ExternalAgentRunnerService', () => {
       };
 
       httpService.request.mockReturnValue(
-        throwError(() => new Error('Network error')) as any,
+        throwError(() => new Error('Network error')) as unknown as ReturnType<
+          typeof httpService.request
+        >,
       );
 
       const result = await service.execute(definition, request, null);
@@ -415,7 +417,7 @@ describe('ExternalAgentRunnerService', () => {
         of({
           status: 500,
           data: { error: 'Internal server error' },
-        }) as any,
+        }) as unknown as ReturnType<typeof httpService.request>,
       );
 
       const result = await service.execute(definition, request, null);
@@ -449,7 +451,7 @@ describe('ExternalAgentRunnerService', () => {
         of({
           status: 200,
           data: { invalidResponse: true }, // Not a valid A2A response
-        }) as any,
+        }) as unknown as ReturnType<typeof httpService.request>,
       );
 
       const result = await service.execute(definition, request, null);
@@ -487,7 +489,7 @@ describe('ExternalAgentRunnerService', () => {
             content: {},
             metadata: {},
           }),
-        }) as any,
+        }) as unknown as ReturnType<typeof httpService.request>,
       );
 
       deliverablesService.executeAction.mockResolvedValue({

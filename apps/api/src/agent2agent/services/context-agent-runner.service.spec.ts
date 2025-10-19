@@ -162,7 +162,7 @@ describe('ContextAgentRunnerService', () => {
           id: 'ver-1',
           content: 'Test plan content',
         },
-      } as any);
+      } as Record<string, unknown>);
 
       plansService.executeAction.mockResolvedValue({
         success: true,
@@ -371,7 +371,7 @@ describe('ContextAgentRunnerService', () => {
         title: 'Test Deliverable',
         content: 'Test content',
         format: 'markdown',
-        type: 'document' as any,
+        type: 'document' as string,
         agentName: 'test-agent',
         userId: 'user-123',
         conversationId: 'conv-123',
@@ -379,8 +379,8 @@ describe('ContextAgentRunnerService', () => {
           id: 'ver-1',
           versionNumber: 1,
           content: 'Test content',
-        } as any,
-      } as any);
+        } as Record<string, unknown>,
+      } as Record<string, unknown>);
 
       const result = await service.execute(definition, request, 'test-org');
 

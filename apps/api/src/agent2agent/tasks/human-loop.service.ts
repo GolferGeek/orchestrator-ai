@@ -246,7 +246,7 @@ export class HumanLoopService {
       throw new Error(`Failed to fetch human input: ${error.message}`);
     }
 
-    const data = result as HumanInputDbRecord | null;
+    const data = result;
     return data ? this.mapToHumanInput(data) : null;
   }
 
@@ -330,7 +330,7 @@ export class HumanLoopService {
         throw new Error(`Failed to handle timeout: ${error.message}`);
       }
 
-      const data = result as HumanInputDbRecord | null;
+      const data = result;
       if (!data) {
         throw new Error('Failed to handle timeout: No data returned');
       }

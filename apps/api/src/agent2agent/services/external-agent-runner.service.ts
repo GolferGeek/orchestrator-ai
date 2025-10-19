@@ -195,13 +195,13 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
           if (value === undefined || value === null) {
             continue;
           }
-          headers[key] = typeof value === 'string' ? value : String(value);
+          headers[key] = typeof value === 'string' ? value : typeof value === 'object' ? JSON.stringify(value) : String(value);
         }
       }
 
       // 3. Execute HTTP request
       const startTime = Date.now();
-      let response: any;
+      let response: { status: number; data: unknown };
 
       try {
         const observable = this.httpService.request({
@@ -324,8 +324,10 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
     return value as Record<string, unknown>;
   }
 
-  private toPlainRecord(record: Record<string, unknown>): Record<string, any> {
-    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  private toPlainRecord(
+    record: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(record));
   }
 
   private ensureString(value: unknown): string | null {

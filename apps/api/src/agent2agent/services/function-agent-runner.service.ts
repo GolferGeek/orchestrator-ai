@@ -268,8 +268,8 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
           content: string;
           format: string;
           type: string;
-          attachments?: Record<string, any>;
-          metadata?: Record<string, any>;
+          attachments?: Record<string, unknown>;
+          metadata?: Record<string, unknown>;
         }) => {
           if (!userId) {
             throw new Error('userId is required to create deliverables');

@@ -1128,11 +1128,11 @@ function createBaseMetadataFromLLM(
 }
 
 function serializePlan(
-  plan: Plan | Record<string, any>,
+  plan: Plan | Record<string, unknown>,
   definition: AgentRuntimeDefinition,
   fallbackUserId: string,
 ): PlanCreateResponseContent['plan'] {
-  const record = plan as Record<string, any>;
+  const record = plan as Record<string, unknown>;
 
   const createdAt = toIsoString(
     record.createdAt ?? record.created_at ?? new Date().toISOString(),
@@ -1153,7 +1153,7 @@ function serializePlan(
   const currentVersionIdRaw: unknown =
       record.currentVersionId ??
       record.current_version_id ??
-      record.currentVersion?.id;
+      (record.currentVersion as { id?: unknown } | undefined)?.id;
 
   const idRaw: unknown = record.id;
   const conversationIdAlt: unknown = record.conversationId ?? record.conversation_id;

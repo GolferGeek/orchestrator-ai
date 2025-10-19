@@ -44,7 +44,7 @@ type StepFailureContext = {
     | 'configuration_error'
     | 'policy_failure'
     | 'child_orchestration_failure';
-  errorDetails: Record<string, any>;
+  errorDetails: Record<string, unknown>;
   retryable?: boolean;
 };
 
@@ -55,7 +55,7 @@ type RetryPlan =
       nextAttempt: number;
       delayMs: number;
       nextRetryAt: string;
-      config: Record<string, any>;
+      config: Record<string, unknown>;
       maxAttempts: number;
     };
 
@@ -357,9 +357,7 @@ export class OrchestrationStepExecutorService {
 
     const mapping = this.outputMapper.map(
       agentResponse.payload,
-      (step.metadata?.outputMapping ?? undefined) as
-        | Record<string, any>
-        | undefined,
+      (step.metadata?.outputMapping ?? undefined) as JsonObject | null | undefined,
     );
 
     let metadataPatch = this.buildMetadataPatch(
@@ -537,7 +535,7 @@ export class OrchestrationStepExecutorService {
     }
 
     let stepMetadata = this.mergeStepMetadata(
-      runningStep.metadata as Record<string, any> | undefined,
+      runningStep.metadata as Record<string, unknown> | undefined,
       this.buildInitialChildMetadataPatch(config, childDefinition, {
         ownerSlug,
         parameters: childParameters,
@@ -679,10 +677,10 @@ export class OrchestrationStepExecutorService {
   ): { enabled: boolean; ttlSeconds: number | null } {
     const metadata = this.asRecord(run.metadata);
     const execution = this.asRecord(
-      metadata?.execution as Record<string, any> | undefined,
+      metadata?.execution as Record<string, unknown> | undefined,
     );
     const caching = this.asRecord(
-      execution?.caching as Record<string, any> | undefined,
+      execution?.caching as Record<string, unknown> | undefined,
     );
 
     if (!caching) {
@@ -692,7 +690,7 @@ export class OrchestrationStepExecutorService {
     const stepKey = this.resolveStepKey(step);
     const cachingAny = caching as unknown as { steps?: unknown };
     const stepsConfig = Array.isArray(cachingAny.steps)
-      ? (caching.steps as Array<Record<string, any>>)
+      ? (caching.steps as Array<Record<string, unknown>>)
       : [];
     const stepConfig = stepsConfig.find(
       (entry) =>
@@ -731,12 +729,12 @@ export class OrchestrationStepExecutorService {
   }
 
   private prepareMetadataForCacheStorage(
-    metadata: Record<string, any>,
+    metadata: Record<string, unknown>,
     fingerprint: string,
     runId: string,
     stepId: string,
     timestamp: string,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     const clone = this.cloneValue(metadata) ?? {};
     const runtime = this.asRecord(clone.runtime) ?? {};
     runtime.completedAt = timestamp;
@@ -752,13 +750,13 @@ export class OrchestrationStepExecutorService {
   }
 
   private prepareMetadataForCacheHit(
-    cachedMetadata: Record<string, any>,
+    cachedMetadata: Record<string, unknown>,
     fingerprint: string,
     runId: string,
     timestamp: string,
     sourceRunId?: string,
     sourceStepId?: string,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     const clone = this.cloneValue(cachedMetadata) ?? {};
     const runtime = this.asRecord(clone.runtime) ?? {};
     const cacheInfo = this.asRecord(runtime.cache) ?? {};
@@ -906,7 +904,7 @@ export class OrchestrationStepExecutorService {
     }
 
     const behavior = this.asRecord(
-      (step.metadata as Record<string, any> | undefined)?.behavior,
+      (step.metadata as Record<string, unknown> | undefined)?.behavior,
     );
     const retryConfig = this.asRecord(behavior?.retry);
     if (!retryConfig) {
@@ -938,7 +936,7 @@ export class OrchestrationStepExecutorService {
     context: StepFailureContext,
   ): Promise<void> {
     const metadata = this.mergeStepMetadata(
-      failedStep.metadata as Record<string, any> | undefined,
+      failedStep.metadata as Record<string, unknown> | undefined,
       {},
     );
 
@@ -1009,7 +1007,7 @@ export class OrchestrationStepExecutorService {
     required?: boolean;
   } | null {
     const checkpoint =
-      (step.metadata?.checkpoint as Record<string, any> | null) ?? null;
+      (step.metadata?.checkpoint as Record<string, unknown> | null) ?? null;
     if (!checkpoint || typeof checkpoint !== 'object') {
       return null;
     }
@@ -1095,7 +1093,7 @@ export class OrchestrationStepExecutorService {
     const fromRun = run.created_by ?? null;
     const requestMetadata = (run.metadata?.requestMetadata ?? {}) as Record<
       string,
-      any
+      unknown
     >;
     const fallback: string | null =
       (typeof requestMetadata.userId === 'string' ? requestMetadata.userId : null) ??
@@ -1168,7 +1166,7 @@ export class OrchestrationStepExecutorService {
   private resolveStepType(
     step: OrchestrationStepRecord,
   ): 'agent' | 'orchestration' {
-    const metadata = (step.metadata ?? {}) as Record<string, any>;
+    const metadata = (step.metadata ?? {}) as Record<string, unknown>;
     const rawType =
       typeof metadata.type === 'string'
         ? metadata.type
@@ -1191,8 +1189,8 @@ export class OrchestrationStepExecutorService {
     const candidates = [
       config?.owner,
       step.agent_slug,
-      (run.metadata?.agent as Record<string, any> | undefined)?.slug,
-      (run.metadata as Record<string, any> | undefined)?.agentSlug,
+      (run.metadata?.agent as Record<string, unknown> | undefined)?.slug,
+      (run.metadata as Record<string, unknown> | undefined)?.agentSlug,
     ];
 
     for (const candidate of candidates) {

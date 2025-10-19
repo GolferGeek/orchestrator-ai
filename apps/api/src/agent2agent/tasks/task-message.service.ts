@@ -87,7 +87,7 @@ export class TaskMessageService {
     const errorRaw: unknown = response.error;
     const result = dataRaw as TaskMessageDbRecord | null;
     const error = errorRaw as { message?: string } | null;
-    const data = result as TaskMessageDbRecord | null;
+    const data = result;
 
     if (error || !data) {
       throw new Error(`Failed to create task message: ${error?.message || 'No data returned'}`);

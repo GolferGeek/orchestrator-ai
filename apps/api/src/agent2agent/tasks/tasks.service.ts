@@ -168,7 +168,7 @@ export class TasksService {
         }
 
         // Success - continue with task setup
-        const createdTask = result as TaskRow | null;
+        const createdTask = result;
         if (!createdTask) {
           throw new Error('No data returned from task creation');
         }
@@ -223,7 +223,7 @@ export class TasksService {
     const errorRaw2: unknown = response2.error;
     const taskData = dataRaw2 as TaskRow | null;
     const error = errorRaw2 as { code?: string; message?: string } | null;
-    const data = taskData as TaskRow | null;
+    const data = taskData;
 
     if (error && error.code !== 'PGRST116') {
       throw new Error(`Failed to fetch task: ${error.message || 'Unknown error'}`);
@@ -361,7 +361,7 @@ export class TasksService {
       throw new Error(`Failed to update task: ${error.message}`);
     }
 
-    const updatedTask = result as TaskRow | null;
+    const updatedTask = result;
     if (!updatedTask) {
       throw new Error('No data returned from task update');
     }

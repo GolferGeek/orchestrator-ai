@@ -404,7 +404,9 @@ describe('OrchestrationStepExecutorService', () => {
         parameters: { month: '2024-10', year: 2024 },
       };
 
-      const resolvedInput = (service as any).resolveStepInput(mockStep, run);
+      const resolvedInput = (
+        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+      ).resolveStepInput(mockStep, run);
 
       expect(resolvedInput).toEqual({
         userMessage: 'Fetch KPI data for {{ parameters.month }}',
@@ -428,7 +430,9 @@ describe('OrchestrationStepExecutorService', () => {
         },
       };
 
-      const resolvedInput = (service as any).resolveStepInput(step, run);
+      const resolvedInput = (
+        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+      ).resolveStepInput(step, run);
 
       expect(resolvedInput.userMessage).toContain('Summarize:');
     });
@@ -444,7 +448,9 @@ describe('OrchestrationStepExecutorService', () => {
         input: { userMessage: 'Value: {{ parameters.missing }}' },
       };
 
-      const resolvedInput = (service as any).resolveStepInput(step, run);
+      const resolvedInput = (
+        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+      ).resolveStepInput(step, run);
 
       expect(resolvedInput.userMessage).toBe('Value: ');
     });
@@ -462,7 +468,9 @@ describe('OrchestrationStepExecutorService', () => {
         input: { data: '{{ parameters.config }}' },
       };
 
-      const resolvedInput = (service as any).resolveStepInput(step, run);
+      const resolvedInput = (
+        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+      ).resolveStepInput(step, run);
 
       expect(resolvedInput.data).toEqual({ nested: { value: 42 } });
     });
