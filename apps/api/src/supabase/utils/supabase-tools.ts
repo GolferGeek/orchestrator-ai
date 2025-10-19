@@ -304,7 +304,7 @@ export async function initializeForAgent(config?: SupabaseToolsConfig) {
     config?.agentName?.includes('Metrics');
 
   if (isKpiRequest) {
-    await initializeForCompany();
+    initializeForCompany();
   } else {
     await initializeForOrchestrator();
   }
@@ -335,7 +335,7 @@ export async function executeOrchestratorSQL(query: string): Promise<unknown> {
  * Execute SQL query on Company database
  */
 export async function executeCompanySQL(query: string): Promise<unknown> {
-  await initializeForCompany();
+  initializeForCompany();
   const client = getCompanyClient();
 
   try {
