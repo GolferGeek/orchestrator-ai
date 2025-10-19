@@ -768,9 +768,9 @@ export class OrchestrationStepExecutorService {
       hits: typeof cacheInfo.hits === 'number' ? cacheInfo.hits + 1 : 1,
       lastHitAt: timestamp,
       lastHitRunId: runId,
-      storedByRunId: cacheInfo.storedByRunId ?? sourceRunId ?? null,
-      storedStepId: cacheInfo.storedStepId ?? sourceStepId ?? null,
-      storedAt: cacheInfo.storedAt ?? timestamp,
+      storedByRunId: (cacheInfo.storedByRunId as string | null | undefined) ?? sourceRunId ?? null,
+      storedStepId: (cacheInfo.storedStepId as string | null | undefined) ?? sourceStepId ?? null,
+      storedAt: (cacheInfo.storedAt as string | undefined) ?? timestamp,
     };
 
     clone.runtime = runtime;

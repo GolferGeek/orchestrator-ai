@@ -1142,27 +1142,28 @@ function serializePlan(
     record.updatedAt ?? record.updated_at ?? createdAt,
   );
 
-  const agentName =
+  const agentNameRaw: unknown =
     record.agentName ??
     record.agent_name ??
     definition.displayName ??
     definition.slug;
 
-  const userId = record.userId ?? record.user_id ?? fallbackUserId;
-  const namespace = record.namespace ?? record.agent_namespace ?? 'default';
+  const userIdRaw: unknown = record.userId ?? record.user_id ?? fallbackUserId;
+  const namespaceRaw: unknown = record.namespace ?? record.agent_namespace ?? 'default';
+
+  const currentVersionIdRaw: unknown =
+      record.currentVersionId ??
+      record.current_version_id ??
+      record.currentVersion?.id;
 
   return {
     id: record.id,
     conversationId: record.conversationId ?? record.conversation_id,
-    userId,
-    agentName,
-    namespace,
+    userId: String(userIdRaw),
+    agentName: String(agentNameRaw),
+    namespace: String(namespaceRaw),
     title: record.title ?? record.name ?? 'Plan',
-    currentVersionId:
-      record.currentVersionId ??
-      record.current_version_id ??
-      record.currentVersion?.id ??
-      '',
+    currentVersionId: typeof currentVersionIdRaw === 'string' ? currentVersionIdRaw : '',
     createdAt,
     updatedAt,
   };
