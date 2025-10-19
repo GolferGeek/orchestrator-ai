@@ -25,7 +25,7 @@ export interface SupabaseToolsConfig {
 // Result interface
 export interface SQLExecutionResult {
   sql: string;
-  result?: any[];
+  result?: Array<Record<string, unknown>>;
   error?: string;
   metadata: {
     executionTime: number;

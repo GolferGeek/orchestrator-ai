@@ -199,7 +199,7 @@ export class GoogleLLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiMetadata ?? undefined,
+          piiMetadata: (piiMetadata ?? undefined) as unknown as Record<string, unknown> | undefined,
           startTime,
           endTime,
         },

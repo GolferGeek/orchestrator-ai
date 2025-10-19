@@ -40,7 +40,7 @@ interface WorkflowStatusUpdate {
   message?: string;
   node?: string;
   stage?: string;
-  results?: any;
+  results?: Record<string, unknown>;
 
   // Optional sequence tracking (from n8n)
   sequence?: number;
@@ -55,7 +55,7 @@ interface WorkflowStatusUpdate {
   data?: {
     sequence?: number;
     totalSteps?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -66,7 +66,7 @@ interface MarketingResults {
   webPost?: string;
   seoContent?: string;
   socialMedia?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 @Controller('webhooks')
