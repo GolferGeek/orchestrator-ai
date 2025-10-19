@@ -257,7 +257,7 @@ export class RunMetadataService {
       const outputCost = needsCost ? estimated.outputCost : undefined;
       const totalCost = needsCost ? estimated.totalCost : params.totalCost;
 
-      const insertData: any = {
+      const insertData: Record<string, unknown> = {
         run_id: runId,
         user_id: params.userId || null,
         caller_type: params.callerType || 'llm_service',
@@ -719,7 +719,7 @@ export class RunMetadataService {
     endDate?: string;
     limit?: number;
     route?: 'local' | 'remote';
-  }): Promise<any[]> {
+  }): Promise<LLMUsageDbRecord[]> {
     const client = this.supabaseService.getServiceClient();
 
     let query = client
@@ -754,7 +754,7 @@ export class RunMetadataService {
     endDate?: string;
     callerType?: string;
     route?: 'local' | 'remote';
-  }): Promise<any[]> {
+  }): Promise<Record<string, unknown>[]> {
     const client = this.supabaseService.getServiceClient();
 
     let query = client

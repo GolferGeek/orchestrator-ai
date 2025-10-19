@@ -319,7 +319,7 @@ export class SecretRedactionService {
       );
     }
 
-    const redactedObj: any = {};
+    const redactedObj: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       // Check if the key itself suggests sensitive data
       const sensitiveKeys = [

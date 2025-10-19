@@ -405,7 +405,7 @@ export class UsageService {
   async exportUsageData(
     userId: string,
     options: ExportOptions,
-  ): Promise<any[] | string> {
+  ): Promise<Record<string, unknown>[] | string> {
     const stats = await this.getUserStats(userId, {
       startDate: options.startDate,
       endDate: options.endDate,

@@ -408,7 +408,7 @@ export class UsageController {
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
     @Query('include_details') includeDetails?: boolean,
-  ): Promise<any[] | string> {
+  ): Promise<Record<string, unknown>[] | string> {
     return this.usageService.exportUsageData(user.userId, {
       format,
       startDate,

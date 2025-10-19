@@ -5,6 +5,7 @@ import {
   MCPToolDefinition,
   MCPToolRequest,
   MCPToolResponse,
+  IMCPToolHandler,
 } from './interfaces/mcp.interface';
 
 // Service implementations for different namespaces
@@ -24,7 +25,7 @@ export class MCPService {
   private readonly logger = new Logger(MCPService.name);
 
   // Tool namespace handlers
-  private readonly toolHandlers: Map<string, any> = new Map();
+  private readonly toolHandlers: Map<string, IMCPToolHandler> = new Map();
 
   constructor(
     private readonly configService: ConfigService,
@@ -39,7 +40,7 @@ export class MCPService {
    * Initialize service handlers for each namespace
    */
   private initializeToolHandlers(): void {
-    this.toolHandlers.set('supabase', this.supabaseService);
+    this.toolHandlers.set('supabase', this.supabaseService as unknown as IMCPToolHandler);
     this.toolHandlers.set('slack', this.slackTools);
     this.toolHandlers.set('notion', this.notionTools);
 

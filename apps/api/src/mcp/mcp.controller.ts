@@ -294,7 +294,7 @@ export class MCPController {
    * Health check endpoint
    */
   @Post('health')
-  async healthCheck(): Promise<any> {
+  async healthCheck(): Promise<unknown> {
     try {
       const pingResult = await this.mcpService.ping();
 
@@ -322,7 +322,7 @@ export class MCPController {
    * List tools endpoint (for easy debugging)
    */
   @Post('debug/tools')
-  async debugListTools(): Promise<any> {
+  async debugListTools(): Promise<unknown> {
     try {
       const toolsResult = await this.mcpService.listTools();
 

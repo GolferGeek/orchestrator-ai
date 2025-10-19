@@ -197,7 +197,7 @@ export class ProvidersService {
       );
     }
 
-    return data ? mapLLMProviderFromDb(data) : null;
+    return data ? mapLLMProviderFromDb(data as Record<string, unknown>) : null;
   }
 
   async findModelsByProvider(
@@ -273,7 +273,7 @@ export class ProvidersService {
       );
     }
 
-    return mapLLMProviderFromDb(data);
+    return mapLLMProviderFromDb(data as Record<string, unknown>);
   }
 
   async update(
@@ -331,7 +331,7 @@ export class ProvidersService {
       );
     }
 
-    return mapLLMProviderFromDb(data);
+    return mapLLMProviderFromDb(data as Record<string, unknown>);
   }
 
   async delete(id: string): Promise<boolean> {
@@ -392,6 +392,6 @@ export class ProvidersService {
       );
     }
 
-    return data ? mapLLMProviderFromDb(data) : null;
+    return data ? mapLLMProviderFromDb(data as Record<string, unknown>) : null;
   }
 }

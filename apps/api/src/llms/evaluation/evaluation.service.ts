@@ -329,7 +329,7 @@ export class EvaluationService {
   async exportUserFeedback(
     userId: string,
     options: FeedbackExportOptions,
-  ): Promise<any[] | string> {
+  ): Promise<Record<string, unknown>[] | string> {
     const client = this.supabaseService.getAnonClient();
 
     const selectFields = [
@@ -379,7 +379,7 @@ export class EvaluationService {
       return this.convertFeedbackToCSV(feedback || []);
     }
 
-    return feedback || [];
+    return (feedback as unknown as Record<string, unknown>[] | null) || [];
   }
 
   async compareModels(
@@ -1157,7 +1157,7 @@ export class EvaluationService {
     userId: string,
     conversationId: string,
     filters: EvaluationFilters = {},
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     const client = this.supabaseService.getAnonClient();
 
     const query = client
@@ -1287,7 +1287,9 @@ export class EvaluationService {
 
       if (providers) {
         providers.forEach((provider) => {
-          const mappedProvider = mapLLMProviderFromDb(provider);
+          const mappedProvider = mapLLMProviderFromDb(
+            provider as Record<string, unknown>,
+          );
           if (provider.id) {
             providersMap.set(provider.id as string, mappedProvider);
           }
@@ -1303,7 +1305,9 @@ export class EvaluationService {
 
       if (models) {
         models.forEach((model) => {
-          const mappedModel = mapLLMModelFromDb(model);
+          const mappedModel = mapLLMModelFromDb(
+            model as Record<string, unknown>,
+          );
           if (model.id) {
             modelsMap.set(model.id as string, mappedModel);
           }
@@ -1893,21 +1897,25 @@ export class EvaluationService {
     });
 
     // Top performing agents
-    const agentPerformance = this.calculateAgentPerformance(evaluatedTasks);
+    const agentPerformance = this.calculateAgentPerformance(
+      evaluatedTasks as TaskRecord[],
+    );
     const topPerformingAgents = agentPerformance
       .sort((a, b) => b.averageRating - a.averageRating)
       .slice(0, 10);
 
     // Top constraints (from CIDAFM data)
-    const constraintEffectiveness =
-      this.calculateConstraintEffectiveness(evaluatedTasks);
+    const constraintEffectiveness = this.calculateConstraintEffectiveness(
+      evaluatedTasks as TaskRecord[],
+    );
     const topConstraints = constraintEffectiveness
       .sort((a, b) => b.effectivenessScore - a.effectivenessScore)
       .slice(0, 10);
 
     // Workflow failure points
-    const workflowFailurePoints =
-      this.calculateWorkflowFailurePoints(evaluatedTasks);
+    const workflowFailurePoints = this.calculateWorkflowFailurePoints(
+      evaluatedTasks as TaskRecord[],
+    );
 
     return {
       totalEvaluations,
@@ -1974,12 +1982,15 @@ export class EvaluationService {
       (task) => task.response_metadata?.workflow_steps_completed,
     );
 
-    const workflowPerformance =
-      this.calculateWorkflowStepPerformance(workflowTasks);
-    const commonFailurePatterns =
-      this.identifyWorkflowFailurePatterns(workflowTasks);
-    const workflowEfficiencyTrends =
-      this.calculateWorkflowEfficiencyTrends(workflowTasks);
+    const workflowPerformance = this.calculateWorkflowStepPerformance(
+      workflowTasks as TaskRecord[],
+    );
+    const commonFailurePatterns = this.identifyWorkflowFailurePatterns(
+      workflowTasks as TaskRecord[],
+    );
+    const workflowEfficiencyTrends = this.calculateWorkflowEfficiencyTrends(
+      workflowTasks as TaskRecord[],
+    );
 
     return {
       workflowPerformance,
@@ -2072,11 +2083,15 @@ export class EvaluationService {
       return true;
     });
 
-    const constraintUsage = this.calculateConstraintUsageStats(evaluatedTasks);
-    const constraintCombinations =
-      this.analyzeConstraintCombinations(evaluatedTasks);
-    const constraintImpactOnPerformance =
-      this.calculateConstraintPerformanceImpact(evaluatedTasks);
+    const constraintUsage = this.calculateConstraintUsageStats(
+      evaluatedTasks as TaskRecord[],
+    );
+    const constraintCombinations = this.analyzeConstraintCombinations(
+      evaluatedTasks as TaskRecord[],
+    );
+    const constraintImpactOnPerformance = this.calculateConstraintPerformanceImpact(
+      evaluatedTasks as TaskRecord[],
+    );
 
     return {
       constraintUsage,
@@ -2096,7 +2111,7 @@ export class EvaluationService {
       includeConstraintDetails?: boolean;
       anonymizeUsers?: boolean;
     },
-  ): Promise<any[] | string> {
+  ): Promise<Record<string, unknown>[] | string> {
     // Set a higher limit for export
     const exportFilters = { ...filters, limit: 10000, page: 1 };
 

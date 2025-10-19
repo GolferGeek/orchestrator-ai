@@ -37,7 +37,7 @@ export class MCPClientService {
     schema_tables?: string[];
     providerName?: string;
     modelName?: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     try {
       const response = await this.mcpService.callTool({
         name: 'supabase/generate-sql',
@@ -128,7 +128,7 @@ export class MCPClientService {
   async getSchema(options?: {
     table_name?: string;
     refresh_cache?: boolean;
-  }): Promise<any> {
+  }): Promise<unknown> {
     try {
       const response = await this.mcpService.callTool({
         name: 'supabase/get-schema',
@@ -175,7 +175,7 @@ export class MCPClientService {
     offset?: number;
     order_by?: { column: string; ascending?: boolean };
     format?: 'json' | 'table' | 'csv';
-  }): Promise<any> {
+  }): Promise<unknown> {
     try {
       const response = await this.mcpService.callTool({
         name: 'supabase/read-data',
@@ -225,7 +225,7 @@ export class MCPClientService {
     include_explanation?: boolean;
     max_rows?: number;
     schema_context?: string[];
-  }): Promise<any> {
+  }): Promise<unknown> {
     try {
       const response = await this.mcpService.callTool({
         name: 'query-and-format',

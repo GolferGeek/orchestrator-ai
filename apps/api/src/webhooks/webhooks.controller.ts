@@ -74,7 +74,7 @@ export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 
   // Store status history per task
-  private taskStatusHistory: Map<string, any[]> = new Map();
+  private taskStatusHistory: Map<string, Record<string, unknown>[]> = new Map();
 
   constructor(
     private readonly eventEmitter: EventEmitter2,

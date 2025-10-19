@@ -542,7 +542,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     try {
       status = await Promise.race([
         this.localModelStatusService.getOllamaStatus(),
-        new Promise<any>((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Ollama status timeout')), 5000),
         ),
       ]);

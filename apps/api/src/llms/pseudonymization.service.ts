@@ -700,12 +700,12 @@ export class PseudonymizationService {
       if (mappings && mappings.length > 0) {
         // For each mapping, check if the pseudonym appears in text and reverse it
         for (const mapping of mappings) {
-          if (reversedText.includes(mapping.pseudonym)) {
+          if (reversedText.includes(mapping.pseudonym as string)) {
             // We cannot reverse from hash alone - this method would need
             // access to the sensitive_data_vault for reversible pseudonyms
             // For now, we'll keep the pseudonym but mark it as [PSEUDONYM]
             const regex = new RegExp(
-              `\\b${this.escapeRegExp(mapping.pseudonym)}\\b`,
+              `\\b${this.escapeRegExp(mapping.pseudonym as string)}\\b`,
               'g',
             );
             const matches = reversedText.match(regex);

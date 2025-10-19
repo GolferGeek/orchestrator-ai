@@ -296,7 +296,7 @@ export class ModelsService {
       );
     }
 
-    return mapLLMModelFromDb(data);
+    return mapLLMModelFromDb(data as Record<string, unknown>);
   }
 
   async update(
@@ -349,7 +349,7 @@ export class ModelsService {
       );
     }
 
-    return mapLLMModelFromDb(data);
+    return mapLLMModelFromDb(data as Record<string, unknown>);
   }
 
   async delete(id: string): Promise<boolean> {

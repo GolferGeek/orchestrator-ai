@@ -89,7 +89,7 @@ async function discoverFullSchema(): Promise<void> {
   }
 
   // Group by table
-  const tableMap = new Map<string, any[]>();
+  const tableMap = new Map<string, unknown[]>();
   const tableData = (tableInfoData || []) as unknown[];
   tableData.forEach((row: unknown) => {
     const r = row as { table_name: string };

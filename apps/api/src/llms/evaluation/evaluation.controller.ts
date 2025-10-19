@@ -374,7 +374,7 @@ export class EvaluationController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('includeContent') includeContent?: boolean,
-  ): Promise<any[] | string> {
+  ): Promise<Record<string, unknown>[] | string> {
     return this.evaluationService.exportUserFeedback(user.userId, {
       format,
       startDate,
@@ -521,7 +521,7 @@ export class EvaluationController {
     @CurrentUser() user: { userId: string },
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
-  ): Promise<any> {
+  ): Promise<unknown> {
     const result = await this.evaluationService.evaluateTask(
       user.userId,
       taskId,
@@ -560,7 +560,7 @@ export class EvaluationController {
   async getTaskEvaluation(
     @CurrentUser() user: { userId: string },
     @Param('taskId') taskId: string,
-  ): Promise<any> {
+  ): Promise<unknown> {
     const task = await this.evaluationService.getTaskWithEvaluation(
       user.userId,
       taskId,
@@ -603,7 +603,7 @@ export class EvaluationController {
     @CurrentUser() user: { userId: string },
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
-  ): Promise<any> {
+  ): Promise<unknown> {
     const result = await this.evaluationService.updateTaskEvaluation(
       user.userId,
       taskId,
@@ -659,7 +659,7 @@ export class EvaluationController {
     @Param('conversationId') conversationId: string,
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     return this.evaluationService.getConversationTaskEvaluations(
       user.userId,
       conversationId,
@@ -800,7 +800,7 @@ export class EvaluationController {
     @Query('agentName') agentName?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.evaluationService.getWorkflowAnalytics({
       // stepName, // TODO: Add stepName to AdminEvaluationFiltersDto
       agentName,
@@ -877,7 +877,7 @@ export class EvaluationController {
     @Query('minEffectiveness') minEffectiveness?: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<any> {
+  ): Promise<unknown> {
     return this.evaluationService.getConstraintAnalytics({
       // constraintType,
       // minEffectiveness, // TODO: Add these filters to AdminEvaluationFiltersDto
@@ -948,7 +948,7 @@ export class EvaluationController {
     @Query('includeContent') includeContent?: boolean,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<any[] | string> {
+  ): Promise<Record<string, unknown>[] | string> {
     return this.evaluationService.exportEnhancedEvaluations(
       {
         startDate,
@@ -1082,7 +1082,7 @@ export class EvaluationController {
   async getAgentPerformance(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     // TODO: Implement getAgentPerformanceComparison method
     const analytics = await this.evaluationService.getEvaluationAnalytics({
       startDate,
@@ -1154,7 +1154,7 @@ export class EvaluationController {
   async getEvaluationTrends(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<any> {
+  ): Promise<unknown> {
     // TODO: Implement getEvaluationTrends method
     return this.evaluationService.getEvaluationAnalytics({
       startDate,

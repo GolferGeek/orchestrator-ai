@@ -254,7 +254,7 @@ export class SystemController {
       }
 
       // Determine payload
-      let payload: any = dto.config;
+      let payload: Record<string, unknown> | undefined = dto.config;
       if (!payload && dto.config_json) {
         payload = JSON.parse(dto.config_json);
       }

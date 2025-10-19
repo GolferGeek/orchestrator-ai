@@ -82,7 +82,7 @@ export class PIIService {
    */
   async checkPolicy(
     prompt: string,
-    options: any = {},
+    options: Record<string, unknown> = {},
   ): Promise<{
     metadata: PIIProcessingMetadata;
     originalPrompt: string;

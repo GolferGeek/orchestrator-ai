@@ -8,10 +8,10 @@ import { initializeLangChain } from './langchain-client';
 import { MCPClientService } from '../../mcp/clients/mcp-client.service';
 
 // Global state for Supabase tools
-let orchestratorClient: any = null;
+let orchestratorClient: SupabaseClient | null = null;
 let companyClient: SupabaseClient | null = null;
-let orchestratorSqlDatabase: any = null;
-let companySqlDatabase: any = null;
+let orchestratorSqlDatabase: Record<string, unknown> | null = null;
+let companySqlDatabase: Record<string, unknown> | null = null;
 let mcpClientService: MCPClientService | null = null;
 let initialized = false;
 
@@ -94,7 +94,7 @@ function getCompanyClient(): SupabaseClient {
 /**
  * Create SQL Database interface for LangChain - Orchestrator Database
  */
-function createOrchestratorSqlDatabase(): any {
+function createOrchestratorSqlDatabase(): Record<string, unknown> {
   // SqlDatabase type not available
   if (!orchestratorSqlDatabase) {
     const client = getOrchestratorClient();
@@ -136,7 +136,7 @@ function createOrchestratorSqlDatabase(): any {
 /**
  * Create SQL Database interface for LangChain - Company Database
  */
-function createCompanySqlDatabase(): any {
+function createCompanySqlDatabase(): Record<string, unknown> {
   // SqlDatabase type not available
   if (!companySqlDatabase) {
     const client = getCompanyClient();
@@ -309,7 +309,7 @@ export async function initializeForAgent(config?: SupabaseToolsConfig) {
 /**
  * Execute SQL query on Orchestrator database
  */
-export async function executeOrchestratorSQL(query: string): Promise<any> {
+export async function executeOrchestratorSQL(query: string): Promise<unknown> {
   await initializeForOrchestrator();
   const client = getOrchestratorClient();
 
@@ -330,7 +330,7 @@ export async function executeOrchestratorSQL(query: string): Promise<any> {
 /**
  * Execute SQL query on Company database
  */
-export async function executeCompanySQL(query: string): Promise<any> {
+export async function executeCompanySQL(query: string): Promise<unknown> {
   await initializeForCompany();
   const client = getCompanyClient();
 
@@ -351,7 +351,7 @@ export async function executeCompanySQL(query: string): Promise<any> {
 /**
  * Legacy function - now routes based on query content
  */
-export async function executeSQL(query: string): Promise<any> {
+export async function executeSQL(query: string): Promise<unknown> {
   // Auto-detect if this is a company/KPI query
   const lowerQuery = query.toLowerCase();
   const isCompanyQuery =
@@ -403,22 +403,23 @@ export async function generateAndExecuteCompanySQL(
       max_rows: options.maxRows,
     });
 
-    if (sqlResponse.isError) {
+    const response = sqlResponse as Record<string, unknown>;
+    if (response.isError) {
       throw new Error(
-        (sqlResponse.content[0]?.text as string | undefined) ||
+        ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string | undefined) ||
           'SQL generation failed',
       );
     }
 
     const generatedSQL = JSON.parse(
-      sqlResponse.content[0].text as string,
+      ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string) || '{}',
     ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;
 
     if (options.executeQuery !== false && generatedSQL) {
       try {
-        result = await executeCompanySQL(generatedSQL);
+        result = (await executeCompanySQL(generatedSQL)) as unknown[];
         if (options.maxRows && result.length > options.maxRows) {
           result = result.slice(0, options.maxRows);
         }
@@ -494,22 +495,23 @@ export async function generateAndExecuteOrchestratorSQL(
       max_rows: options.maxRows,
     });
 
-    if (sqlResponse.isError) {
+    const response = sqlResponse as Record<string, unknown>;
+    if (response.isError) {
       throw new Error(
-        (sqlResponse.content[0]?.text as string | undefined) ||
+        ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string | undefined) ||
           'SQL generation failed',
       );
     }
 
     const generatedSQL = JSON.parse(
-      sqlResponse.content[0].text as string,
+      ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string) || '{}',
     ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;
 
     if (options.executeQuery !== false && generatedSQL) {
       try {
-        result = await executeOrchestratorSQL(generatedSQL);
+        result = (await executeOrchestratorSQL(generatedSQL)) as unknown[];
         if (options.maxRows && result.length > options.maxRows) {
           result = result.slice(0, options.maxRows);
         }

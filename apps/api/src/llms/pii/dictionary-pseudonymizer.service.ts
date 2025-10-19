@@ -113,7 +113,11 @@ export class DictionaryPseudonymizerService {
       const merged = ([] as unknown[]).concat(...resultSets);
       const byOriginal: Record<
         string,
-        { pseudonym: string; src: 'agent' | 'org' | 'global'; row: any }
+        {
+          pseudonym: string;
+          src: 'agent' | 'org' | 'global';
+          row: Record<string, unknown>;
+        }
       > = {};
       for (const row of merged) {
         const r = row as Record<string, unknown>;
@@ -126,7 +130,7 @@ export class DictionaryPseudonymizerService {
         if (!key.trim()) continue;
         const existing = byOriginal[key];
         if (!existing) {
-          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row };
+          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row: row as Record<string, unknown> };
           continue;
         }
         // Only override when new source has higher priority
@@ -138,7 +142,7 @@ export class DictionaryPseudonymizerService {
               `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${r.pseudonym}'`,
             );
           }
-          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row };
+          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row: row as Record<string, unknown> };
         }
       }
 

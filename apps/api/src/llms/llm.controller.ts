@@ -144,10 +144,10 @@ export class LLMController {
 
   @Get('local-models/status')
   @HttpCode(HttpStatus.OK)
-  async getLocalModelStatus(): Promise<any> {
+  async getLocalModelStatus(): Promise<Record<string, unknown>> {
     try {
       const status = await this.localModelStatusService.getOllamaStatus();
-      return status;
+      return status as unknown as Record<string, unknown>;
     } catch (error) {
       this.logger.error('Failed to get local model status', error);
       throw error;

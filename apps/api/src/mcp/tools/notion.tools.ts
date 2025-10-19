@@ -318,7 +318,7 @@ export class NotionMCPTools implements IMCPToolHandler {
           : {};
       const contentArray = Array.isArray(content) ? content : [];
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         parent,
         properties: {
           title: {
@@ -389,7 +389,7 @@ export class NotionMCPTools implements IMCPToolHandler {
     const { database_id, filter, sorts, start_cursor, page_size = 100 } = args;
 
     try {
-      const payload: any = { page_size };
+      const payload: Record<string, unknown> = { page_size };
 
       if (filter) {
         payload.filter = filter;
@@ -459,7 +459,7 @@ export class NotionMCPTools implements IMCPToolHandler {
     const { query, filter, sort, start_cursor, page_size = 100 } = args;
 
     try {
-      const payload: any = { page_size };
+      const payload: Record<string, unknown> = { page_size };
 
       if (query) {
         payload.query = query;
@@ -597,7 +597,7 @@ export class NotionMCPTools implements IMCPToolHandler {
     const { page_id, properties, archived } = args;
 
     try {
-      const payload: any = {};
+      const payload: Record<string, unknown> = {};
 
       if (properties) {
         payload.properties = properties;
@@ -713,7 +713,7 @@ export class NotionMCPTools implements IMCPToolHandler {
     const { start_cursor, page_size = 100 } = args;
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         filter: {
           value: 'database',
           property: 'object',
