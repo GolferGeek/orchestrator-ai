@@ -422,9 +422,11 @@ export async function generateAndExecuteCompanySQL(
       );
     }
 
-    const generatedSQL = JSON.parse(
-      ((response.content as Record<string, unknown>[] | undefined)?.[0]
-        ?.text as string) || '{}',
+    const generatedSQL = (
+      JSON.parse(
+        ((response.content as Record<string, unknown>[] | undefined)?.[0]
+          ?.text as string) || '{}',
+      ) as Record<string, unknown>
     ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;
@@ -515,9 +517,11 @@ export async function generateAndExecuteOrchestratorSQL(
       );
     }
 
-    const generatedSQL = JSON.parse(
-      ((response.content as Record<string, unknown>[] | undefined)?.[0]
-        ?.text as string) || '{}',
+    const generatedSQL = (
+      JSON.parse(
+        ((response.content as Record<string, unknown>[] | undefined)?.[0]
+          ?.text as string) || '{}',
+      ) as Record<string, unknown>
     ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;

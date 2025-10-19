@@ -213,7 +213,8 @@ export class OllamaLLMService extends BaseLLMService {
         this.httpService.get(`${this.ollamaBaseUrl}/api/tags`),
       );
 
-      const availableModels = modelsResponse.data.models || [];
+      const availableModels =
+        (modelsResponse.data as Record<string, unknown>).models || [];
       const modelExists = (
         availableModels as Array<Record<string, unknown>>
       ).some((m: Record<string, unknown>) => m.name === model);
@@ -352,7 +353,7 @@ export class OllamaLLMService extends BaseLLMService {
       const response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/tags`),
       );
-      const models = response.data.models as
+      const models = (response.data as Record<string, unknown>).models as
         | Array<{ name: string }>
         | undefined;
       return models?.map((model) => model.name) || [];
@@ -378,12 +379,14 @@ export class OllamaLLMService extends BaseLLMService {
         firstValueFrom(this.httpService.get(`${this.ollamaBaseUrl}/api/tags`)),
       ]);
 
-      const models = modelsResponse.data.models as
+      const models = (modelsResponse.data as Record<string, unknown>).models as
         | Array<{ name: string }>
         | undefined;
       return {
         healthy: true,
-        version: versionResponse.data.version as string | undefined,
+        version: (versionResponse.data as Record<string, unknown>).version as
+          | string
+          | undefined,
         models: models?.map((m) => m.name) || [],
       };
     } catch {

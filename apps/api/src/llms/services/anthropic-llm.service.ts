@@ -99,12 +99,15 @@ export class AnthropicLLMService extends BaseLLMService {
       content.includes('"thinking"')
     ) {
       try {
-        const parsed = JSON.parse(content);
+        const parsed = JSON.parse(content) as Record<string, unknown>;
         if (parsed.thinking) {
-          thinking = parsed.thinking;
+          thinking = parsed.thinking as string;
           // Extract the actual response content
           content =
-            parsed.response || parsed.content || parsed.answer || content;
+            (parsed.response as string | undefined) ||
+            (parsed.content as string | undefined) ||
+            (parsed.answer as string | undefined) ||
+            content;
         }
       } catch {
         // Not valid JSON or parsing failed, continue with raw content
