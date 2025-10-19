@@ -301,7 +301,7 @@ export class LLMService {
 
         // Use the new unified LLM service factory approach
         const config: LLMServiceConfig = {
-          provider: options.providerName as string,
+          provider: options.providerName,
           model: options.modelName,
           temperature: options.temperature,
           maxTokens: options.maxTokens,
@@ -487,8 +487,8 @@ export class LLMService {
           'I apologize, but I was unable to generate a response.';
 
         // Step 2: Reverse pseudonyms in the response
-        if (sanitizationContext != null && sanitizationContext!.mappings && sanitizationContext!.mappings!.length > 0) {
-          const mappings = sanitizationContext!.mappings!;
+        if (sanitizationContext !== null && sanitizationContext!.mappings && sanitizationContext!.mappings.length > 0) {
+          const mappings = sanitizationContext!.mappings;
           const reversalResult =
             await this.dictionaryPseudonymizerService.reversePseudonyms(
               content,
@@ -514,13 +514,12 @@ export class LLMService {
           const endTime = Date.now();
 
           let pseudonymizationMetadata;
-          if (sanitizationContext != null && sanitizationContext!.mappings && sanitizationContext!.mappings!.length > 0) {
-            const ctx = sanitizationContext!;
+          if (sanitizationContext !== null && sanitizationContext!.mappings && sanitizationContext!.mappings.length > 0) {
             pseudonymizationMetadata = {
               pseudonymizationApplied: true,
-              pseudonymCount: ctx.mappings!.length,
-              processingTimeMs: ctx.processingTimeMs,
-              mappings: ctx.mappings!.map((m) => ({
+              pseudonymCount: sanitizationContext!.mappings.length,
+              processingTimeMs: sanitizationContext!.processingTimeMs,
+              mappings: sanitizationContext!.mappings.map((m) => ({
                 type: m.dataType,
                 originalLength: m.originalValue.length,
                 pseudonymLength: m.pseudonym.length,
@@ -686,7 +685,7 @@ export class LLMService {
                 providerName: params.provider,
               },
             );
-            enhancedPiiMetadata = piiPolicyResult.metadata as PIIProcessingMetadata;
+            enhancedPiiMetadata = piiPolicyResult.metadata;
           }
 
           if (!enhancedPiiMetadata) {
@@ -1059,7 +1058,7 @@ export class LLMService {
       pseudonymTypes:
         (piiMetadata?.pseudonymInstructions?.targetMatches?.map(
           (m: unknown) => (m as Record<string, unknown>).dataType as string,
-        ) || []) as string[],
+        ) || []),
       redactionsApplied: 0, // Redaction is separate from pseudonymization in new architecture
       redactionTypes: [],
 

@@ -23,7 +23,7 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
       (out as Record<string, unknown>)[k] = v;
     }
   }
-  return out as T;
+  return out;
 }
 
 @Module({

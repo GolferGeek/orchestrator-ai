@@ -2525,7 +2525,7 @@ export class EvaluationService {
         }
 
         if (task.evaluation?.user_rating) {
-          groups[displayName].ratings.push(task.evaluation.user_rating as number);
+          groups[displayName].ratings.push(task.evaluation.user_rating);
           groups[displayName].count++;
         }
 
@@ -2671,9 +2671,9 @@ export class EvaluationService {
   private extractAgentIdentifiers(task: TaskRecord): string[] {
     const names = new Set<string>();
 
-    const metadata = task.metadata as Record<string, unknown> | null | undefined;
-    const responseMetadata = task.response_metadata as Record<string, unknown> | null | undefined;
-    const llmMetadata = task.llm_metadata as Record<string, unknown> | null | undefined;
+    const metadata = task.metadata as Record<string, unknown> | null;
+    const responseMetadata = task.response_metadata as Record<string, unknown> | null;
+    const llmMetadata = task.llm_metadata as Record<string, unknown> | null;
 
     const candidateValues = [
       responseMetadata?.agent_name,
@@ -2929,14 +2929,14 @@ export class EvaluationService {
       const userRating = task.evaluation?.user_rating || 3;
       const impactScore = 5 - userRating + 1; // Higher impact for lower ratings
 
-      if (!failurePatterns.has(failureSequence as string)) {
-        failurePatterns.set(failureSequence as string, {
+      if (!failurePatterns.has(failureSequence)) {
+        failurePatterns.set(failureSequence, {
           count: 0,
           totalImpact: 0,
         });
       }
 
-      const pattern = failurePatterns.get(failureSequence as string)!;
+      const pattern = failurePatterns.get(failureSequence)!;
       pattern.count++;
       pattern.totalImpact += impactScore;
     });
@@ -3054,12 +3054,12 @@ export class EvaluationService {
         stats.usage++;
 
         if (task.evaluation?.user_rating) {
-          stats.ratings.push(task.evaluation.user_rating as number);
+          stats.ratings.push(task.evaluation.user_rating);
         }
 
         // Mock effectiveness score - could be enhanced with actual tracking
         const effectivenessScore = task.evaluation?.user_rating
-          ? (task.evaluation.user_rating as number) * 0.8 + Math.random() * 0.4
+          ? task.evaluation.user_rating * 0.8 + Math.random() * 0.4
           : 3;
         stats.effectivenessScores.push(effectivenessScore);
       });
@@ -3126,10 +3126,10 @@ export class EvaluationService {
       stats.usage++;
 
       if (task.evaluation?.user_rating) {
-        stats.ratings.push(task.evaluation.user_rating as number);
+        stats.ratings.push(task.evaluation.user_rating);
         // Mock effectiveness calculation
         const effectivenessScore =
-          (task.evaluation.user_rating as number) * 0.9 + Math.random() * 0.2;
+          task.evaluation.user_rating * 0.9 + Math.random() * 0.2;
         stats.effectivenessScores.push(effectivenessScore);
       }
     });

@@ -324,8 +324,8 @@ export class Agent2AgentTasksService {
         params: task.params as unknown as TaskParams,
         result: task.result,
         error: task.error,
-        createdAt: new Date(task.created_at as string),
-        updatedAt: new Date(task.updated_at as string),
+        createdAt: new Date(task.created_at),
+        updatedAt: new Date(task.updated_at),
       };
     } catch (error) {
       this.logger.error(`Failed to get A2A task ${taskId}:`, error);

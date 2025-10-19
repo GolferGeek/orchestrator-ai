@@ -141,7 +141,7 @@ export class TasksService {
 
     while (attempts < maxAttempts) {
       try {
-        const { data, error } = await this.supabaseService
+        const { data: result, error } = await this.supabaseService
           .getAnonClient()
           .from('tasks')
           .insert(finalTaskData)
@@ -163,7 +163,10 @@ export class TasksService {
         }
 
         // Success - continue with task setup
-        const createdTask = data as TaskRow;
+        const createdTask = result as TaskRow | null;
+        if (!createdTask) {
+          throw new Error('No data returned from task creation');
+        }
 
         // Legacy TaskLifecycleService archived - task tracking now handled via database
 
@@ -203,13 +206,15 @@ export class TasksService {
    * Get task by ID
    */
   async getTaskById(taskId: string, userId: string): Promise<Task | null> {
-    const { data, error } = await this.supabaseService
+    const { data: taskData, error } = await this.supabaseService
       .getAnonClient()
       .from('tasks')
       .select()
       .eq('id', taskId)
       .eq('user_id', userId)
       .single();
+
+    const data = taskData as TaskRow | null;
 
     if (error && error.code !== 'PGRST116') {
       throw new Error(`Failed to fetch task: ${error.message}`);
@@ -255,14 +260,16 @@ export class TasksService {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    const { data, error, count } = await query;
+    const { data: result, error, count } = await query;
+
+    const data = result as TaskRow[] | null;
 
     if (error) {
       throw new Error(`Failed to list tasks: ${error.message}`);
     }
 
     return {
-      tasks: data.map((item) => this.mapToTask(item)),
+      tasks: (data || []).map((item) => this.mapToTask(item)),
       total: count || 0,
     };
   }
@@ -327,7 +334,7 @@ export class TasksService {
       delete anyUpdateData.llmMetadata;
     }
 
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('tasks')
       .update(updateData)
@@ -340,7 +347,10 @@ export class TasksService {
       throw new Error(`Failed to update task: ${error.message}`);
     }
 
-    const updatedTask = data as TaskRow;
+    const updatedTask = result as TaskRow | null;
+    if (!updatedTask) {
+      throw new Error('No data returned from task update');
+    }
 
     // Sync with TaskStatusService for live tracking
     await this.taskStatusService.updateTaskStatus(taskId, userId, {
@@ -423,7 +433,7 @@ export class TasksService {
    * Get active tasks for a profile
    */
   async getActiveTasks(userId: string): Promise<Task[]> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('tasks')
       .select()
@@ -431,11 +441,13 @@ export class TasksService {
       .in('status', ['pending', 'running'])
       .order('created_at', { ascending: false });
 
+    const data = result as TaskRow[] | null;
+
     if (error) {
       throw new Error(`Failed to fetch active tasks: ${error.message}`);
     }
 
-    return data.map((item) => this.mapToTask(item));
+    return (data || []).map((item) => this.mapToTask(item));
   }
 
   /**
@@ -443,18 +455,20 @@ export class TasksService {
    */
   async getTaskMetrics(userId: string): Promise<any> {
     try {
-      const { data: tasks, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getAnonClient()
         .from('tasks')
         .select('*')
         .eq('user_id', userId);
+
+      const tasks = result as TaskRow[] | null;
 
       if (error) {
         this.logger.error('Failed to fetch tasks for metrics:', error);
         throw new Error(`Failed to fetch task metrics: ${error.message}`);
       }
 
-      const typedTasks = (tasks ?? []) as TaskRow[];
+      const typedTasks = tasks ?? [];
 
       // Calculate basic metrics
       const totalTasks = typedTasks.length;

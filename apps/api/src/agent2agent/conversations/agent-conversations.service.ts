@@ -191,7 +191,7 @@ export class AgentConversationsService {
     }
 
     // First try to find an active conversation
-    const { data: existing } = await this.supabaseService
+    const { data: result } = await this.supabaseService
       .getAnonClient()
       .from(getTableName('conversations'))
       .select()
@@ -202,10 +202,10 @@ export class AgentConversationsService {
       .order('last_active_at', { ascending: false })
       .limit(1);
 
-    if (existing && existing.length > 0) {
-      return this.mapToAgentConversation(
-        existing[0] as AgentConversationDbRecord,
-      );
+    const existing = result as AgentConversationDbRecord[] | null;
+
+    if (existing && existing.length > 0 && existing[0]) {
+      return this.mapToAgentConversation(existing[0]);
     }
 
     // Create new conversation if none exists
@@ -247,17 +247,17 @@ export class AgentConversationsService {
       .order('last_active_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    const { data, error, count } = await query;
+    const { data: result, error, count } = await query;
+
+    const data = result as AgentConversationWithStatsDbRecord[] | null;
 
     if (error) {
       throw new Error(`Failed to list conversations: ${error.message}`);
     }
 
     return {
-      conversations: data.map((item) =>
-        this.mapToAgentConversationWithStats(
-          item as AgentConversationWithStatsDbRecord,
-        ),
+      conversations: (data || []).map((item) =>
+        this.mapToAgentConversationWithStats(item),
       ),
       total: count || 0,
     };
@@ -408,7 +408,7 @@ export class AgentConversationsService {
    * Get active conversations for a user
    */
   async getActiveConversations(userId: string): Promise<AgentConversation[]> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from(getTableName('conversations'))
       .select()
@@ -416,13 +416,13 @@ export class AgentConversationsService {
       .is('ended_at', null)
       .order('last_active_at', { ascending: false });
 
+    const data = result as AgentConversationDbRecord[] | null;
+
     if (error) {
       throw new Error(`Failed to fetch active conversations: ${error.message}`);
     }
 
-    return data.map((item) =>
-      this.mapToAgentConversation(item as AgentConversationDbRecord),
-    );
+    return (data || []).map((item) => this.mapToAgentConversation(item));
   }
 
   /**
@@ -467,12 +467,17 @@ export class AgentConversationsService {
     const client = this.supabaseService.getAnonClient();
 
     // Fetch existing values
-    const { data: existing, error: fetchError } = await client
+    const { data: result, error: fetchError } = await client
       .from('conversations')
       .select('id, user_id, primary_work_product_type, primary_work_product_id')
       .eq('id', conversationId)
       .eq('user_id', userId)
       .single();
+
+    const existing = result as Pick<
+      AgentConversationDbRecord,
+      'id' | 'user_id' | 'primary_work_product_type' | 'primary_work_product_id'
+    > | null;
 
     if (fetchError || !existing) {
       throw new Error('Conversation not found or access denied');

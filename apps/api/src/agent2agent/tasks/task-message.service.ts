@@ -33,6 +33,21 @@ export interface TaskMessageQueryParams {
   offset?: number;
 }
 
+/**
+ * Database record type for task_messages table
+ */
+interface TaskMessageDbRecord {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  message_type: string;
+  progress_percentage?: number;
+  metadata: Record<string, any>;
+  created_at: string;
+  expires_at: string;
+}
+
 @Injectable()
 export class TaskMessageService {
   private readonly logger = new Logger(TaskMessageService.name);
