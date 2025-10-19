@@ -111,6 +111,7 @@ describe('ApiAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify HTTP call
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith({
         url: 'https://api.example.com/users',
         method: 'GET',
@@ -125,6 +126,7 @@ describe('ApiAgentRunnerService', () => {
       });
 
       // Verify deliverable creation
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
@@ -189,6 +191,7 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'POST',
@@ -234,6 +237,7 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           url: 'https://api.example.com/users/42',
@@ -279,6 +283,7 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           params: {

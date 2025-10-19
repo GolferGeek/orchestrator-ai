@@ -387,6 +387,7 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(executionService.markStepFailed).toHaveBeenCalledWith(
         failingStep.id,
         expect.objectContaining({
