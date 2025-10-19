@@ -278,7 +278,7 @@ export async function initializeForOrchestrator(): Promise<void> {
 
   await initializeDatabaseSchema();
   initializeLangChain();
-  await createOrchestratorSqlDatabase();
+  createOrchestratorSqlDatabase();
 
   initialized = true;
 }
@@ -287,7 +287,7 @@ export async function initializeForOrchestrator(): Promise<void> {
  * Initialize Supabase tools for Company database (KPI/Analytics)
  */
 export async function initializeForCompany(): Promise<void> {
-  await createCompanySqlDatabase();
+  createCompanySqlDatabase();
 
   if (!initialized) {
     initializeLangChain();

@@ -114,12 +114,12 @@ export class EvaluationService {
     const { client } = this.getAggregationsClient();
 
     // Verify message exists and belongs to user
-    const { data: message, error: messageError } = await client
+    const { data: message, error: messageError } = (await client
       .from('messages')
       .select('*')
       .eq('id', messageId)
       .eq('user_id', userId)
-      .single();
+      .single()) as { data: unknown; error: unknown };
 
     if (messageError || !message) {
       return null;
@@ -166,7 +166,7 @@ export class EvaluationService {
   ): Promise<EnhancedMessageResponseDto | null> {
     const { client } = this.getAggregationsClient();
 
-    const { data: message, error } = await client
+    const { data: message, error } = (await client
       .from('messages')
       .select(
         `
@@ -177,7 +177,7 @@ export class EvaluationService {
       )
       .eq('id', messageId)
       .eq('user_id', userId)
-      .single();
+      .single()) as { data: unknown; error: { code?: string; message: string } | null };
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -1080,12 +1080,12 @@ export class EvaluationService {
     const client = this.supabaseService.getAnonClient();
 
     // Verify task exists and belongs to user
-    const { data: task, error: taskError } = await client
+    const { data: task, error: taskError } = (await client
       .from('tasks')
       .select('*')
       .eq('id', taskId)
       .eq('user_id', userId)
-      .single();
+      .single()) as { data: unknown; error: unknown };
 
     if (taskError || !task) {
       return null;
@@ -1101,7 +1101,7 @@ export class EvaluationService {
       evaluation_timestamp: new Date().toISOString(),
     };
 
-    const { data: updatedTask, error: updateError } = await client
+    const { data: updatedTask, error: updateError } = (await client
       .from('tasks')
       .update({
         evaluation: evaluationData,
@@ -1109,7 +1109,7 @@ export class EvaluationService {
       .eq('id', taskId)
       .eq('user_id', userId)
       .select('*')
-      .single();
+      .single()) as { data: unknown; error: { message: string } | null };
 
     if (updateError) {
       throw new HttpException(
@@ -1118,18 +1118,18 @@ export class EvaluationService {
       );
     }
 
-    return updatedTask;
+    return updatedTask as Record<string, unknown> | null;
   }
 
   async getTaskWithEvaluation(userId: string, taskId: string): Promise<Record<string, unknown> | null> {
     const client = this.supabaseService.getAnonClient();
 
-    const { data: task, error } = await client
+    const { data: task, error } = (await client
       .from('tasks')
       .select('*')
       .eq('id', taskId)
       .eq('user_id', userId)
-      .single();
+      .single()) as { data: unknown; error: { code: string; message: string } | null };
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -1141,7 +1141,7 @@ export class EvaluationService {
       );
     }
 
-    return task;
+    return task as Record<string, unknown> | null;
   }
 
   async updateTaskEvaluation(
@@ -1277,7 +1277,7 @@ export class EvaluationService {
       .eq('id', userId)
       .single();
 
-    const userEmail = userProfile?.email || 'Unknown';
+    const userEmail = (userProfile?.email as string) || 'Unknown';
 
     if (providerIds.size > 0) {
       const { data: providers } = await client
@@ -1559,9 +1559,9 @@ export class EvaluationService {
     const tasksWithEvaluations = (tasks || []).filter((task) => {
       const hasRating =
         task.evaluation &&
-        (task.evaluation.user_rating ||
-          task.evaluation.speed_rating ||
-          task.evaluation.accuracy_rating);
+        ((task.evaluation as Record<string, unknown>).user_rating ||
+          (task.evaluation as Record<string, unknown>).speed_rating ||
+          (task.evaluation as Record<string, unknown>).accuracy_rating);
 
       // Apply filters that require evaluation data inspection
       if (
@@ -1580,27 +1580,27 @@ export class EvaluationService {
       }
       if (filters.hasNotes !== undefined) {
         const hasNotes =
-          task.evaluation?.user_notes &&
-          (task.evaluation.user_notes as string).trim().length > 0;
+          (task.evaluation as Record<string, unknown> | undefined)?.user_notes &&
+          ((task.evaluation as Record<string, unknown>).user_notes as string).trim().length > 0;
         if (filters.hasNotes !== hasNotes) {
           return false;
         }
       }
       if (filters.hasWorkflowSteps !== undefined) {
         const hasWorkflow =
-          task.response_metadata?.workflow_steps_completed &&
-          task.response_metadata.workflow_steps_completed.length > 0;
+          (task.response_metadata as Record<string, unknown> | undefined)?.workflow_steps_completed &&
+          ((task.response_metadata as Record<string, unknown>).workflow_steps_completed as unknown[]).length > 0;
         if (filters.hasWorkflowSteps !== hasWorkflow) {
           return false;
         }
       }
       if (filters.hasConstraints !== undefined) {
         const hasConstraints =
-          task.llm_metadata?.originalLLMSelection?.cidafmOptions &&
-          (task.llm_metadata.originalLLMSelection.cidafmOptions
-            .activeStateModifiers?.length > 0 ||
-            task.llm_metadata.originalLLMSelection.cidafmOptions
-              .responseModifiers?.length > 0);
+          ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.cidafmOptions &&
+          (((((task.llm_metadata as Record<string, unknown>).originalLLMSelection as Record<string, unknown>).cidafmOptions as Record<string, unknown[]> | undefined)
+            ?.activeStateModifiers as unknown[] | undefined)?.length ?? 0) > 0 ||
+          (((((task.llm_metadata as Record<string, unknown>).originalLLMSelection as Record<string, unknown>).cidafmOptions as Record<string, unknown[]> | undefined)
+              ?.responseModifiers as unknown[] | undefined)?.length ?? 0) > 0;
         if (filters.hasConstraints !== hasConstraints) {
           return false;
         }
@@ -1639,8 +1639,8 @@ export class EvaluationService {
     tasksWithEvaluations.forEach((task) => {
       userIds.add(task.user_id as string);
 
-      const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
-      const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
+      const providerId = ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.providerId;
+      const modelId = ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.modelId;
 
       if (providerId) providerIds.add(providerId as string);
       if (modelId) modelIds.add(modelId as string);
@@ -1784,9 +1784,9 @@ export class EvaluationService {
     const evaluatedTasks = (tasks || []).filter((task) => {
       const hasRating =
         task.evaluation &&
-        (task.evaluation.user_rating ||
-          task.evaluation.speed_rating ||
-          task.evaluation.accuracy_rating);
+        ((task.evaluation as Record<string, unknown>).user_rating ||
+          (task.evaluation as Record<string, unknown>).speed_rating ||
+          (task.evaluation as Record<string, unknown>).accuracy_rating);
 
       if (!hasRating) return false;
 
@@ -1851,12 +1851,12 @@ export class EvaluationService {
     const averageWorkflowCompletionRate =
       workflowTasks.length > 0
         ? workflowTasks.reduce((sum, task): number => {
-            const steps = task.response_metadata.workflow_steps_completed || [];
+            const steps = (task.response_metadata as Record<string, unknown>).workflow_steps_completed || [];
             const completedCount = (steps as unknown[]).filter(
               (step: unknown) =>
                 (step as Record<string, unknown>).status === 'completed',
             ).length;
-            return sum + (completedCount / steps.length) * 100;
+            return sum + (completedCount / (steps as unknown[]).length) * 100;
           }, 0) / workflowTasks.length
         : 0;
 
@@ -2052,9 +2052,9 @@ export class EvaluationService {
     const evaluatedTasks = (tasks || []).filter((task) => {
       const hasRating =
         task.evaluation &&
-        (task.evaluation.user_rating ||
-          task.evaluation.speed_rating ||
-          task.evaluation.accuracy_rating);
+        ((task.evaluation as Record<string, unknown>).user_rating ||
+          (task.evaluation as Record<string, unknown>).speed_rating ||
+          (task.evaluation as Record<string, unknown>).accuracy_rating);
 
       if (!hasRating) return false;
 
@@ -2610,7 +2610,7 @@ export class EvaluationService {
             ratings.length > 0
               ? ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length
               : 0,
-          evaluationCount: dataObj.count as number,
+          evaluationCount: (dataObj.count as number) || 0,
         };
       },
     );

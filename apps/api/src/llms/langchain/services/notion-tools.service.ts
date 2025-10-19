@@ -76,8 +76,8 @@ export class LangChainNotionService {
       description: 'Query a Notion database for pages matching criteria',
       func: (input: string) => {
         try {
-          const params = JSON.parse(input);
-          const { databaseId, filter, sorts } = params;
+          const params = JSON.parse(input) as Record<string, unknown>;
+          const { databaseId, filter, sorts } = params as { databaseId?: string; filter?: unknown; sorts?: unknown };
 
           if (!databaseId) {
             throw new Error('Database ID is required to query Notion');
@@ -101,8 +101,8 @@ export class LangChainNotionService {
               },
             ],
             hasMore: false,
-            appliedFilter: filter ?? null,
-            appliedSorts: sorts ?? null,
+            appliedFilter: (filter as unknown) ?? null,
+            appliedSorts: (sorts as unknown) ?? null,
           };
 
           return Promise.resolve(JSON.stringify(mockResponse));
@@ -127,8 +127,8 @@ export class LangChainNotionService {
       description: 'Update an existing Notion page with new content',
       func: (input: string) => {
         try {
-          const params = JSON.parse(input);
-          const { pageId, updates } = params;
+          const params = JSON.parse(input) as Record<string, unknown>;
+          const { pageId, updates } = params as { pageId?: string; updates?: unknown };
 
           if (!pageId) {
             throw new Error('Page ID is required to update a Notion page');
@@ -137,8 +137,8 @@ export class LangChainNotionService {
           // Mock response - would integrate with actual Notion API
           const mockResponse = {
             success: true,
-            pageId,
-            updates,
+            pageId: pageId as string,
+            updates: updates as unknown,
             updatedAt: new Date().toISOString(),
           };
 
@@ -203,12 +203,12 @@ Respond with JSON containing:
       );
 
       // Parse LLM response
-      const parsed = JSON.parse(llmResponse);
+      const parsed = JSON.parse(llmResponse) as Record<string, unknown>;
 
       return {
-        intent: parsed.intent || 'Unknown intent',
-        action: parsed.action || 'unknown',
-        parameters: parsed.parameters || {},
+        intent: (parsed.intent as string) || 'Unknown intent',
+        action: (parsed.action as string) || 'unknown',
+        parameters: (parsed.parameters as Record<string, unknown>) || {},
         response: `I understand you want to ${parsed.intent}. I'll ${parsed.action} for you.`,
       };
     } catch (error) {
