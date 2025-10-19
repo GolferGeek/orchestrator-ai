@@ -209,7 +209,7 @@ Respond with JSON containing:
         intent: (parsed.intent as string) || 'Unknown intent',
         action: (parsed.action as string) || 'unknown',
         parameters: (parsed.parameters as Record<string, unknown>) || {},
-        response: `I understand you want to ${parsed.intent}. I'll ${parsed.action} for you.`,
+        response: `I understand you want to ${String(parsed.intent)}. I'll ${String(parsed.action)} for you.`,
       };
     } catch (error) {
       return {
