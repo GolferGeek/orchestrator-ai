@@ -563,7 +563,7 @@ describe('ApiAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(true);
-      expect(result.payload?.content?.id).toBe('del-123');
+      expect((result.payload?.content as Record<string, unknown> | undefined)?.id).toBe('del-123');
 
       // Should not call HTTP service for non-create actions
       // eslint-disable-next-line @typescript-eslint/unbound-method

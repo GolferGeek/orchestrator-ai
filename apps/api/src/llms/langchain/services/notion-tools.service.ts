@@ -101,8 +101,8 @@ export class LangChainNotionService {
               },
             ],
             hasMore: false,
-            appliedFilter: (filter as unknown) ?? null,
-            appliedSorts: (sorts as unknown) ?? null,
+            appliedFilter: filter ?? null,
+            appliedSorts: sorts ?? null,
           };
 
           return Promise.resolve(JSON.stringify(mockResponse));
@@ -137,8 +137,8 @@ export class LangChainNotionService {
           // Mock response - would integrate with actual Notion API
           const mockResponse = {
             success: true,
-            pageId: pageId as string,
-            updates: updates as unknown,
+            pageId: pageId,
+            updates: updates,
             updatedAt: new Date().toISOString(),
           };
 

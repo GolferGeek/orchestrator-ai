@@ -297,9 +297,7 @@ export class BlindedLLMService {
           };
         }
 
-        return (target as unknown as Record<string, unknown>)[
-          prop as string
-        ] as unknown;
+        return (target as unknown as Record<string, unknown>)[prop as string] as unknown;
       },
     });
   }

@@ -113,7 +113,7 @@ function createOrchestratorSqlDatabase(): Record<string, unknown> {
             throw new Error(`SQL execution failed: ${error.message}`);
           }
 
-          return data as unknown;
+          return data;
         } catch (_rpcError) {
           throw new Error(
             `SQL execution failed: ${_rpcError instanceof Error ? _rpcError.message : 'Unknown error'}`,
@@ -134,7 +134,7 @@ function createOrchestratorSqlDatabase(): Record<string, unknown> {
       },
     };
   }
-  return orchestratorSqlDatabase!;
+  return orchestratorSqlDatabase;
 }
 
 /**
@@ -179,7 +179,7 @@ function createCompanySqlDatabase(): Record<string, unknown> {
       },
     };
   }
-  return companySqlDatabase!;
+  return companySqlDatabase;
 }
 
 /**

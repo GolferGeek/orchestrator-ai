@@ -550,7 +550,7 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(true);
-      expect(result.payload?.content?.id).toBe('del-123');
+      expect((result.payload?.content as Record<string, unknown> | undefined)?.id).toBe('del-123');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'read',

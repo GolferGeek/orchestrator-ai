@@ -1298,8 +1298,8 @@ export class EvaluationService {
           const mappedProvider = mapLLMProviderFromDb(
             provider as Record<string, unknown>,
           );
-          if (provider.id) {
-            providersMap.set(provider.id as string, mappedProvider);
+          if ((provider as Record<string, unknown>).id) {
+            providersMap.set((provider as Record<string, unknown>).id as string, mappedProvider);
           }
         });
       }
@@ -1316,8 +1316,8 @@ export class EvaluationService {
           const mappedModel = mapLLMModelFromDb(
             model as Record<string, unknown>,
           );
-          if (model.id) {
-            modelsMap.set(model.id as string, mappedModel);
+          if ((model as Record<string, unknown>).id) {
+            modelsMap.set((model as Record<string, unknown>).id as string, mappedModel);
           }
         });
       }
@@ -1574,15 +1574,15 @@ export class EvaluationService {
       // Apply filters that require evaluation data inspection
       if (
         filters.minRating &&
-        (!task.evaluation?.user_rating ||
-          task.evaluation.user_rating < filters.minRating)
+        (!(task.evaluation as Record<string, unknown> | undefined)?.user_rating ||
+          ((task.evaluation as Record<string, unknown>).user_rating as number) < filters.minRating)
       ) {
         return false;
       }
       if (
         filters.maxRating &&
-        task.evaluation?.user_rating &&
-        task.evaluation.user_rating > filters.maxRating
+        (task.evaluation as Record<string, unknown> | undefined)?.user_rating &&
+        ((task.evaluation as Record<string, unknown>).user_rating as number) > filters.maxRating
       ) {
         return false;
       }
@@ -1615,18 +1615,18 @@ export class EvaluationService {
       }
 
       // Apply date filters
-      if (filters.startDate && task.evaluation?.evaluation_timestamp) {
+      if (filters.startDate && (task.evaluation as Record<string, unknown> | undefined)?.evaluation_timestamp) {
         const evaluationDate = new Date(
-          task.evaluation.evaluation_timestamp as string | number | Date,
+          (task.evaluation as Record<string, unknown>).evaluation_timestamp as string | number | Date,
         );
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
-      if (filters.endDate && task.evaluation?.evaluation_timestamp) {
+      if (filters.endDate && (task.evaluation as Record<string, unknown> | undefined)?.evaluation_timestamp) {
         const evaluationDate = new Date(
-          task.evaluation.evaluation_timestamp as string | number | Date,
+          (task.evaluation as Record<string, unknown>).evaluation_timestamp as string | number | Date,
         );
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
@@ -1645,7 +1645,7 @@ export class EvaluationService {
     const modelIds = new Set<string>();
 
     tasksWithEvaluations.forEach((task) => {
-      userIds.add(task.user_id as string);
+      userIds.add((task as Record<string, unknown>).user_id as string);
 
       const providerId = ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.providerId;
       const modelId = ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.modelId;

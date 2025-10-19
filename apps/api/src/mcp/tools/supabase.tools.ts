@@ -525,8 +525,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     }
 
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${supabaseKey as string}`,
-      apikey: supabaseKey as string,
+      Authorization: `Bearer ${supabaseKey}`,
+      apikey: supabaseKey,
       'Content-Type': 'application/json',
     };
 

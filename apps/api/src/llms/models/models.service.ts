@@ -205,7 +205,7 @@ export class ModelsService {
     }
 
     return data && typeof data === 'object' && !('error' in data)
-      ? mapLLMModelFromDb(data as Record<string, unknown>)
+      ? mapLLMModelFromDb(data)
       : null;
   }
 
@@ -240,7 +240,7 @@ export class ModelsService {
     }
 
     return data && typeof data === 'object' && !('error' in data)
-      ? mapLLMModelFromDb(data as Record<string, unknown>)
+      ? mapLLMModelFromDb(data)
       : null;
   }
 

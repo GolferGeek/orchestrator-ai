@@ -226,7 +226,7 @@ export class SystemController {
       return {
         success: true,
         source: envOverride ? 'env_override' : 'database',
-        dbConfig: dbConfig as Record<string, unknown>,
+        dbConfig: dbConfig,
         envOverrideActive: Boolean(envOverride),
       };
     } catch (error) {

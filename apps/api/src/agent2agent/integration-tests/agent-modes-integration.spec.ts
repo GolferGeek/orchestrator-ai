@@ -354,8 +354,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(listVersions.body.content).toHaveProperty('versions');
-      expect(listVersions.body.content.versions).toHaveLength(3);
+      expect((listVersions.body as Record<string, unknown>).content).toHaveProperty('versions');
+      expect(((listVersions.body as Record<string, unknown>).content as Record<string, unknown>).versions).toHaveLength(3);
 
       // Set v2 as current
       await request(httpServer as unknown as Parameters<typeof request>[0])
@@ -379,7 +379,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(readCurrent.body.content.plan).toHaveProperty('currentVersion', 2);
+      expect(((readCurrent.body as Record<string, unknown>).content as Record<string, unknown>).plan).toHaveProperty('currentVersion', 2);
     });
   });
 
@@ -414,7 +414,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(buildV1.body.content).toHaveProperty('version', 1);
+      expect((buildV1.body as Record<string, unknown>).content).toHaveProperty('version', 1);
 
       // Edit deliverable (creates v2)
       const buildV2 = await request(
@@ -432,7 +432,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(buildV2.body.content).toHaveProperty('version', 2);
+      expect((buildV2.body as Record<string, unknown>).content).toHaveProperty('version', 2);
 
       // Rerun with different temperature (creates v3)
       const buildV3 = await request(
@@ -449,7 +449,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(buildV3.body.content).toHaveProperty('version', 3);
+      expect((buildV3.body as Record<string, unknown>).content).toHaveProperty('version', 3);
 
       // List all deliverable versions
       const listVersions = await request(
@@ -463,8 +463,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(listVersions.body.content).toHaveProperty('versions');
-      expect(listVersions.body.content.versions).toHaveLength(3);
+      expect((listVersions.body as Record<string, unknown>).content).toHaveProperty('versions');
+      expect(((listVersions.body as Record<string, unknown>).content as Record<string, unknown>).versions).toHaveLength(3);
 
       // Set v1 as current
       await request(httpServer as unknown as Parameters<typeof request>[0])
@@ -488,7 +488,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(201);
 
-      expect(readV1.body.content.deliverable).toHaveProperty(
+      expect(((readV1.body as Record<string, unknown>).content as Record<string, unknown>).deliverable).toHaveProperty(
         'currentVersion',
         1,
       );
@@ -513,8 +513,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(400);
 
-      expect(response.body).toHaveProperty('message');
-      expect(response.body.message).toContain('invalid');
+      expect(response.body as Record<string, unknown>).toHaveProperty('message');
+      expect((response.body as Record<string, unknown>).message).toContain('invalid');
     });
 
     it('should return proper error for invalid BUILD action', async () => {
@@ -529,8 +529,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
         })
         .expect(400);
 
-      expect(response.body).toHaveProperty('message');
-      expect(response.body.message).toContain('invalid');
+      expect(response.body as Record<string, unknown>).toHaveProperty('message');
+      expect((response.body as Record<string, unknown>).message).toContain('invalid');
     });
 
     it('should not crash server on invalid actions', async () => {
@@ -588,8 +588,8 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
 
       // May succeed if no strict schema, or fail with validation error
       if (response.status === 400) {
-        expect(response.body).toHaveProperty('message');
-        expect(response.body.message).toContain('validation');
+        expect(response.body as Record<string, unknown>).toHaveProperty('message');
+        expect((response.body as Record<string, unknown>).message).toContain('validation');
       }
     });
 
@@ -943,9 +943,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       ]);
 
       // Verify plans are different and correctly isolated
-      expect(plan1.body.content.plan.id).not.toBe(plan2.body.content.plan.id);
-      expect(plan1.body.content.plan.conversationId).toBe(conv1);
-      expect(plan2.body.content.plan.conversationId).toBe(conv2);
+      expect(((plan1.body as Record<string, unknown>).content as Record<string, unknown>).plan.id).not.toBe(((plan2.body as Record<string, unknown>).content as Record<string, unknown>).plan.id);
+      expect(((plan1.body as Record<string, unknown>).content as Record<string, unknown>).plan.conversationId).toBe(conv1);
+      expect(((plan2.body as Record<string, unknown>).content as Record<string, unknown>).plan.conversationId).toBe(conv2);
     });
   });
 

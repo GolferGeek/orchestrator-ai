@@ -364,7 +364,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
-      expect(result.status).toBe('completed');
+      expect((result as Record<string, unknown>).status).toBe('completed');
       expect(
         mockDefinitionService.getDefinitionForExecution,
       ).toHaveBeenCalledWith({
@@ -574,7 +574,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
-      expect(result.status).toBe('failed');
+      expect((result as Record<string, unknown>).status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -614,7 +614,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, stepWithoutName);
 
-      expect(result.status).toBe('failed');
+      expect((result as Record<string, unknown>).status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -654,7 +654,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(parentWithoutAgent, stepWithoutOwner);
 
-      expect(result.status).toBe('failed');
+      expect((result as Record<string, unknown>).status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -688,7 +688,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
-      expect(result.status).toBe('failed');
+      expect((result as Record<string, unknown>).status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -735,7 +735,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
-      expect(result.status).toBe('failed');
+      expect((result as Record<string, unknown>).status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -783,7 +783,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
-      expect(result.status).toBe('failed');
+      expect((result as Record<string, unknown>).status).toBe('failed');
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({

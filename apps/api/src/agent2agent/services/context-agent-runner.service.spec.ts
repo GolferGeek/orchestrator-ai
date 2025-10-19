@@ -180,10 +180,10 @@ describe('ContextAgentRunnerService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.mode).toBe(AgentTaskMode.BUILD);
-      expect(result.payload?.content?.deliverable).toEqual(
+      expect((result.payload?.content as Record<string, unknown> | undefined)?.deliverable).toEqual(
         deliverableResult.data.deliverable,
       );
-      expect(result.payload?.content?.version).toEqual(
+      expect((result.payload?.content as Record<string, unknown> | undefined)?.version).toEqual(
         deliverableResult.data.version,
       );
       expect(result.payload?.metadata?.provider).toBe('anthropic');
@@ -385,7 +385,7 @@ describe('ContextAgentRunnerService', () => {
       const result = await service.execute(definition, request, 'test-org');
 
       expect(result.success).toBe(true);
-      expect(result.payload?.content?.deliverable?.id).toBe('del-123');
+      expect(((result.payload?.content as Record<string, unknown> | undefined)?.deliverable as Record<string, unknown> | undefined)?.id).toBe('del-123');
 
       // Deliverable is fetched by conversation context
       // eslint-disable-next-line @typescript-eslint/unbound-method
