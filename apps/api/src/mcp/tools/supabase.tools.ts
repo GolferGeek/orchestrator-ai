@@ -248,7 +248,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       `;
 
       if (table_name) {
-        query += ` AND table_name = '${String(table_name)}'`;
+        const tableName = typeof table_name === 'string' ? table_name : String(table_name);
+        query += ` AND table_name = '${tableName}'`;
       }
 
       if (!include_system) {
@@ -559,7 +560,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         ...data.map((row) => {
           const rowRec = row as unknown as Record<string, unknown>;
           const value = rowRec[key];
-          return String(value ?? '').length;
+          const strValue = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+          return strValue.length;
         }),
       ),
     );
@@ -584,7 +586,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         keys
           .map((key, i) => {
             const value = rowRec[key];
-            return String(value ?? '').padEnd(maxWidths[i] || 0);
+            const strValue = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+            return strValue.padEnd(maxWidths[i] || 0);
           })
           .join(' | ') +
         ' |\n';
@@ -611,9 +614,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         keys
           .map((key) => {
             const value = rowRec[key];
-            return typeof value === 'string' && value.includes(',')
-              ? `"${value}"`
-              : String(value ?? '');
+            if (typeof value === 'string') {
+              return value.includes(',') ? `"${value}"` : value;
+            }
+            const strValue = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+            return strValue.includes(',') ? `"${strValue}"` : strValue;
           })
           .join(','),
       );

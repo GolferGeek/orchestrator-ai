@@ -218,10 +218,10 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
     if (typeof result === 'string') {
       return result;
     }
-    if (result && typeof result === 'object' && 'toString' in result) {
-      return String(result);
+    if (result && typeof result === 'object' && 'toString' in result && typeof result.toString === 'function') {
+      return result.toString();
     }
-    return String(result);
+    return JSON.stringify(result);
   }
 
   /**

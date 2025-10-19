@@ -11,6 +11,7 @@ interface ConversationDbRecord {
   user_id: string;
   agent_name: string;
   agent_type: string;
+  organization_slug?: string | null;
   created_at: string;
   updated_at: string;
   metadata?: Record<string, unknown>;
@@ -23,8 +24,12 @@ interface TaskDbRecord {
   id: string;
   conversation_id: string;
   user_id: string;
+  method?: string;
+  prompt?: string;
   status: string;
   params: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  error?: string;
   created_at: string;
   updated_at: string;
 }
@@ -185,16 +190,18 @@ export class Agent2AgentTasksService {
           JSON.stringify(conversationData),
         );
 
-        const { data: newConv, error: convError } = await this.supabaseService
+        const { data, error: convError } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('conversations'))
           .insert([conversationData])
           .select('id')
           .single();
 
-        if (convError) {
+        const newConv = data as Pick<ConversationDbRecord, 'id'> | null;
+
+        if (convError || !newConv) {
           throw new Error(
-            `Failed to create conversation: ${convError.message}`,
+            `Failed to create conversation: ${convError?.message || 'No data returned'}`,
           );
         }
 
@@ -234,15 +241,17 @@ export class Agent2AgentTasksService {
         taskData.id = params.taskId;
       }
 
-      const { data: task, error: taskError } = await this.supabaseService
+      const { data, error: taskError } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
         .insert([taskData])
         .select('*')
         .single();
 
-      if (taskError) {
-        throw new Error(`Failed to create task: ${taskError.message}`);
+      const task = data as TaskDbRecord | null;
+
+      if (taskError || !task) {
+        throw new Error(`Failed to create task: ${taskError?.message || 'No data returned'}`);
       }
 
       this.logger.debug(
@@ -256,7 +265,7 @@ export class Agent2AgentTasksService {
         namespace: null, // Conversation was created without organization_slug, so it's null
         agentConversationId: task.conversation_id,
         status: task.status,
-        params: task.params,
+        params: task.params as unknown as TaskParams,
         createdAt: new Date(task.created_at as string),
       };
     } catch (error) {
@@ -286,18 +295,20 @@ export class Agent2AgentTasksService {
     updatedAt: Date;
   } | null> {
     try {
-      const { data: task, error } = await this.supabaseService
+      const { data, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
         .select(
           `
           *,
-          conversations!inner(agent_name, agent_type)
+          conversations!inner(agent_name, agent_type, organization_slug)
         `,
         )
         .eq('id', taskId)
         .eq('user_id', userId)
         .single();
+
+      const task = data as (TaskDbRecord & { conversations: Pick<ConversationDbRecord, 'agent_name' | 'agent_type' | 'organization_slug'> }) | null;
 
       if (error || !task) {
         return null;
@@ -310,7 +321,7 @@ export class Agent2AgentTasksService {
         namespace: task.conversations?.organization_slug || null,
         agentConversationId: task.conversation_id,
         status: task.status,
-        params: task.params,
+        params: task.params as unknown as TaskParams,
         result: task.result,
         error: task.error,
         createdAt: new Date(task.created_at as string),
@@ -331,7 +342,7 @@ export class Agent2AgentTasksService {
     userId: string,
   ): Promise<TaskRecord[]> {
     try {
-      const { data: tasks, error } = await this.supabaseService
+      const { data, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
         .select('*')
@@ -339,11 +350,28 @@ export class Agent2AgentTasksService {
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
 
+      const tasks = data as TaskDbRecord[] | null;
+
       if (error) {
         throw new Error(`Failed to get conversation tasks: ${error.message}`);
       }
 
-      return tasks || [];
+      return (tasks || []).map(task => {
+        const taskParams = task.params as unknown as TaskParams;
+        return {
+          id: task.id,
+          user_id: task.user_id,
+          conversation_id: task.conversation_id,
+          method: task.method || taskParams.method || '',
+          prompt: task.prompt || taskParams.prompt || '',
+          status: task.status,
+          params: taskParams,
+          result: task.result,
+          error: task.error,
+          created_at: task.created_at,
+          updated_at: task.updated_at,
+        };
+      });
     } catch (error) {
       this.logger.error(
         `Failed to get tasks for conversation ${conversationId}:`,

@@ -30,6 +30,23 @@ import {
 } from '../common/interfaces/action-handler.interface';
 
 /**
+ * Database record type for deliverables table
+ */
+interface DeliverableDbRecord {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  type: string;
+  format: string;
+  status: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
+/**
  * Union type for all possible action parameters
  */
 type DeliverableActionParams =
@@ -669,8 +686,8 @@ export class DeliverablesService implements IActionHandler {
   ): Promise<Deliverable> {
     try {
       // First, create the deliverable record
-      const { data: deliverableData, error: deliverableError } =
-        (await this.supabaseService
+      const { data: result, error: deliverableError } =
+        await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .insert([
@@ -683,7 +700,9 @@ export class DeliverablesService implements IActionHandler {
             },
           ])
           .select('*')
-          .single()) as { data: { id: string } | null; error: Error | null };
+          .single();
+
+      const deliverableData = result as Pick<DeliverableDbRecord, 'id'> | null;
 
       if (deliverableError || !deliverableData) {
         throw new BadRequestException(
@@ -765,7 +784,7 @@ export class DeliverablesService implements IActionHandler {
           (filters.offset || 0) + (filters.limit || 50) - 1,
         );
 
-      const { data, error } = await query;
+      const { data: result, error } = await query;
 
       if (error) {
         throw new BadRequestException(
@@ -773,7 +792,7 @@ export class DeliverablesService implements IActionHandler {
         );
       }
 
-      const deliverables = data || [];
+      const deliverables = (result as DeliverableDbRecord[] | null) || [];
       const items = deliverables.map(
         (deliverable: {
           id: string;
@@ -843,12 +862,14 @@ export class DeliverablesService implements IActionHandler {
     conversationId: string,
     userId: string,
   ): Promise<Deliverable[]> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverables'))
       .select('*')
       .eq('conversation_id', conversationId)
       .eq('user_id', userId);
+
+    const data = result as DeliverableDbRecord[] | null;
 
     if (error) {
       throw new BadRequestException(
@@ -878,26 +899,16 @@ export class DeliverablesService implements IActionHandler {
   async findOne(id: string, userId: string): Promise<Deliverable> {
     try {
       // Get the deliverable record
-      const { data: deliverableData, error: deliverableError } =
-        (await this.supabaseService
+      const { data: result, error: deliverableError } =
+        await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .select('*')
           .eq('id', id)
           .eq('user_id', userId)
-          .single()) as {
-          data: {
-            id: string;
-            user_id: string;
-            conversation_id?: string;
-            agent_name?: string;
-            title: string;
-            type?: string;
-            created_at: string | Date;
-            updated_at: string | Date;
-          } | null;
-          error: Error | null;
-        };
+          .single();
+
+      const deliverableData = result as DeliverableDbRecord | null;
 
       if (deliverableError || !deliverableData) {
         if ((deliverableError as { code?: string })?.code === 'PGRST116') {
@@ -949,7 +960,7 @@ export class DeliverablesService implements IActionHandler {
     userId: string,
   ): Promise<Deliverable[]> {
     try {
-      const { data, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('deliverables'))
         .select('*')
@@ -964,7 +975,7 @@ export class DeliverablesService implements IActionHandler {
       }
 
       // Get current versions for each deliverable
-      const deliverables = data || [];
+      const deliverables = (result as DeliverableDbRecord[] | null) || [];
       const deliverableResults = await Promise.all(
         deliverables.map(async (deliverableData: unknown) => {
           const typedData = deliverableData as {
@@ -1260,7 +1271,7 @@ export class DeliverablesService implements IActionHandler {
     deliverableId: string,
     createDto: CreateDeliverableDto,
   ): Promise<DeliverableVersion> {
-    const { data, error } = (await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverable_versions'))
       .insert([
@@ -1280,10 +1291,9 @@ export class DeliverablesService implements IActionHandler {
         },
       ])
       .select('*')
-      .single()) as {
-      data: Record<string, unknown> | null;
-      error: Error | null;
-    };
+      .single();
+
+    const data = result as Record<string, unknown> | null;
 
     if (error) {
       throw new BadRequestException(

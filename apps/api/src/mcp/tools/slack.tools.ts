@@ -396,8 +396,9 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       if (user_id) {
         // Get specific user info
+        const userId = typeof user_id === 'string' ? user_id : String(user_id);
         const response = await this.makeSlackRequest(
-          `users.info?user=${String(user_id)}`,
+          `users.info?user=${userId}`,
           'GET',
         );
         const data = await this.parseJsonResponse(response, 'Slack users.info');
@@ -497,14 +498,16 @@ export class SlackMCPTools implements IMCPToolHandler {
     const { query, channel, user, count = 20, sort = 'score' } = args;
 
     try {
-      let searchQuery = String(query);
+      let searchQuery = typeof query === 'string' ? query : String(query);
 
       if (channel) {
-        searchQuery += ` in:${String(channel)}`;
+        const channelStr = typeof channel === 'string' ? channel : String(channel);
+        searchQuery += ` in:${channelStr}`;
       }
 
       if (user) {
-        searchQuery += ` from:${String(user)}`;
+        const userStr = typeof user === 'string' ? user : String(user);
+        searchQuery += ` from:${userStr}`;
       }
 
       const params = new URLSearchParams({

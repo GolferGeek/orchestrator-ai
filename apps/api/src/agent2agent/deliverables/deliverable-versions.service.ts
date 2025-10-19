@@ -19,6 +19,25 @@ import { LLMService } from '@/llms/llm.service';
 import { Task } from '@/agent2agent/types/agent-conversations.types';
 import { snakeToCamel } from '@/utils/case-converter';
 
+/**
+ * Database record type for deliverable_versions table
+ */
+interface DeliverableVersionDbRecord {
+  id: string;
+  deliverable_id: string;
+  version_number: number;
+  content: string;
+  format: string;
+  is_current_version: boolean;
+  created_by_type: string;
+  task_id?: string | null;
+  metadata?: Record<string, unknown>;
+  file_attachments?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class DeliverableVersionsService {
   private readonly logger = new Logger(DeliverableVersionsService.name);
@@ -110,7 +129,7 @@ export class DeliverableVersionsService {
       await this.verifyDeliverableOwnership(deliverableId, userId);
 
       // Get all versions for this deliverable
-      const { data, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('deliverable_versions'))
         .select('*')
@@ -123,7 +142,8 @@ export class DeliverableVersionsService {
         );
       }
 
-      const versions = (data as Record<string, unknown>[] | null || []).map((item) => this.mapToVersion(item));
+      const data = result as DeliverableVersionDbRecord[] | null;
+      const versions = (data || []).map((item) => this.mapToVersion(item));
 
       return versions;
     } catch (error) {
@@ -225,12 +245,14 @@ export class DeliverableVersionsService {
         return this.mapToVersion(data);
       } else {
         // Check if any versions exist at all
-        const { data: allVersions, error: allVersionsError } =
+        const { data: result, error: allVersionsError } =
           await this.supabaseService
             .getServiceClient()
             .from(getTableName('deliverable_versions'))
             .select('id, version_number, is_current_version')
             .eq('deliverable_id', deliverableId);
+
+        const allVersions = result as Array<{ id: string; version_number: number; is_current_version: boolean }> | null;
 
         if (allVersionsError) {
           this.logger.error(
@@ -811,13 +833,15 @@ export class DeliverableVersionsService {
   ): Promise<void> {
     try {
       // First, check if the deliverable exists at all (without user_id filter for debugging)
-      const { data: deliverableCheck, error: checkError } =
+      const { data: result, error: checkError } =
         await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .select('id, user_id')
           .eq('id', deliverableId)
           .single();
+
+      const deliverableCheck = result as { id: string; user_id: string } | null;
 
       if (checkError) {
         // If it's a schema or connection error, we'll see it here
@@ -844,7 +868,7 @@ export class DeliverableVersionsService {
   }
 
   private async getNextVersionNumber(deliverableId: string): Promise<number> {
-    const { data: lastVersion, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverable_versions'))
       .select('version_number')
@@ -852,6 +876,8 @@ export class DeliverableVersionsService {
       .order('version_number', { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    const lastVersion = result as { version_number: number } | null;
 
     if (error) {
       throw new BadRequestException('Failed to determine version number');

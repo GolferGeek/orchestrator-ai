@@ -460,8 +460,8 @@ export function resolveUserId(request: TaskRequestDto): string | null {
         .find((value) => typeof value === 'string' && value.trim().length > 0)
     : null;
 
-  if (fromMessages) {
-    return String(fromMessages);
+  if (fromMessages && typeof fromMessages === 'string') {
+    return fromMessages;
   }
 
   return null;

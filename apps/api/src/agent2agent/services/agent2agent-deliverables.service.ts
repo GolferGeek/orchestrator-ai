@@ -221,7 +221,8 @@ export class Agent2AgentDeliverablesService {
   private resolveImageFormat(
     image: Record<string, unknown> | undefined,
   ): DeliverableFormat {
-    const mime = String(image?.mime || '').toLowerCase();
+    const mimeValue = image?.mime;
+    const mime = (typeof mimeValue === 'string' ? mimeValue : '').toLowerCase();
     switch (mime) {
       case 'image/jpeg':
       case 'image/jpg':
@@ -245,12 +246,15 @@ export class Agent2AgentDeliverablesService {
     }
 
     const lines = images.map((image, index) => {
-      const mime = String(image.mime || 'image');
+      const mimeValue = image.mime;
+      const mime = typeof mimeValue === 'string' ? mimeValue : 'image';
+      const width = typeof image.width === 'number' ? image.width : null;
+      const height = typeof image.height === 'number' ? image.height : null;
       const dims =
-        image.width && image.height
-          ? `${String(image.width)}x${String(image.height)}`
-          : image.width || image.height
-            ? `${String(image.width ?? image.height)}px`
+        width && height
+          ? `${width}x${height}`
+          : width || height
+            ? `${width ?? height}px`
             : 'unknown size';
       return `- Image ${index + 1}: ${mime} (${dims})`;
     });
@@ -269,11 +273,15 @@ export class Agent2AgentDeliverablesService {
 
     const preview = images.slice(0, 2).map((image, index) => {
       const redactedUrl = this.redactUrlForLogs(image.url as string);
+      const width = typeof image.width === 'number' ? image.width : null;
+      const height = typeof image.height === 'number' ? image.height : null;
       const dims =
-        image.width && image.height
-          ? `${String(image.width)}x${String(image.height)}`
+        width && height
+          ? `${width}x${height}`
           : 'unknown';
-      return `[${index + 1}] ${redactedUrl} (${String(image.mime || 'image')}, ${dims})`;
+      const mimeValue = image.mime;
+      const mime = typeof mimeValue === 'string' ? mimeValue : 'image';
+      return `[${index + 1}] ${redactedUrl} (${mime}, ${dims})`;
     });
 
     return preview.length ? preview.join(' ') : '';
