@@ -112,7 +112,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(planCreateResponse.payload.content).toHaveProperty('version', 1);
       expect(planCreateResponse.payload.content).toHaveProperty('isNew', true);
 
-      const planContent = planCreateResponse.payload.content as { plan: { id: string } };
+      const planContent = planCreateResponse.payload.content as {
+        plan: { id: string };
+      };
       const planId: string = planContent.plan.id;
 
       // 4. Read plan
@@ -132,7 +134,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const planReadResponse = planRead.body as TaskResponseDto;
       expect(planReadResponse).toHaveProperty('mode', AgentTaskMode.PLAN);
       expect(planReadResponse.payload.content).toHaveProperty('plan');
-      const planReadContent = planReadResponse.payload.content as { plan: { id: string } };
+      const planReadContent = planReadResponse.payload.content as {
+        plan: { id: string };
+      };
       expect(planReadContent.plan.id).toBe(planId);
 
       // 5. Edit plan
@@ -202,7 +206,9 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const buildReadResponse = buildRead.body as TaskResponseDto;
       expect(buildReadResponse).toHaveProperty('mode', AgentTaskMode.BUILD);
       expect(buildReadResponse.payload.content).toHaveProperty('deliverable');
-      const buildReadContent = buildReadResponse.payload.content as { deliverable: { title: string } };
+      const buildReadContent = buildReadResponse.payload.content as {
+        deliverable: { title: string };
+      };
       expect(buildReadContent.deliverable).toHaveProperty(
         'title',
         'Kubernetes Best Practices',
@@ -255,11 +261,10 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       const buildResponse = build.body as TaskResponseDto;
       expect(buildResponse).toHaveProperty('mode', AgentTaskMode.BUILD);
       expect(buildResponse.payload.content).toHaveProperty('deliverable');
-      const buildContent = buildResponse.payload.content as { deliverable: { title: string; content: string } };
-      expect(buildContent.deliverable).toHaveProperty(
-        'title',
-        'Docker Intro',
-      );
+      const buildContent = buildResponse.payload.content as {
+        deliverable: { title: string; content: string };
+      };
+      expect(buildContent.deliverable).toHaveProperty('title', 'Docker Intro');
       expect(buildContent.deliverable).toHaveProperty('content');
       expect(buildContent.deliverable.content).toContain('Docker');
     });

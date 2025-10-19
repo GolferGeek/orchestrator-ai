@@ -812,7 +812,9 @@ export class OrchestrationDashboardService {
     }
 
     const target =
-      base && typeof base === 'object' ? this.cloneRecord(base as JsonObject) : {};
+      base && typeof base === 'object'
+        ? this.cloneRecord(base as JsonObject)
+        : {};
     this.mergeInto(target, patch as JsonObject);
     return target;
   }

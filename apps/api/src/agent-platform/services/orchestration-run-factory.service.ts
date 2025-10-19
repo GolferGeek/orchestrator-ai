@@ -186,7 +186,8 @@ export class OrchestrationRunFactoryService {
     patch: Record<string, unknown>,
   ): OrchestrationRunMetadata {
     const base = { ...(existing ?? {}) };
-    const existingStats = (base.stats as Record<string, unknown> | undefined) ?? {};
+    const existingStats =
+      (base.stats as Record<string, unknown> | undefined) ?? {};
     const patchStats =
       (patch.stats as Record<string, unknown> | undefined) ?? undefined;
 
@@ -272,7 +273,9 @@ export class OrchestrationRunFactoryService {
     return Object.keys(metadata).length > 0 ? metadata : null;
   }
 
-  private resolveRunConcurrency(metadata: Record<string, unknown>): number | null {
+  private resolveRunConcurrency(
+    metadata: Record<string, unknown>,
+  ): number | null {
     const execution = this.asRecord(
       metadata.execution as Record<string, unknown> | undefined,
     );
@@ -481,10 +484,13 @@ export class OrchestrationRunFactoryService {
       return null;
     }
     if (Array.isArray(value)) {
-      return value.reduce<Record<string, unknown>>((acc, entry: unknown, index) => {
-        acc[index] = entry;
-        return acc;
-      }, {});
+      return value.reduce<Record<string, unknown>>(
+        (acc, entry: unknown, index) => {
+          acc[index] = entry;
+          return acc;
+        },
+        {},
+      );
     }
 
     const entries = Object.entries(value);

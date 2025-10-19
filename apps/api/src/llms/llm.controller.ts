@@ -116,9 +116,13 @@ export class LLMController {
         const normalized = {
           response: result.content,
           content: result.content,
-          sanitizationMetadata,
-          piiMetadata: result.piiMetadata ?? null,
-          metadata: result.metadata,
+          sanitizationMetadata: (sanitizationMetadata ?? undefined) as
+            | Record<string, unknown>
+            | undefined,
+          piiMetadata: (result.piiMetadata ?? undefined) as
+            | Record<string, unknown>
+            | undefined,
+          metadata: result.metadata as unknown as Record<string, unknown>,
         };
 
         console.log(

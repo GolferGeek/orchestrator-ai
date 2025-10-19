@@ -97,7 +97,10 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       // Validate required context
       const userId = this.resolveUserId(request);
       const conversationId = this.resolveConversationId(request);
-      const taskId = (request.payload as Record<string, unknown>)?.taskId as string | null || null;
+      const taskId =
+        ((request.payload as Record<string, unknown>)?.taskId as
+          | string
+          | null) || null;
 
       if (!userId || !conversationId) {
         return TaskResponseDto.failure(
@@ -198,7 +201,11 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       const duration = Date.now() - startTime;
 
       // 6. Check response status
-      const responseTyped = response as { status: number; data: unknown; headers: Record<string, unknown> };
+      const responseTyped = response as {
+        status: number;
+        data: unknown;
+        headers: Record<string, unknown>;
+      };
       const statusCode = responseTyped.status;
       const isSuccess = statusCode >= 200 && statusCode < 300;
 
@@ -291,8 +298,13 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     return value as Record<string, unknown>;
   }
 
-  private toPlainRecord(record: Record<string, unknown>): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(record)) as Record<string, unknown>;
+  private toPlainRecord(
+    record: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(record)) as Record<
+      string,
+      unknown
+    >;
   }
 
   private ensureString(value: unknown): string | null {
@@ -377,7 +389,10 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       if (typeof value === 'string') {
         result[key] = this.interpolateString(value, request);
       } else if (typeof value === 'object' && value !== null) {
-        result[key] = this.interpolateObject(value as Record<string, unknown>, request);
+        result[key] = this.interpolateObject(
+          value as Record<string, unknown>,
+          request,
+        );
       } else {
         result[key] = value;
       }
@@ -392,7 +407,11 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
   private formatApiResponse(
     data: unknown,
     format: string,
-    metadata: { statusCode: number; headers: Record<string, unknown>; duration: number },
+    metadata: {
+      statusCode: number;
+      headers: Record<string, unknown>;
+      duration: number;
+    },
   ): string {
     if (format === 'json') {
       return JSON.stringify(

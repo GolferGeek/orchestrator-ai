@@ -756,7 +756,9 @@ export class AgentExecutionGateway {
       decision: options.decision,
       actorId: options.actorId ?? null,
       notes: options.notes ?? null,
-      modifications: (options.modifications ?? undefined) as JsonObject | undefined,
+      modifications: (options.modifications ?? undefined) as
+        | JsonObject
+        | undefined,
     });
 
     if (resolution.decision === 'abort') {

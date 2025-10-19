@@ -166,16 +166,23 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
     }
 
     const relationshipData = (data || []) as unknown[];
-    const relationships: SchemaRelationship[] = relationshipData.map((row: unknown) => {
-      const r = row as { from_table: string; from_column: string; to_table: string; to_column: string };
-      return {
-        fromTable: r.from_table,
-        fromColumn: r.from_column,
-        toTable: r.to_table,
-        toColumn: r.to_column,
-        relationshipType: 'many-to-one' as const,
-      };
-    });
+    const relationships: SchemaRelationship[] = relationshipData.map(
+      (row: unknown) => {
+        const r = row as {
+          from_table: string;
+          from_column: string;
+          to_table: string;
+          to_column: string;
+        };
+        return {
+          fromTable: r.from_table,
+          fromColumn: r.from_column,
+          toTable: r.to_table,
+          toColumn: r.to_column,
+          relationshipType: 'many-to-one' as const,
+        };
+      },
+    );
 
     return relationships;
   } catch {
@@ -221,7 +228,9 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
       return ['id']; // Common default
     }
 
-    return pkData.map((row: unknown) => (row as { column_name: string }).column_name);
+    return pkData.map(
+      (row: unknown) => (row as { column_name: string }).column_name,
+    );
   } catch {
     return ['id']; // Fallback
   }
@@ -234,11 +243,16 @@ function processColumn(
   columnData: unknown,
   relationships: SchemaRelationship[],
 ): TableColumn {
-  const col = columnData as { table_name: string; column_name: string; data_type: string; is_nullable: string; column_default: string | null };
+  const col = columnData as {
+    table_name: string;
+    column_name: string;
+    data_type: string;
+    is_nullable: string;
+    column_default: string | null;
+  };
   const fkRelation = relationships.find(
     (rel) =>
-      rel.fromTable === col.table_name &&
-      rel.fromColumn === col.column_name,
+      rel.fromTable === col.table_name && rel.fromColumn === col.column_name,
   );
 
   return {

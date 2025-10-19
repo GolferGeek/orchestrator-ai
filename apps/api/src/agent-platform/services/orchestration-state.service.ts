@@ -65,7 +65,9 @@ export class OrchestrationStateService {
 
       const metadata: OrchestrationStepStateEntry = {
         name: stepDefinition.name,
-        checkpoint: stepDefinition.checkpoint_after as OrchestrationCheckpointMetadata | undefined,
+        checkpoint: stepDefinition.checkpoint_after as
+          | OrchestrationCheckpointMetadata
+          | undefined,
         rawInput: stepDefinition.input ?? null,
         rawContext: stepDefinition.context ?? null,
         outputMapping: stepDefinition.output_mapping ?? null,
@@ -267,9 +269,11 @@ export class OrchestrationStateService {
 
       if (value && typeof value === 'object') {
         const resolved: Record<string, unknown> = {};
-        Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
-          resolved[key] = resolveValue(entry);
-        });
+        Object.entries(value as Record<string, unknown>).forEach(
+          ([key, entry]) => {
+            resolved[key] = resolveValue(entry);
+          },
+        );
         return resolved;
       }
 

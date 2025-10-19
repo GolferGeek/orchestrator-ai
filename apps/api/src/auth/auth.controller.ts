@@ -101,7 +101,8 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(@Request() req: Record<string, unknown>): Promise<void> {
     // Extract token from Authorization header
-    const authHeader = (req.headers as Record<string, unknown> | undefined)?.authorization as string | undefined;
+    const authHeader = (req.headers as Record<string, unknown> | undefined)
+      ?.authorization as string | undefined;
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
@@ -162,7 +163,8 @@ export class AuthController {
     @Request() req: Record<string, unknown>,
   ): Promise<AuthenticatedUserResponseDto> {
     // Extract token from Authorization header
-    const authHeader = (req.headers as Record<string, unknown> | undefined)?.authorization as string | undefined;
+    const authHeader = (req.headers as Record<string, unknown> | undefined)
+      ?.authorization as string | undefined;
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
@@ -204,7 +206,9 @@ export class AuthController {
   async getAllUsers(
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<UserListResponseDto[]> {
-    return this.authService.getAllUsers(currentAuthUser.id) as Promise<UserListResponseDto[]>;
+    return this.authService.getAllUsers(currentAuthUser.id) as Promise<
+      UserListResponseDto[]
+    >;
   }
 
   @Get('admin/users/:userId')
@@ -221,7 +225,10 @@ export class AuthController {
     @Param('userId') userId: string,
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<UserListResponseDto> {
-    return this.authService.getUserById(userId, currentAuthUser.id) as Promise<UserListResponseDto>;
+    return this.authService.getUserById(
+      userId,
+      currentAuthUser.id,
+    ) as Promise<UserListResponseDto>;
   }
 
   @Put('admin/users/:userId/roles')

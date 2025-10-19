@@ -24,12 +24,20 @@ export class SovereignPolicyService {
       'SOVEREIGN_MODE_DEFAULT',
       'relaxed',
     );
-    const defaultMode = (defaultModeStr === 'strict' || defaultModeStr === 'relaxed') ? defaultModeStr : 'relaxed';
+    const defaultMode =
+      defaultModeStr === 'strict' || defaultModeStr === 'relaxed'
+        ? defaultModeStr
+        : 'relaxed';
     const auditLevelStr: string = this.configService.get(
       'SOVEREIGN_MODE_AUDIT_LEVEL',
       'basic',
     );
-    const auditLevel = (auditLevelStr === 'none' || auditLevelStr === 'basic' || auditLevelStr === 'full') ? auditLevelStr : 'basic';
+    const auditLevel =
+      auditLevelStr === 'none' ||
+      auditLevelStr === 'basic' ||
+      auditLevelStr === 'full'
+        ? auditLevelStr
+        : 'basic';
     const realtimeUpdates =
       this.configService.get('SOVEREIGN_MODE_REALTIME_UPDATES', 'true') ===
       'true';

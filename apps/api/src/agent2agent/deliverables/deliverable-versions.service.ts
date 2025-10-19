@@ -96,7 +96,9 @@ export class DeliverableVersionsService {
 
       if (insertError) {
         const errorMsg =
-          insertError && typeof insertError === 'object' && 'message' in insertError
+          insertError &&
+          typeof insertError === 'object' &&
+          'message' in insertError
             ? (insertError as Error).message
             : typeof insertError === 'string'
               ? insertError
@@ -252,7 +254,11 @@ export class DeliverableVersionsService {
             .select('id, version_number, is_current_version')
             .eq('deliverable_id', deliverableId);
 
-        const allVersions = result as Array<{ id: string; version_number: number; is_current_version: boolean }> | null;
+        const allVersions = result as Array<{
+          id: string;
+          version_number: number;
+          is_current_version: boolean;
+        }> | null;
 
         if (allVersionsError) {
           this.logger.error(
@@ -833,13 +839,12 @@ export class DeliverableVersionsService {
   ): Promise<void> {
     try {
       // First, check if the deliverable exists at all (without user_id filter for debugging)
-      const { data: result, error: checkError } =
-        await this.supabaseService
-          .getServiceClient()
-          .from(getTableName('deliverables'))
-          .select('id, user_id')
-          .eq('id', deliverableId)
-          .single();
+      const { data: result, error: checkError } = await this.supabaseService
+        .getServiceClient()
+        .from(getTableName('deliverables'))
+        .select('id, user_id')
+        .eq('id', deliverableId)
+        .single();
 
       const deliverableCheck = result as { id: string; user_id: string } | null;
 
@@ -900,7 +905,9 @@ export class DeliverableVersionsService {
     }
   }
 
-  private mapToVersion(data: Record<string, unknown> | null): DeliverableVersion {
+  private mapToVersion(
+    data: Record<string, unknown> | null,
+  ): DeliverableVersion {
     if (!data) {
       throw new BadRequestException('Invalid version data');
     }
@@ -928,7 +935,11 @@ export class DeliverableVersionsService {
     mergePrompt: string,
     providerName?: string,
     modelName?: string,
-  ): Promise<{ content: string; conflictSummary?: string; metadata?: Record<string, unknown> }> {
+  ): Promise<{
+    content: string;
+    conflictSummary?: string;
+    metadata?: Record<string, unknown>;
+  }> {
     // Build version contents for LLM
     const versionContents = versions
       .map(
@@ -977,7 +988,9 @@ Please output ONLY the merged content, maintaining the same format as the origin
 
     const content = typeof response === 'string' ? response : response.content;
     const responseMetadata =
-      typeof response === 'string' ? undefined : (response.metadata as unknown as Record<string, unknown> | undefined);
+      typeof response === 'string'
+        ? undefined
+        : (response.metadata as unknown as Record<string, unknown> | undefined);
 
     return {
       content,

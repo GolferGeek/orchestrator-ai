@@ -158,7 +158,13 @@ export class BlindedLLMService {
         const axiosConfig = this.convertFetchToAxios(url, init);
 
         // Make the blinded request
-        const blindedClientAny = blindedClient as {post: (url: string, data: unknown, options: unknown) => Promise<unknown>};
+        const blindedClientAny = blindedClient as {
+          post: (
+            url: string,
+            data: unknown,
+            options: unknown,
+          ) => Promise<unknown>;
+        };
         const response = await blindedClientAny.post(
           axiosConfig.url,
           axiosConfig.data,
@@ -205,7 +211,9 @@ export class BlindedLLMService {
       const headerEntries = init.headers as Record<string, unknown>;
       if (typeof headerEntries.entries === 'function') {
         // Headers object
-        for (const [key, value] of (headerEntries as { entries: () => Iterable<[string, string]> }).entries()) {
+        for (const [key, value] of (
+          headerEntries as { entries: () => Iterable<[string, string]> }
+        ).entries()) {
           headers[key] = String(value);
         }
       } else if (typeof headerEntries === 'object') {
@@ -263,7 +271,9 @@ export class BlindedLLMService {
 
             try {
               // Call the original LLM method (which will use our blinded fetch)
-              const method = (target as Record<string, unknown>)[prop] as (...args: unknown[]) => Promise<ChatResult>;
+              const method = (target as unknown as Record<string, unknown>)[prop] as (
+                ...args: unknown[]
+              ) => Promise<ChatResult>;
               const result = await method.call(
                 target,
                 messages,

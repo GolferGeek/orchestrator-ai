@@ -52,13 +52,15 @@ export class PlanVersionsRepository {
 
     if (error) {
       throw new BadRequestException(
-        `Failed to create plan version: ${(error as {message?: string})?.message}`,
+        `Failed to create plan version: ${(error as { message?: string })?.message}`,
       );
     }
 
     const versionData = result as PlanVersionRecord | null;
     if (!versionData) {
-      throw new BadRequestException('No data returned from plan version creation');
+      throw new BadRequestException(
+        'No data returned from plan version creation',
+      );
     }
 
     return versionData;
@@ -79,11 +81,11 @@ export class PlanVersionsRepository {
     const error: unknown = response.error;
 
     if (error) {
-      if ((error as {code?: string})?.code === 'PGRST116') {
+      if ((error as { code?: string })?.code === 'PGRST116') {
         return null;
       }
       throw new BadRequestException(
-        `Failed to find plan version: ${(error as {message?: string})?.message}`,
+        `Failed to find plan version: ${(error as { message?: string })?.message}`,
       );
     }
 
@@ -127,7 +129,7 @@ export class PlanVersionsRepository {
 
     if (error) {
       throw new BadRequestException(
-        `Failed to get current plan version: ${(error as {message?: string})?.message}`,
+        `Failed to get current plan version: ${(error as { message?: string })?.message}`,
       );
     }
 
@@ -174,7 +176,7 @@ export class PlanVersionsRepository {
 
     if (error) {
       throw new BadRequestException(
-        `Failed to mark version as current: ${(error as {message?: string})?.message}`,
+        `Failed to mark version as current: ${(error as { message?: string })?.message}`,
       );
     }
 

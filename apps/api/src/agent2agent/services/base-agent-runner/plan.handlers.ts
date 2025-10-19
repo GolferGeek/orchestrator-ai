@@ -151,11 +151,12 @@ export async function handlePlanCreate(
 
       // Extract LLM configuration from payload (required from frontend)
       const payloadRec = payload as Record<string, unknown>;
-      const llmSelection = payloadRec.llmSelection as Record<string, unknown> | undefined;
+      const llmSelection = payloadRec.llmSelection as
+        | Record<string, unknown>
+        | undefined;
       const providerName =
         payloadRec.currentProvider ?? llmSelection?.providerName;
-      const modelName =
-        payloadRec.currentModel ?? llmSelection?.modelName;
+      const modelName = payloadRec.currentModel ?? llmSelection?.modelName;
 
       // Validate LLM configuration (no fallbacks - frontend must provide)
       if (!providerName || !modelName) {
@@ -1094,10 +1095,14 @@ function normalizeUsage(usage: unknown): typeof EMPTY_USAGE {
 
   const usageRec = usage as Record<string, unknown>;
   const inputTokens = numberOrZero(
-    usageRec.inputTokens ?? usageRec.promptTokens ?? usageRec.total_input_tokens,
+    usageRec.inputTokens ??
+      usageRec.promptTokens ??
+      usageRec.total_input_tokens,
   );
   const outputTokens = numberOrZero(
-    usageRec.outputTokens ?? usageRec.completionTokens ?? usageRec.total_output_tokens,
+    usageRec.outputTokens ??
+      usageRec.completionTokens ??
+      usageRec.total_output_tokens,
   );
   const totalTokens = numberOrZero(
     usageRec.totalTokens ?? usageRec.total_tokens,
@@ -1148,15 +1153,17 @@ function serializePlan(
     definition.slug;
 
   const userIdRaw: unknown = record.userId ?? record.user_id ?? fallbackUserId;
-  const namespaceRaw: unknown = record.namespace ?? record.agent_namespace ?? 'default';
+  const namespaceRaw: unknown =
+    record.namespace ?? record.agent_namespace ?? 'default';
 
   const currentVersionIdRaw: unknown =
-      record.currentVersionId ??
-      record.current_version_id ??
-      (record.currentVersion as { id?: unknown } | undefined)?.id;
+    record.currentVersionId ??
+    record.current_version_id ??
+    (record.currentVersion as { id?: unknown } | undefined)?.id;
 
   const idRaw: unknown = record.id;
-  const conversationIdAlt: unknown = record.conversationId ?? record.conversation_id;
+  const conversationIdAlt: unknown =
+    record.conversationId ?? record.conversation_id;
   const titleAlt: unknown = record.title ?? record.name;
 
   return {
@@ -1166,7 +1173,8 @@ function serializePlan(
     agentName: String(agentNameRaw),
     namespace: String(namespaceRaw),
     title: typeof titleAlt === 'string' ? titleAlt : 'Plan',
-    currentVersionId: typeof currentVersionIdRaw === 'string' ? currentVersionIdRaw : '',
+    currentVersionId:
+      typeof currentVersionIdRaw === 'string' ? currentVersionIdRaw : '',
     createdAt,
     updatedAt,
   };
@@ -1198,8 +1206,12 @@ function serializePlanVersion(
     ),
     content: (record.content ?? '') as string,
     format,
-    createdByType: (record.createdByType ?? record.created_by_type ?? 'agent') as 'agent' | 'user',
-    createdById: (record.createdById ?? record.created_by_id ?? null) as string | null,
+    createdByType: (record.createdByType ??
+      record.created_by_type ??
+      'agent') as 'agent' | 'user',
+    createdById: (record.createdById ?? record.created_by_id ?? null) as
+      | string
+      | null,
     metadata: record.metadata ?? undefined,
     isCurrentVersion: Boolean(
       record.isCurrentVersion ?? record.is_current_version,

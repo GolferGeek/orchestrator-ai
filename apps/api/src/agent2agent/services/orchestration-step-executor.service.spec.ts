@@ -405,7 +405,9 @@ describe('OrchestrationStepExecutorService', () => {
       };
 
       const resolvedInput = (
-        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+        service as {
+          resolveStepInput: (step: unknown, run: unknown) => unknown;
+        }
       ).resolveStepInput(mockStep, run);
 
       expect(resolvedInput).toEqual({
@@ -431,7 +433,9 @@ describe('OrchestrationStepExecutorService', () => {
       };
 
       const resolvedInput = (
-        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+        service as {
+          resolveStepInput: (step: unknown, run: unknown) => unknown;
+        }
       ).resolveStepInput(step, run);
 
       expect(resolvedInput.userMessage).toContain('Summarize:');
@@ -449,7 +453,9 @@ describe('OrchestrationStepExecutorService', () => {
       };
 
       const resolvedInput = (
-        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+        service as {
+          resolveStepInput: (step: unknown, run: unknown) => unknown;
+        }
       ).resolveStepInput(step, run);
 
       expect(resolvedInput.userMessage).toBe('Value: ');
@@ -469,7 +475,9 @@ describe('OrchestrationStepExecutorService', () => {
       };
 
       const resolvedInput = (
-        service as { resolveStepInput: (step: unknown, run: unknown) => unknown }
+        service as {
+          resolveStepInput: (step: unknown, run: unknown) => unknown;
+        }
       ).resolveStepInput(step, run);
 
       expect(resolvedInput.data).toEqual({ nested: { value: 42 } });

@@ -122,10 +122,14 @@ export class EvaluationController {
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
   ): Promise<EnhancedMessageResponseDto[]> {
-    return this.evaluationService.getSessionEvaluations(user.userId, sessionId, {
-      minRating,
-      hasNotes,
-    });
+    return this.evaluationService.getSessionEvaluations(
+      user.userId,
+      sessionId,
+      {
+        minRating,
+        hasNotes,
+      },
+    );
   }
 
   @Get('agents/:agentIdentifier/llm-recommendations')

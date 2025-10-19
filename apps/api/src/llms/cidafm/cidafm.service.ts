@@ -94,11 +94,12 @@ export class CIDAFMService {
 
         // Transform user commands to match built-in command structure
         const transformedUserCommands = (userCommands || []).map(
-          (cmd: Record<string, unknown>) => ({
-            ...cmd,
-            default_active: false,
-            is_builtin: false,
-          } as unknown as CIDAFMCommandResponseDto),
+          (cmd: Record<string, unknown>) =>
+            ({
+              ...cmd,
+              default_active: false,
+              is_builtin: false,
+            }) as unknown as CIDAFMCommandResponseDto,
         );
 
         allCommands = [...allCommands, ...transformedUserCommands];
@@ -229,7 +230,9 @@ export class CIDAFMService {
       return null; // User doesn't have this command
     }
 
-    const userCommandTyped = userCommand as { cidafm_commands: Record<string, unknown> };
+    const userCommandTyped = userCommand as {
+      cidafm_commands: Record<string, unknown>;
+    };
     return {
       ...userCommandTyped.cidafm_commands,
       default_active: false,
@@ -321,9 +324,9 @@ export class CIDAFMService {
           );
           if (isActive) {
             // Toggle off
-            state.active_state_modifiers = (state.active_state_modifiers as string[]).filter(
-              (mod: string) => mod !== foundCommand.name,
-            );
+            state.active_state_modifiers = (
+              state.active_state_modifiers as string[]
+            ).filter((mod: string) => mod !== foundCommand.name);
             processingNotes.push(
               `Disabled state modifier: ${foundCommand.name}`,
             );

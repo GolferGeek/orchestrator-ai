@@ -105,9 +105,15 @@ export class RoutingPolicyAdapterService {
       orchestrationRunId: request.orchestrationRunId,
       organizationSlug: agent.organization_slug ?? null,
       userId: (metadata.userId ?? payload.userId ?? null) as string | null,
-      requestId: (metadata.requestId ?? payload.requestId ?? null) as string | null,
-      providerName: (metadata.providerName ?? payload.providerName ?? null) as string | null,
-      modelName: (metadata.modelName ?? payload.modelName ?? null) as string | null,
+      requestId: (metadata.requestId ?? payload.requestId ?? null) as
+        | string
+        | null,
+      providerName: (metadata.providerName ?? payload.providerName ?? null) as
+        | string
+        | null,
+      modelName: (metadata.modelName ?? payload.modelName ?? null) as
+        | string
+        | null,
       metadata,
       promptInputs: request.promptParameters ?? {},
     };

@@ -357,7 +357,10 @@ export class OrchestrationStepExecutorService {
 
     const mapping = this.outputMapper.map(
       agentResponse.payload,
-      (step.metadata?.outputMapping ?? undefined) as JsonObject | null | undefined,
+      (step.metadata?.outputMapping ?? undefined) as
+        | JsonObject
+        | null
+        | undefined,
     );
 
     let metadataPatch = this.buildMetadataPatch(
@@ -717,10 +720,8 @@ export class OrchestrationStepExecutorService {
     const stepConfigAny = stepConfig as unknown as { ttl_seconds?: unknown };
     const cachingTtlAny = caching as unknown as { ttl_seconds?: unknown };
     const ttl =
-      this.coerceNumber(
-        stepConfig?.ttlSeconds,
-        stepConfigAny?.ttl_seconds,
-      ) ?? this.coerceNumber(caching.ttlSeconds, cachingTtlAny?.ttl_seconds);
+      this.coerceNumber(stepConfig?.ttlSeconds, stepConfigAny?.ttl_seconds) ??
+      this.coerceNumber(caching.ttlSeconds, cachingTtlAny?.ttl_seconds);
 
     return {
       enabled: true,
@@ -768,8 +769,14 @@ export class OrchestrationStepExecutorService {
       hits: typeof cacheInfo.hits === 'number' ? cacheInfo.hits + 1 : 1,
       lastHitAt: timestamp,
       lastHitRunId: runId,
-      storedByRunId: (cacheInfo.storedByRunId as string | null | undefined) ?? sourceRunId ?? null,
-      storedStepId: (cacheInfo.storedStepId as string | null | undefined) ?? sourceStepId ?? null,
+      storedByRunId:
+        (cacheInfo.storedByRunId as string | null | undefined) ??
+        sourceRunId ??
+        null,
+      storedStepId:
+        (cacheInfo.storedStepId as string | null | undefined) ??
+        sourceStepId ??
+        null,
       storedAt: (cacheInfo.storedAt as string | undefined) ?? timestamp,
     };
 
@@ -945,7 +952,9 @@ export class OrchestrationStepExecutorService {
     const retryRaw: unknown = runtime.retry;
     const retryRuntime = this.asRecord(retryRaw) ?? {};
     const historyRaw: unknown = retryRuntime.history;
-    const historyArr = Array.isArray(historyRaw) ? (historyRaw as unknown[]) : [];
+    const historyArr = Array.isArray(historyRaw)
+      ? (historyRaw as unknown[])
+      : [];
     const history: unknown[] = [...historyArr];
 
     history.push({
@@ -1019,7 +1028,10 @@ export class OrchestrationStepExecutorService {
     const optionsArray: unknown = checkpoint.options;
     const questionValue: unknown = checkpoint.question;
     return {
-      question: typeof questionValue === 'object' && questionValue !== null ? JSON.stringify(questionValue) : String(questionValue),
+      question:
+        typeof questionValue === 'object' && questionValue !== null
+          ? JSON.stringify(questionValue)
+          : String(questionValue),
       options: Array.isArray(optionsArray)
         ? optionsArray.map((option: unknown) => {
             const opt = option as Record<string, unknown>;
@@ -1030,7 +1042,8 @@ export class OrchestrationStepExecutorService {
             return {
               action: actionRaw as OrchestrationCheckpointDecision,
               label: String(labelRaw),
-              allowsModification: typeof allowsMod === 'boolean' ? allowsMod : undefined,
+              allowsModification:
+                typeof allowsMod === 'boolean' ? allowsMod : undefined,
               description: typeof desc === 'string' ? desc : undefined,
             };
           })
@@ -1063,7 +1076,9 @@ export class OrchestrationStepExecutorService {
     const checkpointIdRaw: unknown = step.step_id ?? step.id;
     const checkpointId = `${String(checkpointIdRaw)}-checkpoint`;
 
-    const agentMeta = run.metadata?.agent as Record<string, unknown> | undefined;
+    const agentMeta = run.metadata?.agent as
+      | Record<string, unknown>
+      | undefined;
     const agentSlugRaw: unknown = agentMeta?.slug;
     const request = await this.checkpointService.requestCheckpoint({
       runId: run.id,
@@ -1097,9 +1112,15 @@ export class OrchestrationStepExecutorService {
       unknown
     >;
     const fallback: string | null =
-      (typeof requestMetadata.userId === 'string' ? requestMetadata.userId : null) ??
-      (typeof requestMetadata.createdBy === 'string' ? requestMetadata.createdBy : null) ??
-      (typeof process.env.SYSTEM_USER_ID === 'string' ? process.env.SYSTEM_USER_ID : null) ??
+      (typeof requestMetadata.userId === 'string'
+        ? requestMetadata.userId
+        : null) ??
+      (typeof requestMetadata.createdBy === 'string'
+        ? requestMetadata.createdBy
+        : null) ??
+      (typeof process.env.SYSTEM_USER_ID === 'string'
+        ? process.env.SYSTEM_USER_ID
+        : null) ??
       null;
     return fromRun ?? fallback;
   }
@@ -1559,14 +1580,17 @@ export class OrchestrationStepExecutorService {
       resolvedInput,
     };
 
-    return this.runtimeExecution.buildRunMetadata(baseMetadata as unknown as JsonObject, {
-      id: agentMetadata?.id ?? null,
-      slug: agentMetadata?.slug ?? '',
-      displayName: agentMetadata?.displayName ?? null,
-      type: agentMetadata?.type ?? null,
-      organizationSlug:
-        agentMetadata?.organizationSlug ?? run.organization_slug,
-    });
+    return this.runtimeExecution.buildRunMetadata(
+      baseMetadata as unknown as JsonObject,
+      {
+        id: agentMetadata?.id ?? null,
+        slug: agentMetadata?.slug ?? '',
+        displayName: agentMetadata?.displayName ?? null,
+        type: agentMetadata?.type ?? null,
+        organizationSlug:
+          agentMetadata?.organizationSlug ?? run.organization_slug,
+      },
+    );
   }
 
   private resolveStepInput(
@@ -1607,7 +1631,10 @@ export class OrchestrationStepExecutorService {
     };
   }
 
-  private interpolateValues(value: unknown, run: OrchestrationRunRecord): unknown {
+  private interpolateValues(
+    value: unknown,
+    run: OrchestrationRunRecord,
+  ): unknown {
     if (typeof value === 'string') {
       return this.interpolateString(value, run);
     }
@@ -1652,7 +1679,11 @@ export class OrchestrationStepExecutorService {
           return '';
         }
       }
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
         return String(value);
       }
       return '';

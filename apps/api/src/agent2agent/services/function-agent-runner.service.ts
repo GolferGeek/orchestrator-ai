@@ -101,11 +101,11 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
       }
 
       const config = definition.config as Record<string, unknown> | undefined;
-      const configuration = config?.configuration as Record<string, unknown> | undefined;
+      const configuration = config?.configuration as
+        | Record<string, unknown>
+        | undefined;
       const fnConfig: unknown =
-        configuration?.function ||
-        config?.function ||
-        {};
+        configuration?.function || config?.function || {};
 
       const prompt =
         request.userMessage ||
@@ -117,7 +117,9 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
       >;
       const metadata = request.metadata;
       const payload = request.payload;
-      const payloadMetadata = payload?.metadata as Record<string, unknown> | undefined;
+      const payloadMetadata = payload?.metadata as
+        | Record<string, unknown>
+        | undefined;
       const userIdFromMetadata: unknown = metadata?.userId;
       const userIdFromPayload: unknown = payloadMetadata?.userId;
       const userId: string | null =
@@ -127,7 +129,8 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         null;
       const conversationId = request.conversationId || null;
       const taskIdRaw: unknown = payload?.taskId;
-      const taskId: string | null = typeof taskIdRaw === 'string' ? taskIdRaw : null;
+      const taskId: string | null =
+        typeof taskIdRaw === 'string' ? taskIdRaw : null;
 
       const allowedModules = new Set(this.allowedModules);
       const moduleMap: Record<string, unknown> = {};
@@ -199,15 +202,21 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   private resolveFunctionCode(
     definition: AgentRuntimeDefinition,
   ): string | null {
-    const defRecord = definition as unknown as { record?: Record<string, unknown> };
+    const defRecord = definition as unknown as {
+      record?: Record<string, unknown>;
+    };
     const recordCodeRaw: unknown = defRecord.record?.function_code;
     if (typeof recordCodeRaw === 'string' && recordCodeRaw.trim().length > 0) {
       return recordCodeRaw;
     }
 
     const config = definition.config as Record<string, unknown> | undefined;
-    const configuration = config?.configuration as Record<string, unknown> | undefined;
-    const configFn = configuration?.function as Record<string, unknown> | undefined;
+    const configuration = config?.configuration as
+      | Record<string, unknown>
+      | undefined;
+    const configFn = configuration?.function as
+      | Record<string, unknown>
+      | undefined;
     const directFn = config?.function as Record<string, unknown> | undefined;
     const codeFromConfig: unknown = configFn?.code;
     const codeFromDirect: unknown = directFn?.code;
@@ -347,9 +356,14 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
     }
 
     let content: unknown =
-      typeof result === 'object' && result !== null ? { ...(result as Record<string, unknown>) } : result;
+      typeof result === 'object' && result !== null
+        ? { ...(result as Record<string, unknown>) }
+        : result;
 
-    const resultObj = (typeof result === 'object' && result !== null) ? result as Record<string, unknown> : undefined;
+    const resultObj =
+      typeof result === 'object' && result !== null
+        ? (result as Record<string, unknown>)
+        : undefined;
     const deliverableRaw: unknown = resultObj?.deliverable;
     const deliverable =
       typeof deliverableRaw === 'object' && deliverableRaw !== null

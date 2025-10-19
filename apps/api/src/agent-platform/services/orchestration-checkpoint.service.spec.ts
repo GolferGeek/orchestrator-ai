@@ -224,7 +224,10 @@ describe('OrchestrationCheckpointService', () => {
       'approved',
       'user-1',
       expect.objectContaining({
-        decision: expect.objectContaining({ action: 'continue' }) as Record<string, unknown>,
+        decision: expect.objectContaining({ action: 'continue' }) as Record<
+          string,
+          unknown
+        >,
       }) as Record<string, unknown>,
     );
     const emitMock1 = eventEmitter['emit'] as jest.Mock;

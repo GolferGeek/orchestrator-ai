@@ -90,7 +90,9 @@ export class TaskMessageService {
     const data = result;
 
     if (error || !data) {
-      throw new Error(`Failed to create task message: ${error?.message || 'No data returned'}`);
+      throw new Error(
+        `Failed to create task message: ${error?.message || 'No data returned'}`,
+      );
     }
 
     const taskMessage = this.mapToTaskMessage(data);
@@ -311,7 +313,11 @@ export class TaskMessageService {
     let lastMessageTime: Date | null = null;
 
     // Create event listener for new messages
-    const messageListener = (event: { taskId: string; userId: string; message: string }) => {
+    const messageListener = (event: {
+      taskId: string;
+      userId: string;
+      message: string;
+    }) => {
       if (event.taskId === taskId && event.userId === userId) {
         return event.message;
       }

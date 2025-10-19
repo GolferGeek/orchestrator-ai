@@ -171,7 +171,9 @@ export class OllamaLLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiResult.piiMetadata ?? undefined,
+          piiMetadata: (piiResult.piiMetadata ?? undefined) as unknown as
+            | Record<string, unknown>
+            | undefined,
           startTime,
           endTime,
         },
@@ -212,10 +214,14 @@ export class OllamaLLMService extends BaseLLMService {
       );
 
       const availableModels = modelsResponse.data.models || [];
-      const modelExists = (availableModels as Array<Record<string, unknown>>).some((m: Record<string, unknown>) => m.name === model);
+      const modelExists = (
+        availableModels as Array<Record<string, unknown>>
+      ).some((m: Record<string, unknown>) => m.name === model);
 
       if (!modelExists) {
-        const modelNames = (availableModels as Array<Record<string, unknown>>).map((m: Record<string, unknown>) => (m as { name: string }).name);
+        const modelNames = (
+          availableModels as Array<Record<string, unknown>>
+        ).map((m: Record<string, unknown>) => (m as { name: string }).name);
         return {
           success: false,
           message: `Model ${model} not found. Available models: ${modelNames.join(', ')}`,
@@ -346,7 +352,9 @@ export class OllamaLLMService extends BaseLLMService {
       const response = await firstValueFrom(
         this.httpService.get(`${this.ollamaBaseUrl}/api/tags`),
       );
-      const models = response.data.models as Array<{ name: string }> | undefined;
+      const models = response.data.models as
+        | Array<{ name: string }>
+        | undefined;
       return models?.map((model) => model.name) || [];
     } catch (error) {
       this.logger.error('Failed to get available models:', error);
@@ -370,7 +378,9 @@ export class OllamaLLMService extends BaseLLMService {
         firstValueFrom(this.httpService.get(`${this.ollamaBaseUrl}/api/tags`)),
       ]);
 
-      const models = modelsResponse.data.models as Array<{ name: string }> | undefined;
+      const models = modelsResponse.data.models as
+        | Array<{ name: string }>
+        | undefined;
       return {
         healthy: true,
         version: versionResponse.data.version as string | undefined,

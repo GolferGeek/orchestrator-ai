@@ -218,7 +218,9 @@ export class MCPController {
   /**
    * Validate JSON-RPC 2.0 request format
    */
-  private isValidJsonRpcRequest(request: unknown): request is MCPJsonRpcRequest {
+  private isValidJsonRpcRequest(
+    request: unknown,
+  ): request is MCPJsonRpcRequest {
     if (!request || typeof request !== 'object') {
       return false;
     }

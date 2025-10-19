@@ -15,9 +15,11 @@ This module provides Supabase-based authentication for the NestJS A2A Agent Fram
 ## API Endpoints
 
 ### POST /auth/signup
+
 Create a new user account.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -27,6 +29,7 @@ Create a new user account.
 ```
 
 **Response (201):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -37,6 +40,7 @@ Create a new user account.
 ```
 
 **Response (202):** Email confirmation required
+
 ```json
 {
   "message": "User created successfully. Please check your email to confirm your account before logging in."
@@ -44,9 +48,11 @@ Create a new user account.
 ```
 
 ### POST /auth/login
+
 Authenticate an existing user.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -55,6 +61,7 @@ Authenticate an existing user.
 ```
 
 **Response (200):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -65,9 +72,11 @@ Authenticate an existing user.
 ```
 
 ### POST /auth/logout
+
 Logout the current user (requires authentication).
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
@@ -75,14 +84,17 @@ Authorization: Bearer <access_token>
 **Response (204):** No content
 
 ### GET /auth/me
+
 Get current user profile (requires authentication).
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -178,4 +190,4 @@ This module integrates with Supabase Auth by:
 The auth endpoints are fully documented in Swagger. Access the documentation at:
 `http://localhost:4000/api`
 
-The Swagger UI includes a "Authorize" button where you can enter your JWT token for testing protected endpoints. 
+The Swagger UI includes a "Authorize" button where you can enter your JWT token for testing protected endpoints.

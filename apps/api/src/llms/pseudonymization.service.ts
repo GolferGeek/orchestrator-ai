@@ -243,7 +243,9 @@ export class PseudonymizationService {
   /**
    * Look up existing pseudonym mapping from database
    */
-  private async lookupExistingPseudonym(originalHash: string): Promise<{id: string; pseudonym: string; data_type: string} | null> {
+  private async lookupExistingPseudonym(
+    originalHash: string,
+  ): Promise<{ id: string; pseudonym: string; data_type: string } | null> {
     try {
       const client = this.supabaseService.getServiceClient();
       const { data, error } = await client
@@ -257,7 +259,11 @@ export class PseudonymizationService {
         throw error;
       }
 
-      return data as {id: string; pseudonym: string; data_type: string} | null;
+      return data as {
+        id: string;
+        pseudonym: string;
+        data_type: string;
+      } | null;
     } catch (error) {
       this.logger.error(
         `Database lookup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -461,9 +467,13 @@ export class PseudonymizationService {
   /**
    * Get random value from database result
    */
-  private getRandomFromResult(data: Array<Record<string, unknown>> | null): string | null {
+  private getRandomFromResult(
+    data: Array<Record<string, unknown>> | null,
+  ): string | null {
     if (!data || data.length === 0) return null;
-    const randomItem = data[Math.floor(Math.random() * data.length)] as { value?: string } | undefined;
+    const randomItem = data[Math.floor(Math.random() * data.length)] as
+      | { value?: string }
+      | undefined;
     return randomItem?.value || null;
   }
 

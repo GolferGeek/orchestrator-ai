@@ -1,6 +1,7 @@
 # Database Relationships & Join Patterns
 
 ## Overview
+
 This document defines the relationships between tables across both Core Platform and KPI domains, along with common join patterns for complex queries.
 
 ---
@@ -8,19 +9,22 @@ This document defines the relationships between tables across both Core Platform
 ## Core Domain Relationships
 
 ### User-Centric Relationships
+
 ```
 users (1) ←→ (many) conversations
-users (1) ←→ (many) tasks  
+users (1) ←→ (many) tasks
 users (1) ←→ (many) projects
 ```
 
 ### Conversation Flow
+
 ```
 conversations (1) ←→ (many) messages
 conversations (1) ←→ (many) tasks
 ```
 
 ### Project Structure
+
 ```
 projects (1) ←→ (many) deliverables
 tasks (1) ←→ (many) deliverables
@@ -31,11 +35,13 @@ tasks (1) ←→ (many) deliverables
 ## KPI Domain Relationships
 
 ### Company Hierarchy
+
 ```
 companies (1) ←→ (many) departments
 ```
 
 ### Metrics & Goals Structure
+
 ```
 departments (1) ←→ (many) kpi_goals
 departments (1) ←→ (many) kpi_data
@@ -44,6 +50,7 @@ kpi_metrics (1) ←→ (many) kpi_data
 ```
 
 ### Complete KPI Flow
+
 ```
 companies → departments → kpi_goals ← kpi_metrics
                       ↓              ↙
@@ -55,7 +62,9 @@ companies → departments → kpi_goals ← kpi_metrics
 ## Cross-Domain Relationships
 
 ### Task-Project Integration
+
 Tasks can reference projects via metadata:
+
 ```json
 {
   "project_id": "uuid",
@@ -65,14 +74,15 @@ Tasks can reference projects via metadata:
 ```
 
 ### Agent-Task Coordination
+
 ```sql
 -- Tasks assigned to specific agents
 SELECT * FROM tasks WHERE agent_name = 'metrics_agent';
 
 -- Agent performance tracking
-SELECT agent_name, COUNT(*) as tasks_completed 
-FROM tasks 
-WHERE status = 'completed' 
+SELECT agent_name, COUNT(*) as tasks_completed
+FROM tasks
+WHERE status = 'completed'
 GROUP BY agent_name;
 ```
 
@@ -81,18 +91,19 @@ GROUP BY agent_name;
 ## Common Join Patterns
 
 ### 1. User Dashboard Queries
+
 ```sql
 -- User's active conversations with recent messages
-SELECT c.id, c.title, c.agent_name, 
+SELECT c.id, c.title, c.agent_name,
        m.content as last_message,
        m.created_at as last_message_time
 FROM conversations c
 JOIN users u ON c.user_id = u.id
 LEFT JOIN LATERAL (
-  SELECT content, created_at 
-  FROM messages 
-  WHERE conversation_id = c.id 
-  ORDER BY created_at DESC 
+  SELECT content, created_at
+  FROM messages
+  WHERE conversation_id = c.id
+  ORDER BY created_at DESC
   LIMIT 1
 ) m ON true
 WHERE u.id = $1 AND c.status = 'active'
@@ -100,6 +111,7 @@ ORDER BY m.created_at DESC NULLS LAST;
 ```
 
 ### 2. Company Revenue Analysis
+
 ```sql
 -- Complete company revenue breakdown
 SELECT c.name as company,
@@ -112,7 +124,7 @@ SELECT c.name as company,
        MAX(kd.date_recorded) as latest_date
 FROM companies c
 JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id  
+JOIN kpi_data kd ON d.id = kd.department_id
 JOIN kpi_metrics km ON kd.metric_id = km.id
 WHERE km.metric_type = 'financial'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
@@ -120,16 +132,17 @@ GROUP BY c.id, c.name, c.industry, d.id, d.name, km.id, km.name
 ORDER BY c.name, total_value DESC;
 ```
 
-### 3. Performance vs Goals Analysis  
+### 3. Performance vs Goals Analysis
+
 ```sql
 -- Department performance against targets
 SELECT c.name as company,
-       d.name as department, 
+       d.name as department,
        km.name as metric,
        kg.target_value,
        AVG(kd.value) as actual_avg,
        (AVG(kd.value) / kg.target_value * 100) as performance_percentage,
-       CASE 
+       CASE
          WHEN AVG(kd.value) >= kg.target_value THEN 'Exceeding'
          WHEN AVG(kd.value) >= kg.target_value * 0.9 THEN 'Near Target'
          ELSE 'Below Target'
@@ -139,7 +152,7 @@ JOIN departments d ON c.id = d.company_id
 JOIN kpi_goals kg ON d.id = kg.department_id
 JOIN kpi_metrics km ON kg.metric_id = km.id
 JOIN kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
-WHERE kg.period_start <= CURRENT_DATE 
+WHERE kg.period_start <= CURRENT_DATE
   AND kg.period_end >= CURRENT_DATE
   AND kd.date_recorded BETWEEN kg.period_start AND kg.period_end
 GROUP BY c.id, c.name, d.id, d.name, km.id, km.name, kg.target_value
@@ -147,6 +160,7 @@ ORDER BY performance_percentage DESC;
 ```
 
 ### 4. Agent Activity & Task Correlation
+
 ```sql
 -- Agent performance with task outcomes
 SELECT t.agent_name,
@@ -164,6 +178,7 @@ ORDER BY completed_tasks DESC;
 ```
 
 ### 5. Project Deliverable Summary
+
 ```sql
 -- Complete project status with deliverables
 SELECT p.name as project,
@@ -187,22 +202,23 @@ ORDER BY p.created_at DESC;
 ## Advanced Join Patterns
 
 ### Temporal Analysis with Window Functions
+
 ```sql
 -- Revenue trends with period-over-period comparison
 SELECT c.name as company,
        DATE_TRUNC('month', kd.date_recorded) as month,
        SUM(kd.value) as monthly_revenue,
        LAG(SUM(kd.value), 1) OVER (
-         PARTITION BY c.id 
+         PARTITION BY c.id
          ORDER BY DATE_TRUNC('month', kd.date_recorded)
        ) as previous_month_revenue,
-       CASE 
+       CASE
          WHEN LAG(SUM(kd.value), 1) OVER (
-           PARTITION BY c.id 
+           PARTITION BY c.id
            ORDER BY DATE_TRUNC('month', kd.date_recorded)
          ) > 0 THEN
            ((SUM(kd.value) / LAG(SUM(kd.value), 1) OVER (
-             PARTITION BY c.id 
+             PARTITION BY c.id
              ORDER BY DATE_TRUNC('month', kd.date_recorded)
            )) - 1) * 100
          ELSE NULL
@@ -218,6 +234,7 @@ ORDER BY c.name, month;
 ```
 
 ### Cross-Domain Analysis: User-Agent-KPI
+
 ```sql
 -- Users who frequently request KPI analysis
 SELECT u.email,
@@ -241,26 +258,29 @@ ORDER BY kpi_conversations DESC;
 ## Join Performance Guidelines
 
 ### Optimization Tips
+
 1. **Always filter early**: Use WHERE clauses before JOINs when possible
-2. **Use appropriate indexes**: Ensure foreign key columns are indexed  
+2. **Use appropriate indexes**: Ensure foreign key columns are indexed
 3. **Limit result sets**: Always use LIMIT unless you need all results
 4. **Join order matters**: Start with most selective table
 
 ### Common Anti-Patterns to Avoid
+
 ```sql
 -- ❌ BAD: Cross join without proper WHERE
 SELECT * FROM companies, departments, kpi_data;
 
--- ❌ BAD: No date filtering on large kpi_data table  
+-- ❌ BAD: No date filtering on large kpi_data table
 SELECT * FROM kpi_data kd JOIN kpi_metrics km ON kd.metric_id = km.id;
 
 -- ❌ BAD: Missing LIMIT on potentially large result
-SELECT c.*, d.*, kd.* FROM companies c 
+SELECT c.*, d.*, kd.* FROM companies c
 JOIN departments d ON c.id = d.company_id
 JOIN kpi_data kd ON d.id = kd.department_id;
 ```
 
 ### Recommended Patterns
+
 ```sql
 -- ✅ GOOD: Filter first, then join
 SELECT c.name, SUM(kd.value) as revenue
@@ -268,7 +288,7 @@ FROM companies c
 JOIN departments d ON c.id = d.company_id
 JOIN kpi_data kd ON d.id = kd.department_id
 JOIN kpi_metrics km ON kd.metric_id = km.id
-WHERE km.name = 'Revenue' 
+WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
 GROUP BY c.id, c.name
 ORDER BY revenue DESC
@@ -280,14 +300,18 @@ LIMIT 10;
 ## Schema Evolution Considerations
 
 ### Foreign Key Constraints
+
 All relationships use UUID foreign keys with CASCADE deletes where appropriate:
+
 - Deleting a user cascades to conversations, tasks, projects
-- Deleting a company cascades to departments  
+- Deleting a company cascades to departments
 - Deleting a department cascades to kpi_goals and kpi_data
 
 ### Indexing Strategy
+
 Foreign key columns are automatically indexed, plus additional indexes for:
+
 - Temporal queries (date_recorded, created_at)
-- Status filtering (status, is_active)  
+- Status filtering (status, is_active)
 - User isolation (user_id)
 - Agent coordination (agent_name, agent_type)

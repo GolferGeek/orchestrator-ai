@@ -49,9 +49,10 @@ export class AgentCardBuilderService {
           external: extSnap[`external:${agent.slug}`] ?? null,
         };
         combined.metadata = {
-          ...(combined.metadata as Record<string, unknown> || {}),
+          ...((combined.metadata as Record<string, unknown>) || {}),
           operations: {
-            ...((combined.metadata as Record<string, unknown>)?.operations as Record<string, unknown> || {}),
+            ...(((combined.metadata as Record<string, unknown>)
+              ?.operations as Record<string, unknown>) || {}),
             // Provide a stable location for ops metrics; safe numeric summaries only
             metrics,
           },
@@ -159,7 +160,10 @@ export class AgentCardBuilderService {
     return merged;
   }
 
-  private mergeCapabilities(existing: unknown, computed: unknown): Record<string, unknown> {
+  private mergeCapabilities(
+    existing: unknown,
+    computed: unknown,
+  ): Record<string, unknown> {
     if (!existing) {
       return computed as Record<string, unknown>;
     }
@@ -173,7 +177,7 @@ export class AgentCardBuilderService {
     const declared = Array.from(
       new Set(
         [
-          ...(computedRecord?.declared as unknown[] ?? []),
+          ...((computedRecord?.declared as unknown[]) ?? []),
           ...(this.ensureStringArray(normalizedExisting.declared) ?? []),
         ].filter(Boolean),
       ),
@@ -186,7 +190,7 @@ export class AgentCardBuilderService {
       extensions: Array.from(
         new Set(
           [
-            ...(computedRecord?.extensions as unknown[] ?? []),
+            ...((computedRecord?.extensions as unknown[]) ?? []),
             ...(this.ensureStringArray(normalizedExisting.extensions) ?? []),
           ].filter(Boolean),
         ),
@@ -230,9 +234,13 @@ export class AgentCardBuilderService {
 
   private deriveSupportedModes(agent: AgentRecord): string[] {
     const sources: Array<string[] | null> = [
-      this.ensureStringArray((agent.config as Record<string, unknown>)?.supported_modes),
+      this.ensureStringArray(
+        (agent.config as Record<string, unknown>)?.supported_modes,
+      ),
       this.ensureStringArray((agent.config as Record<string, unknown>)?.modes),
-      this.ensureStringArray((agent.context as Record<string, unknown>)?.supported_modes),
+      this.ensureStringArray(
+        (agent.context as Record<string, unknown>)?.supported_modes,
+      ),
       this.ensureStringArray((agent.context as Record<string, unknown>)?.modes),
       this.modesFromProfile(agent.mode_profile),
     ];
@@ -425,7 +433,10 @@ export class AgentCardBuilderService {
     return trimmed.length ? trimmed : null;
   }
 
-  private lookupBoolean(source: Record<string, unknown>, path: string[]): boolean {
+  private lookupBoolean(
+    source: Record<string, unknown>,
+    path: string[],
+  ): boolean {
     let cursor: unknown = source;
     for (const segment of path) {
       if (cursor == null || typeof cursor !== 'object') {
@@ -436,22 +447,22 @@ export class AgentCardBuilderService {
     return Boolean(cursor);
   }
 
-  private stripPrivateFields(card: Record<string, unknown>): Record<string, unknown> {
+  private stripPrivateFields(
+    card: Record<string, unknown>,
+  ): Record<string, unknown> {
     const clone = JSON.parse(JSON.stringify(card)) as Record<string, unknown>;
 
     delete clone.internal;
     delete clone.debug;
     if (Array.isArray(clone.security)) {
-      clone.security = clone.security.map(
-        (entry: unknown): unknown => {
-          if (!entry || typeof entry !== 'object') {
-            return entry;
-          }
-          const sanitized = { ...(entry as Record<string, unknown>) };
-          delete sanitized.private;
-          return sanitized;
-        },
-      );
+      clone.security = clone.security.map((entry: unknown): unknown => {
+        if (!entry || typeof entry !== 'object') {
+          return entry;
+        }
+        const sanitized = { ...(entry as Record<string, unknown>) };
+        delete sanitized.private;
+        return sanitized;
+      });
     }
 
     if (clone.metadata && typeof clone.metadata === 'object') {

@@ -111,9 +111,11 @@ export async function handleBuildRead(
         );
       }
 
-      const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as unknown[];
+      const versions = ((listResult.data as Record<string, unknown>).versions ??
+        []) as unknown[];
       const targetVersion = versions.find(
-        (version) => (version as Record<string, unknown>).id === payload.versionId,
+        (version) =>
+          (version as Record<string, unknown>).id === payload.versionId,
       );
 
       if (!targetVersion) {
@@ -124,7 +126,11 @@ export async function handleBuildRead(
       }
 
       const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
-        deliverableMetadata: buildDeliverableMetadata((targetVersion as Record<string, unknown>).content as string | undefined),
+        deliverableMetadata: buildDeliverableMetadata(
+          (targetVersion as Record<string, unknown>).content as
+            | string
+            | undefined,
+        ),
         requestedVersionId: payload.versionId,
         conversationId,
       });
@@ -160,7 +166,9 @@ export async function handleBuildRead(
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        ((responseVersion as Record<string, unknown> | undefined)?.content as string | undefined) ?? '',
+        ((responseVersion as Record<string, unknown> | undefined)?.content as
+          | string
+          | undefined) ?? '',
       ),
       conversationId,
     });
@@ -227,7 +235,8 @@ export async function handleBuildList(
       definition,
       userId,
     );
-    const rawVersions = (listResult.data as { versions?: unknown[] }).versions ?? [];
+    const rawVersions =
+      (listResult.data as { versions?: unknown[] }).versions ?? [];
     const versions = rawVersions.map((version: unknown) =>
       serializeDeliverableVersion(version),
     );
@@ -329,7 +338,8 @@ export async function handleBuildEdit(
     const editResultData = editResult.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        ((editResultData.version as Record<string, unknown> | undefined)?.content as string | undefined) ?? '',
+        ((editResultData.version as Record<string, unknown> | undefined)
+          ?.content as string | undefined) ?? '',
       ),
       source: 'manual-edit',
     });
@@ -417,9 +427,11 @@ export async function handleBuildRerun(
       );
     }
 
-    const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as unknown[];
+    const versions = ((listResult.data as Record<string, unknown>).versions ??
+      []) as unknown[];
     const sourceVersion = versions.find(
-      (version) => (version as Record<string, unknown>).id === payload.versionId,
+      (version) =>
+        (version as Record<string, unknown>).id === payload.versionId,
     );
 
     if (!sourceVersion) {
@@ -441,12 +453,19 @@ export async function handleBuildRerun(
     const rerunPayload = {
       action: 'create' as const,
       title:
-        ((request.payload as Record<string, unknown>)?.title as string | undefined) ??
+        ((request.payload as Record<string, unknown>)?.title as
+          | string
+          | undefined) ??
         deliverableRecord.title ??
         'Deliverable',
       type:
-        ((request.payload as Record<string, unknown>)?.type as string | undefined) ?? deliverableRecord.type ?? 'document',
-      planVersionId: (request.payload as Record<string, unknown>)?.planVersionId,
+        ((request.payload as Record<string, unknown>)?.type as
+          | string
+          | undefined) ??
+        deliverableRecord.type ??
+        'document',
+      planVersionId: (request.payload as Record<string, unknown>)
+        ?.planVersionId,
       deliverableId: deliverableRecord.id,
       rerunConfig: payload.rerunConfig,
       rerunContext: {
@@ -487,7 +506,9 @@ export async function handleBuildRerun(
       },
     );
 
-    const payloadContent = rerunResponse.payload.content as Record<string, unknown> | undefined;
+    const payloadContent = rerunResponse.payload.content as
+      | Record<string, unknown>
+      | undefined;
     const content: Record<string, unknown> = {
       ...(payloadContent ?? {}),
       sourceVersionId: payload.versionId,
@@ -554,7 +575,8 @@ export async function handleBuildSetCurrent(
     const resultData = result.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
-        ((resultData.version as Record<string, unknown> | undefined)?.content as string | undefined) ?? '',
+        ((resultData.version as Record<string, unknown> | undefined)
+          ?.content as string | undefined) ?? '',
       ),
       updatedVersionId: payload.versionId,
     });
@@ -630,9 +652,9 @@ export async function handleBuildDeleteVersion(
       userId,
     );
 
-    const rawRemainingVersions = (
-      deleteResult.data as { remainingVersions?: unknown[] }
-    ).remainingVersions ?? [];
+    const rawRemainingVersions =
+      (deleteResult.data as { remainingVersions?: unknown[] })
+        .remainingVersions ?? [];
     const remainingVersions = rawRemainingVersions.map((version: unknown) =>
       serializeDeliverableVersion(version),
     );
@@ -734,10 +756,17 @@ export async function handleBuildMergeVersions(
       );
     }
 
-    const versions = ((listResult.data as Record<string, unknown>).versions ?? []) as unknown[];
+    const versions = ((listResult.data as Record<string, unknown>).versions ??
+      []) as unknown[];
     const sourceVersions = payload.versionIds
-      .map((versionId) => versions.find((version) => (version as Record<string, unknown>).id === versionId))
-      .filter((version): version is Record<string, unknown> => Boolean(version));
+      .map((versionId) =>
+        versions.find(
+          (version) => (version as Record<string, unknown>).id === versionId,
+        ),
+      )
+      .filter((version): version is Record<string, unknown> =>
+        Boolean(version),
+      );
 
     if (sourceVersions.length !== payload.versionIds.length) {
       return TaskResponseDto.failure(
@@ -759,12 +788,19 @@ export async function handleBuildMergeVersions(
     const mergePayload = {
       action: 'create' as const,
       title:
-        ((request.payload as Record<string, unknown>)?.title as string | undefined) ??
+        ((request.payload as Record<string, unknown>)?.title as
+          | string
+          | undefined) ??
         deliverableRecord.title ??
         'Deliverable',
       type:
-        ((request.payload as Record<string, unknown>)?.type as string | undefined) ?? deliverableRecord.type ?? 'document',
-      planVersionId: (request.payload as Record<string, unknown>)?.planVersionId,
+        ((request.payload as Record<string, unknown>)?.type as
+          | string
+          | undefined) ??
+        deliverableRecord.type ??
+        'document',
+      planVersionId: (request.payload as Record<string, unknown>)
+        ?.planVersionId,
       deliverableId: deliverableRecord.id,
       mergeContext: {
         versionIds: payload.versionIds,
@@ -806,7 +842,9 @@ export async function handleBuildMergeVersions(
       },
     );
 
-    const mergePayloadContent = mergeResponse.payload.content as Record<string, unknown> | undefined;
+    const mergePayloadContent = mergeResponse.payload.content as
+      | Record<string, unknown>
+      | undefined;
     const content: Record<string, unknown> = {
       ...(mergePayloadContent ?? {}),
       sourceVersionIds: payload.versionIds,
@@ -873,7 +911,9 @@ export async function handleBuildCopyVersion(
     const copyResultData = copyResult.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       sourceVersionId: payload.versionId,
-      copiedVersionId: (copyResultData.copiedVersion as Record<string, unknown> | undefined)?.id,
+      copiedVersionId: (
+        copyResultData.copiedVersion as Record<string, unknown> | undefined
+      )?.id,
     });
 
     const targetDeliverable =
@@ -1222,7 +1262,8 @@ function serializeDeliverable(
   const d = deliverable as Record<string, unknown>;
   const createdAtRaw: unknown = d.createdAt ?? d.created_at;
   const createdAt = toIsoString(
-    (typeof createdAtRaw === 'string' ? createdAtRaw : null) ?? new Date().toISOString(),
+    (typeof createdAtRaw === 'string' ? createdAtRaw : null) ??
+      new Date().toISOString(),
   );
   const updatedAtRaw: unknown = d.updatedAt ?? d.updated_at;
   const updatedAt = toIsoString(
@@ -1247,11 +1288,9 @@ function serializeDeliverable(
 
   return {
     id: d.id as string,
-    conversationId:
-      (d.conversationId ?? d.conversation_id ?? '') as string,
+    conversationId: (d.conversationId ?? d.conversation_id ?? '') as string,
     userId: userId as string,
-    agentName:
-      (d.agentName ??
+    agentName: (d.agentName ??
       d.agent_name ??
       definition.displayName ??
       definition.slug) as string,
@@ -1281,18 +1320,15 @@ function serializeDeliverableVersion(
   return {
     id: v.id as string,
     deliverableId: (v.deliverableId ?? v.deliverable_id ?? '') as string,
-    versionNumber: numberOrZero(
-      v.versionNumber ?? v.version_number ?? 1,
-      1,
-    ),
+    versionNumber: numberOrZero(v.versionNumber ?? v.version_number ?? 1, 1),
     content: (v.content ?? '') as string,
     format: normalizedFormat,
-    createdByType: (v.createdByType ?? v.created_by_type ?? 'agent') as 'agent' | 'user',
+    createdByType: (v.createdByType ?? v.created_by_type ?? 'agent') as
+      | 'agent'
+      | 'user',
     createdById: (v.createdById ?? v.created_by_id ?? null) as string | null,
     metadata: (v.metadata ?? undefined) as JsonObject | undefined,
-    isCurrentVersion: Boolean(
-      v.isCurrentVersion ?? v.is_current_version,
-    ),
+    isCurrentVersion: Boolean(v.isCurrentVersion ?? v.is_current_version),
     createdAt: toIsoString(v.createdAt ?? v.created_at),
   };
 }

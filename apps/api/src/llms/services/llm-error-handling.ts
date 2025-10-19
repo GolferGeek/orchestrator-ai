@@ -891,9 +891,18 @@ export class LLMErrorMonitor {
         error.provider === provider && new Date(error.timestamp) > cutoffTime,
     );
 
-    const errorsByType: Record<LLMErrorType, number> = {} as Record<LLMErrorType, number>;
-    const errorsBySeverity: Record<LLMErrorSeverity, number> = {} as Record<LLMErrorSeverity, number>;
-    const errorsByCategory: Record<LLMErrorCategory, number> = {} as Record<LLMErrorCategory, number>;
+    const errorsByType: Record<LLMErrorType, number> = {} as Record<
+      LLMErrorType,
+      number
+    >;
+    const errorsBySeverity: Record<LLMErrorSeverity, number> = {} as Record<
+      LLMErrorSeverity,
+      number
+    >;
+    const errorsByCategory: Record<LLMErrorCategory, number> = {} as Record<
+      LLMErrorCategory,
+      number
+    >;
     let retryableErrors = 0;
 
     relevantErrors.forEach((error) => {

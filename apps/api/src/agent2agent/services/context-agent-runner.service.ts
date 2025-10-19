@@ -357,7 +357,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           deliverableStructureApplied: Boolean(deliverableStructure),
           ioSchemaApplied: Boolean(outputSchema),
           deliverableMetadata: buildDeliverableMetadata(
-            (createResult.data as { version?: { content?: unknown } }).version?.content ?? finalContent,
+            (createResult.data as { version?: { content?: unknown } }).version
+              ?.content ?? finalContent,
           ),
           rerun: payload.rerunContext
             ? {
@@ -651,11 +652,19 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       payloadAny.currentProvider ?? payload.rerunConfig?.provider;
     const modelName = payloadAny.currentModel ?? payload.rerunConfig?.model;
 
-    if (providerName && typeof providerName === 'string' && providerName.trim().length > 0) {
+    if (
+      providerName &&
+      typeof providerName === 'string' &&
+      providerName.trim().length > 0
+    ) {
       config.providerName = providerName.trim();
     }
 
-    if (modelName && typeof modelName === 'string' && modelName.trim().length > 0) {
+    if (
+      modelName &&
+      typeof modelName === 'string' &&
+      modelName.trim().length > 0
+    ) {
       config.modelName = modelName.trim();
     }
 
@@ -747,7 +756,11 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     ];
 
     for (const key of wrapperKeys) {
-      if (key in parsedObj && parsedObj[key] && typeof parsedObj[key] === 'object') {
+      if (
+        key in parsedObj &&
+        parsedObj[key] &&
+        typeof parsedObj[key] === 'object'
+      ) {
         const deliverableData = parsedObj[key] as Record<string, unknown>;
 
         // If the deliverable has a 'content' field, extract just that (the markdown)
@@ -873,7 +886,11 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       ];
 
       for (const key of wrapperKeys) {
-        if (key in parsedObj && parsedObj[key] && typeof parsedObj[key] === 'object') {
+        if (
+          key in parsedObj &&
+          parsedObj[key] &&
+          typeof parsedObj[key] === 'object'
+        ) {
           const deliverableData = parsedObj[key] as Record<string, unknown>;
           if (
             'title' in deliverableData &&

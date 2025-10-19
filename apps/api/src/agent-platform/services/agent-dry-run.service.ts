@@ -162,7 +162,11 @@ export class AgentDryRunService {
         return JSON.stringify(v);
       }
       // Handle primitives (string, number, boolean, symbol)
-      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+      if (
+        typeof v === 'string' ||
+        typeof v === 'number' ||
+        typeof v === 'boolean'
+      ) {
         return String(v);
       }
       // Fallback for any other types

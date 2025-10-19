@@ -253,7 +253,9 @@ export class Agent2AgentTasksService {
       const task = data as TaskDbRecord | null;
 
       if (taskError || !task) {
-        throw new Error(`Failed to create task: ${(taskError as { message?: string })?.message || 'No data returned'}`);
+        throw new Error(
+          `Failed to create task: ${(taskError as { message?: string })?.message || 'No data returned'}`,
+        );
       }
 
       this.logger.debug(
@@ -313,7 +315,14 @@ export class Agent2AgentTasksService {
       const data: unknown = response.data;
       const error: unknown = response.error;
 
-      const task = data as (TaskDbRecord & { conversations: Pick<ConversationDbRecord, 'agent_name' | 'agent_type' | 'organization_slug'> }) | null;
+      const task = data as
+        | (TaskDbRecord & {
+            conversations: Pick<
+              ConversationDbRecord,
+              'agent_name' | 'agent_type' | 'organization_slug'
+            >;
+          })
+        | null;
 
       if (error || !task) {
         return null;
@@ -361,7 +370,7 @@ export class Agent2AgentTasksService {
         throw new Error(`Failed to get conversation tasks: ${error.message}`);
       }
 
-      return (tasks || []).map(task => {
+      return (tasks || []).map((task) => {
         const taskParams = task.params as unknown as TaskParams;
         return {
           id: task.id,

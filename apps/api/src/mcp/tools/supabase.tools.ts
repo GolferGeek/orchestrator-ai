@@ -231,7 +231,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Get database schema information
    */
-  private async getSchema(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async getSchema(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { table_name, include_system = false } = args;
 
     try {
@@ -248,7 +250,10 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       `;
 
       if (table_name) {
-        const tableName = typeof table_name === 'string' ? table_name : JSON.stringify(table_name);
+        const tableName =
+          typeof table_name === 'string'
+            ? table_name
+            : JSON.stringify(table_name);
         query += ` AND table_name = '${tableName}'`;
       }
 
@@ -299,7 +304,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Execute SQL query
    */
-  private async executeSql(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async executeSql(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { query, params = [] } = args;
 
     try {
@@ -348,7 +355,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Read data from table
    */
-  private async readData(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async readData(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const {
       table_name,
       columns = ['*'],
@@ -421,7 +430,9 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Query and format results
    */
-  private async queryAndFormat(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async queryAndFormat(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { query, format = 'table', analysis_type = 'raw' } = args;
 
     try {
@@ -529,7 +540,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   /**
    * Format data according to specified format
    */
-  private formatData(data: unknown, format: string, analysisType?: string): string {
+  private formatData(
+    data: unknown,
+    format: string,
+    analysisType?: string,
+  ): string {
     switch (format) {
       case 'json':
         return JSON.stringify(data, null, 2);
@@ -563,7 +578,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           if (value == null) return 0;
           if (typeof value === 'object') return JSON.stringify(value).length;
           if (typeof value === 'string') return value.length;
-          if (typeof value === 'number' || typeof value === 'boolean') return String(value).length;
+          if (typeof value === 'number' || typeof value === 'boolean')
+            return String(value).length;
           return 0;
         }),
       ),
@@ -590,9 +606,12 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           .map((key, i) => {
             const value = rowRec[key];
             if (value == null) return ''.padEnd(maxWidths[i] || 0);
-            if (typeof value === 'object') return JSON.stringify(value).padEnd(maxWidths[i] || 0);
-            if (typeof value === 'string') return value.padEnd(maxWidths[i] || 0);
-            if (typeof value === 'number' || typeof value === 'boolean') return String(value).padEnd(maxWidths[i] || 0);
+            if (typeof value === 'object')
+              return JSON.stringify(value).padEnd(maxWidths[i] || 0);
+            if (typeof value === 'string')
+              return value.padEnd(maxWidths[i] || 0);
+            if (typeof value === 'number' || typeof value === 'boolean')
+              return String(value).padEnd(maxWidths[i] || 0);
             return ''.padEnd(maxWidths[i] || 0);
           })
           .join(' | ') +

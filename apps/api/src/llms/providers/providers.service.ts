@@ -57,7 +57,7 @@ export class ProvidersService {
       );
     }
 
-    const rows = data as Array<{name: string}> | null;
+    const rows = data as Array<{ name: string }> | null;
     const result = (rows || []).map((row) => ({ name: row.name }));
 
     // Cache the result

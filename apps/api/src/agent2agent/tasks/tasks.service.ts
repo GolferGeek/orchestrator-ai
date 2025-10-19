@@ -226,7 +226,9 @@ export class TasksService {
     const data = taskData;
 
     if (error && error.code !== 'PGRST116') {
-      throw new Error(`Failed to fetch task: ${error.message || 'Unknown error'}`);
+      throw new Error(
+        `Failed to fetch task: ${error.message || 'Unknown error'}`,
+      );
     }
 
     const result = data ? this.mapToTask(data) : null;
@@ -467,9 +469,7 @@ export class TasksService {
   /**
    * Get task metrics and analytics for the user
    */
-  async getTaskMetrics(
-    userId: string,
-  ): Promise<Record<string, unknown>> {
+  async getTaskMetrics(userId: string): Promise<Record<string, unknown>> {
     try {
       const { data: result, error } = await this.supabaseService
         .getAnonClient()
@@ -488,24 +488,25 @@ export class TasksService {
 
       // Calculate basic metrics
       const totalTasks = typedTasks.length;
-      const completedTasks =
-        typedTasks.filter((task) => task.status === 'completed').length;
-      const activeTasks =
-        typedTasks.filter((task) => ['pending', 'running'].includes(task.status))
-          .length;
-      const failedTasks =
-        typedTasks.filter((task) => task.status === 'failed').length;
+      const completedTasks = typedTasks.filter(
+        (task) => task.status === 'completed',
+      ).length;
+      const activeTasks = typedTasks.filter((task) =>
+        ['pending', 'running'].includes(task.status),
+      ).length;
+      const failedTasks = typedTasks.filter(
+        (task) => task.status === 'failed',
+      ).length;
 
       // Calculate success rate
       const successRate =
         totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 100;
 
       // Calculate average completion time (for completed tasks)
-      const completedTasksWithTimes =
-        typedTasks.filter(
-          (task) =>
-            task.status === 'completed' && task.created_at && task.updated_at,
-        );
+      const completedTasksWithTimes = typedTasks.filter(
+        (task) =>
+          task.status === 'completed' && task.created_at && task.updated_at,
+      );
 
       const averageCompletionTime =
         completedTasksWithTimes.length > 0

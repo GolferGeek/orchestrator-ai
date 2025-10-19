@@ -70,7 +70,10 @@ export class Agent2AgentTaskStatusService {
           .single();
 
         const currentTask = data as Pick<TaskDbRecord, 'params'> | null;
-        const currentParams = (currentTask?.params as Record<string, unknown> & { status_data?: Record<string, unknown> }) || {};
+        const currentParams =
+          (currentTask?.params as Record<string, unknown> & {
+            status_data?: Record<string, unknown>;
+          }) || {};
         const currentStatusData = currentParams.status_data || {};
 
         updateData.params = {
@@ -208,22 +211,29 @@ export class Agent2AgentTaskStatusService {
         .eq('user_id', userId)
         .single();
 
-      const task = data as Pick<TaskDbRecord, 'status' | 'response' | 'params'> & { error?: string } | null;
+      const task = data as
+        | (Pick<TaskDbRecord, 'status' | 'response' | 'params'> & {
+            error?: string;
+          })
+        | null;
 
       if (error || !task) {
         return null;
       }
 
-      const taskParams = task.params as Record<string, unknown> & { status_data?: Record<string, unknown> };
-      const statusData = (taskParams?.status_data as Record<string, unknown>) || {};
+      const taskParams = task.params as Record<string, unknown> & {
+        status_data?: Record<string, unknown>;
+      };
+      const statusData =
+        (taskParams?.status_data as Record<string, unknown>) || {};
 
       return {
         status: task.status,
-        progress: (statusData.progress as number | undefined),
-        progressMessage: (statusData.progressMessage as string | undefined),
+        progress: statusData.progress as number | undefined,
+        progressMessage: statusData.progressMessage as string | undefined,
         response: task.response,
         error: task.error,
-        metadata: (statusData.metadata as Record<string, unknown> | undefined),
+        metadata: statusData.metadata as Record<string, unknown> | undefined,
       };
     } catch (error) {
       this.logger.error(`Failed to get A2A task ${taskId} status:`, error);

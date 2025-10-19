@@ -55,12 +55,19 @@ export class AgentApprovalsActionsController {
       );
     }
 
-    const reqUser = (req as unknown as { user?: { sub?: string; id?: string; userId?: string } }).user;
+    const reqUser = (
+      req as unknown as {
+        user?: { sub?: string; id?: string; userId?: string };
+      }
+    ).user;
     const userId = reqUser?.sub ?? reqUser?.id ?? reqUser?.userId ?? null;
     await this.approvals.setStatus(id, 'approved', userId);
 
     // Rehydrate the stored request and allow minimal overrides
-    const metadata = record.metadata as Record<string, unknown> | null | undefined;
+    const metadata = record.metadata as
+      | Record<string, unknown>
+      | null
+      | undefined;
     const stored: StoredRequest = (metadata?.request as StoredRequest) || {};
     const request = {
       mode: 'build' as const,
@@ -110,7 +117,8 @@ export class AgentApprovalsActionsController {
       payload: {
         ...(responseAny.payload as Record<string, unknown>),
         metadata: {
-          ...((responseAny.payload as Record<string, unknown>)?.metadata as Record<string, unknown> || {}),
+          ...(((responseAny.payload as Record<string, unknown>)
+            ?.metadata as Record<string, unknown>) || {}),
           approvalId: id,
           approvalStatus: 'approved',
         } as Record<string, unknown>,

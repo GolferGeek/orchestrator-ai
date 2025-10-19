@@ -219,7 +219,7 @@ export class WebhooksController {
               progress: 100,
               progressMessage:
                 update.message || 'Workflow completed successfully',
-              response: finalResults,
+              response: finalResults ? JSON.stringify(finalResults) : undefined,
             });
 
             this.logger.log(

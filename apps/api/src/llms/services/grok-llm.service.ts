@@ -152,7 +152,9 @@ export class GrokLLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiMetadata ?? undefined,
+          piiMetadata: (piiMetadata ?? undefined) as unknown as
+            | Record<string, unknown>
+            | undefined,
           startTime,
           endTime,
         },
@@ -189,7 +191,9 @@ export class GrokLLMService extends BaseLLMService {
     endTime: number,
     requestId: string,
   ): GrokResponseMetadata {
-    const choice = (completion.choices as unknown[] | undefined)?.[0] as Record<string, unknown> | undefined;
+    const choice = (completion.choices as unknown[] | undefined)?.[0] as
+      | Record<string, unknown>
+      | undefined;
     const usage = completion.usage as Record<string, unknown> | undefined;
 
     return {
@@ -217,7 +221,11 @@ export class GrokLLMService extends BaseLLMService {
       status: 'completed',
       // Grok-specific fields
       providerSpecific: {
-        finish_reason: choice?.finish_reason as 'stop' | 'length' | 'content_filter' | 'tool_calls',
+        finish_reason: choice?.finish_reason as
+          | 'stop'
+          | 'length'
+          | 'content_filter'
+          | 'tool_calls',
         system_fingerprint: completion.system_fingerprint as string | undefined,
         model_version: completion.model as string | undefined,
         // Include actual token counts from Grok
@@ -285,11 +293,11 @@ export class GrokLLMService extends BaseLLMService {
   protected handleError(error: unknown, context: string): never {
     // Handle Grok-specific errors
     const errorObj = error as Record<string, unknown> | undefined;
-    if (((errorObj?.message) as string | undefined)?.includes('401')) {
+    if ((errorObj?.message as string | undefined)?.includes('401')) {
       throw new Error(`${context}: Invalid Grok API key`);
-    } else if (((errorObj?.message) as string | undefined)?.includes('429')) {
+    } else if ((errorObj?.message as string | undefined)?.includes('429')) {
       throw new Error(`${context}: Rate limit exceeded for Grok API`);
-    } else if (((errorObj?.message) as string | undefined)?.includes('400')) {
+    } else if ((errorObj?.message as string | undefined)?.includes('400')) {
       throw new Error(`${context}: Invalid request to Grok API`);
     }
 

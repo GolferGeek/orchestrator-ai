@@ -496,7 +496,11 @@ export class RunMetadataService {
         .eq('status', 'completed')
         .gte('started_at', last24Hours);
 
-      const recentRuns = result as Array<{ duration_ms?: number; input_cost?: number; output_cost?: number }> | null;
+      const recentRuns = result as Array<{
+        duration_ms?: number;
+        input_cost?: number;
+        output_cost?: number;
+      }> | null;
 
       if (recentError) {
         this.logger.error('Error fetching recent runs:', recentError);

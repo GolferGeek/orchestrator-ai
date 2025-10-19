@@ -70,9 +70,13 @@ export class TasksController {
    * GET /tasks/metrics
    */
   @Get('metrics')
-  async getTaskMetrics(@CurrentUser() currentUser: SupabaseAuthUserDto): Promise<unknown> {
+  async getTaskMetrics(
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ): Promise<unknown> {
     try {
-      return this.tasksService.getTaskMetrics(currentUser.id) as Promise<unknown>;
+      return this.tasksService.getTaskMetrics(
+        currentUser.id,
+      ) as Promise<unknown>;
     } catch (error) {
       this.logger.error('Failed to get task metrics:', error);
       throw new Error('Failed to retrieve task metrics');

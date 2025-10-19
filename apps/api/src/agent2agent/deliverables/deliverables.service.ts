@@ -686,7 +686,8 @@ export class DeliverablesService implements IActionHandler {
   ): Promise<Deliverable> {
     try {
       // First, create the deliverable record
-      const response: { data: unknown; error: unknown } = await this.supabaseService
+      const response: { data: unknown; error: unknown } =
+        await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .insert([
@@ -900,7 +901,8 @@ export class DeliverablesService implements IActionHandler {
   async findOne(id: string, userId: string): Promise<Deliverable> {
     try {
       // Get the deliverable record
-      const response: { data: unknown; error: unknown } = await this.supabaseService
+      const response: { data: unknown; error: unknown } =
+        await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .select('*')
@@ -1273,27 +1275,28 @@ export class DeliverablesService implements IActionHandler {
     deliverableId: string,
     createDto: CreateDeliverableDto,
   ): Promise<DeliverableVersion> {
-    const response: { data: unknown; error: unknown } = await this.supabaseService
-      .getServiceClient()
-      .from(getTableName('deliverable_versions'))
-      .insert([
-        {
-          deliverable_id: deliverableId,
-          version_number: 1,
-          content:
-            typeof createDto.initialContent === 'string'
-              ? createDto.initialContent
-              : '',
-          format: createDto.initialFormat || 'text',
-          is_current_version: true,
-          created_by_type: createDto.initialCreationType || 'user_request', // Default creation type
-          task_id: createDto.initialTaskId || null,
-          metadata: createDto.initialMetadata || {},
-          file_attachments: createDto.initialFileAttachments || {},
-        },
-      ])
-      .select('*')
-      .single();
+    const response: { data: unknown; error: unknown } =
+      await this.supabaseService
+        .getServiceClient()
+        .from(getTableName('deliverable_versions'))
+        .insert([
+          {
+            deliverable_id: deliverableId,
+            version_number: 1,
+            content:
+              typeof createDto.initialContent === 'string'
+                ? createDto.initialContent
+                : '',
+            format: createDto.initialFormat || 'text',
+            is_current_version: true,
+            created_by_type: createDto.initialCreationType || 'user_request', // Default creation type
+            task_id: createDto.initialTaskId || null,
+            metadata: createDto.initialMetadata || {},
+            file_attachments: createDto.initialFileAttachments || {},
+          },
+        ])
+        .select('*')
+        .single();
 
     const result: unknown = response.data;
     const error: unknown = response.error;

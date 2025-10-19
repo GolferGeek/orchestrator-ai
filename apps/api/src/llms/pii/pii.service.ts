@@ -92,7 +92,8 @@ export class PIIService {
     try {
       // STEP 0: Check if this is a local provider (Ollama) - skip ALL PII processing
       const isLocalProvider =
-        (options.providerName as string | undefined)?.toLowerCase() === 'ollama' ||
+        (options.providerName as string | undefined)?.toLowerCase() ===
+          'ollama' ||
         (options.provider as string | undefined)?.toLowerCase() === 'ollama';
 
       if (isLocalProvider) {
@@ -344,11 +345,9 @@ export class PIIService {
     const pseudonymizerMatches: PIIMatch[] = []; // Never create pseudonym instructions from pattern matches
 
     const optsExt = options as Record<string, unknown>;
-    const requestId = (
-      optsExt.conversationId ||
+    const requestId = (optsExt.conversationId ||
       optsExt.requestId ||
-      `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    ) as string;
+      `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`) as string;
 
     const externalMetadata: PIIProcessingMetadata = {
       piiDetected: convertedMatches.length > 0,

@@ -72,7 +72,11 @@ export class ModelsService {
       );
     }
 
-    const rows = data as Array<{provider_name: string; model_name: string; display_name: string}> | null;
+    const rows = data as Array<{
+      provider_name: string;
+      model_name: string;
+      display_name: string;
+    }> | null;
     const result = (rows || []).map((row) => ({
       providerName: row.provider_name,
       modelName: row.model_name,

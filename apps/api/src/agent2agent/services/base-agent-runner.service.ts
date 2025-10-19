@@ -779,8 +779,12 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     }
 
     // Check payload metadata
-    const payloadMetadata = request.payload?.metadata as Record<string, unknown>;
-    const fromPayload: unknown = payloadMetadata?.userId || payloadMetadata?.createdBy;
+    const payloadMetadata = request.payload?.metadata as Record<
+      string,
+      unknown
+    >;
+    const fromPayload: unknown =
+      payloadMetadata?.userId || payloadMetadata?.createdBy;
     if (fromPayload && typeof fromPayload === 'string') {
       return fromPayload;
     }
@@ -828,7 +832,10 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * @returns taskId if found, null otherwise
    */
   protected resolveTaskId(request: TaskRequestDto): string | null {
-    const taskId = request.metadata?.taskId || (request.payload as Record<string, unknown>)?.taskId || null;
+    const taskId =
+      request.metadata?.taskId ||
+      (request.payload as Record<string, unknown>)?.taskId ||
+      null;
     return typeof taskId === 'string' ? taskId : null;
   }
 

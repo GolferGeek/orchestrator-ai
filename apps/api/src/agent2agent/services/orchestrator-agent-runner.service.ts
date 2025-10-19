@@ -328,7 +328,9 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       decision: payload.decision,
       actorId,
       notes: payload.notes ?? null,
-      modifications: (payload.modifications ?? undefined) as JsonObject | undefined,
+      modifications: (payload.modifications ?? undefined) as
+        | JsonObject
+        | undefined,
     });
 
     if (resolution.decision === 'abort') {

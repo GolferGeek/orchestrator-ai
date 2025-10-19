@@ -70,11 +70,12 @@ export async function executeConverse(
     // Extract LLM configuration from payload (required from frontend)
     // Frontend sends currentProvider and currentModel in the payload
     const payloadRec = payload as Record<string, unknown>;
-    const llmSelection = payloadRec.llmSelection as Record<string, unknown> | undefined;
+    const llmSelection = payloadRec.llmSelection as
+      | Record<string, unknown>
+      | undefined;
     const providerName =
       payloadRec.currentProvider ?? llmSelection?.providerName;
-    const modelName =
-      payloadRec.currentModel ?? llmSelection?.modelName;
+    const modelName = payloadRec.currentModel ?? llmSelection?.modelName;
 
     // Validate LLM configuration (no fallbacks - frontend must provide)
     if (!providerName || !modelName) {

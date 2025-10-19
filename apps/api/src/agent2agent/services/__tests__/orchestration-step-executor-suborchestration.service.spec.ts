@@ -436,10 +436,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      await (
+        service as unknown as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
@@ -486,10 +485,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      await (
+        service as unknown as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
@@ -505,7 +503,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as Record<string, unknown>).orchestration,
+            ...(mockOrchestrationStep.metadata as Record<string, unknown>)
+              .orchestration,
             inherit_conversation: false,
           },
         },
@@ -543,10 +542,9 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
-        mockParentRun,
-        stepWithoutInheritance,
-      );
+      await (
+        service as unknown as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, stepWithoutInheritance);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
@@ -599,7 +597,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as Record<string, unknown>).orchestration,
+            ...(mockOrchestrationStep.metadata as Record<string, unknown>)
+              .orchestration,
             name: undefined,
           },
         },
@@ -638,7 +637,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as Record<string, unknown>).orchestration,
+            ...(mockOrchestrationStep.metadata as Record<string, unknown>)
+              .orchestration,
             owner: undefined,
           },
         },
@@ -837,12 +837,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      await (
+        service as unknown as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       // Metadata with completedAt + status should be passed to markStepCompleted
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepCompleted).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -902,11 +902,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
-        mockParentRun,
-        mockOrchestrationStep,
-      );
+      await (
+        service as unknown as ServiceWithPrivateMethods
+      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepCompleted).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({

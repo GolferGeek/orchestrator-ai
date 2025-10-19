@@ -267,7 +267,10 @@ export class SecretRedactionService {
     // Redact secrets from metadata if provided
     let redactedMetadata = metadata;
     if (metadata) {
-      redactedMetadata = this.redactObjectSecrets(metadata) as Record<string, any>;
+      redactedMetadata = this.redactObjectSecrets(metadata) as Record<
+        string,
+        any
+      >;
     }
 
     // Create structured log entry
@@ -332,7 +335,9 @@ export class SecretRedactionService {
       if (isSensitiveKey && typeof value === 'string') {
         redactedObj[key] = '[REDACTED]';
       } else {
-        redactedObj[key] = this.redactObjectSecrets(value);
+        redactedObj[key] = this.redactObjectSecrets(
+          value as Record<string, unknown>,
+        );
       }
     }
 

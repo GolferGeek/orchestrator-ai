@@ -41,13 +41,18 @@ export class Agent2AgentDeliverablesService {
       }
 
       const typedResult = result as Record<string, unknown>;
-      const deliverableRec = typedResult?.deliverable as Record<string, unknown> | undefined;
-      const payloadRec = typedResult?.payload as Record<string, unknown> | undefined;
+      const deliverableRec = typedResult?.deliverable as
+        | Record<string, unknown>
+        | undefined;
+      const payloadRec = typedResult?.payload as
+        | Record<string, unknown>
+        | undefined;
       const existingDeliverableId =
         typedResult?.deliverableId ||
         deliverableRec?.id ||
         payloadRec?.deliverableId ||
-        (payloadRec?.metadata as Record<string, unknown> | undefined)?.deliverableId;
+        (payloadRec?.metadata as Record<string, unknown> | undefined)
+          ?.deliverableId;
       if (existingDeliverableId) {
         return existingDeliverableId as string;
       }
@@ -58,13 +63,12 @@ export class Agent2AgentDeliverablesService {
       }
 
       const contentRec = payload.content as Record<string, unknown> | undefined;
-      const metadataRec = payload.metadata as Record<string, unknown> | undefined;
+      const metadataRec = payload.metadata as
+        | Record<string, unknown>
+        | undefined;
 
       const status =
-        contentRec?.status ||
-        payload.status ||
-        metadataRec?.status ||
-        null;
+        contentRec?.status || payload.status || metadataRec?.status || null;
 
       if (
         status &&
@@ -76,12 +80,16 @@ export class Agent2AgentDeliverablesService {
       }
 
       const rawOutput: string =
-        typeof contentRec?.output === 'string'
-          ? contentRec.output
-          : '';
-      const payloadImages: unknown[] = Array.isArray(payload.images) ? payload.images as unknown[] : [];
-      const contentImages: unknown[] = Array.isArray(contentRec?.images) ? contentRec.images as unknown[] : [];
-      const metadataImages: unknown[] = Array.isArray(metadataRec?.images) ? metadataRec.images as unknown[] : [];
+        typeof contentRec?.output === 'string' ? contentRec.output : '';
+      const payloadImages: unknown[] = Array.isArray(payload.images)
+        ? (payload.images as unknown[])
+        : [];
+      const contentImages: unknown[] = Array.isArray(contentRec?.images)
+        ? (contentRec.images as unknown[])
+        : [];
+      const metadataImages: unknown[] = Array.isArray(metadataRec?.images)
+        ? (metadataRec.images as unknown[])
+        : [];
       const images = this.normalizeImages([
         ...payloadImages,
         ...contentImages,
@@ -124,8 +132,7 @@ export class Agent2AgentDeliverablesService {
         userId,
         metadata: {
           agentName: agentSlug,
-          agentType:
-            (metadataRec && metadataRec.agentType) || 'agent',
+          agentType: (metadataRec && metadataRec.agentType) || 'agent',
           mode,
           taskId,
           source: 'agent2agent',
@@ -206,7 +213,8 @@ export class Agent2AgentDeliverablesService {
         if (entryRec.width) normalized.width = entryRec.width;
         if (entryRec.height) normalized.height = entryRec.height;
         if (entryRec.size) normalized.size = entryRec.size;
-        if (entryRec.thumbnailUrl) normalized.thumbnailUrl = entryRec.thumbnailUrl;
+        if (entryRec.thumbnailUrl)
+          normalized.thumbnailUrl = entryRec.thumbnailUrl;
         if (entryRec.altText) normalized.altText = entryRec.altText;
         if (entryRec.hash) normalized.hash = entryRec.hash;
 
@@ -272,7 +280,9 @@ export class Agent2AgentDeliverablesService {
     return new Date().toISOString().slice(0, 10);
   }
 
-  private renderImageLogPreview(images: Array<Record<string, unknown>>): string {
+  private renderImageLogPreview(
+    images: Array<Record<string, unknown>>,
+  ): string {
     if (!images.length) {
       return '';
     }
@@ -281,10 +291,7 @@ export class Agent2AgentDeliverablesService {
       const redactedUrl = this.redactUrlForLogs(image.url as string);
       const width = typeof image.width === 'number' ? image.width : null;
       const height = typeof image.height === 'number' ? image.height : null;
-      const dims =
-        width && height
-          ? `${width}x${height}`
-          : 'unknown';
+      const dims = width && height ? `${width}x${height}` : 'unknown';
       const mimeValue = image.mime;
       const mime = typeof mimeValue === 'string' ? mimeValue : 'image';
       return `[${index + 1}] ${redactedUrl} (${mime}, ${dims})`;
@@ -344,7 +351,9 @@ export class Agent2AgentDeliverablesService {
 
     const data = result as DeliverableIdRecord | null;
     if (!data) {
-      throw new BadRequestException('Failed to create deliverable: No data returned');
+      throw new BadRequestException(
+        'Failed to create deliverable: No data returned',
+      );
     }
 
     return data.id;
@@ -390,7 +399,9 @@ export class Agent2AgentDeliverablesService {
 
     const data = result as DeliverableIdRecord | null;
     if (!data) {
-      throw new BadRequestException('Failed to create deliverable version: No data returned');
+      throw new BadRequestException(
+        'Failed to create deliverable version: No data returned',
+      );
     }
 
     return data.id;

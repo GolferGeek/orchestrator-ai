@@ -503,9 +503,12 @@ export class SupabaseMCPServer implements IMCPServer {
       }
 
       // Execute SQL using Supabase RPC function
-      const { data: result, error } = await this.supabaseClient.rpc('exec_sql', {
-        query: finalSQL,
-      });
+      const { data: result, error } = await this.supabaseClient.rpc(
+        'exec_sql',
+        {
+          query: finalSQL,
+        },
+      );
 
       const executionTime = Date.now() - startTime;
 
@@ -515,14 +518,20 @@ export class SupabaseMCPServer implements IMCPServer {
 
       const data = result as ExecSqlResult | ExecSqlResult[] | null;
       // Check if the data itself is an error object (returned by exec_sql function)
-      if (data && typeof data === 'object' && !Array.isArray(data) && data.error === true) {
+      if (
+        data &&
+        typeof data === 'object' &&
+        !Array.isArray(data) &&
+        data.error === true
+      ) {
         throw new Error(
           `SQL execution error: ${data.message} (Code: ${data.code})`,
         );
       }
 
       const results = Array.isArray(data) ? data : [];
-      const columns = results.length > 0 && results[0] ? Object.keys(results[0]) : [];
+      const columns =
+        results.length > 0 && results[0] ? Object.keys(results[0]) : [];
 
       // Return structured JSON so clients can reliably parse { data, ... }
       const payload = {
@@ -1109,7 +1118,7 @@ Format your response as a structured JSON object with these sections.`;
 
       // Try to parse as JSON, fallback to structured text
       try {
-        return JSON.parse(analysisText);
+        return JSON.parse(analysisText) as Record<string, unknown>;
       } catch {
         return {
           analysis: analysisText,
@@ -1125,7 +1134,10 @@ Format your response as a structured JSON object with these sections.`;
     }
   }
 
-  private generateSimpleAnalysis(data: Array<Record<string, unknown>>, prompt: string): Record<string, unknown> {
+  private generateSimpleAnalysis(
+    data: Array<Record<string, unknown>>,
+    prompt: string,
+  ): Record<string, unknown> {
     const rowCount = data.length;
     const columns = rowCount > 0 && data[0] ? Object.keys(data[0]) : [];
 

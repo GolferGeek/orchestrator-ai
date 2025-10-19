@@ -87,7 +87,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     try {
-      const payloadOverrides = (request.payload as Record<string, unknown>) ?? {};
+      const payloadOverrides =
+        (request.payload as Record<string, unknown>) ?? {};
 
       // Validate required context
       const userId = this.resolveUserId(request);
@@ -173,7 +174,11 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         for (const toolName of tools) {
           try {
             const params = toolParams[toolName] || {};
-            const result: unknown = await this.executeTool(toolName, params, request);
+            const result: unknown = await this.executeTool(
+              toolName,
+              params,
+              request,
+            );
 
             toolResults.push({
               tool: toolName,
@@ -217,8 +222,12 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
 
       // 4. Save deliverable
-      const configAny = definition.config as Record<string, unknown> | undefined;
-      const deliverableConfigAny = configAny?.deliverable as Record<string, unknown> | undefined;
+      const configAny = definition.config as
+        | Record<string, unknown>
+        | undefined;
+      const deliverableConfigAny = configAny?.deliverable as
+        | Record<string, unknown>
+        | undefined;
       const formatRaw: unknown = deliverableConfigAny?.format;
       const typeRaw: unknown = deliverableConfigAny?.type;
 
@@ -248,7 +257,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           conversationId,
           userId,
           agentSlug: definition.slug,
-          taskId: (typeof taskId === 'string' ? taskId : undefined),
+          taskId: typeof taskId === 'string' ? taskId : undefined,
         },
       );
 
@@ -389,7 +398,11 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           if (itemRec.type === 'text') {
             return itemRec.text;
           } else if (itemRec.type === 'image') {
-            return { type: 'image', data: itemRec.data, mimeType: itemRec.mimeType };
+            return {
+              type: 'image',
+              data: itemRec.data,
+              mimeType: itemRec.mimeType,
+            };
           } else if (itemRec.type === 'resource') {
             return {
               type: 'resource',
@@ -403,8 +416,12 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       }
       return result.content;
     } else {
-      const errorContent = result.content as unknown as Array<Record<string, unknown>>;
-      throw new Error((errorContent?.[0]?.text as string) || 'Tool execution failed');
+      const errorContent = result.content as unknown as Array<
+        Record<string, unknown>
+      >;
+      throw new Error(
+        (errorContent?.[0]?.text as string) || 'Tool execution failed',
+      );
     }
   }
 

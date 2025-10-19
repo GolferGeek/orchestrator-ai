@@ -137,7 +137,10 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
           }
           result = await this.mcpServer.callTool({
             name: request.params.name as string,
-            arguments: (request.params.arguments as Record<string, unknown> | undefined) || {},
+            arguments:
+              (request.params.arguments as
+                | Record<string, unknown>
+                | undefined) || {},
           });
           break;
 
@@ -181,14 +184,20 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Direct tool execution (for internal use)
    */
-  async executeToolInternal(toolName: string, args: unknown = {}): Promise<unknown> {
+  async executeToolInternal(
+    toolName: string,
+    args: unknown = {},
+  ): Promise<unknown> {
     if (!this.isReady) {
       throw new Error('MCP server is not ready');
     }
 
     const response = await this.mcpServer.callTool({
       name: toolName,
-      arguments: args && typeof args === 'object' ? args as Record<string, unknown> : undefined,
+      arguments:
+        args && typeof args === 'object'
+          ? (args as Record<string, unknown>)
+          : undefined,
     });
 
     if (response.isError) {
@@ -284,15 +293,19 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Execute a tool (for MCPService compatibility)
    */
-  async executeTool(request: { name: string; arguments?: unknown }): Promise<unknown> {
+  async executeTool(request: {
+    name: string;
+    arguments?: unknown;
+  }): Promise<unknown> {
     if (!this.isReady) {
       throw new Error('MCP server is not ready');
     }
     return await this.mcpServer.callTool({
       name: request.name,
-      arguments: request.arguments && typeof request.arguments === 'object'
-        ? request.arguments as Record<string, unknown>
-        : undefined,
+      arguments:
+        request.arguments && typeof request.arguments === 'object'
+          ? (request.arguments as Record<string, unknown>)
+          : undefined,
     });
   }
 

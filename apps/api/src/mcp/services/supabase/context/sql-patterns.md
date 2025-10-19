@@ -1,6 +1,7 @@
 # SQL Query Patterns & Examples
 
 ## Overview
+
 Common SQL patterns, optimizations, and examples for the Orchestrator AI database schema.
 
 ---
@@ -10,6 +11,7 @@ Common SQL patterns, optimizations, and examples for the Orchestrator AI databas
 ### User Management Queries
 
 #### Active User Summary
+
 ```sql
 SELECT u.id, u.email, u.full_name,
        u.last_login,
@@ -26,6 +28,7 @@ LIMIT 50;
 ```
 
 #### User Activity Heatmap
+
 ```sql
 SELECT DATE_TRUNC('day', m.created_at) as activity_date,
        COUNT(*) as message_count,
@@ -41,6 +44,7 @@ ORDER BY activity_date;
 ### Conversation Analysis
 
 #### Long-Running Conversations
+
 ```sql
 SELECT c.id, c.title, c.agent_name,
        u.email as user_email,
@@ -58,6 +62,7 @@ ORDER BY duration_hours DESC;
 ```
 
 #### Agent Conversation Distribution
+
 ```sql
 SELECT c.agent_name, c.agent_type,
        COUNT(*) as total_conversations,
@@ -67,7 +72,7 @@ SELECT c.agent_name, c.agent_type,
 FROM conversations c
 LEFT JOIN (
   SELECT conversation_id, COUNT(*) as msg_count
-  FROM messages 
+  FROM messages
   GROUP BY conversation_id
 ) message_counts ON c.id = message_counts.conversation_id
 WHERE c.created_at >= CURRENT_DATE - INTERVAL '30 days'
@@ -78,6 +83,7 @@ ORDER BY total_conversations DESC;
 ### Task Management Patterns
 
 #### Task Queue by Priority
+
 ```sql
 SELECT t.id, t.title, t.priority, t.status,
        t.agent_name, t.agent_type,
@@ -88,24 +94,25 @@ FROM tasks t
 JOIN users u ON t.user_id = u.id
 LEFT JOIN conversations c ON t.conversation_id = c.id
 WHERE t.status IN ('pending', 'in_progress')
-ORDER BY 
-  CASE t.priority 
-    WHEN 'high' THEN 1 
-    WHEN 'medium' THEN 2 
-    WHEN 'low' THEN 3 
+ORDER BY
+  CASE t.priority
+    WHEN 'high' THEN 1
+    WHEN 'medium' THEN 2
+    WHEN 'low' THEN 3
   END,
   t.created_at
 LIMIT 20;
 ```
 
 #### Agent Performance Metrics
+
 ```sql
 SELECT t.agent_name,
        COUNT(*) as total_tasks,
        COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks,
        COUNT(CASE WHEN t.status = 'failed' THEN 1 END) as failed_tasks,
        ROUND(
-         COUNT(CASE WHEN t.status = 'completed' THEN 1 END)::NUMERIC / 
+         COUNT(CASE WHEN t.status = 'completed' THEN 1 END)::NUMERIC /
          COUNT(*)::NUMERIC * 100, 2
        ) as success_rate_pct,
        AVG(EXTRACT(EPOCH FROM (t.completed_at - t.created_at))/60) as avg_completion_minutes,
@@ -125,10 +132,12 @@ ORDER BY success_rate_pct DESC, avg_completion_minutes ASC;
 ### Revenue Analysis
 
 Note on metric selection:
+
 - Map any "sales" phrasing to the canonical metric "Revenue".
 - Prefer `km.name ILIKE '%Revenue%'` (not any `'%sales%'` filter).
 
 #### Company Revenue Rankings
+
 ```sql
 SELECT c.name as company,
        c.industry,
@@ -150,22 +159,23 @@ LIMIT 10;
 ```
 
 #### Monthly Revenue Trends with Growth
+
 ```sql
 SELECT c.name as company,
        DATE_TRUNC('month', kd.date_recorded) as month,
        SUM(kd.value) as monthly_revenue,
        LAG(SUM(kd.value)) OVER (
-         PARTITION BY c.id 
+         PARTITION BY c.id
          ORDER BY DATE_TRUNC('month', kd.date_recorded)
        ) as previous_month,
-       CASE 
+       CASE
          WHEN LAG(SUM(kd.value)) OVER (
-           PARTITION BY c.id 
+           PARTITION BY c.id
            ORDER BY DATE_TRUNC('month', kd.date_recorded)
          ) > 0 THEN
            ROUND(
              ((SUM(kd.value) / LAG(SUM(kd.value)) OVER (
-               PARTITION BY c.id 
+               PARTITION BY c.id
                ORDER BY DATE_TRUNC('month', kd.date_recorded)
              )) - 1) * 100, 2
            )
@@ -184,6 +194,7 @@ ORDER BY c.name, month;
 ### Performance vs Goals Analysis
 
 #### Department Goal Achievement
+
 ```sql
 SELECT c.name as company,
        d.name as department,
@@ -192,7 +203,7 @@ SELECT c.name as company,
        kg.target_value as goal,
        ROUND(AVG(kd.value), 2) as actual_avg,
        ROUND((AVG(kd.value) / kg.target_value * 100), 1) as achievement_pct,
-       CASE 
+       CASE
          WHEN AVG(kd.value) >= kg.target_value * 1.1 THEN '🏆 Exceeding (+10%)'
          WHEN AVG(kd.value) >= kg.target_value THEN '✅ Meeting Goal'
          WHEN AVG(kd.value) >= kg.target_value * 0.9 THEN '⚠️ Near Target (-10%)'
@@ -204,7 +215,7 @@ JOIN departments d ON c.id = d.company_id
 JOIN kpi_goals kg ON d.id = kg.department_id
 JOIN kpi_metrics km ON kg.metric_id = km.id
 JOIN kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
-WHERE kg.period_start <= CURRENT_DATE 
+WHERE kg.period_start <= CURRENT_DATE
   AND kg.period_end >= CURRENT_DATE
   AND kd.date_recorded BETWEEN kg.period_start AND kg.period_end
 GROUP BY c.id, c.name, d.id, d.name, km.id, km.name, km.unit, kg.target_value
@@ -212,6 +223,7 @@ ORDER BY achievement_pct DESC;
 ```
 
 #### Top/Bottom Performers by Metric
+
 ```sql
 WITH metric_performance AS (
   SELECT d.name as department,
@@ -228,9 +240,9 @@ WITH metric_performance AS (
     AND km.is_active = true
   GROUP BY d.id, d.name, c.name, km.id, km.name
 )
-SELECT department, company, metric, 
+SELECT department, company, metric,
        ROUND(avg_value, 2) as average_value,
-       CASE 
+       CASE
          WHEN rank_desc <= 3 THEN 'Top Performer'
          WHEN rank_asc <= 3 THEN 'Needs Improvement'
        END as performance_category
@@ -242,6 +254,7 @@ ORDER BY metric, rank_desc;
 ### Departmental Analysis
 
 #### Department Budget vs Performance
+
 ```sql
 SELECT c.name as company,
        d.name as department,
@@ -249,18 +262,18 @@ SELECT c.name as company,
        d.employee_count,
        COUNT(DISTINCT km.id) as metrics_tracked,
        AVG(
-         CASE WHEN km.metric_type = 'financial' 
-         THEN kd.value 
+         CASE WHEN km.metric_type = 'financial'
+         THEN kd.value
          END
        ) as avg_financial_performance,
        SUM(
-         CASE WHEN km.name = 'Revenue' 
-         THEN kd.value 
-         ELSE 0 
+         CASE WHEN km.name = 'Revenue'
+         THEN kd.value
+         ELSE 0
          END
        ) as total_revenue,
-       CASE 
-         WHEN d.budget > 0 THEN 
+       CASE
+         WHEN d.budget > 0 THEN
            ROUND((SUM(CASE WHEN km.name = 'Revenue' THEN kd.value ELSE 0 END) / d.budget), 2)
          ELSE NULL
        END as revenue_to_budget_ratio
@@ -281,18 +294,19 @@ ORDER BY revenue_to_budget_ratio DESC NULLS LAST;
 ### Time-Series Analysis
 
 #### Rolling Averages
+
 ```sql
 SELECT c.name as company,
        kd.date_recorded,
        kd.value as daily_revenue,
        AVG(kd.value) OVER (
-         PARTITION BY c.id 
-         ORDER BY kd.date_recorded 
+         PARTITION BY c.id
+         ORDER BY kd.date_recorded
          ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
        ) as seven_day_avg,
        AVG(kd.value) OVER (
-         PARTITION BY c.id 
-         ORDER BY kd.date_recorded 
+         PARTITION BY c.id
+         ORDER BY kd.date_recorded
          ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
        ) as thirty_day_avg
 FROM companies c
@@ -306,6 +320,7 @@ ORDER BY c.name, kd.date_recorded;
 ```
 
 #### Seasonal Patterns
+
 ```sql
 SELECT EXTRACT(QUARTER FROM kd.date_recorded) as quarter,
        AVG(kd.value) as avg_quarterly_revenue,
@@ -324,10 +339,11 @@ ORDER BY quarter;
 ### Cross-Domain Analytics
 
 #### User Engagement with KPI Requests
+
 ```sql
 SELECT u.email,
        COUNT(DISTINCT c.id) as kpi_conversations,
-       COUNT(DISTINCT 
+       COUNT(DISTINCT
          CASE WHEN t.agent_name LIKE '%metrics%' THEN t.id END
        ) as metrics_tasks,
        MAX(c.last_message_at) as last_kpi_request,
@@ -338,7 +354,7 @@ SELECT u.email,
 FROM users u
 JOIN conversations c ON u.id = c.user_id
 LEFT JOIN tasks t ON c.id = t.conversation_id
-WHERE c.agent_type LIKE '%analytics%' 
+WHERE c.agent_type LIKE '%analytics%'
    OR c.agent_type LIKE '%metrics%'
    OR t.agent_name LIKE '%metrics%'
 GROUP BY u.id, u.email
@@ -353,13 +369,15 @@ ORDER BY kpi_conversations DESC, last_kpi_request DESC;
 ### Performance Best Practices
 
 1. **Filter Early and Often**
+
 ```sql
 -- ✅ GOOD: Filter before joining
 WHERE kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
   AND km.is_active = true
 ```
 
-2. **Use Appropriate Limits**  
+2. **Use Appropriate Limits**
+
 ```sql
 -- ✅ GOOD: Always limit large result sets
 ORDER BY total_revenue DESC
@@ -367,13 +385,15 @@ LIMIT 10;
 ```
 
 3. **Leverage Indexes**
+
 ```sql
 -- ✅ GOOD: Use indexed columns in WHERE clauses
-WHERE c.status = 'active' 
+WHERE c.status = 'active'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '6 months'
 ```
 
 4. **Aggregate Efficiently**
+
 ```sql
 -- ✅ GOOD: GROUP BY primary keys when possible
 GROUP BY c.id, c.name  -- Instead of just c.name
@@ -389,7 +409,7 @@ SELECT * FROM kpi_data;
 SELECT * FROM companies c JOIN departments d ON c.id = d.company_id;
 
 -- ❌ BAD: No LIMIT on potentially large results
-SELECT c.name, SUM(kd.value) FROM companies c 
+SELECT c.name, SUM(kd.value) FROM companies c
 JOIN departments d ON c.id = d.company_id
 JOIN kpi_data kd ON d.id = kd.department_id;
 
@@ -400,16 +420,17 @@ SELECT * FROM companies WHERE id IN (
 ```
 
 ### Recommended Alternatives
+
 ```sql
 -- ✅ GOOD: Proper date filtering
 SELECT * FROM kpi_data WHERE date_recorded >= CURRENT_DATE - INTERVAL '1 month';
 
 -- ✅ GOOD: Specific column selection
-SELECT c.name, d.name, d.budget FROM companies c 
+SELECT c.name, d.name, d.budget FROM companies c
 JOIN departments d ON c.id = d.company_id;
 
 -- ✅ GOOD: Limited results with ordering
-SELECT c.name, SUM(kd.value) as total_revenue FROM companies c 
+SELECT c.name, SUM(kd.value) as total_revenue FROM companies c
 JOIN departments d ON c.id = d.company_id
 JOIN kpi_data kd ON d.id = kd.department_id
 WHERE kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'

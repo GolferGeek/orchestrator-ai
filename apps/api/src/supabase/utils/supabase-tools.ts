@@ -207,7 +207,10 @@ async function executeQueryOnCompanyDB(
       const { data, error } = await (supabaseClient as any)
         .from('companies')
         .select('*', { count: 'exact' });
-      return { data: [{ count: (data as GenericDbRecord[] | null)?.length || 0 }], error: error?.message };
+      return {
+        data: [{ count: (data as GenericDbRecord[] | null)?.length || 0 }],
+        error: error?.message,
+      };
     }
 
     // Handle public schema table queries
@@ -434,7 +437,10 @@ export async function generateAndExecuteCompanySQL(
 
     return {
       sql: generatedSQL,
-      result: options.executeQuery !== false ? result : undefined,
+      result:
+        options.executeQuery !== false
+          ? (result as Array<Record<string, unknown>> | undefined)
+          : undefined,
       error,
       metadata: {
         executionTime,
@@ -517,7 +523,10 @@ export async function generateAndExecuteOrchestratorSQL(
 
     return {
       sql: generatedSQL,
-      result: options.executeQuery !== false ? result : undefined,
+      result:
+        options.executeQuery !== false
+          ? (result as Array<Record<string, unknown>> | undefined)
+          : undefined,
       error,
       metadata: {
         executionTime,

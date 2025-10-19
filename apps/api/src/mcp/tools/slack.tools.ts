@@ -265,7 +265,9 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Send a message to Slack
    */
-  private async sendMessage(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async sendMessage(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { channel, text, thread_ts, blocks } = args;
 
     try {
@@ -330,7 +332,9 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get channels list
    */
-  private async getChannels(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async getChannels(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const {
       types = 'public_channel',
       exclude_archived = true,
@@ -390,13 +394,16 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get users information
    */
-  private async getUsers(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async getUsers(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { user_id, include_deleted = false, limit = 100 } = args;
 
     try {
       if (user_id) {
         // Get specific user info
-        const userId = typeof user_id === 'string' ? user_id : JSON.stringify(user_id);
+        const userId =
+          typeof user_id === 'string' ? user_id : JSON.stringify(user_id);
         const response = await this.makeSlackRequest(
           `users.info?user=${userId}`,
           'GET',
@@ -494,14 +501,18 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Search messages
    */
-  private async searchMessages(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async searchMessages(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { query, channel, user, count = 20, sort = 'score' } = args;
 
     try {
-      let searchQuery = typeof query === 'string' ? query : JSON.stringify(query);
+      let searchQuery =
+        typeof query === 'string' ? query : JSON.stringify(query);
 
       if (channel) {
-        const channelStr = typeof channel === 'string' ? channel : JSON.stringify(channel);
+        const channelStr =
+          typeof channel === 'string' ? channel : JSON.stringify(channel);
         searchQuery += ` in:${channelStr}`;
       }
 
@@ -569,7 +580,9 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Get channel history
    */
-  private async getChannelHistory(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async getChannelHistory(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { channel, count = 100, oldest, latest, inclusive = true } = args;
 
     try {
@@ -640,7 +653,9 @@ export class SlackMCPTools implements IMCPToolHandler {
   /**
    * Create a new channel
    */
-  private async createChannel(args: Record<string, unknown>): Promise<MCPToolResponse> {
+  private async createChannel(
+    args: Record<string, unknown>,
+  ): Promise<MCPToolResponse> {
     const { name, is_private = false, purpose, topic } = args;
 
     try {

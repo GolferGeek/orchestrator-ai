@@ -89,14 +89,18 @@ export class MCPService {
     // Collect tools from each namespace handler
     for (const [namespace, handler] of this.toolHandlers.entries()) {
       try {
-        const namespaceTools = await (handler as { getTools: () => Promise<unknown> }).getTools();
+        const namespaceTools = await (
+          handler as { getTools: () => Promise<unknown> }
+        ).getTools();
 
         // Add namespace prefix to tool names
-        const prefixedTools = (namespaceTools as MCPToolDefinition[]).map((tool: MCPToolDefinition) => ({
-          ...tool,
-          name: `${namespace}/${tool.name}`,
-          description: `[${this.getNamespaceType(namespace)}] ${tool.description}`,
-        }));
+        const prefixedTools = (namespaceTools as MCPToolDefinition[]).map(
+          (tool: MCPToolDefinition) => ({
+            ...tool,
+            name: `${namespace}/${tool.name}`,
+            description: `[${this.getNamespaceType(namespace)}] ${tool.description}`,
+          }),
+        );
 
         allTools.push(...prefixedTools);
         this.logger.debug(
@@ -147,7 +151,9 @@ export class MCPService {
         name: toolName,
       };
 
-      const result = await (handler as { executeTool: (req: MCPToolRequest) => Promise<unknown> }).executeTool(toolRequest);
+      const result = await (
+        handler as { executeTool: (req: MCPToolRequest) => Promise<unknown> }
+      ).executeTool(toolRequest);
 
       this.logger.debug(`Successfully executed ${request.name}`);
       return result as MCPToolResponse;
@@ -178,7 +184,9 @@ export class MCPService {
     for (const [namespace, handler] of this.toolHandlers.entries()) {
       try {
         const isHealthy =
-          typeof handler.ping === 'function' ? await (handler as { ping: () => Promise<boolean> }).ping() : true;
+          typeof handler.ping === 'function'
+            ? await (handler as { ping: () => Promise<boolean> }).ping()
+            : true;
         namespaceHealth[namespace] = isHealthy;
       } catch (error) {
         namespaceHealth[namespace] = false;

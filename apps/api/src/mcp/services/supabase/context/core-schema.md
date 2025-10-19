@@ -1,6 +1,7 @@
 # Orchestrator AI - Core Platform Schema
 
 ## Database: Supabase PostgreSQL (Core Platform)
+
 **Schema:** public  
 **Domain:** Core Platform Operations  
 **Purpose:** User management, task orchestration, agent coordination, conversations
@@ -10,7 +11,9 @@
 ## Core Tables
 
 ### public.users
+
 **Purpose:** User profile and application data (distinct from auth.users)
+
 ```sql
 CREATE TABLE public.users (
   id UUID PRIMARY KEY,
@@ -32,7 +35,9 @@ CREATE TABLE public.users (
 ```
 
 ### public.agent_conversations
+
 **Purpose:** Agent conversation sessions and coordination
+
 ```sql
 CREATE TABLE public.agent_conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -51,7 +56,9 @@ CREATE TABLE public.agent_conversations (
 ```
 
 ### public.tasks
+
 **Purpose:** Task execution and agent coordination
+
 ```sql
 CREATE TABLE public.tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,7 +92,9 @@ CREATE TABLE public.tasks (
 -- Agent information is handled through configuration files
 
 ### public.projects
+
 **Purpose:** Multi-step project coordination and management
+
 ```sql
 CREATE TABLE public.projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -106,7 +115,9 @@ CREATE TABLE public.projects (
 ```
 
 ### public.deliverables
+
 **Purpose:** Task deliverables and outputs
+
 ```sql
 CREATE TABLE public.deliverables (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -124,7 +135,9 @@ CREATE TABLE public.deliverables (
 ```
 
 ### public.deliverable_versions
+
 **Purpose:** Version control for deliverable content
+
 ```sql
 CREATE TABLE public.deliverable_versions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -143,7 +156,9 @@ CREATE TABLE public.deliverable_versions (
 ```
 
 ### public.project_steps
+
 **Purpose:** Individual steps within project execution
+
 ```sql
 CREATE TABLE public.project_steps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -171,10 +186,12 @@ CREATE TABLE public.project_steps (
 ## Indexes and Performance
 
 ### Primary Indexes
+
 - All tables have UUID primary keys with btree indexes
 - Foreign key columns automatically indexed
 
 ### Additional Indexes
+
 ```sql
 -- Conversations by user and recent activity
 CREATE INDEX idx_conversations_user_recent ON public.conversations(user_id, last_message_at DESC);
@@ -194,6 +211,7 @@ CREATE INDEX idx_agents_active ON public.agents(status) WHERE status = 'active';
 ## Common Query Patterns
 
 ### User's Recent Conversations
+
 ```sql
 SELECT c.*, COUNT(m.id) as message_count
 FROM conversations c
@@ -205,6 +223,7 @@ LIMIT 10;
 ```
 
 ### Active Tasks for User
+
 ```sql
 SELECT t.*, c.title as conversation_title
 FROM tasks t
@@ -214,18 +233,20 @@ ORDER BY t.priority, t.created_at;
 ```
 
 ### Agent Activity Summary
+
 ```sql
-SELECT agent_name, COUNT(*) as task_count, 
+SELECT agent_name, COUNT(*) as task_count,
        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_count
-FROM tasks 
+FROM tasks
 WHERE created_at >= NOW() - INTERVAL '7 days'
 GROUP BY agent_name
 ORDER BY task_count DESC;
 ```
 
 ### Project Progress
+
 ```sql
-SELECT p.*, 
+SELECT p.*,
        COUNT(t.id) as total_tasks,
        COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks,
        COUNT(d.id) as deliverable_count
@@ -242,6 +263,7 @@ ORDER BY p.created_at DESC;
 ## Data Relationships
 
 ### Core Relationships
+
 - `users` → `conversations` (1:many)
 - `conversations` → `messages` (1:many)
 - `users` → `tasks` (1:many)
@@ -251,6 +273,7 @@ ORDER BY p.created_at DESC;
 - `tasks` → `deliverables` (1:many)
 
 ### Agent Coordination
+
 - Tasks can be assigned to agents (via `agent_name`)
 - Conversations track which agent is active
 - Projects can specify orchestrator agents
@@ -260,8 +283,9 @@ ORDER BY p.created_at DESC;
 ## SQL Generation Guidelines
 
 ### Table Aliases
+
 - `u` = users
-- `c` = conversations  
+- `c` = conversations
 - `m` = messages
 - `t` = tasks
 - `a` = agents
@@ -269,12 +293,14 @@ ORDER BY p.created_at DESC;
 - `d` = deliverables
 
 ### Performance Notes
+
 - Always use LIMIT clauses for large result sets
 - Use appropriate indexes for WHERE clauses
 - JOIN conversations and messages carefully (can be large tables)
 - Filter by user_id early in queries for multi-tenant security
 
 ### Common WHERE Patterns
+
 - User isolation: `WHERE user_id = $1`
 - Active records: `WHERE status = 'active'`
 - Recent activity: `WHERE created_at >= NOW() - INTERVAL '7 days'`

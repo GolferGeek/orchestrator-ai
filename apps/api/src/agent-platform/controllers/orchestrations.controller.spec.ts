@@ -286,7 +286,9 @@ describe('OrchestrationsController', () => {
 
       expect(result.success).toBe(true);
       expect(result.data.approval.status).toBe('approved');
-      const resolveApprovalMock = dashboardService['resolveApproval'] as jest.Mock;
+      const resolveApprovalMock = dashboardService[
+        'resolveApproval'
+      ] as jest.Mock;
       expect(resolveApprovalMock).toHaveBeenCalledWith({
         approvalId: 'approval-1',
         decision: 'continue',
@@ -323,7 +325,9 @@ describe('OrchestrationsController', () => {
         req,
       );
 
-      const resolveApprovalMock2 = dashboardService['resolveApproval'] as jest.Mock;
+      const resolveApprovalMock2 = dashboardService[
+        'resolveApproval'
+      ] as jest.Mock;
       expect(resolveApprovalMock2).toHaveBeenCalledWith({
         approvalId: 'approval-2',
         decision: 'retry',
@@ -356,7 +360,9 @@ describe('OrchestrationsController', () => {
         req,
       );
 
-      const resolveApprovalMock3 = dashboardService['resolveApproval'] as jest.Mock;
+      const resolveApprovalMock3 = dashboardService[
+        'resolveApproval'
+      ] as jest.Mock;
       expect(resolveApprovalMock3).toHaveBeenCalledWith(
         expect.objectContaining({ actorId: 'user-789' }),
       );
@@ -383,7 +389,9 @@ describe('OrchestrationsController', () => {
         req,
       );
 
-      const resolveApprovalMock4 = dashboardService['resolveApproval'] as jest.Mock;
+      const resolveApprovalMock4 = dashboardService[
+        'resolveApproval'
+      ] as jest.Mock;
       expect(resolveApprovalMock4).toHaveBeenCalledWith(
         expect.objectContaining({ actorId: null }),
       );
@@ -421,10 +429,10 @@ describe('OrchestrationsController', () => {
       expect(result.success).toBe(true);
       expect(result.data.runId).toBe('run-replay');
       expect(result.data.parameters).toEqual({ param1: 'value1' });
-      const getReplayContextMock = dashboardService['getReplayContext'] as jest.Mock;
-      expect(getReplayContextMock).toHaveBeenCalledWith(
-        'run-replay',
-      );
+      const getReplayContextMock = dashboardService[
+        'getReplayContext'
+      ] as jest.Mock;
+      expect(getReplayContextMock).toHaveBeenCalledWith('run-replay');
     });
 
     it('throws NotFoundException if run not found', async () => {

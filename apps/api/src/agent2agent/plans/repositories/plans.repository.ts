@@ -110,10 +110,12 @@ export class PlansRepository {
     const error: unknown = response.error;
 
     if (error) {
-      if ((error as {code?: string})?.code === 'PGRST116') {
+      if ((error as { code?: string })?.code === 'PGRST116') {
         return null;
       }
-      throw new BadRequestException(`Failed to find plan: ${(error as {message?: string})?.message}`);
+      throw new BadRequestException(
+        `Failed to find plan: ${(error as { message?: string })?.message}`,
+      );
     }
 
     return result as PlanRecord | null;
@@ -145,7 +147,9 @@ export class PlansRepository {
     const error: unknown = response.error;
 
     if (error) {
-      throw new BadRequestException(`Failed to update plan: ${(error as {message?: string})?.message}`);
+      throw new BadRequestException(
+        `Failed to update plan: ${(error as { message?: string })?.message}`,
+      );
     }
 
     const planData = result as PlanRecord | null;

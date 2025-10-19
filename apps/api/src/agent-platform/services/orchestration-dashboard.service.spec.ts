@@ -1286,7 +1286,10 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([
-        { id: 'step-1', status: 'completed' } as Partial<OrchestrationStepRecord>,
+        {
+          id: 'step-1',
+          status: 'completed',
+        } as Partial<OrchestrationStepRecord>,
         { id: 'step-2', status: 'pending' } as Partial<OrchestrationStepRecord>,
       ]);
 
@@ -1547,7 +1550,10 @@ describe('OrchestrationDashboardService', () => {
 
       runnerService.getRun.mockResolvedValue(mockRun);
       runnerService.listSteps.mockResolvedValue([
-        { id: 'step-1', status: 'completed' } as Partial<OrchestrationStepRecord>,
+        {
+          id: 'step-1',
+          status: 'completed',
+        } as Partial<OrchestrationStepRecord>,
       ]);
 
       await expect(

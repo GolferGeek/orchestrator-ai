@@ -314,8 +314,9 @@ export class Agent2AgentController {
 
       // Extract data from normalized DTO (which came from adaptedBody)
       const taskIdFromPayload =
-        (typeof dto.payload?.taskId === 'string' ? dto.payload.taskId : undefined) ||
-        body.id; // JSON-RPC id or payload.taskId
+        (typeof dto.payload?.taskId === 'string'
+          ? dto.payload.taskId
+          : undefined) || body.id; // JSON-RPC id or payload.taskId
       const llmSelectionFromPayload = dto.payload?.llmSelection as
         | LlmSelection
         | undefined;
@@ -1076,7 +1077,11 @@ export class Agent2AgentController {
 
     if (isJsonRpc) {
       const jsonrpcContext: NonNullable<NormalizedTaskRequest['jsonrpc']> = {
-        id: (typeof typedPayload.id === 'string' || typeof typedPayload.id === 'number') ? typedPayload.id : null,
+        id:
+          typeof typedPayload.id === 'string' ||
+          typeof typedPayload.id === 'number'
+            ? typedPayload.id
+            : null,
         method:
           typeof typedPayload.method === 'string' ? typedPayload.method : null,
       };
@@ -1161,7 +1166,10 @@ export class Agent2AgentController {
       : 'Invalid task request payload.';
   }
 
-  private buildJsonRpcError(id: string | number | null, error: unknown): JsonRpcErrorEnvelope {
+  private buildJsonRpcError(
+    id: string | number | null,
+    error: unknown,
+  ): JsonRpcErrorEnvelope {
     const { code, message, data } = this.mapExceptionToError(error);
 
     // Return JSON-RPC 2.0 error response
@@ -1348,7 +1356,10 @@ export class Agent2AgentController {
       grouped.get(key)!.push(record);
     }
 
-    const createNode = (record: AgentRecord, children: unknown[] = []): unknown => {
+    const createNode = (
+      record: AgentRecord,
+      children: unknown[] = [],
+    ): unknown => {
       const isTool = record.config?.agent_category === 'tool';
       const isOrchestrator =
         record.agent_type === 'orchestrator' || record.config?.orchestrator;

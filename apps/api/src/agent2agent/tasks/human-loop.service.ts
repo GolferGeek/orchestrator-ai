@@ -375,7 +375,11 @@ export class HumanLoopService {
 
       const dataRaw5: unknown = response5.data;
       const errorRaw5: unknown = response5.error;
-      const data = dataRaw5 as Array<{ id: string; task_id: string; user_id: string }> | null;
+      const data = dataRaw5 as Array<{
+        id: string;
+        task_id: string;
+        user_id: string;
+      }> | null;
       const error = errorRaw5 as { message?: string } | null;
 
       if (error) {

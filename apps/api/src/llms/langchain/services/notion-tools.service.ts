@@ -31,7 +31,11 @@ export class LangChainNotionService {
         try {
           // Parse input - expect JSON with title and content
           const params: unknown = JSON.parse(input);
-          const paramsObj = params as {title?: string; content?: string; databaseId?: string};
+          const paramsObj = params as {
+            title?: string;
+            content?: string;
+            databaseId?: string;
+          };
           const { title, content, databaseId } = paramsObj;
 
           if (!title) {

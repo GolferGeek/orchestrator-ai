@@ -455,7 +455,12 @@ export function resolveUserId(request: TaskRequestDto): string | null {
 
   const fromMessages = Array.isArray(request.messages)
     ? request.messages
-        .map((message) => (message as unknown as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined)
+        .map(
+          (message) =>
+            (message as unknown as Record<string, unknown>)?.metadata as
+              | Record<string, unknown>
+              | undefined,
+        )
         .map((metadata) => metadata?.userId)
         .find((value) => typeof value === 'string' && value.trim().length > 0)
     : null;
@@ -506,9 +511,7 @@ export function resolveTaskId(request: TaskRequestDto): string | null {
 
   const payload = request.payload as Record<string, unknown>;
   const payloadMetadata = payload?.metadata as Record<string, unknown>;
-  const payloadTaskId =
-    payload?.taskId ??
-    payloadMetadata?.taskId;
+  const payloadTaskId = payload?.taskId ?? payloadMetadata?.taskId;
   if (typeof payloadTaskId === 'string') {
     return payloadTaskId;
   }

@@ -507,7 +507,8 @@ export class OrchestrationExecutionService {
     patch: Record<string, unknown>,
   ): OrchestrationRunMetadata {
     const base = { ...(existing ?? {}) };
-    const existingStats = (base.stats as Record<string, unknown> | undefined) ?? {};
+    const existingStats =
+      (base.stats as Record<string, unknown> | undefined) ?? {};
     const patchStats =
       (patch.stats as Record<string, unknown> | undefined) ?? undefined;
 

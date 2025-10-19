@@ -300,13 +300,24 @@ export class AgentRuntimeDeliverablesAdapter {
         ? (input as Record<string, unknown>)
         : {};
     const out: ImageRecord = {
-      url: (typeof obj.url === 'string' ? obj.url : typeof obj.href === 'string' ? obj.href : ''),
-      mime: (typeof obj.mime === 'string' ? obj.mime : typeof obj.contentType === 'string' ? obj.contentType : undefined),
+      url:
+        typeof obj.url === 'string'
+          ? obj.url
+          : typeof obj.href === 'string'
+            ? obj.href
+            : '',
+      mime:
+        typeof obj.mime === 'string'
+          ? obj.mime
+          : typeof obj.contentType === 'string'
+            ? obj.contentType
+            : undefined,
     };
     if (typeof obj.width === 'number') out.width = obj.width;
     if (typeof obj.height === 'number') out.height = obj.height;
     if (typeof obj.size === 'number') out.size = obj.size;
-    if (typeof obj.thumbnailUrl === 'string') out.thumbnailUrl = obj.thumbnailUrl;
+    if (typeof obj.thumbnailUrl === 'string')
+      out.thumbnailUrl = obj.thumbnailUrl;
     if (typeof obj.altText === 'string') out.altText = obj.altText;
     if (typeof obj.hash === 'string') out.hash = obj.hash;
     return out;

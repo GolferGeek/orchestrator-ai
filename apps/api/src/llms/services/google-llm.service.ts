@@ -199,7 +199,9 @@ export class GoogleLLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: (piiMetadata ?? undefined) as unknown as Record<string, unknown> | undefined,
+          piiMetadata: (piiMetadata ?? undefined) as unknown as
+            | Record<string, unknown>
+            | undefined,
           startTime,
           endTime,
         },
@@ -440,17 +442,17 @@ export class GoogleLLMService extends BaseLLMService {
     blocked: boolean;
     reason?: string;
   } {
-    const r = response as { candidates?: Array<{ finishReason?: string; safetyRatings?: unknown[] }> };
+    const r = response as {
+      candidates?: Array<{ finishReason?: string; safetyRatings?: unknown[] }>;
+    };
     const candidate = r.candidates?.[0];
 
     if (candidate?.finishReason === 'SAFETY') {
       const safetyRatings = candidate.safetyRatings || [];
-      const blockedRatings = safetyRatings.filter(
-        (rating: unknown) => {
-          const rat = rating as { probability?: string };
-          return rat.probability === 'HIGH' || rat.probability === 'MEDIUM';
-        },
-      );
+      const blockedRatings = safetyRatings.filter((rating: unknown) => {
+        const rat = rating as { probability?: string };
+        return rat.probability === 'HIGH' || rat.probability === 'MEDIUM';
+      });
 
       if (blockedRatings.length > 0) {
         return {

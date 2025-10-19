@@ -77,7 +77,9 @@ export class AppService implements OnModuleInit {
             ).getAgentCard();
             agentCard = cardRaw as Record<string, unknown>;
 
-            const config = agentCard?.configuration as Record<string, unknown> | undefined;
+            const config = agentCard?.configuration as
+              | Record<string, unknown>
+              | undefined;
             if (config?.execution_modes) {
               const modes: unknown = config.execution_modes;
               if (Array.isArray(modes)) {
@@ -85,7 +87,9 @@ export class AppService implements OnModuleInit {
               }
             }
 
-            const execution = agentCard?.execution as Record<string, unknown> | undefined;
+            const execution = agentCard?.execution as
+              | Record<string, unknown>
+              | undefined;
             if (execution?.profile) {
               const profile: unknown = execution.profile;
               if (typeof profile === 'string') {
@@ -95,7 +99,11 @@ export class AppService implements OnModuleInit {
 
             if (execution?.capabilities) {
               const capabilities: unknown = execution.capabilities;
-              if (capabilities && typeof capabilities === 'object' && !Array.isArray(capabilities)) {
+              if (
+                capabilities &&
+                typeof capabilities === 'object' &&
+                !Array.isArray(capabilities)
+              ) {
                 executionCapabilities = {
                   ...executionCapabilities,
                   ...(capabilities as Record<string, unknown>),

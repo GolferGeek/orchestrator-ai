@@ -272,7 +272,9 @@ describe('ApiAgentRunnerService', () => {
         metadata: { userId: 'user-123' },
       };
 
-      httpService.request.mockReturnValue(of({ status: 200, data: [] }) as unknown);
+      httpService.request.mockReturnValue(
+        of({ status: 200, data: [] }) as unknown,
+      );
 
       deliverablesService.executeAction.mockResolvedValue({
         success: true,
@@ -472,7 +474,9 @@ describe('ApiAgentRunnerService', () => {
         metadata: { userId: 'user-123' },
       };
 
-      httpService.request.mockReturnValue(of({ status: 200, data: {} }) as unknown);
+      httpService.request.mockReturnValue(
+        of({ status: 200, data: {} }) as unknown,
+      );
 
       deliverablesService.executeAction.mockResolvedValue({
         success: false,
