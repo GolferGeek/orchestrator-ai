@@ -80,7 +80,7 @@ export interface LLMRequest {
     userId?: string;
     organizationId?: string;
     userSovereignMode?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -846,7 +846,7 @@ export class CentralizedRoutingService {
       timestamp: new Date().toISOString(),
       userId: request.options?.userId,
       organizationId: request.options?.organizationId,
-      requestId: request.options?.requestId,
+      requestId: request.options?.requestId as string | undefined,
       prompt: {
         length: request.prompt.length,
         wordCount: request.prompt.split(/\s+/).length,

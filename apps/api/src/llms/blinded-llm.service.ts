@@ -185,7 +185,7 @@ export class BlindedLLMService {
     init?: RequestInit,
   ): {
     url: string;
-    data?: any;
+    data?: unknown;
     headers: Record<string, string>;
     options: unknown;
   } {
@@ -202,8 +202,7 @@ export class BlindedLLMService {
 
     // Extract headers from init
     if (init?.headers) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const headerEntries = init.headers as any;
+      const headerEntries = init.headers as Record<string, unknown>;
       if (typeof headerEntries.entries === 'function') {
         // Headers object
         for (const [key, value] of (headerEntries as { entries: () => Iterable<[string, string]> }).entries()) {
@@ -230,12 +229,11 @@ export class BlindedLLMService {
    * Convert axios response to fetch Response
    */
   private convertAxiosToFetchResponse(axiosResponse: unknown): Response {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const axiosResp = axiosResponse as any;
+    const axiosResp = axiosResponse as Record<string, unknown>;
     const response = new Response(JSON.stringify(axiosResp.data), {
-      status: axiosResp.status,
-      statusText: axiosResp.statusText,
-      headers: new Headers(axiosResp.headers),
+      status: axiosResp.status as number,
+      statusText: axiosResp.statusText as string,
+      headers: new Headers(axiosResp.headers as HeadersInit),
     });
 
     return response;
@@ -254,7 +252,7 @@ export class BlindedLLMService {
         if (prop === '_call' || prop === 'call') {
           return async (
             messages: BaseMessage[],
-            options?: any,
+            options?: Record<string, unknown>,
             callbacks?: CallbackManagerForLLMRun,
           ): Promise<ChatResult> => {
             this.logger.debug(

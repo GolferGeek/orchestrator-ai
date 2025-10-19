@@ -204,7 +204,7 @@ export abstract class BaseLLMService {
   protected async handlePiiOutput(
     text: string,
     requestId?: string,
-    mappings?: any[],
+    mappings?: Array<Record<string, unknown>>,
   ): Promise<string> {
     try {
       if (!requestId && !mappings) {
@@ -250,7 +250,7 @@ export abstract class BaseLLMService {
       conversationId?: string;
       callerType?: string;
       callerName?: string;
-      piiMetadata?: any;
+      piiMetadata?: Record<string, unknown>;
       startTime?: number;
       endTime?: number;
     },

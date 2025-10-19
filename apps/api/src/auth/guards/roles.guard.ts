@@ -162,6 +162,6 @@ export class RolesGuard implements CanActivate {
  * Use this in conjunction with @CurrentUser to get enhanced user data
  */
 export interface RequestWithUserProfile extends Request {
-  user: any; // From JWT auth
+  user: Record<string, unknown>; // From JWT auth
   userProfile: UserProfile; // From RolesGuard
 }

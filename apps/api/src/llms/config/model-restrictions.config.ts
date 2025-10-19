@@ -382,8 +382,8 @@ export function modelSupports(
 export function applyModelRestrictions(
   provider: string,
   modelName: string,
-  config: any,
-): any {
+  config: Record<string, unknown>,
+): Record<string, unknown> {
   const restrictions = getModelRestrictions(provider, modelName);
   if (!restrictions) {
     return config;
@@ -396,14 +396,15 @@ export function applyModelRestrictions(
     delete adjustedConfig.temperature;
   } else if (
     restrictions.temperature &&
-    adjustedConfig.temperature !== undefined
+    adjustedConfig.temperature !== undefined &&
+    adjustedConfig.temperature !== null
   ) {
     // Clamp temperature to valid range
     const min = restrictions.temperature.min ?? 0;
     const max = restrictions.temperature.max ?? 2;
     adjustedConfig.temperature = Math.max(
       min,
-      Math.min(max, adjustedConfig.temperature),
+      Math.min(max, adjustedConfig.temperature as number),
     );
   }
 

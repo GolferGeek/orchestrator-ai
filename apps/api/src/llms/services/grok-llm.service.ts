@@ -183,7 +183,7 @@ export class GrokLLMService extends BaseLLMService {
    * Create Grok-specific metadata with provider-specific fields
    */
   private createGrokMetadata(
-    completion: any,
+    completion: Record<string, unknown>,
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
@@ -282,7 +282,7 @@ export class GrokLLMService extends BaseLLMService {
   /**
    * Grok-specific error handling
    */
-  protected handleError(error: any, context: string): never {
+  protected handleError(error: unknown, context: string): never {
     // Handle Grok-specific errors
     if ((error.message as string | undefined)?.includes('401')) {
       throw new Error(`${context}: Invalid Grok API key`);

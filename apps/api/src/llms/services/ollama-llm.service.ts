@@ -212,10 +212,10 @@ export class OllamaLLMService extends BaseLLMService {
       );
 
       const availableModels = modelsResponse.data.models || [];
-      const modelExists = (availableModels as any[]).some((m: any) => m.name === model);
+      const modelExists = (availableModels as Array<Record<string, unknown>>).some((m: Record<string, unknown>) => m.name === model);
 
       if (!modelExists) {
-        const modelNames = (availableModels as any[]).map((m: any) => (m as { name: string }).name);
+        const modelNames = (availableModels as Array<Record<string, unknown>>).map((m: Record<string, unknown>) => (m as { name: string }).name);
         return {
           success: false,
           message: `Model ${model} not found. Available models: ${(modelNames as string[]).join(', ')}`,
@@ -325,7 +325,7 @@ export class OllamaLLMService extends BaseLLMService {
   /**
    * Ollama-specific error handling
    */
-  protected handleError(error: any, context: string): never {
+  protected handleError(error: unknown, context: string): never {
     try {
       const mapped = LLMErrorMapper.fromOllamaError(
         error,

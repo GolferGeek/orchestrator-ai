@@ -213,6 +213,6 @@ export interface RoutingDecisionWithPII {
   // Legacy fields for compatibility
   sovereignModeEnforced?: boolean;
   sovereignModeViolation?: boolean;
-  sanitizationResult?: any;
+  sanitizationResult?: Record<string, unknown>;
   sanitizedPrompt?: string;
 }

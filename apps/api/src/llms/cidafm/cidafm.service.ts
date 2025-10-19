@@ -94,11 +94,11 @@ export class CIDAFMService {
 
         // Transform user commands to match built-in command structure
         const transformedUserCommands = (userCommands || []).map(
-          (cmd: any) => ({
+          (cmd: Record<string, unknown>) => ({
             ...cmd,
             default_active: false,
             is_builtin: false,
-          } as CIDAFMCommandResponseDto),
+          } as unknown as CIDAFMCommandResponseDto),
         );
 
         allCommands = [...allCommands, ...transformedUserCommands];

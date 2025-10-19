@@ -6,7 +6,7 @@ export interface FeatureFlagContext {
   organizationId?: string;
   userAgent?: string;
   ipAddress?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface FeatureFlagConfig {
@@ -16,7 +16,7 @@ export interface FeatureFlagConfig {
   targetOrganizations?: string[];
   excludeUsers?: string[];
   excludeOrganizations?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()

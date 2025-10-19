@@ -240,7 +240,13 @@ export class UsageService {
       totalTokens: stats.totalTokens,
       totalRequests: stats.totalRequests,
       period: { startDate: startDate, endDate: endDate! },
-      breakdown,
+      breakdown: breakdown as unknown as Array<{
+        key: string;
+        cost: number;
+        tokens: number;
+        requests: number;
+        percentage: number;
+      }>,
       trends,
     };
   }
@@ -250,7 +256,7 @@ export class UsageService {
     options: ModelPerformanceOptions,
   ): Promise<
     Array<{
-      model: any;
+      model: string;
       metrics: {
         usageCount: number;
         avgUserRating: number;
@@ -287,7 +293,7 @@ export class UsageService {
         };
 
         return {
-          model: model.model,
+          model: model.model as unknown as string,
           metrics: {
             usageCount: model.requests,
             avgUserRating: model.avgRating || 0,
@@ -614,7 +620,7 @@ export class UsageService {
   private createBreakdown(
     _stats: UsageStatsResponseDto,
     _groupBy: string,
-  ): any[] {
+  ): Array<Record<string, unknown>> {
     // Implementation depends on groupBy parameter
     return [];
   }

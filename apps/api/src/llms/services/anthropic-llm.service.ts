@@ -409,7 +409,7 @@ export class AnthropicLLMService extends BaseLLMService {
   /**
    * Anthropic-specific error handling
    */
-  protected handleError(error: any, context: string): never {
+  protected handleError(error: unknown, context: string): never {
     // Map to standardized error and delegate to base handler
     try {
       const mapped = LLMErrorMapper.fromAnthropicError(

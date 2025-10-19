@@ -63,7 +63,7 @@ export class FeatureFlagController {
     config: FeatureFlagConfig;
     context: FeatureFlagContext;
     enabled: boolean;
-    debugInfo: any;
+    debugInfo: Record<string, unknown>;
   } {
     const flagName = body?.flagName || 'SOVEREIGN_ROUTING';
     const context: FeatureFlagContext = { userId, organizationId };

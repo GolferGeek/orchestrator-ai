@@ -59,13 +59,13 @@ export class CIDAFMController {
     type: [CIDAFMCommandResponseDto],
   })
   async getCommands(
-    @CurrentUser() user?: any,
+    @CurrentUser() user?: Record<string, unknown>,
     @Query('type') type?: '^' | '&' | '!',
     @Query('builtin_only') builtinOnly?: boolean,
     @Query('include_user_commands') includeUserCommands?: boolean,
   ): Promise<CIDAFMCommandResponseDto[]> {
-    // For public access, use null for user ID to get only builtin commands
-    const userId = user?.id || null;
+    // For public access, use empty string for user ID to get only builtin commands
+    const userId = (user?.id as string | undefined) || '';
     return this.cidafmService.findAllCommands(userId, {
       type,
       builtinOnly: builtinOnly ?? true, // Default to builtin only for public access
@@ -195,7 +195,7 @@ export class CIDAFMController {
     @Body()
     body: {
       message: string;
-      current_state?: Record<string, any>;
+      current_state?: Record<string, unknown>;
       session_id?: string;
     },
   ): Promise<{
@@ -235,7 +235,7 @@ export class CIDAFMController {
     @Param('sessionId') sessionId: string,
   ): Promise<{
     activeStateModifiers: string[];
-    session_state: Record<string, any>;
+    session_state: Record<string, unknown>;
     available_commands: CIDAFMCommandResponseDto[];
   }> {
     return this.cidafmService.getSessionState(user.userId, sessionId);
@@ -260,7 +260,7 @@ export class CIDAFMController {
     @Param('sessionId') sessionId: string,
   ): Promise<{
     message: string;
-    reset_state: Record<string, any>;
+    reset_state: Record<string, unknown>;
   }> {
     return this.cidafmService.resetSessionState(user.userId, sessionId);
   }

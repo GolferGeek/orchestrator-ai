@@ -106,8 +106,8 @@ export class LLMError extends Error {
   public readonly category: LLMErrorCategory;
   public readonly retryable: boolean;
   public readonly retryAfterMs?: number;
-  public readonly originalError?: any;
-  public readonly context?: Record<string, any>;
+  public readonly originalError?: unknown;
+  public readonly context?: Record<string, unknown>;
   public readonly timestamp: string;
   public readonly requestId?: string;
 
@@ -121,8 +121,8 @@ export class LLMError extends Error {
       category?: LLMErrorCategory;
       retryable?: boolean;
       retryAfterMs?: number;
-      originalError?: any;
-      context?: Record<string, any>;
+      originalError?: unknown;
+      context?: Record<string, unknown>;
       requestId?: string;
     } = {},
   ) {
