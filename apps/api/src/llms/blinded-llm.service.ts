@@ -271,9 +271,9 @@ export class BlindedLLMService {
 
             try {
               // Call the original LLM method (which will use our blinded fetch)
-              const method = (target as unknown as Record<string, unknown>)[prop] as (
-                ...args: unknown[]
-              ) => Promise<ChatResult>;
+              const method = (target as unknown as Record<string, unknown>)[
+                prop
+              ] as (...args: unknown[]) => Promise<ChatResult>;
               const result = await method.call(
                 target,
                 messages,
@@ -286,7 +286,7 @@ export class BlindedLLMService {
                 `Source-blinded LLM call completed for ${provider} in ${endTime - startTime}ms`,
               );
 
-              return result as ChatResult;
+              return result;
             } catch (error) {
               this.logger.error(
                 `Source-blinded LLM call failed for ${provider}:`,

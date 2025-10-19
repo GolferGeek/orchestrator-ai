@@ -36,13 +36,6 @@ export interface SQLExecutionResult {
 }
 
 /**
- * Generic database record type for query results
- */
-interface GenericDbRecord {
-  [key: string]: unknown;
-}
-
-/**
  * Get Orchestrator Database Client (Core platform data: users, tasks, agents, conversations)
  */
 function getOrchestratorClient() {
@@ -192,8 +185,7 @@ async function executeQueryOnCompanyDB(
   client: unknown,
   query: string,
 ): Promise<{ data: unknown; error?: string }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  const supabaseClient = client as any;
+  const supabaseClient = client as SupabaseClient;
   // Simple query parsing for basic SELECT statements on company schema
   // This is a simplified approach - for production you'd want more robust SQL parsing
   const lowerQuery = query.toLowerCase().trim();
@@ -208,7 +200,7 @@ async function executeQueryOnCompanyDB(
         .from('companies')
         .select('*', { count: 'exact' });
       return {
-        data: [{ count: (data as GenericDbRecord[] | null)?.length || 0 }],
+        data: [{ count: data?.length || 0 }],
         error: error?.message,
       };
     }
@@ -219,7 +211,7 @@ async function executeQueryOnCompanyDB(
         .from('companies')
         .select('*')
         .limit(100);
-      return { data: data as GenericDbRecord[] | null, error: error?.message };
+      return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from departments')) {
@@ -227,7 +219,7 @@ async function executeQueryOnCompanyDB(
         .from('departments')
         .select('*')
         .limit(100);
-      return { data: data as GenericDbRecord[] | null, error: error?.message };
+      return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_data')) {
@@ -235,7 +227,7 @@ async function executeQueryOnCompanyDB(
         .from('kpi_data')
         .select('*')
         .limit(100);
-      return { data: data as GenericDbRecord[] | null, error: error?.message };
+      return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_metrics')) {
@@ -243,7 +235,7 @@ async function executeQueryOnCompanyDB(
         .from('kpi_metrics')
         .select('*')
         .limit(100);
-      return { data: data as GenericDbRecord[] | null, error: error?.message };
+      return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_goals')) {
@@ -251,7 +243,7 @@ async function executeQueryOnCompanyDB(
         .from('kpi_goals')
         .select('*')
         .limit(100);
-      return { data: data as GenericDbRecord[] | null, error: error?.message };
+      return { data, error: error?.message };
     }
 
     // For complex queries, try to execute via raw query if possible
