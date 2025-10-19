@@ -365,9 +365,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect((result as Record<string, unknown>).status).toBe('completed');
-      expect(
-        mockDefinitionService.getDefinitionForExecution,
-      ).toHaveBeenCalledWith({
+      expect(mockDefinitionService.getDefinitionForExecution).toHaveBeenCalledWith({
         ownerAgentSlug: 'finance-manager',
         organizationSlug: 'global',
         name: 'kpi-tracking',
