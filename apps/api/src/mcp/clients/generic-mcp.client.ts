@@ -55,11 +55,15 @@ export class GenericMCPClient {
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'SQL generation failed',
+          error: (response.content[0]?.text as string) || 'SQL generation failed',
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const result = JSON.parse((response.content[0]?.text as string) || '{}') as {
+        sql: string;
+        explanation: string;
+        tables_used: string[];
+      };
       return {
         success: true,
         sql: result.sql,
@@ -97,11 +101,16 @@ export class GenericMCPClient {
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'SQL execution failed',
+          error: (response.content[0]?.text as string) || 'SQL execution failed',
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const result = JSON.parse((response.content[0]?.text as string) || '{}') as {
+        data: Array<Record<string, unknown>>;
+        row_count: number;
+        execution_time_ms: number;
+        columns: string[];
+      };
       return {
         success: true,
         data: result.data || [],
@@ -146,11 +155,15 @@ export class GenericMCPClient {
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'Analysis failed',
+          error: (response.content[0]?.text as string) || 'Analysis failed',
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const result = JSON.parse((response.content[0]?.text as string) || '{}') as {
+        analysis: string;
+        insights: string[];
+        recommendations: string[];
+      };
       return {
         success: true,
         analysis: result.analysis,
@@ -184,11 +197,11 @@ export class GenericMCPClient {
       if (response.isError) {
         return {
           success: false,
-          error: response.content[0]?.text || 'Schema retrieval failed',
+          error: (response.content[0]?.text as string) || 'Schema retrieval failed',
         };
       }
 
-      const result = JSON.parse(response.content[0]?.text || '{}');
+      const result = JSON.parse((response.content[0]?.text as string) || '{}') as Record<string, unknown>;
       return {
         success: true,
         schema: result,

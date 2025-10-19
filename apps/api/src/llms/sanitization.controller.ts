@@ -120,19 +120,27 @@ export class SanitizationController {
       }
     > = {};
     for (const row of data || []) {
-      const key = `${row.category || 'uncategorized'}::${row.data_type || 'custom'}::${row.is_active ? '1' : '0'}`;
+      const typedRow = row as {
+        id: string;
+        category: string | null;
+        data_type: string | null;
+        pseudonym: string | null;
+        is_active: boolean | null;
+        created_at: string | null;
+      };
+      const key = `${typedRow.category || 'uncategorized'}::${typedRow.data_type || 'custom'}::${typedRow.is_active ? '1' : '0'}`;
       if (!groups[key]) {
         groups[key] = {
-          id: row.id,
-          category: row.category || 'uncategorized',
-          dataType: row.data_type || 'custom',
-          isActive: !!row.is_active,
+          id: typedRow.id,
+          category: typedRow.category || 'uncategorized',
+          dataType: typedRow.data_type || 'custom',
+          isActive: !!typedRow.is_active,
           words: [],
-          createdAt: row.created_at,
+          createdAt: typedRow.created_at || undefined,
         };
       }
-      if (row.pseudonym && groups[key]) {
-        groups[key].words.push(row.pseudonym as string);
+      if (typedRow.pseudonym && groups[key]) {
+        groups[key].words.push(typedRow.pseudonym);
       }
     }
 

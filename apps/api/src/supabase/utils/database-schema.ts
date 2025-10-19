@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 interface SupabaseClientWithRpc {
-  rpc: (method: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+  rpc(method: string, params: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
 }
 
 export interface TableColumn {

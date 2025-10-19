@@ -102,7 +102,7 @@ export class UsageService {
   ): Promise<UsageStatsResponseDto> {
     const client = this.supabaseService.getServiceClient();
     const startDate = options.startDate || this.getDateDaysAgo(30);
-    const endDate = options.endDate || new Date().toISOString().split('T')[0]!;
+    const endDate = options.endDate || (new Date().toISOString().split('T')[0] as string);
 
     try {
       // Query tasks table for usage stats - tasks have llm_metadata with usage info
@@ -239,7 +239,7 @@ export class UsageService {
       totalCost: stats.totalCost,
       totalTokens: stats.totalTokens,
       totalRequests: stats.totalRequests,
-      period: { startDate: startDate, endDate: endDate! },
+      period: { startDate: startDate, endDate: endDate as string },
       breakdown: breakdown as unknown as Array<{
         key: string;
         cost: number;

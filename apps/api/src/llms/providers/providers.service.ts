@@ -105,10 +105,11 @@ export class ProvidersService {
     const result: ProviderWithModelsDto[] = [];
 
     for (const provider of providers || []) {
+      const providerName = (provider as { name: string }).name;
       let modelQuery = client
         .from(getTableName('llm_models'))
         .select('provider_name, model_name, display_name')
-        .eq('provider_name', provider.name)
+        .eq('provider_name', providerName)
         .eq('is_active', true)
         .order('display_name');
 
@@ -121,18 +122,25 @@ export class ProvidersService {
 
       if (modelError) {
         throw new HttpException(
-          `Failed to fetch models for provider ${provider.name}: ${modelError.message}`,
+          `Failed to fetch models for provider ${providerName}: ${modelError.message}`,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
       result.push({
-        providerName: provider.name,
-        models: (models || []).map((model) => ({
-          providerName: model.provider_name,
-          modelName: model.model_name,
-          displayName: model.display_name,
-        })),
+        providerName: providerName,
+        models: (models || []).map((model) => {
+          const typedModel = model as {
+            provider_name: string;
+            model_name: string;
+            display_name: string;
+          };
+          return {
+            providerName: typedModel.provider_name,
+            modelName: typedModel.model_name,
+            displayName: typedModel.display_name,
+          };
+        }),
       });
     }
 

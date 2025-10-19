@@ -69,7 +69,7 @@ export class SupabaseMCPServer implements IMCPServer {
     }
 
     this.supabaseUrl = supabaseUrl;
-    this.supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+    this.supabaseClient = createClient(supabaseUrl, supabaseServiceKey) as SupabaseClient;
 
     // Point to context directory - handle both development and production paths
     // In development: process.cwd() = project root

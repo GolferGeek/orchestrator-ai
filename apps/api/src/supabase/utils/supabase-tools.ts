@@ -8,7 +8,7 @@ import { initializeLangChain } from './langchain-client';
 import { MCPClientService } from '../../mcp/clients/mcp-client.service';
 
 interface SupabaseClientWithRpc {
-  rpc: (method: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+  rpc(method: string, params: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
 }
 
 // Global state for Supabase tools

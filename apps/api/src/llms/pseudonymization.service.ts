@@ -332,10 +332,10 @@ export class PseudonymizationService {
       );
 
       const firstName =
-        this.getRandomFromResult(firstNameResult.data) || 'john';
-      const lastName = this.getRandomFromResult(lastNameResult.data) || 'doe';
+        this.getRandomFromResult(firstNameResult.data as Array<Record<string, unknown>> | null) || 'john';
+      const lastName = this.getRandomFromResult(lastNameResult.data as Array<Record<string, unknown>> | null) || 'doe';
       const domain =
-        this.getRandomFromResult(domainResult.data) || 'example.com';
+        this.getRandomFromResult(domainResult.data as Array<Record<string, unknown>> | null) || 'example.com';
 
       // Create deterministic but realistic email
       const hash = this.hashValue(originalEmail);
@@ -386,8 +386,8 @@ export class PseudonymizationService {
       ]);
 
       const firstName =
-        this.getRandomFromResult(firstNameResult.data) || 'John';
-      const lastName = this.getRandomFromResult(lastNameResult.data) || 'Doe';
+        this.getRandomFromResult(firstNameResult.data as Array<Record<string, unknown>> | null) || 'John';
+      const lastName = this.getRandomFromResult(lastNameResult.data as Array<Record<string, unknown>> | null) || 'Doe';
 
       return `${firstName} ${lastName}`;
     } catch {
@@ -428,7 +428,7 @@ export class PseudonymizationService {
         .eq('category', 'first_names')
         .limit(50);
 
-      const name = this.getRandomFromResult(data) || 'user';
+      const name = this.getRandomFromResult(data as Array<Record<string, unknown>> | null) || 'user';
       const hash = this.hashValue(originalUsername);
       const suffix = hash.substring(0, 4);
 
@@ -452,7 +452,7 @@ export class PseudonymizationService {
         .eq('category', 'street_names')
         .limit(20);
 
-      const streetName = this.getRandomFromResult(data) || 'Main';
+      const streetName = this.getRandomFromResult(data as Array<Record<string, unknown>> | null) || 'Main';
       const streetNumber = Math.floor(Math.random() * 9999) + 1;
       const streetTypes = ['St', 'Ave', 'Blvd', 'Dr', 'Ln', 'Rd'];
       const streetType =
@@ -525,7 +525,7 @@ export class PseudonymizationService {
         .eq('id', mappingId)
         .single();
 
-      const currentCount = mapping?.usage_count || 0;
+      const currentCount = (mapping as { usage_count?: number } | null)?.usage_count || 0;
 
       await client
         .from('pseudonym_mappings')
