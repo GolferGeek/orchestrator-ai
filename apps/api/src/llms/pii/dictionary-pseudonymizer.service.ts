@@ -130,7 +130,11 @@ export class DictionaryPseudonymizerService {
         if (!key.trim()) continue;
         const existing = byOriginal[key];
         if (!existing) {
-          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row: row as Record<string, unknown> };
+          byOriginal[key] = {
+            pseudonym: r.pseudonym as string,
+            src,
+            row: row as Record<string, unknown>,
+          };
           continue;
         }
         // Only override when new source has higher priority
@@ -142,7 +146,11 @@ export class DictionaryPseudonymizerService {
               `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${String(r.pseudonym)}'`,
             );
           }
-          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row: row as Record<string, unknown> };
+          byOriginal[key] = {
+            pseudonym: r.pseudonym as string,
+            src,
+            row: row as Record<string, unknown>,
+          };
         }
       }
 

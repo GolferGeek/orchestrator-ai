@@ -1,7 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../../../llms/llm.service';
-import { isLLMResponse, LLMRequestOptions } from '@/llms/services/llm-interfaces';
+import {
+  isLLMResponse,
+  LLMRequestOptions,
+} from '@/llms/services/llm-interfaces';
 import {
   IMCPServer,
   MCPServerInfo,
@@ -69,7 +72,10 @@ export class SupabaseMCPServer implements IMCPServer {
     }
 
     this.supabaseUrl = supabaseUrl;
-    this.supabaseClient = createClient(supabaseUrl, supabaseServiceKey) as SupabaseClient;
+    this.supabaseClient = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+    ) as SupabaseClient;
 
     // Point to context directory - handle both development and production paths
     // In development: process.cwd() = project root
@@ -503,13 +509,13 @@ export class SupabaseMCPServer implements IMCPServer {
       }
 
       // Execute SQL using Supabase RPC function
-      const rpcResponse = await this.supabaseClient.rpc(
-        'exec_sql',
-        {
-          query: finalSQL,
-        },
-      );
-      const { data: result, error } = rpcResponse as { data: unknown; error: unknown };
+      const rpcResponse = await this.supabaseClient.rpc('exec_sql', {
+        query: finalSQL,
+      });
+      const { data: result, error } = rpcResponse as {
+        data: unknown;
+        error: unknown;
+      };
 
       const executionTime = Date.now() - startTime;
 
@@ -816,9 +822,20 @@ Return ONLY the SQL query, no explanation or formatting.`;
         systemPrompt,
         userPrompt,
         {
-          provider: (provider as 'openai' | 'anthropic' | 'google' | 'ollama' | undefined) || undefined,
+          provider:
+            (provider as
+              | 'openai'
+              | 'anthropic'
+              | 'google'
+              | 'ollama'
+              | undefined) || undefined,
           cidafmOptions: llmParams.cidafmOptions,
-          complexity: llmParams.complexity as 'simple' | 'medium' | 'complex' | 'reasoning' | undefined,
+          complexity: llmParams.complexity as
+            | 'simple'
+            | 'medium'
+            | 'complex'
+            | 'reasoning'
+            | undefined,
         },
       );
 

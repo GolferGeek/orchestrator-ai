@@ -40,7 +40,10 @@ export class MCPService {
    * Initialize service handlers for each namespace
    */
   private initializeToolHandlers(): void {
-    this.toolHandlers.set('supabase', this.supabaseService as unknown as IMCPToolHandler);
+    this.toolHandlers.set(
+      'supabase',
+      this.supabaseService as unknown as IMCPToolHandler,
+    );
     this.toolHandlers.set('slack', this.slackTools);
     this.toolHandlers.set('notion', this.notionTools);
 

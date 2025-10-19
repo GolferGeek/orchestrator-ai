@@ -6,7 +6,10 @@ import {
 } from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
-import { PIIProcessingMetadata, PIIDataType } from '../types/pii-metadata.types';
+import {
+  PIIProcessingMetadata,
+  PIIDataType,
+} from '../types/pii-metadata.types';
 import {
   LLMError,
   LLMErrorMapper,
@@ -101,7 +104,9 @@ export abstract class BaseLLMService {
       tier: params.options?.preferLocal ? 'local' : 'external',
       status: 'completed',
       // Provider-specific data can be added by subclasses
-      providerSpecific: (rawResp.providerSpecific as Record<string, unknown> | undefined) || ({} as Record<string, unknown>),
+      providerSpecific:
+        (rawResp.providerSpecific as Record<string, unknown> | undefined) ||
+        ({} as Record<string, unknown>),
     };
   }
 
@@ -323,8 +328,16 @@ export abstract class BaseLLMService {
             // Fallback to processedMatches
             const piiMetaAny2 = piiMeta as Record<string, unknown>;
             const matches =
-              (piiMetaAny2?.pseudonymResults as Record<string, unknown> | undefined)?.processedMatches ||
-              (piiMetaAny2?.pseudonymInstructions as Record<string, unknown> | undefined)?.targetMatches ||
+              (
+                piiMetaAny2?.pseudonymResults as
+                  | Record<string, unknown>
+                  | undefined
+              )?.processedMatches ||
+              (
+                piiMetaAny2?.pseudonymInstructions as
+                  | Record<string, unknown>
+                  | undefined
+              )?.targetMatches ||
               [];
             return (matches as unknown[])
               .filter(

@@ -27,7 +27,8 @@ const mockDependencies = {
         piiMetadata: undefined,
       }),
   } as unknown as PIIService,
-  dictionaryPseudonymizerService: {} as unknown as DictionaryPseudonymizerService,
+  dictionaryPseudonymizerService:
+    {} as unknown as DictionaryPseudonymizerService,
   runMetadataService: {} as unknown as RunMetadataService,
   providerConfigService: {} as unknown as ProviderConfigService,
   httpService: {

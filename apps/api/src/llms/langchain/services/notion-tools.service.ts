@@ -77,7 +77,11 @@ export class LangChainNotionService {
       func: (input: string) => {
         try {
           const params = JSON.parse(input) as Record<string, unknown>;
-          const { databaseId, filter, sorts } = params as { databaseId?: string; filter?: unknown; sorts?: unknown };
+          const { databaseId, filter, sorts } = params as {
+            databaseId?: string;
+            filter?: unknown;
+            sorts?: unknown;
+          };
 
           if (!databaseId) {
             throw new Error('Database ID is required to query Notion');
@@ -128,7 +132,10 @@ export class LangChainNotionService {
       func: (input: string) => {
         try {
           const params = JSON.parse(input) as Record<string, unknown>;
-          const { pageId, updates } = params as { pageId?: string; updates?: unknown };
+          const { pageId, updates } = params as {
+            pageId?: string;
+            updates?: unknown;
+          };
 
           if (!pageId) {
             throw new Error('Page ID is required to update a Notion page');

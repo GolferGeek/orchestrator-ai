@@ -290,7 +290,10 @@ export class ModelsService {
         is_active: createModelDto.status !== 'inactive',
       })
       .select()
-      .single()) as { data: Record<string, unknown> | null; error: { message: string } | null };
+      .single()) as {
+      data: Record<string, unknown> | null;
+      error: { message: string } | null;
+    };
 
     if (error) {
       throw new HttpException(
@@ -343,7 +346,10 @@ export class ModelsService {
       })
       .eq('id', id)
       .select()
-      .single()) as { data: Record<string, unknown> | null; error: { message: string } | null };
+      .single()) as {
+      data: Record<string, unknown> | null;
+      error: { message: string } | null;
+    };
 
     if (error) {
       throw new HttpException(

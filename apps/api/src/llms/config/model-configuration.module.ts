@@ -111,7 +111,9 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
         }
 
         if (patchJson && baseConfig) {
-          const patch = JSON.parse(patchJson) as Partial<SystemModelConfiguration>;
+          const patch = JSON.parse(
+            patchJson,
+          ) as Partial<SystemModelConfiguration>;
           baseConfig = deepMerge(baseConfig, patch);
         }
 

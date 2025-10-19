@@ -390,7 +390,7 @@ export class CentralizedRoutingService {
                 piiResult.metadata.detectionResults?.showstopperMatches || []
               ).map((m: unknown) =>
                 typeof m === 'object' && m !== null && 'dataType' in m
-                  ? (m as Record<string, unknown>).dataType as string
+                  ? ((m as Record<string, unknown>).dataType as string)
                   : 'unknown',
               ),
             },

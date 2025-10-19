@@ -55,11 +55,14 @@ export class GenericMCPClient {
       if (response.isError) {
         return {
           success: false,
-          error: (response.content[0]?.text as string) || 'SQL generation failed',
+          error:
+            (response.content[0]?.text as string) || 'SQL generation failed',
         };
       }
 
-      const result = JSON.parse((response.content[0]?.text as string) || '{}') as {
+      const result = JSON.parse(
+        (response.content[0]?.text as string) || '{}',
+      ) as {
         sql: string;
         explanation: string;
         tables_used: string[];
@@ -101,11 +104,14 @@ export class GenericMCPClient {
       if (response.isError) {
         return {
           success: false,
-          error: (response.content[0]?.text as string) || 'SQL execution failed',
+          error:
+            (response.content[0]?.text as string) || 'SQL execution failed',
         };
       }
 
-      const result = JSON.parse((response.content[0]?.text as string) || '{}') as {
+      const result = JSON.parse(
+        (response.content[0]?.text as string) || '{}',
+      ) as {
         data: Array<Record<string, unknown>>;
         row_count: number;
         execution_time_ms: number;
@@ -159,7 +165,9 @@ export class GenericMCPClient {
         };
       }
 
-      const result = JSON.parse((response.content[0]?.text as string) || '{}') as {
+      const result = JSON.parse(
+        (response.content[0]?.text as string) || '{}',
+      ) as {
         analysis: string;
         insights: string[];
         recommendations: string[];
@@ -197,11 +205,14 @@ export class GenericMCPClient {
       if (response.isError) {
         return {
           success: false,
-          error: (response.content[0]?.text as string) || 'Schema retrieval failed',
+          error:
+            (response.content[0]?.text as string) || 'Schema retrieval failed',
         };
       }
 
-      const result = JSON.parse((response.content[0]?.text as string) || '{}') as Record<string, unknown>;
+      const result = JSON.parse(
+        (response.content[0]?.text as string) || '{}',
+      ) as Record<string, unknown>;
       return {
         success: true,
         schema: result,

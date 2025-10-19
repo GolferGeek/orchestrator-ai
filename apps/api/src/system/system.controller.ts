@@ -222,7 +222,10 @@ export class SystemController {
       if (error) {
         throw new Error(error.message);
       }
-      const dbConfig = typeof data === 'string' ? JSON.parse(data) as Record<string, unknown> : data as Record<string, unknown>;
+      const dbConfig =
+        typeof data === 'string'
+          ? (JSON.parse(data) as Record<string, unknown>)
+          : (data as Record<string, unknown>);
       return {
         success: true,
         source: envOverride ? 'env_override' : 'database',

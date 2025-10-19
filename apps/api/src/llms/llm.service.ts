@@ -589,7 +589,10 @@ export class LLMService {
             content,
             metadata,
             piiMetadata: options?.piiMetadata ?? null,
-            sanitizationMetadata: pseudonymizationMetadata as Record<string, unknown>,
+            sanitizationMetadata: pseudonymizationMetadata as Record<
+              string,
+              unknown
+            >,
           };
         }
 
@@ -1271,7 +1274,9 @@ export class LLMService {
           | 'ollama'
           | 'google',
         model: selectedDefault.model,
-        temperature: selectedDefault.parameters?.temperature as number | undefined,
+        temperature: selectedDefault.parameters?.temperature as
+          | number
+          | undefined,
         maxTokens: selectedDefault.parameters?.maxTokens as number | undefined,
       });
 
@@ -1723,7 +1728,9 @@ export class LLMService {
 
       if (providerResult.data && modelResult.data) {
         return {
-          provider: mapProviderFromDb(providerResult.data as Record<string, unknown>),
+          provider: mapProviderFromDb(
+            providerResult.data as Record<string, unknown>,
+          ),
           model: mapModelFromDb(modelResult.data as Record<string, unknown>),
         };
       }

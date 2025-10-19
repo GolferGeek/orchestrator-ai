@@ -94,11 +94,17 @@ export class TaskMessageEmitter implements MessageEmitter {
     await this.emit(content, 'progress', progressPercentage, metadata);
   }
 
-  async status(content: string, metadata?: Record<string, unknown>): Promise<void> {
+  async status(
+    content: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
     await this.emit(content, 'status', undefined, metadata);
   }
 
-  async info(content: string, metadata?: Record<string, unknown>): Promise<void> {
+  async info(
+    content: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
     await this.emit(content, 'info', undefined, metadata);
   }
 
@@ -109,7 +115,10 @@ export class TaskMessageEmitter implements MessageEmitter {
     await this.emit(content, 'warning', undefined, metadata);
   }
 
-  async error(content: string, metadata?: Record<string, unknown>): Promise<void> {
+  async error(
+    content: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
     await this.emit(content, 'error', undefined, metadata);
   }
 }

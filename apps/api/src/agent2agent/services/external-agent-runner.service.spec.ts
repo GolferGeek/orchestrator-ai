@@ -254,9 +254,10 @@ describe('ExternalAgentRunnerService', () => {
 
       expect(result.success).toBe(true);
       expect(result.mode).toBe(AgentTaskMode.CONVERSE);
-      expect((result.payload?.content as Record<string, unknown> | undefined)?.message).toBe(
-        'Hello from external agent',
-      );
+      expect(
+        (result.payload?.content as Record<string, unknown> | undefined)
+          ?.message,
+      ).toBe('Hello from external agent');
 
       // Should not create deliverable for CONVERSE
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -535,7 +536,9 @@ describe('ExternalAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(true);
-      expect((result.payload?.content as Record<string, unknown> | undefined)?.id).toBe('del-123');
+      expect(
+        (result.payload?.content as Record<string, unknown> | undefined)?.id,
+      ).toBe('del-123');
 
       // Should not call external agent for non-create actions
       // eslint-disable-next-line @typescript-eslint/unbound-method

@@ -177,7 +177,10 @@ export class EvaluationService {
       )
       .eq('id', messageId)
       .eq('user_id', userId)
-      .single()) as { data: unknown; error: { code?: string; message: string } | null };
+      .single()) as {
+      data: unknown;
+      error: { code?: string; message: string } | null;
+    };
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -1121,7 +1124,10 @@ export class EvaluationService {
     return updatedTask as Record<string, unknown> | null;
   }
 
-  async getTaskWithEvaluation(userId: string, taskId: string): Promise<Record<string, unknown> | null> {
+  async getTaskWithEvaluation(
+    userId: string,
+    taskId: string,
+  ): Promise<Record<string, unknown> | null> {
     const client = this.supabaseService.getAnonClient();
 
     const { data: task, error } = (await client
@@ -1129,7 +1135,10 @@ export class EvaluationService {
       .select('*')
       .eq('id', taskId)
       .eq('user_id', userId)
-      .single()) as { data: unknown; error: { code: string; message: string } | null };
+      .single()) as {
+      data: unknown;
+      error: { code: string; message: string } | null;
+    };
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -1184,30 +1193,30 @@ export class EvaluationService {
       let filteredTasks = (tasks || []) as Record<string, unknown>[];
 
       if (filters.minRating !== undefined) {
-        filteredTasks = filteredTasks.filter(
-          (task) => {
-            const evaluation = task.evaluation as Record<string, unknown> | undefined;
-            return (
-              evaluation?.user_rating &&
-              (evaluation.user_rating as number) >= filters.minRating!
-            );
-          },
-        );
+        filteredTasks = filteredTasks.filter((task) => {
+          const evaluation = task.evaluation as
+            | Record<string, unknown>
+            | undefined;
+          return (
+            evaluation?.user_rating &&
+            (evaluation.user_rating as number) >= filters.minRating!
+          );
+        });
       }
 
       if (filters.hasNotes) {
-        filteredTasks = filteredTasks.filter(
-          (task) => {
-            const evaluation = task.evaluation as Record<string, unknown> | undefined;
-            return (
-              evaluation?.user_notes &&
-              (evaluation.user_notes as string).trim().length > 0
-            );
-          },
-        );
+        filteredTasks = filteredTasks.filter((task) => {
+          const evaluation = task.evaluation as
+            | Record<string, unknown>
+            | undefined;
+          return (
+            evaluation?.user_notes &&
+            (evaluation.user_notes as string).trim().length > 0
+          );
+        });
       }
 
-      return filteredTasks as Record<string, unknown>[];
+      return filteredTasks;
     }
 
     const { data: tasks, error } = await query;
@@ -1299,7 +1308,10 @@ export class EvaluationService {
             provider as Record<string, unknown>,
           );
           if ((provider as Record<string, unknown>).id) {
-            providersMap.set((provider as Record<string, unknown>).id as string, mappedProvider);
+            providersMap.set(
+              (provider as Record<string, unknown>).id as string,
+              mappedProvider,
+            );
           }
         });
       }
@@ -1317,7 +1329,10 @@ export class EvaluationService {
             model as Record<string, unknown>,
           );
           if ((model as Record<string, unknown>).id) {
-            modelsMap.set((model as Record<string, unknown>).id as string, mappedModel);
+            modelsMap.set(
+              (model as Record<string, unknown>).id as string,
+              mappedModel,
+            );
           }
         });
       }
@@ -1565,68 +1580,81 @@ export class EvaluationService {
 
     // Filter tasks with actual evaluation ratings
     const tasksWithEvaluations = (tasks || []).filter((task) => {
+      const taskEval = task.evaluation as Record<string, unknown> | undefined;
       const hasRating =
         task.evaluation &&
-        ((task.evaluation as Record<string, unknown>).user_rating ||
-          (task.evaluation as Record<string, unknown>).speed_rating ||
-          (task.evaluation as Record<string, unknown>).accuracy_rating);
+        (taskEval?.user_rating ||
+          taskEval?.speed_rating ||
+          taskEval?.accuracy_rating);
 
       // Apply filters that require evaluation data inspection
       if (
         filters.minRating &&
-        (!(task.evaluation as Record<string, unknown> | undefined)?.user_rating ||
-          ((task.evaluation as Record<string, unknown>).user_rating as number) < filters.minRating)
+        (!taskEval?.user_rating ||
+          (taskEval.user_rating as number) < filters.minRating)
       ) {
         return false;
       }
       if (
         filters.maxRating &&
-        (task.evaluation as Record<string, unknown> | undefined)?.user_rating &&
-        ((task.evaluation as Record<string, unknown>).user_rating as number) > filters.maxRating
+        taskEval?.user_rating &&
+        (taskEval.user_rating as number) > filters.maxRating
       ) {
         return false;
       }
       if (filters.hasNotes !== undefined) {
         const hasNotes =
-          (task.evaluation as Record<string, unknown> | undefined)?.user_notes &&
-          ((task.evaluation as Record<string, unknown>).user_notes as string).trim().length > 0;
+          taskEval?.user_notes &&
+          (taskEval.user_notes as string).trim().length > 0;
         if (filters.hasNotes !== hasNotes) {
           return false;
         }
       }
       if (filters.hasWorkflowSteps !== undefined) {
+        const taskRespMeta = task.response_metadata as
+          | Record<string, unknown>
+          | undefined;
         const hasWorkflow =
-          (task.response_metadata as Record<string, unknown> | undefined)?.workflow_steps_completed &&
-          ((task.response_metadata as Record<string, unknown>).workflow_steps_completed as unknown[]).length > 0;
+          taskRespMeta?.workflow_steps_completed &&
+          (taskRespMeta.workflow_steps_completed as unknown[]).length > 0;
         if (filters.hasWorkflowSteps !== hasWorkflow) {
           return false;
         }
       }
       if (filters.hasConstraints !== undefined) {
+        const taskLlmMeta = task.llm_metadata as
+          | Record<string, unknown>
+          | undefined;
+        const origSelection = taskLlmMeta?.originalLLMSelection as
+          | Record<string, unknown>
+          | undefined;
+        const cidafmOpts = origSelection?.cidafmOptions as
+          | Record<string, unknown>
+          | undefined;
         const hasConstraints =
-          ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.cidafmOptions &&
-          (((((task.llm_metadata as Record<string, unknown>).originalLLMSelection as Record<string, unknown>).cidafmOptions as Record<string, unknown[]> | undefined)
-            ?.activeStateModifiers as unknown[] | undefined)?.length ?? 0) > 0 ||
-          (((((task.llm_metadata as Record<string, unknown>).originalLLMSelection as Record<string, unknown>).cidafmOptions as Record<string, unknown[]> | undefined)
-              ?.responseModifiers as unknown[] | undefined)?.length ?? 0) > 0;
+          (cidafmOpts &&
+            ((cidafmOpts.activeStateModifiers as unknown[] | undefined)
+              ?.length ?? 0) > 0) ||
+          ((cidafmOpts.responseModifiers as unknown[] | undefined)?.length ??
+            0) > 0;
         if (filters.hasConstraints !== hasConstraints) {
           return false;
         }
       }
 
       // Apply date filters
-      if (filters.startDate && (task.evaluation as Record<string, unknown> | undefined)?.evaluation_timestamp) {
+      if (filters.startDate && taskEval?.evaluation_timestamp) {
         const evaluationDate = new Date(
-          (task.evaluation as Record<string, unknown>).evaluation_timestamp as string | number | Date,
+          taskEval.evaluation_timestamp as string | number | Date,
         );
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
-      if (filters.endDate && (task.evaluation as Record<string, unknown> | undefined)?.evaluation_timestamp) {
+      if (filters.endDate && taskEval?.evaluation_timestamp) {
         const evaluationDate = new Date(
-          (task.evaluation as Record<string, unknown>).evaluation_timestamp as string | number | Date,
+          taskEval.evaluation_timestamp as string | number | Date,
         );
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
@@ -1647,8 +1675,14 @@ export class EvaluationService {
     tasksWithEvaluations.forEach((task) => {
       userIds.add((task as Record<string, unknown>).user_id as string);
 
-      const providerId = ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.providerId;
-      const modelId = ((task.llm_metadata as Record<string, unknown> | undefined)?.originalLLMSelection as Record<string, unknown> | undefined)?.modelId;
+      const taskLlmMeta = task.llm_metadata as
+        | Record<string, unknown>
+        | undefined;
+      const origSelection = taskLlmMeta?.originalLLMSelection as
+        | Record<string, unknown>
+        | undefined;
+      const providerId = origSelection?.providerId;
+      const modelId = origSelection?.modelId;
 
       if (providerId) providerIds.add(providerId as string);
       if (modelId) modelIds.add(modelId as string);
@@ -1790,27 +1824,28 @@ export class EvaluationService {
 
     // Filter tasks with actual evaluations and apply date filters
     const evaluatedTasks = (tasks || []).filter((task) => {
+      const taskEval = task.evaluation as Record<string, unknown> | undefined;
       const hasRating =
         task.evaluation &&
-        ((task.evaluation as Record<string, unknown>).user_rating ||
-          (task.evaluation as Record<string, unknown>).speed_rating ||
-          (task.evaluation as Record<string, unknown>).accuracy_rating);
+        (taskEval?.user_rating ||
+          taskEval?.speed_rating ||
+          taskEval?.accuracy_rating);
 
       if (!hasRating) return false;
 
       // Apply date filters
-      if (filters.startDate && task.evaluation?.evaluation_timestamp) {
+      if (filters.startDate && taskEval?.evaluation_timestamp) {
         const evaluationDate = new Date(
-          task.evaluation.evaluation_timestamp as string | number | Date,
+          taskEval.evaluation_timestamp as string | number | Date,
         );
         const startDate = new Date(filters.startDate);
         if (evaluationDate < startDate) {
           return false;
         }
       }
-      if (filters.endDate && task.evaluation?.evaluation_timestamp) {
+      if (filters.endDate && taskEval?.evaluation_timestamp) {
         const evaluationDate = new Date(
-          task.evaluation.evaluation_timestamp as string | number | Date,
+          taskEval.evaluation_timestamp as string | number | Date,
         );
         const endDate = new Date(filters.endDate);
         // Set end date to end of day for inclusive filtering
@@ -1826,14 +1861,30 @@ export class EvaluationService {
     // Calculate analytics
     const totalEvaluations = evaluatedTasks.length;
     const ratings = evaluatedTasks
-      .map((task) => task.evaluation.user_rating as number | null | undefined)
+      .map(
+        (task) =>
+          (task.evaluation as Record<string, unknown>).user_rating as
+            | number
+            | null
+            | undefined,
+      )
       .filter((rating): rating is number => rating != null);
     const speedRatings = evaluatedTasks
-      .map((task) => task.evaluation.speed_rating as number | null | undefined)
+      .map(
+        (task) =>
+          (task.evaluation as Record<string, unknown>).speed_rating as
+            | number
+            | null
+            | undefined,
+      )
       .filter((rating): rating is number => rating != null);
     const accuracyRatings = evaluatedTasks
       .map(
-        (task) => task.evaluation.accuracy_rating as number | null | undefined,
+        (task) =>
+          (task.evaluation as Record<string, unknown>).accuracy_rating as
+            | number
+            | null
+            | undefined,
       )
       .filter((rating): rating is number => rating != null);
 
@@ -1854,12 +1905,18 @@ export class EvaluationService {
 
     // Calculate workflow completion rate
     const workflowTasks = evaluatedTasks.filter(
-      (task) => task.response_metadata?.workflow_steps_completed,
+      (task) =>
+        (task.response_metadata as Record<string, unknown> | undefined)
+          ?.workflow_steps_completed,
     );
     const averageWorkflowCompletionRate =
       workflowTasks.length > 0
         ? workflowTasks.reduce((sum, task): number => {
-            const steps = (task.response_metadata as Record<string, unknown>).workflow_steps_completed || [];
+            const taskRespMeta = task.response_metadata as Record<
+              string,
+              unknown
+            >;
+            const steps = taskRespMeta.workflow_steps_completed || [];
             const completedCount = (steps as unknown[]).filter(
               (step: unknown) =>
                 (step as Record<string, unknown>).status === 'completed',
@@ -1872,11 +1929,16 @@ export class EvaluationService {
     const responseTimes = evaluatedTasks
       .map(
         (task) =>
-          task.llm_metadata?.response_time_ms as number | null | undefined,
+          (task.llm_metadata as Record<string, unknown> | undefined)
+            ?.response_time_ms as number | null | undefined,
       )
       .filter((time): time is number => time != null);
     const costs = evaluatedTasks
-      .map((task) => task.llm_metadata?.total_cost as number | null | undefined)
+      .map(
+        (task) =>
+          (task.llm_metadata as Record<string, unknown> | undefined)
+            ?.total_cost as number | null | undefined,
+      )
       .filter((cost): cost is number => cost != null);
 
     const averageResponseTime =
@@ -1987,7 +2049,9 @@ export class EvaluationService {
     }
 
     const workflowTasks = (tasks || []).filter(
-      (task) => task.response_metadata?.workflow_steps_completed,
+      (task) =>
+        (task.response_metadata as Record<string, unknown> | undefined)
+          ?.workflow_steps_completed,
     );
 
     const workflowPerformance = this.calculateWorkflowStepPerformance(
@@ -2097,9 +2161,8 @@ export class EvaluationService {
     const constraintCombinations = this.analyzeConstraintCombinations(
       evaluatedTasks as TaskRecord[],
     );
-    const constraintImpactOnPerformance = this.calculateConstraintPerformanceImpact(
-      evaluatedTasks as TaskRecord[],
-    );
+    const constraintImpactOnPerformance =
+      this.calculateConstraintPerformanceImpact(evaluatedTasks as TaskRecord[]);
 
     return {
       constraintUsage,
@@ -2558,8 +2621,13 @@ export class EvaluationService {
     return record ? this.toPlainObject(record) : undefined;
   }
 
-  private toPlainObject(record: Record<string, unknown>): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(record)) as Record<string, unknown>;
+  private toPlainObject(
+    record: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(record)) as Record<
+      string,
+      unknown
+    >;
   }
 
   private asRecord(value: unknown): Record<string, unknown> | null {
@@ -2616,7 +2684,10 @@ export class EvaluationService {
           agentName,
           averageRating:
             ratings.length > 0
-              ? ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length
+              ? ratings.reduce(
+                  (sum: number, rating: number) => sum + rating,
+                  0,
+                ) / ratings.length
               : 0,
           evaluationCount: (dataObj.count as number) || 0,
         };
@@ -2637,8 +2708,12 @@ export class EvaluationService {
     const taskObj = task as Record<string, unknown>;
     const llmMetadata = (taskObj.llm_metadata as Record<string, unknown>) || {};
     const selection =
-      (llmMetadata.originalLLMSelection as Record<string, unknown> | undefined) ||
-      (llmMetadata.currentLLMSelection as Record<string, unknown> | undefined) ||
+      (llmMetadata.originalLLMSelection as
+        | Record<string, unknown>
+        | undefined) ||
+      (llmMetadata.currentLLMSelection as
+        | Record<string, unknown>
+        | undefined) ||
       (llmMetadata.selectedLLM as Record<string, unknown> | undefined) ||
       (llmMetadata.llmSelection as Record<string, unknown> | undefined) ||
       {};
@@ -2668,11 +2743,20 @@ export class EvaluationService {
       llmMetadata.provider_name ||
       taskObj.provider_name ||
       (taskObj.provider as Record<string, unknown> | undefined)?.display_name ||
-      (taskObj.provider as Record<string, unknown> | undefined)?.provider_name ||
+      (taskObj.provider as Record<string, unknown> | undefined)
+        ?.provider_name ||
       (taskObj.provider as Record<string, unknown> | undefined)?.name ||
       (taskObj.metadata as Record<string, unknown> | undefined)?.providerName ||
-      ((taskObj.metadata as Record<string, unknown> | undefined)?.provider as Record<string, unknown> | undefined)?.name ||
-      ((taskObj.metadata as Record<string, unknown> | undefined)?.provider as Record<string, unknown> | undefined)?.displayName ||
+      (
+        (taskObj.metadata as Record<string, unknown> | undefined)?.provider as
+          | Record<string, unknown>
+          | undefined
+      )?.name ||
+      (
+        (taskObj.metadata as Record<string, unknown> | undefined)?.provider as
+          | Record<string, unknown>
+          | undefined
+      )?.displayName ||
       (taskObj.metadata as Record<string, unknown> | undefined)?.provider ||
       undefined;
 
@@ -2687,8 +2771,16 @@ export class EvaluationService {
       (taskObj.model as Record<string, unknown> | undefined)?.display_name ||
       (taskObj.model as Record<string, unknown> | undefined)?.name ||
       (taskObj.metadata as Record<string, unknown> | undefined)?.modelName ||
-      ((taskObj.metadata as Record<string, unknown> | undefined)?.model as Record<string, unknown> | undefined)?.name ||
-      ((taskObj.metadata as Record<string, unknown> | undefined)?.model as Record<string, unknown> | undefined)?.displayName ||
+      (
+        (taskObj.metadata as Record<string, unknown> | undefined)?.model as
+          | Record<string, unknown>
+          | undefined
+      )?.name ||
+      (
+        (taskObj.metadata as Record<string, unknown> | undefined)?.model as
+          | Record<string, unknown>
+          | undefined
+      )?.displayName ||
       (taskObj.metadata as Record<string, unknown> | undefined)?.model ||
       undefined;
 

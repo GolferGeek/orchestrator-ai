@@ -399,7 +399,7 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
     });
 
     executionService.startExecution.mockResolvedValue({
-      run: baseRun as OrchestrationRunRecord,
+      run: baseRun,
       readySteps: [],
     });
 

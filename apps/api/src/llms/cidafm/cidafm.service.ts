@@ -113,15 +113,14 @@ export class CIDAFMService {
     const client = this.supabaseService.getServiceClient();
 
     // Try built-in commands first
-    const { data: builtinCommand } =
-      (await client
-        .from('cidafm_commands')
-        .select('*')
-        .eq('id', id)
-        .single()) as { data: CIDAFMCommandResponseDto | null };
+    const { data: builtinCommand } = (await client
+      .from('cidafm_commands')
+      .select('*')
+      .eq('id', id)
+      .single()) as { data: CIDAFMCommandResponseDto | null };
 
     if (builtinCommand) {
-      return builtinCommand as CIDAFMCommandResponseDto;
+      return builtinCommand;
     }
 
     // If not found in built-in, try regular commands
@@ -406,7 +405,10 @@ export class CIDAFMService {
     });
 
     return {
-      activeStateModifiers: ((state as Record<string, unknown>).active_state_modifiers as string[] | undefined) || [],
+      activeStateModifiers:
+        ((state as Record<string, unknown>).active_state_modifiers as
+          | string[]
+          | undefined) || [],
       session_state: state as Record<string, unknown>,
       available_commands: commands,
     };

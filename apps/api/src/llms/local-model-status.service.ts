@@ -377,7 +377,9 @@ export class LocalModelStatusService {
       const modelStatuses: ModelStatus[] = [];
 
       for (const dbModel of dbModels) {
-        const health = await this.checkModelHealth(dbModel.model_name as string);
+        const health = await this.checkModelHealth(
+          dbModel.model_name as string,
+        );
 
         const status: ModelStatus = {
           name: dbModel.model_name as string,
@@ -471,7 +473,8 @@ export class LocalModelStatusService {
 
       return (models || []).map((model) => ({
         modelName: model.model_name as string,
-        displayName: (model.display_name as string) || (model.model_name as string),
+        displayName:
+          (model.display_name as string) || (model.model_name as string),
         tier: (model.model_tier as string) || 'general',
         priority: (model.loading_priority as number) || 0,
         isCurrentlyLoaded: (model.is_currently_loaded as boolean) || false,

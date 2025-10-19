@@ -60,7 +60,10 @@ export class SanitizationController {
         },
       };
     } catch (error) {
-      this.logger.error('Failed to get sanitization stats', error instanceof Error ? error : String(error));
+      this.logger.error(
+        'Failed to get sanitization stats',
+        error instanceof Error ? error : String(error),
+      );
       // Provide minimal safe structure
       return {
         sanitizationStats: {

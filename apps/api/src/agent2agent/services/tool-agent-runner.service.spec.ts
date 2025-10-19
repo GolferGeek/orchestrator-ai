@@ -417,11 +417,12 @@ describe('ToolAgentRunnerService', () => {
       deliverablesService.executeAction.mockImplementation(
         (action, params: { content: string }) => {
           capturedContent = params.content;
-        return Promise.resolve({
-          success: true,
-          data: { deliverable: {}, version: {} },
-        });
-      });
+          return Promise.resolve({
+            success: true,
+            data: { deliverable: {}, version: {} },
+          });
+        },
+      );
 
       await service.execute(definition, request, null);
 
@@ -550,7 +551,9 @@ describe('ToolAgentRunnerService', () => {
       const result = await service.execute(definition, request, null);
 
       expect(result.success).toBe(true);
-      expect((result.payload?.content as Record<string, unknown> | undefined)?.id).toBe('del-123');
+      expect(
+        (result.payload?.content as Record<string, unknown> | undefined)?.id,
+      ).toBe('del-123');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'read',

@@ -202,9 +202,7 @@ describe('OrchestrationStepExecutorService', () => {
     runtimeExecution = module.get(AgentRuntimeExecutionService);
     routingPolicy = module.get(RoutingPolicyAdapterService);
     modeRouter = module.get(AgentModeRouterService);
-    conversations = module.get(
-      Agent2AgentConversationsService,
-    ) as jest.Mocked<Agent2AgentConversationsService>;
+    conversations = module.get(Agent2AgentConversationsService);
   });
 
   it('should be defined', () => {

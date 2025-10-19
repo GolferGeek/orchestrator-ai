@@ -8,7 +8,10 @@ import { initializeLangChain } from './langchain-client';
 import { MCPClientService } from '../../mcp/clients/mcp-client.service';
 
 interface SupabaseClientWithRpc {
-  rpc(method: string, params: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
+  rpc(
+    method: string,
+    params: Record<string, unknown>,
+  ): Promise<{ data: unknown; error: { message: string } | null }>;
 }
 
 // Global state for Supabase tools
@@ -106,7 +109,9 @@ function createOrchestratorSqlDatabase(): Record<string, unknown> {
     orchestratorSqlDatabase = {
       async run(query: string) {
         try {
-          const { data, error } = await (client as unknown as SupabaseClientWithRpc).rpc('exec_sql', {
+          const { data, error } = await (
+            client as unknown as SupabaseClientWithRpc
+          ).rpc('exec_sql', {
             query: query,
           });
           if (error) {
@@ -318,7 +323,9 @@ export async function executeOrchestratorSQL(query: string): Promise<unknown> {
   const client = getOrchestratorClient();
 
   try {
-    const { data, error } = await (client as unknown as SupabaseClientWithRpc).rpc('exec_sql', { query });
+    const { data, error } = await (
+      client as unknown as SupabaseClientWithRpc
+    ).rpc('exec_sql', { query });
     if (error) {
       throw new Error(`SQL execution failed: ${error.message}`);
     }
@@ -410,13 +417,14 @@ export async function generateAndExecuteCompanySQL(
     const response = sqlResponse as Record<string, unknown>;
     if (response.isError) {
       throw new Error(
-        ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string | undefined) ||
-          'SQL generation failed',
+        ((response.content as Record<string, unknown>[] | undefined)?.[0]
+          ?.text as string | undefined) || 'SQL generation failed',
       );
     }
 
     const generatedSQL = JSON.parse(
-      ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string) || '{}',
+      ((response.content as Record<string, unknown>[] | undefined)?.[0]
+        ?.text as string) || '{}',
     ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;
@@ -502,13 +510,14 @@ export async function generateAndExecuteOrchestratorSQL(
     const response = sqlResponse as Record<string, unknown>;
     if (response.isError) {
       throw new Error(
-        ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string | undefined) ||
-          'SQL generation failed',
+        ((response.content as Record<string, unknown>[] | undefined)?.[0]
+          ?.text as string | undefined) || 'SQL generation failed',
       );
     }
 
     const generatedSQL = JSON.parse(
-      ((response.content as Record<string, unknown>[] | undefined)?.[0]?.text as string) || '{}',
+      ((response.content as Record<string, unknown>[] | undefined)?.[0]
+        ?.text as string) || '{}',
     ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;

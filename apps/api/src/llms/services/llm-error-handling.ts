@@ -414,15 +414,31 @@ export class LLMErrorMapper {
     requestId?: string,
   ): LLMError {
     const err = error as Record<string, unknown>;
-    const rawStatus = (err.response as Record<string, unknown> | undefined)?.status ?? err.status;
+    const rawStatus =
+      (err.response as Record<string, unknown> | undefined)?.status ??
+      err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
         : rawStatus
           ? Number.parseInt(rawStatus as string, 10)
           : NaN;
-    const errorType = (((err.response as Record<string, unknown> | undefined)?.data as Record<string, unknown> | undefined)?.error as Record<string, unknown> | undefined)?.type || err.type;
-    const errorCode = (((err.response as Record<string, unknown> | undefined)?.data as Record<string, unknown> | undefined)?.error as Record<string, unknown> | undefined)?.code || err.code;
+    const errorType =
+      (
+        (
+          (err.response as Record<string, unknown> | undefined)?.data as
+            | Record<string, unknown>
+            | undefined
+        )?.error as Record<string, unknown> | undefined
+      )?.type || err.type;
+    const errorCode =
+      (
+        (
+          (err.response as Record<string, unknown> | undefined)?.data as
+            | Record<string, unknown>
+            | undefined
+        )?.error as Record<string, unknown> | undefined
+      )?.code || err.code;
 
     // Authentication errors
     if (Number.isFinite(status) && status === 401) {
@@ -436,7 +452,11 @@ export class LLMErrorMapper {
 
     // Rate limiting
     if (Number.isFinite(status) && status === 429) {
-      const retryAfter = ((err.response as Record<string, unknown> | undefined)?.headers as Record<string, unknown> | undefined)?.['retry-after'];
+      const retryAfter = (
+        (err.response as Record<string, unknown> | undefined)?.headers as
+          | Record<string, unknown>
+          | undefined
+      )?.['retry-after'];
       return new LLMError(
         'OpenAI rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
@@ -445,7 +465,9 @@ export class LLMErrorMapper {
           model,
           originalError: error,
           requestId,
-          retryAfterMs: retryAfter ? parseInt(retryAfter as string) * 1000 : 60000,
+          retryAfterMs: retryAfter
+            ? parseInt(retryAfter as string) * 1000
+            : 60000,
         },
       );
     }
@@ -731,7 +753,9 @@ export class LLMErrorMapper {
   ): LLMError {
     const err = error as Record<string, unknown>;
     // Grok uses OpenAI-compatible API, so similar error handling
-    const rawStatus = (err.response as Record<string, unknown> | undefined)?.status ?? err.status;
+    const rawStatus =
+      (err.response as Record<string, unknown> | undefined)?.status ??
+      err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
