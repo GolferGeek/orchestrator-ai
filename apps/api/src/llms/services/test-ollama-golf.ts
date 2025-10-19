@@ -12,6 +12,12 @@ import {
   LLMResponse,
 } from './llm-interfaces';
 
+import { PIIService } from '../pii/pii.service';
+import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
+import { RunMetadataService } from '../run-metadata.service';
+import { ProviderConfigService } from '../provider-config.service';
+import { HttpService } from '@nestjs/axios';
+
 // Mock dependencies for testing (we'll keep this simple for now)
 const mockDependencies = {
   piiService: {
@@ -20,10 +26,10 @@ const mockDependencies = {
         processedText: 'test',
         piiMetadata: undefined,
       }),
-  } as Record<string, unknown>,
-  dictionaryPseudonymizerService: {} as Record<string, unknown>,
-  runMetadataService: {} as Record<string, unknown>,
-  providerConfigService: {} as Record<string, unknown>,
+  } as unknown as PIIService,
+  dictionaryPseudonymizerService: {} as unknown as DictionaryPseudonymizerService,
+  runMetadataService: {} as unknown as RunMetadataService,
+  providerConfigService: {} as unknown as ProviderConfigService,
   httpService: {
     post: () => ({
       // Mock Ollama response
@@ -52,7 +58,7 @@ const mockDependencies = {
           },
         }),
     }),
-  } as Record<string, unknown>,
+  } as unknown as HttpService,
 };
 
 /**

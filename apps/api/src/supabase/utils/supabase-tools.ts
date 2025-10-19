@@ -404,10 +404,15 @@ export async function generateAndExecuteCompanySQL(
     });
 
     if (sqlResponse.isError) {
-      throw new Error(sqlResponse.content[0]?.text || 'SQL generation failed');
+      throw new Error(
+        (sqlResponse.content[0]?.text as string | undefined) ||
+          'SQL generation failed',
+      );
     }
 
-    const generatedSQL = JSON.parse(sqlResponse.content[0].text).sql;
+    const generatedSQL = JSON.parse(
+      sqlResponse.content[0].text as string,
+    ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;
 
@@ -490,10 +495,15 @@ export async function generateAndExecuteOrchestratorSQL(
     });
 
     if (sqlResponse.isError) {
-      throw new Error(sqlResponse.content[0]?.text || 'SQL generation failed');
+      throw new Error(
+        (sqlResponse.content[0]?.text as string | undefined) ||
+          'SQL generation failed',
+      );
     }
 
-    const generatedSQL = JSON.parse(sqlResponse.content[0].text).sql;
+    const generatedSQL = JSON.parse(
+      sqlResponse.content[0].text as string,
+    ).sql as string;
     let result: unknown[] = [];
     let error: string | undefined;
 

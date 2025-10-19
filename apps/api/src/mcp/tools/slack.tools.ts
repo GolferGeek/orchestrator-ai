@@ -271,7 +271,7 @@ export class SlackMCPTools implements IMCPToolHandler {
     const { channel, text, thread_ts, blocks } = args;
 
     try {
-      const payload: any = { channel, text };
+      const payload: Record<string, unknown> = { channel, text };
 
       if (thread_ts) {
         payload.thread_ts = thread_ts;
@@ -659,7 +659,7 @@ export class SlackMCPTools implements IMCPToolHandler {
     const { name, is_private = false, purpose, topic } = args;
 
     try {
-      const payload: any = { name, is_private };
+      const payload: Record<string, unknown> = { name, is_private };
 
       const response = await this.makeSlackRequest(
         'conversations.create',
