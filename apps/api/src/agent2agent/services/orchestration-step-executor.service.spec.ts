@@ -202,7 +202,9 @@ describe('OrchestrationStepExecutorService', () => {
     runtimeExecution = module.get(AgentRuntimeExecutionService);
     routingPolicy = module.get(RoutingPolicyAdapterService);
     modeRouter = module.get(AgentModeRouterService);
-    conversations = module.get(Agent2AgentConversationsService);
+    conversations = module.get(
+      Agent2AgentConversationsService,
+    ) as jest.Mocked<Agent2AgentConversationsService>;
   });
 
   it('should be defined', () => {
@@ -387,11 +389,10 @@ describe('OrchestrationStepExecutorService', () => {
 
       await service.processRun('run-123');
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(executionService.markStepFailed).toHaveBeenCalledWith(
         failingStep.id,
         expect.objectContaining({
-          error: expect.stringContaining('missing agent'),
+          error: expect.stringContaining('missing agent') as string,
         }),
       );
     });

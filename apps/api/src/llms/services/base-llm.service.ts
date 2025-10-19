@@ -132,7 +132,7 @@ export abstract class BaseLLMService {
               const m = mapping as Record<string, unknown>;
               return {
                 value: m.originalValue as string,
-                dataType: m.dataType as unknown as PIIDataType,
+                dataType: m.dataType as PIIDataType,
                 severity: 'info' as const,
                 confidence: 1.0,
                 startIndex: 0, // Dictionary doesn't track positions

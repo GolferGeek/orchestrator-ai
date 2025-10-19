@@ -142,12 +142,12 @@ describe('OrchestratorAgentRunnerService (Phase 2 A2A checkpoints)', () => {
 
     checkpointService.resolveCheckpoint.mockResolvedValue({
       approval: {} as Record<string, unknown>,
-      run: { ...baseRun, status: 'running' },
+      run: { ...baseRun, status: 'running' } as OrchestrationRunRecord,
       decision: 'continue',
     });
 
     executionService.startExecution.mockResolvedValue({
-      run: { ...baseRun, status: 'running' },
+      run: { ...baseRun, status: 'running' } as OrchestrationRunRecord,
       readySteps: [],
     });
 

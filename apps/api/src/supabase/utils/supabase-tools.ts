@@ -128,7 +128,7 @@ function createOrchestratorSqlDatabase(): Record<string, unknown> {
           names.map((name) => ({ tableName: name })),
         );
       },
-    } as Record<string, unknown>;
+    };
   }
   return orchestratorSqlDatabase!;
 }
@@ -173,7 +173,7 @@ function createCompanySqlDatabase(): Record<string, unknown> {
           { tableName: 'kpi_data' },
         ]);
       },
-    } as Record<string, unknown>;
+    };
   }
   return companySqlDatabase!;
 }

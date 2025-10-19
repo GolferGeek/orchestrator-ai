@@ -111,22 +111,20 @@ describe('ApiAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify HTTP call
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith({
         url: 'https://api.example.com/users',
         method: 'GET',
         headers: expect.objectContaining({
           'X-API-Key': 'secret-key',
           'Content-Type': 'application/json',
-        }),
+        }) as Record<string, string>,
         data: undefined,
         params: {},
         timeout: 30000,
-        validateStatus: expect.any(Function),
+        validateStatus: expect.any(Function) as (status: number) => boolean,
       });
 
       // Verify deliverable creation
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
@@ -191,7 +189,6 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'POST',
@@ -237,7 +234,6 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           url: 'https://api.example.com/users/42',
@@ -283,7 +279,6 @@ describe('ApiAgentRunnerService', () => {
 
       await service.execute(definition, request, null);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           params: {
@@ -521,8 +516,9 @@ describe('ApiAgentRunnerService', () => {
       );
 
       let capturedContent: string = '';
-      deliverablesService.executeAction.mockImplementation((action, params) => {
-        capturedContent = params.content;
+      deliverablesService.executeAction.mockImplementation(
+        (action, params: { content: string }) => {
+          capturedContent = params.content;
         return Promise.resolve({
           success: true,
           data: { deliverable: {}, version: {} },

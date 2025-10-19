@@ -454,7 +454,7 @@ describe('orchestrate.handlers', () => {
             payload: expect.objectContaining({
               action: 'continue',
               runId: 'run-1',
-            }),
+            }) as { action: string; runId: string },
           }),
           'org-1',
         );
@@ -487,7 +487,7 @@ describe('orchestrate.handlers', () => {
             payload: expect.objectContaining({
               action: 'continue',
               runId: 'run-1',
-            }),
+            }) as { action: string; runId: string },
           }),
           'org-1',
         );

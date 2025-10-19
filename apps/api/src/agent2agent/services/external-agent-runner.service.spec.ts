@@ -129,14 +129,13 @@ describe('ExternalAgentRunnerService', () => {
       expect(result.mode).toBe(AgentTaskMode.BUILD);
 
       // Verify external agent HTTP call
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith({
         url: 'https://external-agent.example.com/task',
         method: 'POST',
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
           'X-API-Key': 'secret-key',
-        }),
+        }) as Record<string, string>,
         data: expect.objectContaining({
           mode: AgentTaskMode.BUILD,
           conversationId: 'conv-123',
@@ -144,14 +143,13 @@ describe('ExternalAgentRunnerService', () => {
           metadata: expect.objectContaining({
             userId: 'user-123',
             forwardedFrom: 'test-external-agent',
-          }),
-        }),
+          }) as Record<string, string>,
+        }) as Record<string, unknown>,
         timeout: 60000,
-        validateStatus: expect.any(Function),
+        validateStatus: expect.any(Function) as (status: number) => boolean,
       });
 
       // Verify deliverable creation
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(deliverablesService.executeAction).toHaveBeenCalledWith(
         'create',
         expect.objectContaining({
@@ -208,12 +206,11 @@ describe('ExternalAgentRunnerService', () => {
       await service.execute(definition, request, null);
 
       // Verify no API key in headers
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: expect.not.objectContaining({
             'X-API-Key': expect.anything(),
-          }),
+          }) as Record<string, string>,
         }),
       );
     });

@@ -366,7 +366,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
 
       expect(result.status).toBe('completed');
       expect(
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         mockDefinitionService.getDefinitionForExecution,
       ).toHaveBeenCalledWith({
         ownerAgentSlug: 'finance-manager',
@@ -375,7 +374,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         version: '1.0.0',
       });
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           definition: mockChildDefinition,
@@ -440,7 +438,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           parameters: {
@@ -489,7 +486,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           conversationId: 'conv-123',
@@ -503,8 +499,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as Record<string, unknown>)
-              .orchestration,
+            ...((mockOrchestrationStep.metadata as Record<string, unknown>)
+              .orchestration as object),
             inherit_conversation: false,
           },
         },
@@ -546,7 +542,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, stepWithoutInheritance);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           conversationId: null,
@@ -580,7 +575,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -597,8 +591,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as Record<string, unknown>)
-              .orchestration,
+            ...((mockOrchestrationStep.metadata as Record<string, unknown>)
+              .orchestration as object),
             name: undefined,
           },
         },
@@ -621,7 +615,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       ).executeSubOrchestrationStep(mockParentRun, stepWithoutName);
 
       expect(result.status).toBe('failed');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -637,8 +630,8 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         metadata: {
           ...mockOrchestrationStep.metadata,
           orchestration: {
-            ...(mockOrchestrationStep.metadata as Record<string, unknown>)
-              .orchestration,
+            ...((mockOrchestrationStep.metadata as Record<string, unknown>)
+              .orchestration as object),
             owner: undefined,
           },
         },
@@ -662,7 +655,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       ).executeSubOrchestrationStep(parentWithoutAgent, stepWithoutOwner);
 
       expect(result.status).toBe('failed');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -697,7 +689,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -745,7 +736,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -794,7 +784,6 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({

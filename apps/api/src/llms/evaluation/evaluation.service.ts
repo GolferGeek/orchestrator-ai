@@ -2635,16 +2635,16 @@ export class EvaluationService {
       {};
 
     const providerId =
-      (selection as Record<string, unknown>).providerId ||
-      (selection as Record<string, unknown>).provider_id ||
+      selection.providerId ||
+      selection.provider_id ||
       llmMetadata.providerId ||
       llmMetadata.provider_id ||
       taskObj.provider_id ||
       (taskObj.provider as Record<string, unknown> | undefined)?.id ||
       undefined;
     const modelId =
-      (selection as Record<string, unknown>).modelId ||
-      (selection as Record<string, unknown>).model_id ||
+      selection.modelId ||
+      selection.model_id ||
       llmMetadata.modelId ||
       llmMetadata.model_id ||
       taskObj.model_id ||
@@ -2652,8 +2652,8 @@ export class EvaluationService {
       undefined;
 
     const providerName =
-      (selection as Record<string, unknown>).providerName ||
-      (selection as Record<string, unknown>).provider ||
+      selection.providerName ||
+      selection.provider ||
       llmMetadata.providerName ||
       llmMetadata.provider ||
       llmMetadata.provider_name ||
@@ -2668,8 +2668,8 @@ export class EvaluationService {
       undefined;
 
     const modelName =
-      (selection as Record<string, unknown>).modelName ||
-      (selection as Record<string, unknown>).model ||
+      selection.modelName ||
+      selection.model ||
       llmMetadata.modelName ||
       llmMetadata.model ||
       llmMetadata.model_name ||

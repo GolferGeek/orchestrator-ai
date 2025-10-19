@@ -689,15 +689,15 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(response.body).toMatchObject({
         mode: AgentTaskMode.CONVERSE,
         content: {
-          message: expect.any(String),
+          message: expect.any(String) as string,
         },
         metadata: {
-          provider: expect.any(String),
-          model: expect.any(String),
+          provider: expect.any(String) as string,
+          model: expect.any(String) as string,
           usage: expect.objectContaining({
-            promptTokens: expect.any(Number),
-            completionTokens: expect.any(Number),
-            totalTokens: expect.any(Number),
+            promptTokens: expect.any(Number) as number,
+            completionTokens: expect.any(Number) as number,
+            totalTokens: expect.any(Number) as number,
           }),
         },
       });
@@ -718,11 +718,11 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(response.body).toMatchObject({
         mode: AgentTaskMode.PLAN,
         content: {
-          plan: expect.any(Object),
-          version: expect.any(Number),
-          isNew: expect.any(Boolean),
+          plan: expect.any(Object) as object,
+          version: expect.any(Number) as number,
+          isNew: expect.any(Boolean) as boolean,
         },
-        metadata: expect.any(Object),
+        metadata: expect.any(Object) as object,
       });
     });
 
@@ -741,11 +741,11 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
       expect(response.body).toMatchObject({
         mode: AgentTaskMode.BUILD,
         content: {
-          deliverable: expect.any(Object),
-          version: expect.any(Number),
-          isNew: expect.any(Boolean),
+          deliverable: expect.any(Object) as object,
+          version: expect.any(Number) as number,
+          isNew: expect.any(Boolean) as boolean,
         },
-        metadata: expect.any(Object),
+        metadata: expect.any(Object) as object,
       });
     });
 
