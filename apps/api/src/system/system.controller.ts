@@ -222,11 +222,11 @@ export class SystemController {
       if (error) {
         throw new Error(error.message);
       }
-      const dbConfig = typeof data === 'string' ? JSON.parse(data) : data;
+      const dbConfig = typeof data === 'string' ? JSON.parse(data) as Record<string, unknown> : data as Record<string, unknown>;
       return {
         success: true,
         source: envOverride ? 'env_override' : 'database',
-        dbConfig,
+        dbConfig: dbConfig as Record<string, unknown>,
         envOverrideActive: Boolean(envOverride),
       };
     } catch (error) {
@@ -256,7 +256,7 @@ export class SystemController {
       // Determine payload
       let payload: Record<string, unknown> | undefined = dto.config;
       if (!payload && dto.config_json) {
-        payload = JSON.parse(dto.config_json);
+        payload = JSON.parse(dto.config_json) as Record<string, unknown>;
       }
       if (!payload || typeof payload !== 'object') {
         throw new HttpException(

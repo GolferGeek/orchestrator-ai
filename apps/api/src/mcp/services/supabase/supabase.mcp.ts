@@ -503,12 +503,13 @@ export class SupabaseMCPServer implements IMCPServer {
       }
 
       // Execute SQL using Supabase RPC function
-      const { data: result, error } = await this.supabaseClient.rpc(
+      const rpcResponse = await this.supabaseClient.rpc(
         'exec_sql',
         {
           query: finalSQL,
         },
       );
+      const { data: result, error } = rpcResponse as { data: unknown; error: unknown };
 
       const executionTime = Date.now() - startTime;
 

@@ -777,8 +777,8 @@ export class NotionMCPTools implements IMCPToolHandler {
     body?: Record<string, unknown>,
   ): Promise<Response> {
     const notionToken =
-      this.configService.get('NOTION_API_TOKEN') ||
-      this.configService.get('NOTION_TOKEN');
+      this.configService.get<string>('NOTION_API_TOKEN') ||
+      this.configService.get<string>('NOTION_TOKEN');
 
     if (!notionToken) {
       throw new Error('Notion API token not configured');

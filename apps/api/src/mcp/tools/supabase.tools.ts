@@ -204,10 +204,10 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   async ping(): Promise<boolean> {
     try {
       // Check if basic configuration is available
-      const supabaseUrl = this.configService.get('SUPABASE_URL');
+      const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
       const supabaseKey =
-        this.configService.get('SUPABASE_SERVICE_ROLE_KEY') ||
-        this.configService.get('SUPABASE_ANON_KEY');
+        this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
+        this.configService.get<string>('SUPABASE_ANON_KEY');
 
       if (!supabaseUrl || !supabaseKey) {
         this.logger.debug(
@@ -515,18 +515,18 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     method: string,
     body?: Record<string, unknown>,
   ): Promise<Response> {
-    const supabaseUrl = this.configService.get('SUPABASE_URL');
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseKey =
-      this.configService.get('SUPABASE_SERVICE_ROLE_KEY') ||
-      this.configService.get('SUPABASE_ANON_KEY');
+      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
+      this.configService.get<string>('SUPABASE_ANON_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase configuration missing');
     }
 
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${supabaseKey}`,
-      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey as string}`,
+      apikey: supabaseKey as string,
       'Content-Type': 'application/json',
     };
 

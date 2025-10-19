@@ -240,7 +240,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   async ping(): Promise<boolean> {
     try {
       // Check if basic configuration is available
-      const slackToken = this.configService.get('SLACK_BOT_TOKEN');
+      const slackToken = this.configService.get<string>('SLACK_BOT_TOKEN');
 
       if (!slackToken) {
         this.logger.debug(
@@ -736,8 +736,8 @@ export class SlackMCPTools implements IMCPToolHandler {
     body?: Record<string, unknown>,
   ): Promise<Response> {
     const slackToken =
-      this.configService.get('SLACK_BOT_TOKEN') ||
-      this.configService.get('SLACK_API_TOKEN');
+      this.configService.get<string>('SLACK_BOT_TOKEN') ||
+      this.configService.get<string>('SLACK_API_TOKEN');
 
     if (!slackToken) {
       throw new Error('Slack token not configured');
