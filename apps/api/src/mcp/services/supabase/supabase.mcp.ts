@@ -23,7 +23,7 @@ function getErrorMessage(error: unknown): string {
   }
   // Handle Supabase error objects
   if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as any).message);
+    return String((error as { message: unknown }).message);
   }
   return String(error);
 }

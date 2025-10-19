@@ -196,7 +196,7 @@ async function executeQueryOnCompanyDB(
       lowerQuery.includes('select count(*)') &&
       lowerQuery.includes('companies')
     ) {
-      const { data, error } = await (supabaseClient as any)
+      const { data, error } = await supabaseClient
         .from('companies')
         .select('*', { count: 'exact' });
       return {
@@ -207,7 +207,7 @@ async function executeQueryOnCompanyDB(
 
     // Handle public schema table queries
     if (lowerQuery.includes('from companies')) {
-      const { data, error } = await (supabaseClient as any)
+      const { data, error } = await supabaseClient
         .from('companies')
         .select('*')
         .limit(100);
@@ -215,7 +215,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from departments')) {
-      const { data, error } = await (supabaseClient as any)
+      const { data, error } = await supabaseClient
         .from('departments')
         .select('*')
         .limit(100);
@@ -223,7 +223,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from kpi_data')) {
-      const { data, error } = await (supabaseClient as any)
+      const { data, error } = await supabaseClient
         .from('kpi_data')
         .select('*')
         .limit(100);
@@ -231,7 +231,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from kpi_metrics')) {
-      const { data, error } = await (supabaseClient as any)
+      const { data, error } = await supabaseClient
         .from('kpi_metrics')
         .select('*')
         .limit(100);
@@ -239,7 +239,7 @@ async function executeQueryOnCompanyDB(
     }
 
     if (lowerQuery.includes('from kpi_goals')) {
-      const { data, error } = await (supabaseClient as any)
+      const { data, error } = await supabaseClient
         .from('kpi_goals')
         .select('*')
         .limit(100);

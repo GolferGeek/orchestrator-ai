@@ -226,7 +226,7 @@ export class SourceBlindingService {
   /**
    * Make a source-blinded HTTP request
    */
-  async makeBlindedRequest<T = any>(
+  async makeBlindedRequest<T = unknown>(
     config: AxiosRequestConfig,
     blindingOptions: {
       provider: string;
@@ -327,7 +327,7 @@ export class SourceBlindingService {
           { provider, ...options },
         );
       },
-      delete: async <T = any>(
+      delete: async <T = unknown>(
         url: string,
         config?: AxiosRequestConfig,
       ): Promise<AxiosResponse<T>> => {
