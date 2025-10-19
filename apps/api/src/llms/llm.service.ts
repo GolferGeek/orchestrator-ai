@@ -1271,8 +1271,8 @@ export class LLMService {
           | 'ollama'
           | 'google',
         model: selectedDefault.model,
-        temperature: selectedDefault.parameters?.temperature,
-        maxTokens: selectedDefault.parameters?.maxTokens,
+        temperature: selectedDefault.parameters?.temperature as number | undefined,
+        maxTokens: selectedDefault.parameters?.maxTokens as number | undefined,
       });
 
       // Format messages using selected provider/model

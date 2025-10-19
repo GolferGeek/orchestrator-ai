@@ -264,7 +264,7 @@ export class CIDAFMService {
   async processMessage(
     userId: string,
     message: string,
-    currentState?: Record<string, any>,
+    currentState?: Record<string, unknown>,
     _sessionId?: string,
   ): Promise<{
     modifiedPrompt: string;
@@ -360,13 +360,14 @@ export class CIDAFMService {
     // Apply state modifiers to the prompt
     modifiedPrompt = this.applyStateModifiers(
       modifiedPrompt,
-      state.active_state_modifiers,
+      (state.active_state_modifiers as string[] | undefined) || [],
       commands,
     );
 
     return {
       modifiedPrompt: modifiedPrompt,
-      activeStateModifiers: state.active_state_modifiers,
+      activeStateModifiers:
+        (state.active_state_modifiers as string[] | undefined) || [],
       executedCommands: executedCommands,
       processingNotes: processingNotes,
     };
@@ -377,7 +378,7 @@ export class CIDAFMService {
     sessionId: string,
   ): Promise<{
     activeStateModifiers: string[];
-    session_state: Record<string, any>;
+    session_state: Record<string, unknown>;
     available_commands: CIDAFMCommandResponseDto[];
   }> {
     // Get session state from the last message with CIDAFM options
@@ -410,7 +411,7 @@ export class CIDAFMService {
     _sessionId: string,
   ): Promise<{
     message: string;
-    reset_state: Record<string, any>;
+    reset_state: Record<string, unknown>;
   }> {
     const resetState = {
       activeStateModifiers: ['token-efficient'], // Default state
@@ -470,7 +471,7 @@ export class CIDAFMService {
 
   private handleExecutionCommand(
     commandName: string,
-    state: Record<string, any>,
+    state: Record<string, unknown>,
     processingNotes: string[],
   ): void {
     switch (commandName) {

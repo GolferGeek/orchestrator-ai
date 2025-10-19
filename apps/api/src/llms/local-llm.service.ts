@@ -368,7 +368,7 @@ export class LocalLLMService {
     };
 
     return this.getBestModelForTask(
-      complexityMap[tier] as any,
+      complexityMap[tier] as 'simple' | 'medium' | 'reasoning',
       tier === 'high-quality', // Only high-quality tier requires thinking
     );
   }

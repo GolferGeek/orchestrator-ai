@@ -395,7 +395,7 @@ export class LLMSelectionDto {
     activeStateModifiers?: string[];
     responseModifiers?: string[];
     executedCommands?: string[];
-    customOptions?: Record<string, any>;
+    customOptions?: Record<string, unknown>;
   };
 }
 
@@ -489,7 +489,7 @@ export class EnhancedMessageResponseDto {
   order!: number;
 
   @ApiPropertyOptional({ description: 'Message metadata' })
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   // LLM fields
   @ApiPropertyOptional({ description: 'Provider name' })
@@ -530,10 +530,10 @@ export class EnhancedMessageResponseDto {
   evaluationTimestamp?: string;
 
   @ApiPropertyOptional({ description: 'CIDAFM options used' })
-  cidafmOptions?: Record<string, any>;
+  cidafmOptions?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Additional evaluation details' })
-  evaluationDetails?: Record<string, any>;
+  evaluationDetails?: Record<string, unknown>;
 
   // Joined data
   @ApiPropertyOptional({ description: 'Provider details (when joined)' })

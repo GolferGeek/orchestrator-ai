@@ -14,7 +14,7 @@ export type EnvironmentName = 'development' | 'staging' | 'production';
 export interface ModelConfiguration {
   provider: string; // e.g., 'openai' | 'anthropic' | 'google' | 'grok' | 'ollama'
   model: string; // e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022'
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
 }
 
 export interface AgentModelConfiguration {
@@ -48,7 +48,7 @@ export class ModelConfigurationService {
     // - Global single default (provider/model)
     // - Global dual config { default, localOnly }
     if (configOrGlobal && typeof configOrGlobal === 'object') {
-      const anyCfg = configOrGlobal as any;
+      const anyCfg = configOrGlobal as Record<string, unknown>;
       if ('default' in anyCfg && !('provider' in anyCfg)) {
         this.mode = 'global_dual';
         this.globalDefault = anyCfg.default as ModelConfiguration;
@@ -59,7 +59,7 @@ export class ModelConfigurationService {
       }
       if ('provider' in anyCfg) {
         this.mode = 'global';
-        this.globalDefault = anyCfg as ModelConfiguration;
+        this.globalDefault = anyCfg as unknown as ModelConfiguration;
         return;
       }
     }
@@ -67,7 +67,7 @@ export class ModelConfigurationService {
     this.mode = 'system';
     this.config = (configOrGlobal as SystemModelConfiguration) ?? {
       agents: {},
-      environmentDefaults: {} as any,
+      environmentDefaults: {} as Record<string, ModelConfiguration>,
     };
   }
 

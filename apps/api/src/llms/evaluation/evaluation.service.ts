@@ -2530,13 +2530,13 @@ export class EvaluationService {
 
   private extractProcessingNotes(
     value: unknown,
-  ): Record<string, any> | undefined {
+  ): Record<string, unknown> | undefined {
     const record = this.asRecord(value);
     return record ? this.toPlainObject(record) : undefined;
   }
 
-  private toPlainObject(record: Record<string, unknown>): Record<string, any> {
-    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  private toPlainObject(record: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(record)) as Record<string, unknown>;
   }
 
   private asRecord(value: unknown): Record<string, unknown> | null {
@@ -2585,7 +2585,7 @@ export class EvaluationService {
       {} as Record<string, { ratings: number[]; count: number }>,
     );
 
-    return Object.entries(agentGroups as Record<string, any>).map(
+    return Object.entries(agentGroups as Record<string, unknown>).map(
       ([agentName, data]: [string, any]) => ({
         agentName,
         averageRating:
@@ -2610,62 +2610,62 @@ export class EvaluationService {
       return null;
     }
 
-    const taskObj = task as Record<string, any>;
-    const llmMetadata = (taskObj.llm_metadata as Record<string, any>) || {};
+    const taskObj = task as Record<string, unknown>;
+    const llmMetadata = (taskObj.llm_metadata as Record<string, unknown>) || {};
     const selection =
-      llmMetadata.originalLLMSelection ||
-      llmMetadata.currentLLMSelection ||
-      llmMetadata.selectedLLM ||
-      llmMetadata.llmSelection ||
+      (llmMetadata.originalLLMSelection as Record<string, unknown> | undefined) ||
+      (llmMetadata.currentLLMSelection as Record<string, unknown> | undefined) ||
+      (llmMetadata.selectedLLM as Record<string, unknown> | undefined) ||
+      (llmMetadata.llmSelection as Record<string, unknown> | undefined) ||
       {};
 
     const providerId =
-      selection.providerId ||
-      selection.provider_id ||
+      (selection as Record<string, unknown>).providerId ||
+      (selection as Record<string, unknown>).provider_id ||
       llmMetadata.providerId ||
       llmMetadata.provider_id ||
       taskObj.provider_id ||
-      taskObj.provider?.id ||
+      (taskObj.provider as Record<string, unknown> | undefined)?.id ||
       undefined;
     const modelId =
-      selection.modelId ||
-      selection.model_id ||
+      (selection as Record<string, unknown>).modelId ||
+      (selection as Record<string, unknown>).model_id ||
       llmMetadata.modelId ||
       llmMetadata.model_id ||
       taskObj.model_id ||
-      taskObj.model?.id ||
+      (taskObj.model as Record<string, unknown> | undefined)?.id ||
       undefined;
 
     const providerName =
-      selection.providerName ||
-      selection.provider ||
+      (selection as Record<string, unknown>).providerName ||
+      (selection as Record<string, unknown>).provider ||
       llmMetadata.providerName ||
       llmMetadata.provider ||
       llmMetadata.provider_name ||
       taskObj.provider_name ||
-      taskObj.provider?.display_name ||
-      taskObj.provider?.provider_name ||
-      taskObj.provider?.name ||
-      taskObj.metadata?.providerName ||
-      taskObj.metadata?.provider?.name ||
-      taskObj.metadata?.provider?.displayName ||
-      taskObj.metadata?.provider ||
+      (taskObj.provider as Record<string, unknown> | undefined)?.display_name ||
+      (taskObj.provider as Record<string, unknown> | undefined)?.provider_name ||
+      (taskObj.provider as Record<string, unknown> | undefined)?.name ||
+      (taskObj.metadata as Record<string, unknown> | undefined)?.providerName ||
+      ((taskObj.metadata as Record<string, unknown> | undefined)?.provider as Record<string, unknown> | undefined)?.name ||
+      ((taskObj.metadata as Record<string, unknown> | undefined)?.provider as Record<string, unknown> | undefined)?.displayName ||
+      (taskObj.metadata as Record<string, unknown> | undefined)?.provider ||
       undefined;
 
     const modelName =
-      selection.modelName ||
-      selection.model ||
+      (selection as Record<string, unknown>).modelName ||
+      (selection as Record<string, unknown>).model ||
       llmMetadata.modelName ||
       llmMetadata.model ||
       llmMetadata.model_name ||
       taskObj.model_name ||
-      taskObj.model?.model_name ||
-      taskObj.model?.display_name ||
-      taskObj.model?.name ||
-      taskObj.metadata?.modelName ||
-      taskObj.metadata?.model?.name ||
-      taskObj.metadata?.model?.displayName ||
-      taskObj.metadata?.model ||
+      (taskObj.model as Record<string, unknown> | undefined)?.model_name ||
+      (taskObj.model as Record<string, unknown> | undefined)?.display_name ||
+      (taskObj.model as Record<string, unknown> | undefined)?.name ||
+      (taskObj.metadata as Record<string, unknown> | undefined)?.modelName ||
+      ((taskObj.metadata as Record<string, unknown> | undefined)?.model as Record<string, unknown> | undefined)?.name ||
+      ((taskObj.metadata as Record<string, unknown> | undefined)?.model as Record<string, unknown> | undefined)?.displayName ||
+      (taskObj.metadata as Record<string, unknown> | undefined)?.model ||
       undefined;
 
     if (!providerId && !providerName) {
@@ -2676,7 +2676,12 @@ export class EvaluationService {
       return null;
     }
 
-    return { providerId, providerName, modelId, modelName };
+    return {
+      providerId: (providerId as string | undefined) || undefined,
+      providerName: (providerName as string | undefined) || undefined,
+      modelId: (modelId as string | undefined) || undefined,
+      modelName: (modelName as string | undefined) || undefined,
+    };
   }
 
   private buildRecommendationKey(

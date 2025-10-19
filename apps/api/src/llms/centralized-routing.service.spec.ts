@@ -77,10 +77,16 @@ function makeService(
     usage,
   );
   // Patch private methods for local availability and selection
-  (service as any).checkLocalModelAvailability = jest.fn(() =>
+  (service as unknown as {
+    checkLocalModelAvailability: jest.Mock;
+    selectBestLocalModel: jest.Mock;
+  }).checkLocalModelAvailability = jest.fn(() =>
     Promise.resolve(overrides?.localAvailable ?? false),
   );
-  (service as any).selectBestLocalModel = jest.fn(() =>
+  (service as unknown as {
+    checkLocalModelAvailability: jest.Mock;
+    selectBestLocalModel: jest.Mock;
+  }).selectBestLocalModel = jest.fn(() =>
     Promise.resolve(overrides?.bestLocalModel ?? 'llama3.2:3b'),
   );
   return { service, usage };

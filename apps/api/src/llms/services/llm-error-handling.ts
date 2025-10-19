@@ -361,7 +361,7 @@ export class LLMError extends Error {
   /**
    * Get technical details for developers/debugging
    */
-  public getTechnicalDetails(): Record<string, any> {
+  public getTechnicalDetails(): Record<string, unknown> {
     return {
       type: this.type,
       code: this.code,
@@ -388,7 +388,7 @@ export class LLMError extends Error {
   /**
    * Convert to JSON for logging and API responses
    */
-  public toJSON(): Record<string, any> {
+  public toJSON(): Record<string, unknown> {
     return {
       error: true,
       message: this.message,
@@ -413,16 +413,16 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const err = error as Record<string, any>;
-    const rawStatus = err.response?.status ?? err.status;
+    const err = error as Record<string, unknown>;
+    const rawStatus = (err.response as Record<string, unknown> | undefined)?.status ?? err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
         : rawStatus
-          ? Number.parseInt(rawStatus, 10)
+          ? Number.parseInt(rawStatus as string, 10)
           : NaN;
-    const errorType = err.response?.data?.error?.type || err.type;
-    const errorCode = err.response?.data?.error?.code || err.code;
+    const errorType = (((err.response as Record<string, unknown> | undefined)?.data as Record<string, unknown> | undefined)?.error as Record<string, unknown> | undefined)?.type || err.type;
+    const errorCode = (((err.response as Record<string, unknown> | undefined)?.data as Record<string, unknown> | undefined)?.error as Record<string, unknown> | undefined)?.code || err.code;
 
     // Authentication errors
     if (Number.isFinite(status) && status === 401) {
@@ -436,7 +436,7 @@ export class LLMErrorMapper {
 
     // Rate limiting
     if (Number.isFinite(status) && status === 429) {
-      const retryAfter = err.response?.headers?.['retry-after'];
+      const retryAfter = ((err.response as Record<string, unknown> | undefined)?.headers as Record<string, unknown> | undefined)?.['retry-after'];
       return new LLMError(
         'OpenAI rate limit exceeded',
         LLMErrorType.RATE_LIMIT,
@@ -445,7 +445,7 @@ export class LLMErrorMapper {
           model,
           originalError: error,
           requestId,
-          retryAfterMs: retryAfter ? parseInt(retryAfter) * 1000 : 60000,
+          retryAfterMs: retryAfter ? parseInt(retryAfter as string) * 1000 : 60000,
         },
       );
     }
@@ -540,15 +540,15 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const err = error as Record<string, any>;
+    const err = error as Record<string, unknown>;
     const rawStatus = err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
         : rawStatus
-          ? Number.parseInt(rawStatus, 10)
+          ? Number.parseInt(rawStatus as string, 10)
           : NaN;
-    const errorType = err.error?.type;
+    const errorType = (err.error as Record<string, unknown> | undefined)?.type;
 
     // Authentication errors
     if (Number.isFinite(status) && status === 401) {
@@ -574,7 +574,7 @@ export class LLMErrorMapper {
     if (Number.isFinite(status) && status === 400) {
       if (errorType === 'invalid_request_error') {
         return new LLMError(
-          `Invalid Anthropic request: ${err.error?.message}`,
+          `Invalid Anthropic request: ${(err.error as Record<string, unknown> | undefined)?.message}`,
           LLMErrorType.INVALID_REQUEST,
           provider,
           { model, originalError: error, requestId },
@@ -610,7 +610,7 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const err = error as Record<string, any>;
+    const err = error as Record<string, unknown>;
     const message = (err.message as string | undefined) || '';
 
     // Authentication errors
@@ -670,7 +670,7 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const err = error as Record<string, any>;
+    const err = error as Record<string, unknown>;
     // Connection errors
     if (err.code === 'ECONNREFUSED') {
       return new LLMError(
@@ -692,7 +692,7 @@ export class LLMErrorMapper {
     }
 
     // Not found errors
-    if (err.response?.status === 404) {
+    if ((err.response as Record<string, unknown> | undefined)?.status === 404) {
       return new LLMError(
         'Ollama endpoint not found. Check server configuration.',
         LLMErrorType.MODEL_NOT_FOUND,
@@ -729,14 +729,14 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const err = error as Record<string, any>;
+    const err = error as Record<string, unknown>;
     // Grok uses OpenAI-compatible API, so similar error handling
-    const rawStatus = err.response?.status ?? err.status;
+    const rawStatus = (err.response as Record<string, unknown> | undefined)?.status ?? err.status;
     const status =
       typeof rawStatus === 'number'
         ? rawStatus
         : rawStatus
-          ? Number.parseInt(rawStatus, 10)
+          ? Number.parseInt(rawStatus as string, 10)
           : NaN;
 
     // Authentication errors
@@ -797,7 +797,7 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const err = error as Record<string, any>;
+    const err = error as Record<string, unknown>;
     switch (provider.toLowerCase()) {
       case 'openai':
         return this.fromOpenAIError(error, provider, model, requestId);
@@ -1107,7 +1107,7 @@ export class LLMErrorUtils {
   /**
    * Sanitize error for client response (remove sensitive information)
    */
-  static sanitizeForClient(error: LLMError): Record<string, any> {
+  static sanitizeForClient(error: LLMError): Record<string, unknown> {
     return {
       error: true,
       message: error.getUserFriendlyMessage(),

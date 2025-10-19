@@ -176,7 +176,7 @@ export interface CIDAFMOptions {
   activeStateModifiers?: string[];
   responseModifiers?: string[];
   executedCommands?: string[];
-  customOptions?: Record<string, any>;
+  customOptions?: Record<string, unknown>;
 }
 
 export interface EvaluationDetails {
@@ -242,7 +242,7 @@ export interface EnhancedMessage {
   content?: string;
   timestamp: string;
   order: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   // LLM Selection
   providerName?: string;
@@ -303,7 +303,7 @@ export interface CostEstimate {
 export interface CIDAFMState {
   activeCommands: CIDAFMCommand[];
   userCommands: UserCIDAFMCommand[];
-  sessionState: Record<string, any>;
+  sessionState: Record<string, unknown>;
 }
 
 export interface CIDAFMProcessingResult {
@@ -318,7 +318,7 @@ export interface CIDAFMCommandExecution {
   type: CIDAFMCommandType;
   result: 'success' | 'error' | 'warning';
   message?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 // ==================== Analytics and Reporting Types ====================

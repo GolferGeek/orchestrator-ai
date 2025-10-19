@@ -202,7 +202,7 @@ export class LocalModelStatusService {
           status: 'loaded', // If it's in the list, it's loaded
           size: this.formatBytes(model.size),
           digest: model.digest,
-          details: model.details,
+          details: model.details as Record<string, unknown>,
           modifiedAt: model.modified_at,
         };
 
@@ -377,7 +377,7 @@ export class LocalModelStatusService {
       const modelStatuses: ModelStatus[] = [];
 
       for (const dbModel of dbModels) {
-        const health = await this.checkModelHealth(dbModel.model_name);
+        const health = await this.checkModelHealth(dbModel.model_name as string);
 
         const status: ModelStatus = {
           name: dbModel.model_name,

@@ -20,10 +20,10 @@ const mockDependencies = {
         processedText: 'test',
         piiMetadata: undefined,
       }),
-  } as any,
-  dictionaryPseudonymizerService: {} as any,
-  runMetadataService: {} as any,
-  providerConfigService: {} as any,
+  } as Record<string, unknown>,
+  dictionaryPseudonymizerService: {} as Record<string, unknown>,
+  runMetadataService: {} as Record<string, unknown>,
+  providerConfigService: {} as Record<string, unknown>,
   httpService: {
     post: () => ({
       // Mock Ollama response
@@ -52,7 +52,7 @@ const mockDependencies = {
           },
         }),
     }),
-  } as any,
+  } as Record<string, unknown>,
 };
 
 /**

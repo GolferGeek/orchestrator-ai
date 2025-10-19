@@ -390,7 +390,10 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
     } as TaskRequestDto;
 
     checkpointService.resolveCheckpoint.mockResolvedValue({
-      approval: { id: 'approval-1', status: 'approved' } as any,
+      approval: {
+        id: 'approval-1',
+        status: 'approved',
+      } as { id: string; status: string },
       run: { ...baseRun, status: 'running' },
       decision: 'continue',
     });

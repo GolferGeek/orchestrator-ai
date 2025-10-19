@@ -60,7 +60,7 @@ export class SanitizationController {
         },
       };
     } catch (error) {
-      this.logger.error('Failed to get sanitization stats', error as any);
+      this.logger.error('Failed to get sanitization stats', error instanceof Error ? error : String(error));
       // Provide minimal safe structure
       return {
         sanitizationStats: {
@@ -129,10 +129,10 @@ export class SanitizationController {
           isActive: !!row.is_active,
           words: [],
           createdAt: row.created_at,
-        } as any;
+        };
       }
       if (row.pseudonym && groups[key]) {
-        groups[key].words.push(row.pseudonym);
+        groups[key].words.push(row.pseudonym as string);
       }
     }
 

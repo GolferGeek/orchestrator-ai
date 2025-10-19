@@ -264,7 +264,7 @@ export class MCPService {
   /**
    * Get server configuration for debugging
    */
-  getServerConfig(): Record<string, any> {
+  getServerConfig(): Record<string, unknown> {
     return {
       namespaces: Array.from(this.toolHandlers.keys()),
       capabilities: ['tools', 'logging'],

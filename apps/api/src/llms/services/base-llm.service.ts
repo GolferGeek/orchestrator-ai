@@ -6,7 +6,7 @@ import {
 } from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
-import { PIIProcessingMetadata } from '../types/pii-metadata.types';
+import { PIIProcessingMetadata, PIIDataType } from '../types/pii-metadata.types';
 import {
   LLMError,
   LLMErrorMapper,
@@ -67,11 +67,13 @@ export abstract class BaseLLMService {
     endTime: number,
     requestId: string,
   ): ResponseMetadata {
-    const rawResp = rawResponse as Record<string, any>;
+    const rawResp = rawResponse as Record<string, unknown>;
     const inputTokens = this.estimateTokens(
       params.systemPrompt + params.userMessage,
     );
-    const outputTokens = this.estimateTokens(rawResp.content || '');
+    const outputTokens = this.estimateTokens(
+      (rawResp.content as string | undefined) || '',
+    );
     const totalTokens = inputTokens + outputTokens;
 
     return {
@@ -99,7 +101,7 @@ export abstract class BaseLLMService {
       tier: params.options?.preferLocal ? 'local' : 'external',
       status: 'completed',
       // Provider-specific data can be added by subclasses
-      providerSpecific: rawResp.providerSpecific || {},
+      providerSpecific: (rawResp.providerSpecific as Record<string, unknown> | undefined) || ({} as Record<string, unknown>),
     };
   }
 
@@ -127,16 +129,16 @@ export abstract class BaseLLMService {
           detectionResults: {
             totalMatches: result.mappings.length,
             flaggedMatches: result.mappings.map((mapping: unknown) => {
-              const m = mapping as Record<string, any>;
+              const m = mapping as Record<string, unknown>;
               return {
-                value: m.originalValue,
-                dataType: m.dataType,
+                value: m.originalValue as string,
+                dataType: m.dataType as unknown as PIIDataType,
                 severity: 'info' as const,
                 confidence: 1.0,
                 startIndex: 0, // Dictionary doesn't track positions
                 endIndex: 0,
-                pattern: m.originalValue,
-                pseudonym: m.pseudonym,
+                pattern: m.originalValue as string,
+                pseudonym: m.pseudonym as string,
               };
             }),
             showstopperMatches: [],
@@ -290,7 +292,7 @@ export abstract class BaseLLMService {
           piiMeta: unknown,
         ): Array<{ original: string; pseudonym: string; dataType: string }> => {
           try {
-            const piiMetaAny = piiMeta as Record<string, any>;
+            const piiMetaAny = piiMeta as Record<string, unknown>;
             // Prefer explicit pseudonymsApplied if present
             if (
               Array.isArray(piiMetaAny?.pseudonymsApplied) &&
@@ -319,10 +321,10 @@ export abstract class BaseLLMService {
                 );
             }
             // Fallback to processedMatches
-            const piiMetaAny2 = piiMeta as Record<string, any>;
+            const piiMetaAny2 = piiMeta as Record<string, unknown>;
             const matches =
-              piiMetaAny2?.pseudonymResults?.processedMatches ||
-              piiMetaAny2?.pseudonymInstructions?.targetMatches ||
+              (piiMetaAny2?.pseudonymResults as Record<string, unknown> | undefined)?.processedMatches ||
+              (piiMetaAny2?.pseudonymInstructions as Record<string, unknown> | undefined)?.targetMatches ||
               [];
             return (matches as unknown[])
               .filter(
@@ -558,7 +560,7 @@ export abstract class BaseLLMService {
       LLMErrorMonitor.recordError(mappedError);
       throw mappedError;
     } catch {
-      const err = error as Record<string, any>;
+      const err = error as Record<string, unknown>;
       const fallback = new LLMError(
         `${context}: ${err?.message || 'Unknown error occurred'}`,
         LLMErrorType.UNKNOWN,

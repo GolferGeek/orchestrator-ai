@@ -297,8 +297,9 @@ export class BlindedLLMService {
           };
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (target as any)[prop] as unknown;
+        return (target as unknown as Record<string, unknown>)[
+          prop as string
+        ] as unknown;
       },
     });
   }
@@ -366,8 +367,7 @@ export class BlindedLLMService {
       ];
 
       // This should trigger our blinded HTTP client
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await blindedLLM.call(testMessages as any);
+      await blindedLLM.call(testMessages as unknown as BaseMessage[]);
 
       return {
         success: true,

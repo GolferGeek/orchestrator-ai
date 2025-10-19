@@ -76,7 +76,7 @@ export class WorkflowStepDto {
   @ApiPropertyOptional({ description: 'Additional step metadata' })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   @ApiPropertyOptional()
   @IsDate()
@@ -219,7 +219,7 @@ export class LLMConstraintsDto {
   })
   @IsObject()
   @IsOptional()
-  processingNotes?: Record<string, any>;
+  processingNotes?: Record<string, unknown>;
 }
 
 /**
@@ -384,7 +384,7 @@ export class EvaluationTaskDto {
   @ApiPropertyOptional({ description: 'Additional task metadata' })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -441,7 +441,7 @@ export class EvaluationDataDto {
   @ApiPropertyOptional({ description: 'Additional evaluation details' })
   @IsObject()
   @IsOptional()
-  evaluationDetails?: Record<string, any>;
+  evaluationDetails?: Record<string, unknown>;
 }
 
 /**
@@ -495,7 +495,7 @@ export class EnhancedEvaluationMetadataDto {
   @ApiPropertyOptional({ description: 'Additional system metadata' })
   @IsObject()
   @IsOptional()
-  systemMetadata?: Record<string, any>;
+  systemMetadata?: Record<string, unknown>;
 }
 
 /**

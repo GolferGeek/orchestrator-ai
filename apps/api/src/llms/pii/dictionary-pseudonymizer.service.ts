@@ -116,7 +116,7 @@ export class DictionaryPseudonymizerService {
         { pseudonym: string; src: 'agent' | 'org' | 'global'; row: any }
       > = {};
       for (const row of merged) {
-        const r = row as Record<string, any>;
+        const r = row as Record<string, unknown>;
         const src: 'agent' | 'org' | 'global' = r.agent_slug
           ? 'agent'
           : r.organization_slug
@@ -126,7 +126,7 @@ export class DictionaryPseudonymizerService {
         if (!key.trim()) continue;
         const existing = byOriginal[key];
         if (!existing) {
-          byOriginal[key] = { pseudonym: r.pseudonym, src, row };
+          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row };
           continue;
         }
         // Only override when new source has higher priority
@@ -138,7 +138,7 @@ export class DictionaryPseudonymizerService {
               `📚 [PSEUDONYM-DICT] Override: ${key} (${existing.src} -> ${src}) '${existing.pseudonym}' -> '${r.pseudonym}'`,
             );
           }
-          byOriginal[key] = { pseudonym: r.pseudonym, src, row };
+          byOriginal[key] = { pseudonym: r.pseudonym as string, src, row };
         }
       }
 
@@ -146,12 +146,12 @@ export class DictionaryPseudonymizerService {
 
       const dictionary: DictionaryPseudonymMapping[] = (unique || []).map(
         (row: unknown) => {
-          const r = row as Record<string, any>;
+          const r = row as Record<string, unknown>;
           return {
-            originalValue: r.original_value,
-            pseudonym: r.pseudonym,
-            dataType: r.data_type,
-            category: r.category,
+            originalValue: r.original_value as string,
+            pseudonym: r.pseudonym as string,
+            dataType: r.data_type as string,
+            category: r.category as string,
           };
         },
       );

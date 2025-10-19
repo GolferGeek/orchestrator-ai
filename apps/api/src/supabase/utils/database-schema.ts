@@ -141,7 +141,7 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
   const client = getSupabaseClient();
 
   try {
-    const { data, error } = await client.rpc('exec_sql', {
+    const { data, error } = await (client as any).rpc('exec_sql', {
       query: `
         SELECT
           tc.table_name as from_table,
@@ -159,7 +159,7 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
           AND tc.table_schema = 'public'
         ORDER BY tc.table_name, kcu.column_name
       `,
-    } as any);
+    });
 
     if (error) {
       return inferRelationshipsFromNaming();
@@ -209,7 +209,7 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
   const client = getSupabaseClient();
 
   try {
-    const { data, error } = await client.rpc('exec_sql', {
+    const { data, error } = await (client as any).rpc('exec_sql', {
       query: `
         SELECT kcu.column_name
         FROM information_schema.table_constraints tc
@@ -221,7 +221,7 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
           AND tc.table_schema = 'public'
         ORDER BY kcu.ordinal_position
       `,
-    } as any);
+    });
 
     const pkData = (data || []) as unknown[];
     if (error || !pkData.length) {

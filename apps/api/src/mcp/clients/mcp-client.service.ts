@@ -170,7 +170,7 @@ export class MCPClientService {
   async readData(params: {
     table_name: string;
     columns?: string[];
-    filters?: Record<string, any>;
+    filters?: Record<string, unknown>;
     limit?: number;
     offset?: number;
     order_by?: { column: string; ascending?: boolean };

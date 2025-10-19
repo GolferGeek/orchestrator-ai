@@ -103,7 +103,7 @@ export class ModelProviderDto {
     description: 'Additional model metadata',
     example: { memoryRequirement: '8GB', contextWindow: 4096 },
   })
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class ModelListResponseDto {

@@ -102,9 +102,9 @@ function createOrchestratorSqlDatabase(): any {
     orchestratorSqlDatabase = {
       async run(query: string) {
         try {
-          const { data, error } = await client.rpc('exec_sql', {
+          const { data, error } = await (client as any).rpc('exec_sql', {
             query: query,
-          } as any);
+          });
           if (error) {
             throw new Error(`SQL execution failed: ${error.message}`);
           }
@@ -314,7 +314,7 @@ export async function executeOrchestratorSQL(query: string): Promise<any> {
   const client = getOrchestratorClient();
 
   try {
-    const { data, error } = await client.rpc('exec_sql', { query } as any);
+    const { data, error } = await (client as any).rpc('exec_sql', { query });
     if (error) {
       throw new Error(`SQL execution failed: ${error.message}`);
     }

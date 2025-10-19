@@ -118,14 +118,14 @@ export class GrokLLMService extends BaseLLMService {
         throw new Error(`Grok API error (${response.status}): ${errorText}`);
       }
 
-      const completion = await response.json();
-      const choice = completion.choices?.[0];
+      const completion = (await response.json()) as Record<string, unknown>;
+      const choice = (completion.choices as unknown[] | undefined)?.[0] as Record<string, unknown> | undefined;
 
-      if (!choice?.message?.content) {
+      if (!choice || !(choice.message as Record<string, unknown> | undefined)?.content) {
         throw new Error('No content in Grok response');
       }
       // Do not reverse here; LLMService handles dictionary reversal consistently
-      const finalContent = choice.message.content;
+      const finalContent = (choice.message as Record<string, unknown>).content as string;
 
       const endTime = Date.now();
 

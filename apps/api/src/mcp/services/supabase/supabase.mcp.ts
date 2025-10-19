@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../../../llms/llm.service';
-import { isLLMResponse } from '@/llms/services/llm-interfaces';
+import { isLLMResponse, LLMRequestOptions } from '@/llms/services/llm-interfaces';
 import {
   IMCPServer,
   MCPServerInfo,
@@ -798,7 +798,7 @@ Return ONLY the SQL query, no explanation or formatting.`;
       console.log('[MCP-SQL-DEBUG] System prompt length:', systemPrompt.length);
       console.log('[MCP-SQL-DEBUG] User prompt:', userPrompt);
 
-      const llmParams = {
+      const llmParams: LLMRequestOptions = {
         temperature: 0.1,
         maxTokens: 1000,
         callerType: 'service',
@@ -808,13 +808,17 @@ Return ONLY the SQL query, no explanation or formatting.`;
         providerName: provider,
         modelName: model,
         includeMetadata: false,
-      } as any;
+      };
       console.log('[MCP-SQL-DEBUG] LLM params:', llmParams);
 
       const response = await this.llmService.generateResponse(
         systemPrompt,
         userPrompt,
-        llmParams,
+        {
+          provider: (provider as 'openai' | 'anthropic' | 'google' | 'ollama' | undefined) || undefined,
+          cidafmOptions: llmParams.cidafmOptions,
+          complexity: llmParams.complexity as 'simple' | 'medium' | 'complex' | 'reasoning' | undefined,
+        },
       );
 
       const responseIsLLM = isLLMResponse(response);
@@ -1073,7 +1077,7 @@ Format your response as a structured JSON object with these sections.`;
         'You are a data analyst providing insights on business data.',
         analysisPrompt,
         {
-          providerName: (providerName || 'ollama') as any,
+          providerName: providerName || 'ollama',
           modelName: modelName || 'gpt-oss:20b',
           temperature: 0.3,
           maxTokens: 1500,

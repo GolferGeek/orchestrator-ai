@@ -36,28 +36,28 @@ export interface MessageEmitter {
    * @param content - Status message content
    * @param metadata - Optional additional metadata
    */
-  status(content: string, metadata?: Record<string, any>): Promise<void>;
+  status(content: string, metadata?: Record<string, unknown>): Promise<void>;
 
   /**
    * Emit an info message
    * @param content - Info message content
    * @param metadata - Optional additional metadata
    */
-  info(content: string, metadata?: Record<string, any>): Promise<void>;
+  info(content: string, metadata?: Record<string, unknown>): Promise<void>;
 
   /**
    * Emit a warning message
    * @param content - Warning message content
    * @param metadata - Optional additional metadata
    */
-  warning(content: string, metadata?: Record<string, any>): Promise<void>;
+  warning(content: string, metadata?: Record<string, unknown>): Promise<void>;
 
   /**
    * Emit an error message
    * @param content - Error message content
    * @param metadata - Optional additional metadata
    */
-  error(content: string, metadata?: Record<string, any>): Promise<void>;
+  error(content: string, metadata?: Record<string, unknown>): Promise<void>;
 }
 
 /**
@@ -94,11 +94,11 @@ export class TaskMessageEmitter implements MessageEmitter {
     await this.emit(content, 'progress', progressPercentage, metadata);
   }
 
-  async status(content: string, metadata?: Record<string, any>): Promise<void> {
+  async status(content: string, metadata?: Record<string, unknown>): Promise<void> {
     await this.emit(content, 'status', undefined, metadata);
   }
 
-  async info(content: string, metadata?: Record<string, any>): Promise<void> {
+  async info(content: string, metadata?: Record<string, unknown>): Promise<void> {
     await this.emit(content, 'info', undefined, metadata);
   }
 
@@ -109,7 +109,7 @@ export class TaskMessageEmitter implements MessageEmitter {
     await this.emit(content, 'warning', undefined, metadata);
   }
 
-  async error(content: string, metadata?: Record<string, any>): Promise<void> {
+  async error(content: string, metadata?: Record<string, unknown>): Promise<void> {
     await this.emit(content, 'error', undefined, metadata);
   }
 }

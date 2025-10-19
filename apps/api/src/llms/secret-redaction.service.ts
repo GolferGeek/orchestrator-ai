@@ -6,7 +6,7 @@ export interface LogEntry {
   level: 'debug' | 'info' | 'warn' | 'error';
   message: string;
   context?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface RedactionPattern {
@@ -254,7 +254,7 @@ export class SecretRedactionService {
     message: string,
     runId?: string,
     context?: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): void {
     // Skip verbose logging in production unless explicitly enabled
     if (this.isProduction && level === 'debug' && !this.enableVerboseLogging) {
@@ -314,7 +314,9 @@ export class SecretRedactionService {
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.redactObjectSecrets(item));
+      return obj.map((item) =>
+        this.redactObjectSecrets(item as Record<string, unknown>),
+      );
     }
 
     const redactedObj: any = {};
@@ -428,7 +430,7 @@ export class SecretRedactionService {
     message: string,
     runId?: string,
     context?: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): void {
     this.safeLog('debug', message, runId, context, metadata);
   }
@@ -437,7 +439,7 @@ export class SecretRedactionService {
     message: string,
     runId?: string,
     context?: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): void {
     this.safeLog('info', message, runId, context, metadata);
   }
@@ -446,7 +448,7 @@ export class SecretRedactionService {
     message: string,
     runId?: string,
     context?: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): void {
     this.safeLog('warn', message, runId, context, metadata);
   }
@@ -455,7 +457,7 @@ export class SecretRedactionService {
     message: string,
     runId?: string,
     context?: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
   ): void {
     this.safeLog('error', message, runId, context, metadata);
   }

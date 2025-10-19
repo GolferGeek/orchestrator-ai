@@ -378,8 +378,9 @@ export class CentralizedRoutingService {
               dataSanitizationApplied: false,
               sanitizationLevel: 'none',
               piiDetected: true,
-              piiTypes:
+              piiTypes: Object.keys(
                 piiResult.metadata.detectionResults?.dataTypesSummary || {},
+              ),
               pseudonymsUsed: 0,
               pseudonymTypes: [],
               redactionsApplied: (
@@ -389,10 +390,10 @@ export class CentralizedRoutingService {
                 piiResult.metadata.detectionResults?.showstopperMatches || []
               ).map((m: unknown) =>
                 typeof m === 'object' && m !== null && 'dataType' in m
-                  ? (m as Record<string, unknown>).dataType
+                  ? (m as Record<string, unknown>).dataType as string
                   : 'unknown',
               ),
-            } as any,
+            },
           });
         } catch {
           // Continue if logging fails

@@ -17,7 +17,7 @@ import { cpus } from 'os';
 class UpdateGlobalModelConfigDto {
   @IsObject()
   @IsOptional()
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
 
   @IsString()
   @IsOptional()

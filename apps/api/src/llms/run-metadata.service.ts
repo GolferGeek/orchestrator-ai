@@ -282,16 +282,16 @@ export class RunMetadataService {
 
       // Map enhanced metrics if provided
       if (params.enhancedMetrics) {
-        const m = params.enhancedMetrics as any;
+        const m = params.enhancedMetrics as unknown as Record<string, unknown>;
         insertData.data_sanitization_applied =
-          m.dataSanitizationApplied ?? null;
-        insertData.sanitization_level = m.sanitizationLevel ?? null;
-        insertData.pii_detected = m.piiDetected ?? null;
-        insertData.pii_types = m.piiTypes ?? null;
-        insertData.pseudonyms_used = m.pseudonymsUsed ?? null;
-        insertData.pseudonym_types = m.pseudonymTypes ?? null;
-        insertData.redactions_applied = m.redactionsApplied ?? null;
-        insertData.redaction_types = m.redactionTypes ?? null;
+          (m.dataSanitizationApplied ?? null) as boolean | null;
+        insertData.sanitization_level = (m.sanitizationLevel ?? null) as string | null;
+        insertData.pii_detected = (m.piiDetected ?? null) as boolean | null;
+        insertData.pii_types = (m.piiTypes ?? null) as string[] | null;
+        insertData.pseudonyms_used = (m.pseudonymsUsed ?? null) as boolean | null;
+        insertData.pseudonym_types = (m.pseudonymTypes ?? null) as string[] | null;
+        insertData.redactions_applied = (m.redactionsApplied ?? null) as boolean | null;
+        insertData.redaction_types = (m.redactionTypes ?? null) as string[] | null;
         insertData.source_blinding_applied = m.sourceBlindingApplied ?? null;
         insertData.headers_stripped = m.headersStripped ?? null;
         insertData.custom_user_agent_used = m.customUserAgentUsed ?? null;
