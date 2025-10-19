@@ -888,7 +888,7 @@ export class TaskStatusService {
 
     if (typeof value === 'object') {
       try {
-        return JSON.parse(JSON.stringify(value));
+        return JSON.parse(JSON.stringify(value)) as T;
       } catch {
         return value;
       }

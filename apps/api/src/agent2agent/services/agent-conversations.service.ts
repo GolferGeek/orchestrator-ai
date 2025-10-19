@@ -75,18 +75,20 @@ export class Agent2AgentConversationsService {
         insertData.id = options.conversationId;
       }
 
-      const { data, error } = await this.supabaseService
+      const response = await this.supabaseService
         .getServiceClient()
         .from(getTableName('conversations'))
         .insert([insertData])
         .select('*')
         .single();
 
+      const data: unknown = response.data;
+      const error: unknown = response.error;
       const conversation = data as ConversationDbRecord | null;
 
       if (error || !conversation) {
         throw new Error(
-          `Failed to create conversation: ${error?.message || 'No data returned'}`,
+          `Failed to create conversation: ${(error as { message?: string })?.message || 'No data returned'}`,
         );
       }
 
@@ -127,7 +129,7 @@ export class Agent2AgentConversationsService {
     updatedAt: Date;
   } | null> {
     try {
-      const { data, error } = await this.supabaseService
+      const response = await this.supabaseService
         .getServiceClient()
         .from(getTableName('conversations'))
         .select('*')
@@ -135,6 +137,8 @@ export class Agent2AgentConversationsService {
         .eq('user_id', userId)
         .single();
 
+      const data: unknown = response.data;
+      const error: unknown = response.error;
       const conversation = data as ConversationDbRecord | null;
 
       if (error || !conversation) {

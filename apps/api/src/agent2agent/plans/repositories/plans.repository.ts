@@ -98,7 +98,7 @@ export class PlansRepository {
    * Find plan by ID
    */
   async findById(id: string, userId: string): Promise<PlanRecord | null> {
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
       .select('*')
@@ -106,11 +106,14 @@ export class PlansRepository {
       .eq('user_id', userId)
       .single();
 
+    const result: unknown = response.data;
+    const error: unknown = response.error;
+
     if (error) {
-      if (error.code === 'PGRST116') {
+      if ((error as {code?: string})?.code === 'PGRST116') {
         return null;
       }
-      throw new BadRequestException(`Failed to find plan: ${error.message}`);
+      throw new BadRequestException(`Failed to find plan: ${(error as {message?: string})?.message}`);
     }
 
     return result as PlanRecord | null;
@@ -129,7 +132,7 @@ export class PlansRepository {
       updated_at: new Date().toISOString(),
     };
 
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plans'))
       .update(updateData)
@@ -138,8 +141,11 @@ export class PlansRepository {
       .select('*')
       .single();
 
+    const result: unknown = response.data;
+    const error: unknown = response.error;
+
     if (error) {
-      throw new BadRequestException(`Failed to update plan: ${error.message}`);
+      throw new BadRequestException(`Failed to update plan: ${(error as {message?: string})?.message}`);
     }
 
     const planData = result as PlanRecord | null;

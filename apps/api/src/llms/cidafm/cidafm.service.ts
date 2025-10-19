@@ -71,7 +71,7 @@ export class CIDAFMService {
         }
 
         // Get the actual command details
-        const commandIds = userCommandIds.map((uc) => uc.command_id);
+        const commandIds = userCommandIds.map((uc) => uc.command_id as string);
         let commandQuery = client
           .from('cidafm_commands')
           .select('*')
@@ -119,7 +119,7 @@ export class CIDAFMService {
       .single();
 
     if (builtinCommand) {
-      return builtinCommand;
+      return builtinCommand as CIDAFMCommandResponseDto;
     }
 
     // If not found in built-in, try regular commands
@@ -131,10 +131,10 @@ export class CIDAFMService {
 
     if (userCommand) {
       return {
-        ...userCommand,
+        ...(userCommand as unknown as Record<string, unknown>),
         default_active: false,
         is_builtin: false,
-      };
+      } as unknown as CIDAFMCommandResponseDto;
     }
 
     return null;
@@ -192,9 +192,9 @@ export class CIDAFMService {
     }
 
     return {
-      ...command,
+      ...(command as unknown as Record<string, unknown>),
       default_active: false,
-    };
+    } as unknown as CIDAFMCommandResponseDto;
   }
 
   async updateUserCommand(
@@ -229,10 +229,11 @@ export class CIDAFMService {
       return null; // User doesn't have this command
     }
 
+    const userCommandTyped = userCommand as { cidafm_commands: Record<string, unknown> };
     return {
-      ...userCommand.cidafm_commands,
+      ...userCommandTyped.cidafm_commands,
       default_active: false,
-    };
+    } as unknown as CIDAFMCommandResponseDto;
   }
 
   async deleteUserCommand(userId: string, commandId: string): Promise<boolean> {

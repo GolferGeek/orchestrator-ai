@@ -237,7 +237,8 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       }
 
       // 5. Parse A2A response
-      const a2aResponse = response.data as TaskResponseDto;
+      const responseData: unknown = response.data;
+      const a2aResponse = responseData as TaskResponseDto;
 
       if (!a2aResponse || typeof a2aResponse.success !== 'boolean') {
         return TaskResponseDto.failure(
@@ -251,11 +252,13 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
         const targetDeliverableId =
           this.resolveDeliverableIdFromRequest(request);
 
+        const payload = request.payload as Record<string, unknown> | undefined;
+        const titleRaw: unknown = payload?.title;
         const deliverableResult = await this.deliverablesService.executeAction(
           'create',
           {
             title:
-              (request.payload as any)?.title ||
+              (typeof titleRaw === 'string' ? titleRaw : undefined) ||
               `External Agent Response: ${definition.displayName}`,
             content: JSON.stringify(a2aResponse.payload?.content, null, 2),
             format: definition.config?.deliverable?.format || 'json',

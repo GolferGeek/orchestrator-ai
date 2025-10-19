@@ -954,7 +954,7 @@ export function validatePlanStructure(
   if (typeof planStructure === 'string') {
     // Try to parse as JSON schema, but if it fails, treat as markdown template
     try {
-      const parsed = JSON.parse(planStructure);
+      const parsed: unknown = JSON.parse(planStructure);
       if (typeof parsed === 'object' && parsed !== null) {
         // It's a JSON schema stored as a string, continue with validation
         planStructure = parsed;

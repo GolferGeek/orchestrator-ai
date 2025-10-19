@@ -563,7 +563,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
           if (value == null) return 0;
           if (typeof value === 'object') return JSON.stringify(value).length;
           if (typeof value === 'string') return value.length;
-          return String(value).length;
+          if (typeof value === 'number' || typeof value === 'boolean') return String(value).length;
+          return 0;
         }),
       ),
     );
@@ -591,7 +592,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             if (value == null) return ''.padEnd(maxWidths[i] || 0);
             if (typeof value === 'object') return JSON.stringify(value).padEnd(maxWidths[i] || 0);
             if (typeof value === 'string') return value.padEnd(maxWidths[i] || 0);
-            return String(value).padEnd(maxWidths[i] || 0);
+            if (typeof value === 'number' || typeof value === 'boolean') return String(value).padEnd(maxWidths[i] || 0);
+            return ''.padEnd(maxWidths[i] || 0);
           })
           .join(' | ') +
         ' |\n';
@@ -626,8 +628,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
               const jsonStr = JSON.stringify(value);
               return jsonStr.includes(',') ? `"${jsonStr}"` : jsonStr;
             }
-            const strValue = String(value);
-            return strValue.includes(',') ? `"${strValue}"` : strValue;
+            if (typeof value === 'number' || typeof value === 'boolean') {
+              const strValue = String(value);
+              return strValue.includes(',') ? `"${strValue}"` : strValue;
+            }
+            return '';
           })
           .join(','),
       );

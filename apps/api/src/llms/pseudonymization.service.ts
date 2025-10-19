@@ -257,7 +257,7 @@ export class PseudonymizationService {
         throw error;
       }
 
-      return data;
+      return data as {id: string; pseudonym: string; data_type: string} | null;
     } catch (error) {
       this.logger.error(
         `Database lookup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -463,8 +463,8 @@ export class PseudonymizationService {
    */
   private getRandomFromResult(data: any[] | null): string | null {
     if (!data || data.length === 0) return null;
-    const randomItem = data[Math.floor(Math.random() * data.length)];
-    return randomItem?.value || null;
+    const randomItem = data[Math.floor(Math.random() * data.length)] as { value?: string } | undefined;
+    return (randomItem?.value as string | undefined) || null;
   }
 
   /**
@@ -492,7 +492,8 @@ export class PseudonymizationService {
         .single();
 
       if (error) throw error;
-      return data.id;
+      const typedData = data as { id: string };
+      return typedData.id as string;
     } catch (error) {
       this.logger.error(
         `Failed to store pseudonym mapping: ${error instanceof Error ? error.message : 'Unknown error'}`,

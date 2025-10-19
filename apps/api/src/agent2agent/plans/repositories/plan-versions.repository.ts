@@ -40,16 +40,19 @@ export class PlanVersionsRepository {
    * Create a new plan version
    */
   async create(data: CreatePlanVersionData): Promise<PlanVersionRecord> {
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .insert([data])
       .select('*')
       .single();
 
+    const result: unknown = response.data;
+    const error: unknown = response.error;
+
     if (error) {
       throw new BadRequestException(
-        `Failed to create plan version: ${error.message}`,
+        `Failed to create plan version: ${(error as {message?: string})?.message}`,
       );
     }
 
@@ -65,19 +68,22 @@ export class PlanVersionsRepository {
    * Find version by ID
    */
   async findById(versionId: string): Promise<PlanVersionRecord | null> {
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .select('*')
       .eq('id', versionId)
       .single();
 
+    const result: unknown = response.data;
+    const error: unknown = response.error;
+
     if (error) {
-      if (error.code === 'PGRST116') {
+      if ((error as {code?: string})?.code === 'PGRST116') {
         return null;
       }
       throw new BadRequestException(
-        `Failed to find plan version: ${error.message}`,
+        `Failed to find plan version: ${(error as {message?: string})?.message}`,
       );
     }
 
@@ -108,7 +114,7 @@ export class PlanVersionsRepository {
    * Get current version for a plan
    */
   async getCurrentVersion(planId: string): Promise<PlanVersionRecord | null> {
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .select('*')
@@ -116,9 +122,12 @@ export class PlanVersionsRepository {
       .eq('is_current_version', true)
       .maybeSingle();
 
+    const result: unknown = response.data;
+    const error: unknown = response.error;
+
     if (error) {
       throw new BadRequestException(
-        `Failed to get current plan version: ${error.message}`,
+        `Failed to get current plan version: ${(error as {message?: string})?.message}`,
       );
     }
 
@@ -152,7 +161,7 @@ export class PlanVersionsRepository {
    * Mark a version as current
    */
   async markAsCurrent(versionId: string): Promise<PlanVersionRecord> {
-    const { data: result, error } = await this.supabaseService
+    const response = await this.supabaseService
       .getServiceClient()
       .from(getTableName('plan_versions'))
       .update({ is_current_version: true })
@@ -160,9 +169,12 @@ export class PlanVersionsRepository {
       .select('*')
       .single();
 
+    const result: unknown = response.data;
+    const error: unknown = response.error;
+
     if (error) {
       throw new BadRequestException(
-        `Failed to mark version as current: ${error.message}`,
+        `Failed to mark version as current: ${(error as {message?: string})?.message}`,
       );
     }
 

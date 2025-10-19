@@ -804,7 +804,8 @@ export class CentralizedRoutingService {
         return null;
       }
 
-      return models?.[0]?.model_name || null;
+      const typedModels = models as Array<{ model_name: string }> | null;
+      return typedModels?.[0]?.model_name || null;
     } catch (error) {
       this.logger.error(`Database query failed for fallback model:`, error);
       return null;

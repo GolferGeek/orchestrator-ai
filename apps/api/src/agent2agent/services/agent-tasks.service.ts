@@ -241,17 +241,19 @@ export class Agent2AgentTasksService {
         taskData.id = params.taskId;
       }
 
-      const { data, error: taskError } = await this.supabaseService
+      const response = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
         .insert([taskData])
         .select('*')
         .single();
 
+      const data: unknown = response.data;
+      const taskError: unknown = response.error;
       const task = data as TaskDbRecord | null;
 
       if (taskError || !task) {
-        throw new Error(`Failed to create task: ${taskError?.message || 'No data returned'}`);
+        throw new Error(`Failed to create task: ${(taskError as { message?: string })?.message || 'No data returned'}`);
       }
 
       this.logger.debug(
@@ -295,7 +297,7 @@ export class Agent2AgentTasksService {
     updatedAt: Date;
   } | null> {
     try {
-      const { data, error } = await this.supabaseService
+      const response = await this.supabaseService
         .getServiceClient()
         .from(getTableName('tasks'))
         .select(
@@ -307,6 +309,9 @@ export class Agent2AgentTasksService {
         .eq('id', taskId)
         .eq('user_id', userId)
         .single();
+
+      const data: unknown = response.data;
+      const error: unknown = response.error;
 
       const task = data as (TaskDbRecord & { conversations: Pick<ConversationDbRecord, 'agent_name' | 'agent_type' | 'organization_slug'> }) | null;
 

@@ -115,17 +115,19 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         string,
         unknown
       >;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const metadataAny = request.metadata as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payloadAny = request.payload as any;
-      const userId =
-        metadataAny?.userId ||
-        payloadAny?.metadata?.userId ||
+      const metadata = request.metadata as Record<string, unknown> | undefined;
+      const payload = request.payload as Record<string, unknown> | undefined;
+      const payloadMetadata = payload?.metadata as Record<string, unknown> | undefined;
+      const userIdFromMetadata: unknown = metadata?.userId;
+      const userIdFromPayload: unknown = payloadMetadata?.userId;
+      const userId: string | null =
+        (typeof userIdFromMetadata === 'string' ? userIdFromMetadata : null) ||
+        (typeof userIdFromPayload === 'string' ? userIdFromPayload : null) ||
         process.env.SYSTEM_USER_ID ||
         null;
       const conversationId = request.conversationId || null;
-      const taskId = payloadAny?.taskId || null;
+      const taskIdRaw: unknown = payload?.taskId;
+      const taskId: string | null = typeof taskIdRaw === 'string' ? taskIdRaw : null;
 
       const allowedModules = new Set(this.allowedModules);
       const moduleMap: Record<string, unknown> = {};
@@ -155,7 +157,7 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
       });
 
       const script = new vm.Script(`"use strict";\n${code}\n;handler;`);
-      const exported = script.runInContext(sandbox, { timeout: 1000 });
+      const exported: unknown = script.runInContext(sandbox, { timeout: 1000 });
       if (typeof exported !== 'function') {
         return TaskResponseDto.failure(
           request.mode!,
@@ -163,7 +165,9 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      const timeoutMs = Number((fnConfig as { timeout_ms?: number }).timeout_ms || 20000);
+      const fnConfigObj = fnConfig as Record<string, unknown> | undefined;
+      const timeoutMsRaw: unknown = fnConfigObj?.timeout_ms;
+      const timeoutMs = typeof timeoutMsRaw === 'number' ? timeoutMsRaw : 20000;
       const ctx = this.buildExecutionContext({
         sandboxRequire,
         organizationSlug,
@@ -171,17 +175,18 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         userId,
         agentSlug: definition.slug,
         config: (definition.config || {}) as Record<string, unknown>,
-        taskId: typeof taskId === 'string' ? taskId : null,
+        taskId,
       });
 
-      const execPromise = Promise.resolve(exported(input, ctx));
+      const handler = exported as (input: unknown, ctx: unknown) => unknown;
+      const execPromise = Promise.resolve(handler(input, ctx));
       const timer = new Promise((_resolve, reject) =>
         setTimeout(() => reject(new Error('function_timeout')), timeoutMs),
       );
-      const result: any = await Promise.race([execPromise, timer]);
+      const result: unknown = await Promise.race([execPromise, timer]);
 
-      const payload = this.normalizeResultPayload(result);
-      return TaskResponseDto.success(request.mode!, payload);
+      const resultPayload = this.normalizeResultPayload(result);
+      return TaskResponseDto.success(request.mode!, resultPayload || {});
     } catch (error) {
       this.logger.warn(`Function agent execution failed: ${String(error)}`);
       return TaskResponseDto.failure(
@@ -194,18 +199,19 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
   private resolveFunctionCode(
     definition: AgentRuntimeDefinition,
   ): string | null {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const defAny = definition as any;
-    const recordCode = defAny?.record?.function_code;
-    if (typeof recordCode === 'string' && recordCode.trim().length > 0) {
-      return recordCode;
+    const defRecord = definition as unknown as { record?: Record<string, unknown> };
+    const recordCodeRaw: unknown = defRecord.record?.function_code;
+    if (typeof recordCodeRaw === 'string' && recordCodeRaw.trim().length > 0) {
+      return recordCodeRaw;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const configAny = definition.config as any;
-    const configCode =
-      configAny?.configuration?.function?.code ||
-      configAny?.function?.code;
+    const config = definition.config as Record<string, unknown> | undefined;
+    const configuration = config?.configuration as Record<string, unknown> | undefined;
+    const configFn = configuration?.function as Record<string, unknown> | undefined;
+    const directFn = config?.function as Record<string, unknown> | undefined;
+    const codeFromConfig: unknown = configFn?.code;
+    const codeFromDirect: unknown = directFn?.code;
+    const configCode = codeFromConfig || codeFromDirect;
     if (typeof configCode === 'string' && configCode.trim().length > 0) {
       return configCode;
     }
@@ -340,33 +346,31 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
       };
     }
 
-    let content =
-      typeof result === 'object' && result !== null ? { ...result } : result;
+    let content: unknown =
+      typeof result === 'object' && result !== null ? { ...(result as Record<string, unknown>) } : result;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resultAny = result as any;
+    const resultObj = (typeof result === 'object' && result !== null) ? result as Record<string, unknown> : undefined;
+    const deliverableRaw: unknown = resultObj?.deliverable;
     const deliverable =
-      typeof result === 'object' && result
-        ? (resultAny.deliverable as
-            | {
-                id: string;
-                title?: string;
-                currentVersion?: { id?: string | null };
-              }
-            | undefined)
+      typeof deliverableRaw === 'object' && deliverableRaw !== null
+        ? (deliverableRaw as {
+            id: string;
+            title?: string;
+            currentVersion?: { id?: string | null };
+          })
         : undefined;
 
-    const metadata =
-      typeof result === 'object' && resultAny.metadata
-        ? { ...(resultAny.metadata as Record<string, any>) }
+    const metadataRaw: unknown = resultObj?.metadata;
+    const metadata: Record<string, unknown> =
+      typeof metadataRaw === 'object' && metadataRaw !== null
+        ? { ...(metadataRaw as Record<string, unknown>) }
         : {};
 
-    if (typeof content === 'object' && content) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const contentAny = content as any;
-      delete contentAny.deliverable;
-      delete contentAny.version;
-      delete contentAny.metadata;
+    if (typeof content === 'object' && content !== null) {
+      const contentObj = content as Record<string, unknown>;
+      delete contentObj.deliverable;
+      delete contentObj.version;
+      delete contentObj.metadata;
     }
 
     if (

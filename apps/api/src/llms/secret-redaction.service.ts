@@ -311,7 +311,7 @@ export class SecretRedactionService {
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.redactObjectSecrets(item));
+      return obj.map((item) => this.redactObjectSecrets(item)) as unknown[];
     }
 
     const redactedObj: any = {};

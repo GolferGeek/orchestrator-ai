@@ -142,7 +142,7 @@ export class DictionaryPseudonymizerService {
         }
       }
 
-      const unique = Object.values(byOriginal).map((e) => e.row);
+      const unique = Object.values(byOriginal).map((e) => e.row as unknown);
 
       const dictionary: DictionaryPseudonymMapping[] = (unique || []).map(
         (row: unknown) => {

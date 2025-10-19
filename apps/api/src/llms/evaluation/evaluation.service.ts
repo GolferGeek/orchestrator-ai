@@ -1804,28 +1804,28 @@ export class EvaluationService {
     // Calculate analytics
     const totalEvaluations = evaluatedTasks.length;
     const ratings = evaluatedTasks
-      .map((task) => task.evaluation.user_rating)
-      .filter((rating) => rating != null);
+      .map((task) => task.evaluation.user_rating as number | null | undefined)
+      .filter((rating): rating is number => rating != null);
     const speedRatings = evaluatedTasks
-      .map((task) => task.evaluation.speed_rating)
-      .filter((rating) => rating != null);
+      .map((task) => task.evaluation.speed_rating as number | null | undefined)
+      .filter((rating): rating is number => rating != null);
     const accuracyRatings = evaluatedTasks
-      .map((task) => task.evaluation.accuracy_rating)
-      .filter((rating) => rating != null);
+      .map((task) => task.evaluation.accuracy_rating as number | null | undefined)
+      .filter((rating): rating is number => rating != null);
 
     const averageRating =
       ratings.length > 0
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+        ? (ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length)
         : 0;
     const averageSpeedRating =
       speedRatings.length > 0
-        ? speedRatings.reduce((sum, rating) => sum + rating, 0) /
-          speedRatings.length
+        ? (speedRatings.reduce((sum, rating) => sum + rating, 0) /
+          speedRatings.length)
         : 0;
     const averageAccuracyRating =
       accuracyRatings.length > 0
-        ? accuracyRatings.reduce((sum, rating) => sum + rating, 0) /
-          accuracyRatings.length
+        ? (accuracyRatings.reduce((sum, rating) => sum + rating, 0) /
+          accuracyRatings.length)
         : 0;
 
     // Calculate workflow completion rate
@@ -1845,20 +1845,20 @@ export class EvaluationService {
 
     // Calculate average response time and cost
     const responseTimes = evaluatedTasks
-      .map((task) => task.llm_metadata?.response_time_ms)
-      .filter((time) => time != null);
+      .map((task) => task.llm_metadata?.response_time_ms as number | null | undefined)
+      .filter((time): time is number => time != null);
     const costs = evaluatedTasks
-      .map((task) => task.llm_metadata?.total_cost)
-      .filter((cost) => cost != null);
+      .map((task) => task.llm_metadata?.total_cost as number | null | undefined)
+      .filter((cost): cost is number => cost != null);
 
     const averageResponseTime =
       responseTimes.length > 0
-        ? responseTimes.reduce((sum, time) => sum + time, 0) /
-          responseTimes.length
+        ? (responseTimes.reduce((sum, time) => sum + time, 0) /
+          responseTimes.length)
         : 0;
     const averageCost =
       costs.length > 0
-        ? costs.reduce((sum, cost) => sum + cost, 0) / costs.length
+        ? (costs.reduce((sum, cost) => sum + cost, 0) / costs.length)
         : 0;
 
     // Rating distribution

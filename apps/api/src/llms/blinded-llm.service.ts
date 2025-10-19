@@ -279,7 +279,7 @@ export class BlindedLLMService {
                 `Source-blinded LLM call completed for ${provider} in ${endTime - startTime}ms`,
               );
 
-              return result;
+              return result as ChatResult;
             } catch (error) {
               this.logger.error(
                 `Source-blinded LLM call failed for ${provider}:`,
@@ -291,7 +291,7 @@ export class BlindedLLMService {
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (target as any)[prop];
+        return (target as any)[prop] as unknown;
       },
     });
   }

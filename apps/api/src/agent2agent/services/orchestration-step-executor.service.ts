@@ -333,18 +333,21 @@ export class OrchestrationStepExecutorService {
     }
 
     if (!agentResponse.success) {
+      const payloadMetadata = agentResponse.payload?.metadata as Record<string, unknown> | undefined;
+      const reasonRaw: unknown = payloadMetadata?.reason;
+      const errorTypeRaw: unknown = payloadMetadata?.errorType;
       return this.handleStepFailure(run, runningStep, {
         type: 'agent_response_failure',
         retryable: this.isResponseRetryable(agentResponse),
         errorDetails: {
           message:
             agentResponse.humanResponse?.message ??
-            agentResponse.payload?.metadata?.reason ??
+            (typeof reasonRaw === 'string' ? reasonRaw : undefined) ??
             'Agent execution failed',
           mode: agentResponse.mode,
           payload: agentResponse.payload,
           type:
-            agentResponse.payload?.metadata?.errorType ??
+            (typeof errorTypeRaw === 'string' ? errorTypeRaw : undefined) ??
             'agent_response_failure',
         },
       });
@@ -937,10 +940,13 @@ export class OrchestrationStepExecutorService {
       {},
     );
 
-    const runtime = this.asRecord(metadata.runtime) ?? {};
-    const retryRuntime = this.asRecord(runtime.retry) ?? {};
-    const history = Array.isArray(retryRuntime.history)
-      ? [...retryRuntime.history]
+    const runtimeRaw: unknown = metadata.runtime;
+    const runtime = this.asRecord(runtimeRaw) ?? {};
+    const retryRaw: unknown = runtime.retry;
+    const retryRuntime = this.asRecord(retryRaw) ?? {};
+    const historyRaw: unknown = retryRuntime.history;
+    const history: unknown[] = Array.isArray(historyRaw)
+      ? [...historyRaw]
       : [];
 
     history.push({
@@ -1011,15 +1017,23 @@ export class OrchestrationStepExecutorService {
       return null;
     }
 
+    const optionsArray: unknown = checkpoint.options;
     return {
       question: String(checkpoint.question),
-      options: Array.isArray(checkpoint.options)
-        ? checkpoint.options.map((option: Record<string, any>) => ({
-            action: option.action as OrchestrationCheckpointDecision,
-            label: option.label,
-            allowsModification: option.allows_modification ?? false,
-            description: option.description ?? undefined,
-          }))
+      options: Array.isArray(optionsArray)
+        ? optionsArray.map((option: unknown) => {
+            const opt = option as Record<string, unknown>;
+            const actionRaw: unknown = opt.action;
+            const labelRaw: unknown = opt.label;
+            const allowsMod: unknown = opt.allows_modification;
+            const desc: unknown = opt.description;
+            return {
+              action: actionRaw as OrchestrationCheckpointDecision,
+              label: String(labelRaw),
+              allowsModification: typeof allowsMod === 'boolean' ? allowsMod : undefined,
+              description: typeof desc === 'string' ? desc : undefined,
+            };
+          })
         : undefined,
       required:
         typeof checkpoint.required === 'boolean'
@@ -1046,14 +1060,17 @@ export class OrchestrationStepExecutorService {
   }> {
     const run = options.run;
     const step = options.step;
-    const checkpointId = `${step.step_id ?? step.id}-checkpoint`;
+    const checkpointIdRaw: unknown = step.step_id ?? step.id;
+    const checkpointId = `${checkpointIdRaw}-checkpoint`;
 
+    const agentMeta = run.metadata?.agent as Record<string, unknown> | undefined;
+    const agentSlugRaw: unknown = agentMeta?.slug;
     const request = await this.checkpointService.requestCheckpoint({
       runId: run.id,
       checkpointId,
       question: options.question,
       agentSlug:
-        (run.metadata?.agent as Record<string, any> | undefined)?.slug ??
+        (typeof agentSlugRaw === 'string' ? agentSlugRaw : undefined) ??
         run.orchestration_name ??
         'orchestrator',
       stepId: step.step_id ?? null,
@@ -1079,10 +1096,10 @@ export class OrchestrationStepExecutorService {
       string,
       any
     >;
-    const fallback =
-      requestMetadata.userId ??
-      requestMetadata.createdBy ??
-      process.env.SYSTEM_USER_ID ??
+    const fallback: string | null =
+      (typeof requestMetadata.userId === 'string' ? requestMetadata.userId : null) ??
+      (typeof requestMetadata.createdBy === 'string' ? requestMetadata.createdBy : null) ??
+      (typeof process.env.SYSTEM_USER_ID === 'string' ? process.env.SYSTEM_USER_ID : null) ??
       null;
     return fromRun ?? fallback;
   }
@@ -1139,7 +1156,7 @@ export class OrchestrationStepExecutorService {
       if (clone && typeof clone === 'object') {
         delete (clone as Record<string, any>).runtime;
       }
-      return clone;
+      return clone as OrchestrationSubDefinition;
     } catch {
       const fallback = { ...(config as OrchestrationSubDefinition) };
       delete (fallback as Record<string, any>).runtime;
@@ -1600,8 +1617,8 @@ export class OrchestrationStepExecutorService {
     }
 
     if (value && typeof value === 'object') {
-      const result: Record<string, any> = {};
-      const valueAsObject = value as Record<string, any>;
+      const result: Record<string, unknown> = {};
+      const valueAsObject = value as Record<string, unknown>;
       Object.entries(valueAsObject).forEach(([key, entry]) => {
         result[key] = this.interpolateValues(entry, run);
       });
@@ -1811,7 +1828,7 @@ export class OrchestrationStepExecutorService {
 
     if (typeof value === 'object') {
       try {
-        return JSON.parse(JSON.stringify(value));
+        return JSON.parse(JSON.stringify(value)) as T;
       } catch {
         return value;
       }

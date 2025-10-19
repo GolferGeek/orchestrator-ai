@@ -686,8 +686,7 @@ export class DeliverablesService implements IActionHandler {
   ): Promise<Deliverable> {
     try {
       // First, create the deliverable record
-      const { data: result, error: deliverableError } =
-        await this.supabaseService
+      const response: { data: unknown; error: unknown } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .insert([
@@ -702,11 +701,13 @@ export class DeliverablesService implements IActionHandler {
           .select('*')
           .single();
 
+      const result: unknown = response.data;
+      const deliverableError: unknown = response.error;
       const deliverableData = result as Pick<DeliverableDbRecord, 'id'> | null;
 
       if (deliverableError || !deliverableData) {
         throw new BadRequestException(
-          `Failed to create deliverable: ${deliverableError?.message || 'No data returned'}`,
+          `Failed to create deliverable: ${(deliverableError as { message?: string })?.message || 'No data returned'}`,
         );
       }
 
@@ -899,8 +900,7 @@ export class DeliverablesService implements IActionHandler {
   async findOne(id: string, userId: string): Promise<Deliverable> {
     try {
       // Get the deliverable record
-      const { data: result, error: deliverableError } =
-        await this.supabaseService
+      const response: { data: unknown; error: unknown } = await this.supabaseService
           .getServiceClient()
           .from(getTableName('deliverables'))
           .select('*')
@@ -908,6 +908,8 @@ export class DeliverablesService implements IActionHandler {
           .eq('user_id', userId)
           .single();
 
+      const result: unknown = response.data;
+      const deliverableError: unknown = response.error;
       const deliverableData = result as DeliverableDbRecord | null;
 
       if (deliverableError || !deliverableData) {
@@ -916,7 +918,7 @@ export class DeliverablesService implements IActionHandler {
         }
 
         throw new BadRequestException(
-          `Failed to find deliverable: ${deliverableError?.message || 'No data returned'}`,
+          `Failed to find deliverable: ${(deliverableError as { message?: string })?.message || 'No data returned'}`,
         );
       }
 
@@ -1271,7 +1273,7 @@ export class DeliverablesService implements IActionHandler {
     deliverableId: string,
     createDto: CreateDeliverableDto,
   ): Promise<DeliverableVersion> {
-    const { data: result, error } = await this.supabaseService
+    const response: { data: unknown; error: unknown } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverable_versions'))
       .insert([
@@ -1293,11 +1295,13 @@ export class DeliverablesService implements IActionHandler {
       .select('*')
       .single();
 
+    const result: unknown = response.data;
+    const error: unknown = response.error;
     const data = result as Record<string, unknown> | null;
 
     if (error) {
       throw new BadRequestException(
-        `Failed to create initial version: ${error.message}`,
+        `Failed to create initial version: ${(error as { message?: string })?.message || 'Unknown error'}`,
       );
     }
 

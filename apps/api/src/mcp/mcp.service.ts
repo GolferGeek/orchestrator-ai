@@ -150,7 +150,7 @@ export class MCPService {
       const result = await handler.executeTool(toolRequest);
 
       this.logger.debug(`Successfully executed ${request.name}`);
-      return result;
+      return result as MCPToolResponse;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);

@@ -151,10 +151,12 @@ export async function handleBuildRead(
       );
     }
 
-    const responseDeliverable =
-      (readResult.data as Record<string, unknown>).deliverable ?? deliverableRecord;
-    const responseVersion =
-      (readResult.data as Record<string, any>).version ?? deliverableRecord.currentVersion ?? null;
+    const readData = readResult.data as Record<string, unknown> | undefined;
+    const deliverableRaw: unknown = readData?.deliverable;
+    const versionRaw: unknown = readData?.version;
+    const responseDeliverable: unknown = deliverableRaw ?? deliverableRecord;
+    const responseVersion: unknown =
+      versionRaw ?? deliverableRecord.currentVersion ?? null;
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
       deliverableMetadata: buildDeliverableMetadata(
@@ -485,8 +487,9 @@ export async function handleBuildRerun(
       },
     );
 
-    const content = {
-      ...(rerunResponse.payload.content ?? {}),
+    const payloadContent = rerunResponse.payload.content as Record<string, unknown> | undefined;
+    const content: Record<string, unknown> = {
+      ...(payloadContent ?? {}),
       sourceVersionId: payload.versionId,
     };
 
@@ -803,8 +806,9 @@ export async function handleBuildMergeVersions(
       },
     );
 
-    const content = {
-      ...(mergeResponse.payload.content ?? {}),
+    const mergePayloadContent = mergeResponse.payload.content as Record<string, unknown> | undefined;
+    const content: Record<string, unknown> = {
+      ...(mergePayloadContent ?? {}),
       sourceVersionIds: payload.versionIds,
     };
 
@@ -1215,18 +1219,22 @@ function serializeDeliverable(
   definition: AgentRuntimeDefinition,
   fallbackUserId: string,
 ): DeliverableData {
-  const d = deliverable as Record<string, any>;
+  const d = deliverable as Record<string, unknown>;
+  const createdAtRaw: unknown = d.createdAt ?? d.created_at;
   const createdAt = toIsoString(
-    d.createdAt ?? d.created_at ?? new Date().toISOString(),
+    (typeof createdAtRaw === 'string' ? createdAtRaw : null) ?? new Date().toISOString(),
   );
+  const updatedAtRaw: unknown = d.updatedAt ?? d.updated_at;
   const updatedAt = toIsoString(
-    d.updatedAt ?? d.updated_at ?? createdAt,
+    (typeof updatedAtRaw === 'string' ? updatedAtRaw : null) ?? createdAt,
   );
 
-  const userId = d.userId ?? d.user_id ?? fallbackUserId;
+  const userIdRaw: unknown = d.userId ?? d.user_id;
+  const userId: unknown = userIdRaw ?? fallbackUserId;
 
-  const namespace =
-    d.namespace ??
+  const namespaceRaw: unknown = d.namespace;
+  const namespace: unknown =
+    namespaceRaw ??
     definition.organizationSlug ??
     definition.context?.namespace ??
     'global';
@@ -1263,7 +1271,7 @@ function serializeDeliverableVersion(
     return null;
   }
 
-  const v = version as Record<string, any>;
+  const v = version as Record<string, unknown>;
   const formatRaw = v.format ?? v.deliverableFormat ?? 'markdown';
   const normalizedFormat =
     typeof formatRaw === 'string'

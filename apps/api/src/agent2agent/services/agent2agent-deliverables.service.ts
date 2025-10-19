@@ -79,14 +79,13 @@ export class Agent2AgentDeliverablesService {
         typeof contentRec?.output === 'string'
           ? contentRec.output
           : '';
+      const payloadImages: unknown[] = Array.isArray(payload.images) ? payload.images as unknown[] : [];
+      const contentImages: unknown[] = Array.isArray(contentRec?.images) ? contentRec.images as unknown[] : [];
+      const metadataImages: unknown[] = Array.isArray(metadataRec?.images) ? metadataRec.images as unknown[] : [];
       const images = this.normalizeImages([
-        ...(Array.isArray(payload.images) ? payload.images : []),
-        ...(Array.isArray(contentRec?.images)
-          ? contentRec.images
-          : []),
-        ...(Array.isArray(metadataRec?.images)
-          ? metadataRec.images
-          : []),
+        ...payloadImages,
+        ...contentImages,
+        ...metadataImages,
       ]);
 
       const hasImages = images.length > 0;

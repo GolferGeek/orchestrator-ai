@@ -68,7 +68,7 @@ function getOrchestratorClient() {
 
     orchestratorClient = createClient(supabaseUrl, serviceKey);
   }
-  return orchestratorClient;
+  return orchestratorClient as ReturnType<typeof createClient>;
 }
 
 /**
@@ -111,7 +111,7 @@ function createOrchestratorSqlDatabase(): any {
         try {
           const { data, error } = await client.rpc('exec_sql', {
             query: query,
-          });
+          } as any);
           if (error) {
             throw new Error(`SQL execution failed: ${error.message}`);
           }
@@ -325,7 +325,7 @@ export async function executeOrchestratorSQL(query: string): Promise<any> {
   const client = getOrchestratorClient();
 
   try {
-    const { data, error } = await client.rpc('exec_sql', { query });
+    const { data, error } = await client.rpc('exec_sql', { query } as any);
     if (error) {
       throw new Error(`SQL execution failed: ${error.message}`);
     }
