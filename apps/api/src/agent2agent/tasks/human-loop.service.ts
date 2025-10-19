@@ -9,9 +9,9 @@ export interface HumanInput {
   userId: string;
   requestType: 'confirmation' | 'choice' | 'input' | 'approval';
   prompt: string;
-  options?: any[];
+  options?: unknown[];
   userResponse?: string;
-  responseMetadata?: Record<string, any>;
+  responseMetadata?: Record<string, unknown>;
   status: 'pending' | 'completed' | 'timeout' | 'cancelled';
   timeoutAt?: Date;
   createdAt: Date;
@@ -23,13 +23,13 @@ export interface CreateHumanInputDto {
   userId: string;
   requestType: 'confirmation' | 'choice' | 'input' | 'approval';
   prompt: string;
-  options?: any[];
+  options?: unknown[];
   timeoutSeconds?: number;
 }
 
 export interface HumanInputResponse {
   response: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -41,9 +41,9 @@ interface HumanInputDbRecord {
   user_id: string;
   request_type: string;
   prompt: string;
-  options?: any[];
+  options?: unknown[];
   user_response?: string;
-  response_metadata?: Record<string, any>;
+  response_metadata?: Record<string, unknown>;
   status: string;
   timeout_at?: string;
   created_at: string;
@@ -68,7 +68,7 @@ export class HumanLoopService {
     userId: string,
     prompt: string,
     requestType: 'confirmation' | 'choice' | 'input' | 'approval' = 'input',
-    options?: any[],
+    options?: unknown[],
     timeoutSeconds: number = 300, // 5 minutes default
   ): Promise<HumanInput> {
     const timeoutAt = new Date(Date.now() + timeoutSeconds * 1000);
@@ -421,7 +421,7 @@ export class HumanLoopService {
       requestType: converted.requestType as HumanInput['requestType'],
       prompt: converted.prompt as string,
       options: converted.options
-        ? (JSON.parse(converted.options as string) as any[])
+        ? (JSON.parse(converted.options as string) as unknown[])
         : undefined,
       userResponse: converted.userResponse as string | undefined,
       responseMetadata:

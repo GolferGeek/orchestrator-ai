@@ -101,7 +101,7 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(@Request() req: any): Promise<void> {
     // Extract token from Authorization header
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization as string | undefined;
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
@@ -162,7 +162,7 @@ export class AuthController {
     @Request() req: any,
   ): Promise<AuthenticatedUserResponseDto> {
     // Extract token from Authorization header
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization as string | undefined;
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {

@@ -381,7 +381,7 @@ export class OrchestrationStepExecutorService {
     const update: OrchestrationStepUpdateInput = {
       conversation_id: conversationId,
       deliverable_id: mapping.deliverableId ?? null,
-      metadata: metadataPatch,
+      metadata: metadataPatch as unknown as JsonObject,
     };
 
     const completion = await this.executionService.markStepCompleted(
@@ -659,7 +659,7 @@ export class OrchestrationStepExecutorService {
     const output = this.buildChildRunOutput(finalChildRun);
     const completion = await this.executionService.markStepCompleted(
       runningStep.id,
-      output,
+      output as unknown as JsonObject,
       {
         metadata: stepMetadata as unknown as JsonObject,
       },
@@ -973,7 +973,7 @@ export class OrchestrationStepExecutorService {
     await this.runner.updateStep(failedStep.id, {
       status: 'pending',
       attempt_number: plan.nextAttempt,
-      metadata,
+      metadata: metadata as unknown as JsonObject,
       started_at: null,
       completed_at: null,
     });
@@ -1559,7 +1559,7 @@ export class OrchestrationStepExecutorService {
       resolvedInput,
     };
 
-    return this.runtimeExecution.buildRunMetadata(baseMetadata, {
+    return this.runtimeExecution.buildRunMetadata(baseMetadata as unknown as JsonObject, {
       id: agentMetadata?.id ?? null,
       slug: agentMetadata?.slug ?? '',
       displayName: agentMetadata?.displayName ?? null,

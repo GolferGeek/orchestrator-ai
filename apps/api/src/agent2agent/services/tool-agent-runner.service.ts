@@ -128,7 +128,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       const toolResults: Array<{
         tool: string;
         success: boolean;
-        result?: any;
+        result?: unknown;
         error?: string;
       }> = [];
       const executionMode = this.resolveExecutionMode(
@@ -289,8 +289,10 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     return value as Record<string, unknown>;
   }
 
-  private toPlainRecord(record: Record<string, unknown>): Record<string, any> {
-    return Object.fromEntries(Object.entries(record)) as Record<string, any>;
+  private toPlainRecord(
+    record: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(record));
   }
 
   private ensureString(value: unknown): string | null {
@@ -338,8 +340,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
   private mergeToolParams(
     base: Record<string, unknown> | null,
     override: Record<string, unknown> | null,
-  ): Record<string, Record<string, any>> {
-    const merged: Record<string, Record<string, any>> = {};
+  ): Record<string, Record<string, unknown>> {
+    const merged: Record<string, Record<string, unknown>> = {};
 
     const apply = (source: Record<string, unknown> | null) => {
       if (!source) {
@@ -364,9 +366,9 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
    */
   private async executeTool(
     toolName: string,
-    params: Record<string, any>,
+    params: Record<string, unknown>,
     request: TaskRequestDto,
-  ): Promise<any> {
+  ): Promise<unknown> {
     this.logger.debug(`Executing tool: ${toolName}`);
 
     // Interpolate parameters with request data
@@ -411,10 +413,10 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
    * Supports {{payload.field}} and {{metadata.field}} syntax
    */
   private interpolateParams(
-    params: Record<string, any>,
+    params: Record<string, unknown>,
     request: TaskRequestDto,
-  ): Record<string, any> {
-    const interpolated: Record<string, any> = {};
+  ): Record<string, unknown> {
+    const interpolated: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(params)) {
       if (typeof value === 'string') {
@@ -453,7 +455,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     results: Array<{
       tool: string;
       success: boolean;
-      result?: any;
+      result?: unknown;
       error?: string;
     }>,
     format: string,

@@ -206,7 +206,7 @@ export class AssetsService {
       const mime =
         (prox.headers['content-type'] as string) || 'application/octet-stream';
       res.setHeader('Content-Type', mime);
-      prox.data.pipe(res);
+      (prox.data as NodeJS.ReadableStream).pipe(res);
       return;
     }
     // local streaming

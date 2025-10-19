@@ -312,14 +312,22 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
     definitionService.getDefinitionForExecution.mockResolvedValue({
       id: 'def-1',
       slug: 'kpi-tracking',
-    } as any);
+    } as Record<string, unknown>);
 
-    (stateService.resolveExecutionOrder as any).mockResolvedValue({
+    (
+      stateService.resolveExecutionOrder as jest.MockedFunction<
+        typeof stateService.resolveExecutionOrder
+      >
+    ).mockResolvedValue({
       steps: [],
       metadata: {},
     });
 
-    (stateService.initializeRun as any).mockResolvedValue({
+    (
+      stateService.initializeRun as jest.MockedFunction<
+        typeof stateService.initializeRun
+      >
+    ).mockResolvedValue({
       runId: 'run-1',
       executionOrder: [],
     });
@@ -349,13 +357,13 @@ describe('OrchestratorAgentRunnerService (ORCHESTRATE mode)', () => {
     definitionService.getDefinitionForExecution.mockResolvedValue({
       id: 'def-1',
       slug: 'kpi-tracking',
-    } as any);
+    } as Record<string, unknown>);
 
     runFactory.createRunFromDefinition.mockResolvedValue({
       run: baseRun,
       steps: [],
       readySteps: [],
-    } as any);
+    } as Record<string, unknown>);
 
     const response = await service.execute(definition, request, 'org-1');
 

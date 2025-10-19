@@ -6,7 +6,7 @@ import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 export interface RoutingAssessment {
   showstopper: boolean;
   humanMessage?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -27,13 +27,13 @@ export class RoutingPolicyAdapterService {
         showstopper: true,
         humanMessage:
           decision.blockingReason ?? 'Routing policy requires human review.',
-        metadata: decision,
+        metadata: decision as unknown as Record<string, unknown>,
       };
     }
 
     return {
       showstopper: false,
-      metadata: decision,
+      metadata: decision as unknown as Record<string, unknown>,
     };
   }
 
@@ -91,7 +91,7 @@ export class RoutingPolicyAdapterService {
   private buildRoutingOptions(
     request: TaskRequestDto,
     agent: AgentRecord,
-  ): Record<string, any> {
+  ): Record<string, unknown> {
     const payload = request.payload ?? {};
     const metadata = this.collectMetadata(request);
 
@@ -121,7 +121,7 @@ export class RoutingPolicyAdapterService {
     }
   }
 
-  private collectMetadata(request: TaskRequestDto): Record<string, any> {
+  private collectMetadata(request: TaskRequestDto): Record<string, unknown> {
     return {
       ...(request.payload?.metadata ?? {}),
       ...(request.metadata ?? {}),

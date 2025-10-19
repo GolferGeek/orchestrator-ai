@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { BaseAgentRunner } from './base-agent-runner.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
@@ -29,7 +30,7 @@ interface OrchestratorStartPayload {
   orchestrationDefinitionId?: string;
   orchestrationName?: string;
   orchestrationVersion?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   action?: undefined;
 }
 
@@ -38,7 +39,7 @@ interface OrchestratorResumePayload {
   approvalId: string;
   decision: OrchestrationCheckpointDecision;
   notes?: string | null;
-  modifications?: Record<string, any> | null;
+  modifications?: Record<string, unknown> | null;
   actorId?: string | null;
 }
 
@@ -175,7 +176,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
 
       const taskLink = this.resolveTaskLink(request);
       const requestMetadata = this.extractRequestMetadata(
-        (request.metadata ?? {}) as Record<string, any> | undefined,
+        (request.metadata ?? {}) as Record<string, unknown> | undefined,
       );
 
       const factoryResult = await this.runFactory.createRunFromDefinition({
@@ -327,7 +328,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       decision: payload.decision,
       actorId,
       notes: payload.notes ?? null,
-      modifications: payload.modifications ?? undefined,
+      modifications: (payload.modifications ?? undefined) as JsonObject | undefined,
     });
 
     if (resolution.decision === 'abort') {
@@ -393,7 +394,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
           agent: step.agent_slug,
           mode: step.mode,
           type:
-            ((step.metadata as Record<string, any> | undefined)
+            ((step.metadata as Record<string, unknown> | undefined)
               ?.type as string) ?? 'agent',
           dependsOn: step.depends_on,
         })),
@@ -403,7 +404,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
           agent: step.agent_slug,
           mode: step.mode,
           type:
-            ((step.metadata as Record<string, any> | undefined)
+            ((step.metadata as Record<string, unknown> | undefined)
               ?.type as string) ?? 'agent',
         })),
       },
@@ -484,8 +485,8 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   }
 
   private extractRequestMetadata(
-    metadata?: Record<string, any>,
-  ): Record<string, any> {
+    metadata?: Record<string, unknown>,
+  ): Record<string, unknown> {
     if (!metadata || typeof metadata !== 'object') {
       return {};
     }
@@ -500,7 +501,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       'requestId',
     ];
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     for (const key of allowedKeys) {
       if (metadata[key] !== undefined) {
         const value: unknown = metadata[key];
@@ -512,15 +513,16 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   }
 
   private mergeRunMetadata(
-    existing: Record<string, any> | undefined,
-    patch: Record<string, any>,
-  ): Record<string, any> {
+    existing: Record<string, unknown> | undefined,
+    patch: Record<string, unknown>,
+  ): Record<string, unknown> {
     const base = { ...(existing ?? {}) };
-    const existingStats = (base.stats as Record<string, any> | undefined) ?? {};
+    const existingStats =
+      (base.stats as Record<string, unknown> | undefined) ?? {};
     const patchStats =
-      (patch.stats as Record<string, any> | undefined) ?? undefined;
+      (patch.stats as Record<string, unknown> | undefined) ?? undefined;
 
-    const merged: Record<string, any> = {
+    const merged: Record<string, unknown> = {
       ...base,
       ...patch,
     };
