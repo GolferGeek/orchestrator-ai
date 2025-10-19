@@ -266,7 +266,7 @@ export class Agent2AgentTasksService {
         agentConversationId: task.conversation_id,
         status: task.status,
         params: task.params as unknown as TaskParams,
-        createdAt: new Date(task.created_at as string),
+        createdAt: new Date(task.created_at),
       };
     } catch (error) {
       this.logger.error('Failed to create A2A task:', error);

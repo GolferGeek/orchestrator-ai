@@ -127,7 +127,8 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       // Validate required context
       const userId = this.resolveUserId(request);
       const conversationId = this.resolveConversationId(request);
-      const taskId = (request.payload as any)?.taskId || null;
+      const payload = request.payload as Record<string, unknown>;
+      const taskId: unknown = payload?.taskId || null;
 
       if (!userId || !conversationId) {
         return TaskResponseDto.failure(
@@ -274,7 +275,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
             conversationId,
             userId,
             agentSlug: definition.slug,
-            taskId: taskId || undefined,
+            taskId: typeof taskId === 'string' ? taskId : undefined,
           },
         );
 

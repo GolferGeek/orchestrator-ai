@@ -396,7 +396,7 @@ export class SlackMCPTools implements IMCPToolHandler {
     try {
       if (user_id) {
         // Get specific user info
-        const userId = typeof user_id === 'string' ? user_id : String(user_id);
+        const userId = typeof user_id === 'string' ? user_id : JSON.stringify(user_id);
         const response = await this.makeSlackRequest(
           `users.info?user=${userId}`,
           'GET',
@@ -498,15 +498,15 @@ export class SlackMCPTools implements IMCPToolHandler {
     const { query, channel, user, count = 20, sort = 'score' } = args;
 
     try {
-      let searchQuery = typeof query === 'string' ? query : String(query);
+      let searchQuery = typeof query === 'string' ? query : JSON.stringify(query);
 
       if (channel) {
-        const channelStr = typeof channel === 'string' ? channel : String(channel);
+        const channelStr = typeof channel === 'string' ? channel : JSON.stringify(channel);
         searchQuery += ` in:${channelStr}`;
       }
 
       if (user) {
-        const userStr = typeof user === 'string' ? user : String(user);
+        const userStr = typeof user === 'string' ? user : JSON.stringify(user);
         searchQuery += ` from:${userStr}`;
       }
 
@@ -587,7 +587,7 @@ export class SlackMCPTools implements IMCPToolHandler {
         params.append('oldest', oldestStr);
       }
 
-      const latestStr = latest as unknown as string | undefined;
+      const latestStr = latest as string | undefined;
       if (latestStr) {
         params.append('latest', latestStr);
       }

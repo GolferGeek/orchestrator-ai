@@ -6,6 +6,13 @@ import {
   DeliverableVersionCreationType,
 } from '../deliverables/dto/create-deliverable.dto';
 
+/**
+ * Database record type for deliverable ID only
+ */
+interface DeliverableIdRecord {
+  id: string;
+}
+
 @Injectable()
 export class Agent2AgentDeliverablesService {
   private readonly logger = new Logger(Agent2AgentDeliverablesService.name);
@@ -315,7 +322,7 @@ export class Agent2AgentDeliverablesService {
     agentName: string;
     userId: string;
   }): Promise<string> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverables'))
       .insert([
@@ -336,6 +343,11 @@ export class Agent2AgentDeliverablesService {
       );
     }
 
+    const data = result as DeliverableIdRecord | null;
+    if (!data) {
+      throw new BadRequestException('Failed to create deliverable: No data returned');
+    }
+
     return data.id;
   }
 
@@ -352,7 +364,7 @@ export class Agent2AgentDeliverablesService {
     metadata: Record<string, unknown>;
     fileAttachments?: Record<string, unknown>;
   }): Promise<string> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverable_versions'))
       .insert([
@@ -375,6 +387,11 @@ export class Agent2AgentDeliverablesService {
       throw new BadRequestException(
         `Failed to create deliverable version: ${error.message}`,
       );
+    }
+
+    const data = result as DeliverableIdRecord | null;
+    if (!data) {
+      throw new BadRequestException('Failed to create deliverable version: No data returned');
     }
 
     return data.id;

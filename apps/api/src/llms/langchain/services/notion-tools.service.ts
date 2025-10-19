@@ -30,8 +30,9 @@ export class LangChainNotionService {
       func: (input: string) => {
         try {
           // Parse input - expect JSON with title and content
-          const params = JSON.parse(input);
-          const { title, content, databaseId } = params;
+          const params: unknown = JSON.parse(input);
+          const paramsObj = params as {title?: string; content?: string; databaseId?: string};
+          const { title, content, databaseId } = paramsObj;
 
           if (!title) {
             throw new Error('Title is required to create a Notion page');

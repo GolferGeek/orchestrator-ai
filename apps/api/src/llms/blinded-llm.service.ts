@@ -158,8 +158,7 @@ export class BlindedLLMService {
         const axiosConfig = this.convertFetchToAxios(url, init);
 
         // Make the blinded request
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const blindedClientAny = blindedClient as any;
+        const blindedClientAny = blindedClient as {post: (url: string, data: unknown, options: unknown) => Promise<unknown>};
         const response = await blindedClientAny.post(
           axiosConfig.url,
           axiosConfig.data,

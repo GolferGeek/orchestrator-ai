@@ -542,8 +542,8 @@ export class DeliverableVersionsService {
           llmMetadata: mergedContent.metadata
             ? (() => {
                 const metadata = mergedContent.metadata as Record<string, unknown>;
-                const usage = metadata.usage as Record<string, unknown> | undefined;
-                const timing = metadata.timing as Record<string, unknown> | undefined;
+                const usage = metadata.usage as Record<string, unknown>;
+                const timing = metadata.timing as Record<string, unknown>;
                 return {
                   provider: metadata.provider,
                   model: metadata.model,
@@ -713,7 +713,7 @@ export class DeliverableVersionsService {
       }
 
       // Extract agent information from source version metadata
-      const metadata = sourceVersion.metadata as Record<string, unknown> | undefined;
+      const metadata = sourceVersion.metadata as Record<string, unknown>;
       const agentName = (metadata?.agentName as string) || 'unknown';
       const agentType = (metadata?.agentType as string) || 'context';
 

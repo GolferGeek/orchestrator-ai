@@ -135,10 +135,10 @@ export class AssetsService {
     });
     const mime =
       (resp.headers['content-type'] as string) || 'application/octet-stream';
-    const buffer = Buffer.from(resp.data);
-    if (buffer.length > this.fetchMaxBytes) {
+    const bufferData: Buffer = Buffer.from(resp.data) as Buffer;
+    if (bufferData.length > this.fetchMaxBytes) {
       throw new Error(
-        `Asset exceeds max size (${buffer.length} > ${this.fetchMaxBytes})`,
+        `Asset exceeds max size (${bufferData.length} > ${this.fetchMaxBytes})`,
       );
     }
     const filename =
@@ -148,7 +148,7 @@ export class AssetsService {
       conversationId: params.conversationId ?? null,
       userId: params.userId ?? null,
       mime,
-      buffer,
+      buffer: bufferData,
       filename,
       subpath: params.subpath || 'images',
     });

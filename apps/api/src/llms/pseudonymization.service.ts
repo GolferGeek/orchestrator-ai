@@ -243,7 +243,7 @@ export class PseudonymizationService {
   /**
    * Look up existing pseudonym mapping from database
    */
-  private async lookupExistingPseudonym(originalHash: string): Promise<any> {
+  private async lookupExistingPseudonym(originalHash: string): Promise<{id: string; pseudonym: string; data_type: string} | null> {
     try {
       const client = this.supabaseService.getServiceClient();
       const { data, error } = await client

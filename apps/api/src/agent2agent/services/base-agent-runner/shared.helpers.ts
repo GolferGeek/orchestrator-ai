@@ -105,8 +105,8 @@ export async function fetchExistingPlan(
     return null;
   }
 
-  const payload = request.payload as Record<string, unknown> | undefined;
-  const metadata = request.metadata as Record<string, unknown> | undefined;
+  const payload = request.payload as Record<string, unknown>;
+  const metadata = request.metadata as Record<string, unknown>;
   const planIdCandidates: Array<unknown> = [
     request.planId,
     payload?.planId,
@@ -154,8 +154,8 @@ export async function fetchExistingDeliverable(
     return null;
   }
 
-  const payload = request.payload as Record<string, unknown> | undefined;
-  const metadata = request.metadata as Record<string, unknown> | undefined;
+  const payload = request.payload as Record<string, unknown>;
+  const metadata = request.metadata as Record<string, unknown>;
   const deliverableIdCandidates: Array<unknown> = [
     payload?.deliverableId,
     (payload?.deliverable as Record<string, unknown> | undefined)?.id,
@@ -404,7 +404,7 @@ export async function callLLM(
     const response = await llmService.generateResponse(
       systemPrompt,
       userMessage,
-      options as Record<string, unknown>,
+      options,
     );
 
     if (!isLLMResponse(response)) {
@@ -504,8 +504,8 @@ export function resolveTaskId(request: TaskRequestDto): string | null {
     return metadataTaskId;
   }
 
-  const payload = request.payload as Record<string, unknown> | undefined;
-  const payloadMetadata = payload?.metadata as Record<string, unknown> | undefined;
+  const payload = request.payload as Record<string, unknown>;
+  const payloadMetadata = payload?.metadata as Record<string, unknown>;
   const payloadTaskId =
     payload?.taskId ??
     payloadMetadata?.taskId;

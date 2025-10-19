@@ -46,6 +46,32 @@ import type {
 import type { Provider, UserRatingScale } from '@/llms/types/llm-evaluation';
 
 /**
+ * Database record type for profiles table
+ */
+interface ProfileDbRecord {
+  id: string;
+  email?: string;
+  display_name?: string;
+  roles?: string[];
+}
+
+/**
+ * Database record type for llm_providers table
+ */
+interface LLMProviderDbRecord {
+  id: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Database record type for llm_models table
+ */
+interface LLMModelDbRecord {
+  id: string;
+  [key: string]: unknown;
+}
+
+/**
  * Format agent names for display by converting from database format to human-readable format
  */
 function formatAgentNameForDisplay(agentName: string): string {
@@ -2136,7 +2162,7 @@ export class EvaluationService {
   ): Promise<Map<string, UserProfileRecord>> {
     if (userIds.length === 0) return new Map();
 
-    const { data: users, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('profiles')
       .select('id, email, display_name, roles')
@@ -2146,10 +2172,11 @@ export class EvaluationService {
       return new Map();
     }
 
+    const users = result as ProfileDbRecord[] | null;
     const usersMap = new Map<string, UserProfileRecord>();
     (users || []).forEach((user) => {
       if (user.id) {
-        usersMap.set(user.id as string, user as UserProfileRecord);
+        usersMap.set(user.id, user);
       }
     });
 
@@ -2161,7 +2188,7 @@ export class EvaluationService {
   ): Promise<Map<string, Provider>> {
     if (providerIds.length === 0) return new Map();
 
-    const { data: providers, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('llm_providers')
       .select('*')
@@ -2171,11 +2198,12 @@ export class EvaluationService {
       return new Map();
     }
 
+    const providers = result as LLMProviderDbRecord[] | null;
     const providersMap = new Map<string, Provider>();
     (providers || []).forEach((provider) => {
       const mappedProvider = mapLLMProviderFromDb(provider);
       if (provider.id) {
-        providersMap.set(provider.id as string, mappedProvider);
+        providersMap.set(provider.id, mappedProvider);
       }
     });
 
@@ -2187,7 +2215,7 @@ export class EvaluationService {
   ): Promise<Map<string, ModelResponseDto>> {
     if (modelIds.length === 0) return new Map();
 
-    const { data: models, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('llm_models')
       .select('*')
@@ -2197,11 +2225,12 @@ export class EvaluationService {
       return new Map();
     }
 
+    const models = result as LLMModelDbRecord[] | null;
     const modelsMap = new Map<string, ModelResponseDto>();
     (models || []).forEach((model) => {
       const mappedModel = mapLLMModelFromDb(model);
       if (model.id) {
-        modelsMap.set(model.id as string, mappedModel);
+        modelsMap.set(model.id, mappedModel);
       }
     });
 
@@ -3217,8 +3246,8 @@ export class EvaluationService {
         : [];
 
       const rating = task.evaluation?.user_rating;
-      const responseTime = llmMetadata?.response_time_ms;
-      const cost = llmMetadata?.total_cost;
+      const responseTime: unknown = llmMetadata?.response_time_ms;
+      const cost: unknown = llmMetadata?.total_cost;
 
       if (!rating) return;
 
@@ -3229,10 +3258,10 @@ export class EvaluationService {
         const targetStats = hasConstraint
           ? stats.withConstraint
           : stats.withoutConstraint;
-        targetStats.ratings.push(rating as number);
-        if (responseTime)
-          targetStats.responseTimes.push(responseTime as number);
-        if (cost) targetStats.costs.push(cost as number);
+        targetStats.ratings.push(rating);
+        if (typeof responseTime === 'number')
+          targetStats.responseTimes.push(responseTime);
+        if (typeof cost === 'number') targetStats.costs.push(cost);
       });
     });
 

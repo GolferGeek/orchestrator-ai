@@ -22,6 +22,19 @@ import {
 import { UserRole } from './decorators/roles.decorator';
 import { getTableName } from '../supabase/supabase.config';
 
+/**
+ * Database record type for users table
+ */
+interface UserDbRecord {
+  id: string;
+  email: string;
+  display_name: string;
+  roles: string[];
+  created_at: string;
+  updated_at: string;
+  namespace_access?: string[];
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -279,7 +292,7 @@ export class AuthService {
    */
   async getUserProfile(userId: string): Promise<UserProfileDto | null> {
     try {
-      const { data, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getAnonClient()
         .from(getTableName('users'))
         .select(
@@ -295,15 +308,20 @@ export class AuthService {
         throw new Error(`Database error: ${error.message}`);
       }
 
+      const data = result as UserDbRecord | null;
+      if (!data) {
+        return null;
+      }
+
       return {
         id: data.id,
         email: data.email,
         displayName: data.display_name,
-        roles: data.roles || [UserRole.USER],
+        roles: (data.roles as UserRole[]) || [UserRole.USER],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
         namespaceAccess: Array.isArray(data.namespace_access)
-          ? (data.namespace_access as string[])
+          ? data.namespace_access
           : [],
       };
     } catch {

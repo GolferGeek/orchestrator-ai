@@ -36,6 +36,13 @@ export interface SQLExecutionResult {
 }
 
 /**
+ * Generic database record type for query results
+ */
+interface GenericDbRecord {
+  [key: string]: unknown;
+}
+
+/**
  * Get Orchestrator Database Client (Core platform data: users, tasks, agents, conversations)
  */
 function getOrchestratorClient() {
@@ -197,50 +204,56 @@ async function executeQueryOnCompanyDB(
       lowerQuery.includes('select count(*)') &&
       lowerQuery.includes('companies')
     ) {
-      const { data, error } = await supabaseClient
+      const { data: result, error } = await supabaseClient
         .from('companies')
         .select('*', { count: 'exact' });
+      const data = result as GenericDbRecord[] | null;
       return { data: [{ count: data?.length || 0 }], error: error?.message };
     }
 
     // Handle public schema table queries
     if (lowerQuery.includes('from companies')) {
-      const { data, error } = await supabaseClient
+      const { data: result, error } = await supabaseClient
         .from('companies')
         .select('*')
         .limit(100);
+      const data = result as GenericDbRecord[] | null;
       return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from departments')) {
-      const { data, error } = await supabaseClient
+      const { data: result, error } = await supabaseClient
         .from('departments')
         .select('*')
         .limit(100);
+      const data = result as GenericDbRecord[] | null;
       return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_data')) {
-      const { data, error } = await supabaseClient
+      const { data: result, error } = await supabaseClient
         .from('kpi_data')
         .select('*')
         .limit(100);
+      const data = result as GenericDbRecord[] | null;
       return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_metrics')) {
-      const { data, error } = await supabaseClient
+      const { data: result, error } = await supabaseClient
         .from('kpi_metrics')
         .select('*')
         .limit(100);
+      const data = result as GenericDbRecord[] | null;
       return { data, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_goals')) {
-      const { data, error } = await supabaseClient
+      const { data: result, error } = await supabaseClient
         .from('kpi_goals')
         .select('*')
         .limit(100);
+      const data = result as GenericDbRecord[] | null;
       return { data, error: error?.message };
     }
 

@@ -76,15 +76,17 @@ export class TaskMessageService {
       expires_at: expiresAt.toISOString(),
     };
 
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('task_messages')
       .insert(taskMessageData)
       .select()
       .single();
 
-    if (error) {
-      throw new Error(`Failed to create task message: ${error.message}`);
+    const data = result as TaskMessageDbRecord | null;
+
+    if (error || !data) {
+      throw new Error(`Failed to create task message: ${error?.message || 'No data returned'}`);
     }
 
     const taskMessage = this.mapToTaskMessage(data);
@@ -161,14 +163,16 @@ export class TaskMessageService {
         .order('created_at', { ascending: true })
         .range(offset, offset + limit - 1);
 
-      const { data, error, count } = await query;
+      const { data: result, error, count } = await query;
+
+      const data = result as TaskMessageDbRecord[] | null;
 
       if (error) {
         throw new Error(`Failed to fetch task messages: ${error.message}`);
       }
 
       return {
-        messages: data.map((item) => this.mapToTaskMessage(item)),
+        messages: (data || []).map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
     } catch (error) {
@@ -203,14 +207,16 @@ export class TaskMessageService {
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
-      const { data, error, count } = await query;
+      const { data: result, error, count } = await query;
+
+      const data = result as TaskMessageDbRecord[] | null;
 
       if (error) {
         throw new Error(`Failed to fetch recent messages: ${error.message}`);
       }
 
       return {
-        messages: data.map((item) => this.mapToTaskMessage(item)),
+        messages: (data || []).map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
     } catch (error) {
@@ -254,7 +260,7 @@ export class TaskMessageService {
     lastMessage?: TaskMessage;
   }> {
     try {
-      const { data, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getAnonClient()
         .from('task_messages')
         .select('*')
@@ -262,11 +268,13 @@ export class TaskMessageService {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
+      const data = result as TaskMessageDbRecord[] | null;
+
       if (error) {
         throw new Error(`Failed to fetch task message stats: ${error.message}`);
       }
 
-      const messages = data.map((item) => this.mapToTaskMessage(item));
+      const messages = (data || []).map((item) => this.mapToTaskMessage(item));
       const byType: Record<string, number> = {};
       let progressMessages = 0;
       let errorMessages = 0;

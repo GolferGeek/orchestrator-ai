@@ -772,18 +772,17 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    */
   protected resolveUserId(request: TaskRequestDto): string | null {
     // Check top-level metadata
-    const fromMetadata =
-      (request.metadata as any)?.userId || (request.metadata as any)?.createdBy;
-    if (fromMetadata) {
-      return String(fromMetadata);
+    const metadata = request.metadata as Record<string, unknown>;
+    const fromMetadata: unknown = metadata?.userId || metadata?.createdBy;
+    if (fromMetadata && typeof fromMetadata === 'string') {
+      return fromMetadata;
     }
 
     // Check payload metadata
-    const fromPayload =
-      (request.payload?.metadata as any)?.userId ||
-      (request.payload?.metadata as any)?.createdBy;
-    if (fromPayload) {
-      return String(fromPayload);
+    const payloadMetadata = request.payload?.metadata as Record<string, unknown>;
+    const fromPayload: unknown = payloadMetadata?.userId || payloadMetadata?.createdBy;
+    if (fromPayload && typeof fromPayload === 'string') {
+      return fromPayload;
     }
 
     return null;
@@ -829,7 +828,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * @returns taskId if found, null otherwise
    */
   protected resolveTaskId(request: TaskRequestDto): string | null {
-    return request.metadata?.taskId || (request.payload as any)?.taskId || null;
+    const taskId = request.metadata?.taskId || (request.payload as Record<string, unknown>)?.taskId || null;
+    return typeof taskId === 'string' ? taskId : null;
   }
 
   /**

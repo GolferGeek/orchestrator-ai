@@ -248,7 +248,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       `;
 
       if (table_name) {
-        const tableName = typeof table_name === 'string' ? table_name : String(table_name);
+        const tableName = typeof table_name === 'string' ? table_name : JSON.stringify(table_name);
         query += ` AND table_name = '${tableName}'`;
       }
 
@@ -364,27 +364,27 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       const params = new URLSearchParams();
 
       // Add column selection
-      const columnsArray = columns as unknown as string[];
+      const columnsArray = columns as string[];
       if (columnsArray.length > 0 && !columnsArray.includes('*')) {
         params.append('select', columnsArray.join(','));
       }
 
       // Add WHERE conditions
-      const whereObj = where as unknown as Record<string, unknown>;
+      const whereObj = where as Record<string, unknown>;
       Object.entries(whereObj).forEach(([key, value]) => {
         params.append(key, `eq.${String(value)}`);
       });
 
       // Add limit and offset
-      const limitNum = limit as unknown as number;
-      const offsetNum = offset as unknown as number;
+      const limitNum = limit as number;
+      const offsetNum = offset as number;
       params.append('limit', limitNum.toString());
       if (offsetNum > 0) {
         params.append('offset', offsetNum.toString());
       }
 
       // Add ordering
-      const orderBy = order_by as unknown as string | undefined;
+      const orderBy = order_by as string | undefined;
       if (orderBy) {
         params.append('order', orderBy);
       }
@@ -402,7 +402,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       const data = await this.parseJsonValue(response, 'Supabase data read');
       const payload = this.ensureJsonCollection(data, 'Supabase data read');
 
-      const formatStr = format as unknown as string;
+      const formatStr = format as string;
       return {
         content: [
           {
@@ -446,8 +446,8 @@ export class SupabaseMCPTools implements IMCPToolHandler {
         'Supabase query execution',
       );
 
-      const formatStr = format as unknown as string;
-      const analysisType = analysis_type as unknown as string;
+      const formatStr = format as string;
+      const analysisType = analysis_type as string;
       return {
         content: [
           {
@@ -534,11 +534,11 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       case 'json':
         return JSON.stringify(data, null, 2);
       case 'table':
-        return this.formatAsTable(data as unknown as unknown[]);
+        return this.formatAsTable(data as unknown[]);
       case 'csv':
-        return this.formatAsCsv(data as unknown as unknown[]);
+        return this.formatAsCsv(data as unknown[]);
       case 'summary':
-        return this.formatAsSummary(data as unknown as unknown[], analysisType);
+        return this.formatAsSummary(data as unknown[], analysisType);
       default:
         return JSON.stringify(data, null, 2);
     }
@@ -552,16 +552,18 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       return 'No data to display';
     }
 
-    const firstRow = data[0] as unknown as Record<string, unknown>;
+    const firstRow = data[0] as Record<string, unknown>;
     const keys = Object.keys(firstRow);
     const maxWidths = keys.map((key) =>
       Math.max(
         key.length,
         ...data.map((row) => {
-          const rowRec = row as unknown as Record<string, unknown>;
+          const rowRec = row as Record<string, unknown>;
           const value = rowRec[key];
-          const strValue = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
-          return strValue.length;
+          if (value == null) return 0;
+          if (typeof value === 'object') return JSON.stringify(value).length;
+          if (typeof value === 'string') return value.length;
+          return String(value).length;
         }),
       ),
     );
@@ -580,14 +582,16 @@ export class SupabaseMCPTools implements IMCPToolHandler {
 
     // Rows
     data.forEach((row) => {
-      const rowRec = row as unknown as Record<string, unknown>;
+      const rowRec = row as Record<string, unknown>;
       table +=
         '| ' +
         keys
           .map((key, i) => {
             const value = rowRec[key];
-            const strValue = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
-            return strValue.padEnd(maxWidths[i] || 0);
+            if (value == null) return ''.padEnd(maxWidths[i] || 0);
+            if (typeof value === 'object') return JSON.stringify(value).padEnd(maxWidths[i] || 0);
+            if (typeof value === 'string') return value.padEnd(maxWidths[i] || 0);
+            return String(value).padEnd(maxWidths[i] || 0);
           })
           .join(' | ') +
         ' |\n';
@@ -604,12 +608,12 @@ export class SupabaseMCPTools implements IMCPToolHandler {
       return '';
     }
 
-    const firstRow = data[0] as unknown as Record<string, unknown>;
+    const firstRow = data[0] as Record<string, unknown>;
     const keys = Object.keys(firstRow);
     const csv = [keys.join(',')];
 
     data.forEach((row) => {
-      const rowRec = row as unknown as Record<string, unknown>;
+      const rowRec = row as Record<string, unknown>;
       csv.push(
         keys
           .map((key) => {
@@ -617,7 +621,12 @@ export class SupabaseMCPTools implements IMCPToolHandler {
             if (typeof value === 'string') {
               return value.includes(',') ? `"${value}"` : value;
             }
-            const strValue = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+            if (value == null) return '';
+            if (typeof value === 'object') {
+              const jsonStr = JSON.stringify(value);
+              return jsonStr.includes(',') ? `"${jsonStr}"` : jsonStr;
+            }
+            const strValue = String(value);
             return strValue.includes(',') ? `"${strValue}"` : strValue;
           })
           .join(','),
@@ -638,7 +647,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     let summary = `Data Summary (${data.length} records)\n\n`;
 
     if (data.length > 0) {
-      const firstRow = data[0] as unknown as Record<string, unknown>;
+      const firstRow = data[0] as Record<string, unknown>;
       const keys = Object.keys(firstRow);
       summary += `Columns: ${keys.join(', ')}\n\n`;
 
@@ -673,7 +682,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
     context: string,
   ): unknown[] | Record<string, unknown> {
     if (Array.isArray(value)) {
-      return value;
+      return value as unknown[];
     }
     if (value && typeof value === 'object') {
       return value as Record<string, unknown>;

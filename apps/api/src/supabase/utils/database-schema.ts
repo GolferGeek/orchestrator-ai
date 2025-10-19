@@ -53,7 +53,7 @@ let schemaCache: {
   initialized: boolean;
 } | null = null;
 
-let supabaseClient: any = null;
+let supabaseClient: ReturnType<typeof createClient> | null = null;
 
 /**
  * Initialize Supabase client if not already done
@@ -90,7 +90,8 @@ async function discoverFullSchema(): Promise<void> {
 
   // Group by table
   const tableMap = new Map<string, any[]>();
-  tableInfoData.forEach((row: unknown) => {
+  const tableData = (tableInfoData || []) as unknown[];
+  tableData.forEach((row: unknown) => {
     const r = row as { table_name: string };
     if (!tableMap.has(r.table_name)) {
       tableMap.set(r.table_name, []);
@@ -142,29 +143,30 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
   try {
     const { data, error } = await client.rpc('exec_sql', {
       query: `
-        SELECT 
+        SELECT
           tc.table_name as from_table,
           kcu.column_name as from_column,
           ccu.table_name as to_table,
           ccu.column_name as to_column
         FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu 
+        JOIN information_schema.key_column_usage kcu
           ON tc.constraint_name = kcu.constraint_name
           AND tc.table_schema = kcu.table_schema
-        JOIN information_schema.constraint_column_usage ccu 
+        JOIN information_schema.constraint_column_usage ccu
           ON ccu.constraint_name = tc.constraint_name
           AND ccu.table_schema = tc.table_schema
         WHERE tc.constraint_type = 'FOREIGN KEY'
           AND tc.table_schema = 'public'
         ORDER BY tc.table_name, kcu.column_name
       `,
-    });
+    } as any);
 
     if (error) {
       return inferRelationshipsFromNaming();
     }
 
-    const relationships: SchemaRelationship[] = data.map((row: unknown) => {
+    const relationshipData = (data || []) as unknown[];
+    const relationships: SchemaRelationship[] = relationshipData.map((row: unknown) => {
       const r = row as { from_table: string; from_column: string; to_table: string; to_column: string };
       return {
         fromTable: r.from_table,
@@ -204,7 +206,7 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
       query: `
         SELECT kcu.column_name
         FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu 
+        JOIN information_schema.key_column_usage kcu
           ON tc.constraint_name = kcu.constraint_name
           AND tc.table_schema = kcu.table_schema
         WHERE tc.constraint_type = 'PRIMARY KEY'
@@ -212,13 +214,14 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
           AND tc.table_schema = 'public'
         ORDER BY kcu.ordinal_position
       `,
-    });
+    } as any);
 
-    if (error || !data.length) {
+    const pkData = (data || []) as unknown[];
+    if (error || !pkData.length) {
       return ['id']; // Common default
     }
 
-    return data.map((row: unknown) => (row as { column_name: string }).column_name);
+    return pkData.map((row: unknown) => (row as { column_name: string }).column_name);
   } catch {
     return ['id']; // Fallback
   }

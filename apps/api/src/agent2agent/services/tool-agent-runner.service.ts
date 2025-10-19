@@ -87,10 +87,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
     try {
-      const payloadOverrides = ((request.payload as Record<string, unknown>) ?? {}) as Record<
-        string,
-        unknown
-      >;
+      const payloadOverrides = (request.payload as Record<string, unknown>) ?? {};
 
       // Validate required context
       const userId = this.resolveUserId(request);

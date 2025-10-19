@@ -72,7 +72,8 @@ export class ModelsService {
       );
     }
 
-    const result = (data || []).map((row) => ({
+    const rows = data as Array<{provider_name: string; model_name: string; display_name: string}> | null;
+    const result = (rows || []).map((row) => ({
       providerName: row.provider_name,
       modelName: row.model_name,
       displayName: row.display_name,
@@ -459,7 +460,7 @@ export class ModelsService {
       );
     }
 
-    return data || [];
+    return (data as ModelResponseDto[]) || [];
   }
 
   // Helper method to calculate costs

@@ -56,6 +56,14 @@ type GenerateResponseOptions = LLMRequestOptions & {
   complexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
 };
 
+/**
+ * Database record type for redaction_patterns table
+ */
+interface RedactionPatternDbRecord {
+  severity: string;
+  data_type: string;
+}
+
 // Explicitly set LangSmith environment variables for automatic tracing
 // Support both the official LangSmith env vars and our custom ones for backward compatibility
 const langsmithEnabled =
@@ -1904,7 +1912,7 @@ export class LLMService {
 
     try {
       // Query the redaction_patterns table to get severity levels for detected PII types
-      const { data: patterns, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getServiceClient()
         .from('redaction_patterns')
         .select('severity, data_type')
@@ -1918,6 +1926,7 @@ export class LLMService {
         return this.getDefaultSeverityMapping(piiTypes);
       }
 
+      const patterns = result as RedactionPatternDbRecord[] | null;
       // Extract unique severity levels
       const severityLevels = [
         ...new Set(patterns?.map((p) => p.severity) || []),

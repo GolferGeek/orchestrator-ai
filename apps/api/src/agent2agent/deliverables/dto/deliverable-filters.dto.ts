@@ -57,7 +57,7 @@ export class DeliverableFiltersDto {
   @Transform(({ value }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    return value;
+    return Boolean(value);
   })
   latestOnly?: boolean = true;
 
@@ -69,7 +69,7 @@ export class DeliverableFiltersDto {
   @Transform(({ value }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    return value;
+    return Boolean(value);
   })
   standalone?: boolean = false;
 }

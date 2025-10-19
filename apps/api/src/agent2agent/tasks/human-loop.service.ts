@@ -32,6 +32,24 @@ export interface HumanInputResponse {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Database record type for human_inputs table
+ */
+interface HumanInputDbRecord {
+  id: string;
+  task_id: string;
+  user_id: string;
+  request_type: string;
+  prompt: string;
+  options?: any[];
+  user_response?: string;
+  response_metadata?: Record<string, any>;
+  status: string;
+  timeout_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 @Injectable()
 export class HumanLoopService {
   private readonly logger = new Logger(HumanLoopService.name);
@@ -65,7 +83,7 @@ export class HumanLoopService {
       status: 'pending',
     };
 
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('human_inputs')
       .insert(humanInputData)
@@ -74,6 +92,11 @@ export class HumanLoopService {
 
     if (error) {
       throw new Error(`Failed to create human input: ${error.message}`);
+    }
+
+    const data = result as HumanInputDbRecord | null;
+    if (!data) {
+      throw new Error('Failed to create human input: No data returned');
     }
 
     const humanInput = this.mapToHumanInput(data);
@@ -107,7 +130,7 @@ export class HumanLoopService {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('human_inputs')
       .update(updateData)
@@ -121,6 +144,7 @@ export class HumanLoopService {
       throw new Error(`Failed to update human input: ${error.message}`);
     }
 
+    const data = result as HumanInputDbRecord | null;
     if (!data) {
       throw new Error('Human input not found or already completed');
     }
@@ -197,7 +221,7 @@ export class HumanLoopService {
    * Get human input by ID
    */
   async getHumanInputById(inputId: string): Promise<HumanInput | null> {
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getAnonClient()
       .from('human_inputs')
       .select()
@@ -208,6 +232,7 @@ export class HumanLoopService {
       throw new Error(`Failed to fetch human input: ${error.message}`);
     }
 
+    const data = result as HumanInputDbRecord | null;
     return data ? this.mapToHumanInput(data) : null;
   }
 
@@ -219,7 +244,7 @@ export class HumanLoopService {
     userId: string,
   ): Promise<HumanInput[]> {
     try {
-      const { data, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getAnonClient()
         .from('human_inputs')
         .select()
@@ -232,7 +257,8 @@ export class HumanLoopService {
         throw new Error(`Failed to fetch pending inputs: ${error.message}`);
       }
 
-      return data.map((item) => this.mapToHumanInput(item));
+      const data = result as HumanInputDbRecord[] | null;
+      return (data || []).map((item) => this.mapToHumanInput(item));
     } catch (error) {
       this.logger.error('Failed to get pending inputs for task', error);
       throw error;
@@ -269,7 +295,7 @@ export class HumanLoopService {
    */
   async handleHumanInputTimeout(inputId: string): Promise<HumanInput> {
     try {
-      const { data, error } = await this.supabaseService
+      const { data: result, error } = await this.supabaseService
         .getAnonClient()
         .from('human_inputs')
         .update({
@@ -283,6 +309,11 @@ export class HumanLoopService {
 
       if (error) {
         throw new Error(`Failed to handle timeout: ${error.message}`);
+      }
+
+      const data = result as HumanInputDbRecord | null;
+      if (!data) {
+        throw new Error('Failed to handle timeout: No data returned');
       }
 
       const humanInput = this.mapToHumanInput(data);

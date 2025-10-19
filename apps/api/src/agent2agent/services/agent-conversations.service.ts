@@ -295,7 +295,7 @@ export class Agent2AgentConversationsService {
         throw new Error(`Failed to list conversations: ${error.message}`);
       }
 
-      return conversations || [];
+      return (conversations as unknown[]) || [];
     } catch (error) {
       this.logger.error('Failed to list A2A conversations:', error);
       return [];

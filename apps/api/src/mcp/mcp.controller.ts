@@ -54,8 +54,10 @@ export class MCPController {
       );
     }
 
-    const { method, params, id } = request;
-    this.logger.debug(`Handling MCP method: ${method}`);
+    const method: unknown = request.method;
+    const params: unknown = request.params;
+    const id = request.id as string | number | null;
+    this.logger.debug(`Handling MCP method: ${String(method)}`);
 
     try {
       let result: unknown;
@@ -100,7 +102,7 @@ export class MCPController {
           return this.createErrorResponse(
             id,
             MCPErrorCode.METHOD_NOT_FOUND,
-            `Method '${method}' not found. Supported methods: initialize, tools/list, tools/call, ping`,
+            `Method '${String(method)}' not found. Supported methods: initialize, tools/list, tools/call, ping`,
           );
       }
 
@@ -108,7 +110,7 @@ export class MCPController {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      this.logger.error(`MCP method ${method} failed: ${errorMessage}`);
+      this.logger.error(`MCP method ${String(method)} failed: ${errorMessage}`);
 
       return this.createErrorResponse(
         id,

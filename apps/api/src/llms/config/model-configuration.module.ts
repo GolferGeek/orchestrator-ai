@@ -55,7 +55,7 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
           | { default: ModelConfiguration; localOnly?: ModelConfiguration };
         if (globalJson) {
           try {
-            const parsed = JSON.parse(globalJson);
+            const parsed: unknown = JSON.parse(globalJson);
             // Support either a flat ModelConfiguration or a dual config { default, localOnly }
             if (parsed && typeof parsed === 'object' && 'default' in parsed) {
               globalConfig = parsed as {

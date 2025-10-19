@@ -100,11 +100,11 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const configAny = definition.config as any;
-      const fnConfig =
-        configAny?.configuration?.function ||
-        configAny?.function ||
+      const config = definition.config as Record<string, unknown> | undefined;
+      const configuration = config?.configuration as Record<string, unknown> | undefined;
+      const fnConfig: unknown =
+        configuration?.function ||
+        config?.function ||
         {};
 
       const prompt =
@@ -163,7 +163,7 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      const timeoutMs = Number(fnConfig.timeout_ms || 20000);
+      const timeoutMs = Number((fnConfig as { timeout_ms?: number }).timeout_ms || 20000);
       const ctx = this.buildExecutionContext({
         sandboxRequire,
         organizationSlug,

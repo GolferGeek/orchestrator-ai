@@ -42,7 +42,8 @@ export class CIDAFMService {
       );
     }
 
-    let allCommands = [...(builtinCommands || [])];
+    const builtinCmds = builtinCommands as CIDAFMCommandResponseDto[] | null;
+    let allCommands: CIDAFMCommandResponseDto[] = [...(builtinCmds || [])];
 
     // Get user commands if requested (skip if userId is 'system' or not a valid UUID)
     if (
@@ -97,7 +98,7 @@ export class CIDAFMService {
             ...cmd,
             default_active: false,
             is_builtin: false,
-          }),
+          } as CIDAFMCommandResponseDto),
         );
 
         allCommands = [...allCommands, ...transformedUserCommands];

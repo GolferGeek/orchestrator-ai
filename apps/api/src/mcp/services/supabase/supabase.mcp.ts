@@ -29,6 +29,16 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
+ * Database result type for exec_sql RPC
+ */
+interface ExecSqlResult {
+  error?: boolean;
+  message?: string;
+  code?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Supabase MCP Server
  *
  * HTTP-based MCP server implementing 2025-03-26 specification
@@ -493,7 +503,7 @@ export class SupabaseMCPServer implements IMCPServer {
       }
 
       // Execute SQL using Supabase RPC function
-      const { data, error } = await this.supabaseClient.rpc('exec_sql', {
+      const { data: result, error } = await this.supabaseClient.rpc('exec_sql', {
         query: finalSQL,
       });
 
@@ -503,15 +513,16 @@ export class SupabaseMCPServer implements IMCPServer {
         throw new Error(`SQL execution error: ${getErrorMessage(error)}`);
       }
 
+      const data = result as ExecSqlResult | ExecSqlResult[] | null;
       // Check if the data itself is an error object (returned by exec_sql function)
-      if (data && typeof data === 'object' && data.error === true) {
+      if (data && typeof data === 'object' && !Array.isArray(data) && data.error === true) {
         throw new Error(
           `SQL execution error: ${data.message} (Code: ${data.code})`,
         );
       }
 
       const results = Array.isArray(data) ? data : [];
-      const columns = results.length > 0 ? Object.keys(results[0]) : [];
+      const columns = results.length > 0 && results[0] ? Object.keys(results[0]) : [];
 
       // Return structured JSON so clients can reliably parse { data, ... }
       const payload = {

@@ -72,6 +72,13 @@ interface NormalizedTaskRequest {
   };
 }
 
+/**
+ * Database record type for conversations table (organization_slug only)
+ */
+interface ConversationOrgRecord {
+  organization_slug: string;
+}
+
 interface TaskExecutionResult {
   taskCompletionHandled?: boolean;
   metadata?: {
@@ -261,18 +268,19 @@ export class Agent2AgentController {
     // This handles cases where frontend sends 'global' but conversation is actually in a specific org
     if (dto.conversationId) {
       try {
-        const { data: conversation } = await this.supabaseService
+        const { data: result } = await this.supabaseService
           .getAnonClient()
           .from('conversations')
           .select('organization_slug')
           .eq('id', dto.conversationId)
           .single();
 
+        const conversation = result as ConversationOrgRecord | null;
         if (conversation?.organization_slug) {
           this.logger.debug(
             `🔍 Using organization_slug from conversation: ${conversation.organization_slug}`,
           );
-          org = conversation.organization_slug as string;
+          org = conversation.organization_slug;
         }
       } catch (error) {
         // Conversation doesn't exist yet, will be created with org from URL

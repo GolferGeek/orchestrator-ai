@@ -116,7 +116,7 @@ export class RolesGuard implements CanActivate {
    */
   private async getUserProfile(userId: string): Promise<UserProfile | null> {
     // Use service client to bypass RLS issues
-    const { data, error } = await this.supabaseService
+    const { data: result, error } = await this.supabaseService
       .getServiceClient()
       .from('users')
       .select('id, email, display_name, roles, created_at, updated_at')
@@ -131,6 +131,7 @@ export class RolesGuard implements CanActivate {
       throw new Error(`Database error: ${error.message}`);
     }
 
+    const data = result as UserProfile | null;
     return data;
   }
 
