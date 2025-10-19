@@ -1580,9 +1580,10 @@ export class EvaluationService {
 
     // Filter tasks with actual evaluation ratings
     const tasksWithEvaluations = (tasks || []).filter((task) => {
-      const taskEval = task.evaluation as Record<string, unknown> | undefined;
+      const taskRecord = task as Record<string, unknown>;
+      const taskEval = taskRecord.evaluation as Record<string, unknown> | undefined;
       const hasRating =
-        task.evaluation &&
+        taskRecord.evaluation &&
         (taskEval?.user_rating ||
           taskEval?.speed_rating ||
           taskEval?.accuracy_rating);
@@ -1611,7 +1612,7 @@ export class EvaluationService {
         }
       }
       if (filters.hasWorkflowSteps !== undefined) {
-        const taskRespMeta = task.response_metadata as
+        const taskRespMeta = taskRecord.response_metadata as
           | Record<string, unknown>
           | undefined;
         const hasWorkflow =
@@ -1622,7 +1623,7 @@ export class EvaluationService {
         }
       }
       if (filters.hasConstraints !== undefined) {
-        const taskLlmMeta = task.llm_metadata as
+        const taskLlmMeta = taskRecord.llm_metadata as
           | Record<string, unknown>
           | undefined;
         const origSelection = taskLlmMeta?.originalLLMSelection as
@@ -1632,11 +1633,11 @@ export class EvaluationService {
           | Record<string, unknown>
           | undefined;
         const hasConstraints =
-          (cidafmOpts &&
-            ((cidafmOpts.activeStateModifiers as unknown[] | undefined)
-              ?.length ?? 0) > 0) ||
+          cidafmOpts &&
+          (((cidafmOpts.activeStateModifiers as unknown[] | undefined)
+              ?.length ?? 0) > 0 ||
           ((cidafmOpts.responseModifiers as unknown[] | undefined)?.length ??
-            0) > 0;
+            0) > 0);
         if (filters.hasConstraints !== hasConstraints) {
           return false;
         }
@@ -1673,9 +1674,10 @@ export class EvaluationService {
     const modelIds = new Set<string>();
 
     tasksWithEvaluations.forEach((task) => {
-      userIds.add((task as Record<string, unknown>).user_id as string);
+      const taskRecord = task as Record<string, unknown>;
+      userIds.add(taskRecord.user_id as string);
 
-      const taskLlmMeta = task.llm_metadata as
+      const taskLlmMeta = taskRecord.llm_metadata as
         | Record<string, unknown>
         | undefined;
       const origSelection = taskLlmMeta?.originalLLMSelection as
@@ -1824,9 +1826,10 @@ export class EvaluationService {
 
     // Filter tasks with actual evaluations and apply date filters
     const evaluatedTasks = (tasks || []).filter((task) => {
-      const taskEval = task.evaluation as Record<string, unknown> | undefined;
+      const taskRecord = task as Record<string, unknown>;
+      const taskEval = taskRecord.evaluation as Record<string, unknown> | undefined;
       const hasRating =
-        task.evaluation &&
+        taskRecord.evaluation &&
         (taskEval?.user_rating ||
           taskEval?.speed_rating ||
           taskEval?.accuracy_rating);
@@ -1863,7 +1866,7 @@ export class EvaluationService {
     const ratings = evaluatedTasks
       .map(
         (task) =>
-          (task.evaluation as Record<string, unknown>).user_rating as
+          ((task as Record<string, unknown>).evaluation as Record<string, unknown>).user_rating as
             | number
             | null
             | undefined,
@@ -1872,7 +1875,7 @@ export class EvaluationService {
     const speedRatings = evaluatedTasks
       .map(
         (task) =>
-          (task.evaluation as Record<string, unknown>).speed_rating as
+          ((task as Record<string, unknown>).evaluation as Record<string, unknown>).speed_rating as
             | number
             | null
             | undefined,
@@ -1881,7 +1884,7 @@ export class EvaluationService {
     const accuracyRatings = evaluatedTasks
       .map(
         (task) =>
-          (task.evaluation as Record<string, unknown>).accuracy_rating as
+          ((task as Record<string, unknown>).evaluation as Record<string, unknown>).accuracy_rating as
             | number
             | null
             | undefined,
@@ -1906,13 +1909,13 @@ export class EvaluationService {
     // Calculate workflow completion rate
     const workflowTasks = evaluatedTasks.filter(
       (task) =>
-        (task.response_metadata as Record<string, unknown> | undefined)
+        ((task as Record<string, unknown>).response_metadata as Record<string, unknown> | undefined)
           ?.workflow_steps_completed,
     );
     const averageWorkflowCompletionRate =
       workflowTasks.length > 0
         ? workflowTasks.reduce((sum, task): number => {
-            const taskRespMeta = task.response_metadata as Record<
+            const taskRespMeta = (task as Record<string, unknown>).response_metadata as Record<
               string,
               unknown
             >;
@@ -1929,14 +1932,14 @@ export class EvaluationService {
     const responseTimes = evaluatedTasks
       .map(
         (task) =>
-          (task.llm_metadata as Record<string, unknown> | undefined)
+          ((task as Record<string, unknown>).llm_metadata as Record<string, unknown> | undefined)
             ?.response_time_ms as number | null | undefined,
       )
       .filter((time): time is number => time != null);
     const costs = evaluatedTasks
       .map(
         (task) =>
-          (task.llm_metadata as Record<string, unknown> | undefined)
+          ((task as Record<string, unknown>).llm_metadata as Record<string, unknown> | undefined)
             ?.total_cost as number | null | undefined,
       )
       .filter((cost): cost is number => cost != null);
@@ -2050,7 +2053,7 @@ export class EvaluationService {
 
     const workflowTasks = (tasks || []).filter(
       (task) =>
-        (task.response_metadata as Record<string, unknown> | undefined)
+        ((task as Record<string, unknown>).response_metadata as Record<string, unknown> | undefined)
           ?.workflow_steps_completed,
     );
 

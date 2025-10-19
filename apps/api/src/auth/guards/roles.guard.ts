@@ -68,7 +68,9 @@ export class RolesGuard implements CanActivate {
     }
 
     // Get the request object
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest() as {
+      user?: { id?: string };
+    };
     const user = request.user;
 
     // Ensure user is authenticated (should be handled by JwtAuthGuard first)
@@ -78,7 +80,7 @@ export class RolesGuard implements CanActivate {
 
     try {
       // Fetch user profile with roles from database
-      const userProfile = await this.getUserProfile(user.id);
+      const userProfile = await this.getUserProfile(user.id as string);
 
       if (!userProfile) {
         throw new ForbiddenException('User profile not found');
