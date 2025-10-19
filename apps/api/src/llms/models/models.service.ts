@@ -115,7 +115,7 @@ export class ModelsService {
         // Return empty array if Ollama provider not found
         return [];
       }
-      ollamaProviderId = providerData?.id;
+      ollamaProviderId = providerData?.id as string;
       this.logger.debug(
         `Found Ollama provider with ID: ${ollamaProviderId} and name: ${providerData?.name}`,
       );
@@ -224,7 +224,10 @@ export class ModelsService {
       query = query.eq('provider_name', providerName);
     }
 
-    const { data, error } = await query.single();
+    const { data, error } = (await query.single()) as {
+      data: Record<string, unknown> | null;
+      error: { code: string; message: string } | null;
+    };
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -270,7 +273,7 @@ export class ModelsService {
       );
     }
 
-    const { data, error } = await client
+    const { data, error } = (await client
       .from(getTableName('llm_models'))
       .insert({
         provider_name: createModelDto.providerName,
@@ -287,7 +290,7 @@ export class ModelsService {
         is_active: createModelDto.status !== 'inactive',
       })
       .select()
-      .single();
+      .single()) as { data: Record<string, unknown> | null; error: { message: string } | null };
 
     if (error) {
       throw new HttpException(
@@ -332,7 +335,7 @@ export class ModelsService {
       }
     }
 
-    const { data, error } = await client
+    const { data, error } = (await client
       .from(getTableName('llm_models'))
       .update({
         ...updateModelDto,
@@ -340,7 +343,7 @@ export class ModelsService {
       })
       .eq('id', id)
       .select()
-      .single();
+      .single()) as { data: Record<string, unknown> | null; error: { message: string } | null };
 
     if (error) {
       throw new HttpException(

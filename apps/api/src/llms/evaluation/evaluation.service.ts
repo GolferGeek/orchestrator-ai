@@ -1181,25 +1181,33 @@ export class EvaluationService {
       }
 
       // Filter in memory since we're working with JSON fields
-      let filteredTasks = tasks || [];
+      let filteredTasks = (tasks || []) as Record<string, unknown>[];
 
       if (filters.minRating !== undefined) {
         filteredTasks = filteredTasks.filter(
-          (task) =>
-            task.evaluation?.user_rating &&
-            task.evaluation.user_rating >= filters.minRating!,
+          (task) => {
+            const evaluation = task.evaluation as Record<string, unknown> | undefined;
+            return (
+              evaluation?.user_rating &&
+              (evaluation.user_rating as number) >= filters.minRating!
+            );
+          },
         );
       }
 
       if (filters.hasNotes) {
         filteredTasks = filteredTasks.filter(
-          (task) =>
-            task.evaluation?.user_notes &&
-            (task.evaluation.user_notes as string).trim().length > 0,
+          (task) => {
+            const evaluation = task.evaluation as Record<string, unknown> | undefined;
+            return (
+              evaluation?.user_notes &&
+              (evaluation.user_notes as string).trim().length > 0
+            );
+          },
         );
       }
 
-      return filteredTasks;
+      return filteredTasks as Record<string, unknown>[];
     }
 
     const { data: tasks, error } = await query;
@@ -1211,7 +1219,7 @@ export class EvaluationService {
       );
     }
 
-    return tasks || [];
+    return (tasks || []) as Record<string, unknown>[];
   }
 
   async getAllUserEvaluations(

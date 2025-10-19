@@ -113,7 +113,7 @@ function createOrchestratorSqlDatabase(): Record<string, unknown> {
             throw new Error(`SQL execution failed: ${error.message}`);
           }
 
-          return data;
+          return data as unknown;
         } catch (_rpcError) {
           throw new Error(
             `SQL execution failed: ${_rpcError instanceof Error ? _rpcError.message : 'Unknown error'}`,

@@ -589,7 +589,7 @@ export class LLMService {
             content,
             metadata,
             piiMetadata: options?.piiMetadata ?? null,
-            sanitizationMetadata: pseudonymizationMetadata,
+            sanitizationMetadata: pseudonymizationMetadata as Record<string, unknown>,
           };
         }
 
@@ -1753,11 +1753,11 @@ export class LLMService {
     const client = this.supabaseService.getServiceClient();
 
     // Get provider details
-    const { data: provider } = await client
+    const { data: provider } = (await client
       .from(getTableName('llm_providers'))
       .select('*')
       .eq('name', model.providerName)
-      .single();
+      .single()) as { data: Record<string, unknown> | null };
 
     if (!provider) {
       throw new Error(`Provider not found for model ${model.name}`);

@@ -380,7 +380,7 @@ export class LocalModelStatusService {
         const health = await this.checkModelHealth(dbModel.model_name as string);
 
         const status: ModelStatus = {
-          name: dbModel.model_name,
+          name: dbModel.model_name as string,
           status: health.available ? 'loaded' : 'unavailable',
           responseTime: health.responseTime,
           errorMessage: health.errorMessage,
@@ -470,11 +470,11 @@ export class LocalModelStatusService {
       }
 
       return (models || []).map((model) => ({
-        modelName: model.model_name,
-        displayName: model.display_name || model.model_name,
-        tier: model.model_tier || 'general',
-        priority: model.loading_priority || 0,
-        isCurrentlyLoaded: model.is_currently_loaded || false,
+        modelName: model.model_name as string,
+        displayName: (model.display_name as string) || (model.model_name as string),
+        tier: (model.model_tier as string) || 'general',
+        priority: (model.loading_priority as number) || 0,
+        isCurrentlyLoaded: (model.is_currently_loaded as boolean) || false,
       }));
     } catch (error) {
       this.logger.error('Error getting local models from database:', error);
