@@ -286,7 +286,7 @@ export async function initializeForOrchestrator(): Promise<void> {
 /**
  * Initialize Supabase tools for Company database (KPI/Analytics)
  */
-export async function initializeForCompany(): Promise<void> {
+export function initializeForCompany(): void {
   createCompanySqlDatabase();
 
   if (!initialized) {
