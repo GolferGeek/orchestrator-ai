@@ -7,6 +7,10 @@ import {
 import { initializeLangChain } from './langchain-client';
 import { MCPClientService } from '../../mcp/clients/mcp-client.service';
 
+interface SupabaseClientWithRpc {
+  rpc: (method: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+}
+
 // Global state for Supabase tools
 let orchestratorClient: SupabaseClient | null = null;
 let companyClient: SupabaseClient | null = null;
@@ -102,7 +106,7 @@ function createOrchestratorSqlDatabase(): Record<string, unknown> {
     orchestratorSqlDatabase = {
       async run(query: string) {
         try {
-          const { data, error } = await (client as any).rpc('exec_sql', {
+          const { data, error } = await (client as unknown as SupabaseClientWithRpc).rpc('exec_sql', {
             query: query,
           });
           if (error) {
@@ -314,7 +318,7 @@ export async function executeOrchestratorSQL(query: string): Promise<unknown> {
   const client = getOrchestratorClient();
 
   try {
-    const { data, error } = await (client as any).rpc('exec_sql', { query });
+    const { data, error } = await (client as unknown as SupabaseClientWithRpc).rpc('exec_sql', { query });
     if (error) {
       throw new Error(`SQL execution failed: ${error.message}`);
     }

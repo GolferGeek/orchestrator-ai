@@ -95,7 +95,7 @@ describe('ToolAgentRunnerService', () => {
           deliverable: {
             id: 'del-new',
             title: 'Tool Execution Test',
-            content: expect.any(String),
+            content: expect.any(String) as string,
           },
           version: {
             id: 'ver-1',
@@ -414,8 +414,9 @@ describe('ToolAgentRunnerService', () => {
       });
 
       let capturedContent: string = '';
-      deliverablesService.executeAction.mockImplementation((action, params) => {
-        capturedContent = params.content;
+      deliverablesService.executeAction.mockImplementation(
+        (action, params: { content: string }) => {
+          capturedContent = params.content;
         return Promise.resolve({
           success: true,
           data: { deliverable: {}, version: {} },

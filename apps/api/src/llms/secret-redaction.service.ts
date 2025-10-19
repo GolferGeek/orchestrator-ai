@@ -269,7 +269,7 @@ export class SecretRedactionService {
     if (metadata) {
       redactedMetadata = this.redactObjectSecrets(metadata) as Record<
         string,
-        any
+        unknown
       >;
     }
 

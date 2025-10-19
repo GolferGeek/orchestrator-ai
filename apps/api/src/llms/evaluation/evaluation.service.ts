@@ -1076,7 +1076,7 @@ export class EvaluationService {
     userId: string,
     taskId: string,
     evaluationDto: MessageEvaluationDto,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown> | null> {
     const client = this.supabaseService.getAnonClient();
 
     // Verify task exists and belongs to user
@@ -1121,7 +1121,7 @@ export class EvaluationService {
     return updatedTask;
   }
 
-  async getTaskWithEvaluation(userId: string, taskId: string): Promise<any> {
+  async getTaskWithEvaluation(userId: string, taskId: string): Promise<Record<string, unknown> | null> {
     const client = this.supabaseService.getAnonClient();
 
     const { data: task, error } = await client
@@ -1148,7 +1148,7 @@ export class EvaluationService {
     userId: string,
     taskId: string,
     evaluationDto: MessageEvaluationDto,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown> | null> {
     // Same as evaluateTask but for updates
     return this.evaluateTask(userId, taskId, evaluationDto);
   }
@@ -2601,17 +2601,18 @@ export class EvaluationService {
     );
 
     return Object.entries(agentGroups as Record<string, unknown>).map(
-      ([agentName, data]: [string, any]) => ({
-        agentName,
-        averageRating:
-          data.ratings.length > 0
-            ? (data.ratings as number[]).reduce(
-                (sum: number, rating: number) => sum + rating,
-                0,
-              ) / data.ratings.length
-            : 0,
-        evaluationCount: data.count,
-      }),
+      ([agentName, data]: [string, unknown]) => {
+        const dataObj = data as Record<string, unknown>;
+        const ratings = (dataObj.ratings as number[] | undefined) || [];
+        return {
+          agentName,
+          averageRating:
+            ratings.length > 0
+              ? ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length
+              : 0,
+          evaluationCount: dataObj.count as number,
+        };
+      },
     );
   }
 

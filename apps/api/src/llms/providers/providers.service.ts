@@ -306,7 +306,7 @@ export class ProvidersService {
     }
 
     // Convert camelCase DTO to snake_case for database
-    const dbPayload: any = {};
+    const dbPayload: Record<string, unknown> = {};
     if (updateProviderDto.name !== undefined)
       dbPayload.name = updateProviderDto.name;
     if (updateProviderDto.apiBaseUrl !== undefined)

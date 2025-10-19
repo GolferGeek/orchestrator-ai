@@ -1,5 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
+interface SupabaseClientWithRpc {
+  rpc: (method: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+}
+
 export interface TableColumn {
   name: string;
   type: string;
@@ -141,7 +145,7 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
   const client = getSupabaseClient();
 
   try {
-    const { data, error } = await (client as any).rpc('exec_sql', {
+    const { data, error} = await (client as unknown as SupabaseClientWithRpc).rpc('exec_sql', {
       query: `
         SELECT
           tc.table_name as from_table,
@@ -209,7 +213,7 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
   const client = getSupabaseClient();
 
   try {
-    const { data, error } = await (client as any).rpc('exec_sql', {
+    const { data, error} = await (client as unknown as SupabaseClientWithRpc).rpc('exec_sql', {
       query: `
         SELECT kcu.column_name
         FROM information_schema.table_constraints tc

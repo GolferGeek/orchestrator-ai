@@ -113,22 +113,23 @@ export class CIDAFMService {
     const client = this.supabaseService.getServiceClient();
 
     // Try built-in commands first
-    const { data: builtinCommand } = await client
-      .from('cidafm_commands')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data: builtinCommand } =
+      (await client
+        .from('cidafm_commands')
+        .select('*')
+        .eq('id', id)
+        .single()) as { data: CIDAFMCommandResponseDto | null };
 
     if (builtinCommand) {
       return builtinCommand as CIDAFMCommandResponseDto;
     }
 
     // If not found in built-in, try regular commands
-    const { data: userCommand } = await client
+    const { data: userCommand } = (await client
       .from('cidafm_commands')
       .select('*')
       .eq('id', id)
-      .single();
+      .single()) as { data: CIDAFMCommandResponseDto | null };
 
     if (userCommand) {
       return {
@@ -148,11 +149,11 @@ export class CIDAFMService {
     const client = this.supabaseService.getServiceClient();
 
     // Check if the command exists in the catalog
-    const { data: command } = await client
+    const { data: command } = (await client
       .from('cidafm_commands')
       .select('*')
       .eq('id', commandId)
-      .single();
+      .single()) as { data: CIDAFMCommandResponseDto | null };
 
     if (!command) {
       throw new HttpException(
@@ -206,7 +207,7 @@ export class CIDAFMService {
     const client = this.supabaseService.getServiceClient();
 
     // Check if user has this command and update its active status
-    const { data: userCommand, error } = await client
+    const { data: userCommand, error } = (await client
       .from('user_cidafm_commands')
       .update({ is_active: isActive })
       .eq('command_id', commandId)
@@ -224,7 +225,10 @@ export class CIDAFMService {
         )
       `,
       )
-      .single();
+      .single()) as {
+      data: { cidafm_commands: Record<string, unknown> } | null;
+      error: unknown;
+    };
 
     if (error || !userCommand) {
       return null; // User doesn't have this command
@@ -394,14 +398,16 @@ export class CIDAFMService {
       .limit(1)
       .single();
 
-    const state = lastMessage?.cidafm_options || { activeStateModifiers: [] };
+    const state = (lastMessage?.cidafm_options as
+      | { active_state_modifiers?: string[] }
+      | undefined) || { active_state_modifiers: [] };
     const commands = await this.findAllCommands(userId, {
       includeUserCommands: true,
     });
 
     return {
-      activeStateModifiers: state.active_state_modifiers || [],
-      session_state: state,
+      activeStateModifiers: ((state as Record<string, unknown>).active_state_modifiers as string[] | undefined) || [],
+      session_state: state as Record<string, unknown>,
       available_commands: commands,
     };
   }

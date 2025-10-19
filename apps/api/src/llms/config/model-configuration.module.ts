@@ -77,9 +77,14 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
           try {
             // Prefer service client (no RLS for server boot-time settings)
             const client = supabase.getServiceClient();
-            const { data, error } = await client.rpc('get_global_model_config');
+            const { data, error } = (await client.rpc(
+              'get_global_model_config',
+            )) as { data: unknown; error: unknown };
             if (!error && data) {
-              const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+              const parsed =
+                typeof data === 'string'
+                  ? (JSON.parse(data) as unknown)
+                  : (data as unknown);
               if (parsed && typeof parsed === 'object' && 'default' in parsed) {
                 globalConfig = parsed as {
                   default: ModelConfiguration;
@@ -94,10 +99,10 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
           }
         }
         if (json) {
-          baseConfig = JSON.parse(json);
+          baseConfig = JSON.parse(json) as SystemModelConfiguration;
         } else if (path) {
           const raw = fs.readFileSync(path, 'utf8');
-          baseConfig = JSON.parse(raw);
+          baseConfig = JSON.parse(raw) as SystemModelConfiguration;
         }
 
         if (!baseConfig && !globalConfig) {
@@ -106,7 +111,7 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
         }
 
         if (patchJson && baseConfig) {
-          const patch = JSON.parse(patchJson);
+          const patch = JSON.parse(patchJson) as Partial<SystemModelConfiguration>;
           baseConfig = deepMerge(baseConfig, patch);
         }
 

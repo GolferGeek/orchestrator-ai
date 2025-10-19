@@ -522,11 +522,11 @@ export class EvaluationController {
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<unknown> {
-    const result = await this.evaluationService.evaluateTask(
+    const result = (await this.evaluationService.evaluateTask(
       user.userId,
       taskId,
       evaluationDto,
-    );
+    )) as unknown;
     if (!result) {
       throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
     }
@@ -561,10 +561,10 @@ export class EvaluationController {
     @CurrentUser() user: { userId: string },
     @Param('taskId') taskId: string,
   ): Promise<unknown> {
-    const task = await this.evaluationService.getTaskWithEvaluation(
+    const task = (await this.evaluationService.getTaskWithEvaluation(
       user.userId,
       taskId,
-    );
+    )) as unknown;
     if (!task) {
       throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
     }
@@ -604,11 +604,11 @@ export class EvaluationController {
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<unknown> {
-    const result = await this.evaluationService.updateTaskEvaluation(
+    const result = (await this.evaluationService.updateTaskEvaluation(
       user.userId,
       taskId,
       evaluationDto,
-    );
+    )) as unknown;
     if (!result) {
       throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
     }

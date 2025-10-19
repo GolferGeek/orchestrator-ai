@@ -68,7 +68,9 @@ export class RolesGuard implements CanActivate {
     }
 
     // Get the request object
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest() as {
+      user?: { id?: string };
+    };
     const user = request.user as { id?: string } | undefined;
 
     // Ensure user is authenticated (should be handled by JwtAuthGuard first)
@@ -99,7 +101,7 @@ export class RolesGuard implements CanActivate {
       }
 
       // Add user profile to request for use in controllers
-      request.userProfile = userProfile;
+      (request as Record<string, unknown>).userProfile = userProfile;
 
       return true;
     } catch (error) {

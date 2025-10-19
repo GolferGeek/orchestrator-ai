@@ -228,8 +228,8 @@ export class AuthService {
         return {
           id: currentAuthUser.id,
           email: currentAuthUser.email,
-          displayName: userData.display_name,
-          roles: userData.roles || [UserRole.USER],
+          displayName: userData.display_name as string,
+          roles: (userData.roles as UserRole[]) || [UserRole.USER],
           namespaceAccess,
         };
       }
