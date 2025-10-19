@@ -1598,7 +1598,7 @@ describe('OrchestrationDashboardService', () => {
         expect.objectContaining({
           runId: 'run-1',
           status: 'aborted',
-          completedAt: expect.any(String),
+          completedAt: expect.any(String) as string,
         }) as Record<string, unknown>,
       );
       expect(result.status).toBe('aborted');

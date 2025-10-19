@@ -189,18 +189,19 @@ export class ProvidersService {
   async findOne(id: string): Promise<ProviderResponseDto | null> {
     const client = this.supabaseService.getServiceClient();
 
-    const { data, error } = await client
+    const { data, error } = (await client
       .from(getTableName('llm_providers'))
       .select('*')
       .eq('id', id)
-      .single();
+      .single()) as { data: unknown; error: unknown };
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      const err = error as Record<string, unknown>;
+      if (err.code === 'PGRST116') {
         return null; // Not found
       }
       throw new HttpException(
-        `Failed to fetch provider: ${error.message}`,
+        `Failed to fetch provider: ${String(err.message)}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -268,15 +269,16 @@ export class ProvidersService {
       status: createProviderDto.status || 'active',
     };
 
-    const { data, error } = await client
+    const { data, error } = (await client
       .from(getTableName('llm_providers'))
       .insert(dbPayload)
       .select()
-      .single();
+      .single()) as { data: unknown; error: unknown };
 
     if (error) {
+      const err = error as Record<string, unknown>;
       throw new HttpException(
-        `Failed to create provider: ${error.message}`,
+        `Failed to create provider: ${String(err.message)}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -325,16 +327,17 @@ export class ProvidersService {
       dbPayload.status = updateProviderDto.status;
     dbPayload.updated_at = new Date().toISOString();
 
-    const { data, error } = await client
+    const { data, error } = (await client
       .from(getTableName('llm_providers'))
       .update(dbPayload)
       .eq('id', id)
       .select()
-      .single();
+      .single()) as { data: unknown; error: unknown };
 
     if (error) {
+      const err = error as Record<string, unknown>;
       throw new HttpException(
-        `Failed to update provider: ${error.message}`,
+        `Failed to update provider: ${String(err.message)}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -384,18 +387,19 @@ export class ProvidersService {
   async findByName(name: string): Promise<ProviderResponseDto | null> {
     const client = this.supabaseService.getAnonClient();
 
-    const { data, error } = await client
+    const { data, error } = (await client
       .from(getTableName('llm_providers'))
       .select('*')
       .eq('name', name)
-      .single();
+      .single()) as { data: unknown; error: unknown };
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      const err = error as Record<string, unknown>;
+      if (err.code === 'PGRST116') {
         return null; // Not found
       }
       throw new HttpException(
-        `Failed to fetch provider: ${error.message}`,
+        `Failed to fetch provider: ${String(err.message)}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

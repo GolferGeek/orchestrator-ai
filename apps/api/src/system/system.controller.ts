@@ -218,9 +218,14 @@ export class SystemController {
         'MODEL_CONFIG_GLOBAL_JSON',
       );
       const client = this.supabaseService.getServiceClient();
-      const { data, error } = await client.rpc('get_global_model_config');
+      const { data, error } = (await client.rpc('get_global_model_config')) as {
+        data: unknown;
+        error: unknown;
+      };
       if (error) {
-        throw new Error(error.message);
+        throw new Error(
+          (error as unknown as Record<string, unknown>).message as string,
+        );
       }
       const dbConfig =
         typeof data === 'string'
@@ -289,7 +294,9 @@ export class SystemController {
         { onConflict: 'key' },
       );
       if (error) {
-        throw new Error(error.message);
+        throw new Error(
+          (error as unknown as Record<string, unknown>).message as string,
+        );
       }
       return {
         success: true,

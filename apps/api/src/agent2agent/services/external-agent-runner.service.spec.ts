@@ -212,7 +212,7 @@ describe('ExternalAgentRunnerService', () => {
       expect(httpService.request).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: expect.not.objectContaining({
-            'X-API-Key': expect.anything(),
+            'X-API-Key': expect.anything() as string,
           }) as Record<string, string>,
         }),
       );

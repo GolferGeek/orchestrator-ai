@@ -748,7 +748,7 @@ describe('Agent Modes Integration Tests (Phase 6)', () => {
             promptTokens: expect.any(Number) as number,
             completionTokens: expect.any(Number) as number,
             totalTokens: expect.any(Number) as number,
-          }),
+          }) as Record<string, unknown>,
         },
       });
     });

@@ -126,7 +126,7 @@ export class EvaluationService {
     }
 
     // Update message with evaluation data
-    const { data: updatedMessage, error: updateError } = await client
+    const { data: updatedMessage, error: updateError } = (await client
       .from('messages')
       .update({
         user_rating: evaluationDto.userRating,
@@ -145,11 +145,12 @@ export class EvaluationService {
         model:llm_models(*)
       `,
       )
-      .single();
+      .single()) as { data: unknown; error: unknown };
 
     if (updateError) {
+      const err = updateError as Record<string, unknown>;
       throw new HttpException(
-        `Failed to save evaluation: ${updateError.message}`,
+        `Failed to save evaluation: ${String(err.message)}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -422,7 +422,9 @@ describe('orchestrate.handlers', () => {
           runnerContext,
         );
 
-        expect(runnerContext.checkpointService.resolveCheckpoint).toHaveBeenCalledWith({
+        expect(
+          runnerContext.checkpointService.resolveCheckpoint,
+        ).toHaveBeenCalledWith({
           approvalId: 'approval-1',
           decision: 'continue',
           actorId: 'user-1',

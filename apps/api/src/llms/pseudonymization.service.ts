@@ -248,15 +248,15 @@ export class PseudonymizationService {
   ): Promise<{ id: string; pseudonym: string; data_type: string } | null> {
     try {
       const client = this.supabaseService.getServiceClient();
-      const { data, error } = await client
+      const { data, error } = (await client
         .from('pseudonym_mappings')
         .select('*')
         .eq('original_hash', originalHash)
-        .single();
+        .single()) as { data: unknown; error: unknown };
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && (error as Record<string, unknown>).code !== 'PGRST116') {
         // PGRST116 = no rows found
-        throw error;
+        throw new Error(String((error as Record<string, unknown>).message));
       }
 
       return data as {

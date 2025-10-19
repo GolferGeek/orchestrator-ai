@@ -155,8 +155,8 @@ export class UsageService {
           }
           // Calculate response time from timestamps
           if (task.started_at && task.completed_at) {
-            const startedAt = task.started_at;
-            const completedAt = task.completed_at;
+            const startedAt = task.started_at as string | Date;
+            const completedAt = task.completed_at as string | Date;
             if (
               typeof startedAt === 'string' &&
               typeof completedAt === 'string'

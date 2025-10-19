@@ -360,13 +360,19 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      const result = await (
+      const result = (await (
         service as unknown as ServiceWithPrivateMethods
-      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
+      ).executeSubOrchestrationStep(
+        mockParentRun,
+        mockOrchestrationStep,
+      )) as Record<string, unknown>;
 
-      expect((result as Record<string, unknown>).status).toBe('completed');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockDefinitionService.getDefinitionForExecution).toHaveBeenCalledWith({
+      expect(result.status).toBe('completed');
+
+      expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        mockDefinitionService.getDefinitionForExecution,
+      ).toHaveBeenCalledWith({
         ownerAgentSlug: 'finance-manager',
         organizationSlug: 'global',
         name: 'kpi-tracking',
@@ -573,19 +579,22 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (
+      const result = (await (
         service as unknown as ServiceWithPrivateMethods
-      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
+      ).executeSubOrchestrationStep(
+        mockParentRun,
+        mockOrchestrationStep,
+      )) as Record<string, unknown>;
 
-      expect((result as Record<string, unknown>).status).toBe('failed');
+      expect(result.status).toBe('failed');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
           message: expect.stringContaining(
             'Failed to resolve sub-orchestration definition',
-          ),
-        }),
+          ) as string,
+        }) as Record<string, unknown>,
       );
     });
 
@@ -614,11 +623,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (
+      const result = (await (
         service as unknown as ServiceWithPrivateMethods
-      ).executeSubOrchestrationStep(mockParentRun, stepWithoutName);
+      ).executeSubOrchestrationStep(mockParentRun, stepWithoutName)) as Record<
+        string,
+        unknown
+      >;
 
-      expect((result as Record<string, unknown>).status).toBe('failed');
+      expect(result.status).toBe('failed');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
@@ -655,11 +667,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (
+      const result = (await (
         service as unknown as ServiceWithPrivateMethods
-      ).executeSubOrchestrationStep(parentWithoutAgent, stepWithoutOwner);
+      ).executeSubOrchestrationStep(
+        parentWithoutAgent,
+        stepWithoutOwner,
+      )) as Record<string, unknown>;
 
-      expect((result as Record<string, unknown>).status).toBe('failed');
+      expect(result.status).toBe('failed');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
@@ -690,11 +705,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         status: 'failed' as const,
       });
 
-      const result = await (
+      const result = (await (
         service as unknown as ServiceWithPrivateMethods
-      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
+      ).executeSubOrchestrationStep(
+        mockParentRun,
+        mockOrchestrationStep,
+      )) as Record<string, unknown>;
 
-      expect((result as Record<string, unknown>).status).toBe('failed');
+      expect(result.status).toBe('failed');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
@@ -738,11 +756,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         step: { ...runningStep, status: 'failed' as const },
       });
 
-      const result = await (
+      const result = (await (
         service as unknown as ServiceWithPrivateMethods
-      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
+      ).executeSubOrchestrationStep(
+        mockParentRun,
+        mockOrchestrationStep,
+      )) as Record<string, unknown>;
 
-      expect((result as Record<string, unknown>).status).toBe('failed');
+      expect(result.status).toBe('failed');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
@@ -787,11 +808,14 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         step: { ...runningStep, status: 'failed' as const },
       });
 
-      const result = await (
+      const result = (await (
         service as unknown as ServiceWithPrivateMethods
-      ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
+      ).executeSubOrchestrationStep(
+        mockParentRun,
+        mockOrchestrationStep,
+      )) as Record<string, unknown>;
 
-      expect((result as Record<string, unknown>).status).toBe('failed');
+      expect(result.status).toBe('failed');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
@@ -852,12 +876,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
             runtime: expect.objectContaining({
               subOrchestration: expect.objectContaining({
                 childRunId: 'child-run-456',
-                completedAt: expect.any(String),
+                completedAt: expect.any(String) as string,
                 status: 'completed',
-              }),
-            }),
-          }),
-        }),
+              }) as Record<string, unknown>,
+            }) as Record<string, unknown>,
+          }) as Record<string, unknown>,
+        }) as Record<string, unknown>,
       );
     });
 

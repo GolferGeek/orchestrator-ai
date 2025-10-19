@@ -436,11 +436,11 @@ export class RunMetadataService {
   async getUsageDetails(runId: string): Promise<LLMUsageDbRecord | null> {
     try {
       const client = this.supabaseService.getServiceClient();
-      const { data: result, error } = await client
+      const { data: result, error } = (await client
         .from(getTableName('llm_usage'))
         .select('*')
         .eq('run_id', runId)
-        .single();
+        .single()) as { data: unknown; error: unknown };
 
       const data = result as LLMUsageDbRecord | null;
 
@@ -449,7 +449,7 @@ export class RunMetadataService {
           // no rows
           return null;
         }
-        throw error;
+        throw new Error(String((error as Record<string, unknown>).message));
       }
 
       return data;
