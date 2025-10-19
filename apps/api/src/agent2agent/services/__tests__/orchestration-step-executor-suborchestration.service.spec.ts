@@ -32,6 +32,7 @@ type ServiceWithPrivateMethods = OrchestrationStepExecutorService & {
   ): Promise<StepProcessResult>;
 };
 
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
   let service: OrchestrationStepExecutorService;
   let mockExecution: jest.Mocked<OrchestrationExecutionService>;
@@ -360,11 +361,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       });
 
       const result = await (
-        service as ServiceWithPrivateMethods
+        service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('completed');
       expect(
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         mockDefinitionService.getDefinitionForExecution,
       ).toHaveBeenCalledWith({
         ownerAgentSlug: 'finance-manager',
@@ -434,11 +436,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
+      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           parameters: {
@@ -483,11 +486,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
+      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           conversationId: 'conv-123',
@@ -539,11 +543,12 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
+      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         stepWithoutInheritance,
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockRunFactory.createRunFromDefinition).toHaveBeenCalledWith(
         expect.objectContaining({
           conversationId: null,
@@ -573,10 +578,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       });
 
       const result = await (
-        service as ServiceWithPrivateMethods
+        service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -612,10 +618,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       });
 
       const result = await (
-        service as ServiceWithPrivateMethods
+        service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, stepWithoutName);
 
       expect(result.status).toBe('failed');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -651,10 +658,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       });
 
       const result = await (
-        service as ServiceWithPrivateMethods
+        service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(parentWithoutAgent, stepWithoutOwner);
 
       expect(result.status).toBe('failed');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -685,10 +693,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       });
 
       const result = await (
-        service as ServiceWithPrivateMethods
+        service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -732,10 +741,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       });
 
       const result = await (
-        service as ServiceWithPrivateMethods
+        service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -780,10 +790,11 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
       });
 
       const result = await (
-        service as ServiceWithPrivateMethods
+        service as unknown as ServiceWithPrivateMethods
       ).executeSubOrchestrationStep(mockParentRun, mockOrchestrationStep);
 
       expect(result.status).toBe('failed');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockExecution.markStepFailed).toHaveBeenCalledWith(
         runningStep.id,
         expect.objectContaining({
@@ -826,7 +837,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
+      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );
@@ -891,7 +902,7 @@ describe('OrchestrationStepExecutorService - Sub-Orchestration', () => {
         nextSteps: [],
       });
 
-      await (service as ServiceWithPrivateMethods).executeSubOrchestrationStep(
+      await (service as unknown as ServiceWithPrivateMethods).executeSubOrchestrationStep(
         mockParentRun,
         mockOrchestrationStep,
       );

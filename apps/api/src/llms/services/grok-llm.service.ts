@@ -152,7 +152,7 @@ export class GrokLLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiMetadata,
+          piiMetadata: piiMetadata ?? undefined,
           startTime,
           endTime,
         },
@@ -161,7 +161,7 @@ export class GrokLLMService extends BaseLLMService {
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
-        piiMetadata: piiMetadata,
+        piiMetadata: piiMetadata ?? undefined,
       };
 
       // Optional LangSmith integration
@@ -189,23 +189,23 @@ export class GrokLLMService extends BaseLLMService {
     endTime: number,
     requestId: string,
   ): GrokResponseMetadata {
-    const choice = completion.choices?.[0];
-    const usage = completion.usage;
+    const choice = (completion.choices as unknown[] | undefined)?.[0] as Record<string, unknown> | undefined;
+    const usage = completion.usage as Record<string, unknown> | undefined;
 
     return {
       provider: 'grok',
-      model: completion.model,
+      model: completion.model as string,
       requestId,
       timestamp: new Date().toISOString(),
       usage: {
-        inputTokens: usage?.prompt_tokens || 0,
-        outputTokens: usage?.completion_tokens || 0,
-        totalTokens: usage?.total_tokens || 0,
+        inputTokens: (usage?.prompt_tokens as number | undefined) || 0,
+        outputTokens: (usage?.completion_tokens as number | undefined) || 0,
+        totalTokens: (usage?.total_tokens as number | undefined) || 0,
         cost: this.calculateCost(
           'grok',
-          completion.model,
-          usage?.prompt_tokens || 0,
-          usage?.completion_tokens || 0,
+          completion.model as string,
+          (usage?.prompt_tokens as number | undefined) || 0,
+          (usage?.completion_tokens as number | undefined) || 0,
         ),
       },
       timing: {
@@ -217,16 +217,16 @@ export class GrokLLMService extends BaseLLMService {
       status: 'completed',
       // Grok-specific fields
       providerSpecific: {
-        finish_reason: choice?.finish_reason,
-        system_fingerprint: completion.system_fingerprint,
-        model_version: completion.model,
+        finish_reason: choice?.finish_reason as 'stop' | 'length' | 'content_filter' | 'tool_calls',
+        system_fingerprint: completion.system_fingerprint as string | undefined,
+        model_version: completion.model as string | undefined,
         // Include actual token counts from Grok
-        prompt_tokens: usage?.prompt_tokens,
-        completion_tokens: usage?.completion_tokens,
-        total_tokens: usage?.total_tokens,
+        prompt_tokens: usage?.prompt_tokens as number | undefined,
+        completion_tokens: usage?.completion_tokens as number | undefined,
+        total_tokens: usage?.total_tokens as number | undefined,
         // Grok may have additional fields
-        reasoning_tokens: usage?.reasoning_tokens,
-        cached_tokens: usage?.cached_tokens,
+        reasoning_tokens: usage?.reasoning_tokens as number | undefined,
+        cached_tokens: usage?.cached_tokens as number | undefined,
       },
     };
   }
@@ -284,11 +284,12 @@ export class GrokLLMService extends BaseLLMService {
    */
   protected handleError(error: unknown, context: string): never {
     // Handle Grok-specific errors
-    if ((error.message as string | undefined)?.includes('401')) {
+    const errorObj = error as Record<string, unknown> | undefined;
+    if (((errorObj?.message) as string | undefined)?.includes('401')) {
       throw new Error(`${context}: Invalid Grok API key`);
-    } else if ((error.message as string | undefined)?.includes('429')) {
+    } else if (((errorObj?.message) as string | undefined)?.includes('429')) {
       throw new Error(`${context}: Rate limit exceeded for Grok API`);
-    } else if ((error.message as string | undefined)?.includes('400')) {
+    } else if (((errorObj?.message) as string | undefined)?.includes('400')) {
       throw new Error(`${context}: Invalid request to Grok API`);
     }
 

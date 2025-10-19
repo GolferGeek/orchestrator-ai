@@ -35,7 +35,7 @@ export interface MCPToolDefinition {
   description: string;
   inputSchema: {
     type: 'object';
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required?: string[];
     additionalProperties?: boolean;
   };
@@ -43,13 +43,13 @@ export interface MCPToolDefinition {
 
 export interface MCPToolRequest {
   name: string;
-  arguments?: Record<string, any>;
+  arguments?: Record<string, unknown>;
 }
 
 export interface MCPToolResponse {
   content: MCPContent[];
   isError?: boolean;
-  _meta?: Record<string, any>;
+  _meta?: Record<string, unknown>;
 }
 
 export interface MCPContent {
@@ -70,20 +70,20 @@ export interface MCPJsonRpcRequest {
   jsonrpc: '2.0';
   id: string | number;
   method: string;
-  params?: any;
+  params?: Record<string, unknown>;
 }
 
 export interface MCPJsonRpcResponse {
   jsonrpc: '2.0';
   id: string | number | null;
-  result?: any;
+  result?: unknown;
   error?: MCPJsonRpcError;
 }
 
 export interface MCPJsonRpcError {
   code: number;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 // MCP-specific method parameter interfaces
@@ -97,7 +97,7 @@ export interface MCPInitializeParams {
 }
 
 export interface MCPClientCapabilities {
-  experimental?: Record<string, any>;
+  experimental?: Record<string, unknown>;
   sampling?: Record<string, unknown>;
 }
 
@@ -107,7 +107,7 @@ export interface MCPListToolsResult {
 
 export interface MCPCallToolParams {
   name: string;
-  arguments?: Record<string, any>;
+  arguments?: Record<string, unknown>;
 }
 
 export interface MCPPingResult {
@@ -185,7 +185,7 @@ export interface IMCPClient {
   /**
    * Get detailed ping information
    */
-  getPingDetails?(): Promise<any>;
+  getPingDetails?(): Promise<MCPPingResult>;
 }
 
 // Configuration Types
@@ -234,7 +234,7 @@ export interface SupabaseExecuteRequest {
 }
 
 export interface SupabaseAnalyzeRequest {
-  data: any[];
+  data: Array<Record<string, unknown>>;
   analysis_prompt: string;
   provider?: string;
   model?: string;

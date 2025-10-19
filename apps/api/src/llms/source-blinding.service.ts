@@ -27,7 +27,7 @@ export interface BlindedRequest {
   url: string;
   method: string;
   headers: Record<string, string>;
-  body?: any;
+  body?: unknown;
   originalHeaders: Record<string, string>;
   strippedHeaders: string[];
   sourceBlindingApplied: boolean;
@@ -298,9 +298,9 @@ export class SourceBlindingService {
     } = {},
   ) {
     return {
-      post: async <T = any>(
+      post: async <T = unknown>(
         url: string,
-        data?: any,
+        data?: unknown,
         config?: AxiosRequestConfig,
       ): Promise<AxiosResponse<T>> => {
         return this.makeBlindedRequest<T>(
@@ -308,7 +308,7 @@ export class SourceBlindingService {
           { provider, ...options },
         );
       },
-      get: async <T = any>(
+      get: async <T = unknown>(
         url: string,
         config?: AxiosRequestConfig,
       ): Promise<AxiosResponse<T>> => {
@@ -317,9 +317,9 @@ export class SourceBlindingService {
           { provider, ...options },
         );
       },
-      put: async <T = any>(
+      put: async <T = unknown>(
         url: string,
-        data?: any,
+        data?: unknown,
         config?: AxiosRequestConfig,
       ): Promise<AxiosResponse<T>> => {
         return this.makeBlindedRequest<T>(

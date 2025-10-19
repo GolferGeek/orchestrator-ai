@@ -69,7 +69,7 @@ export class RolesGuard implements CanActivate {
 
     // Get the request object
     const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const user = request.user as { id?: string } | undefined;
 
     // Ensure user is authenticated (should be handled by JwtAuthGuard first)
     if (!user || !user.id) {

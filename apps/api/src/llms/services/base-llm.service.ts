@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PIIService } from '../pii/pii.service';
-import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
+import { DictionaryPseudonymizerService, DictionaryPseudonymMapping } from '../pii/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { PIIProcessingMetadata } from '../types/pii-metadata.types';
@@ -216,7 +216,7 @@ export abstract class BaseLLMService {
         const result =
           await this.dictionaryPseudonymizerService.reversePseudonyms(
             text,
-            mappings,
+            mappings as unknown as DictionaryPseudonymMapping[],
           );
         return result.originalText;
       }
@@ -341,19 +341,19 @@ export abstract class BaseLLMService {
         const enhancedMetrics = requestMetadata.piiMetadata
           ? {
               dataSanitizationApplied:
-                requestMetadata.piiMetadata.piiDetected || false,
+                (requestMetadata.piiMetadata.piiDetected as boolean | undefined) || false,
               sanitizationLevel:
-                requestMetadata.piiMetadata.processingFlow || 'none',
-              piiDetected: requestMetadata.piiMetadata.piiDetected || false,
+                (requestMetadata.piiMetadata.processingFlow as string | undefined) || 'none',
+              piiDetected: (requestMetadata.piiMetadata.piiDetected as boolean | undefined) || false,
               piiTypes:
-                requestMetadata.piiMetadata.detectionResults
+                (requestMetadata.piiMetadata.detectionResults as Record<string, unknown> | undefined)
                   ?.dataTypesSummary || {},
               // Extract pseudonym information from pseudonymInstructions
               pseudonymsUsed:
-                requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches
+                ((requestMetadata.piiMetadata.pseudonymInstructions as Record<string, unknown> | undefined)?.targetMatches as unknown[] | undefined)
                   ?.length || 0,
               pseudonymTypes:
-                (requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches as unknown[] | undefined)?.map(
+                (((requestMetadata.piiMetadata.pseudonymInstructions as Record<string, unknown> | undefined)?.targetMatches) as unknown[] | undefined)?.map(
                   (m: unknown) => (m as Record<string, unknown>).dataType as string,
                 ) || [],
               pseudonymMappings: derivePseudonymMappings(
@@ -361,10 +361,10 @@ export abstract class BaseLLMService {
               ),
               // Also include flagged items count
               redactionsApplied:
-                requestMetadata.piiMetadata.detectionResults?.flaggedMatches
+                ((requestMetadata.piiMetadata.detectionResults as Record<string, unknown> | undefined)?.flaggedMatches as unknown[] | undefined)
                   ?.length || 0,
               redactionTypes:
-                (requestMetadata.piiMetadata.detectionResults?.flaggedMatches as unknown[] | undefined)?.map(
+                (((requestMetadata.piiMetadata.detectionResults as Record<string, unknown> | undefined)?.flaggedMatches) as unknown[] | undefined)?.map(
                   (m: unknown) => (m as Record<string, unknown>).dataType as string,
                 ) || [],
             }

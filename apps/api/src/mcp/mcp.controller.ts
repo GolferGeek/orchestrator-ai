@@ -251,12 +251,12 @@ export class MCPController {
     id: string | number | null,
     code: MCPErrorCode,
     message: string,
-    data?: any,
+    data?: unknown,
   ): MCPJsonRpcResponse {
     const error: MCPJsonRpcError = {
       code,
       message,
-      ...(data && { data }),
+      ...(data && typeof data === 'object' ? { data } : {}),
     };
 
     return {
@@ -274,7 +274,7 @@ export class MCPController {
    * Get server configuration (debug endpoint)
    */
   @Post('debug/config')
-  getServerConfig(): any {
+  getServerConfig(): Record<string, unknown> {
     try {
       return this.mcpService.getServerConfig();
     } catch (error) {

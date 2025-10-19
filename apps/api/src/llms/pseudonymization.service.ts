@@ -214,7 +214,7 @@ export class PseudonymizationService {
     productionMode: boolean;
     showstopperPatterns: number;
     flaggerPatterns: number;
-    patternServiceStats: any;
+    patternServiceStats: Record<string, unknown>;
   }> {
     const patternServiceStats = this.piiPatternService.getStats();
 
@@ -461,7 +461,7 @@ export class PseudonymizationService {
   /**
    * Get random value from database result
    */
-  private getRandomFromResult(data: any[] | null): string | null {
+  private getRandomFromResult(data: Array<Record<string, unknown>> | null): string | null {
     if (!data || data.length === 0) return null;
     const randomItem = data[Math.floor(Math.random() * data.length)] as { value?: string } | undefined;
     return randomItem?.value || null;

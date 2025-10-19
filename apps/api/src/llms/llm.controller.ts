@@ -45,9 +45,9 @@ export class LLMController {
   ): Promise<{
     response: string;
     content?: string;
-    sanitizationMetadata?: any;
-    piiMetadata?: any;
-    metadata?: any;
+    sanitizationMetadata?: Record<string, unknown>;
+    piiMetadata?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
   }> {
     try {
       // Guard: Conversation-based requests must use the agent tasks endpoint

@@ -756,7 +756,7 @@ export class NotionMCPTools implements IMCPToolHandler {
   private async makeNotionRequest(
     endpoint: string,
     method: string,
-    body?: any,
+    body?: Record<string, unknown>,
   ): Promise<Response> {
     const notionToken =
       this.configService.get('NOTION_API_TOKEN') ||

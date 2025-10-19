@@ -502,7 +502,7 @@ export class SupabaseMCPTools implements IMCPToolHandler {
   private async makeSupabaseRequest(
     endpoint: string,
     method: string,
-    body?: any,
+    body?: Record<string, unknown>,
   ): Promise<Response> {
     const supabaseUrl = this.configService.get('SUPABASE_URL');
     const supabaseKey =

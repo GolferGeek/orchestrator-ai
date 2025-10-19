@@ -22,7 +22,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { AdminOnly } from './decorators/roles.decorator';
+import { AdminOnly, UserRole } from './decorators/roles.decorator';
 import {
   UserCreateDto,
   UserLoginDto,
@@ -293,7 +293,7 @@ export class AuthController {
   ): Promise<{ success: boolean; message: string }> {
     await this.authService.removeUserRole(
       userId,
-      role as string,
+      role as unknown as UserRole,
       currentAuthUser.id,
       removeUserRoleDto.reason,
     );

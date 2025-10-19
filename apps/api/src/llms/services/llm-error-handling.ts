@@ -376,10 +376,10 @@ export class LLMError extends Error {
       context: this.context,
       originalError: this.originalError
         ? {
-            message: this.originalError.message,
-            code: this.originalError.code,
-            status: this.originalError.status,
-            stack: this.originalError.stack,
+            message: (this.originalError as Record<string, unknown>).message,
+            code: (this.originalError as Record<string, unknown>).code,
+            status: (this.originalError as Record<string, unknown>).status,
+            stack: (this.originalError as Record<string, unknown>).stack,
           }
         : undefined,
     };

@@ -89,7 +89,7 @@ export class MCPService {
     // Collect tools from each namespace handler
     for (const [namespace, handler] of this.toolHandlers.entries()) {
       try {
-        const namespaceTools = await handler.getTools();
+        const namespaceTools = await (handler as { getTools: () => Promise<unknown> }).getTools();
 
         // Add namespace prefix to tool names
         const prefixedTools = (namespaceTools as MCPToolDefinition[]).map((tool: MCPToolDefinition) => ({
@@ -147,7 +147,7 @@ export class MCPService {
         name: toolName,
       };
 
-      const result = await handler.executeTool(toolRequest);
+      const result = await (handler as { executeTool: (req: MCPToolRequest) => Promise<unknown> }).executeTool(toolRequest);
 
       this.logger.debug(`Successfully executed ${request.name}`);
       return result as MCPToolResponse;
@@ -178,7 +178,7 @@ export class MCPService {
     for (const [namespace, handler] of this.toolHandlers.entries()) {
       try {
         const isHealthy =
-          typeof handler.ping === 'function' ? await handler.ping() : true;
+          typeof handler.ping === 'function' ? await (handler as { ping: () => Promise<boolean> }).ping() : true;
         namespaceHealth[namespace] = isHealthy;
       } catch (error) {
         namespaceHealth[namespace] = false;

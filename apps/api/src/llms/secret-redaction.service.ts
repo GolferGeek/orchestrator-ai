@@ -302,7 +302,7 @@ export class SecretRedactionService {
   /**
    * Redact secrets from an object (recursive)
    */
-  private redactObjectSecrets(obj: any): unknown {
+  private redactObjectSecrets(obj: Record<string, unknown>): unknown {
     if (typeof obj !== 'object' || obj === null) {
       if (typeof obj === 'string') {
         return this.redactSecrets(obj).redactedText;

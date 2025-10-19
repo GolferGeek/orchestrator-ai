@@ -136,8 +136,8 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
             throw new Error('Tool name is required');
           }
           result = await this.mcpServer.callTool({
-            name: request.params.name,
-            arguments: request.params.arguments || {},
+            name: request.params.name as string,
+            arguments: (request.params.arguments as Record<string, unknown> | undefined) || {},
           });
           break;
 

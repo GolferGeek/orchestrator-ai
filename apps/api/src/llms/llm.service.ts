@@ -879,7 +879,7 @@ export class LLMService {
     inputTokens?: number;
     outputTokens?: number;
     enhancedMetrics?: LLMUsageMetrics;
-    sanitizationMetadata?: any;
+    sanitizationMetadata?: Record<string, unknown>;
   }> {
     const _startTime = Date.now();
 
@@ -1300,7 +1300,7 @@ export class LLMService {
     costCalculation: CostCalculation;
     langsmithRunId?: string;
     processedPrompt: string;
-    cidafmState?: any;
+    cidafmState?: Record<string, unknown>;
     llmMetadata?: {
       providerName: string;
       modelName: string;

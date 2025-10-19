@@ -118,6 +118,7 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.chunk',
         expect.objectContaining({
@@ -152,6 +153,7 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.complete',
         expect.objectContaining({
@@ -182,6 +184,7 @@ describe('OrchestrationProgressEventsService', () => {
 
       await service.handleEvent(event);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'agent.stream.error',
         expect.objectContaining({

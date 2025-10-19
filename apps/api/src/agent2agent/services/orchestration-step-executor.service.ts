@@ -1652,7 +1652,10 @@ export class OrchestrationStepExecutorService {
           return '';
         }
       }
-      return String(value);
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+      }
+      return '';
     });
   }
 

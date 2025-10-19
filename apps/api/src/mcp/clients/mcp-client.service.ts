@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MCPService } from '../mcp.service';
+import { MCPToolResponse } from '../interfaces/mcp.interface';
 
 /**
  * MCP Client Service for Function Agents
@@ -54,7 +55,7 @@ export class MCPClientService {
         return {
           isError: true,
           content: [
-            { text: response.content[0]?.text || 'SQL generation failed' },
+            { type: "text" as const, text: response.content[0]?.text || 'SQL generation failed' },
           ],
         };
       }
@@ -64,7 +65,7 @@ export class MCPClientService {
       return {
         isError: true,
         content: [
-          { text: error instanceof Error ? error.message : 'Unknown error' },
+          { type: "text" as const, text: error instanceof Error ? error.message : 'Unknown error' },
         ],
       };
     }
@@ -75,11 +76,11 @@ export class MCPClientService {
    */
   async executeSQL(params: {
     sql_query: string;
-    parameters?: any[];
+    parameters?: unknown[];
     dry_run?: boolean;
     max_rows?: number;
     format?: 'detailed' | 'compact' | 'csv' | 'json';
-  }): Promise<any> {
+  }): Promise<MCPToolResponse> {
     try {
       const response = await this.mcpService.callTool({
         name: 'supabase/execute-sql',
@@ -93,7 +94,7 @@ export class MCPClientService {
         return {
           isError: true,
           content: [
-            { text: response.content[0]?.text || 'SQL execution failed' },
+            { type: "text" as const, text: response.content[0]?.text || 'SQL execution failed' },
           ],
         };
       }
@@ -103,7 +104,7 @@ export class MCPClientService {
       return {
         isError: true,
         content: [
-          { text: error instanceof Error ? error.message : 'Unknown error' },
+          { type: "text" as const, text: error instanceof Error ? error.message : 'Unknown error' },
         ],
       };
     }
@@ -129,7 +130,7 @@ export class MCPClientService {
         return {
           isError: true,
           content: [
-            { text: response.content[0]?.text || 'Schema retrieval failed' },
+            { type: "text" as const, text: response.content[0]?.text || 'Schema retrieval failed' },
           ],
         };
       }
@@ -139,7 +140,7 @@ export class MCPClientService {
       return {
         isError: true,
         content: [
-          { text: error instanceof Error ? error.message : 'Unknown error' },
+          { type: "text" as const, text: error instanceof Error ? error.message : 'Unknown error' },
         ],
       };
     }
@@ -174,7 +175,7 @@ export class MCPClientService {
       if (response.isError) {
         return {
           isError: true,
-          content: [{ text: response.content[0]?.text || 'Data read failed' }],
+          content: [{ type: "text" as const, text: response.content[0]?.text || 'Data read failed' }],
         };
       }
 
@@ -183,7 +184,7 @@ export class MCPClientService {
       return {
         isError: true,
         content: [
-          { text: error instanceof Error ? error.message : 'Unknown error' },
+          { type: "text" as const, text: error instanceof Error ? error.message : 'Unknown error' },
         ],
       };
     }
@@ -213,7 +214,7 @@ export class MCPClientService {
         return {
           isError: true,
           content: [
-            { text: response.content[0]?.text || 'Query and format failed' },
+            { type: "text" as const, text: response.content[0]?.text || 'Query and format failed' },
           ],
         };
       }
@@ -223,7 +224,7 @@ export class MCPClientService {
       return {
         isError: true,
         content: [
-          { text: error instanceof Error ? error.message : 'Unknown error' },
+          { type: "text" as const, text: error instanceof Error ? error.message : 'Unknown error' },
         ],
       };
     }
@@ -232,7 +233,7 @@ export class MCPClientService {
   /**
    * Call a tool on a specific server (interface-compatible)
    */
-  async callTool(server: string, toolName: string, params: any): Promise<any> {
+  async callTool(server: string, toolName: string, params: Record<string, unknown>): Promise<MCPToolResponse> {
     try {
       const response = await this.mcpService.callTool({
         name: toolName,
@@ -244,7 +245,7 @@ export class MCPClientService {
       return {
         isError: true,
         content: [
-          { text: error instanceof Error ? error.message : 'Unknown error' },
+          { type: "text" as const, text: error instanceof Error ? error.message : 'Unknown error' },
         ],
       };
     }

@@ -203,8 +203,10 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
             } catch {
               headers[key] = '[object]';
             }
-          } else {
+          } else if (typeof value === 'number' || typeof value === 'boolean') {
             headers[key] = String(value);
+          } else {
+            headers[key] = '[unknown]';
           }
         }
       }

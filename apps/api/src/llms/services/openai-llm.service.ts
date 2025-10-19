@@ -242,7 +242,7 @@ export class OpenAILLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiResult.piiMetadata,
+          piiMetadata: piiResult.piiMetadata ?? undefined,
           startTime,
           endTime,
         },
@@ -251,7 +251,7 @@ export class OpenAILLMService extends BaseLLMService {
       const response: LLMResponse = {
         content: finalContent,
         metadata,
-        piiMetadata: piiResult.piiMetadata,
+        piiMetadata: piiResult.piiMetadata ?? undefined,
       };
 
       // Optional LangSmith integration

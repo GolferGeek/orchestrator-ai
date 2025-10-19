@@ -263,8 +263,7 @@ export class BlindedLLMService {
 
             try {
               // Call the original LLM method (which will use our blinded fetch)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const method = (target as any)[prop] as (...args: any[]) => Promise<any>;
+              const method = (target as Record<string, unknown>)[prop] as (...args: unknown[]) => Promise<ChatResult>;
               const result = await method.call(
                 target,
                 messages,

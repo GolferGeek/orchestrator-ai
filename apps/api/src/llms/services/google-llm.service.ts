@@ -199,7 +199,7 @@ export class GoogleLLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiMetadata,
+          piiMetadata: piiMetadata ?? undefined,
           startTime,
           endTime,
         },
@@ -208,7 +208,7 @@ export class GoogleLLMService extends BaseLLMService {
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
-        piiMetadata: piiMetadata,
+        piiMetadata: piiMetadata ?? undefined,
       };
 
       // Optional LangSmith integration

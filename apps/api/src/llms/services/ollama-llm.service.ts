@@ -171,7 +171,7 @@ export class OllamaLLMService extends BaseLLMService {
             params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiResult.piiMetadata,
+          piiMetadata: piiResult.piiMetadata ?? undefined,
           startTime,
           endTime,
         },
@@ -180,7 +180,7 @@ export class OllamaLLMService extends BaseLLMService {
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
-        piiMetadata: piiResult.piiMetadata,
+        piiMetadata: piiResult.piiMetadata ?? undefined,
       };
 
       // Log request/response
@@ -218,7 +218,7 @@ export class OllamaLLMService extends BaseLLMService {
         const modelNames = (availableModels as Array<Record<string, unknown>>).map((m: Record<string, unknown>) => (m as { name: string }).name);
         return {
           success: false,
-          message: `Model ${model} not found. Available models: ${(modelNames as string[]).join(', ')}`,
+          message: `Model ${model} not found. Available models: ${modelNames.join(', ')}`,
         };
       }
 

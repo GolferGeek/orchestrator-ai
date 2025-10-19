@@ -79,7 +79,7 @@ export class GenericMCPClient {
    */
   async executeSQL(options: { sql: string; maxRows?: number }): Promise<{
     success: boolean;
-    data?: any[];
+    data?: Array<Record<string, unknown>>;
     rowCount?: number;
     executionTimeMs?: number;
     columns?: string[];
@@ -121,7 +121,7 @@ export class GenericMCPClient {
    * Analyze query results and generate insights
    */
   async analyzeResults(options: {
-    data: any[];
+    data: Array<Record<string, unknown>>;
     prompt: string;
     provider?: string;
     model?: string;
@@ -170,7 +170,7 @@ export class GenericMCPClient {
    */
   async getSchema(options: { domain?: string }): Promise<{
     success: boolean;
-    schema?: any;
+    schema?: Record<string, unknown>;
     error?: string;
   }> {
     try {
@@ -212,7 +212,7 @@ export class GenericMCPClient {
   }): Promise<{
     success: boolean;
     sql?: string;
-    data?: any[];
+    data?: Array<Record<string, unknown>>;
     analysis?: string;
     insights?: string[];
     recommendations?: string[];

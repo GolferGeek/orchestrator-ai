@@ -30,7 +30,7 @@ const dataTypeToHumanReadable: Record<string, string> = {
 export interface PIIPolicyResult {
   allowed: boolean;
   sanitizedPrompt: string;
-  sanitizationResult?: any;
+  sanitizationResult?: Record<string, unknown>;
   violations: string[];
   reasoningPath: string[];
 }

@@ -174,7 +174,7 @@ export class LangChainNotionService {
   ): Promise<{
     intent: string;
     action: string;
-    parameters?: any;
+    parameters?: Record<string, unknown>;
     response: string;
   }> {
     try {
@@ -230,7 +230,7 @@ Respond with JSON containing:
    */
   healthCheck(): Promise<{
     status: 'healthy' | 'unhealthy';
-    details: any;
+    details: Record<string, unknown>;
   }> {
     try {
       if (!this.isConfigured()) {

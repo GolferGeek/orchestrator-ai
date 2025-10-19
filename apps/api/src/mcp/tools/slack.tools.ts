@@ -718,7 +718,7 @@ export class SlackMCPTools implements IMCPToolHandler {
   private async makeSlackRequest(
     endpoint: string,
     method: string,
-    body?: any,
+    body?: Record<string, unknown>,
   ): Promise<Response> {
     const slackToken =
       this.configService.get('SLACK_BOT_TOKEN') ||

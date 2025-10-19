@@ -281,17 +281,17 @@ export class SupabaseMCPServer implements IMCPServer {
 
         case 'generate-sql':
           return await this.handleGenerateSQL(
-            request.arguments as SupabaseSQLRequest,
+            request.arguments as unknown as SupabaseSQLRequest,
           );
 
         case 'execute-sql':
           return await this.handleExecuteSQL(
-            request.arguments as SupabaseExecuteRequest,
+            request.arguments as unknown as SupabaseExecuteRequest,
           );
 
         case 'analyze-results':
           return await this.handleAnalyzeResults(
-            request.arguments as SupabaseAnalyzeRequest,
+            request.arguments as unknown as SupabaseAnalyzeRequest,
           );
 
         default:
@@ -1011,11 +1011,11 @@ Return ONLY the SQL query, no explanation or formatting.`;
   }
 
   private async generateLLMAnalysis(
-    data: any[],
+    data: Array<Record<string, unknown>>,
     prompt: string,
     provider: string,
     model: string,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     try {
       const analysisPrompt = `Analyze the following data and provide insights based on this request: "${prompt}"
 
@@ -1115,7 +1115,7 @@ Format your response as a structured JSON object with these sections.`;
           analysis: analysisText,
           data_summary: {
             row_count: data.length,
-            columns: data.length > 0 ? Object.keys(data[0]) : [],
+            columns: data.length > 0 && data[0] ? Object.keys(data[0]) : [],
           },
         };
       }
@@ -1125,9 +1125,9 @@ Format your response as a structured JSON object with these sections.`;
     }
   }
 
-  private generateSimpleAnalysis(data: any[], prompt: string): any {
+  private generateSimpleAnalysis(data: Array<Record<string, unknown>>, prompt: string): Record<string, unknown> {
     const rowCount = data.length;
-    const columns = rowCount > 0 ? Object.keys(data[0]) : [];
+    const columns = rowCount > 0 && data[0] ? Object.keys(data[0]) : [];
 
     return {
       analysis: `Analysis of ${rowCount} records with ${columns.length} columns for: "${prompt}"`,

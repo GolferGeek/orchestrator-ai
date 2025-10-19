@@ -52,7 +52,7 @@ export interface Alert {
   message: string;
   modelName?: string;
   tier?: string;
-  metrics?: any;
+  metrics?: Record<string, unknown>;
   timestamp: string;
   resolved: boolean;
   resolvedAt?: string;
@@ -412,7 +412,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     message: string;
     modelName?: string;
     tier?: string;
-    metrics?: any;
+    metrics?: Record<string, unknown>;
   }): void {
     const alertId = `${alertData.type}${alertData.modelName ? `-${alertData.modelName}` : ''}`;
 

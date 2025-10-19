@@ -192,7 +192,7 @@ async function executeQueryOnCompanyDB(
   client: unknown,
   query: string,
 ): Promise<{ data: unknown; error?: string }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   const supabaseClient = client as any;
   // Simple query parsing for basic SELECT statements on company schema
   // This is a simplified approach - for production you'd want more robust SQL parsing
@@ -204,57 +204,51 @@ async function executeQueryOnCompanyDB(
       lowerQuery.includes('select count(*)') &&
       lowerQuery.includes('companies')
     ) {
-      const { data: result, error } = await supabaseClient
+      const { data, error } = await (supabaseClient as any)
         .from('companies')
         .select('*', { count: 'exact' });
-      const data = result as GenericDbRecord[] | null;
-      return { data: [{ count: data?.length || 0 }], error: error?.message };
+      return { data: [{ count: (data as GenericDbRecord[] | null)?.length || 0 }], error: error?.message };
     }
 
     // Handle public schema table queries
     if (lowerQuery.includes('from companies')) {
-      const { data: result, error } = await supabaseClient
+      const { data, error } = await (supabaseClient as any)
         .from('companies')
         .select('*')
         .limit(100);
-      const data = result as GenericDbRecord[] | null;
-      return { data, error: error?.message };
+      return { data: data as GenericDbRecord[] | null, error: error?.message };
     }
 
     if (lowerQuery.includes('from departments')) {
-      const { data: result, error } = await supabaseClient
+      const { data, error } = await (supabaseClient as any)
         .from('departments')
         .select('*')
         .limit(100);
-      const data = result as GenericDbRecord[] | null;
-      return { data, error: error?.message };
+      return { data: data as GenericDbRecord[] | null, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_data')) {
-      const { data: result, error } = await supabaseClient
+      const { data, error } = await (supabaseClient as any)
         .from('kpi_data')
         .select('*')
         .limit(100);
-      const data = result as GenericDbRecord[] | null;
-      return { data, error: error?.message };
+      return { data: data as GenericDbRecord[] | null, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_metrics')) {
-      const { data: result, error } = await supabaseClient
+      const { data, error } = await (supabaseClient as any)
         .from('kpi_metrics')
         .select('*')
         .limit(100);
-      const data = result as GenericDbRecord[] | null;
-      return { data, error: error?.message };
+      return { data: data as GenericDbRecord[] | null, error: error?.message };
     }
 
     if (lowerQuery.includes('from kpi_goals')) {
-      const { data: result, error } = await supabaseClient
+      const { data, error } = await (supabaseClient as any)
         .from('kpi_goals')
         .select('*')
         .limit(100);
-      const data = result as GenericDbRecord[] | null;
-      return { data, error: error?.message };
+      return { data: data as GenericDbRecord[] | null, error: error?.message };
     }
 
     // For complex queries, try to execute via raw query if possible
