@@ -230,6 +230,7 @@ export const useLLMPreferencesStore = defineStore('llmPreferences', {
       if (!state.selectedProvider || !state.selectedModel) return null;
 
       const providerName = state.selectedProvider.name.toLowerCase();
+      const modelName = state.selectedModel.modelName?.toLowerCase() || '';
 
       // Local models get highest trust score
       if (providerName.includes('ollama')) {

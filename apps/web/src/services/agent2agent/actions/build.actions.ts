@@ -13,6 +13,7 @@ import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { createAgent2AgentApi } from '@/services/agent2agent/api';
 import type { DeliverableData, DeliverableVersionData } from '@orchestrator-ai/transport-types';
 
 /**
@@ -319,6 +320,7 @@ export async function listDeliverables(
  * Rerun deliverable with different LLM
  *
  * @param agentName - Name of the agent
+ * @param conversationId - Conversation ID
  * @param deliverableId - Deliverable ID to rerun
  * @param versionId - Version ID to rerun from
  * @param llmConfig - LLM configuration
@@ -326,24 +328,31 @@ export async function listDeliverables(
  */
 export async function rerunDeliverable(
   agentName: string,
+  conversationId: string,
   deliverableId: string,
   versionId: string,
   llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number },
+  userMessage?: string,
 ): Promise<{ deliverable: DeliverableData; version: DeliverableVersionData }> {
-  console.log('🔄 [Build Rerun Action] Starting', { agentName, deliverableId, versionId, llmConfig });
+  console.log('🔄 [Build Rerun Action] Starting', { agentName, conversationId, deliverableId, versionId, llmConfig, userMessage });
 
   const api = createAgent2AgentApi(agentName);
-  const response = await api.builds.rerun(deliverableId, versionId, llmConfig);
+  const response = await api.deliverables.rerun(conversationId, versionId, llmConfig, userMessage);
+
+  console.log('🔍 [Build Rerun Action] Response:', JSON.stringify(response, null, 2));
 
   if (!response.success) {
     console.error('❌ [Build Rerun Action] Failed:', response.error);
     throw new Error(response.error?.message || 'Failed to rerun deliverable');
   }
 
-  const deliverable = response.payload?.deliverable;
-  const version = response.payload?.version;
+  // The API client returns { success: true, data: content }
+  // where content is the result from the handler
+  const deliverable = response.data?.deliverable;
+  const version = response.data?.version;
 
   if (!deliverable || !version) {
+    console.error('❌ [Build Rerun Action] Missing data. Response structure:', response);
     throw new Error('No deliverable or version in response');
   }
 

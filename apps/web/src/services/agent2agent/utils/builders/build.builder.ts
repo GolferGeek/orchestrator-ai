@@ -107,11 +107,12 @@ export const buildBuilder = {
    */
   rerun: (
     metadata: RequestMetadata & { userMessage: string },
-    rerunData: { versionId: string; config?: Record<string, unknown> },
+    rerunData: { versionId: string; rerunConfig: Record<string, unknown> },
   ): StrictBuildRequest => {
     validateRequired(metadata.conversationId, 'conversationId');
     validateRequired(metadata.userMessage, 'userMessage');
     validateRequired(rerunData.versionId, 'versionId');
+    validateRequired(rerunData.rerunConfig, 'rerunConfig');
 
     return {
       jsonrpc: '2.0',

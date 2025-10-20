@@ -288,12 +288,9 @@
       />
     </ion-modal>
     
-    <!-- LLM Selector Modal (Unified) -->
-    <LLMSelectorModal
+    <!-- LLM Reselector Modal (for rerun with different LLM) -->
+    <LLMReselectorModal
       :is-open="showLLMRerunModal"
-      mode="execute"
-      title="Run with Different LLM"
-      description="This will create a new version of the deliverable using a different LLM model with the same original prompt."
       @dismiss="closeLLMRerunModal"
       @execute="handleLLMExecute"
     />
@@ -355,7 +352,7 @@ import DeliverableDisplay from './DeliverableDisplay.vue';
 import PlanDisplay from './PlanDisplay.vue';
 // ProjectDisplay removed - projects deprecated
 import DeliverableMergeView from './DeliverableMergeView.vue';
-import LLMSelectorModal from './LLMSelectorModal.vue';
+import LLMReselectorModal from './LLMReselectorModal.vue';
 import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
 import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
 import SovereignModeBanner from './SovereignMode/SovereignModeBanner.vue';
@@ -547,8 +544,11 @@ const sendMessage = async (mode?: AgentChatMode) => {
   messageText.value = '';
 
   // If mode is provided, set it before sending
+  // If no mode is set at all, default to 'converse' for new conversations
   if (mode) {
     chatUiStore.setChatMode(mode);
+  } else if (!currentChatMode.value) {
+    chatUiStore.setChatMode('converse');
   }
 
   const conversationId = props.conversation?.id;
@@ -569,13 +569,15 @@ const sendMessage = async (mode?: AgentChatMode) => {
     chatUiStore.setIsSendingMessage(true);
     chatUiStore.setError(null);
 
-    const effectiveMode = mode || currentChatMode.value;
+    const effectiveMode = mode || currentChatMode.value || 'converse';
     const agentName = agent.name;
 
     // Route to appropriate action based on mode
     if (effectiveMode === 'plan') {
       await createPlanAction(agentName, conversationId, content);
     } else if (effectiveMode === 'build') {
+      // Always call createDeliverable - backend will automatically enhance existing deliverable if one exists
+      // and create a new version with the user's new instructions
       await createDeliverableAction(agentName, conversationId, content);
     } else {
       // converse mode (default - 'conversational' or undefined)
@@ -870,7 +872,40 @@ const handleMergeCompleted = (mergedDeliverable: Deliverable) => {
 
 // LLM Rerun handlers
 const handleRunWithDifferentLLM = (data: DeliverableRerunContext) => {
-  rerunDeliverableData.value = data;
+  console.log('🔍 [handleRunWithDifferentLLM] Capturing user message...');
+  console.log('🔍 [handleRunWithDifferentLLM] Conversation ID:', props.conversation?.id);
+  console.log('🔍 [handleRunWithDifferentLLM] Messages from computed:', messages.value.length);
+
+  if (messages.value.length > 0) {
+    console.log('🔍 [handleRunWithDifferentLLM] Message roles:', messages.value.map(m => m.role));
+  }
+
+  // Capture the last user message from the messages store
+  let userMessage = '';
+  const allMessages = messages.value;
+
+  if (allMessages && allMessages.length > 0) {
+    const userMessages = allMessages.filter(msg =>
+      msg.role === 'user' && !msg.metadata?.isRerunRequest
+    );
+    console.log('🔍 [handleRunWithDifferentLLM] User messages (non-rerun) found:', userMessages.length);
+
+    if (userMessages.length > 0) {
+      userMessage = userMessages[userMessages.length - 1].content;
+      console.log('✅ [handleRunWithDifferentLLM] Captured user message:', userMessage);
+    } else {
+      console.error('❌ [handleRunWithDifferentLLM] No non-rerun user messages found!');
+    }
+  } else {
+    console.error('❌ [handleRunWithDifferentLLM] No messages available in store for conversation:', props.conversation?.id);
+  }
+
+  // Store rerun data with the user message
+  rerunDeliverableData.value = {
+    ...data,
+    userMessage // Add the user message to the rerun context
+  };
+  console.log('🔍 [handleRunWithDifferentLLM] Stored rerun data. Has userMessage?', !!userMessage);
   showLLMRerunModal.value = true;
 };
 
@@ -936,54 +971,54 @@ const executeRerunWithConfig = async (
   const isDeliverable = Boolean(deliverable);
   const isPlan = Boolean(plan);
 
-  // Find the original user message that generated this plan
-  let originalUserPrompt = '';
-  if (props.conversation && props.conversation.messages) {
-    const userMessages = props.conversation.messages.filter(msg => msg.role === 'user');
-    if (userMessages.length > 0) {
-      originalUserPrompt = userMessages[userMessages.length - 1].content;
-    }
-  }
+  // Use the user message that was captured when opening the modal
+  const userPrompt = (capturedRerunData as any).userMessage || '';
 
-  // Use original prompt if found, otherwise create a descriptive message
-  const rerunMessage = originalUserPrompt ||
-    (isPlan
-      ? `🔄 Regenerating plan "${plan.title}" with ${llmConfig.provider}/${llmConfig.model}`
-      : `🔄 Regenerating deliverable "${deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`);
+  console.log('🔍 [executeRerunWithConfig] Using captured user message:', userPrompt);
 
-  if (originalUserPrompt) {
-    console.log('✅ Found original user prompt for rerun:', originalUserPrompt);
-  } else {
-    console.log('⚠️ Could not find original prompt, using descriptive message');
+  if (!userPrompt || userPrompt.trim() === '') {
+    console.error('❌ [executeRerunWithConfig] User prompt is empty!');
+    throw new Error('User message was not captured - cannot rerun without context');
   }
 
   try {
-    // Add user message to conversation
-    const userMessage: AgentChatMessage = {
+    // Set chat mode to converse to show proper UI state
+    chatUiStore.setChatMode('converse');
+
+    // Set loading state
+    chatUiStore.setIsSendingMessage(true);
+
+    // Add a system message to show the rerun in the UI (not sent to LLM)
+    const systemMessage: AgentChatMessage = {
       id: `rerun-${Date.now()}`,
-      role: 'user',
-      content: rerunMessage,
+      role: 'system',
+      content: `🔄 Regenerating with ${llmConfig.provider}/${llmConfig.model}`,
       timestamp: new Date(),
       metadata: {
         isRerunRequest: true,
         originalVersionId: capturedRerunData.version.id,
         rerunLLMConfig: llmConfig,
-        isRegeneratedPrompt: !!originalUserPrompt
       }
     };
 
     if (props.conversation) {
-      // Use store method instead of direct prop mutation
-      conversationsStore.addMessage(props.conversation.id, userMessage);
+      conversationsStore.addMessage(props.conversation.id, systemMessage);
     }
 
     console.log('🔄 LLM Rerun Config:', llmConfig, 'isPlan:', isPlan, 'isDeliverable:', isDeliverable);
 
+    // Get agent slug from conversation (this is the reliable source)
+    const agentSlug = props.conversation?.agentName || currentAgent.value?.slug;
+
+    if (!agentSlug) {
+      throw new Error('No agent slug available for rerun');
+    }
+
     let result;
     if (isPlan) {
-      // Call the rerunPlan action - use plan.agentName which is the agent slug
+      // Call the rerunPlan action
       result = await rerunPlan(
-        plan.agentName, // agentName is actually the agent slug in PlanData
+        agentSlug,
         plan.conversationId,
         capturedRerunData.version.id,
         {
@@ -994,9 +1029,9 @@ const executeRerunWithConfig = async (
         }
       );
     } else if (isDeliverable) {
-      // Call the rerunDeliverable action
+      // Call the rerunDeliverable action with the original user prompt
       result = await rerunDeliverable(
-        deliverable.agentName,
+        agentSlug,
         deliverable.conversationId,
         deliverable.id,
         capturedRerunData.version.id,
@@ -1005,7 +1040,8 @@ const executeRerunWithConfig = async (
           model: llmConfig.model,
           temperature: llmConfig.temperature,
           maxTokens: llmConfig.maxTokens,
-        }
+        },
+        userPrompt || undefined
       );
     }
 
@@ -1036,7 +1072,7 @@ const executeRerunWithConfig = async (
 
   } catch (error) {
     console.error('Failed to rerun with different LLM:', error);
-    
+
     // Create error message in conversation
     const errorMessage: AgentChatMessage = {
       id: `rerun-error-${Date.now()}`,
@@ -1055,7 +1091,8 @@ const executeRerunWithConfig = async (
       conversationsStore.addMessage(props.conversation.id, errorMessage);
     }
   } finally {
-    // Loading state cleared
+    // Clear loading state
+    chatUiStore.setIsSendingMessage(false);
   }
 };
 // Responsive handling
@@ -1104,6 +1141,12 @@ watch(() => messages.value.length, () => {
 watch(() => props.conversation?.id, async (newId, _oldId) => {
   if (newId && authStore.isAuthenticated) {
     console.log('🔍 [TwoPaneConversationView] Conversation changed to:', newId);
+
+    // Set chat mode to 'converse' for new conversations if it's an allowed mode
+    if (props.conversation?.allowedChatModes?.includes('converse' as AgentChatMode)) {
+      chatUiStore.setChatMode('converse');
+      console.log('✅ [TwoPaneConversationView] Set chat mode to converse for new conversation');
+    }
 
     // Step 0: Load plan for this conversation (similar to deliverables)
     let hasPlan = false;

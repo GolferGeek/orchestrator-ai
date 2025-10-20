@@ -2,7 +2,7 @@
   <ion-modal :is-open="isOpen" @did-dismiss="handleDismiss">
     <ion-header>
       <ion-toolbar>
-        <ion-title>Change Language Model</ion-title>
+        <ion-title>Run with Different LLM</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="handleCancel">
             <ion-icon :icon="closeOutline" />
@@ -13,7 +13,7 @@
     <ion-content class="modal-content">
       <div class="llm-modal-container">
         <div class="modal-description">
-          <p>Select your preferred AI provider and model for this conversation.</p>
+          <p>This will create a new version using a different LLM model with the same original prompt.</p>
         </div>
 
         <div class="llm-selector-content">
@@ -22,13 +22,13 @@
             <label class="selection-label">AI Provider</label>
             <select
               v-model="selectedProvider"
-              :disabled="llmStore.loadingProviders"
+              :disabled="loadingModels"
               class="selection-dropdown"
               @change="onProviderChange"
             >
               <option value="">Select Provider...</option>
               <option
-                v-for="provider in llmStore.filteredProviders"
+                v-for="provider in availableProviders"
                 :key="provider.id"
                 :value="provider"
               >
@@ -42,12 +42,12 @@
             <label class="selection-label">Model</label>
             <select
               v-model="selectedModel"
-              :disabled="llmStore.loadingModels || !selectedProvider"
+              :disabled="loadingModels || !selectedProvider"
               class="selection-dropdown"
             >
               <option value="">Select Model...</option>
               <option
-                v-for="model in llmStore.availableModels"
+                v-for="model in availableModels"
                 :key="model.id"
                 :value="model"
               >
@@ -102,13 +102,13 @@
         Cancel
       </ion-button>
       <ion-button
-        @click="handleApplySelection"
-        :disabled="!canApply"
+        @click="handleRunWithSelected"
+        :disabled="!canRun"
         color="primary"
         size="default"
       >
-        <ion-icon :icon="checkmarkOutline" slot="start" />
-        Apply Selection
+        <ion-icon :icon="playOutline" slot="start" />
+        Run with Selected LLM
       </ion-button>
     </div>
   </ion-modal>
@@ -125,14 +125,12 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  toastController,
 } from '@ionic/vue';
 import {
   closeOutline,
-  checkmarkOutline,
+  playOutline,
 } from 'ionicons/icons';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
-import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import type { Provider, Model } from '@/types/llm';
 
 interface Props {
@@ -141,24 +139,27 @@ interface Props {
 
 interface Emits {
   (e: 'dismiss'): void;
+  (e: 'execute', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
 }
 
 defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Stores
+// Store
 const llmStore = useLLMPreferencesStore();
-const userPreferencesStore = useUserPreferencesStore();
 
-// Local state
+// Local state - completely independent from store
 const selectedProvider = ref<Provider | ''>('');
 const selectedModel = ref<Model | ''>('');
 const temperature = ref(0.7);
 const maxTokens = ref<number | undefined>(undefined);
 const showAdvanced = ref(false);
+const loadingModels = ref(false);
+const availableProviders = ref<Provider[]>([]);
+const availableModels = ref<Model[]>([]);
 
 // Computed
-const canApply = computed(() => {
+const canRun = computed(() => {
   if (!selectedProvider.value || typeof selectedProvider.value === 'string') return false;
   if (!selectedModel.value || typeof selectedModel.value === 'string') return false;
   const provider = selectedProvider.value as Provider;
@@ -168,20 +169,39 @@ const canApply = computed(() => {
 
 // Initialize
 onMounted(async () => {
+  // Initialize LLM store to get providers/models lists
   await llmStore.initialize();
-  selectedProvider.value = llmStore.selectedProvider || '';
-  selectedModel.value = llmStore.selectedModel || '';
-  temperature.value = llmStore.temperature;
-  maxTokens.value = llmStore.maxTokens;
+
+  // Get providers from store
+  availableProviders.value = llmStore.filteredProviders;
+
+  // DON'T initialize with store selection - user must explicitly choose for rerun
+  // This is a rerun operation, not changing the conversation's default LLM
 });
 
+// Load models for a provider WITHOUT updating the store
+const loadModelsForProvider = async (provider: Provider) => {
+  loadingModels.value = true;
+  try {
+    // Get all models from store
+    const allModels = llmStore.filteredModels;
+    // Filter to this provider
+    availableModels.value = allModels.filter(m => m.providerName === provider.name);
+  } finally {
+    loadingModels.value = false;
+  }
+};
+
 // Event handlers
-const onProviderChange = () => {
-  // Reset model selection
+const onProviderChange = async () => {
+  // Reset model selection since provider changed
   selectedModel.value = '';
-  // Update store to filter available models
+  availableModels.value = [];
+
+  // Load models for the selected provider
+  // DON'T update the store - just load the models list
   if (selectedProvider.value && typeof selectedProvider.value === 'object') {
-    llmStore.selectedProvider = selectedProvider.value as Provider;
+    await loadModelsForProvider(selectedProvider.value as Provider);
   }
 };
 
@@ -193,32 +213,25 @@ const handleDismiss = () => {
   emit('dismiss');
 };
 
-const handleApplySelection = async () => {
-  if (!canApply.value) return;
+const handleRunWithSelected = () => {
+  if (!canRun.value) return;
 
   const provider = selectedProvider.value as Provider;
   const model = selectedModel.value as Model;
 
-  // Update the store - this is the user's current LLM selection
-  llmStore.selectedProvider = provider;
-  llmStore.selectedModel = model;
-  llmStore.setTemperature(temperature.value);
-  llmStore.setMaxTokens(maxTokens.value);
+  // Build config and emit it
+  // DON'T update the store - this is a one-time execution
+  const config = {
+    provider: provider.name.toLowerCase(),
+    model: model.modelName,
+    temperature: temperature.value,
+    maxTokens: maxTokens.value,
+  };
 
-  // Save to user preferences
-  userPreferencesStore.setLLMPreferences(provider.name, model.modelName);
+  console.log('🔄 [LLMReselectorModal] Emitting execute with config:', config);
 
-  // Show confirmation
-  const toast = await toastController.create({
-    message: `✅ LLM selection applied: ${provider.name}/${model.modelName}`,
-    duration: 2000,
-    position: 'top',
-    color: 'success'
-  });
-  await toast.present();
-
-  // Close modal - components will reactively see the store changes
-  emit('dismiss');
+  // Emit the config - parent will use it to call rerun
+  emit('execute', config);
 };
 </script>
 

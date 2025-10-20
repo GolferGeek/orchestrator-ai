@@ -243,10 +243,10 @@ export class Agent2AgentApi {
       } as unknown as DeliverableRequest);
     },
 
-    rerun: async (conversationId: string, versionId: string, rerunConfig: object) => {
+    rerun: async (conversationId: string, versionId: string, rerunConfig: object, userMessage?: string) => {
       const strictRequest = buildRequest.build.rerun(
-        { conversationId, userMessage: 'Rerun build' },
-        { versionId, config: rerunConfig }
+        { conversationId, userMessage: userMessage || 'Please regenerate this deliverable with the same requirements' },
+        { versionId, rerunConfig }
       );
       return this.executeStrictRequest(strictRequest);
     },

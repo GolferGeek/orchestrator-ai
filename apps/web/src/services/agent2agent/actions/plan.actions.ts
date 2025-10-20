@@ -13,6 +13,7 @@ import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { usePlanStore } from '@/stores/planStore';
+import { createAgent2AgentApi } from '@/services/agent2agent/api';
 import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
 
 /**

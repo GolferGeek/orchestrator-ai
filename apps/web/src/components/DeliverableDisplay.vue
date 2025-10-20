@@ -74,6 +74,9 @@
       <div class="version-info">
         <span class="version-label">
           Version {{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}
+          <span v-if="displayVersion?.metadata?.provider && displayVersion?.metadata?.model" class="llm-info">
+            ({{ displayVersion.metadata.provider }}/{{ displayVersion.metadata.model }})
+          </span>
         </span>
         <span v-if="displayVersion?.createdByType" class="created-by">
           by {{ formatCreationType(displayVersion.createdByType) }}
