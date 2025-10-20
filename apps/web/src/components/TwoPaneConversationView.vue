@@ -94,11 +94,21 @@
             v-for="message in messages"
             :key="message.id"
             class="message-wrapper"
-            :class="{ 
-              'has-deliverable': messageHasDeliverable(message)
+            :class="{
+              'has-deliverable': messageHasDeliverable(message),
+              'simple-message': isSimpleMessage(message)
             }"
           >
+            <!-- Simple message bubble for converse mode -->
+            <div v-if="isSimpleMessage(message)" class="simple-message-bubble" :class="message.role">
+              <div class="message-content" v-html="formatMessageContent(message.content)"></div>
+              <div v-if="message.timestamp" class="message-timestamp">
+                {{ formatTimestamp(message.timestamp) }}
+              </div>
+            </div>
+            <!-- Task item for plan/build/orchestrate modes -->
             <AgentTaskItem
+              v-else
               :message="message"
               :conversation-id="conversation?.id"
               :agent="currentAgent"
@@ -159,9 +169,9 @@
                 placeholder="Type your message..."
                 :rows="2"
                 :disabled="!currentAgent"
-                @keydown.enter.prevent="sendMessage()"
+                @keydown="handleKeydown"
               />
-              <!-- Conversational Speech Button (moved to middle position) -->
+              <!-- Conversational Speech Button -->
               <ConversationalSpeechButton
                 v-if="props.conversation?.id"
                 slot="end"
@@ -173,18 +183,50 @@
                 @conversation-end="handleConversationEnd"
                 @error="handleSpeechError"
               />
-              <!-- Mode-aware Send Button -->
-              <ChatModeSendButton
-                slot="end"
-                :disabled="!canSend"
-                @send="sendMessage"
-              />
             </ion-item>
+            <!-- Action Buttons Row -->
+            <div class="action-buttons">
+              <ion-button
+                v-if="currentAgent"
+                :fill="currentChatMode === 'converse' ? 'solid' : 'outline'"
+                size="small"
+                color="medium"
+                :disabled="!currentAgent || isSendingMessage"
+                @click="sendWithMode('converse')"
+                title="Converse (Ctrl+C)"
+              >
+                <ion-icon :icon="chatbubbleOutline" slot="start" />
+                Converse
+              </ion-button>
+              <ion-button
+                v-if="currentAgent"
+                :fill="currentChatMode === 'plan' ? 'solid' : 'outline'"
+                size="small"
+                color="primary"
+                :disabled="!currentAgent || isSendingMessage"
+                @click="sendWithMode('plan')"
+                title="Create Plan (Ctrl+P)"
+              >
+                <ion-icon :icon="documentTextOutline" slot="start" />
+                Plan
+              </ion-button>
+              <ion-button
+                v-if="currentAgent"
+                :fill="currentChatMode === 'build' ? 'solid' : 'outline'"
+                size="small"
+                color="success"
+                :disabled="!currentAgent || isSendingMessage"
+                @click="sendWithMode('build')"
+                title="Create Deliverable (Ctrl+B)"
+              >
+                <ion-icon :icon="hammerOutline" slot="start" />
+                Build
+              </ion-button>
+            </div>
           </form>
-          <!-- Compact LLM + Mode + Execution Controls -->
+          <!-- Compact LLM + Execution Controls -->
           <div class="llm-controls">
             <CompactLLMControl />
-            <TaskExecutionControls />
           </div>
           <!-- Enhance-here hint when a deliverable is selected -->
           <div v-if="activeWorkProduct?.type === 'deliverable'" class="enhance-hint">
@@ -206,16 +248,16 @@
         :class="{
           'hidden': !showWorkProductPane,
           'full-width': isMobile && showWorkProductPane,
-          'empty-work-product': !hasActiveWorkProduct && !conversation?.currentPlan
+          'empty-work-product': !hasActiveWorkProduct && !currentPlan
         }"
         v-if="showWorkProductPane"
       >
         <!-- Tabs for Plan and Deliverable -->
-        <div v-if="conversation?.currentPlan || hasActiveWorkProduct" class="work-product-tabs">
+        <div v-if="currentPlan || hasActiveWorkProduct" class="work-product-tabs">
           <ion-segment :value="activeTab" @ionChange="activeTab = $event.detail.value">
-            <ion-segment-button v-if="conversation?.currentPlan" value="plan">
+            <ion-segment-button v-if="currentPlan" value="plan">
               <ion-label>Plan</ion-label>
-              <ion-badge v-if="conversation?.currentPlan" color="primary">{{ conversation.currentPlan.currentVersion?.versionNumber || 1 }}</ion-badge>
+              <ion-badge v-if="currentPlan" color="primary">{{ currentPlan.currentVersion?.versionNumber || 1 }}</ion-badge>
             </ion-segment-button>
             <ion-segment-button v-if="activeWorkProduct?.type === 'deliverable'" value="deliverable">
               <ion-label>Deliverable</ion-label>
@@ -228,9 +270,9 @@
         <!-- Tab Content -->
         <div class="tab-content">
           <!-- Plan Tab -->
-          <div v-if="activeTab === 'plan' && conversation?.currentPlan">
+          <div v-if="activeTab === 'plan' && currentPlan">
             <PlanDisplay
-              :plan="conversation.currentPlan"
+              :plan="currentPlan"
               :conversation-id="conversation?.id"
               @version-changed="handlePlanVersionChanged"
               @version-created="handlePlanVersionCreated"
@@ -257,7 +299,7 @@
 
         <!-- Empty work product state -->
         <div
-          v-if="!conversation?.currentPlan && !hasActiveWorkProduct"
+          v-if="!currentPlan && !hasActiveWorkProduct"
           class="empty-state"
         >
           <ion-icon :icon="documentTextOutline" size="large" color="medium" />
@@ -318,6 +360,7 @@ import {
   documentTextOutline,
   eyeOutline,
   eyeOffOutline,
+  hammerOutline,
 } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
@@ -424,6 +467,13 @@ const messages = computed<AgentChatMessage[]>(() => {
   return [];
 });
 
+// Get the single plan for this conversation from planStore
+const currentPlan = computed(() => {
+  if (!props.conversation?.id) return null;
+  const plans = planStore.plansByConversationId(props.conversation.id);
+  return plans.length > 0 ? plans[0] : null;
+});
+
 // Video-related computed properties
 const agentSlug = computed(() => currentAgent.value?.slug ?? currentAgent.value?.id ?? '');
 
@@ -510,6 +560,37 @@ const sovereignBannerVariant = computed(() => {
   }
   return 'info';
 });
+// Check if message should be displayed as simple bubble (converse mode)
+const isSimpleMessage = (message: any) => {
+  // User messages are always simple
+  if (message.role === 'user') return true;
+
+  // Assistant messages without plan/deliverable/orchestration metadata are simple converse responses
+  if (message.role === 'assistant') {
+    const hasTaskMetadata = message.metadata?.planId ||
+                           message.metadata?.deliverableId ||
+                           message.metadata?.mode === 'plan' ||
+                           message.metadata?.mode === 'build' ||
+                           message.metadata?.mode?.includes('orchestrate');
+    return !hasTaskMetadata;
+  }
+
+  return false;
+};
+
+// Format message content (convert markdown to HTML for simple messages)
+const formatMessageContent = (content: string) => {
+  // Simple formatting - convert newlines to <br>
+  // Could use marked here for full markdown support
+  return content.replace(/\n/g, '<br>');
+};
+
+// Format timestamp
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
 const deliverableActionButtons = computed(() => {
   const conversationDeliverables = deliverablesStore.getDeliverablesByConversation(props.conversation?.id);
   return conversationDeliverables.map(deliverable => ({
@@ -572,14 +653,19 @@ const sendMessage = async (mode?: AgentChatMode) => {
     const effectiveMode = mode || currentChatMode.value || 'converse';
     const agentName = agent.name;
 
+    console.log('🎯 [sendMessage] effectiveMode:', effectiveMode, 'mode param:', mode, 'currentChatMode:', currentChatMode.value);
+
     // Route to appropriate action based on mode
     if (effectiveMode === 'plan') {
+      console.log('📋 [sendMessage] Calling createPlanAction');
       await createPlanAction(agentName, conversationId, content);
     } else if (effectiveMode === 'build') {
+      console.log('🔨 [sendMessage] Calling createDeliverableAction');
       // Always call createDeliverable - backend will automatically enhance existing deliverable if one exists
       // and create a new version with the user's new instructions
       await createDeliverableAction(agentName, conversationId, content);
     } else {
+      console.log('💬 [sendMessage] Calling sendMessageAction (converse)');
       // converse mode (default - 'conversational' or undefined)
       await sendMessageAction(agentName, conversationId, content);
     }
@@ -594,6 +680,69 @@ const sendMessage = async (mode?: AgentChatMode) => {
     chatUiStore.setIsSendingMessage(false);
   }
 };
+
+// Send with specific mode and set as active
+const sendWithMode = async (mode: AgentChatMode) => {
+  if (!currentAgent.value || isSendingMessage.value) return;
+
+  const hasMessages = messages.value && messages.value.length > 0;
+
+  // If no message text, use context-aware defaults
+  if (!messageText.value.trim()) {
+    if (mode === 'plan') {
+      // For plan: use conversation context if exists, otherwise generic prompt
+      messageText.value = hasMessages ? 'Create a plan based on our conversation' : 'Create a plan';
+    } else if (mode === 'build') {
+      // For build: use conversation context if exists, otherwise generic prompt
+      messageText.value = hasMessages ? 'Create a deliverable based on our conversation' : 'Create a deliverable';
+    } else {
+      // For converse: only allow if there are already messages (continuing conversation)
+      if (!hasMessages) {
+        messageText.value = 'Hello';
+      } else {
+        messageText.value = 'Continue';
+      }
+    }
+  }
+
+  // Set this mode as active
+  chatUiStore.setChatMode(mode);
+
+  // Send with this mode
+  await sendMessage(mode);
+};
+
+// Handle keyboard shortcuts
+const handleKeydown = async (event: KeyboardEvent) => {
+  // Ctrl+C for Converse
+  if (event.ctrlKey && event.key === 'c') {
+    event.preventDefault();
+    await sendWithMode('converse');
+    return;
+  }
+
+  // Ctrl+P for Plan
+  if (event.ctrlKey && event.key === 'p') {
+    event.preventDefault();
+    await sendWithMode('plan');
+    return;
+  }
+
+  // Ctrl+B for Build
+  if (event.ctrlKey && event.key === 'b') {
+    event.preventDefault();
+    await sendWithMode('build');
+    return;
+  }
+
+  // Enter key uses current active mode
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    const mode = currentChatMode.value || 'converse';
+    await sendMessage(mode);
+  }
+};
+
 // Check if a recommendation matches the current selection
 const isRecommendationActive = (recommendation: AgentLLMRecommendation) => {
   if (!recommendation || !recommendation.providerName || !recommendation.modelName) {
@@ -927,8 +1076,27 @@ const handlePlanCurrentVersionChanged = (version: PlanVersionData) => {
 
 const handleRunPlanWithDifferentLLM = (data: PlanRerunContext) => {
   console.log('Run plan with different LLM:', data);
-  // Store plan data separately from deliverable data
-  rerunDeliverableData.value = { plan: data.plan, version: data.version };
+
+  // Capture the last user message from the messages store
+  let userMessage = '';
+  const allMessages = messages.value;
+
+  if (allMessages && allMessages.length > 0) {
+    const userMessages = allMessages.filter(msg =>
+      msg.role === 'user' && !msg.metadata?.isRerunRequest
+    );
+    if (userMessages.length > 0) {
+      userMessage = userMessages[userMessages.length - 1].content;
+      console.log('✅ [handleRunPlanWithDifferentLLM] Captured user message:', userMessage);
+    }
+  }
+
+  // Store plan data with the user message
+  rerunDeliverableData.value = {
+    plan: data.plan,
+    version: data.version,
+    userMessage
+  };
   showLLMRerunModal.value = true;
 };
 
@@ -1149,7 +1317,7 @@ watch(() => props.conversation?.id, async (newId, _oldId) => {
     }
 
     // Step 0: Load plan for this conversation (similar to deliverables)
-    let hasPlan = false;
+    let mostRecentPlan = null;
 
     // Check if we already have the plan in the store
     const conversationPlans = planStore.plansByConversationId(newId);
@@ -1161,10 +1329,8 @@ watch(() => props.conversation?.id, async (newId, _oldId) => {
         console.log('📡 [TwoPaneConversationView] Loading plan from API for conversation:', newId);
         const loadedPlan = await planStore.loadPlansByConversation(newId);
         if (loadedPlan) {
-          // Set the plan on the conversation so PlanDisplay can access it
-          chatUiStore.setPlan(newId, loadedPlan);
-          hasPlan = true;
-          console.log('✅ [TwoPaneConversationView] Loaded plan from API and set on conversation:', loadedPlan.id);
+          mostRecentPlan = loadedPlan;
+          console.log('✅ [TwoPaneConversationView] Loaded plan from API:', loadedPlan.id);
         } else {
           console.log('❌ [TwoPaneConversationView] No plan found in API for conversation');
         }
@@ -1172,14 +1338,12 @@ watch(() => props.conversation?.id, async (newId, _oldId) => {
         console.error('❌ [TwoPaneConversationView] Error loading plan:', error);
       }
     } else {
-      // Plan already in store - get it and set on conversation
-      const mostRecentPlan = conversationPlans[0]; // Already sorted by updatedAt DESC
-      chatUiStore.setPlan(newId, mostRecentPlan);
-      hasPlan = true;
-      console.log('✅ [TwoPaneConversationView] Plan already in store, set on conversation:', mostRecentPlan.id);
+      // Plan already in store
+      mostRecentPlan = conversationPlans[0]; // Already sorted by updatedAt DESC
+      console.log('✅ [TwoPaneConversationView] Plan already in store:', mostRecentPlan.id);
     }
 
-    console.log('🔍 [TwoPaneConversationView] hasPlan:', hasPlan);
+    console.log('🔍 [TwoPaneConversationView] mostRecentPlan:', mostRecentPlan?.id);
 
     // Step 1: Check if deliverables are already loaded, if not load them
     let conversationDeliverables = deliverablesStore.getDeliverablesByConversation(newId);
@@ -1202,7 +1366,7 @@ watch(() => props.conversation?.id, async (newId, _oldId) => {
     } else {
       console.log('✅ [TwoPaneConversationView] Using existing deliverables from store');
     }
-    console.log('🔍 [TwoPaneConversationView] Final deliverables count:', conversationDeliverables.length, 'hasPlan:', hasPlan);
+    console.log('🔍 [TwoPaneConversationView] Final deliverables count:', conversationDeliverables.length, 'mostRecentPlan:', mostRecentPlan?.id);
     console.log('🔍 [TwoPaneConversationView] Current showWorkProductPane before setting:', showWorkProductPane.value);
     console.log('🔍 [TwoPaneConversationView] Current activeWorkProduct before setting:', activeWorkProduct.value);
 
@@ -1229,12 +1393,13 @@ watch(() => props.conversation?.id, async (newId, _oldId) => {
       console.log('🎯 [TwoPaneConversationView] Setting showWorkProductPane to true');
       showWorkProductPane.value = true;
       console.log('✅ [TwoPaneConversationView] After setting - showWorkProductPane:', showWorkProductPane.value, 'activeWorkProduct:', activeWorkProduct.value);
-    } else if (hasPlan) {
-      // If no deliverables but there's a plan, show the plan
-      console.log('📋 [TwoPaneConversationView] Setting activeTab to plan and showing pane');
+    } else if (mostRecentPlan) {
+      // If no deliverables but there's a plan, show the plan pane
+      // Plans are accessed via planStore, not activeWorkProduct
+      console.log('🎯 [TwoPaneConversationView] Found plan, showing work product pane');
       activeTab.value = 'plan';
       showWorkProductPane.value = true;
-      console.log('✅ [TwoPaneConversationView] Showing plan pane - showWorkProductPane:', showWorkProductPane.value, 'activeTab:', activeTab.value);
+      console.log('✅ [TwoPaneConversationView] Showing plan pane - showWorkProductPane:', showWorkProductPane.value);
     } else {
       // Reset active work product when no deliverables or plans
       console.log('⚠️ [TwoPaneConversationView] No deliverables or plans, hiding pane');
@@ -1265,7 +1430,7 @@ watch(() => authStore.isAuthenticated, async (isAuthenticated) => {
 });
 
 // Watch for plan creation and show in work product pane
-watch(() => props.conversation?.currentPlan, (plan) => {
+watch(currentPlan, (plan) => {
   console.log('👀 [TwoPaneConversationView] currentPlan changed:', plan);
   if (plan) {
     activeTab.value = 'plan';
@@ -1289,7 +1454,7 @@ watch(() => showWorkProductPane.value, (newVal, oldVal) => {
   console.log('🔄 [TwoPaneConversationView] showWorkProductPane changed from', oldVal, 'to', newVal);
   console.log('🔄 [TwoPaneConversationView] Current activeWorkProduct:', activeWorkProduct.value);
   console.log('🔄 [TwoPaneConversationView] Current activeTab:', activeTab.value);
-  console.log('🔄 [TwoPaneConversationView] Current conversation.currentPlan:', props.conversation?.currentPlan);
+  console.log('🔄 [TwoPaneConversationView] Current currentPlan:', currentPlan.value);
 });
 </script>
 <style scoped>
@@ -1452,6 +1617,40 @@ watch(() => showWorkProductPane.value, (newVal, oldVal) => {
 .message-wrapper.has-deliverable {
   position: relative;
 }
+
+/* Simple message bubbles for converse mode */
+.simple-message-bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.simple-message-bubble.user {
+  background: var(--ion-color-primary);
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+.simple-message-bubble.assistant {
+  background: var(--ion-color-light);
+  color: var(--ion-color-dark);
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+.simple-message-bubble .message-content {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.simple-message-bubble .message-timestamp {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+  text-align: right;
+}
 .input-area {
   border-top: 1px solid var(--ion-color-light);
   background: white;
@@ -1464,6 +1663,18 @@ watch(() => showWorkProductPane.value, (newVal, oldVal) => {
 .input-area ion-textarea {
   --padding-top: 12px;
   --padding-bottom: 12px;
+}
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--ion-color-step-50);
+  border-top: 1px solid var(--ion-color-light-shade);
+  justify-content: flex-start;
+}
+.action-buttons ion-button {
+  flex: 0 1 auto;
+  min-width: 120px;
 }
 .llm-controls {
   padding: 8px 16px;

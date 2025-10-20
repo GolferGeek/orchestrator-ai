@@ -170,28 +170,52 @@ export async function createPlan(
       assistantContent = strippedContent || 'Plan created successfully';
     }
 
-    // Extract plan from response
-    const plan = (parsedResult as any)?.payload?.plan ||
+    // Extract plan from response - backend returns at payload.content.plan
+    console.log('🔍 [Plan Create Action] Parsed result keys:', Object.keys(parsedResult || {}));
+    console.log('🔍 [Plan Create Action] Payload keys:', Object.keys((parsedResult as any)?.payload || {}));
+
+    const plan = (parsedResult as any)?.payload?.content?.plan ||
+                 (parsedResult as any)?.payload?.plan ||
                  (parsedResult as any)?.plan;
-    const version = (parsedResult as any)?.payload?.version ||
+    const version = (parsedResult as any)?.payload?.content?.version ||
+                   (parsedResult as any)?.payload?.version ||
                    (parsedResult as any)?.version ||
                    plan?.currentVersion;
 
     if (!plan) {
+      console.error('❌ [Plan Create Action] No plan found. Full response:', JSON.stringify(result, null, 2));
       throw new Error('No plan in response');
     }
 
+    console.log('✅ [Plan Create Action] Found plan as:', (parsedResult as any)?.payload?.plan ? 'payload.plan' : (parsedResult as any)?.plan ? 'plan' : 'payload.deliverable');
+
     console.log('✅ [Plan Create Action] Plan extracted:', { plan, version });
 
-    // 7. Update plan store
-    planStore.addPlan(plan, version);
+    // 7. Enrich version with LLM metadata from response
+    const enrichedVersion = {
+      ...version,
+      metadata: {
+        ...version.metadata,
+        provider: (parsedResult as any)?.payload?.metadata?.provider ||
+                 (parsedResult as any)?.metadata?.provider,
+        model: (parsedResult as any)?.payload?.metadata?.model ||
+              (parsedResult as any)?.metadata?.model,
+        llmMetadata: (parsedResult as any)?.payload?.metadata?.llmMetadata ||
+                    (parsedResult as any)?.metadata?.llmMetadata,
+      },
+    };
+
+    console.log('✅ [Plan Create Action] Enriched version metadata:', enrichedVersion.metadata);
+
+    // 8. Update plan store
+    planStore.addPlan(plan, enrichedVersion);
     planStore.associatePlanWithConversation(plan.id, conversationId);
 
-    if (version) {
-      planStore.setCurrentVersion(plan.id, version.id);
+    if (enrichedVersion) {
+      planStore.setCurrentVersion(plan.id, enrichedVersion.id);
     }
 
-    // 8. Add assistant message to conversation
+    // 9. Add assistant message to conversation
     conversationsStore.addMessage(conversationId, {
       role: 'assistant',
       content: assistantContent,
@@ -214,7 +238,7 @@ export async function createPlan(
 
     return {
       plan,
-      version,
+      version: enrichedVersion,
       isNew: true,
     };
   } catch (error) {
@@ -270,7 +294,7 @@ export async function rerunPlan(
 
   console.log('📥 [Plan Rerun Action] Response received:', JSON.stringify(response, null, 2));
 
-  // 4. Validate and extract using handler
+  // 4. Validate and extract
   // Check if it's a JSON-RPC response
   if (response.jsonrpc === '2.0' && response.result) {
     // JSON-RPC format - check the result
@@ -284,27 +308,57 @@ export async function rerunPlan(
     throw new Error(response.error?.message || 'Failed to rerun plan');
   }
 
-  const result: PlanRerunResult = planResponseHandler.handleRerun(response);
+  // Extract plan and version from response
+  const plan = (response as any).result?.payload?.content?.plan ||
+               (response as any).result?.payload?.plan ||
+               (response as any).payload?.content?.plan ||
+               (response as any).payload?.plan;
 
-  console.log('✅ [Plan Rerun Action] Response validated:', result);
-  console.log('🔍 [Plan Rerun Action] Plan ID:', result.plan.id, 'Version ID:', result.version.id, 'Version #:', result.version.versionNumber);
+  const version = (response as any).result?.payload?.content?.version ||
+                 (response as any).result?.payload?.version ||
+                 (response as any).payload?.content?.version ||
+                 (response as any).payload?.version;
 
-  // 5. Update store
+  if (!plan || !version) {
+    console.error('❌ [Plan Rerun Action] No plan or version in response:', JSON.stringify(response, null, 2));
+    throw new Error('No plan or version in rerun response');
+  }
+
+  console.log('✅ [Plan Rerun Action] Extracted plan and version');
+  console.log('🔍 [Plan Rerun Action] Plan ID:', plan.id, 'Version ID:', version.id, 'Version #:', version.versionNumber);
+
+  // 5. Enrich version with LLM metadata from response
+  const enrichedVersion = {
+    ...version,
+    metadata: {
+      ...version.metadata,
+      provider: (response as any).result?.payload?.metadata?.provider ||
+               (response as any).payload?.metadata?.provider,
+      model: (response as any).result?.payload?.metadata?.model ||
+            (response as any).payload?.metadata?.model,
+      llmMetadata: (response as any).result?.payload?.metadata?.llmMetadata ||
+                  (response as any).payload?.metadata?.llmMetadata,
+    },
+  };
+
+  console.log('✅ [Plan Rerun Action] Enriched version metadata:', enrichedVersion.metadata);
+
+  // 6. Update store
   // Add the new version to the store
   console.log('📝 [Plan Rerun Action] Calling addVersion...');
-  planStore.addVersion(result.plan.id, result.version);
+  planStore.addVersion(plan.id, enrichedVersion);
   console.log('📝 [Plan Rerun Action] addVersion completed');
 
   // Set the new version as current (optional - depends on UX preference)
   console.log('📝 [Plan Rerun Action] Calling setCurrentVersion...');
-  planStore.setCurrentVersion(result.plan.id, result.version.id);
+  planStore.setCurrentVersion(plan.id, enrichedVersion.id);
   console.log('📝 [Plan Rerun Action] setCurrentVersion completed');
 
   console.log('💾 [Plan Rerun Action] Store updated with new version');
 
-  // 6. Return the result
+  // 7. Return the result
   return {
-    plan: result.plan,
-    version: result.version,
+    plan,
+    version: enrichedVersion,
   };
 }

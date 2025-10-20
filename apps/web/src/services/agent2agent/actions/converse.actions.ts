@@ -109,9 +109,18 @@ export async function sendMessage(
     console.log('📦 [Converse Action] Parsed result:', parsedResult);
 
     // Backend should provide clean thinking and message
-    const thinkingContent = (parsedResult as any)?.thinking;
-    const assistantContent = (parsedResult as any)?.message ||
-                            (typeof parsedResult === 'string' ? parsedResult : 'Processing...');
+    // Check multiple paths for the message content
+    const thinkingContent = (parsedResult as any)?.payload?.content?.thinking ||
+                           (parsedResult as any)?.payload?.thinking ||
+                           (parsedResult as any)?.thinking;
+
+    const assistantContent = (parsedResult as any)?.payload?.content?.message ||
+                            (parsedResult as any)?.payload?.message ||
+                            (parsedResult as any)?.message ||
+                            (parsedResult as any)?.payload?.content ||
+                            (typeof parsedResult === 'string' ? parsedResult : 'No response content');
+
+    console.log('📝 [Converse Action] Extracted content:', { thinkingContent, assistantContent });
 
     // Extract provider/model metadata
     const metadata = {

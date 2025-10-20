@@ -76,8 +76,8 @@
           <span class="version-label">
             Version {{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}
           </span>
-          <span v-if="displayVersion?.createdByType" class="created-by">
-            by {{ formatCreationType(displayVersion.createdByType) }}
+          <span v-if="getVersionLLMInfo(displayVersion)" class="llm-used">
+            ({{ getVersionLLMInfo(displayVersion) }})
           </span>
           <ion-chip v-if="isViewingNewest && !displayVersion?.isCurrentVersion" color="tertiary" size="small" class="viewing-indicator">
             Viewing new version
@@ -322,7 +322,8 @@
             <div
               v-if="displayVersion?.format === 'markdown'"
               class="markdown-content"
-            >{{ displayVersion?.content }}</div>
+              v-html="renderedMarkdown"
+            ></div>
             <!-- JSON Content -->
             <pre
               v-else-if="displayVersion?.format === 'json'"
@@ -341,17 +342,12 @@
       <div class="plan-footer compact">
         <div class="version-info">
           <span class="version-badge">v{{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}</span>
-          <span v-if="displayVersion?.createdByType" class="created-by">by {{ formatCreationType(displayVersion.createdByType) }}</span>
-          <!-- LLM Information in Footer -->
-          <div v-if="getVersionLLMInfo(displayVersion)" class="llm-info-footer">
-            <ion-chip color="primary" size="small">
-              <ion-icon :icon="hardwareChipOutline" />
-              {{ getVersionLLMInfo(displayVersion) }}
-            </ion-chip>
-            <span v-if="getVersionCost(displayVersion)" class="cost-info">
-              ${{ getVersionCost(displayVersion) }}
-            </span>
-          </div>
+          <span v-if="getVersionLLMInfo(displayVersion)" class="llm-used">
+            ({{ getVersionLLMInfo(displayVersion) }})
+          </span>
+          <span v-if="getVersionCost(displayVersion)" class="cost-info">
+            ${{ getVersionCost(displayVersion) }}
+          </span>
         </div>
         <div class="footer-actions">
           <!-- Run with different LLM Button -->
@@ -434,7 +430,7 @@ import {
   ellipsisVerticalOutline,
   hardwareChipOutline,
 } from 'ionicons/icons';
-// import { marked } from 'marked';
+import { marked } from 'marked';
 import TaskRating from './TaskRating.vue';
 import type { Plan, PlanVersion } from '@/services/agent2agent/types';
 import { usePlanStore } from '@/stores/planStore';
@@ -532,22 +528,30 @@ const hasUnsavedChanges = computed(() => {
   );
 });
 
-// const renderedMarkdown = computed(() => {
-//   if (displayVersion.value?.format !== 'markdown') return '';
-//   if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
-//     return '';
-//   }
-//   try {
-//     marked.setOptions({
-//       breaks: true,
-//       gfm: true,
-//     });
-//     return marked(displayVersion.value.content);
-//   } catch (error) {
-//     console.error('Markdown rendering error:', error);
-//     return displayVersion.value.content || '';
-//   }
-// });
+const renderedMarkdown = computed(() => {
+  if (displayVersion.value?.format !== 'markdown') return '';
+  if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
+    return '';
+  }
+  try {
+    let content = displayVersion.value.content;
+
+    // Strip markdown code fences if present (```markdown ... ```)
+    const codeBlockMatch = content.match(/^```(?:markdown)?\n([\s\S]*?)\n```$/);
+    if (codeBlockMatch) {
+      content = codeBlockMatch[1];
+    }
+
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+    });
+    return marked(content);
+  } catch (error) {
+    console.error('Markdown rendering error:', error);
+    return displayVersion.value.content || '';
+  }
+});
 
 const diffLines = computed(() => {
   if (!showDiff.value) return [] as Array<{ type: 'same' | 'add' | 'del'; text: string }>;
@@ -801,20 +805,30 @@ const getMimeType = () => {
 const getVersionLLMInfo = (version: Record<string, unknown>): string | null => {
   if (!version?.metadata) return null;
 
-  // Check for general LLM metadata
-  if (version.metadata.llmMetadata) {
-    const info = JSON.parse(JSON.stringify(version.metadata.llmMetadata));
+  const metadata = version.metadata as any;
 
-    if (info.provider && info.model) {
-      return `${info.provider}/${info.model}`;
+  // Check for llmRerunInfo (from rerun operations)
+  if (metadata.llmRerunInfo?.provider && metadata.llmRerunInfo?.model) {
+    return `${metadata.llmRerunInfo.provider}/${metadata.llmRerunInfo.model}`;
+  }
+
+  // Check for general LLM metadata
+  if (metadata.llmMetadata) {
+    if (metadata.llmMetadata.provider && metadata.llmMetadata.model) {
+      return `${metadata.llmMetadata.provider}/${metadata.llmMetadata.model}`;
     }
 
-    if (info.originalLLMSelection) {
-      const selection = info.originalLLMSelection;
+    if (metadata.llmMetadata.originalLLMSelection) {
+      const selection = metadata.llmMetadata.originalLLMSelection;
       if (selection.providerName && selection.modelName) {
         return `${selection.providerName}/${selection.modelName}`;
       }
     }
+  }
+
+  // Check top-level provider/model
+  if (metadata.provider && metadata.model) {
+    return `${metadata.provider}/${metadata.model}`;
   }
 
   return null;

@@ -131,7 +131,7 @@ export const buildResponseHandler = {
     //   store.associateDeliverableWithPlan(result.deliverable.id, planId);
     // }
     if (result.version) {
-      store.setCurrentVersion(result.version.id);
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
     }
 
     return result;
@@ -151,7 +151,7 @@ export const buildResponseHandler = {
       store.addVersion(result.deliverable.id, result.version);
     }
     if (result.version) {
-      store.setCurrentVersion(result.version.id);
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
     }
 
     return result;
@@ -191,7 +191,7 @@ export const buildResponseHandler = {
       store.addVersion(result.deliverable.id, result.version);
     }
     if (result.version) {
-      store.setCurrentVersion(result.version.id);
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
     }
 
     return result;
@@ -211,7 +211,7 @@ export const buildResponseHandler = {
       store.addVersion(result.deliverable.id, result.version);
     }
     if (result.version) {
-      store.setCurrentVersion(result.version.id);
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
     }
 
     return result;
@@ -261,7 +261,7 @@ export const buildResponseHandler = {
       store.addVersion(result.deliverable.id, result.version);
     }
     if (result.version) {
-      store.setCurrentVersion(result.version.id);
+      store.setCurrentVersion(result.deliverable.id, result.version.id);
     }
 
     return result;

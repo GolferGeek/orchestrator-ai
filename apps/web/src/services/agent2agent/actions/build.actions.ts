@@ -154,18 +154,34 @@ export async function createDeliverable(
 
     console.log('✅ [Build Create Action] Deliverable extracted:', { deliverable: finalDeliverable, version: finalVersion });
 
-    // 7. Update deliverables store
+    // 7. Enrich version with LLM metadata from response
+    const enrichedVersion = finalVersion ? {
+      ...finalVersion,
+      metadata: {
+        ...finalVersion.metadata,
+        provider: (parsedResult as any)?.payload?.metadata?.provider ||
+                 (parsedResult as any)?.metadata?.provider,
+        model: (parsedResult as any)?.payload?.metadata?.model ||
+              (parsedResult as any)?.metadata?.model,
+        llmMetadata: (parsedResult as any)?.payload?.metadata?.llmMetadata ||
+                    (parsedResult as any)?.metadata?.llmMetadata,
+      },
+    } : null;
+
+    console.log('✅ [Build Create Action] Enriched version metadata:', enrichedVersion?.metadata);
+
+    // 8. Update deliverables store
     deliverablesStore.addDeliverable(finalDeliverable);
 
-    if (finalVersion) {
-      deliverablesStore.addVersion(finalDeliverable.id, finalVersion);
-      deliverablesStore.setCurrentVersion(finalDeliverable.id, finalVersion.id);
+    if (enrichedVersion) {
+      deliverablesStore.addVersion(finalDeliverable.id, enrichedVersion);
+      deliverablesStore.setCurrentVersion(finalDeliverable.id, enrichedVersion.id);
     }
 
     // Associate deliverable with conversation
     deliverablesStore.associateDeliverableWithConversation(finalDeliverable.id, conversationId);
 
-    // 8. Add assistant message to conversation
+    // 9. Add assistant message to conversation
     const assistantMessage = conversationsStore.addMessage(conversationId, {
       role: 'assistant',
       content: assistantContent,
@@ -186,7 +202,7 @@ export async function createDeliverable(
 
     chatUiStore.setIsSendingMessage(false);
 
-    return { deliverable: finalDeliverable, version: finalVersion };
+    return { deliverable: finalDeliverable, version: enrichedVersion };
   } catch (error) {
     console.error('❌ [Build Create Action] Error:', error);
     chatUiStore.setIsSendingMessage(false);
@@ -356,14 +372,30 @@ export async function rerunDeliverable(
     throw new Error('No deliverable or version in response');
   }
 
+  // Enrich version with LLM metadata from response
+  const enrichedVersion = {
+    ...version,
+    metadata: {
+      ...version.metadata,
+      provider: (response as any).data?.metadata?.provider ||
+               (response as any).metadata?.provider,
+      model: (response as any).data?.metadata?.model ||
+            (response as any).metadata?.model,
+      llmMetadata: (response as any).data?.metadata?.llmMetadata ||
+                  (response as any).metadata?.llmMetadata,
+    },
+  };
+
+  console.log('✅ [Build Rerun Action] Enriched version metadata:', enrichedVersion.metadata);
+
   // Update store
   const deliverablesStore = useDeliverablesStore();
   deliverablesStore.addDeliverable(deliverable);
-  deliverablesStore.addVersion(deliverable.id, version);
+  deliverablesStore.addVersion(deliverable.id, enrichedVersion);
 
   console.log('✅ [Build Rerun Action] Complete');
 
-  return { deliverable, version };
+  return { deliverable, version: enrichedVersion };
 }
 
 /**

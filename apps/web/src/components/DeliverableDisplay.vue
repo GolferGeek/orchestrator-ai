@@ -78,9 +78,6 @@
             ({{ displayVersion.metadata.provider }}/{{ displayVersion.metadata.model }})
           </span>
         </span>
-        <span v-if="displayVersion?.createdByType" class="created-by">
-          by {{ formatCreationType(displayVersion.createdByType) }}
-        </span>
         <ion-chip v-if="isViewingNewest && !displayVersion?.isCurrentVersion" color="tertiary" size="small" class="viewing-indicator">
           Viewing new version
         </ion-chip>
@@ -391,17 +388,12 @@
     <div class="deliverable-footer compact">
       <div class="version-info">
         <span class="version-badge">v{{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}</span>
-        <span v-if="displayVersion?.createdByType" class="created-by">by {{ formatCreationType(displayVersion.createdByType) }}</span>
-        <!-- LLM Information in Footer -->
-        <div v-if="getVersionLLMInfo(displayVersion)" class="llm-info-footer">
-          <ion-chip color="primary" size="small">
-            <ion-icon :icon="hardwareChipOutline" />
-            {{ getVersionLLMInfo(displayVersion) }}
-          </ion-chip>
-          <span v-if="getVersionCost(displayVersion)" class="cost-info">
-            ${{ getVersionCost(displayVersion) }}
-          </span>
-        </div>
+        <span v-if="displayVersion?.metadata?.provider && displayVersion?.metadata?.model" class="llm-used">
+          ({{ displayVersion.metadata.provider }}/{{ displayVersion.metadata.model }})
+        </span>
+        <span v-if="getVersionCost(displayVersion)" class="cost-info">
+          ${{ getVersionCost(displayVersion) }}
+        </span>
       </div>
       <div class="footer-actions">
         <!-- Run with different LLM Button -->
@@ -608,9 +600,7 @@ const currentVersion = computed(() => {
   return (props.deliverable as Deliverable).currentVersion || deliverablesStore.getCurrentVersion(actualDeliverableId.value);
 });
 const displayVersion = computed(() => {
-  if (selectedVersion.value) return selectedVersion.value;
-  const list = [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
-  return list[0] || currentVersion.value;
+  return selectedVersion.value || [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber)[0] || currentVersion.value;
 });
 const previousVersion = computed(() => {
   const list = [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
@@ -629,7 +619,15 @@ const isViewingNewest = computed(() => {
 // Render markdown content as HTML
 const renderedMarkdown = computed(() => {
   if (displayVersion.value?.format === 'markdown' && displayVersion.value?.content) {
-    return marked(displayVersion.value.content, { breaks: true, gfm: true });
+    let content = displayVersion.value.content;
+
+    // Strip markdown code fences if present (```markdown ... ```)
+    const codeBlockMatch = content.match(/^```(?:markdown)?\n([\s\S]*?)\n```$/);
+    if (codeBlockMatch) {
+      content = codeBlockMatch[1];
+    }
+
+    return marked(content, { breaks: true, gfm: true });
   }
   return displayVersion.value?.content || '';
 });
@@ -1122,7 +1120,13 @@ const getVersionLLMInfo = (version: DeliverableVersion): string | null => {
       return `${info.provider}/${info.model}`;
     }
   }
-  
+
+  // Check top-level provider/model (from metadata enrichment)
+  const metadata = version.metadata as any;
+  if (metadata.provider && metadata.model) {
+    return `${metadata.provider}/${metadata.model}`;
+  }
+
   return null;
 };
 
