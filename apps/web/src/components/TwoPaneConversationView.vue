@@ -4,7 +4,7 @@
     <div class="conversation-header">
       <div class="conversation-info">
         <h2>{{ conversation?.title || 'Conversation' }}</h2>
-        <span class="agent-name">with {{ conversation?.agent?.name }}</span>
+        <span class="agent-name">with {{ currentAgent?.name }}</span>
         <!-- Sovereign Mode Indicator -->
         <SovereignModeTooltip position="bottom" :show-data-flow="true" :show-compliance="true">
           <SovereignModeBadge variant="compact" :clickable="false" />
@@ -101,8 +101,8 @@
             <AgentTaskItem
               :message="message"
               :conversation-id="conversation?.id"
-              :agent="conversation?.agent"
-              :agent-name="conversation?.agent?.name"
+              :agent="currentAgent"
+              :agent-name="currentAgent?.name"
               :show-work-product-pane="showWorkProductPane"
               @deliverable-created="handleDeliverableCreated"
               @deliverable-updated="handleDeliverableUpdated"
@@ -329,7 +329,11 @@ import { deliverablesService } from '@/services/deliverablesService';
 import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
 import { videoService } from '@/services/videoService';
-import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
+import {
+  sendMessage as sendMessageAction,
+  createPlan as createPlanAction,
+  createDeliverable as createDeliverableAction
+} from '@/services/agent2agent/actions';
 import { usePrivacyStore } from '@/stores/privacyStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -400,11 +404,30 @@ const activeWorkProduct = ref<{ type: 'deliverable'; data: Deliverable } | null>
 const activeTab = ref<'plan' | 'deliverable'>('plan');
 const isMobile = ref(false);
 // Computed properties
-const currentAgent = computed(() => props.conversation?.agent);
+const currentAgent = computed(() => {
+  if (!props.conversation) return null;
+  // Construct agent-like object from conversation properties
+  return {
+    name: props.conversation.agentName || '',
+    type: props.conversation.agentType || 'custom',
+    slug: props.conversation.agentName || '',
+    id: props.conversation.agentName || '',
+    organizationSlug: props.conversation.organizationSlug,
+  };
+});
 const currentAgentIdentifier = computed(() => currentAgent.value?.name ?? '');
-const messages = computed<AgentChatMessage[]>(() => props.conversation?.messages ?? []);
+const messages = computed<AgentChatMessage[]>(() => {
+  // Try to get messages from conversation prop first (old structure), then from store
+  if (props.conversation?.messages) {
+    return props.conversation.messages;
+  }
+  if (props.conversation?.id) {
+    return conversationsStore.messagesByConversation(props.conversation.id);
+  }
+  return [];
+});
 
-// Video-related computed properties  
+// Video-related computed properties
 const agentSlug = computed(() => currentAgent.value?.slug ?? currentAgent.value?.id ?? '');
 
 const agentVideoIds = computed(() => {
@@ -431,7 +454,7 @@ const canSend = computed(() => {
     Boolean(currentAgent.value)
   );
 });
-const currentChatMode = computed<AgentChatMode | string | undefined>(() => props.conversation?.chatMode || chatUiStore.chatMode);
+const currentChatMode = computed<AgentChatMode | string | undefined>(() => chatUiStore.chatMode);
 const agentRecommendations = computed(() =>
   currentAgentIdentifier.value
     ? llmStore.getRecommendationsForAgent(currentAgentIdentifier.value)
@@ -463,7 +486,7 @@ const hasActiveWorkProduct = computed(() => {
   return result;
 });
 const isOrchestratorConversation = computed(() => {
-  const agentName = props.conversation?.agent?.name;
+  const agentName = currentAgent.value?.name;
   // Ensure agentName is a string before calling toLowerCase
   if (typeof agentName === 'string') {
     return agentName.toLowerCase().includes('orchestrator');
@@ -474,15 +497,15 @@ const isOrchestratorConversation = computed(() => {
 // Sovereign mode computed properties
 const shouldShowSovereignBanner = computed(() => {
   // Show banner for enforced policy or when there are warnings
-  return sovereignPolicyStore.policy?.enforced || 
-         sovereignPolicyStore.policyWarnings.length > 0;
+  return sovereignPolicyStore.policy?.enforced ||
+         (sovereignPolicyStore.policyWarnings?.length ?? 0) > 0;
 });
 
 const sovereignBannerVariant = computed(() => {
   if (sovereignPolicyStore.policy?.enforced) {
     return 'enforced';
   }
-  if (sovereignPolicyStore.policyWarnings.length > 0) {
+  if ((sovereignPolicyStore.policyWarnings?.length ?? 0) > 0) {
     return 'warning';
   }
   if (sovereignPolicyStore.effectiveSovereignMode) {
@@ -535,37 +558,38 @@ const sendMessage = async (mode?: AgentChatMode) => {
   }
 
   try {
-    const agent = props.conversation?.agent;
+    const agent = currentAgent.value;
 
     if (!agent) {
       console.error('Cannot send message: missing agent');
       return;
     }
 
-    // Set loading state BEFORE sending
-    chatUiStore.setSendingMessage(conversationId, true);
+    // Set sending state
+    chatUiStore.setIsSendingMessage(true);
+    chatUiStore.setError(null);
 
     const effectiveMode = mode || currentChatMode.value;
     const agentName = agent.name;
 
     // Route to appropriate action based on mode
     if (effectiveMode === 'plan') {
-      await createPlan(agentName, conversationId, content);
+      await createPlanAction(agentName, conversationId, content);
     } else if (effectiveMode === 'build') {
-      await createDeliverable(agentName, conversationId, content);
+      await createDeliverableAction(agentName, conversationId, content);
     } else {
-      // converse mode (default)
-      await sendMessage(agentName, conversationId, content);
+      // converse mode (default - 'conversational' or undefined)
+      await sendMessageAction(agentName, conversationId, content);
     }
 
     scrollToBottom();
   } catch (error) {
     console.error('Error sending message:', error);
+    chatUiStore.setError(error instanceof Error ? error.message : 'Failed to send message');
     // Re-populate the input if there was an error
     messageText.value = content;
   } finally {
-    // Clear loading state AFTER sending (or error)
-    chatUiStore.setSendingMessage(conversationId, false);
+    chatUiStore.setIsSendingMessage(false);
   }
 };
 // Check if a recommendation matches the current selection
@@ -580,7 +604,7 @@ const isRecommendationActive = (recommendation: AgentLLMRecommendation) => {
   );
 };
 
-const applyRecommendation = (recommendation: AgentLLMRecommendation) => {
+const applyRecommendation = async (recommendation: AgentLLMRecommendation) => {
   if (!recommendation || !recommendation.providerName || !recommendation.modelName) {
     console.error('❌ Invalid recommendation:', recommendation);
     return;
@@ -602,9 +626,12 @@ const applyRecommendation = (recommendation: AgentLLMRecommendation) => {
     return;
   }
 
-  // Set provider first
+  // Set provider first and wait for models to load
   console.log('Setting provider to:', provider.name);
-  llmStore.setProvider(provider);
+  await llmStore.setProvider(provider);
+
+  // Wait for next tick to ensure models list is updated
+  await nextTick();
 
   // Find model - must match both provider and model name
   // The recommendation.modelName might be "ollama/gpt-oss:20b" format
@@ -661,27 +688,21 @@ const applyRecommendation = (recommendation: AgentLLMRecommendation) => {
   console.log('Setting model to:', model.modelName);
   llmStore.setModel(model);
 
-  // IMPORTANT: Also update user preferences so CompactLLMControl updates
-  const userPreferencesStore = useUserPreferencesStore();
-  userPreferencesStore.setLLMPreferences(provider.name, model.modelName);
+  // Note: Don't update user preferences here - that should only happen when
+  // the user explicitly selects a model via the LLMSelectorModal.
+  // This is just applying an agent recommendation, not a user preference change.
 
   // Verify the change happened
   nextTick(() => {
     console.log('✅ After update - Current selection:', {
       provider: llmStore.selectedProvider?.name,
       model: llmStore.selectedModel?.modelName,
-      llmSelection: llmStore.currentLLMSelection,
-      userPrefs: {
-        provider: userPreferencesStore.preferredProvider,
-        model: userPreferencesStore.preferredModel
-      }
+      llmSelection: llmStore.currentLLMSelection
     });
   });
 };
 const clearError = () => {
-  if (props.conversation?.id) {
-    conversationsStore.clearError(props.conversation.id);
-  }
+  conversationsStore.clearError();
 };
 const scrollToBottom = async () => {
   await nextTick();
@@ -956,13 +977,6 @@ const executeRerunWithConfig = async (
       conversationsStore.addMessage(props.conversation.id, userMessage);
     }
 
-    // Set conversation loading state
-    if (props.conversation) {
-      // Use store methods instead of direct prop mutation
-      conversationsStore.setConversationSending(props.conversation.id, true);
-      conversationsStore.clearConversationError(props.conversation.id);
-    }
-
     console.log('🔄 LLM Rerun Config:', llmConfig, 'isPlan:', isPlan, 'isDeliverable:', isDeliverable);
 
     let result;
@@ -1041,11 +1055,7 @@ const executeRerunWithConfig = async (
       conversationsStore.addMessage(props.conversation.id, errorMessage);
     }
   } finally {
-    // Clear loading state
-    if (props.conversation) {
-      // Use store method instead of direct prop mutation
-      conversationsStore.setConversationSending(props.conversation.id, false);
-    }
+    // Loading state cleared
   }
 };
 // Responsive handling

@@ -54,12 +54,15 @@ import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
 // import { useRoute } from 'vue-router';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { useAgentsStore } from '@/stores/agentsStore';
 import { sendMessage, createPlan, createDeliverable } from '@/services/agent2agent/actions';
+import { conversation } from '@/services/conversationHelpers';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';
 // const route = useRoute();
 const conversationsStore = useConversationsStore();
 const chatUiStore = useChatUiStore();
+const agentsStore = useAgentsStore();
 // Computed
 const activeConversation = computed(() => chatUiStore.activeConversation);
 
@@ -80,25 +83,70 @@ const shouldUseTwoPaneView = computed(() => {
 });
 
 // Methods
-const switchToConversation = (conversationId: string) => {
-  chatUiStore.setActiveConversation(conversationId);
+const switchToConversation = async (conversationId: string) => {
+  const existingConversation = conversationsStore.conversationById(conversationId);
+
+  // If conversation exists and has messages, just switch to it
+  if (existingConversation && existingConversation.messages && existingConversation.messages.length > 0) {
+    chatUiStore.setActiveConversation(conversationId);
+    return;
+  }
+
+  // Otherwise, load the conversation data from backend
+  try {
+    const backendConversation = await conversation.getBackendConversation(conversationId);
+    const messages = await conversation.loadConversationMessages(conversationId);
+
+    // Ensure agents are loaded
+    if (!agentsStore.availableAgents || agentsStore.availableAgents.length === 0) {
+      await agentsStore.ensureAgentsLoaded();
+    }
+
+    const agent = agentsStore.availableAgents?.find(a => a.name === backendConversation.agentName);
+
+    if (!agent) {
+      console.error('Agent not found for conversation:', backendConversation.agentName);
+      return;
+    }
+
+    // Create the conversation object
+    const createdAt = backendConversation.createdAt ? new Date(backendConversation.createdAt) : new Date();
+    const loadedConversation = conversation.createConversationObject(agent, createdAt);
+    loadedConversation.id = conversationId;
+    loadedConversation.agentName = backendConversation.agentName;
+    loadedConversation.agentType = backendConversation.agentType;
+    loadedConversation.organizationSlug = backendConversation.organizationSlug;
+    loadedConversation.messages = messages;
+    loadedConversation.title = backendConversation.title || loadedConversation.title;
+
+    // Add or update in the store
+    if (existingConversation) {
+      conversationsStore.updateConversation(conversationId, loadedConversation);
+    } else {
+      conversationsStore.addConversation(loadedConversation);
+    }
+
+    chatUiStore.setActiveConversation(conversationId);
+  } catch (error) {
+    console.error('Failed to load conversation:', error);
+  }
 };
 
 const closeConversation = (conversationId: string) => {
-  // Close conversation without confirmation dialog
-  conversationsStore.removeConversation(conversationId);
+  // Close the tab (but keep conversation data in store)
+  chatUiStore.closeConversationTab(conversationId);
 };
 
 const handleSendMessage = async (content: string) => {
   const conversation = chatUiStore.activeConversation;
-  if (!conversation || !conversation.agent) {
+  if (!conversation || !conversation.agentName) {
     console.error('Cannot send message: no active conversation');
     return;
   }
 
   try {
-    const mode = conversation.chatMode || 'converse';
-    const agentName = conversation.agent.name;
+    const mode = chatUiStore.chatMode || 'conversational';
+    const agentName = conversation.agentName;
 
     // Route to appropriate action based on mode
     if (mode === 'plan') {

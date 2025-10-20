@@ -438,8 +438,10 @@ const icons = {
 const agentsStore = useAgentsStore();
 const { agentHierarchy, isLoading, error } = storeToRefs(agentsStore);
 const conversationsStore = useConversationsStore();
-const { conversations: storeConversations } = storeToRefs(conversationsStore);
 const deliverablesStore = useDeliverablesStore();
+
+// Convert conversations Map to array for easier filtering
+const storeConversations = computed(() => Array.from(conversationsStore.conversations.values()));
 
 // Helper functions (defined before computed properties)
 const formatAgentDisplayName = (agent: Agent, removeOrchestrator = false) => {
@@ -457,27 +459,26 @@ const formatAgentDisplayName = (agent: Agent, removeOrchestrator = false) => {
 };
 
 const formatConversationTitle = (conversation: AgentConversation) => {
-  // Use metadata title if available, otherwise just show the relative time
-  if (conversation.metadata?.title) {
-    return conversation.metadata.title;
-  }
-  
-  // Just use the same relative time format as the meta line
+  // Just show relative time, not agent name
   return formatLastActive(conversation.lastActiveAt || conversation.createdAt);
 };
 
-const formatLastActive = (date: Date) => {
+const formatLastActive = (date: Date | string) => {
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const diffMs = now.getTime() - dateObj.getTime();
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
+  if (diffMins === 1) return '1 minute';
+  if (diffMins < 60) return `${diffMins} minutes`;
+  if (diffHours === 1) return '1 hour';
+  if (diffHours < 24) return `${diffHours} hours`;
+  if (diffDays === 1) return '1 day';
+  if (diffDays < 7) return `${diffDays} days`;
+  return dateObj.toLocaleDateString();
 };
 
 const selectConversation = (conversation: AgentConversation) => {
@@ -714,16 +715,9 @@ const hierarchyGroups = computed(() => {
   if (topOrchestrator) {
     // For database orchestrators (with namespace), match by organizationSlug; otherwise match by agentType
     const orchestratorConversations = topOrchestrator.namespace
-      ? conversationsStore.conversations.filter(
-          (conv) =>
-            conv.agentName === topOrchestrator.name &&
-            conv.organizationSlug === topOrchestrator.namespace,
-        )
-      : conversationsStore.conversations.filter(
-          (conv) =>
-            conv.agentName === topOrchestrator.name &&
-            conv.agentType === topOrchestrator.type,
-        );
+      ? conversationsStore.conversationsByAgent(topOrchestrator.name, topOrchestrator.namespace)
+      : conversationsStore.conversationsByAgentType(topOrchestrator.type)
+          .filter(conv => conv.agentName === topOrchestrator.name);
 
     const orchestratorMatchesSearch = !searchQuery.value ||
       topOrchestrator.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -750,15 +744,9 @@ const hierarchyGroups = computed(() => {
             // This is a non-manager child - add it to the orchestrator's team
             // For database agents (with namespace), match by organizationSlug; otherwise match by agentType
             const childConversations = child.namespace
-              ? conversationsStore.conversations.filter(
-                  (conv) =>
-                    conv.agentName === child.name &&
-                    conv.organizationSlug === child.namespace,
-                )
-              : conversationsStore.conversations.filter(
-                  (conv) =>
-                    conv.agentName === child.name && conv.agentType === child.type,
-                );
+              ? conversationsStore.conversationsByAgent(child.name, child.namespace)
+              : conversationsStore.conversationsByAgentType(child.type)
+                  .filter(conv => conv.agentName === child.name);
             orchestratorAgents.push({
               name: child.name,
               displayName: child.displayName || child.metadata?.displayName || child.name,
@@ -816,15 +804,9 @@ const hierarchyGroups = computed(() => {
       // This is a standalone specialist/agent
       // For database agents (with namespace), match by organizationSlug; otherwise match by agentType
       const nodeConversations = agent.namespace
-        ? conversationsStore.conversations.filter(
-            (conv) =>
-              conv.agentName === agent.name &&
-              conv.organizationSlug === agent.namespace,
-          )
-        : conversationsStore.conversations.filter(
-            (conv) =>
-              conv.agentName === agent.name && conv.agentType === agent.type,
-          );
+        ? conversationsStore.conversationsByAgent(agent.name, agent.namespace)
+        : conversationsStore.conversationsByAgentType(agent.type)
+            .filter(conv => conv.agentName === agent.name);
 
       const matchesSearch = !searchQuery.value ||
         agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||

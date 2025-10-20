@@ -4,12 +4,14 @@
  *
  * This layer coordinates between:
  * - Store (read-only access to get data)
- * - API (send requests)
- * - Handlers (validate and extract responses)
+ * - tasksService (send requests)
  * - Store mutations (update state)
  */
 
-import { createAgent2AgentApi } from '../api/agent2agent.api';
+import { tasksService } from '@/services/tasksService';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { DeliverableData, DeliverableVersionData } from '@orchestrator-ai/transport-types';
 
@@ -38,52 +40,158 @@ export async function createDeliverable(
 ): Promise<{ deliverable: DeliverableData; version: DeliverableVersionData }> {
   console.log('🔨 [Build Create Action] Starting', { agentName, conversationId, planId });
 
-  // 1. Get any existing deliverable data from store (for context)
+  const conversationsStore = useConversationsStore();
+  const chatUiStore = useChatUiStore();
+  const llmStore = useLLMPreferencesStore();
   const deliverablesStore = useDeliverablesStore();
-  const existingDeliverables = deliverablesStore.deliverablesByConversation(conversationId);
 
-  console.log('📚 [Build Create Action] Existing deliverables:', existingDeliverables.length);
+  try {
+    // 1. Mark as sending
+    chatUiStore.setIsSendingMessage(true);
 
-  // 2. Create API client
-  const api = createAgent2AgentApi(agentName);
+    // 2. Add user message to conversation
+    const conversation = conversationsStore.conversationById(conversationId);
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
 
-  // 3. Build and send request
-  console.log('📤 [Build Create Action] Sending request');
-  const response = await api.builds.create(conversationId, userMessage, { planId });
+    conversationsStore.addMessage(conversationId, {
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date().toISOString(),
+    });
 
-  console.log('📥 [Build Create Action] Response received:', response);
+    // 3. Build conversation history
+    const messages = conversationsStore.messagesByConversation(conversationId);
+    const conversationHistory = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+    }));
 
-  // 4. Validate response
-  if (!response.success) {
-    console.error('❌ [Build Create Action] Request failed:', response.error);
-    throw new Error(response.error?.message || 'Failed to create deliverable');
+    // 4. Build LLM selection from preferences store
+    const llmSelection = llmStore.selectedProvider && llmStore.selectedModel ? {
+      providerName: llmStore.selectedProvider.name,
+      modelName: llmStore.selectedModel.modelName,
+    } : undefined;
+
+    // 5. Call tasksService to create and execute the build task
+    console.log('📤 [Build Create Action] Calling tasksService.createAgentTask');
+
+    const result = await tasksService.createAgentTask(
+      conversation.agentType || 'custom',
+      agentName,
+      {
+        method: 'build',
+        prompt: userMessage,
+        conversationId,
+        conversationHistory,
+        llmSelection,
+        planId,
+        executionMode: chatUiStore.executionMode || 'polling',
+      },
+      { namespace: conversation.organizationSlug || 'global' }
+    );
+
+    console.log('📥 [Build Create Action] Task response:', result);
+
+    // 6. Parse result - backend should provide clean, structured response
+    let parsedResult = result.result;
+    if (typeof parsedResult === 'string') {
+      try {
+        parsedResult = JSON.parse(parsedResult);
+      } catch (e) {
+        console.warn('📦 [Build Create Action] Backend returned non-JSON string:', parsedResult?.substring(0, 200));
+      }
+    }
+
+    console.log('📦 [Build Create Action] Full result from backend:', result);
+    console.log('📦 [Build Create Action] Parsed result:', parsedResult);
+    console.log('📦 [Build Create Action] Result keys:', Object.keys(parsedResult || {}));
+
+    // Backend should provide clean thinking, message, and deliverable
+    const thinkingContent = (parsedResult as any)?.thinking;
+    const assistantContent = (parsedResult as any)?.message || 'Deliverable created successfully';
+
+    // Extract deliverable from response - try multiple paths
+    const deliverable = (parsedResult as any)?.payload?.deliverable ||
+                       (parsedResult as any)?.deliverable ||
+                       (parsedResult as any)?.payload?.content?.deliverable ||
+                       (parsedResult as any)?.result?.deliverable;
+
+    const version = (parsedResult as any)?.payload?.version ||
+                   (parsedResult as any)?.version ||
+                   (parsedResult as any)?.payload?.content?.version ||
+                   deliverable?.currentVersion;
+
+    // Also check if deliverable ID is in the result
+    const deliverableId = (parsedResult as any)?.deliverableId ||
+                         (parsedResult as any)?.payload?.deliverableId ||
+                         (parsedResult as any)?.result?.deliverableId;
+
+    console.log('📦 [Build Create Action] Extracted:', { deliverable, version, deliverableId, thinking: thinkingContent || (parsedResult as any).extractedThinking });
+
+    // If we only have a deliverableId, fetch the full deliverable
+    let finalDeliverable = deliverable;
+    let finalVersion = version;
+
+    if (!finalDeliverable && deliverableId) {
+      console.log('📥 [Build Create Action] Only have deliverableId, fetching full deliverable:', deliverableId);
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      try {
+        finalDeliverable = await deliverablesService.getDeliverable(deliverableId);
+        finalVersion = finalDeliverable?.currentVersion;
+        console.log('✅ [Build Create Action] Fetched deliverable:', finalDeliverable);
+      } catch (error) {
+        console.error('❌ [Build Create Action] Failed to fetch deliverable:', error);
+      }
+    }
+
+    if (!finalDeliverable) {
+      console.error('❌ [Build Create Action] Could not find deliverable in response. Full result:', JSON.stringify(parsedResult, null, 2));
+      throw new Error('No deliverable in response');
+    }
+
+    console.log('✅ [Build Create Action] Deliverable extracted:', { deliverable: finalDeliverable, version: finalVersion });
+
+    // 7. Update deliverables store
+    deliverablesStore.addDeliverable(finalDeliverable);
+
+    if (finalVersion) {
+      deliverablesStore.addVersion(finalDeliverable.id, finalVersion);
+      deliverablesStore.setCurrentVersion(finalDeliverable.id, finalVersion.id);
+    }
+
+    // Associate deliverable with conversation
+    deliverablesStore.associateDeliverableWithConversation(finalDeliverable.id, conversationId);
+
+    // 8. Add assistant message to conversation
+    const assistantMessage = conversationsStore.addMessage(conversationId, {
+      role: 'assistant',
+      content: assistantContent,
+      timestamp: new Date().toISOString(),
+      deliverableId: finalDeliverable.id,
+      metadata: {
+        taskId: result.taskId,
+        deliverableId: finalDeliverable.id,
+        thinking: thinkingContent || (parsedResult as any).extractedThinking,
+        provider: (parsedResult as any)?.payload?.metadata?.provider ||
+                 (parsedResult as any)?.metadata?.provider,
+        model: (parsedResult as any)?.payload?.metadata?.model ||
+              (parsedResult as any)?.metadata?.model,
+      },
+    });
+
+    console.log('💾 [Build Create Action] Complete');
+
+    chatUiStore.setIsSendingMessage(false);
+
+    return { deliverable: finalDeliverable, version: finalVersion };
+  } catch (error) {
+    console.error('❌ [Build Create Action] Error:', error);
+    chatUiStore.setIsSendingMessage(false);
+    conversationsStore.setError(error instanceof Error ? error.message : 'Failed to create deliverable');
+    throw error;
   }
-
-  // Extract deliverable and version from response
-  const deliverable = response.payload?.deliverable;
-  const version = response.payload?.version || response.payload?.deliverable?.currentVersion;
-
-  if (!deliverable) {
-    throw new Error('No deliverable in response');
-  }
-
-  console.log('✅ [Build Create Action] Response validated:', { deliverable, version });
-
-  // 5. Update store
-  deliverablesStore.addDeliverable(deliverable);
-
-  if (version) {
-    deliverablesStore.addVersion(deliverable.id, version);
-    deliverablesStore.setCurrentVersion(deliverable.id, version.id);
-  }
-
-  // Associate deliverable with conversation
-  deliverablesStore.associateDeliverableWithConversation(deliverable.id, conversationId);
-
-  console.log('💾 [Build Create Action] Store updated');
-
-  // 6. Return the result
-  return { deliverable, version };
 }
 
 /**

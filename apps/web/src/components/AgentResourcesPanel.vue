@@ -117,8 +117,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { IonButton, IonIcon, IonModal, IonSegment, IonSegmentButton, IonLabel, IonBadge } from '@ionic/vue';
+import { computed, ref, watch } from 'vue';
+import { IonButton, IonIcon, IonModal, IonSegment, IonSegmentButton, IonLabel, IonBadge, IonSpinner } from '@ionic/vue';
 import { playCircleOutline, closeOutline, documentTextOutline } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 // import { marked } from 'marked';

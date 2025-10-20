@@ -219,7 +219,7 @@ onMounted(async () => {
   });
   
   // Sync LLM store selection back to user preferences to ensure consistency
-  if (llmStore.selectedProvider && llmStore.selectedModel) {
+  if (llmStore.selectedProvider && llmStore.selectedModel && llmStore.selectedModel.modelName) {
     userPreferencesStore.setLLMPreferences(
       llmStore.selectedProvider.name,
       llmStore.selectedModel.modelName

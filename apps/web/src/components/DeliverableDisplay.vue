@@ -342,10 +342,11 @@
         </template>
         <template v-else>
         <!-- Markdown Content -->
-        <div 
+        <div
           v-if="displayVersion?.format === 'markdown'"
           class="markdown-content"
-        >{{ displayVersion?.content }}</div>
+          v-html="renderedMarkdown"
+        ></div>
         <!-- JSON Content -->
         <pre 
           v-else-if="displayVersion?.format === 'json'"
@@ -488,6 +489,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
+import { marked } from 'marked';
 import {
   IonChip,
   IonButton,
@@ -619,6 +621,14 @@ const sortedVersions = computed(() => {
 const isViewingNewest = computed(() => {
   const latest = sortedVersions.value[0];
   return !!(displayVersion.value && latest && displayVersion.value.id === latest.id);
+});
+
+// Render markdown content as HTML
+const renderedMarkdown = computed(() => {
+  if (displayVersion.value?.format === 'markdown' && displayVersion.value?.content) {
+    return marked(displayVersion.value.content, { breaks: true, gfm: true });
+  }
+  return displayVersion.value?.content || '';
 });
 // Use sortedVersions for navigation to ensure consistent ordering
 const canGoPrevious = computed(() => {

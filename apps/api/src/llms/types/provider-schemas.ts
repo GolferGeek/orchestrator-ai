@@ -32,7 +32,7 @@ export const openAIChatCompletionSchema = z.object({
       total_tokens: z.number().optional(),
     })
     .optional(),
-  system_fingerprint: z.string().optional(),
+  system_fingerprint: z.string().nullable().optional(),
 });
 
 export type OpenAIChatCompletionParsed = z.infer<

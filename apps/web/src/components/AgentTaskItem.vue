@@ -44,17 +44,67 @@
           </div>
         </div>
 
-        <!-- Task text content -->
-        <div class="task-text" v-if="message.content && !willHideForDeliverable">
-          <!-- Debug comment -->
-          <!-- DEBUG: showing content, willHideForDeliverable = {{ willHideForDeliverable }} -->
-          <!-- Render markdown for assistant messages -->
-          <div v-if="message.role === 'assistant'" class="rendered-content">
-            <div v-if="message.content">{{ message.content }}</div>
-            <div v-else class="fallback-content">{{ message.content }}</div>
+        <!-- Deliverable/Plan Creation Callout -->
+        <div v-if="willHideForDeliverable" class="deliverable-creation-callout" :class="{ 'clickable': displayedDeliverable || displayedPlan }" @click="handleCalloutClick">
+          <div class="callout-content">
+            <ion-icon :icon="documentTextOutline" class="callout-icon" />
+            <div class="callout-text">
+              <div class="callout-title">
+                {{ displayedPlan ? 'Plan Created' : displayedDeliverable ? 'Deliverable Created' : (hasBackendPlan ? 'Creating plan...' : 'Creating deliverable...') }}
+              </div>
+              <div class="callout-description">
+                {{ displayedPlan ? displayedPlan.title : displayedDeliverable ? displayedDeliverable.title : 'Processing your request into a structured document' }}
+              </div>
+            </div>
+            <div class="callout-indicator" v-if="!displayedDeliverable && !displayedPlan">
+              <ion-spinner name="dots" color="primary" />
+            </div>
+            <div v-else class="callout-badges">
+              <ion-chip size="small" color="primary" outline>
+                {{ displayedPlan ? 'plan' : displayedDeliverable?.type || 'document' }}
+              </ion-chip>
+              <ion-chip v-if="llmUsed && llmUsed.providerName && llmUsed.modelName" size="small" color="medium" outline>
+                <span class="chip-provider">{{ llmUsed.providerName }}</span>
+                <span class="chip-divider">•</span>
+                <span class="chip-model">{{ llmUsed.modelName }}</span>
+              </ion-chip>
+            </div>
           </div>
+          <div class="callout-action" v-if="(displayedDeliverable || displayedPlan) && !props.showWorkProductPane">
+            <ion-button fill="clear" size="small">
+              <ion-icon :icon="arrowForwardOutline" slot="end" />
+              View in {{ displayedPlan ? 'Plan' : 'Document' }} Pane
+            </ion-button>
+          </div>
+          <div class="callout-action" v-else-if="(displayedDeliverable || displayedPlan) && props.showWorkProductPane">
+            <ion-chip size="small" color="success" fill="outline">
+              <ion-icon :icon="documentTextOutline" />
+              Showing in {{ displayedPlan ? 'Plan' : 'Document' }} Pane
+            </ion-chip>
+          </div>
+        </div>
+
+        <!-- Task text content (shown for all messages, even with deliverables) -->
+        <div class="task-text" v-if="message.content">
+          <!-- Render markdown for assistant messages -->
+          <div v-if="message.role === 'assistant'" class="rendered-content" v-html="renderedContent"></div>
           <!-- Plain text for user messages -->
           <div v-else>{{ message.content }}</div>
+        </div>
+
+        <!-- Thinking section (collapsible) for assistant messages -->
+        <div v-if="message.role === 'assistant' && thinkingContent" class="thinking-section">
+          <button
+            class="thinking-toggle"
+            @click="showThinking = !showThinking"
+            :aria-expanded="showThinking"
+          >
+            <ion-icon :icon="showThinking ? chevronDownOutline : chevronForwardOutline" />
+            <span class="thinking-label">Model Reasoning</span>
+          </button>
+          <div v-if="showThinking" class="thinking-content">
+            {{ thinkingContent }}
+          </div>
         </div>
         
         <!-- Workflow Progress (shown for real-time mode during processing) -->
@@ -206,17 +256,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-// import { marked } from 'marked';
+import { computed, ref, onMounted, watch } from 'vue';
+import { marked } from 'marked';
 import { IonIcon, IonButton, IonSpinner, IonChip, IonPopover } from '@ionic/vue';
-import { 
-  informationCircleOutline, 
-  documentTextOutline, 
+import {
+  informationCircleOutline,
+  documentTextOutline,
   arrowForwardOutline,
   checkmarkCircleOutline,
   playCircleOutline,
   closeCircleOutline,
-  ellipseOutline
+  ellipseOutline,
+  chevronDownOutline,
+  chevronForwardOutline
 } from 'ionicons/icons';
 import TaskRating from './TaskRating.vue';
 import TaskMetadataModal from './TaskMetadataModal.vue';
@@ -338,6 +390,20 @@ const chatUiStore = useChatUiStore();
 
 // Reactive state
 const showMetadataModal = ref(false);
+const showThinking = ref(false);
+
+// Extract thinking content from message metadata
+const thinkingContent = computed(() => {
+  return props.message.metadata?.thinking;
+});
+
+// Render markdown for assistant messages
+const renderedContent = computed(() => {
+  if (props.message.role === 'assistant' && props.message.content) {
+    return marked(props.message.content, { breaks: true, gfm: true });
+  }
+  return props.message.content;
+});
 // Removed: Frontend deliverable creation logic (handled on backend)
 
 // Computed properties
@@ -418,9 +484,11 @@ const willHideForDeliverable = computed(() => {
 // Removed unused computed property
 
 const formattedTimestamp = computed(() => {
-  return props.message.timestamp.toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  const timestamp = props.message.timestamp;
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
   });
 });
 
@@ -855,7 +923,7 @@ async function handleBuildNow() {
 
   // Execute using actions - use latest plan if available
   try {
-    const conversation = conversationsStore.getConversation(props.conversationId);
+    const conversation = conversationsStore.conversationById(props.conversationId);
     const planId = conversation?.currentPlan?.id;
     await createDeliverable(props.agent.name, props.conversationId, 'Build a deliverable based on our conversation', planId);
   } catch (error) {
@@ -1197,6 +1265,46 @@ function openImage(img: DeliverableImageAttachment) {
   font-size: 1em;
   line-height: 1.4;
   margin-bottom: 8px;
+}
+
+.thinking-section {
+  margin-top: 12px;
+  border-top: 1px solid var(--ion-color-step-150);
+  padding-top: 8px;
+}
+
+.thinking-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  font-size: 0.9em;
+  color: var(--ion-color-medium);
+  transition: color 0.2s ease;
+}
+
+.thinking-toggle:hover {
+  color: var(--ion-color-primary);
+}
+
+.thinking-label {
+  font-weight: 500;
+}
+
+.thinking-content {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--ion-color-step-50);
+  border-left: 3px solid var(--ion-color-medium);
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--ion-color-medium-shade);
+  white-space: pre-wrap;
+  font-family: var(--ion-font-family);
+  line-height: 1.5;
 }
 
 .task-text :deep(p) {

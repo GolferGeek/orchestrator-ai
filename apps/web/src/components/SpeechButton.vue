@@ -199,9 +199,9 @@ const processAudio = async () => {
 
     // Step 3: Send the transcribed text through normal chat flow
     const conversation = chatUiStore.activeConversation;
-    if (conversation && conversation.agent) {
-      const mode = conversation.chatMode || 'converse';
-      const agentName = conversation.agent.name;
+    if (conversation && conversation.agentName) {
+      const mode = chatUiStore.chatMode || 'conversational';
+      const agentName = conversation.agentName;
 
       // Route to appropriate action based on mode
       if (mode === 'plan') {

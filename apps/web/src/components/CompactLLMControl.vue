@@ -40,7 +40,6 @@
       title="Change Language Model"
       description="Select your preferred AI provider and model for this conversation."
       @dismiss="closeModal"
-      @select="handleLLMSelect"
     />
   </div>
 </template>
@@ -81,7 +80,10 @@ onMounted(async () => {
   }
 
   // Keep user preferences in sync with current selection
-  if (llmStore.selectedProvider && llmStore.selectedModel) {
+  if (
+    llmStore.selectedProvider?.name &&
+    llmStore.selectedModel?.modelName
+  ) {
     userPreferencesStore.setLLMPreferences(
       llmStore.selectedProvider.name,
       llmStore.selectedModel.modelName
@@ -118,13 +120,6 @@ const openModal = () => {
 
 const closeModal = () => {
   isModalOpen.value = false;
-};
-
-const handleLLMSelect = (config: { provider: string; model: string; temperature?: number; maxTokens?: number }) => {
-  console.log('🎯 LLM selection applied:', config);
-  // The LLMSelectorModal already handles the store updates and shows confirmation
-  // Just close the modal
-  closeModal();
 };
 </script>
 

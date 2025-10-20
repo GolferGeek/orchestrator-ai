@@ -14,6 +14,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
+import { useConversationsStore } from '../conversationsStore';
 import type { JsonObject } from '@/types';
 
 // ============================================================================
@@ -23,7 +24,7 @@ import type { JsonObject } from '@/types';
 /**
  * Chat mode for conversation
  */
-export type ChatMode = 'conversational' | 'plan' | 'build' | 'orchestrate';
+export type ChatMode = 'converse' | 'plan' | 'build' | 'orchestrate';
 
 /**
  * Pending action in UI
@@ -65,8 +66,13 @@ export const useChatUiStore = defineStore('chatUi', () => {
   const activeConversationId = ref<string | null>(null);
   const openConversationTabs = ref<string[]>([]); // Array of open conversation tab IDs
   const pendingAction = ref<PendingAction | null>(null);
-  const chatMode = ref<ChatMode>('conversational');
+  const chatMode = ref<ChatMode>('converse');
   const lastMessageWasSpeech = ref(false);
+
+  // Message sending state
+  const isSendingMessage = ref(false);
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
 
   // UI layout state
   const sidebarCollapsed = ref(false);
@@ -79,13 +85,22 @@ export const useChatUiStore = defineStore('chatUi', () => {
 
   const hasActiveConversation = computed(() => activeConversationId.value !== null);
 
+  /**
+   * Get active conversation object from conversationsStore
+   */
+  const activeConversation = computed(() => {
+    if (!activeConversationId.value) return null;
+    const conversationsStore = useConversationsStore();
+    return conversationsStore.conversationById(activeConversationId.value);
+  });
+
   const hasPendingAction = computed(() => pendingAction.value !== null);
 
   const isPendingActionInProgress = computed(() =>
     pendingAction.value?.status === 'in_progress'
   );
 
-  const isConversationalMode = computed(() => chatMode.value === 'conversational');
+  const isConversationalMode = computed(() => chatMode.value === 'converse');
   const isPlanMode = computed(() => chatMode.value === 'plan');
   const isBuildMode = computed(() => chatMode.value === 'build');
   const isOrchestrateMode = computed(() => chatMode.value === 'orchestrate');
@@ -103,6 +118,21 @@ export const useChatUiStore = defineStore('chatUi', () => {
     // Add to open tabs if not already there
     if (conversationId && !openConversationTabs.value.includes(conversationId)) {
       openConversationTabs.value.push(conversationId);
+    }
+
+    // Set chat mode based on conversation's allowed modes
+    if (conversationId) {
+      const conversationsStore = useConversationsStore();
+      const conversation = conversationsStore.conversationById(conversationId);
+      if (conversation?.allowedChatModes) {
+        // Prefer 'converse' if available, otherwise use first allowed mode
+        const preferredMode = conversation.allowedChatModes.includes('converse')
+          ? 'converse'
+          : conversation.allowedChatModes[0];
+        if (preferredMode && preferredMode !== chatMode.value) {
+          chatMode.value = preferredMode;
+        }
+      }
     }
   }
 
@@ -212,14 +242,38 @@ export const useChatUiStore = defineStore('chatUi', () => {
   }
 
   /**
+   * Set sending message state
+   */
+  function setIsSendingMessage(sending: boolean): void {
+    isSendingMessage.value = sending;
+  }
+
+  /**
+   * Set loading state
+   */
+  function setIsLoading(loading: boolean): void {
+    isLoading.value = loading;
+  }
+
+  /**
+   * Set error
+   */
+  function setError(errorMessage: string | null): void {
+    error.value = errorMessage;
+  }
+
+  /**
    * Clear all UI state (logout or reset)
    */
   function clearAll(): void {
     activeConversationId.value = null;
     openConversationTabs.value = [];
     pendingAction.value = null;
-    chatMode.value = 'conversational';
+    chatMode.value = 'converse';
     lastMessageWasSpeech.value = false;
+    isSendingMessage.value = false;
+    isLoading.value = false;
+    error.value = null;
     sidebarCollapsed.value = false;
     rightPanelVisible.value = true;
     inputFocused.value = false;
@@ -236,12 +290,16 @@ export const useChatUiStore = defineStore('chatUi', () => {
     pendingAction: readonly(pendingAction),
     chatMode: readonly(chatMode),
     lastMessageWasSpeech: readonly(lastMessageWasSpeech),
+    isSendingMessage: readonly(isSendingMessage),
+    isLoading: readonly(isLoading),
+    error: readonly(error),
     sidebarCollapsed: readonly(sidebarCollapsed),
     rightPanelVisible: readonly(rightPanelVisible),
     inputFocused: readonly(inputFocused),
 
     // Computed getters
     hasActiveConversation,
+    activeConversation,
     hasPendingAction,
     isPendingActionInProgress,
     isConversationalMode,
@@ -258,6 +316,9 @@ export const useChatUiStore = defineStore('chatUi', () => {
     clearPendingAction,
     setChatMode,
     setLastMessageWasSpeech,
+    setIsSendingMessage,
+    setIsLoading,
+    setError,
     toggleSidebar,
     setSidebarCollapsed,
     toggleRightPanel,

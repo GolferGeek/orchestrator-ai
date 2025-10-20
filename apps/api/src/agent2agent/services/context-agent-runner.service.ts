@@ -249,7 +249,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      // Validate structure but don't fail - just log warnings
+      // Validate structure (deliverableStructure defines what LLM should output)
       try {
         validateDeliverableStructure(finalContent, deliverableStructure);
       } catch (error: unknown) {
@@ -259,14 +259,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      try {
-        validateDeliverableSchema(finalContent, outputSchema);
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.warn(
-          `Deliverable schema validation warning: ${message}. Continuing anyway.`,
-        );
-      }
+      // Note: outputSchema/io_schema validation removed - that's for the final API response
+      // structure that the backend creates, not for validating LLM output
 
       // Extract the actual deliverable content for storage
       // The validation functions work with the full response, but we only want to store the unwrapped content
@@ -345,6 +339,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           provider,
           model,
           usage,
+          thinking: llmMetadata?.thinking,
         },
         this.compactMetadata({
           namespace,
@@ -566,18 +561,18 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       );
     }
 
-    if (options.outputSchema) {
-      sections.push(
-        `Output Schema Requirements:\n${this.stringifyForPrompt(options.outputSchema)}`,
-      );
-    }
+    // Note: outputSchema is for backend validation/wrapping, not LLM instruction
+    // The LLM should only know about deliverableStructure (the actual content format)
 
     let instruction =
       'Generate a complete, polished deliverable that satisfies the user request.';
 
-    if (options.deliverableStructure || options.outputSchema) {
+    if (options.deliverableStructure) {
       instruction +=
-        ' IMPORTANT: You MUST return your response as valid JSON that strictly validates against the provided Output Schema Requirements. Do not return plain text, explanations, or any other format. Return ONLY valid JSON matching the schema structure exactly.';
+        ' Return your response in the format specified by the Deliverable Structure Requirements. Return ONLY the content itself, not wrapped in any additional JSON structure.';
+    } else {
+      instruction +=
+        ' Return your response as markdown content. Do not wrap it in JSON or add any wrapper structure - just return the content itself.';
     }
 
     if (options.mergeContext?.mergePrompt) {

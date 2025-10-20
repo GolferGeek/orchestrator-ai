@@ -45,6 +45,7 @@ import {
 } from 'ionicons/icons';
 import type { PrimaryChatMode, AgentChatMode } from '@/types/conversation';
 import { DEFAULT_CHAT_MODES } from '@/types/conversation';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
 
 const props = defineProps<{
   disabled?: boolean;
@@ -55,6 +56,7 @@ const emit = defineEmits<{
 }>();
 
 // Migrated to conversationsStore + chatUiStore
+const chatStore = useChatUiStore();
 
 const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: string; description: string }> = [
   {
@@ -78,7 +80,7 @@ const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: string; des
 ];
 
 // Use reactive getters instead of method calls
-const currentMode = computed<AgentChatMode>(() => chatStore.activeChatMode);
+const currentMode = computed<AgentChatMode>(() => chatStore.chatMode as AgentChatMode);
 
 const allowedModes = computed(() => {
   const conversation = chatStore.activeConversation;
@@ -103,10 +105,7 @@ const currentModeName = computed(() => {
 });
 
 function selectMode(mode: PrimaryChatMode) {
-  const conversationId = chatStore.activeConversation?.id;
-  if (conversationId) {
-    chatStore.setChatMode(conversationId, mode);
-  }
+  chatStore.setChatMode(mode);
 }
 
 function sendWithCurrentMode() {

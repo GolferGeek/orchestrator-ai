@@ -116,9 +116,17 @@ useModeSwitchShortcuts(chatUiStore);
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 // Computed - use conversation data from props when available, otherwise use reactive store getter
-const currentAgent = computed(() =>
-  props.conversation?.agent || chatUiStore.activeConversation?.agent
-);
+const currentAgent = computed(() => {
+  const conv = props.conversation || chatUiStore.activeConversation;
+  if (!conv) return null;
+  return {
+    name: conv.agentName || '',
+    type: conv.agentType || 'custom',
+    slug: conv.agentName || '',
+    id: conv.agentName || '',
+    organizationSlug: conv.organizationSlug,
+  };
+});
 const messages = computed(() =>
   props.conversation?.messages || chatUiStore.activeConversation?.messages || []
 );
@@ -183,10 +191,7 @@ const sendMessage = async (mode?: AgentChatMode) => {
 };
 const clearError = () => {
   // Clear error using store mutation (Vue reactivity handles UI updates)
-  const activeConversation = chatUiStore.activeConversation;
-  if (activeConversation) {
-    conversationsStore.clearError(activeConversation.id);
-  }
+  conversationsStore.clearError();
 };
 const scrollToBottom = async () => {
   await nextTick();

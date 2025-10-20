@@ -167,6 +167,7 @@ export async function executeConverse(
         provider: llmResponse.metadata?.provider ?? 'unknown',
         model: llmResponse.metadata?.model ?? 'unknown',
         usage: normalizedUsage,
+        thinking: llmResponse.metadata?.thinking,
       },
       undefined,
     );

@@ -9,9 +9,10 @@
  * - Store mutations (update state)
  */
 
-import { createAgent2AgentApi } from '../api/agent2agent.api';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
+import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
+import { tasksService } from '@/services/tasksService';
 import type { Conversation, Message } from '@/stores/conversationsStore';
 
 /**
@@ -48,61 +49,98 @@ export async function sendMessage(
   console.log('📚 [Converse Send Action] Found conversation:', conversation.title);
 
   // 2. Add user message to store immediately (optimistic update)
-  const userMessageObj: Message = {
-    id: crypto.randomUUID(),
+  const userMessageObj: Omit<Message, 'id'> = {
     conversationId,
     role: 'user',
     content: userMessage,
-    createdAt: new Date().toISOString(),
+    timestamp: new Date().toISOString(),
   };
 
-  conversationsStore.addMessage(userMessageObj);
+  const addedUserMessage = conversationsStore.addMessage(conversationId, userMessageObj);
   console.log('📝 [Converse Send Action] Added user message to store');
 
-  // 3. Create API client and send request
-  const api = createAgent2AgentApi(agentName);
+  // 3. Get conversation history and UI preferences
+  const chatUiStore = useChatUiStore();
+  const llmStore = useLLMPreferencesStore();
+  const messages = conversationsStore.messagesByConversation(conversationId);
+  const conversationHistory = messages.map(msg => ({
+    role: msg.role,
+    content: msg.content,
+    timestamp: msg.timestamp || new Date().toISOString(),
+  }));
 
-  console.log('📤 [Converse Send Action] Sending request');
-  const response = await api.converse.send(conversationId, userMessage);
+  // 4. Build LLM selection from preferences store
+  const llmSelection = llmStore.selectedProvider && llmStore.selectedModel ? {
+    providerName: llmStore.selectedProvider.name,
+    modelName: llmStore.selectedModel.modelName,
+  } : undefined;
 
-  console.log('📥 [Converse Send Action] Response received:', response);
+  // 5. Call tasksService to create and execute the converse task
+  try {
+    console.log('📤 [Converse Send Action] Calling tasksService.createAgentTask');
 
-  // 4. Validate response
-  if (!response.success) {
-    console.error('❌ [Converse Send Action] Request failed:', response.error);
+    const result = await tasksService.createAgentTask(
+      conversation.agentType || 'custom',
+      agentName,
+      {
+        method: 'converse',
+        prompt: userMessage,
+        conversationId,
+        conversationHistory,
+        llmSelection,
+        executionMode: chatUiStore.executionMode || 'polling',
+      },
+      { namespace: conversation.organizationSlug || 'global' }
+    );
 
-    // Update conversation with error
-    conversationsStore.setError(conversationId, response.error?.message || 'Failed to send message');
+    console.log('📥 [Converse Send Action] Task response:', result);
 
-    throw new Error(response.error?.message || 'Failed to send message');
+    // 5. Extract assistant message from task result - backend should provide clean response
+    let parsedResult = result.result;
+    if (typeof parsedResult === 'string') {
+      try {
+        parsedResult = JSON.parse(parsedResult);
+      } catch (e) {
+        console.warn('📦 [Converse Action] Backend returned non-JSON string:', parsedResult?.substring(0, 200));
+      }
+    }
+
+    console.log('📦 [Converse Action] Full result from backend:', result);
+    console.log('📦 [Converse Action] Parsed result:', parsedResult);
+
+    // Backend should provide clean thinking and message
+    const thinkingContent = (parsedResult as any)?.thinking;
+    const assistantContent = (parsedResult as any)?.message ||
+                            (typeof parsedResult === 'string' ? parsedResult : 'Processing...');
+
+    // Extract provider/model metadata
+    const metadata = {
+      taskId: result.taskId,
+      provider: (parsedResult as any)?.payload?.metadata?.provider ||
+                (parsedResult as any)?.metadata?.provider,
+      model: (parsedResult as any)?.payload?.metadata?.model ||
+             (parsedResult as any)?.metadata?.model,
+      thinking: thinkingContent || (parsedResult as any).extractedThinking, // Store thinking in metadata
+      ...(parsedResult as any)?.payload?.metadata,
+      ...(parsedResult as any)?.metadata,
+    };
+
+    const assistantMessage = conversationsStore.addMessage(conversationId, {
+      role: 'assistant',
+      content: assistantContent,
+      timestamp: new Date().toISOString(),
+      metadata,
+    });
+
+    console.log('💾 [Converse Send Action] Assistant message added to store');
+    console.log('✅ [Converse Send Action] Complete');
+
+    return assistantMessage;
+  } catch (error) {
+    console.error('❌ [Converse Send Action] Error:', error);
+    conversationsStore.setError(error instanceof Error ? error.message : 'Failed to send message');
+    throw error;
   }
-
-  // 5. Extract assistant message from response
-  const assistantContent = response.payload?.content?.message || response.payload?.message || '';
-
-  if (!assistantContent) {
-    throw new Error('No message in response');
-  }
-
-  const assistantMessage: Message = {
-    id: crypto.randomUUID(),
-    conversationId,
-    role: 'assistant',
-    content: assistantContent,
-    createdAt: new Date().toISOString(),
-    metadata: response.payload?.metadata,
-  };
-
-  // 6. Update store with assistant message
-  conversationsStore.addMessage(assistantMessage);
-
-  // Clear any existing errors
-  conversationsStore.clearError(conversationId);
-
-  console.log('💾 [Converse Send Action] Store updated with assistant message');
-  console.log('✅ [Converse Send Action] Complete');
-
-  return assistantMessage;
 }
 
 /**

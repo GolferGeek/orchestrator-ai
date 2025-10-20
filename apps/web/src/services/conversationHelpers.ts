@@ -47,6 +47,9 @@ export class ConversationService {
     // Use dedicated Agent2Agent conversation service for all agents
     console.log('🚀 [ConversationService] Using Agent2Agent service');
     const conversationId = generateUUID(); // Generate ID upfront
+    const createdAt = new Date();
+    const title = this.createConversationTitle(agent, createdAt);
+
     const backendConversation = await agent2AgentConversationsService.createConversation({
       agentName: agent.name,
       agentType: agent.type as AgentType, // Required for backend validation
@@ -54,6 +57,7 @@ export class ConversationService {
       conversationId: conversationId, // Pass the generated ID
       metadata: {
         source: 'frontend',
+        title: title, // Include the formatted title
       },
     });
 
@@ -509,7 +513,8 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       console.log('🔍 [ConversationService.updateConversationExecutionModes] Final allowedChatModes:', allowedChatModes);
       conversation.allowedChatModes = allowedChatModes;
       if (!allowedChatModes.includes(conversation.chatMode)) {
-        conversation.chatMode = allowedChatModes[0] || DEFAULT_CHAT_MODES[0];
+        // Prefer 'converse' mode if available, otherwise use first allowed mode
+        conversation.chatMode = allowedChatModes.includes('converse') ? 'converse' : (allowedChatModes[0] || DEFAULT_CHAT_MODES[0]);
       }
     } catch {
 

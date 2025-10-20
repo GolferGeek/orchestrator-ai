@@ -170,16 +170,18 @@ interface Props {
   description?: string;
 }
 
-// interface Emits {
-//   (e: 'dismiss'): void;
-//   (e: 'select', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
-//   (e: 'execute', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
-// }
+interface Emits {
+  (e: 'dismiss'): void;
+  (e: 'select', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
+  (e: 'execute', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
+}
 
 const props = withDefaults(defineProps<Props>(), {
   title: '',
   description: '',
 });
+
+const emit = defineEmits<Emits>();
 
 // Stores
 const llmStore = useLLMPreferencesStore();
@@ -209,7 +211,19 @@ const primaryActionIcon = computed(() => {
 });
 
 const canExecuteAction = computed(() => {
-  return selectedProvider.value && selectedModel.value;
+  // Check that we have objects, not strings
+  if (!selectedProvider.value || typeof selectedProvider.value === 'string') {
+    return false;
+  }
+  if (!selectedModel.value || typeof selectedModel.value === 'string') {
+    return false;
+  }
+
+  // Check that the objects have the required properties
+  const provider = selectedProvider.value as Provider;
+  const model = selectedModel.value as Model;
+
+  return !!(provider.name && model.modelName);
 });
 
 // Sovereign mode computed properties (simplified from original LLMSelector)
@@ -239,29 +253,14 @@ onMounted(async () => {
 
 // Event handlers
 const onProviderChange = () => {
-  if (selectedProvider.value && typeof selectedProvider.value === 'object') {
-    llmStore.setProvider(selectedProvider.value);
-    // Immediately sync with user preferences for reactive display
-    if (selectedModel.value && typeof selectedModel.value === 'object') {
-      userPreferencesStore.setLLMPreferences(
-        selectedProvider.value.name, 
-        selectedModel.value.name
-      );
-    }
-  }
+  // When provider changes in the dropdown, just reset model selection
+  // DON'T update the store here - that happens when the user clicks the action button
+  selectedModel.value = '';
 };
 
 const onModelChange = () => {
-  if (selectedModel.value && typeof selectedModel.value === 'object') {
-    llmStore.setModel(selectedModel.value);
-    // Immediately sync with user preferences for reactive display
-    if (selectedProvider.value && typeof selectedProvider.value === 'object') {
-      userPreferencesStore.setLLMPreferences(
-        selectedProvider.value.name, 
-        selectedModel.value.name
-      );
-    }
-  }
+  // Model selection changed - just update local state
+  // Don't update stores until user clicks "Use this model"
 };
 
 const onTemperatureChange = () => {
@@ -295,35 +294,61 @@ const handleDismiss = () => {
 };
 
 const handlePrimaryAction = async () => {
-  if (!canExecuteAction.value) return;
+  if (!canExecuteAction.value) {
+    console.warn('Cannot execute action - button should be disabled');
+    return;
+  }
+
+  // Extra safety check - ensure we have valid provider and model objects
+  if (!selectedProvider.value || typeof selectedProvider.value === 'string' ||
+      !selectedModel.value || typeof selectedModel.value === 'string') {
+    console.error('Invalid provider or model selection:', {
+      selectedProvider: selectedProvider.value,
+      selectedModel: selectedModel.value
+    });
+    return;
+  }
+
+  const provider = selectedProvider.value as Provider;
+  const model = selectedModel.value as Model;
+
+  console.log('handlePrimaryAction - provider:', provider);
+  console.log('handlePrimaryAction - model:', model);
+
+  if (!provider.name || !model.modelName) {
+    console.error('Provider or model missing required fields:', { provider, model });
+    return;
+  }
 
   const config = {
-    provider: (selectedProvider.value as Provider).name.toLowerCase(),
-    model: (selectedModel.value as Model).modelName,
+    provider: provider.name.toLowerCase(),
+    model: model.modelName,
     temperature: temperature.value,
     maxTokens: maxTokens.value,
   };
 
   if (props.mode === 'select') {
-    // Update user preferences to ensure reactivity
-    const providerName = (selectedProvider.value as Provider).name;
-    const modelName = (selectedModel.value as Model).name;
-    
-    // Update user preferences store for reactive display
-    userPreferencesStore.setLLMPreferences(providerName, modelName);
-    
-    // Just apply the selection and show confirmation
+    // Select mode - "This is my LLM going forward"
+    // Update the store to make this the user's current LLM selection
+    llmStore.selectedProvider = provider;
+    llmStore.selectedModel = model;
+    userPreferencesStore.setLLMPreferences(provider.name, model.modelName);
+
+    // Show confirmation
     const toast = await toastController.create({
-      message: `✅ LLM selection applied: ${providerName}/${modelName}`,
+      message: `✅ LLM selection applied: ${provider.name}/${model.modelName}`,
       duration: 2000,
       position: 'top',
       color: 'success'
     });
     await toast.present();
-    
-    emit('select', config);
+
+    // Close the modal - parent components will reactively see the store changes
+    emit('dismiss');
   } else {
-    // Execute the action (rerun)
+    // Execute mode - "Just try this one for this specific run"
+    // DON'T update the store - just pass the values in the config
+    // The parent will use these values directly for the API call
     emit('execute', config);
   }
 };

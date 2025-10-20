@@ -34,6 +34,7 @@ import { ref, computed, defineEmits, onUnmounted, onMounted } from 'vue';
 import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { radioButtonOnOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
+import { useChatUiStore } from '@/stores/ui/chatUiStore';
 // import { useUiStore } from '../stores/uiStore';
 // import { useLLMPreferencesStore } from '../stores/llmPreferencesStore';
 // import { useAgentChatStore } from '@/services/conversationHelpers';
@@ -42,12 +43,12 @@ import { sendMessage, createPlan, createDeliverable } from '@/services/agent2age
 // Define conversation states
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
 
-// const props = defineProps<{
-//   conversationId: string;
-//   disabled?: boolean;
-//   agentName?: string;
-//   agentType?: string;
-// }>();
+const props = defineProps<{
+  conversationId: string;
+  disabled?: boolean;
+  agentName?: string;
+  agentType?: string;
+}>();
 
 const emit = defineEmits<{
   (e: 'conversationStart'): void;
@@ -569,9 +570,9 @@ const processRecordedAudio = async () => {
 
     // Step 3: Send the transcribed text through normal chat flow
     const conversation = chatUiStore.activeConversation;
-    if (conversation && conversation.agent) {
-      const mode = conversation.chatMode || 'converse';
-      const agentName = conversation.agent.name;
+    if (conversation && conversation.agentName) {
+      const mode = chatUiStore.chatMode || 'converse';
+      const agentName = conversation.agentName;
 
       // Route to appropriate action based on mode
       if (mode === 'plan') {

@@ -5,6 +5,8 @@ import type {
   AllEvaluationsResponse,
   AgentLLMRecommendation,
 } from '../types/evaluation';
+import { getSecureApiBaseUrl } from '../utils/securityConfig';
+
 class EvaluationService {
   /**
    * Rate a message
@@ -149,10 +151,16 @@ class EvaluationService {
       );
     }
 
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn(`[EvaluationService] Received non-JSON response for agent ${agentIdentifier}:`, contentType);
+      return [];
+    }
+
     return await response.json();
   }
   private getBaseUrl(): string {
-    return import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL;
+    return getSecureApiBaseUrl();
   }
 }
 // Export singleton instance
