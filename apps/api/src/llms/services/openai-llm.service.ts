@@ -396,7 +396,7 @@ export class OpenAILLMService extends BaseLLMService {
       // OpenAI-specific fields
       providerSpecific: {
         finish_reason: choice?.finish_reason ?? null,
-        system_fingerprint: completion.system_fingerprint,
+        system_fingerprint: completion.system_fingerprint ?? undefined,
         model_version: completion.model,
         logprobs: choice?.logprobs,
         // Include actual token counts from OpenAI

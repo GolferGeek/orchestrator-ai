@@ -1129,7 +1129,6 @@ function createBaseMetadataFromLLM(
     provider: response.metadata?.provider ?? '',
     model: response.metadata?.model ?? '',
     usage: normalizeUsage(response.metadata?.usage),
-    thinking: response.metadata?.thinking,
   };
 }
 
