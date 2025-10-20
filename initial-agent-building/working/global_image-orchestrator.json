@@ -9,7 +9,6 @@
   "version": null,
   "status": "active",
   "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"image-orchestrator\",\n        \"displayName\": \"Image Orchestrator\",\n        \"description\": \"Coordinates image generation across multiple providers and compares outputs.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"orchestrator\",\n        \"tags\": [\n            \"image\",\n            \"orchestrator\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\",\n            \"application/json\"\n        ],\n        \"output_modes\": [\n            \"application/json\",\n            \"text/markdown\"\n        ]\n    },\n    \"configuration\": {\n        \"orchestration\": {\n            \"available_orchestrations\": [\n                \"image-comparison\"\n            ],\n            \"available_agents\": [\n                \"image-generator-openai\",\n                \"image-generator-google\"\n            ]\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": true,\n            \"supports_build\": true,\n            \"supports_orchestration\": true\n        }\n    },\n    \"prompts\": {\n        \"system\": \"Compare image generations across providers, highlight differences, and recommend the best asset for the request.\",\n        \"build\": \"Summarize the outputs from delegated image generators and provide a recommendation table.\"\n    }\n}\n",
-  "agent_card": null,
   "context": {
     "input_modes": [
       "text/plain",
@@ -30,30 +29,6 @@
     ],
     "available_orchestrations": [
       "image-comparison"
-    ]
-  },
-  "config": {
-    "hierarchy": {
-      "team": [
-        "image-generator-openai",
-        "image-generator-google"
-      ],
-      "level": "orchestrator",
-      "department": "images"
-    },
-    "orchestration": {
-      "available_agents": [
-        "image-generator-openai",
-        "image-generator-google"
-      ],
-      "available_orchestrations": [
-        "image-comparison"
-      ]
-    },
-    "supported_modes": [
-      "converse",
-      "plan",
-      "build"
     ]
   },
   "created_at": "2025-10-12T18:39:12.663667+00:00",
