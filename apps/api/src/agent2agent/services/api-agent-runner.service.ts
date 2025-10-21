@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BaseAgentRunner } from './base-agent-runner.service';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
@@ -54,6 +55,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
 
   constructor(
     private readonly httpService: HttpService,
+    private readonly eventEmitter: EventEmitter2,
     llmService: LLMService,
     contextOptimization: ContextOptimizationService,
     plansService: PlansService,
@@ -109,6 +111,31 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         );
       }
 
+      // Extract provider and model from payload (same pattern as context-agent-runner)
+      const payload = request.payload as Record<string, unknown> | undefined;
+      const provider = payload?.currentProvider ?? null;
+      const model = payload?.currentModel ?? null;
+
+      if (!provider || !model || typeof provider !== 'string' || typeof model !== 'string') {
+        return TaskResponseDto.failure(
+          AgentTaskMode.BUILD,
+          `Missing LLM configuration: provider=${provider}, model=${model}. Ensure LLM provider and model are selected in the UI.`,
+        );
+      }
+
+      // Create enriched request with extracted values for interpolation
+      const enrichedRequest = {
+        ...request,
+        userId,
+        conversationId,
+        taskId: taskId || undefined,
+        payload: {
+          ...(request.payload as Record<string, unknown>),
+          provider,
+          model,
+        },
+      };
+
       // Get API configuration
       const apiConfig = this.asRecord(definition.config?.api);
       if (!apiConfig) {
@@ -133,7 +160,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       );
 
       // 1. Interpolate URL and parameters
-      const url = this.interpolateString(urlTemplate, request);
+      const url = this.interpolateString(urlTemplate, enrichedRequest);
       const method = (
         this.ensureString(apiConfig.method) ?? 'GET'
       ).toUpperCase();
@@ -142,7 +169,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       const headersRecord = this.asRecord(apiConfig.headers);
       const headers = this.buildHeaders(
         headersRecord ? this.toPlainRecord(headersRecord) : {},
-        request,
+        enrichedRequest,
       );
 
       // 3. Build request body (for POST/PUT/PATCH)
@@ -152,10 +179,10 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         if (bodyRecord) {
           body = this.interpolateObject(
             this.toPlainRecord(bodyRecord),
-            request,
+            enrichedRequest,
           );
         } else if (typeof apiConfig.body === 'string') {
-          body = this.interpolateString(apiConfig.body, request);
+          body = this.interpolateString(apiConfig.body, enrichedRequest);
         } else {
           body = apiConfig.body;
         }
@@ -167,7 +194,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       if (queryParamsRecord) {
         queryParams = this.interpolateObject(
           this.toPlainRecord(queryParamsRecord),
-          request,
+          enrichedRequest,
         );
       }
 
@@ -228,9 +255,60 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         },
       );
 
+      // 8. Save deliverable (unless configured to skip and wait for completion)
+      const deliverableConfig = this.asRecord(definition.config?.deliverable);
+      const skipDeliverable = deliverableConfig?.skip === true;
+
+      if (skipDeliverable) {
+        this.logger.log(
+          `Async agent ${definition.slug} - waiting for completion callback`,
+        );
+
+        // Wait for the completion callback to be triggered
+        // The completion endpoint will emit 'task.completion' event with deliverable
+        const completionPromise = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            this.eventEmitter.removeAllListeners(`task.completion.${taskId}`);
+            reject(new Error('Task completion timeout after 5 minutes'));
+          }, 5 * 60 * 1000); // 5 minute timeout
+
+          this.eventEmitter.once(
+            `task.completion.${taskId}`,
+            (data: { deliverable: unknown; error?: string }) => {
+              clearTimeout(timeout);
+              if (data.error) {
+                reject(new Error(data.error));
+              } else {
+                resolve(data.deliverable);
+              }
+            },
+          );
+        });
+
+        try {
+          const deliverable = await completionPromise;
+
+          return TaskResponseDto.success(AgentTaskMode.BUILD, {
+            content: deliverable,
+            metadata: this.buildMetadata(request, {
+              apiUrl: url,
+              method,
+              statusCode,
+              duration,
+              success: isSuccess,
+              async: true,
+            }),
+          });
+        } catch (error) {
+          return TaskResponseDto.failure(
+            AgentTaskMode.BUILD,
+            error instanceof Error ? error.message : 'Task completion failed',
+          );
+        }
+      }
+
       const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
 
-      // 8. Save deliverable
       const deliverableResult = await this.deliverablesService.executeAction(
         'create',
         {
@@ -354,7 +432,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
 
   /**
    * Interpolate a string with request data
-   * Supports {{payload.field}}, {{metadata.field}}, {{userMessage}} syntax
+   * Supports {{payload.field}}, {{metadata.field}}, {{userMessage}}, {{taskId}}, {{conversationId}}, {{userId}} syntax
    */
   private interpolateString(template: string, request: TaskRequestDto): string {
     return template.replace(

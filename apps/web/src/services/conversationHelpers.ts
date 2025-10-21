@@ -569,6 +569,14 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
    * Create a new conversation object
    */
   createConversationObject(agent: Agent, createdAt: Date = new Date()): AgentConversation {
+    // Extract and map execution modes from agent
+    const rawModes = agent.execution_modes || ['immediate'];
+    const mappedModes = rawModes.map((mode: string) => {
+      if (mode === 'real-time') return 'websocket';
+      return mode;
+    }).filter((mode: string) => ['immediate', 'polling', 'websocket'].includes(mode));
+    const supportedModes = mappedModes.length > 0 ? mappedModes : ['immediate'];
+
     return {
       id: generateUUID(),
       agent,
@@ -578,7 +586,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       chatMode: DEFAULT_CHAT_MODES[0],
       allowedChatModes: [...DEFAULT_CHAT_MODES],
       executionMode: 'immediate',
-      supportedExecutionModes: ['immediate'], // Will be updated by updateConversationExecutionModes
+      supportedExecutionModes: supportedModes,
       executionProfile: agent.execution_profile,
       executionCapabilities: agent.execution_capabilities,
       title: this.createConversationTitle(agent, createdAt), // Use proper title with timestamp

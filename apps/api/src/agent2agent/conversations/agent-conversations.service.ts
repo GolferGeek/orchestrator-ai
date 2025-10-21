@@ -44,21 +44,12 @@ export class AgentConversationsService {
   private validateAgentType(agentType: string): AgentType {
     // Ensure the type is one of the allowed values
     const validTypes: AgentType[] = [
-      'orchestrator',
-      'specialist',
-      'marketing',
-      'finance',
-      'hr',
-      'operations',
-      'sales',
-      'legal',
-      'engineering',
-      'product',
-      'research',
-      'context', // Add context for database agents
+      'context',
+      'api',
       'function',
+      'external',
       'tool',
-      'global', // Global shared agents across all organizations
+      'orchestrator',
     ];
     // Allow file-based types
     if (validTypes.includes(agentType)) {

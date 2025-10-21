@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Headers,
+  HttpCode,
   HttpException,
   Logger,
   Param,
@@ -63,6 +64,12 @@ import {
   StreamTokenService,
 } from '../auth/services/stream-token.service';
 import { TaskStatusService } from './tasks/task-status.service';
+import { TasksService } from './tasks/tasks.service';
+import { DeliverablesService } from './deliverables/deliverables.service';
+import {
+  DeliverableFormat,
+  DeliverableVersionCreationType,
+} from './deliverables/dto';
 
 interface NormalizedTaskRequest {
   dto: NormalizedTaskRequestDto;
@@ -133,6 +140,8 @@ export class Agent2AgentController {
     private readonly supabaseService: SupabaseService,
     private readonly streamTokenService: StreamTokenService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly deliverablesService: DeliverablesService,
+    private readonly taskUpdateService: TasksService,
   ) {}
 
   private readonly logger = new Logger(Agent2AgentController.name);
@@ -482,6 +491,108 @@ export class Agent2AgentController {
       });
 
       return this.buildJsonRpcError(jsonrpc.id ?? null, error);
+    }
+  }
+
+  /**
+   * Completion callback endpoint for async agents (e.g., n8n workflows)
+   * This is NOT authenticated - n8n sends results here with taskId/userId in body
+   * Route: POST /agent-to-agent/:orgSlug/:agentSlug/tasks/:taskId/complete
+   */
+  @Post('agent-to-agent/:orgSlug/:agentSlug/tasks/:taskId/complete')
+  @HttpCode(200)
+  async handleTaskCompletion(
+    @Param('orgSlug') orgSlug: string,
+    @Param('agentSlug') agentSlug: string,
+    @Param('taskId') taskId: string,
+    @Body()
+    body: {
+      userId: string;
+      conversationId: string;
+      status: 'success' | 'failed';
+      results?: unknown;
+      error?: string;
+    },
+  ): Promise<{ success: boolean; message: string }> {
+    this.logger.log(
+      `📥 Completion callback received for task ${taskId} from agent ${agentSlug} with status: ${body.status}`,
+    );
+
+    try {
+      const org = this.normalizeOrgSlug(orgSlug);
+
+      // Update task status
+      if (body.status === 'failed') {
+        await this.taskUpdateService.updateTask(taskId, body.userId, {
+          status: 'failed',
+          progress: 0,
+          progressMessage: body.error || 'Task failed',
+        });
+
+        // Emit failure event for async agents waiting for completion
+        this.eventEmitter.emit(`task.completion.${taskId}`, {
+          error: body.error || 'Task failed',
+        });
+
+        return {
+          success: true,
+          message: 'Task marked as failed',
+        };
+      }
+
+      // Success case - update task and create deliverable
+      await this.taskUpdateService.updateTask(taskId, body.userId, {
+        status: 'completed',
+        progress: 100,
+        progressMessage: 'Task completed successfully',
+        response: body.results ? JSON.stringify(body.results) : undefined,
+      });
+
+      // Create deliverable with results
+      if (body.results && body.conversationId) {
+        // Format results based on agent type
+        const formattedContent = this.formatCompletionResults(
+          agentSlug,
+          body.results,
+        );
+
+        await this.deliverablesService.create(
+          {
+            title: `Results from ${agentSlug}`,
+            conversationId: body.conversationId,
+            agentName: agentSlug,
+            initialContent: formattedContent,
+            initialFormat: DeliverableFormat.MARKDOWN,
+            initialCreationType:
+              DeliverableVersionCreationType.CONVERSATION_TASK,
+            initialTaskId: taskId,
+            initialMetadata: {
+              completedAt: new Date().toISOString(),
+              agentSlug,
+              organizationSlug: org,
+            },
+          },
+          body.userId,
+        );
+
+        this.logger.log(`✅ Deliverable created for completed task ${taskId}`);
+
+        // Emit event for async agents waiting for completion
+        this.eventEmitter.emit(`task.completion.${taskId}`, {
+          deliverable: formattedContent,
+        });
+      }
+
+      return {
+        success: true,
+        message: 'Task completed and deliverable created',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle completion callback for task ${taskId}:`,
+        error,
+      );
+      throw error;
     }
   }
 
@@ -1446,5 +1557,39 @@ export class Agent2AgentController {
     });
 
     return roots;
+  }
+
+  /**
+   * Format completion results from async agents into markdown
+   */
+  private formatCompletionResults(agentSlug: string, results: unknown): string {
+    // Handle marketing swarm specific format
+    if (agentSlug.includes('marketing')) {
+      const resultsObj = results as Record<string, unknown>;
+      const sections: string[] = ['# Marketing Content Package\n'];
+
+      if (resultsObj.webPost) {
+        sections.push('## Web Post\n');
+        sections.push(String(resultsObj.webPost));
+        sections.push('\n');
+      }
+
+      if (resultsObj.seoContent) {
+        sections.push('## SEO Content\n');
+        sections.push(String(resultsObj.seoContent));
+        sections.push('\n');
+      }
+
+      if (resultsObj.socialMedia) {
+        sections.push('## Social Media\n');
+        sections.push(String(resultsObj.socialMedia));
+        sections.push('\n');
+      }
+
+      return sections.join('\n');
+    }
+
+    // Default format - JSON
+    return '```json\n' + JSON.stringify(results, null, 2) + '\n```';
   }
 }

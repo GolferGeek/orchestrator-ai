@@ -9,11 +9,6 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TasksService } from '../agent2agent/tasks/tasks.service';
-import { DeliverablesService } from '../agent2agent/deliverables/deliverables.service';
-import {
-  DeliverableFormat,
-  DeliverableVersionCreationType,
-} from '../agent2agent/deliverables/dto';
 
 /**
  * Workflow Status Update
@@ -46,27 +41,12 @@ interface WorkflowStatusUpdate {
   sequence?: number;
   totalSteps?: number;
 
-  // Optional result fields from n8n marketing workflow
-  webPost?: string;
-  seoContent?: string;
-  socialMedia?: string;
-
   // Nested data object that may contain sequence/totalSteps
   data?: {
     sequence?: number;
     totalSteps?: number;
     [key: string]: unknown;
   };
-}
-
-/**
- * Marketing workflow results interface
- */
-interface MarketingResults {
-  webPost?: string;
-  seoContent?: string;
-  socialMedia?: string;
-  [key: string]: unknown;
 }
 
 @Controller('webhooks')
@@ -80,8 +60,6 @@ export class WebhooksController {
     private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => TasksService))
     private readonly tasksService: TasksService,
-    @Inject(forwardRef(() => DeliverablesService))
-    private readonly deliverablesService: DeliverablesService,
   ) {}
 
   /**
@@ -155,6 +133,50 @@ export class WebhooksController {
         progress,
       });
 
+      // Create task message for progress update (shows in message bubble)
+      if (update.userId && update.message) {
+        try {
+          await this.tasksService.emitTaskMessage(
+            update.taskId,
+            update.userId,
+            update.message,
+            'progress',
+            progress,
+            {
+              step: stepName,
+              sequence,
+              totalSteps: totalStepsFromUpdate,
+              status: update.status,
+            },
+          );
+          this.logger.debug(
+            `📝 Created task message for ${update.taskId}: "${update.message}"`,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Failed to create task message for ${update.taskId}:`,
+            error,
+          );
+        }
+      }
+
+      // Emit SSE chunk event for real-time streaming to frontend
+      this.eventEmitter.emit('agent.stream.chunk', {
+        taskId: update.taskId,
+        conversationId: update.conversationId,
+        chunk: {
+          type: 'progress',
+          content: update.message || stepName,
+          metadata: {
+            step: stepName,
+            sequence,
+            totalSteps: totalStepsFromUpdate,
+            status: update.status,
+            progress,
+          },
+        },
+      });
+
       // Send the COMPLETE status history via event
       const eventData = {
         executionId: update.executionId,
@@ -188,134 +210,10 @@ export class WebhooksController {
         data: update,
       });
 
-      // If workflow is completed, handle final results
-      if (update.status === 'completed') {
-        this.logger.log(`Workflow completed for task ${update.taskId}`);
-
-        // Update task in database with final results
-        if (this.tasksService && update.userId) {
-          try {
-            // Extract the actual content fields (webPost, seoContent, socialMedia, etc.)
-            const finalResults =
-              update.results ||
-              update.webPost ||
-              update.seoContent ||
-              update.socialMedia
-                ? {
-                    webPost: update.webPost,
-                    seoContent: update.seoContent,
-                    socialMedia: update.socialMedia,
-                    ...update.results,
-                  }
-                : null;
-
-            this.logger.log(
-              `Updating task ${update.taskId} with final results:`,
-              finalResults ? Object.keys(finalResults) : 'none',
-            );
-
-            await this.tasksService.updateTask(update.taskId, update.userId, {
-              status: 'completed',
-              progress: 100,
-              progressMessage:
-                update.message || 'Workflow completed successfully',
-              response: finalResults ? JSON.stringify(finalResults) : undefined,
-            });
-
-            this.logger.log(
-              `✅ Task ${update.taskId} updated in database with final results`,
-            );
-
-            // Create deliverable with the n8n workflow results
-            if (update.conversationId && finalResults) {
-              try {
-                this.logger.log(
-                  `Creating deliverable for task ${update.taskId}`,
-                );
-
-                // Format the content from the n8n response
-                const formattedContent =
-                  this.formatMarketingContent(finalResults);
-
-                await this.deliverablesService.create(
-                  {
-                    title: 'Marketing Content Package',
-                    conversationId: update.conversationId,
-                    agentName: 'marketing-swarm',
-                    initialContent: formattedContent,
-                    initialFormat: DeliverableFormat.MARKDOWN,
-                    initialCreationType:
-                      DeliverableVersionCreationType.CONVERSATION_TASK,
-                    initialTaskId: update.taskId,
-                    initialMetadata: {
-                      status: update.status,
-                      executionId: update.executionId,
-                      timestamp: update.timestamp,
-                      userId: update.userId,
-                    },
-                  },
-                  update.userId,
-                );
-
-                this.logger.log(
-                  `✅ Deliverable created for task ${update.taskId}`,
-                );
-              } catch (error) {
-                this.logger.error(
-                  `Failed to create deliverable for task ${update.taskId}:`,
-                  error,
-                );
-              }
-            }
-          } catch (error) {
-            this.logger.error(
-              `Failed to update task ${update.taskId} in database:`,
-              error,
-            );
-          }
-        } else {
-          this.logger.warn(
-            `Cannot update task ${update.taskId}: missing tasksService or userId`,
-          );
-        }
-
-        // Emit completion event
-        const resultsToSend = update.results || {
-          webPost: update.webPost,
-          seoContent: update.seoContent,
-          socialMedia: update.socialMedia,
-        };
-
-        // Clean up status history after completion
-        this.taskStatusHistory.delete(update.taskId);
-
-        this.eventEmitter.emit('workflow.task.completion', {
-          taskId: update.taskId,
-          status: 'completed',
-          message: update.message || 'Workflow completed successfully',
-          response:
-            typeof resultsToSend === 'string'
-              ? resultsToSend
-              : JSON.stringify(resultsToSend),
-          metadata: {
-            executionId: update.executionId,
-            conversationId: update.conversationId,
-            workflowId: update.workflowId,
-            workflowName: update.workflowName,
-          },
-        });
-      }
-
-      // If workflow failed, emit failure event
-      if (update.status === 'failed' || update.status === 'error') {
-        this.logger.error(`Workflow failed for task ${update.taskId}`, update);
-
-        this.eventEmitter.emit('workflow.task.completion', {
-          taskId: update.taskId,
-          status: 'failed',
-          message: update.message || 'Workflow execution failed',
-        });
-      }
+      // Webhook is ONLY for progress updates - completion should go through agent2agent controller
+      this.logger.debug(
+        `Webhook received status "${update.status}" - emitting as progress update only`,
+      );
     } catch (error) {
       this.logger.error('Error processing workflow status update', error);
     }
@@ -368,30 +266,4 @@ export class WebhooksController {
     return progressMap[status] ?? 50;
   }
 
-  /**
-   * Format marketing content from n8n workflow results into a structured markdown deliverable
-   */
-  private formatMarketingContent(results: MarketingResults): string {
-    const sections: string[] = ['# Marketing Content Package\n'];
-
-    if (results.webPost) {
-      sections.push('## Web Post\n');
-      sections.push(results.webPost);
-      sections.push('\n');
-    }
-
-    if (results.seoContent) {
-      sections.push('## SEO Content\n');
-      sections.push(results.seoContent);
-      sections.push('\n');
-    }
-
-    if (results.socialMedia) {
-      sections.push('## Social Media\n');
-      sections.push(results.socialMedia);
-      sections.push('\n');
-    }
-
-    return sections.join('\n');
-  }
 }

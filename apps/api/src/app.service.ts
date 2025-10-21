@@ -292,6 +292,12 @@ export class AppService implements OnModuleInit {
       agent_category: agentCategory,
     };
 
+    // Extract execution_modes from context if available
+    const contextExecutionModes = record.context?.execution_modes;
+    const executionModes: string[] = Array.isArray(contextExecutionModes)
+      ? contextExecutionModes.filter((mode): mode is string => typeof mode === 'string')
+      : ['immediate'];
+
     return {
       id: record.id,
       name: record.slug,
@@ -301,7 +307,7 @@ export class AppService implements OnModuleInit {
       description: record.description ?? record.display_name,
       serviceClass: undefined,
       hasInstance: true,
-      execution_modes: ['immediate'],
+      execution_modes: executionModes,
       execution_profile: this.deriveExecutionProfile(record.mode_profile),
       execution_capabilities: executionCapabilities,
       metadata,
