@@ -199,6 +199,8 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     const action =
       typeof payload.action === 'string' ? payload.action : 'create';
 
+    this.logger.debug(`🔖 [handlePlan] action=${action}, conversationId=${request.conversationId}`);
+
     try {
       switch (action) {
         case 'create':

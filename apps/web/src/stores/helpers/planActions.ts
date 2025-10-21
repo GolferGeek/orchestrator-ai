@@ -66,6 +66,15 @@ export async function createPlanVersion(
       throw new Error(`Plan ${planId} not found in store`);
     }
 
+    console.log('🔖 [Plan Create Version Action] Starting:', {
+      agentSlug,
+      planId,
+      versionId,
+      conversationId: plan.conversationId,
+      contentLength: content.length,
+      metadata
+    });
+
     // Prepare metadata with version tracking
     const versionMetadata: JsonObject = {
       ...metadata,
@@ -78,6 +87,8 @@ export async function createPlanVersion(
     const jsonRpcResponse = await api.plans.edit(plan.conversationId, content, versionMetadata) as any;
 
     console.log('🔖 [Plan Create Version Action] Response:', jsonRpcResponse);
+    console.log('🔖 [Plan Create Version Action] Response.data:', jsonRpcResponse.data);
+    console.log('🔖 [Plan Create Version Action] Response.result:', jsonRpcResponse.result);
 
     // Handle JSON-RPC response format
     if (jsonRpcResponse.error) {

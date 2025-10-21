@@ -86,7 +86,13 @@ export class PlansService implements IActionHandler {
           break;
 
         case 'edit': {
+          this.logger.debug(`🔖 [executeAction] Handling edit action`);
           const editParams = this.ensureObject<PlanEditParams>(params, action);
+          this.logger.debug(`🔖 [executeAction] editParams validated`, {
+            hasContent: !!editParams.content,
+            contentLength: editParams.content?.length,
+            hasMetadata: !!editParams.metadata,
+          });
           result = await this.saveManualEdit(editParams, context);
           break;
         }
@@ -297,16 +303,32 @@ export class PlansService implements IActionHandler {
     params: PlanEditParams,
     context: ActionExecutionContext,
   ) {
+    this.logger.debug(
+      `🔖 [saveManualEdit] Starting with conversationId=${context.conversationId}, userId=${context.userId}`,
+    );
+    this.logger.debug(
+      `🔖 [saveManualEdit] Params:`,
+      JSON.stringify({
+        contentLength: params.content?.length,
+        metadata: params.metadata,
+      }),
+    );
+
     const plan = await this.plansRepo.findByConversationId(
       context.conversationId,
       context.userId,
     );
 
     if (!plan) {
+      this.logger.error(
+        `❌ [saveManualEdit] No plan found for conversation ${context.conversationId}`,
+      );
       throw new NotFoundException(
         `No plan found for conversation ${context.conversationId}`,
       );
     }
+
+    this.logger.debug(`🔖 [saveManualEdit] Found plan ${plan.id}`);
 
     const currentVersion = await this.versionsService.getCurrentVersion(
       plan.id,
@@ -316,6 +338,10 @@ export class PlansService implements IActionHandler {
     if (!currentVersion) {
       throw new NotFoundException(`No current version found for plan`);
     }
+
+    this.logger.debug(
+      `🔖 [saveManualEdit] Creating new version from currentVersion ${currentVersion.id}`,
+    );
 
     const newVersion = await this.versionsService.createVersion(
       plan.id,
@@ -330,6 +356,10 @@ export class PlansService implements IActionHandler {
           editedAt: new Date().toISOString(),
         },
       },
+    );
+
+    this.logger.debug(
+      `✅ [saveManualEdit] Created new version ${newVersion.id}, versionNumber=${newVersion.versionNumber}`,
     );
 
     return { plan: this.mapToPlan(plan), version: newVersion };
