@@ -12,6 +12,9 @@
   "agent_card": null,
   "context": {
     "input_modes": [
+
+
+      
       "application/json"
     ],
     "output_modes": [
