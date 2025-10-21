@@ -121,6 +121,8 @@ export const usePlanStore = defineStore('plan', () => {
   const planVersions = ref<Map<string, PlanVersionData[]>>(new Map()); // planId -> versions
   const currentVersionId = ref<Map<string, string>>(new Map()); // planId -> versionId
   const plansByConversation = ref<Map<string, string[]>>(new Map()); // conversationId -> planIds
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
 
   // Getters
   const planById = (id: string): PlanData | undefined => {
@@ -418,10 +420,33 @@ export const usePlanStore = defineStore('plan', () => {
     }
   }
 
+  /**
+   * Set loading state
+   */
+  function setLoading(loading: boolean): void {
+    isLoading.value = loading;
+  }
+
+  /**
+   * Set error message
+   */
+  function setError(errorMessage: string | null): void {
+    error.value = errorMessage;
+  }
+
+  /**
+   * Clear error message
+   */
+  function clearError(): void {
+    error.value = null;
+  }
+
   // Return public API
   return {
     // State (read-only exposure)
     plans: readonly(plans),
+    isLoading: readonly(isLoading),
+    error: readonly(error),
 
     // Getters
     planById,
@@ -436,10 +461,14 @@ export const usePlanStore = defineStore('plan', () => {
     deletePlan,
     addVersion,
     setCurrentVersion,
-    deleteVersion,
+    deleteVersion: deleteVersion as (planId: string, versionId: string) => void,
+    removeVersion: deleteVersion as (planId: string, versionId: string) => void, // Alias for consistency with deliverables
     associatePlanWithConversation,
     clearPlansByConversation,
     clearAll,
+    setLoading,
+    setError,
+    clearError,
     loadPlansByConversation,
     rerunWithDifferentLLM, // TODO: Move to plan.actions.ts
   };

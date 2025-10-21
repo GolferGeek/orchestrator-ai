@@ -7,7 +7,12 @@
  */
 
 // Plan actions
-export { createPlan, rerunPlan } from './plan.actions';
+export {
+  createPlan,
+  rerunPlan,
+  setCurrentPlanVersion,
+  deletePlanVersion,
+} from './plan.actions';
 
 // Build actions (Deliverables)
 export {

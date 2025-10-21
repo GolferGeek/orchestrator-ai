@@ -21,6 +21,7 @@ import {
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
+import { SupabaseAuthUserDto } from '@/auth/dto/auth.dto';
 import {
   AdminOnly,
   EvaluationMonitor,
@@ -58,12 +59,12 @@ export class EvaluationController {
     description: 'Not authorized to evaluate this message',
   })
   async evaluateMessage(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
     const result = await this.evaluationService.evaluateMessage(
-      user.userId,
+      user.id,
       messageId,
       evaluationDto,
     );
@@ -83,11 +84,11 @@ export class EvaluationController {
   })
   @ApiResponse({ status: 404, description: 'Message not found' })
   async getMessageEvaluation(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('messageId') messageId: string,
   ): Promise<EnhancedMessageResponseDto> {
     const message = await this.evaluationService.getMessageWithEvaluation(
-      user.userId,
+      user.id,
       messageId,
     );
     if (!message) {
@@ -117,13 +118,13 @@ export class EvaluationController {
     type: [EnhancedMessageResponseDto],
   })
   async getSessionEvaluations(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('sessionId') sessionId: string,
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
   ): Promise<EnhancedMessageResponseDto[]> {
     return this.evaluationService.getSessionEvaluations(
-      user.userId,
+      user.id,
       sessionId,
       {
         minRating,
@@ -218,7 +219,7 @@ export class EvaluationController {
     },
   })
   async getAllUserEvaluations(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('minRating') minRating?: number,
@@ -237,7 +238,7 @@ export class EvaluationController {
     const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
     const sanitizedPage = Math.max(page, 1);
 
-    return this.evaluationService.getAllUserEvaluations(user.userId, {
+    return this.evaluationService.getAllUserEvaluations(user.id, {
       page: sanitizedPage,
       limit: sanitizedLimit,
       minRating,
@@ -303,7 +304,7 @@ export class EvaluationController {
     },
   })
   async getEvaluationStats(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('providerId') providerId?: string,
@@ -320,7 +321,7 @@ export class EvaluationController {
       evaluationCount: number;
     }>;
   }> {
-    return this.evaluationService.getEvaluationStats(user.userId, {
+    return this.evaluationService.getEvaluationStats(user.id, {
       startDate,
       endDate,
       providerId,
@@ -369,13 +370,13 @@ export class EvaluationController {
     },
   })
   async exportFeedback(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Query('format') format: 'json' | 'csv' = 'json',
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('includeContent') includeContent?: boolean,
   ): Promise<Record<string, unknown>[] | string> {
-    return this.evaluationService.exportUserFeedback(user.userId, {
+    return this.evaluationService.exportUserFeedback(user.id, {
       format,
       startDate,
       endDate,
@@ -397,12 +398,12 @@ export class EvaluationController {
     description: 'Not authorized to update this evaluation',
   })
   async updateMessageEvaluation(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
     const result = await this.evaluationService.updateMessageEvaluation(
-      user.userId,
+      user.id,
       messageId,
       evaluationDto,
     );
@@ -463,7 +464,7 @@ export class EvaluationController {
     },
   })
   async getModelComparison(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Query('models') models: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -482,7 +483,7 @@ export class EvaluationController {
     recommendations: string[];
   }> {
     const modelIds = models.split(',').map((id) => id.trim());
-    return this.evaluationService.compareModels(user.userId, modelIds, {
+    return this.evaluationService.compareModels(user.id, modelIds, {
       startDate,
       endDate,
     });
@@ -518,12 +519,12 @@ export class EvaluationController {
     description: 'Not authorized to evaluate this task',
   })
   async evaluateTask(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<unknown> {
     const result = (await this.evaluationService.evaluateTask(
-      user.userId,
+      user.id,
       taskId,
       evaluationDto,
     )) as unknown;
@@ -558,11 +559,11 @@ export class EvaluationController {
   })
   @ApiResponse({ status: 404, description: 'Task not found' })
   async getTaskEvaluation(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('taskId') taskId: string,
   ): Promise<unknown> {
     const task = (await this.evaluationService.getTaskWithEvaluation(
-      user.userId,
+      user.id,
       taskId,
     )) as unknown;
     if (!task) {
@@ -600,12 +601,12 @@ export class EvaluationController {
     description: 'Not authorized to update this task evaluation',
   })
   async updateTaskEvaluation(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<unknown> {
     const result = (await this.evaluationService.updateTaskEvaluation(
-      user.userId,
+      user.id,
       taskId,
       evaluationDto,
     )) as unknown;
@@ -655,13 +656,13 @@ export class EvaluationController {
     },
   })
   async getConversationTaskEvaluations(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: SupabaseAuthUserDto,
     @Param('conversationId') conversationId: string,
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
   ): Promise<Record<string, unknown>[]> {
     return this.evaluationService.getConversationTaskEvaluations(
-      user.userId,
+      user.id,
       conversationId,
       {
         minRating,

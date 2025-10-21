@@ -165,6 +165,7 @@
       :deliverable-id="actualDeliverableId"
       :versions="versions"
       :current-version-id="currentVersion?.id"
+      :agent-slug="props.agentSlug"
       class="version-management"
     />
     <!-- Content Display -->
@@ -525,6 +526,9 @@ import {
   hardwareChipOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useAgentsStore } from '@/stores/agentsStore';
+import { createDeliverableVersion } from '@/stores/helpers/deliverablesActions';
 import { setCurrentVersion } from '@/services/agent2agent/actions';
 import { deliverablesService } from '@/services/deliverablesService';
 import TaskRating from './TaskRating.vue';
@@ -533,6 +537,7 @@ import type { Deliverable, DeliverableVersion } from '@/types/deliverables';
 interface Props {
   deliverable: Deliverable | DeliverableVersion;
   conversationId?: string;
+  agentSlug?: string;
 }
 interface Emits {
   (e: 'version-changed', version: DeliverableVersion): void;
@@ -752,17 +757,26 @@ const saveEdits = async () => {
   if (!hasUnsavedChanges.value || isSaving.value) return;
   try {
     isSaving.value = true;
-    // Create a new version with proper DTO format
-    const newVersion = await deliverablesStore.createVersion(actualDeliverableId.value, {
-      content: editedContent.value,
-      format: currentVersion.value?.format || 'markdown', // Preserve original format
-      createdByType: 'manual_edit', // Use correct field name
-      metadata: {
+
+    if (!props.agentSlug) {
+      throw new Error('Agent information required to save');
+    }
+
+    if (!currentVersion.value?.id) {
+      throw new Error('No current version to edit from');
+    }
+
+    const newVersion = await createDeliverableVersion(
+      props.agentSlug,
+      actualDeliverableId.value,
+      currentVersion.value.id,
+      editedContent.value,
+      {
         editReason: 'user_edit',
-        editedAt: new Date().toISOString(),
-        previousVersionNumber: currentVersion.value?.versionNumber
+        previousVersionNumber: currentVersion.value.versionNumber,
+        format: currentVersion.value.format || 'markdown'
       }
-    });
+    );
 
     // Reload the versions to get the updated list
     const versionList = await deliverablesService.getVersionHistory(actualDeliverableId.value);
@@ -1010,9 +1024,27 @@ const makeCurrentVersion = async () => {
     const deliverable = deliverablesStore.getDeliverableById(actualDeliverableId.value);
     if (!deliverable) throw new Error('Deliverable not found');
 
+    // Get agent slug from props, or derive from conversation
+    let agentSlug = props.agentSlug;
+
+    if (!agentSlug) {
+      // Try to get from conversation
+      const conversationsStore = useConversationsStore();
+      const conversation = deliverable.conversationId
+        ? conversationsStore.getConversationById(deliverable.conversationId)
+        : conversationsStore.activeConversation;
+
+      if (conversation?.agentName) {
+        // Convert agent display name to slug format (e.g., "Blog Post Writer" -> "blog_post_writer")
+        agentSlug = conversation.agentName.toLowerCase().replace(/\s+/g, '_');
+      } else {
+        throw new Error('Unable to determine agent for this deliverable');
+      }
+    }
+
     // Call the backend to set this version as current using action
     await setCurrentVersion(
-      deliverable.agentName || 'blog_post_writer',
+      agentSlug,
       actualDeliverableId.value,
       selectedVersion.value.id
     );

@@ -227,7 +227,7 @@ export async function readDeliverable(
   console.log('📖 [Build Read Action] Starting', { agentName, deliverableId, versionId });
 
   const api = createAgent2AgentApi(agentName);
-  const response = await api.builds.read(deliverableId, versionId);
+  const response = await api.deliverables.read(deliverableId, versionId);
 
   if (!response.success) {
     console.error('❌ [Build Read Action] Failed:', response.error);
@@ -272,7 +272,7 @@ export async function editDeliverable(
   console.log('✏️ [Build Edit Action] Starting', { agentName, deliverableId });
 
   const api = createAgent2AgentApi(agentName);
-  const response = await api.builds.edit(deliverableId, editInstructions, conversationId);
+  const response = await api.deliverables.edit(deliverableId, editInstructions, conversationId);
 
   if (!response.success) {
     console.error('❌ [Build Edit Action] Failed:', response.error);
@@ -311,7 +311,7 @@ export async function listDeliverables(
   console.log('📋 [Build List Action] Starting', { agentName, conversationId });
 
   const api = createAgent2AgentApi(agentName);
-  const response = await api.builds.list(conversationId);
+  const response = await api.deliverables.list(conversationId);
 
   if (!response.success) {
     console.error('❌ [Build List Action] Failed:', response.error);
@@ -413,11 +413,21 @@ export async function setCurrentVersion(
   console.log('🔖 [Build Set Current Action] Starting', { agentName, deliverableId, versionId });
 
   const api = createAgent2AgentApi(agentName);
-  const response = await api.builds.setCurrent(deliverableId, versionId);
+  const jsonRpcResponse = await api.deliverables.setCurrent(deliverableId, versionId) as any;
+
+  console.log('🔖 [Build Set Current Action] Response:', jsonRpcResponse);
+
+  // Handle JSON-RPC response format
+  if (jsonRpcResponse.error) {
+    console.error('❌ [Build Set Current Action] Failed:', jsonRpcResponse.error);
+    throw new Error(jsonRpcResponse.error?.message || 'Failed to set current version');
+  }
+
+  const response = jsonRpcResponse.result || jsonRpcResponse;
 
   if (!response.success) {
-    console.error('❌ [Build Set Current Action] Failed:', response.error);
-    throw new Error(response.error?.message || 'Failed to set current version');
+    console.error('❌ [Build Set Current Action] Failed:', response);
+    throw new Error('Failed to set current version');
   }
 
   // Update store
@@ -442,11 +452,21 @@ export async function deleteVersion(
   console.log('🗑️  [Build Delete Version Action] Starting', { agentName, deliverableId, versionId });
 
   const api = createAgent2AgentApi(agentName);
-  const response = await api.builds.deleteVersion(deliverableId, versionId);
+  const jsonRpcResponse = await api.deliverables.deleteVersion(deliverableId, versionId) as any;
+
+  console.log('🗑️  [Build Delete Version Action] Response:', jsonRpcResponse);
+
+  // Handle JSON-RPC response format
+  if (jsonRpcResponse.error) {
+    console.error('❌ [Build Delete Version Action] Failed:', jsonRpcResponse.error);
+    throw new Error(jsonRpcResponse.error?.message || 'Failed to delete version');
+  }
+
+  const response = jsonRpcResponse.result || jsonRpcResponse;
 
   if (!response.success) {
-    console.error('❌ [Build Delete Version Action] Failed:', response.error);
-    throw new Error(response.error?.message || 'Failed to delete version');
+    console.error('❌ [Build Delete Version Action] Failed:', response);
+    throw new Error('Failed to delete version');
   }
 
   // Update store
@@ -469,7 +489,7 @@ export async function deleteDeliverable(
   console.log('🗑️  [Build Delete Action] Starting', { agentName, deliverableId });
 
   const api = createAgent2AgentApi(agentName);
-  const response = await api.builds.delete(deliverableId);
+  const response = await api.deliverables.delete(deliverableId);
 
   if (!response.success) {
     console.error('❌ [Build Delete Action] Failed:', response.error);

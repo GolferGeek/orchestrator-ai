@@ -21,16 +21,6 @@
         <ion-icon :icon="gitMergeOutline" slot="start" />
         Merge Versions
       </ion-button>
-      <ion-button
-        @click="showDeleteDialog = true"
-        fill="outline"
-        size="small"
-        color="danger"
-        :disabled="!selectedVersions.length || isCurrentVersionSelected"
-      >
-        <ion-icon :icon="trashOutline" slot="start" />
-        Delete Selected
-      </ion-button>
     </div>
     <!-- Version Selection List -->
     <div class="version-list" v-if="versions.length > 0">
@@ -192,6 +182,7 @@ interface Props {
   deliverableId: string;
   versions: DeliverableVersion[];
   currentVersionId?: string;
+  agentSlug?: string;
 }
 const props = defineProps<Props>();
 // Stores
@@ -261,20 +252,33 @@ const createNewVersion = () => {
   // User can type their modification request there
 };
 const deleteVersion = async (versionId: string) => {
-  // Single version deletion
-  await chatUiStore.sendMessageWithContext(
-    `Deleting version ${getVersionNumber(versionId)}`,
-    contextStore.createDeleteMetadata([versionId])
-  );
-};
-const executeDelete = async () => {
-  if (selectedVersions.value.length === 0) return;
-  await chatUiStore.sendMessageWithContext(
-    `Deleting ${selectedVersions.value.length} selected version(s)`,
-    contextStore.createDeleteMetadata(selectedVersions.value)
-  );
-  selectedVersions.value = [];
-  showDeleteDialog.value = false;
+  if (!props.deliverableId || !props.agentSlug) {
+    console.error('Missing deliverableId or agentSlug');
+    return;
+  }
+
+  try {
+    const { deleteVersion: deleteVersionAction } = await import('@/services/agent2agent/actions');
+    await deleteVersionAction(props.agentSlug, props.deliverableId, versionId);
+
+    // Show success toast
+    const { toastController } = await import('@ionic/vue');
+    const toast = await toastController.create({
+      message: `Version ${getVersionNumber(versionId)} deleted`,
+      duration: 2000,
+      color: 'success',
+    });
+    await toast.present();
+  } catch (error) {
+    console.error('Failed to delete version:', error);
+    const { toastController } = await import('@ionic/vue');
+    const toast = await toastController.create({
+      message: `Failed to delete version: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      duration: 3000,
+      color: 'danger',
+    });
+    await toast.present();
+  }
 };
 const copySpecificVersion = async (versionId: string) => {
   try {

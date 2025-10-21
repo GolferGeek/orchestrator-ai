@@ -122,10 +122,10 @@ export class Agent2AgentApi {
       return this.executeStrictRequest(strictRequest);
     },
 
-    edit: async (conversationId: string, editedContent: string) => {
+    edit: async (conversationId: string, editedContent: string, metadata?: Record<string, unknown>) => {
       const strictRequest = buildRequest.plan.edit(
         { conversationId, userMessage: 'Edit plan' },
-        { content: editedContent }
+        { content: editedContent, metadata }
       );
       return this.executeStrictRequest(strictRequest);
     },
@@ -234,12 +234,12 @@ export class Agent2AgentApi {
       return this.executeStrictRequest(strictRequest);
     },
 
-    edit: async (conversationId: string, editedContent: string) => {
+    edit: async (conversationId: string, editedContent: string, metadata?: Record<string, unknown>) => {
       return this.executeDeliverableAction({
         mode: TaskMode.BUILD,
         action: 'edit',
         conversationId,
-        params: { editedContent },
+        params: { content: editedContent, metadata },
       } as unknown as DeliverableRequest);
     },
 

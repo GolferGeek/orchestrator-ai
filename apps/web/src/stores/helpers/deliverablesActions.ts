@@ -140,12 +140,24 @@ export async function loadDeliverableVersions(deliverableId: string): Promise<De
 }
 
 /**
- * Create a new version of a deliverable
- * Updates store and returns the new version
+ * Create a new version of a deliverable via A2A protocol 'edit' action
+ * The backend's saveManualEdit will create a new version
+ */
+/**
+ * Create a new version of a deliverable via A2A protocol
+ *
+ * @param agentSlug - The agent to use for processing
+ * @param deliverableId - The deliverable being edited (for store updates)
+ * @param versionId - The version being edited from
+ * @param content - The new content
+ * @param metadata - Additional metadata (editedFromVersionId will be added automatically)
  */
 export async function createDeliverableVersion(
+  agentSlug: string,
   deliverableId: string,
-  data: CreateVersionDto
+  versionId: string,
+  content: string,
+  metadata?: Record<string, unknown>
 ): Promise<DeliverableVersion> {
   const store = useDeliverablesStore();
 
@@ -153,8 +165,49 @@ export async function createDeliverableVersion(
     store.setLoading(true);
     store.clearError();
 
-    // Call service
-    const newVersion = await deliverablesService.createVersion(deliverableId, data);
+    // Get the deliverable to find its conversationId
+    const deliverable = store.deliverables.get(deliverableId);
+    if (!deliverable) {
+      throw new Error(`Deliverable ${deliverableId} not found in store`);
+    }
+
+    if (!deliverable.conversationId) {
+      throw new Error(`Deliverable ${deliverableId} has no associated conversation`);
+    }
+
+    // Prepare metadata with version tracking
+    const versionMetadata = {
+      ...metadata,
+      editedFromVersionId: versionId,
+      editedAt: new Date().toISOString(),
+    };
+
+    // Use A2A API 'edit' action which triggers saveManualEdit on backend
+    const { createAgent2AgentApi } = await import('@/services/agent2agent/api');
+    const api = createAgent2AgentApi(agentSlug);
+    const jsonRpcResponse = await api.deliverables.edit(deliverable.conversationId, content, versionMetadata) as any;
+
+    console.log('🔖 [Deliverable Create Version] Response:', jsonRpcResponse);
+
+    // Handle JSON-RPC response format
+    if (jsonRpcResponse.error) {
+      console.error('❌ [Deliverable Create Version] Failed:', jsonRpcResponse.error);
+      throw new Error(jsonRpcResponse.error?.message || 'Failed to create version');
+    }
+
+    const response = jsonRpcResponse.result || jsonRpcResponse;
+
+    if (!response.success) {
+      console.error('❌ [Deliverable Create Version] Failed:', response);
+      throw new Error('Failed to create version');
+    }
+
+    // Extract the new version from response
+    const newVersion = response.data?.version || response.payload?.version;
+
+    if (!newVersion) {
+      throw new Error('No version returned from API');
+    }
 
     // Update store via mutation
     store.addVersion(deliverableId, newVersion);

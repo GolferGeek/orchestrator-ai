@@ -438,6 +438,7 @@ import { usePlanStore } from '@/stores/planStore';
 interface Props {
   plan: Plan & { currentVersion?: PlanVersion };
   conversationId?: string;
+  agentSlug?: string;
 }
 
 interface Emits {
@@ -637,11 +638,33 @@ const runWithDifferentLLM = () => {
 
 const saveEdits = async () => {
   if (!hasUnsavedChanges.value || isSaving.value) return;
+
+  if (!props.agentSlug) {
+    alert('Cannot save: Agent information not available');
+    return;
+  }
+
   try {
     isSaving.value = true;
-    // TODO: Call plan service to create new version
-    // For now, just emit event
-    console.log('Save plan edits:', { title: editedTitle.value, content: editedContent.value });
+    // Create a new version via manual edit through A2A protocol
+    const { createPlanVersion } = await import('@/stores/helpers/planActions');
+
+    if (!currentVersion.value?.id) {
+      throw new Error('No current version to edit from');
+    }
+
+    await createPlanVersion(
+      props.agentSlug!,
+      props.plan.id,
+      currentVersion.value.id,
+      editedContent.value,
+      {
+        editReason: 'user_edit',
+        previousVersionNumber: currentVersion.value.versionNumber
+      }
+    );
+
+    // Reset editing state
     isEditing.value = false;
     editedContent.value = '';
     editedTitle.value = '';
@@ -758,9 +781,25 @@ const selectAndDisplayVersion = async (version: PlanVersion) => {
 
 const makeCurrentVersion = async () => {
   if (!selectedVersion.value) return;
+
+  if (!props.agentSlug) {
+    alert('Cannot set current version: Agent information not available');
+    return;
+  }
+
   try {
-    // TODO: Call plan service to set current version
-    console.log('Set current version:', selectedVersion.value.id);
+    const { setCurrentPlanVersion } = await import('@/services/agent2agent/actions');
+    await setCurrentPlanVersion(
+      props.agentSlug,
+      props.plan.id,
+      selectedVersion.value.id
+    );
+
+    // Reload versions to get updated current version status
+    const planStore = usePlanStore();
+    const updatedVersions = planStore.planVersions(props.plan.id);
+
+    // Update local state
     selectedVersion.value.isCurrentVersion = true;
     emit('current-version-changed', selectedVersion.value);
   } catch (error: unknown) {

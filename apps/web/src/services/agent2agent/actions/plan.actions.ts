@@ -362,3 +362,81 @@ export async function rerunPlan(
     version: enrichedVersion,
   };
 }
+
+/**
+ * Set current version of a plan
+ *
+ * @param agentName - Name of the agent
+ * @param planId - Plan ID (conversationId)
+ * @param versionId - Version ID to set as current
+ */
+export async function setCurrentPlanVersion(
+  agentName: string,
+  planId: string,
+  versionId: string,
+): Promise<void> {
+  console.log('🔖 [Plan Set Current Action] Starting', { agentName, planId, versionId });
+
+  const api = createAgent2AgentApi(agentName);
+  const jsonRpcResponse = await api.plans.setCurrent(planId, versionId) as any;
+
+  console.log('🔖 [Plan Set Current Action] Response:', jsonRpcResponse);
+
+  // Handle JSON-RPC response format
+  if (jsonRpcResponse.error) {
+    console.error('❌ [Plan Set Current Action] Failed:', jsonRpcResponse.error);
+    throw new Error(jsonRpcResponse.error?.message || 'Failed to set current version');
+  }
+
+  const response = jsonRpcResponse.result || jsonRpcResponse;
+
+  if (!response.success) {
+    console.error('❌ [Plan Set Current Action] Failed:', response);
+    throw new Error('Failed to set current version');
+  }
+
+  // Update store
+  const planStore = usePlanStore();
+  planStore.setCurrentVersion(planId, versionId);
+
+  console.log('✅ [Plan Set Current Action] Complete');
+}
+
+/**
+ * Delete a plan version
+ *
+ * @param agentName - Name of the agent
+ * @param planId - Plan ID (conversationId)
+ * @param versionId - Version ID to delete
+ */
+export async function deletePlanVersion(
+  agentName: string,
+  planId: string,
+  versionId: string,
+): Promise<void> {
+  console.log('🗑️  [Plan Delete Version Action] Starting', { agentName, planId, versionId });
+
+  const api = createAgent2AgentApi(agentName);
+  const jsonRpcResponse = await api.plans.deleteVersion(planId, versionId) as any;
+
+  console.log('🗑️  [Plan Delete Version Action] Response:', jsonRpcResponse);
+
+  // Handle JSON-RPC response format
+  if (jsonRpcResponse.error) {
+    console.error('❌ [Plan Delete Version Action] Failed:', jsonRpcResponse.error);
+    throw new Error(jsonRpcResponse.error?.message || 'Failed to delete version');
+  }
+
+  const response = jsonRpcResponse.result || jsonRpcResponse;
+
+  if (!response.success) {
+    console.error('❌ [Plan Delete Version Action] Failed:', response);
+    throw new Error('Failed to delete version');
+  }
+
+  // Update store
+  const planStore = usePlanStore();
+  planStore.removeVersion(planId, versionId);
+
+  console.log('✅ [Plan Delete Version Action] Complete');
+}

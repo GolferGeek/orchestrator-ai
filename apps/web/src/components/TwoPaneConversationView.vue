@@ -274,6 +274,7 @@
             <PlanDisplay
               :plan="currentPlan"
               :conversation-id="conversation?.id"
+              :agent-slug="agentSlug"
               @version-changed="handlePlanVersionChanged"
               @version-created="handlePlanVersionCreated"
               @current-version-changed="handlePlanCurrentVersionChanged"
@@ -286,6 +287,7 @@
             <DeliverableDisplay
               :deliverable="activeWorkProduct.data"
               :conversation-id="conversation?.id"
+              :agent-slug="agentSlug"
               @version-changed="handleVersionChanged"
               @version-created="handleVersionCreated"
               @merge-requested="handleMergeRequested"
