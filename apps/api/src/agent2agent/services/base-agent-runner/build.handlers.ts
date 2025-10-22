@@ -384,10 +384,10 @@ export async function handleBuildRerun(
 
   try {
     const payload = (request.payload ?? {}) as unknown as BuildRerunPayload;
-    if (!payload.versionId || !payload.rerunConfig) {
+    if (!payload.versionId || !payload.config) {
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
-        'versionId and rerunConfig are required for rerun action',
+        'versionId and config are required for rerun action',
       );
     }
 
@@ -467,7 +467,7 @@ export async function handleBuildRerun(
       planVersionId: (request.payload as Record<string, unknown>)
         ?.planVersionId,
       deliverableId: deliverableRecord.id,
-      rerunConfig: payload.rerunConfig,
+      config: payload.config,
       rerunContext: {
         sourceVersion: serializedVersion,
         deliverable: serializedDeliverable,
@@ -481,7 +481,7 @@ export async function handleBuildRerun(
         ...(request.metadata ?? {}),
         buildRerun: {
           sourceVersionId: payload.versionId,
-          rerunConfig: payload.rerunConfig,
+          config: payload.config,
         },
       },
     };
@@ -500,7 +500,7 @@ export async function handleBuildRerun(
       rerunResponse.payload.metadata ?? {},
       {
         sourceVersionId: payload.versionId,
-        rerunConfig: payload.rerunConfig,
+        config: payload.config,
         conversationId,
         origin: 'rerun',
       },

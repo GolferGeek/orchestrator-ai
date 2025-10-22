@@ -69,8 +69,8 @@ export interface BuildRerunPayload {
   action: 'rerun';
   /** Version ID to rerun (REQUIRED) */
   versionId: string;
-  /** LLM configuration for rerun (REQUIRED) */
-  rerunConfig: {
+  /** LLM configuration (REQUIRED) */
+  config: {
     /** LLM provider (REQUIRED) */
     provider: string;
     /** LLM model (REQUIRED) */

@@ -68,7 +68,7 @@ export type PlanEditParams = {
 
 export type PlanRerunParams = {
   versionId: string;
-  rerunConfig: {
+  config: {
     provider: string;
     model: string;
     temperature?: number;

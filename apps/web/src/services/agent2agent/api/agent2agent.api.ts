@@ -133,19 +133,19 @@ export class Agent2AgentApi {
     rerun: async (
       conversationId: string,
       versionId: string,
-      rerunConfig: {
+      config: {
         provider: string;
         model: string;
         temperature?: number;
         maxTokens?: number;
-      }
+      },
+      userMessage?: string
     ) => {
-      return this.executePlanAction({
-        mode: TaskMode.PLAN,
-        action: 'rerun',
-        conversationId,
-        params: { versionId, rerunConfig },
-      });
+      const strictRequest = buildRequest.plan.rerun(
+        { conversationId, userMessage: userMessage || 'Please regenerate this plan with the same requirements' },
+        { versionId, config }
+      );
+      return this.executeStrictRequest(strictRequest);
     },
 
     setCurrent: async (conversationId: string, versionId: string) => {
@@ -243,10 +243,10 @@ export class Agent2AgentApi {
       } as unknown as DeliverableRequest);
     },
 
-    rerun: async (conversationId: string, versionId: string, rerunConfig: object, userMessage?: string) => {
+    rerun: async (conversationId: string, versionId: string, config: object, userMessage?: string) => {
       const strictRequest = buildRequest.build.rerun(
         { conversationId, userMessage: userMessage || 'Please regenerate this deliverable with the same requirements' },
-        { versionId, rerunConfig }
+        { versionId, config }
       );
       return this.executeStrictRequest(strictRequest);
     },

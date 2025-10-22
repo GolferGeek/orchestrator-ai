@@ -299,19 +299,13 @@ class TasksService {
     };
 
     if (taskData.llmSelection) {
-      // Extract provider and model from llmSelection
-      if (taskData.llmSelection.providerName) {
-        mergedPayload.currentProvider = taskData.llmSelection.providerName;
-      }
-      if (taskData.llmSelection.modelName) {
-        mergedPayload.currentModel = taskData.llmSelection.modelName;
-      }
-      if (taskData.llmSelection.temperature !== undefined) {
-        mergedPayload.temperature = taskData.llmSelection.temperature;
-      }
-      if (taskData.llmSelection.maxTokens !== undefined) {
-        mergedPayload.maxTokens = taskData.llmSelection.maxTokens;
-      }
+      // Use config structure for consistency with rerun operations
+      mergedPayload.config = {
+        provider: taskData.llmSelection.providerName,
+        model: taskData.llmSelection.modelName,
+        ...(taskData.llmSelection.temperature !== undefined && { temperature: taskData.llmSelection.temperature }),
+        ...(taskData.llmSelection.maxTokens !== undefined && { maxTokens: taskData.llmSelection.maxTokens }),
+      };
     }
     if (taskData.executionMode) {
       mergedPayload.executionMode = taskData.executionMode;

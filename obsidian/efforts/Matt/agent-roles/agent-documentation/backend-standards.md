@@ -180,8 +180,8 @@ export async function handlePlanCreate(
 
     // 3. Extract LLM configuration from payload
     const llmConfig = {
-      providerName: payload.currentProvider,
-      modelName: payload.currentModel,
+      providerName: payload.config?.provider,
+      modelName: payload.config?.model,
       temperature: payload.temperature,
       maxTokens: payload.maxTokens,
       conversationId,
@@ -286,10 +286,10 @@ export async function handlePlanCreate(
 ```typescript
 // ✅ CORRECT
 const llmConfig = {
-  providerName: payload.currentProvider,
-  modelName: payload.currentModel,
-  temperature: payload.temperature,
-  maxTokens: payload.maxTokens,
+  providerName: payload.config?.provider,
+  modelName: payload.config?.model,
+  temperature: payload.config?.temperature,
+  maxTokens: payload.config?.maxTokens,
   // ... other config
 };
 
@@ -299,8 +299,8 @@ if (!llmConfig.providerName || !llmConfig.modelName) {
 
 // ❌ WRONG - NO FALLBACKS
 const llmConfig = {
-  providerName: payload.currentProvider || definition.llm?.provider || 'anthropic', // NO!
-  modelName: payload.currentModel || definition.llm?.model || 'claude-3-5-sonnet', // NO!
+  providerName: payload.config?.provider || definition.llm?.provider || 'anthropic', // NO!
+  modelName: payload.config?.model || definition.llm?.model || 'claude-3-5-sonnet', // NO!
 };
 ```
 
@@ -592,9 +592,11 @@ describe('handlePlanCreate', () => {
       payload: {
         action: 'create',
         title: 'My Plan',
-        currentProvider: 'anthropic',
-        currentModel: 'claude-3-5-sonnet',
-        temperature: 0.7,
+        config: {
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet',
+          temperature: 0.7,
+        },
       } as PlanCreatePayload,
     };
 
@@ -623,7 +625,7 @@ describe('handlePlanCreate', () => {
       userId: 'user-123',
       payload: {
         action: 'create',
-        // Missing currentProvider and currentModel
+        // Missing config.provider and config.model
       } as PlanCreatePayload,
     };
 
@@ -658,8 +660,10 @@ describe('Plan API Integration', () => {
           payload: {
             action: 'create',
             title: 'Blog Post Plan',
-            currentProvider: 'anthropic',
-            currentModel: 'claude-3-5-sonnet',
+            config: {
+              provider: 'anthropic',
+              model: 'claude-3-5-sonnet',
+            },
           },
         },
       })
@@ -699,7 +703,7 @@ payload.customField = 'value';
 
 ✅ **No fallbacks**
 ```typescript
-const providerName = payload.currentProvider;
+const providerName = payload.config?.provider;
 if (!providerName) {
   throw new Error('Provider must be specified');
 }
@@ -716,8 +720,10 @@ if (mode === AgentTaskMode.PLAN) { }
 const payload: PlanCreatePayload = {
   action: 'create',
   title: 'Plan',
-  currentProvider: 'anthropic',
-  currentModel: 'claude-3-5-sonnet',
+  config: {
+    provider: 'anthropic',
+    model: 'claude-3-5-sonnet',
+  },
   // Only fields from transport types!
 };
 ```

@@ -128,6 +128,34 @@ export const planBuilder = {
   },
 
   /**
+   * Rerun a plan
+   */
+  rerun: (
+    metadata: RequestMetadata & { userMessage: string },
+    rerunData: { versionId: string; config: Record<string, unknown> },
+  ): StrictPlanRequest => {
+    validateRequired(metadata.conversationId, 'conversationId');
+    validateRequired(metadata.userMessage, 'userMessage');
+    validateRequired(rerunData.versionId, 'versionId');
+    validateRequired(rerunData.config, 'config');
+
+    return {
+      jsonrpc: '2.0',
+      id: crypto.randomUUID(),
+      method: 'plan.rerun',
+      params: {
+        mode: 'plan' as AgentTaskMode,
+        action: 'rerun' as PlanAction,
+        conversationId: metadata.conversationId,
+        userMessage: metadata.userMessage,
+        messages: metadata.messages || [],
+        metadata: metadata.metadata,
+        payload: rerunData,
+      },
+    };
+  },
+
+  /**
    * Delete plan
    */
   delete: (metadata: RequestMetadata, planId: string): StrictPlanRequest => {

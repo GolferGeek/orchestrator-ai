@@ -261,8 +261,8 @@ export class AppService implements OnModuleInit {
     const agentCategory = record.config?.agent_category as string | undefined;
     const isTool = agentCategory === 'tool';
 
-    const supportedModesRaw = Array.isArray(record.config?.supported_modes)
-      ? (record.config.supported_modes as string[])
+    const supportedModesRaw = Array.isArray(record.context?.supported_modes)
+      ? (record.context.supported_modes as string[])
       : [];
 
     const supportedModes = supportedModesRaw.length
@@ -295,7 +295,9 @@ export class AppService implements OnModuleInit {
     // Extract execution_modes from context if available
     const contextExecutionModes = record.context?.execution_modes;
     const executionModes: string[] = Array.isArray(contextExecutionModes)
-      ? contextExecutionModes.filter((mode): mode is string => typeof mode === 'string')
+      ? contextExecutionModes.filter(
+          (mode): mode is string => typeof mode === 'string',
+        )
       : ['immediate'];
 
     return {

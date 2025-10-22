@@ -290,58 +290,26 @@ export async function rerunPlan(
 
   // 3. Build and send request
   console.log('📤 [Plan Rerun Action] Sending rerun request');
-  const response = await api.plans.rerun(conversationId, versionId, llmConfig);
+  const response = await api.plans.rerun(conversationId, versionId, llmConfig) as { plan: any; version: any };
 
   console.log('📥 [Plan Rerun Action] Response received:', JSON.stringify(response, null, 2));
 
-  // 4. Validate and extract
-  // Check if it's a JSON-RPC response
-  if (response.jsonrpc === '2.0' && response.result) {
-    // JSON-RPC format - check the result
-    if (!response.result.success) {
-      console.error('❌ [Plan Rerun Action] Request failed:', response.result);
-      throw new Error(response.result.payload?.metadata?.reason || 'Failed to rerun plan');
-    }
-  } else if (response.success === false) {
-    // Direct format - check success
-    console.error('❌ [Plan Rerun Action] Request failed:', response);
-    throw new Error(response.error?.message || 'Failed to rerun plan');
-  }
-
-  // Extract plan and version from response
-  const plan = (response as any).result?.payload?.content?.plan ||
-               (response as any).result?.payload?.plan ||
-               (response as any).payload?.content?.plan ||
-               (response as any).payload?.plan;
-
-  const version = (response as any).result?.payload?.content?.version ||
-                 (response as any).result?.payload?.version ||
-                 (response as any).payload?.content?.version ||
-                 (response as any).payload?.version;
-
-  if (!plan || !version) {
+  // 4. Validate - response is already transformed by handleResponse.plan.handle()
+  // It returns { plan, version } directly
+  if (!response.plan || !response.version) {
     console.error('❌ [Plan Rerun Action] No plan or version in response:', JSON.stringify(response, null, 2));
     throw new Error('No plan or version in rerun response');
   }
 
+  const { plan, version } = response;
+
   console.log('✅ [Plan Rerun Action] Extracted plan and version');
   console.log('🔍 [Plan Rerun Action] Plan ID:', plan.id, 'Version ID:', version.id, 'Version #:', version.versionNumber);
 
-  // 5. Enrich version with LLM metadata from response
-  const enrichedVersion = {
-    ...version,
-    metadata: {
-      ...version.metadata,
-      provider: (response as any).result?.payload?.metadata?.provider ||
-               (response as any).payload?.metadata?.provider,
-      model: (response as any).result?.payload?.metadata?.model ||
-            (response as any).payload?.metadata?.model,
-      llmMetadata: (response as any).result?.payload?.metadata?.llmMetadata ||
-                  (response as any).payload?.metadata?.llmMetadata,
-    },
-  };
+  // 5. Version already has metadata from backend, use as-is
+  const enrichedVersion = version;
 
-  console.log('✅ [Plan Rerun Action] Enriched version metadata:', enrichedVersion.metadata);
+  console.log('✅ [Plan Rerun Action] Version metadata:', enrichedVersion.metadata);
 
   // 6. Update store
   // Add the new version to the store

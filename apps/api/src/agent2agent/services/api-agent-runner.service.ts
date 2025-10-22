@@ -112,11 +112,21 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       // Extract provider and model from payload (same pattern as context-agent-runner)
-      const payload = request.payload as Record<string, unknown> | undefined;
-      const provider = payload?.currentProvider ?? null;
-      const model = payload?.currentModel ?? null;
+      const payload = request.payload;
+      const config = payload?.config as
+        | { provider?: string; model?: string }
+        | undefined;
 
-      if (!provider || !model || typeof provider !== 'string' || typeof model !== 'string') {
+      // Check config for LLM settings
+      const provider = config?.provider ?? null;
+      const model = config?.model ?? null;
+
+      if (
+        !provider ||
+        !model ||
+        typeof provider !== 'string' ||
+        typeof model !== 'string'
+      ) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
           `Missing LLM configuration: provider=${provider}, model=${model}. Ensure LLM provider and model are selected in the UI.`,
@@ -267,10 +277,13 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         // Wait for the completion callback to be triggered
         // The completion endpoint will emit 'task.completion' event with deliverable
         const completionPromise = new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            this.eventEmitter.removeAllListeners(`task.completion.${taskId}`);
-            reject(new Error('Task completion timeout after 5 minutes'));
-          }, 5 * 60 * 1000); // 5 minute timeout
+          const timeout = setTimeout(
+            () => {
+              this.eventEmitter.removeAllListeners(`task.completion.${taskId}`);
+              reject(new Error('Task completion timeout after 5 minutes'));
+            },
+            5 * 60 * 1000,
+          ); // 5 minute timeout
 
           this.eventEmitter.once(
             `task.completion.${taskId}`,
@@ -491,6 +504,18 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       duration: number;
     },
   ): string {
+    // If data is an object with a 'markdown' field, extract it directly
+    if (data && typeof data === 'object' && 'markdown' in data) {
+      const markdownContent = (data as { markdown: unknown }).markdown;
+      return typeof markdownContent === 'string' ? markdownContent : String(markdownContent);
+    }
+
+    // If data is already a string (assumed to be markdown), return it directly
+    if (typeof data === 'string') {
+      return data;
+    }
+
+    // Legacy behavior: wrap in JSON structure
     if (format === 'json') {
       return JSON.stringify(
         {
@@ -511,8 +536,8 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       markdown += '\n```\n';
       return markdown;
     } else {
-      // Plain text or raw response
-      return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      // Plain text or fallback
+      return JSON.stringify(data, null, 2);
     }
   }
 }

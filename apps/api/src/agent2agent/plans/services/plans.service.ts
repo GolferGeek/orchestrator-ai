@@ -373,7 +373,7 @@ export class PlansService implements IActionHandler {
     params: PlanRerunParams,
     context: ActionExecutionContext,
   ) {
-    const { provider, model, temperature, maxTokens } = params.rerunConfig;
+    const { provider, model, temperature, maxTokens } = params.config;
 
     this.logger.debug(
       `🔄 [PLAN RERUN] versionId=${params.versionId}, provider=${provider}, model=${model}`,

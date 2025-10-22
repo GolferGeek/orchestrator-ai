@@ -9,7 +9,6 @@
   "version": null,
   "status": "active",
   "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"marketing-swarm\",\n        \"displayName\": \"Marketing Swarm\",\n        \"description\": \"Executes the marketing swarm n8n workflow to produce multi-channel campaign assets.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"api\",\n        \"tags\": [\n            \"marketing\",\n            \"workflow\",\n            \"n8n\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"application/json\",\n            \"text/plain\"\n        ],\n        \"output_modes\": [\n            \"application/json\"\n        ]\n    },\n    \"configuration\": {\n        \"api\": {\n            \"endpoint\": \"http://localhost:5678/webhook/marketing-swarm\",\n            \"method\": \"POST\",\n            \"headers\": {\n                \"Content-Type\": \"application/json\"\n            },\n            \"authentication\": {\n                \"type\": \"none\"\n            },\n            \"response_mapping\": {\n                \"status_field\": \"status\",\n                \"result_field\": \"results\"\n            }\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": false,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        },\n        \"observability\": {\n            \"redact_headers\": [\n                \"Authorization\",\n                \"X-Api-Key\"\n            ]\n        }\n    },\n    \"prompts\": {\n        \"system\": \"You trigger the marketing swarm n8n workflow. Ensure requests include campaign goals, personas, and CTA details.\",\n        \"build\": \"Return a structured JSON payload containing blog, email, and social deliverables with messaging tuned to provided personas.\"\n    }\n}\n",
-  "agent_card": null,
   "context": {
     "examples": {
       "payload": {
@@ -20,59 +19,6 @@
         ],
         "campaignName": "Product Hunt Launch"
       }
-    },
-    "input_modes": [
-      "application/json",
-      "text/plain"
-    ],
-    "output_modes": [
-      "application/json"
-    ],
-    "supported_modes": [
-      "build"
-    ]
-  },
-  "config": {
-    "api": {
-      "url": "http://localhost:5678/webhook/marketing-swarm-flexible",
-      "body": {
-        "model": "{{payload.llmSelection.model}}",
-        "taskId": "{{payload.taskId}}",
-        "userId": "{{metadata.userId}}",
-        "provider": "{{payload.llmSelection.provider}}",
-        "announcement": "{{userMessage}}",
-        "statusWebHook": "http://localhost:7100/webhooks/status",
-        "conversationId": "{{conversationId}}"
-      },
-      "method": "POST",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "timeout": 60000,
-      "failOnError": true,
-      "responseMapping": {
-        "resultField": "results",
-        "statusField": "status"
-      }
-    },
-    "retries": {
-      "max": 2,
-      "backoffMs": 2000
-    },
-    "hierarchy": {
-      "level": "specialist",
-      "department": "marketing",
-      "reports_to": "marketing-manager"
-    },
-    "telemetry": {
-      "redactHeaders": [
-        "Authorization",
-        "X-Api-Key"
-      ]
-    },
-    "deliverable": {
-      "type": "marketing_bundle",
-      "format": "json"
     },
     "input_modes": [
       "application/json",

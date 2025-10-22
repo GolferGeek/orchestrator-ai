@@ -9,27 +9,13 @@
   "version": null,
   "status": "active",
   "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"global-api-baseline\",\n        \"displayName\": \"API Baseline Agent\",\n        \"description\": \"Exercise API agent runner via a controllable echo endpoint.\",\n        \"version\": \"0.0.1\",\n        \"type\": \"api\"\n    },\n    \"configuration\": {\n        \"api\": {\n            \"endpoint\": \"http://host.docker.internal:8055/echo\",\n            \"method\": \"POST\",\n            \"headers\": {\n                \"Content-Type\": \"application/json\"\n            },\n            \"authentication\": {\n                \"type\": \"none\"\n            },\n            \"response_mapping\": {\n                \"status_field\": \"status\",\n                \"result_field\": \"payload\"\n            }\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": false,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        }\n    }\n}\n",
-  "agent_card": null,
   "context": {
     "input_modes": [
-
-      
       "application/json"
     ],
     "output_modes": [
       "application/json"
     ],
-    "supported_modes": [
-      "build"
-    ]
-  },
-  "config": {
-    "retries": {
-      "max": 0
-    },
-    "streaming": {
-      "enabled": false
-    },
     "supported_modes": [
       "build"
     ]

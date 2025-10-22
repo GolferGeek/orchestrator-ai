@@ -1570,19 +1570,31 @@ export class Agent2AgentController {
 
       if (resultsObj.webPost) {
         sections.push('## Web Post\n');
-        sections.push(String(resultsObj.webPost));
+        sections.push(
+          typeof resultsObj.webPost === 'string'
+            ? resultsObj.webPost
+            : JSON.stringify(resultsObj.webPost, null, 2),
+        );
         sections.push('\n');
       }
 
       if (resultsObj.seoContent) {
         sections.push('## SEO Content\n');
-        sections.push(String(resultsObj.seoContent));
+        sections.push(
+          typeof resultsObj.seoContent === 'string'
+            ? resultsObj.seoContent
+            : JSON.stringify(resultsObj.seoContent, null, 2),
+        );
         sections.push('\n');
       }
 
       if (resultsObj.socialMedia) {
         sections.push('## Social Media\n');
-        sections.push(String(resultsObj.socialMedia));
+        sections.push(
+          typeof resultsObj.socialMedia === 'string'
+            ? resultsObj.socialMedia
+            : JSON.stringify(resultsObj.socialMedia, null, 2),
+        );
         sections.push('\n');
       }
 

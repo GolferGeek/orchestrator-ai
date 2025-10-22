@@ -154,15 +154,22 @@ export async function handlePlanCreate(
       const llmSelection = payloadRec.llmSelection as
         | Record<string, unknown>
         | undefined;
-      const providerName =
-        payloadRec.currentProvider ?? llmSelection?.providerName;
-      const modelName = payloadRec.currentModel ?? llmSelection?.modelName;
+      const config = payloadRec.config as
+        | {
+            provider?: string;
+            model?: string;
+            temperature?: number;
+            maxTokens?: number;
+          }
+        | undefined;
+      const providerName = config?.provider ?? llmSelection?.providerName;
+      const modelName = config?.model ?? llmSelection?.modelName;
 
       // Validate LLM configuration (no fallbacks - frontend must provide)
       if (!providerName || !modelName) {
         throw new Error(
           'LLM provider and model must be specified in the request payload. ' +
-            'Frontend must send currentProvider and currentModel.',
+            'Frontend must send config.provider and config.model.',
         );
       }
 
@@ -171,8 +178,8 @@ export async function handlePlanCreate(
         {
           providerName,
           modelName,
-          temperature: payloadRec.temperature,
-          maxTokens: payloadRec.maxTokens,
+          temperature: config?.temperature ?? payloadRec.temperature,
+          maxTokens: config?.maxTokens ?? payloadRec.maxTokens,
           conversationId,
           sessionId: request.sessionId,
           userId,
@@ -500,10 +507,10 @@ export async function handlePlanRerun(
   void organizationSlug;
   try {
     const payload = (request.payload ?? {}) as unknown as PlanRerunPayload;
-    if (!payload.versionId || !payload.rerunConfig) {
+    if (!payload.versionId || !payload.config) {
       return TaskResponseDto.failure(
         AgentTaskMode.PLAN,
-        'versionId and rerunConfig are required for rerun action',
+        'versionId and config are required for rerun action',
       );
     }
 
@@ -545,7 +552,7 @@ export async function handlePlanRerun(
         usage: normalizeUsage(llmMetadata.usage),
         planMetadata: extractPlanMetadata(rerunResult.data.version.content),
         sourceVersionId: payload.versionId,
-        rerunConfig: payload.rerunConfig,
+        config: payload.config,
       },
     );
 

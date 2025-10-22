@@ -643,7 +643,7 @@ export class PlanVersionsService {
    */
   async rerunWithDifferentLLM(
     versionId: string,
-    rerunConfig: {
+    config: {
       provider: string;
       model: string;
       temperature?: number;
@@ -685,18 +685,18 @@ export class PlanVersionsService {
       const systemPrompt = `You are an expert planning assistant. Create a comprehensive, well-structured plan based on the user's request. Format the plan in markdown.`;
 
       this.logger.debug(
-        `🔄 [PLAN RERUN] Calling LLM with provider=${rerunConfig.provider}, model=${rerunConfig.model}`,
+        `🔄 [PLAN RERUN] Calling LLM with provider=${config.provider}, model=${config.model}`,
       );
 
       // 5. Call LLM service with new model
       const llmResponse = await this.llmService.generateUnifiedResponse({
-        provider: rerunConfig.provider,
-        model: rerunConfig.model,
+        provider: config.provider,
+        model: config.model,
         systemPrompt: systemPrompt,
         userMessage: originalTask.prompt,
         options: {
-          temperature: rerunConfig.temperature,
-          maxTokens: rerunConfig.maxTokens,
+          temperature: config.temperature,
+          maxTokens: config.maxTokens,
           userId: userId,
           callerType: 'plan_rerun',
           callerName: `plan_rerun`,
@@ -718,10 +718,10 @@ export class PlanVersionsService {
         sourceVersionId: versionId,
         rerunAt: new Date().toISOString(),
         llmRerunInfo: {
-          provider: rerunConfig.provider,
-          model: rerunConfig.model,
-          temperature: rerunConfig.temperature,
-          maxTokens: rerunConfig.maxTokens,
+          provider: config.provider,
+          model: config.model,
+          temperature: config.temperature,
+          maxTokens: config.maxTokens,
         },
         llmMetadata: responseMetadata
           ? {
@@ -745,7 +745,7 @@ export class PlanVersionsService {
       });
 
       this.logger.log(
-        `🔄 Plan rerun completed: Version ${newVersion.versionNumber} created with ${rerunConfig.provider}/${rerunConfig.model} for plan ${plan.id}`,
+        `🔄 Plan rerun completed: Version ${newVersion.versionNumber} created with ${config.provider}/${config.model} for plan ${plan.id}`,
       );
 
       return {

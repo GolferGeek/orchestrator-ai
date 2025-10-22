@@ -69,7 +69,7 @@ type DeliverableActionParams =
   | {
       // rerun action
       versionId: string;
-      rerunConfig: {
+      config: {
         provider: string;
         model: string;
         temperature?: number;
@@ -171,7 +171,7 @@ export class DeliverablesService implements IActionHandler {
           result = await this.rerunWithLLM(
             params as {
               versionId: string;
-              rerunConfig: {
+              config: {
                 provider: string;
                 model: string;
                 temperature?: number;
@@ -478,7 +478,7 @@ export class DeliverablesService implements IActionHandler {
   private async rerunWithLLM(
     params: {
       versionId: string;
-      rerunConfig: {
+      config: {
         provider: string; // Required
         model: string; // Required
         temperature?: number;
@@ -487,7 +487,7 @@ export class DeliverablesService implements IActionHandler {
     },
     context: ActionExecutionContext,
   ) {
-    const { provider, model, temperature, maxTokens } = params.rerunConfig;
+    const { provider, model, temperature, maxTokens } = params.config;
 
     this.logger.debug(
       `🔄 [RERUN] versionId=${params.versionId}, provider=${provider}, model=${model}`,

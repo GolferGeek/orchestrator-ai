@@ -9,7 +9,6 @@ import { LLMService } from '@llm/llm.service';
 import { BaseAgentRunner } from './base-agent-runner.service';
 import {
   buildDeliverableMetadata,
-  validateDeliverableSchema,
   validateDeliverableStructure,
 } from './base-agent-runner/build.handlers';
 import {
@@ -35,7 +34,7 @@ import type { PlanVersion } from '@/agent2agent/plans/types/plan.types';
 type ExtendedBuildCreatePayload = BuildCreatePayload & {
   content?: unknown;
   deliverableId?: string;
-  rerunConfig?: {
+  config?: {
     provider?: string;
     model?: string;
     temperature?: number;
@@ -307,8 +306,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
                   sourceVersionId:
                     payload.rerunContext.sourceVersion?.id ?? null,
                   deliverableId: payload.rerunContext.deliverable?.id ?? null,
-                  providerOverride: payload.rerunConfig?.provider ?? null,
-                  modelOverride: payload.rerunConfig?.model ?? null,
+                  providerOverride: payload.config?.provider ?? null,
+                  modelOverride: payload.config?.model ?? null,
                 }
               : undefined,
             mergeContext: payload.mergeContext
@@ -636,16 +635,19 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       stream: false,
     };
 
-    // Extract provider and model from payload (from frontend store)
+    // Extract provider and model from payload config
     const payloadAny = payload as unknown as {
-      currentProvider?: string;
-      currentModel?: string;
-      temperature?: number;
-      maxTokens?: number;
+      config?: {
+        provider?: string;
+        model?: string;
+        temperature?: number;
+        maxTokens?: number;
+      };
+      temperature?: number; // Legacy top-level fallback
+      maxTokens?: number; // Legacy top-level fallback
     };
-    const providerName =
-      payloadAny.currentProvider ?? payload.rerunConfig?.provider;
-    const modelName = payloadAny.currentModel ?? payload.rerunConfig?.model;
+    const providerName = payload.config?.provider;
+    const modelName = payload.config?.model;
 
     if (
       providerName &&
@@ -663,16 +665,17 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       config.modelName = modelName.trim();
     }
 
-    if (typeof payloadAny.temperature === 'number') {
+    // Check config first, then fall back to legacy top-level
+    if (typeof payload.config?.temperature === 'number') {
+      config.temperature = payload.config.temperature;
+    } else if (typeof payloadAny.temperature === 'number') {
       config.temperature = payloadAny.temperature;
-    } else if (typeof payload.rerunConfig?.temperature === 'number') {
-      config.temperature = payload.rerunConfig.temperature;
     }
 
-    if (typeof payloadAny.maxTokens === 'number') {
+    if (typeof payload.config?.maxTokens === 'number') {
+      config.maxTokens = payload.config.maxTokens;
+    } else if (typeof payloadAny.maxTokens === 'number') {
       config.maxTokens = payloadAny.maxTokens;
-    } else if (typeof payload.rerunConfig?.maxTokens === 'number') {
-      config.maxTokens = payload.rerunConfig.maxTokens;
     }
 
     return config;
@@ -943,11 +946,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       return fromMetadata;
     }
 
-    if (
-      payload.rerunConfig?.provider &&
-      payload.rerunConfig.provider.trim().length > 0
-    ) {
-      return payload.rerunConfig.provider.trim();
+    if (payload.config?.provider && payload.config.provider.trim().length > 0) {
+      return payload.config.provider.trim();
     }
 
     const fromDefinition = definition.llm?.provider;
@@ -971,11 +971,8 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       return fromMetadata;
     }
 
-    if (
-      payload.rerunConfig?.model &&
-      payload.rerunConfig.model.trim().length > 0
-    ) {
-      return payload.rerunConfig.model.trim();
+    if (payload.config?.model && payload.config.model.trim().length > 0) {
+      return payload.config.model.trim();
     }
 
     const fromDefinition = definition.llm?.model;

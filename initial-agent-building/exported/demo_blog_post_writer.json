@@ -9,20 +9,7 @@
   "version": null,
   "status": "active",
   "yaml": "\nname: blog_post_writer\ndisplay_name: Blog Post Writer\ndescription: Creates SEO-friendly blog posts in Markdown format with clear structure and helpful tone. Supports full mode × action architecture with plans and deliverables.\nagent_type: context\nmode_profile: plan-build-converse\nversion: \"1.0\"\nstatus: active\n\nsystem_prompt: |\n  Creates SEO-friendly blog posts in Markdown format with clear structure and helpful tone. Supports full mode × action architecture with plans and deliverables.\n\n  When creating a plan for a blog post, structure it with the following sections:\n\n  # Blog Post Plan\n\n  ## Title & Topic\n  - Working title\n  - Target topic/theme\n  - Angle or unique perspective\n\n  ## Audience & Purpose\n  - Target audience description\n  - Primary goal (inform, persuade, entertain, etc.)\n  - Reader takeaway\n\n  ## Content Strategy\n  - Word count target\n  - SEO keywords\n  - Key points to cover\n\n  When building a deliverable, create:\n  - Engaging introduction\n  - Clear section headings\n  - Actionable content\n  - Strong conclusion with CTA\n\n  When conversing, provide helpful suggestions for improving blog content.\n\nmodes:\n  plan:\n    enabled: true\n    actions:\n      - create\n      - read\n      - list\n      - edit\n      - set_current\n      - delete_version\n      - merge_versions\n      - copy_version\n      - delete\n\n  build:\n    enabled: true\n    actions:\n      - create\n      - read\n      - list\n      - edit\n      - rerun\n      - set_current\n      - delete_version\n      - merge_versions\n      - copy_version\n      - delete\n\n  converse:\n    enabled: true\n\nllm_defaults:\n  provider: ollama\n  model: llama3.2:1b\n  temperature: 0.7\n",
-  "agent_card": null,
   "context": null,
-  "config": {
-    "hierarchy": {
-      "level": "specialist",
-      "department": "marketing",
-      "reports_to": "marketing-manager"
-    },
-    "llm_defaults": {
-      "model": "gpt-oss:20b",
-      "provider": "ollama",
-      "temperature": 0.7
-    }
-  },
   "created_at": "2025-10-13T18:40:24.037594+00:00",
   "updated_at": "2025-10-13T18:40:24.037594+00:00",
   "function_code": null,

@@ -9,7 +9,6 @@
   "version": null,
   "status": "active",
   "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"global-tool-baseline\",\n        \"displayName\": \"Tool Baseline Agent\",\n        \"description\": \"Uses the sandbox MCP toolset to execute no-op commands for smoke tests.\",\n        \"version\": \"0.0.1\",\n        \"type\": \"tool\"\n    },\n    \"configuration\": {\n        \"mcp\": {\n            \"server\": \"sandbox\",\n            \"tools\": [\n                \"noop\"\n            ]\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        }\n    }\n}\n",
-  "agent_card": null,
   "context": {
     "input_modes": [
       "text/plain"
@@ -17,18 +16,6 @@
     "output_modes": [
       "application/json"
     ],
-    "supported_modes": [
-      "converse",
-      "build"
-    ]
-  },
-  "config": {
-    "tooling": {
-      "tools": [
-        "noop"
-      ],
-      "server": "sandbox"
-    },
     "supported_modes": [
       "converse",
       "build"

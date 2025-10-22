@@ -68,28 +68,37 @@ export async function executeConverse(
     }
 
     // Extract LLM configuration from payload (required from frontend)
-    // Frontend sends currentProvider and currentModel in the payload
+    // Frontend sends config.provider and config.model in the payload
     const payloadRec = payload as Record<string, unknown>;
     const llmSelection = payloadRec.llmSelection as
       | Record<string, unknown>
       | undefined;
-    const providerName =
-      payloadRec.currentProvider ?? llmSelection?.providerName;
-    const modelName = payloadRec.currentModel ?? llmSelection?.modelName;
+    const config = payloadRec.config as
+      | {
+          provider?: string;
+          model?: string;
+          temperature?: number;
+          maxTokens?: number;
+        }
+      | undefined;
+    const providerName = config?.provider ?? llmSelection?.providerName;
+    const modelName = config?.model ?? llmSelection?.modelName;
 
     // Validate LLM configuration (no fallbacks - frontend must provide)
     if (!providerName || !modelName) {
       throw new Error(
         'LLM provider and model must be specified in the request payload. ' +
-          'Frontend must send currentProvider and currentModel.',
+          'Frontend must send config.provider and config.model.',
       );
     }
 
     const llmConfig = {
       providerName,
       modelName,
-      temperature: llmSelection?.temperature ?? payload.temperature,
-      maxTokens: llmSelection?.maxTokens ?? payload.maxTokens,
+      temperature:
+        config?.temperature ?? llmSelection?.temperature ?? payload.temperature,
+      maxTokens:
+        config?.maxTokens ?? llmSelection?.maxTokens ?? payload.maxTokens,
       conversationId: conversation.id,
       sessionId: request.sessionId,
       userId,

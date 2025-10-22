@@ -191,9 +191,9 @@
                 :fill="currentChatMode === 'converse' ? 'solid' : 'outline'"
                 size="small"
                 color="medium"
-                :disabled="!currentAgent || isSendingMessage"
+                :disabled="!currentAgent || isSendingMessage || currentAgent.execution_capabilities?.can_converse === false"
                 @click="sendWithMode('converse')"
-                title="Converse (Ctrl+C)"
+                :title="currentAgent.execution_capabilities?.can_converse === false ? 'Converse mode not supported for this agent' : 'Converse (Ctrl+C)'"
               >
                 <ion-icon :icon="chatbubbleOutline" slot="start" />
                 Converse
@@ -203,9 +203,9 @@
                 :fill="currentChatMode === 'plan' ? 'solid' : 'outline'"
                 size="small"
                 color="primary"
-                :disabled="!currentAgent || isSendingMessage"
+                :disabled="!currentAgent || isSendingMessage || currentAgent.execution_capabilities?.can_plan === false"
                 @click="sendWithMode('plan')"
-                title="Create Plan (Ctrl+P)"
+                :title="currentAgent.execution_capabilities?.can_plan === false ? 'Plan mode not supported for this agent' : 'Create Plan (Ctrl+P)'"
               >
                 <ion-icon :icon="documentTextOutline" slot="start" />
                 Plan
@@ -215,9 +215,9 @@
                 :fill="currentChatMode === 'build' ? 'solid' : 'outline'"
                 size="small"
                 color="success"
-                :disabled="!currentAgent || isSendingMessage"
+                :disabled="!currentAgent || isSendingMessage || currentAgent.execution_capabilities?.can_build === false"
                 @click="sendWithMode('build')"
-                title="Create Deliverable (Ctrl+B)"
+                :title="currentAgent.execution_capabilities?.can_build === false ? 'Build mode not supported for this agent' : 'Create Deliverable (Ctrl+B)'"
               >
                 <ion-icon :icon="hammerOutline" slot="start" />
                 Build
@@ -370,6 +370,7 @@ import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { deliverablesService } from '@/services/deliverablesService';
 import { usePlanStore } from '@/stores/planStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useAgentsStore } from '@/stores/agentsStore';
 import { videoService } from '@/services/videoService';
 import {
   sendMessage as sendMessageAction,
@@ -433,6 +434,7 @@ const authStore = useAuthStore();
 const sovereignPolicyStore = usePrivacyStore();
 const llmStore = useLLMPreferencesStore();
 const uiStore = useUiStore();
+const agentsStore = useAgentsStore();
 // Reactive state
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -447,14 +449,35 @@ const activeTab = ref<'plan' | 'deliverable'>('plan');
 const isMobile = ref(false);
 // Computed properties
 const currentAgent = computed(() => {
-  if (!props.conversation) return null;
-  // Construct agent-like object from conversation properties
+  if (!props.conversation?.agentName) return null;
+
+  // Get the full agent data from the agents store
+  const agentInfo = agentsStore.availableAgents.find(
+    (agent) => agent.name === props.conversation.agentName
+  );
+
+  // If found in store, return with full capabilities
+  if (agentInfo) {
+    return agentInfo;
+  }
+
+  // Fallback: construct minimal object with default capabilities based on agent type
+  // API agents typically don't support plan mode, context agents support all modes
+  const agentType = props.conversation.agentType || 'custom';
+  const defaultCapabilities = {
+    can_converse: true,
+    can_plan: agentType !== 'api', // API agents don't support plan by default
+    can_build: true,
+    requires_human_gate: false,
+  };
+
   return {
     name: props.conversation.agentName || '',
-    type: props.conversation.agentType || 'custom',
+    type: agentType,
     slug: props.conversation.agentName || '',
     id: props.conversation.agentName || '',
     organizationSlug: props.conversation.organizationSlug,
+    execution_capabilities: defaultCapabilities,
   };
 });
 const currentAgentIdentifier = computed(() => currentAgent.value?.name ?? '');

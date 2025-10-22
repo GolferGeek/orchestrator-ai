@@ -180,11 +180,13 @@ export const planService = {
     const payload: PlanCreatePayload = {
       action: 'create',
       title: params.title,
-      // currentProvider and currentModel from LLM store
-      currentProvider: llmStore.currentProvider,
-      currentModel: llmStore.currentModel,
-      temperature: llmStore.temperature,
-      maxTokens: llmStore.maxTokens,
+      // LLM config from LLM store
+      config: {
+        provider: llmStore.selectedProvider,
+        model: llmStore.selectedModel,
+        temperature: llmStore.temperature,
+        maxTokens: llmStore.maxTokens,
+      },
     };
 
     // Call backend
@@ -501,8 +503,10 @@ const payload: BuildCreatePayload = {
   action: 'create',
   title: 'My Deliverable',
   type: 'document',
-  currentProvider: llmStore.currentProvider,
-  currentModel: llmStore.currentModel,
+  config: {
+    provider: llmStore.selectedProvider,
+    model: llmStore.selectedModel,
+  },
 };
 
 const taskOptions = {
@@ -528,16 +532,18 @@ const llmStore = useLLMStore();
 
 const payload = {
   action: 'create',
-  currentProvider: llmStore.currentProvider,  // Required
-  currentModel: llmStore.currentModel,        // Required
-  temperature: llmStore.temperature,          // Optional
-  maxTokens: llmStore.maxTokens,              // Optional
+  config: {
+    provider: llmStore.selectedProvider,  // Required
+    model: llmStore.selectedModel,        // Required
+    temperature: llmStore.temperature,    // Optional
+    maxTokens: llmStore.maxTokens,        // Optional
+  },
 };
 ```
 
 **NEVER use fallbacks** - if provider/model not set, throw error:
 ```typescript
-if (!llmStore.currentProvider || !llmStore.currentModel) {
+if (!llmStore.selectedProvider || !llmStore.selectedModel) {
   throw new Error('LLM provider and model must be selected');
 }
 ```

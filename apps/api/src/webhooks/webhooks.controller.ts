@@ -265,5 +265,4 @@ export class WebhooksController {
 
     return progressMap[status] ?? 50;
   }
-
 }

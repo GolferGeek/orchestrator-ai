@@ -9,7 +9,6 @@
   "version": null,
   "status": "active",
   "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"supabase-agent\",\n        \"displayName\": \"Supabase Database Agent\",\n        \"description\": \"Interacts with Supabase via MCP tools to introspect schema, generate SQL, and analyze results.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"tool\",\n        \"tags\": [\n            \"database\",\n            \"supabase\",\n            \"analytics\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\",\n            \"application/json\"\n        ],\n        \"output_modes\": [\n            \"application/json\",\n            \"text/markdown\"\n        ]\n    },\n    \"configuration\": {\n        \"prompt_prefix\": \"You are a Supabase data specialist. Safely inspect schema, craft SQL, execute queries, and explain findings with clear business context.\",\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        },\n        \"mcp\": {\n            \"server\": \"supabase\",\n            \"tools\": [\n                \"get-schema\",\n                \"generate-sql\",\n                \"execute-sql\",\n                \"analyze-results\"\n            ]\n        },\n        \"security\": {\n            \"allowed_tables\": [\n                \"revenue\",\n                \"expenses\",\n                \"kpis\",\n                \"metrics\"\n            ],\n            \"denied_operations\": [\n                \"DROP\",\n                \"TRUNCATE\",\n                \"ALTER\"\n            ]\n        }\n    },\n    \"prompts\": {\n        \"system\": \"You answer analytics questions about the Supabase warehouse. Validate assumptions, include SQL, and highlight anomalies.\",\n        \"build\": \"Return an object with keys sql, rows, and summary. Use analyze-results to provide narrative insights for stakeholders.\",\n        \"human\": \"List additional clarifications or approvals required before running potentially destructive operations.\"\n    },\n    \"context\": {\n        \"templates\": {\n            \"analysis\": {\n                \"sql\": \"SELECT ...\",\n                \"summary\": \"Explain what the query returns and why it matters.\",\n                \"next_steps\": \"Recommend follow-up investigations.\"\n            }\n        }\n    }\n}\n",
-  "agent_card": null,
   "context": {
     "security": {
       "allowed_tables": [
@@ -36,59 +35,6 @@
       "converse",
       "build"
     ]
-  },
-  "config": {
-    "tools": [
-      "supabase/get-schema",
-      "supabase/generate-sql",
-      "supabase/execute-sql",
-      "supabase/analyze-results"
-    ],
-    "tooling": {
-      "server": "supabase",
-      "allowedTables": [
-        "revenue",
-        "expenses",
-        "kpis",
-        "metrics"
-      ],
-      "deniedOperations": [
-        "DROP",
-        "TRUNCATE",
-        "ALTER"
-      ]
-    },
-    "hierarchy": {
-      "level": "specialist",
-      "department": "finance",
-      "reports_to": "finance-manager"
-    },
-    "toolParams": {
-      "supabase/execute-sql": {
-        "max_rows": 500
-      },
-      "supabase/analyze-results": {
-        "provider": "anthropic"
-      }
-    },
-    "deliverable": {
-      "type": "analysis",
-      "format": "json"
-    },
-    "input_modes": [
-      "text/plain",
-      "application/json"
-    ],
-    "stopOnError": true,
-    "output_modes": [
-      "application/json",
-      "text/markdown"
-    ],
-    "supported_modes": [
-      "converse",
-      "build"
-    ],
-    "toolExecutionMode": "sequential"
   },
   "created_at": "2025-10-12T18:39:12.663667+00:00",
   "updated_at": "2025-10-13T18:35:28.665574+00:00",
