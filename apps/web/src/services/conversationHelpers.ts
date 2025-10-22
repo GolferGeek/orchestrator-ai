@@ -570,7 +570,11 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
    */
   createConversationObject(agent: Agent, createdAt: Date = new Date()): AgentConversation {
     // Extract and map execution modes from agent
-    const rawModes = agent.execution_modes || ['immediate'];
+    // Check both root level and context.execution_modes (backend format)
+    const agentWithContext = agent as Agent & { context?: { execution_modes?: string[] } };
+    const rawModes = agent.execution_modes ||
+                     agentWithContext.context?.execution_modes ||
+                     ['immediate'];
     const mappedModes = rawModes.map((mode: string) => {
       if (mode === 'real-time') return 'websocket';
       return mode;

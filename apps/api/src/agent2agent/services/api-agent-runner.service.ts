@@ -507,7 +507,9 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     // If data is an object with a 'markdown' field, extract it directly
     if (data && typeof data === 'object' && 'markdown' in data) {
       const markdownContent = (data as { markdown: unknown }).markdown;
-      return typeof markdownContent === 'string' ? markdownContent : String(markdownContent);
+      return typeof markdownContent === 'string'
+        ? markdownContent
+        : String(markdownContent);
     }
 
     // If data is already a string (assumed to be markdown), return it directly

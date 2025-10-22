@@ -24,6 +24,8 @@ import type {
   TaskMetadata,
   TaskData,
 } from '@/types/task';
+import type { AgentConversation } from '@/types/conversation';
+import { useAgentsStore } from '@/stores/agentsStore';
 
 // ============================================================================
 // Types
@@ -40,35 +42,29 @@ export type AgentType =
   | 'custom';
 
 /**
- * Unified Conversation interface
- * Combines conversation metadata with agent-specific data
+ * Store Conversation type - simplified for storage
+ * Can be extended with AgentConversation properties
  */
-export interface Conversation {
-  // Core identity
+export interface Conversation extends Partial<AgentConversation> {
+  // Required fields
   id: string;
-  userId: string;
   title: string;
 
-  // Agent information
+  // Optional backend fields
+  userId?: string;
   agentName?: string;
   agentType?: AgentType;
   organizationSlug?: string | null;
 
   // Timestamps
-  createdAt: string;
-  updatedAt: string;
-  startedAt?: string;
-  endedAt?: string;
-  lastActiveAt?: string;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
+  lastActiveAt?: Date | string;
 
-  // Task tracking
-  taskCount?: number;
-  completedTasks?: number;
-  failedTasks?: number;
-  activeTasks?: number;
-
-  // Metadata
-  metadata?: ConversationMetadata;
+  // Execution modes
+  executionMode?: 'immediate' | 'polling' | 'websocket';
+  supportedExecutionModes?: ('immediate' | 'polling' | 'websocket')[];
+  isExecutionModeOverride?: boolean;
 }
 
 /**
@@ -137,7 +133,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   /**
    * Get active conversation
    */
-  const activeConversation = computed(() => {
+  const activeConversation = computed((): Conversation | null => {
     if (!activeConversationId.value) return null;
     return conversations.value.get(activeConversationId.value) || null;
   });
@@ -237,16 +233,19 @@ export const useConversationsStore = defineStore('conversations', () => {
   const conversationsByAgent = (agentName: string, organizationSlug?: string | null): Conversation[] => {
     return Array.from(conversations.value.values())
       .filter(conv => {
-        if (conv.agentName !== agentName) return false;
+        // Check both agentName field and agent.name
+        const matchesName = conv.agentName === agentName || conv.agent?.name === agentName;
+        if (!matchesName) return false;
         if (organizationSlug !== undefined) {
-          return conv.organizationSlug === organizationSlug;
+          const convOrg = conv.organizationSlug || conv.agent?.organizationSlug;
+          return convOrg === organizationSlug;
         }
         return true;
       })
       .sort((a, b) => {
-        const dateA = a.lastActiveAt || a.updatedAt;
-        const dateB = b.lastActiveAt || b.updatedAt;
-        return new Date(dateB).getTime() - new Date(dateA).getTime();
+        const dateA = new Date(a.lastActiveAt || a.updatedAt || a.createdAt);
+        const dateB = new Date(b.lastActiveAt || b.updatedAt || b.createdAt);
+        return dateB.getTime() - dateA.getTime();
       });
   };
 
@@ -255,11 +254,11 @@ export const useConversationsStore = defineStore('conversations', () => {
    */
   const conversationsByAgentType = (agentType: AgentType): Conversation[] => {
     return Array.from(conversations.value.values())
-      .filter(conv => conv.agentType === agentType)
+      .filter(conv => conv.agentType === agentType || conv.agent?.type === agentType)
       .sort((a, b) => {
-        const dateA = a.lastActiveAt || a.updatedAt;
-        const dateB = b.lastActiveAt || b.updatedAt;
-        return new Date(dateB).getTime() - new Date(dateA).getTime();
+        const dateA = new Date(a.lastActiveAt || a.updatedAt || a.createdAt);
+        const dateB = new Date(b.lastActiveAt || b.updatedAt || b.createdAt);
+        return dateB.getTime() - dateA.getTime();
       });
   };
 
@@ -335,7 +334,7 @@ export const useConversationsStore = defineStore('conversations', () => {
    */
   function updateConversationTaskCounts(
     conversationId: string,
-    taskCounts: Partial<Pick<Conversation, 'taskCount' | 'completedTasks' | 'failedTasks' | 'activeTasks'>>
+    taskCounts: { activeTaskId?: string | null }
   ): void {
     const existing = conversations.value.get(conversationId);
     if (existing) {
@@ -596,25 +595,49 @@ export const useConversationsStore = defineStore('conversations', () => {
         limit: 1000,
       });
 
+      // Get agents store to look up agent data
+      const agentsStore = useAgentsStore();
+
       // Map API response to our Conversation interface
-      const mappedConversations = response.conversations.map(conv => ({
-        id: conv.id,
-        userId: conv.userId,
-        title: conv.metadata?.title || 'Untitled',
-        agentName: conv.agentName,
-        agentType: conv.agentType as AgentType,
-        organizationSlug: conv.organizationSlug,
-        createdAt: conv.createdAt,
-        updatedAt: conv.updatedAt,
-        startedAt: conv.startedAt,
-        endedAt: conv.endedAt,
-        lastActiveAt: conv.lastActiveAt,
-        taskCount: conv.taskCount || 0,
-        completedTasks: conv.completedTasks || 0,
-        failedTasks: conv.failedTasks || 0,
-        activeTasks: conv.activeTasks || 0,
-        metadata: conv.metadata,
-      }));
+      const mappedConversations = response.conversations.map(conv => {
+        // Look up the agent to get execution modes (agents should already be loaded)
+        const agent = agentsStore.availableAgents?.find(a => a.name === conv.agentName);
+
+        // Extract execution modes from agent (check both formats)
+        const agentWithContext = agent as typeof agent & { context?: { execution_modes?: string[] } };
+        const rawModes = agent?.execution_modes ||
+                         agentWithContext?.context?.execution_modes ||
+                         ['immediate'];
+        const mappedModes = rawModes.map((mode: string) => {
+          if (mode === 'real-time') return 'websocket';
+          return mode;
+        }).filter((mode: string) => ['immediate', 'polling', 'websocket'].includes(mode)) as ('immediate' | 'polling' | 'websocket')[];
+        const supportedModes = mappedModes.length > 0 ? mappedModes : ['immediate'];
+
+        return {
+          id: conv.id,
+          userId: conv.userId,
+          title: conv.metadata?.title || 'Untitled',
+          agentName: conv.agentName,
+          agentType: conv.agentType as AgentType,
+          organizationSlug: conv.organizationSlug,
+          createdAt: conv.createdAt,
+          updatedAt: conv.updatedAt,
+          startedAt: conv.startedAt,
+          endedAt: conv.endedAt,
+          lastActiveAt: conv.lastActiveAt,
+          taskCount: conv.taskCount || 0,
+          completedTasks: conv.completedTasks || 0,
+          failedTasks: conv.failedTasks || 0,
+          activeTasks: conv.activeTasks || 0,
+          metadata: conv.metadata,
+          // Add agent and execution mode fields
+          agent: agent,
+          executionMode: 'immediate',
+          supportedExecutionModes: supportedModes,
+          isExecutionModeOverride: false,
+        };
+      });
 
       setConversations(mappedConversations);
     } catch (err) {

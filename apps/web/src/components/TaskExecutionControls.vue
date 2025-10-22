@@ -92,8 +92,16 @@ const isSingleModeAgent = computed(() => {
   return modes.length === 1 && modes[0] === 'immediate';
 });
 const showControls = computed(() => {
-  return activeConversation.value?.agent && 
-         (userPreferences.value.showExecutionModeIndicator || 
+  console.log('[TaskExecutionControls] Debug:', {
+    hasConversation: !!activeConversation.value,
+    hasAgent: !!activeConversation.value?.agent,
+    supportedModes: activeConversation.value?.supportedExecutionModes,
+    executionMode: activeConversation.value?.executionMode,
+    showIndicator: userPreferences.value.showExecutionModeIndicator,
+    enableToggle: userPreferences.value.enableQuickModeToggle,
+  });
+  return activeConversation.value?.agent &&
+         (userPreferences.value.showExecutionModeIndicator ||
           userPreferences.value.enableQuickModeToggle);
 });
 // Helper functions

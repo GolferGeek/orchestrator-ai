@@ -227,6 +227,7 @@
           <!-- Compact LLM + Execution Controls -->
           <div class="llm-controls">
             <CompactLLMControl />
+            <TaskExecutionControls />
           </div>
           <!-- Enhance-here hint when a deliverable is selected -->
           <div v-if="activeWorkProduct?.type === 'deliverable'" class="enhance-hint">

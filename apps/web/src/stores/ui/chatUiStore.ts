@@ -105,6 +105,20 @@ export const useChatUiStore = defineStore('chatUi', () => {
   const isBuildMode = computed(() => chatMode.value === 'build');
   const isOrchestrateMode = computed(() => chatMode.value === 'orchestrate');
 
+  /**
+   * Get effective execution mode for active conversation
+   */
+  const effectiveExecutionMode = computed(() => {
+    return activeConversation.value?.executionMode || 'immediate';
+  });
+
+  /**
+   * Get execution mode (alias for compatibility)
+   */
+  const executionMode = computed(() => {
+    return effectiveExecutionMode.value;
+  });
+
   // ============================================================================
   // MUTATIONS - ONLY way to mutate state (synchronous only)
   // ============================================================================
@@ -249,6 +263,40 @@ export const useChatUiStore = defineStore('chatUi', () => {
   }
 
   /**
+   * Set execution mode for active conversation
+   */
+  function setExecutionMode(mode: 'immediate' | 'polling' | 'websocket'): void {
+    if (!activeConversationId.value) return;
+
+    const conversationsStore = useConversationsStore();
+
+    // Use store mutation to trigger reactivity
+    conversationsStore.updateConversation(activeConversationId.value, {
+      executionMode: mode,
+      isExecutionModeOverride: true,
+    });
+  }
+
+  /**
+   * Reset execution mode to default for active conversation
+   */
+  function resetExecutionMode(): void {
+    if (!activeConversationId.value) return;
+
+    const conversationsStore = useConversationsStore();
+    const conversation = conversationsStore.conversationById(activeConversationId.value);
+
+    if (conversation) {
+      // Reset to first supported mode
+      const defaultMode = conversation.supportedExecutionModes?.[0] || 'immediate';
+      conversationsStore.updateConversation(activeConversationId.value, {
+        executionMode: defaultMode,
+        isExecutionModeOverride: false,
+      });
+    }
+  }
+
+  /**
    * Set loading state
    */
   function setIsLoading(loading: boolean): void {
@@ -306,6 +354,8 @@ export const useChatUiStore = defineStore('chatUi', () => {
     isPlanMode,
     isBuildMode,
     isOrchestrateMode,
+    effectiveExecutionMode,
+    executionMode,
 
     // Mutations
     setActiveConversation,
@@ -324,6 +374,8 @@ export const useChatUiStore = defineStore('chatUi', () => {
     toggleRightPanel,
     setRightPanelVisible,
     setInputFocused,
+    setExecutionMode,
+    resetExecutionMode,
     clearAll,
   };
 });
