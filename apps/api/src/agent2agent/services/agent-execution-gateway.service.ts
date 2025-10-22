@@ -68,17 +68,23 @@ export class AgentExecutionGateway {
       organizationSlug,
     );
 
-    const assessment = await this.routingPolicy.evaluate(request, agent);
-    const routingMetadata = {
-      ...(assessment.metadata ?? {}),
-      agentMetadata,
-    };
+    // Function agents don't need LLM routing - they execute code directly
+    let routingMetadata: Record<string, unknown> = { agentMetadata };
+    if (agent.agent_type !== 'function') {
+      const assessment = await this.routingPolicy.evaluate(request, agent);
+      routingMetadata = {
+        ...(assessment.metadata ?? {}),
+        agentMetadata,
+      };
 
-    if (assessment.showstopper) {
-      return TaskResponseDto.human(
-        assessment.humanMessage ?? 'Routing policy requires human review.',
-        'routing_showstopper',
-      );
+      if (assessment.showstopper) {
+        return TaskResponseDto.human(
+          assessment.humanMessage ?? 'Routing policy requires human review.',
+          'routing_showstopper',
+        );
+      }
+    } else {
+      this.logger.debug(`⚡ Skipping LLM routing for function agent: ${agent.slug}`);
     }
 
     // Enforce execution capabilities before routing

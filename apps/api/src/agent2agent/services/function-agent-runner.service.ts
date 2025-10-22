@@ -191,7 +191,11 @@ export class FunctionAgentRunnerService extends BaseAgentRunner {
       const resultPayload = this.normalizeResultPayload(result);
       return TaskResponseDto.success(request.mode!, resultPayload || {});
     } catch (error) {
-      this.logger.warn(`Function agent execution failed: ${String(error)}`);
+      this.logger.error(`❌ Function agent execution failed: ${String(error)}`);
+      if (error instanceof Error) {
+        this.logger.error(`Error stack: ${error.stack}`);
+      }
+      this.logger.error(`Full error object:`, error);
       return TaskResponseDto.failure(
         request.mode!,
         error instanceof Error ? error.message : 'function_execution_failed',

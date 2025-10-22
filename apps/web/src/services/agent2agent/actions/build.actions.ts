@@ -95,13 +95,23 @@ export async function createDeliverable(
 
     console.log('📥 [Build Create Action] Task response:', result);
 
+    // Check for JSON-RPC error response
+    if ('error' in result && result.error) {
+      const errorMessage = typeof result.error === 'object' && result.error !== null && 'message' in result.error
+        ? String(result.error.message)
+        : 'Agent execution failed';
+      console.error('❌ [Build Create Action] JSON-RPC Error:', result.error);
+      chatUiStore.setIsSendingMessage(false);
+      throw new Error(errorMessage);
+    }
+
     // 6. Parse result - backend should provide clean, structured response
     let parsedResult = result.result;
     if (typeof parsedResult === 'string') {
       try {
         parsedResult = JSON.parse(parsedResult);
       } catch (e) {
-        console.warn('📦 [Build Create Action] Backend returned non-JSON string:', parsedResult?.substring(0, 200));
+        console.warn('📦 [Build Create Action] Backend returned non-JSON string:', typeof parsedResult === 'string' ? parsedResult.substring(0, 200) : '');
       }
     }
 

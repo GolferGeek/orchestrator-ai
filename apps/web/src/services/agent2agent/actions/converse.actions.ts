@@ -95,6 +95,16 @@ export async function sendMessage(
 
     console.log('📥 [Converse Send Action] Task response:', result);
 
+    // Check for JSON-RPC error response
+    if ('error' in result && result.error) {
+      const errorMessage = typeof result.error === 'object' && result.error !== null && 'message' in result.error
+        ? String(result.error.message)
+        : 'Agent execution failed';
+      console.error('❌ [Converse Send Action] JSON-RPC Error:', result.error);
+      conversationsStore.setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+
     // 5. Extract assistant message from task result - backend should provide clean response
     let parsedResult = result.result;
     if (typeof parsedResult === 'string') {
