@@ -464,6 +464,34 @@ export const useConversationsStore = defineStore('conversations', () => {
     messages.value.set(conversationId, []);
   }
 
+  /**
+   * Update message metadata
+   * Useful for updating workflow progress in real-time
+   */
+  function updateMessageMetadata(
+    conversationId: string,
+    messageId: string,
+    metadataUpdates: Partial<MessageMetadata>
+  ): void {
+    const conversationMessages = messages.value.get(conversationId);
+    if (!conversationMessages) return;
+
+    const messageIndex = conversationMessages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+
+    const message = conversationMessages[messageIndex];
+    const updatedMessage = {
+      ...message,
+      metadata: {
+        ...message.metadata,
+        ...metadataUpdates,
+      },
+    };
+
+    conversationMessages[messageIndex] = updatedMessage;
+    messages.value.set(conversationId, [...conversationMessages]);
+  }
+
   // --------------------------------------------------------------------------
   // Task Mutations
   // --------------------------------------------------------------------------
@@ -728,6 +756,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     addUserMessage,
     setMessages,
     clearMessages,
+    updateMessageMetadata,
 
     // Task mutations
     addTask,

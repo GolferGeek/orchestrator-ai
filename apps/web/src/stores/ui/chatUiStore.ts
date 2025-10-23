@@ -107,9 +107,36 @@ export const useChatUiStore = defineStore('chatUi', () => {
 
   /**
    * Get effective execution mode for active conversation
+   * Prefers 'websocket' (real-time) if available, then falls back to first supported mode
    */
   const effectiveExecutionMode = computed(() => {
-    return activeConversation.value?.executionMode || 'immediate';
+    const currentMode = activeConversation.value?.executionMode;
+    const supportedModes = activeConversation.value?.supportedExecutionModes || [];
+    const isOverride = activeConversation.value?.isExecutionModeOverride;
+
+    // If user explicitly overrode the mode, respect it
+    if (isOverride && currentMode) {
+      return currentMode;
+    }
+
+    // If mode is set to 'immediate' but websocket is available and not overridden,
+    // upgrade to websocket (handles existing conversations that defaulted to immediate)
+    if (currentMode === 'immediate' && supportedModes.includes('websocket') && !isOverride) {
+      return 'websocket';
+    }
+
+    // If mode is already set, use it
+    if (currentMode) {
+      return currentMode;
+    }
+
+    // Otherwise, prefer 'websocket' if available
+    if (supportedModes.includes('websocket')) {
+      return 'websocket';
+    }
+
+    // Fall back to first supported mode or 'immediate'
+    return supportedModes[0] || 'immediate';
   });
 
   /**
@@ -287,8 +314,12 @@ export const useChatUiStore = defineStore('chatUi', () => {
     const conversation = conversationsStore.conversationById(activeConversationId.value);
 
     if (conversation) {
-      // Reset to first supported mode
-      const defaultMode = conversation.supportedExecutionModes?.[0] || 'immediate';
+      // Reset to preferred mode (websocket if available, otherwise first supported mode)
+      const supportedModes = conversation.supportedExecutionModes || [];
+      const defaultMode = supportedModes.includes('websocket')
+        ? 'websocket'
+        : (supportedModes[0] || 'immediate');
+
       conversationsStore.updateConversation(activeConversationId.value, {
         executionMode: defaultMode,
         isExecutionModeOverride: false,

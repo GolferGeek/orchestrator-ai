@@ -9,6 +9,7 @@ import { LLMService } from '@llm/llm.service';
 import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
 import { PlansService } from '../plans/services/plans.service';
 import { Agent2AgentConversationsService } from './agent-conversations.service';
+import { StreamingService } from './streaming.service';
 
 /**
  * Tool Agent Runner
@@ -52,6 +53,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     plansService: PlansService,
     conversationsService: Agent2AgentConversationsService,
     deliverablesService: DeliverablesService,
+    streamingService: StreamingService,
   ) {
     super(
       llmService,
@@ -59,6 +61,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       plansService,
       conversationsService,
       deliverablesService,
+      streamingService,
     );
   }
 

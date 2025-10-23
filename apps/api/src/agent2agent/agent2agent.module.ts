@@ -28,6 +28,7 @@ import { PlansModule } from './plans/plans.module';
 import { ContextOptimizationModule } from './context-optimization/context-optimization.module';
 import { MCPModule } from '../mcp/mcp.module';
 import { HttpModule } from '@nestjs/axios';
+import { StreamingService } from './services/streaming.service';
 
 @Module({
   imports: [
@@ -62,12 +63,14 @@ import { HttpModule } from '@nestjs/axios';
     Agent2AgentTasksService,
     Agent2AgentTaskStatusService,
     Agent2AgentConversationsService,
+    StreamingService,
   ],
   exports: [
     AgentExecutionGateway,
     OrchestrationStepExecutorService,
     AgentModeRouterService,
     Agent2AgentConversationsService,
+    StreamingService,
   ],
 })
 export class Agent2AgentModule {}

@@ -28,6 +28,7 @@ import type { ActionExecutionContext } from '../common/interfaces/action-handler
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { PlansService } from '../plans/services/plans.service';
+import { StreamingService } from './streaming.service';
 import type { Plan } from '../plans/types/plan.types';
 import type { PlanVersion } from '@/agent2agent/plans/types/plan.types';
 
@@ -120,6 +121,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
     plansService: PlansService,
     conversationsService: Agent2AgentConversationsService,
     deliverablesService: DeliverablesService,
+    streamingService: StreamingService,
   ) {
     super(
       llmService,
@@ -127,6 +129,7 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       plansService,
       conversationsService,
       deliverablesService,
+      streamingService,
     );
   }
 

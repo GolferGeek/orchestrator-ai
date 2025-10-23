@@ -75,10 +75,33 @@ export async function createDeliverable(
       modelName: llmStore.selectedModel.modelName,
     } : undefined;
 
-    // 5. Call tasksService to create and execute the build task
-    console.log('📤 [Build Create Action] Calling tasksService.createAgentTask');
+    // 5. Set up for SSE connection (if using websocket/polling mode)
+    const executionMode = chatUiStore.executionMode || 'polling';
+    const workflowSteps = new Map<number, any>();
+    let assistantMessageId: string | null = null;
 
-    const result = await tasksService.createAgentTask(
+    // Generate taskId upfront so we can use it for SSE connection
+    const taskId = crypto.randomUUID();
+
+    // Create assistant message upfront (will be updated with deliverable when complete)
+    const assistantMessage = conversationsStore.addMessage(conversationId, {
+      role: 'assistant',
+      content: 'Processing your request...',
+      timestamp: new Date().toISOString(),
+      metadata: {
+        taskId,
+        mode: 'build',
+        workflow_steps_realtime: [],
+        provider: llmSelection?.providerName || 'n8n',
+        model: llmSelection?.modelName || 'workflow',
+      },
+    });
+    assistantMessageId = assistantMessage.id;
+
+    // 6. Start API call and SSE connection in parallel
+    console.log('📤 [Build Create Action] Starting task with execution mode:', executionMode, 'taskId:', taskId);
+
+    const resultPromise = tasksService.createAgentTask(
       conversation.agentType || 'custom',
       agentName,
       {
@@ -88,14 +111,107 @@ export async function createDeliverable(
         conversationHistory,
         llmSelection,
         planId,
-        executionMode: chatUiStore.executionMode || 'polling',
+        executionMode,
+        taskId,
       },
       { namespace: conversation.organizationSlug || 'global' }
     );
 
-    console.log('📥 [Build Create Action] Task response:', result);
+    // 7. If using SSE mode, connect with retry logic (in parallel with API call)
+    if (executionMode === 'websocket' || executionMode === 'polling') {
+      const { A2AStreamHandler } = await import('@/services/agent2agent/sse/a2aStreamHandler');
+      const streamHandler = new A2AStreamHandler();
+      const orgSlug = conversation.organizationSlug || 'global';
+      const streamId = taskId;
 
-    // 6. Parse result - backend should provide clean, structured response
+      // Retry connection with exponential backoff
+      const connectWithRetry = async (attempt = 1, maxAttempts = 5) => {
+        const delay = Math.min(100 * Math.pow(2, attempt - 1), 2000); // 100ms, 200ms, 400ms, 800ms, 1600ms
+        console.log(`📡 [Build Create Action] SSE connection attempt ${attempt}/${maxAttempts} (delay: ${delay}ms)`);
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        try {
+          await streamHandler.connect({
+        metadata: {
+          streamId,
+          taskId,
+          agentSlug: agentName,
+          conversationId,
+          organizationSlug: orgSlug,
+          streamUrl: `/agent-to-agent/${orgSlug}/${agentName}/tasks/${taskId}/stream?streamId=${streamId}`,
+          streamTokenUrl: `/agent-to-agent/${orgSlug}/${agentName}/tasks/${taskId}/stream-token`,
+        },
+        onChunk: (data) => {
+          console.log('📨 [Build Create Action] Received SSE chunk:', data);
+
+          const chunk = data.chunk;
+          if (chunk?.metadata) {
+            const { step, sequence, totalSteps, status, progress } = chunk.metadata;
+            const stepName = step || chunk.content || 'Processing';
+
+            let stepStatus: 'pending' | 'in_progress' | 'completed' | 'failed' = 'in_progress';
+            if (status === 'completed' || progress === 100) {
+              stepStatus = 'completed';
+            } else if (status === 'failed' || status === 'error') {
+              stepStatus = 'failed';
+            }
+
+            const stepIndex = (sequence || 1) - 1;
+            workflowSteps.set(stepIndex, {
+              stepName,
+              stepIndex,
+              totalSteps: totalSteps || workflowSteps.size + 1,
+              status: stepStatus,
+              message: chunk.content,
+              timestamp: new Date().toISOString(),
+            });
+
+            const stepsArray = Array.from(workflowSteps.values()).sort((a, b) => a.stepIndex - b.stepIndex);
+
+            if (assistantMessageId) {
+              conversationsStore.updateMessageMetadata(conversationId, assistantMessageId, {
+                workflow_steps_realtime: stepsArray,
+              });
+            }
+
+            console.log('✅ [Build Create Action] Updated workflow steps:', stepsArray.length, 'steps');
+          }
+        },
+            onComplete: (data) => {
+              console.log('✅ [Build Create Action] SSE stream completed:', data);
+              streamHandler.disconnect();
+            },
+            onError: (data) => {
+              console.error('❌ [Build Create Action] SSE stream error:', data);
+              streamHandler.disconnect();
+            },
+          });
+          console.log(`✅ [Build Create Action] SSE connection established on attempt ${attempt}`);
+        } catch (error) {
+          console.error(`❌ [Build Create Action] SSE connection attempt ${attempt} failed:`, error);
+          if (attempt < maxAttempts) {
+            return connectWithRetry(attempt + 1, maxAttempts);
+          } else {
+            console.error('❌ [Build Create Action] Max SSE connection attempts reached, giving up');
+          }
+        }
+      };
+
+      // Start connection in background (don't await - run in parallel)
+      connectWithRetry().catch(err => {
+        console.error('❌ [Build Create Action] SSE connection failed:', err);
+      });
+    }
+
+    // 8. Now wait for the API call to complete
+    const result = await resultPromise;
+
+    console.log('📥 [Build Create Action] Task response:', result);
+    console.log('📥 [Build Create Action] Execution mode was:', executionMode);
+    console.log('📥 [Build Create Action] Response keys:', Object.keys(result));
+
+    // 9. Parse result - backend should provide clean, structured response
     let parsedResult = result.result;
     if (typeof parsedResult === 'string') {
       try {
@@ -181,22 +297,38 @@ export async function createDeliverable(
     // Associate deliverable with conversation
     deliverablesStore.associateDeliverableWithConversation(finalDeliverable.id, conversationId);
 
-    // 9. Add assistant message to conversation
-    const assistantMessage = conversationsStore.addMessage(conversationId, {
-      role: 'assistant',
-      content: assistantContent,
-      timestamp: new Date().toISOString(),
-      deliverableId: finalDeliverable.id,
-      metadata: {
-        taskId: result.taskId,
-        deliverableId: finalDeliverable.id,
-        thinking: thinkingContent || (parsedResult as any).extractedThinking,
-        provider: (parsedResult as any)?.payload?.metadata?.provider ||
-                 (parsedResult as any)?.metadata?.provider,
-        model: (parsedResult as any)?.payload?.metadata?.model ||
-              (parsedResult as any)?.metadata?.model,
-      },
-    });
+    // 9. Update the existing assistant message with deliverable and final content
+    if (assistantMessageId) {
+      // Find and update the message
+      const messages = conversationsStore.messagesByConversation(conversationId);
+      const messageIndex = messages.findIndex(m => m.id === assistantMessageId);
+
+      if (messageIndex >= 0) {
+        const message = messages[messageIndex];
+        const updatedMessage = {
+          ...message,
+          content: assistantContent,
+          deliverableId: finalDeliverable.id,
+          metadata: {
+            ...message.metadata,
+            taskId: result.taskId,
+            deliverableId: finalDeliverable.id,
+            thinking: thinkingContent || (parsedResult as any).extractedThinking,
+            provider: (parsedResult as any)?.payload?.metadata?.provider ||
+                     (parsedResult as any)?.metadata?.provider ||
+                     message.metadata?.provider,
+            model: (parsedResult as any)?.payload?.metadata?.model ||
+                  (parsedResult as any)?.metadata?.model ||
+                  message.metadata?.model,
+            workflow_steps_realtime: Array.from(workflowSteps.values()).sort((a, b) => a.stepIndex - b.stepIndex),
+          },
+        };
+
+        // Update the message in the store
+        messages[messageIndex] = updatedMessage;
+        conversationsStore.setMessages(conversationId, [...messages]);
+      }
+    }
 
     console.log('💾 [Build Create Action] Complete');
 

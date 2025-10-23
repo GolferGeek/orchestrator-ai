@@ -575,11 +575,21 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
     const rawModes = agent.execution_modes ||
                      agentWithContext.context?.execution_modes ||
                      ['immediate'];
+
+    console.log('🔍 [createConversationObject] Agent:', agent.name, 'rawModes:', rawModes);
+
     const mappedModes = rawModes.map((mode: string) => {
       if (mode === 'real-time') return 'websocket';
       return mode;
     }).filter((mode: string) => ['immediate', 'polling', 'websocket'].includes(mode));
     const supportedModes = mappedModes.length > 0 ? mappedModes : ['immediate'];
+
+    // Default to websocket (real-time) if available, otherwise use first supported mode
+    const defaultExecutionMode = supportedModes.includes('websocket')
+      ? 'websocket'
+      : supportedModes[0];
+
+    console.log('✅ [createConversationObject] supportedModes:', supportedModes, 'defaultExecutionMode:', defaultExecutionMode);
 
     return {
       id: generateUUID(),
@@ -589,7 +599,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       lastActiveAt: createdAt,
       chatMode: DEFAULT_CHAT_MODES[0],
       allowedChatModes: [...DEFAULT_CHAT_MODES],
-      executionMode: 'immediate',
+      executionMode: defaultExecutionMode,
       supportedExecutionModes: supportedModes,
       executionProfile: agent.execution_profile,
       executionCapabilities: agent.execution_capabilities,

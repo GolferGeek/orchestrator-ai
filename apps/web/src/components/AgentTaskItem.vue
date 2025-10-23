@@ -142,49 +142,6 @@
           </div>
         </div>
         
-        <!-- Debug info removed - deliverables should now work properly -->
-        
-        <!-- Deliverable Creation Callout (shown instead of message content for deliverable messages) -->
-        <!-- SHOWING CALLOUT: willHideForDeliverable = {{ willHideForDeliverable }}, hasDeliverableId = {{ hasBackendDeliverable }}, messageId = {{ message.id }} -->
-        <div v-if="willHideForDeliverable" class="deliverable-creation-callout" :class="{ 'clickable': displayedDeliverable || displayedPlan }" @click="handleCalloutClick">
-          <div class="callout-content">
-            <ion-icon :icon="documentTextOutline" class="callout-icon" />
-            <div class="callout-text">
-              <div class="callout-title">
-                {{ displayedPlan ? 'Plan Created' : displayedDeliverable ? 'Deliverable Created' : (hasBackendPlan ? 'Creating plan...' : 'Creating deliverable...') }}
-              </div>
-              <div class="callout-description">
-                {{ displayedPlan ? displayedPlan.title : displayedDeliverable ? displayedDeliverable.title : 'Processing your request into a structured document' }}
-              </div>
-            </div>
-            <div class="callout-indicator" v-if="!displayedDeliverable && !displayedPlan">
-              <ion-spinner name="dots" color="primary" />
-            </div>
-            <div v-else class="callout-badges">
-              <ion-chip size="small" color="primary" outline>
-                {{ displayedPlan ? 'plan' : displayedDeliverable?.type || 'document' }}
-              </ion-chip>
-              <ion-chip v-if="llmUsed && llmUsed.providerName && llmUsed.modelName" size="small" color="medium" outline>
-                <span class="chip-provider">{{ llmUsed.providerName }}</span>
-                <span class="chip-divider">•</span>
-                <span class="chip-model">{{ llmUsed.modelName }}</span>
-              </ion-chip>
-            </div>
-          </div>
-          <div class="callout-action" v-if="(displayedDeliverable || displayedPlan) && !props.showWorkProductPane">
-            <ion-button fill="clear" size="small">
-              <ion-icon :icon="arrowForwardOutline" slot="end" />
-              View in {{ displayedPlan ? 'Plan' : 'Document' }} Pane
-            </ion-button>
-          </div>
-          <div class="callout-action" v-else-if="(displayedDeliverable || displayedPlan) && props.showWorkProductPane">
-            <ion-chip size="small" color="success" fill="outline">
-              <ion-icon :icon="documentTextOutline" />
-              Showing in {{ displayedPlan ? 'Plan' : 'Document' }} Pane
-            </ion-chip>
-          </div>
-        </div>
-        
         <!-- Privacy Indicators for assistant messages only -->
         <UserPrivacyIndicators
           v-if="message.role === 'assistant' && showPrivacyIndicators"
@@ -996,10 +953,10 @@ watch(() => hasBackendDeliverable.value, (newVal, oldVal) => {
 // Initialize privacy state for this message and handle TTS
 watch(() => props.message, (newMessage) => {
   if (newMessage && newMessage.role === 'assistant' && newMessage.metadata) {
-    // Update privacy state from message metadata
-    privacyIndicatorsStore.updateMessagePrivacyFromSources(newMessage.id, newMessage);
+    // Privacy state updates are handled elsewhere - this method doesn't exist
+    // privacyIndicatorsStore.updateMessagePrivacyFromSources(newMessage.id, newMessage);
   }
-  
+
   // TTS: Only trigger if last message was sent via speech
   if (newMessage &&
       newMessage.role === 'assistant' &&

@@ -132,7 +132,13 @@ const getModeLabel = (mode: string) => {
 // Event handlers
 const handleModeChange = (event: CustomEvent) => {
   const newMode = event.detail.value as 'immediate' | 'polling' | 'websocket';
+  console.log('[TaskExecutionControls] 🔄 Changing execution mode:', {
+    from: currentMode.value,
+    to: newMode,
+    conversationId: activeConversation.value?.id,
+  });
   chatUiStore.setExecutionMode(newMode);
+  console.log('[TaskExecutionControls] ✅ Mode changed, new effective mode:', chatUiStore.effectiveExecutionMode);
   showModeSelector.value = false;
 };
 const resetToDefault = () => {

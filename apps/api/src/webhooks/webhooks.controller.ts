@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TasksService } from '../agent2agent/tasks/tasks.service';
+import { StreamingService } from '../agent2agent/services/streaming.service';
 
 /**
  * Workflow Status Update
@@ -60,6 +61,7 @@ export class WebhooksController {
     private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => TasksService))
     private readonly tasksService: TasksService,
+    private readonly streamingService: StreamingService,
   ) {}
 
   /**
@@ -160,22 +162,27 @@ export class WebhooksController {
         }
       }
 
-      // Emit SSE chunk event for real-time streaming to frontend
-      this.eventEmitter.emit('agent.stream.chunk', {
-        taskId: update.taskId,
-        conversationId: update.conversationId,
-        chunk: {
-          type: 'progress',
-          content: update.message || stepName,
-          metadata: {
-            step: stepName,
-            sequence,
-            totalSteps: totalStepsFromUpdate,
-            status: update.status,
-            progress,
-          },
+      // Emit SSE chunk event via StreamingService for real-time streaming to frontend
+      this.logger.log(
+        `📤 [WebhookController] Calling streamingService.emitProgress for taskId=${update.taskId}`,
+      );
+      this.streamingService.emitProgress(
+        update.taskId,
+        update.message || stepName,
+        {
+          step: stepName,
+          sequence,
+          totalSteps: totalStepsFromUpdate,
+          status: update.status,
+          progress,
         },
-      });
+      );
+      this.logger.debug(
+        `✅ [WebhookController] Called streamingService.emitProgress successfully`,
+      );
+
+      // Webhooks only emit progress - never completion
+      // The stream will be cleaned up when the API call completes and returns to frontend
 
       // Send the COMPLETE status history via event
       const eventData = {

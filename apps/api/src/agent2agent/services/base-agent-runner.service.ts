@@ -8,6 +8,7 @@ import { ContextOptimizationService } from '../context-optimization/context-opti
 import { PlansService } from '../plans/services/plans.service';
 import { Agent2AgentConversationsService } from './agent-conversations.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { StreamingService } from './streaming.service';
 import * as ConverseHandlers from './base-agent-runner/converse.handlers';
 import * as PlanHandlers from './base-agent-runner/plan.handlers';
 import * as BuildHandlers from './base-agent-runner/build.handlers';
@@ -61,6 +62,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     protected readonly plansService: PlansService,
     protected readonly conversationsService: Agent2AgentConversationsService,
     protected readonly deliverablesService: DeliverablesService,
+    protected readonly streamingService: StreamingService,
   ) {
     this.logger = new Logger(this.constructor.name);
   }
@@ -303,9 +305,23 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    const payload = (request.payload ?? {}) as { action?: string };
+    const payload = (request.payload ?? {}) as { action?: string; executionMode?: string };
     const action =
       typeof payload.action === 'string' ? payload.action : 'create';
+
+    // Check execution mode for 'create' action - handle websocket (SSE) mode
+    if (action === 'create') {
+      const executionMode = payload.executionMode || 'immediate';
+
+      if (executionMode === 'websocket' || executionMode === 'polling') {
+        return await this.handleBuildWithStreaming(
+          definition,
+          request,
+          organizationSlug,
+          executionMode,
+        );
+      }
+    }
 
     try {
       switch (action) {
@@ -380,6 +396,107 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       );
       return TaskResponseDto.failure(
         AgentTaskMode.BUILD,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    }
+  }
+
+  /**
+   * Handle BUILD with streaming (SSE or polling mode)
+   *
+   * For websocket/polling execution modes:
+   * 1. Register stream session with StreamingService
+   * 2. Start async execution (don't await)
+   * 3. Return immediately with taskId and streamId
+   */
+  protected async handleBuildWithStreaming(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+    executionMode: string,
+  ): Promise<TaskResponseDto> {
+    const taskId = this.resolveTaskId(request) || `task_${Date.now()}`;
+    const userId = this.resolveUserId(request) || 'unknown';
+    const conversationId = this.resolveConversationId(request);
+
+    this.logger.log(
+      `🔌 Agent ${definition.slug}: ${executionMode} mode - registering stream session for task ${taskId}`,
+    );
+
+    // Register stream session and get streamId
+    const streamId = this.streamingService.registerStream(
+      taskId,
+      definition.slug,
+      organizationSlug || 'global',
+      AgentTaskMode.BUILD,
+      conversationId,
+      userId,
+    );
+
+    // Start async execution (don't await)
+    this.executeAndStreamBuild(
+      definition,
+      request,
+      organizationSlug,
+      taskId,
+    ).catch((error) => {
+      this.logger.error(
+        `Async BUILD execution failed for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      this.streamingService.emitError(
+        taskId,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    });
+
+    // Return immediately with streamId
+    return TaskResponseDto.success(AgentTaskMode.BUILD, {
+      content: {
+        status: 'processing',
+        message: 'Task started - streaming updates via SSE',
+      },
+      metadata: {
+        taskId,
+        streamId,
+        executionMode,
+        streamUrl: `/agent2agent/stream/${streamId}`,
+      },
+    });
+  }
+
+  /**
+   * Execute build async and emit progress via StreamingService
+   */
+  protected async executeAndStreamBuild(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+    taskId: string,
+  ): Promise<void> {
+    try {
+      this.logger.log(`▶️  Starting async BUILD for task ${taskId}`);
+
+      // Execute the build (delegates to concrete runner implementation)
+      const result = await this.executeBuild(
+        definition,
+        request,
+        organizationSlug,
+      );
+
+      // Emit completion with result
+      if (result.success) {
+        this.streamingService.emitComplete(taskId);
+      } else {
+        const errorMsg =
+          (result.payload.metadata?.reason as string) || 'Build failed';
+        this.streamingService.emitError(taskId, errorMsg);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error in executeAndStreamBuild for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      this.streamingService.emitError(
+        taskId,
         error instanceof Error ? error.message : 'Unknown error',
       );
     }

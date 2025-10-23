@@ -11,6 +11,7 @@ import { LLMService } from '@llm/llm.service';
 import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
 import { PlansService } from '../plans/services/plans.service';
 import { Agent2AgentConversationsService } from './agent-conversations.service';
+import { StreamingService } from './streaming.service';
 
 /**
  * API Agent Runner
@@ -61,6 +62,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     plansService: PlansService,
     conversationsService: Agent2AgentConversationsService,
     deliverablesService: DeliverablesService,
+    streamingService: StreamingService,
   ) {
     super(
       llmService,
@@ -68,6 +70,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       plansService,
       conversationsService,
       deliverablesService,
+      streamingService,
     );
   }
 
@@ -85,6 +88,28 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         'PLAN mode not yet implemented for API agents',
       ),
     );
+  }
+
+  /**
+   * Override handleBuild to skip base class streaming logic
+   * API agents have their own SSE handling in executeBuild
+   */
+  protected async handleBuild(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+  ): Promise<TaskResponseDto> {
+    const payload = (request.payload ?? {}) as { action?: string };
+    const action =
+      typeof payload.action === 'string' ? payload.action : 'create';
+
+    // For create action, go directly to executeBuild (which has SSE logic)
+    if (action === 'create') {
+      return await this.executeBuild(definition, request, organizationSlug);
+    }
+
+    // For other actions, use base class logic
+    return await super.handleBuild(definition, request, organizationSlug);
   }
 
   /**
@@ -110,6 +135,39 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
           'Missing required userId or conversationId for API execution',
         );
       }
+
+      // Check execution mode - handle websocket/polling differently
+      const executionMode =
+        ((request.payload as Record<string, unknown>)
+          ?.executionMode as string) || 'immediate';
+
+      // Register stream if using websocket/polling mode (for SSE progress updates)
+      // But still execute synchronously and wait for the result
+      if (executionMode === 'websocket' || executionMode === 'polling') {
+        this.logger.log(
+          `🔌 API Agent ${definition.slug}: ${executionMode} mode detected - registering stream for progress updates`,
+        );
+
+        if (taskId) {
+          // Register stream session with StreamingService for progress updates
+          const streamId = this.streamingService.registerStream(
+            taskId,
+            definition.slug,
+            organizationSlug || 'global',
+            AgentTaskMode.BUILD,
+            conversationId,
+            userId,
+          );
+          this.logger.log(
+            `✅ API Agent ${definition.slug}: Stream registered with streamId=${streamId} for progress updates`,
+          );
+        }
+      }
+
+      // Continue with synchronous execution (wait for API response)
+      this.logger.log(
+        `⚡ API Agent ${definition.slug}: immediate mode - executing synchronously`,
+      );
 
       // Extract provider and model from payload (same pattern as context-agent-runner)
       const payload = request.payload;
@@ -540,6 +598,172 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     } else {
       // Plain text or fallback
       return JSON.stringify(data, null, 2);
+    }
+  }
+
+  /**
+   * Execute API call asynchronously (for websocket/polling modes)
+   * This runs the same logic as executeBuild but without waiting for completion
+   */
+  private async executeApiCallAsync(
+    definition: AgentRuntimeDefinition,
+    request: TaskRequestDto,
+    organizationSlug: string | null,
+    userId: string,
+    conversationId: string,
+    taskId: string | null,
+  ): Promise<void> {
+    try {
+      this.logger.log(`🚀 Starting async API execution for task ${taskId}`);
+
+      // Create enriched request
+      const payload = request.payload;
+      const config = payload?.config as
+        | { provider?: string; model?: string }
+        | undefined;
+      const provider = config?.provider ?? null;
+      const model = config?.model ?? null;
+
+      const enrichedRequest = {
+        ...request,
+        userId,
+        conversationId,
+        taskId: taskId || undefined,
+        payload: {
+          ...(request.payload as Record<string, unknown>),
+          provider,
+          model,
+        },
+      };
+
+      // Get API configuration (same as sync version)
+      const apiConfig = this.asRecord(definition.config?.api);
+      if (!apiConfig) {
+        this.logger.error(`No API configuration found for ${definition.slug}`);
+        return;
+      }
+
+      const urlTemplate =
+        this.ensureString(apiConfig.url) ??
+        this.ensureString(apiConfig.endpoint);
+      if (!urlTemplate) {
+        this.logger.error(
+          `API configuration missing URL for ${definition.slug}`,
+        );
+        return;
+      }
+
+      // Execute HTTP request
+      const url = this.interpolateString(urlTemplate, enrichedRequest);
+      const method = (
+        this.ensureString(apiConfig.method) ?? 'GET'
+      ).toUpperCase();
+
+      const headersRecord = this.asRecord(apiConfig.headers);
+      const headers = this.buildHeaders(
+        headersRecord ? this.toPlainRecord(headersRecord) : {},
+        enrichedRequest,
+      );
+
+      let body: unknown = undefined;
+      if (['POST', 'PUT', 'PATCH'].includes(method) && apiConfig.body) {
+        const bodyRecord = this.asRecord(apiConfig.body);
+        if (bodyRecord) {
+          body = this.interpolateObject(
+            this.toPlainRecord(bodyRecord),
+            enrichedRequest,
+          );
+        } else if (typeof apiConfig.body === 'string') {
+          body = this.interpolateString(apiConfig.body, enrichedRequest);
+        } else {
+          body = apiConfig.body;
+        }
+      }
+
+      let queryParams: Record<string, unknown> = {};
+      const queryParamsRecord = this.asRecord(apiConfig.queryParams);
+      if (queryParamsRecord) {
+        queryParams = this.interpolateObject(
+          this.toPlainRecord(queryParamsRecord),
+          enrichedRequest,
+        );
+      }
+
+      this.logger.log(`📡 Making async API call to ${url}`);
+      const startTime = Date.now();
+
+      const observable = this.httpService.request({
+        url,
+        method: method,
+        headers,
+        data: body,
+        params: queryParams,
+        timeout: this.ensureNumber(apiConfig.timeout) ?? 30000,
+        validateStatus: () => true,
+      });
+
+      const response = await firstValueFrom(observable);
+      const duration = Date.now() - startTime;
+
+      const responseTyped = response as {
+        status: number;
+        data: unknown;
+        headers: Record<string, unknown>;
+      };
+
+      this.logger.log(
+        `✅ Async API call completed: ${responseTyped.status} in ${duration}ms`,
+      );
+
+      // Format response and create deliverable
+      const responseData = responseTyped.data;
+      const formattedContent = this.formatApiResponse(
+        responseData,
+        definition.config?.deliverable?.format || 'json',
+        {
+          statusCode: responseTyped.status,
+          headers: responseTyped.headers,
+          duration,
+        },
+      );
+
+      const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
+
+      const deliverableResult = await this.deliverablesService.executeAction(
+        'create',
+        {
+          title:
+            ((request.payload as Record<string, unknown>)?.title as string) ||
+            `API Response: ${definition.displayName}`,
+          content: formattedContent,
+          format: definition.config?.deliverable?.format || 'json',
+          type: definition.config?.deliverable?.type || 'api-response',
+          deliverableId: targetDeliverableId ?? undefined,
+        },
+        {
+          conversationId: conversationId || '',
+          userId: userId || 'unknown',
+          organizationSlug: organizationSlug || 'global',
+        },
+      );
+
+      // Emit completion event with deliverable
+      if (taskId) {
+        this.eventEmitter.emit(`task.completion.${taskId}`, {
+          deliverable: deliverableResult.data,
+        });
+
+        this.logger.log(`📨 Emitted task completion event for ${taskId}`);
+      }
+    } catch (error) {
+      this.logger.error(`❌ Async API execution failed:`, error);
+
+      if (taskId) {
+        this.eventEmitter.emit(`task.completion.${taskId}`, {
+          error:
+            error instanceof Error ? error.message : 'Async execution failed',
+        });
+      }
     }
   }
 }

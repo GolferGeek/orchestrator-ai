@@ -9,6 +9,7 @@ import { ContextOptimizationService } from '../context-optimization/context-opti
 import { PlansService } from '../plans/services/plans.service';
 import { Agent2AgentConversationsService } from './agent-conversations.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { StreamingService } from './streaming.service';
 import { OrchestrationDefinitionService } from '@agent-platform/services/orchestration-definition.service';
 import { OrchestrationStateService } from '@agent-platform/services/orchestration-state.service';
 import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
@@ -66,6 +67,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
     plansService: PlansService,
     conversationsService: Agent2AgentConversationsService,
     deliverablesService: DeliverablesService,
+    streamingService: StreamingService,
   ) {
     super(
       llmService,
@@ -73,6 +75,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       plansService,
       conversationsService,
       deliverablesService,
+      streamingService,
     );
   }
 
