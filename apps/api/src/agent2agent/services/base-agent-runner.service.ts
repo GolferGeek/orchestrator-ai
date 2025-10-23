@@ -305,7 +305,10 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     request: TaskRequestDto,
     organizationSlug: string | null,
   ): Promise<TaskResponseDto> {
-    const payload = (request.payload ?? {}) as { action?: string; executionMode?: string };
+    const payload = (request.payload ?? {}) as {
+      action?: string;
+      executionMode?: string;
+    };
     const action =
       typeof payload.action === 'string' ? payload.action : 'create';
 
@@ -314,7 +317,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
       const executionMode = payload.executionMode || 'immediate';
 
       if (executionMode === 'websocket' || executionMode === 'polling') {
-        return await this.handleBuildWithStreaming(
+        return this.handleBuildWithStreaming(
           definition,
           request,
           organizationSlug,
@@ -409,12 +412,12 @@ export abstract class BaseAgentRunner implements IAgentRunner {
    * 2. Start async execution (don't await)
    * 3. Return immediately with taskId and streamId
    */
-  protected async handleBuildWithStreaming(
+  protected handleBuildWithStreaming(
     definition: AgentRuntimeDefinition,
     request: TaskRequestDto,
     organizationSlug: string | null,
     executionMode: string,
-  ): Promise<TaskResponseDto> {
+  ): TaskResponseDto {
     const taskId = this.resolveTaskId(request) || `task_${Date.now()}`;
     const userId = this.resolveUserId(request) || 'unknown';
     const conversationId = this.resolveConversationId(request);

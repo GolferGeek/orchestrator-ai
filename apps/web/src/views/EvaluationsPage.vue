@@ -309,14 +309,13 @@ const starIcon = computed(() => star);
 const filteredEvaluations = computed(() => {
   const allEvaluations = evaluationsStore.evaluations;
   if (selectedTab.value === 'deliverables') {
-    // Show evaluations that have deliverable metadata (indicating they're from deliverable-associated tasks)
+    // Show evaluations that have deliverable type (indicating they're from deliverable-associated tasks)
     // This includes tasks that created deliverables, regardless of whether they were rated before or after the task_id was linked
-    return allEvaluations.filter(evaluation => 
-      evaluation.metadata?.deliverableType || 
-      evaluation.metadata?.deliverableMetadata ||
+    return allEvaluations.filter(evaluation =>
+      evaluation.metadata?.deliverableType ||
       // Also include evaluations where the task likely created a deliverable based on agent name patterns
-      (evaluation.metadata?.agentName && 
-       (evaluation.metadata.agentName.includes('content') || 
+      (evaluation.metadata?.agentName &&
+       (evaluation.metadata.agentName.includes('content') ||
         evaluation.metadata.agentName.includes('document') ||
         evaluation.metadata.agentName.includes('report') ||
         evaluation.metadata.agentName.includes('analysis')))

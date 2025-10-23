@@ -326,9 +326,30 @@ export class Agent2AgentController {
         (typeof dto.payload?.taskId === 'string'
           ? dto.payload.taskId
           : undefined) || body.id; // JSON-RPC id or payload.taskId
-      const llmSelectionFromPayload = dto.payload?.llmSelection as
-        | LlmSelection
-        | undefined;
+
+      // Extract LLM selection from payload
+      // Frontend sends it in payload.config.provider/model format (JSON-RPC)
+      // Legacy format was payload.llmSelection
+      let llmSelectionFromPayload: LlmSelection | undefined;
+      if (dto.payload?.config && typeof dto.payload.config === 'object') {
+        const config = dto.payload.config as { provider?: string; model?: string; temperature?: number; maxTokens?: number };
+        if (config.provider && config.model) {
+          // LlmSelection type uses 'provider' and 'model' fields (not providerName/modelName)
+          llmSelectionFromPayload = {
+            provider: config.provider,
+            model: config.model,
+            ...(config.temperature !== undefined && { temperature: config.temperature }),
+            ...(config.maxTokens !== undefined && { maxTokens: config.maxTokens }),
+          };
+        }
+      } else if (dto.payload?.llmSelection) {
+        // Fallback to legacy format
+        llmSelectionFromPayload = dto.payload.llmSelection as LlmSelection;
+      }
+
+      this.logger.debug(
+        `🔍 [Agent2AgentController] llmSelectionFromPayload: ${JSON.stringify(llmSelectionFromPayload)}`,
+      );
       const conversationHistoryFromMessages: ConversationMessage[] =
         dto.messages?.map((msg) => {
           const content =
@@ -396,6 +417,13 @@ export class Agent2AgentController {
       if (dto.payload) {
         dto.payload.taskId = task.id;
       }
+
+      // Mark task as running before execution starts
+      await this.agentTaskStatusService.updateTaskStatus(
+        task.id,
+        currentUser.id,
+        { status: 'running' },
+      );
 
       // Execute the agent with the persisted task ID
       const result = await this.gateway.execute(org, agentSlug, dto);
@@ -541,11 +569,16 @@ export class Agent2AgentController {
       }
 
       // Success case - update task and create deliverable
+      // Extract deliverable type from results if available
+      const resultsObj = body.results as { type?: string; payload?: { type?: string } } | undefined;
+      const deliverableType = resultsObj?.type || resultsObj?.payload?.type || null;
+
       await this.taskUpdateService.updateTask(taskId, body.userId, {
         status: 'completed',
         progress: 100,
         progressMessage: 'Task completed successfully',
         response: body.results ? JSON.stringify(body.results) : undefined,
+        ...(deliverableType && { deliverableType }),
       });
 
       // Create deliverable with results

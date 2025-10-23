@@ -193,7 +193,8 @@ export const useChatUiStore = defineStore('chatUi', () => {
   function closeConversationTab(conversationId: string): void {
     const index = openConversationTabs.value.indexOf(conversationId);
     if (index > -1) {
-      openConversationTabs.value.splice(index, 1);
+      // Create a new array to trigger Vue reactivity
+      openConversationTabs.value = openConversationTabs.value.filter(id => id !== conversationId);
     }
 
     // If closing active tab, switch to another open tab or null

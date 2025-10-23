@@ -52,6 +52,31 @@ export class Agent2AgentTaskStatusService {
 
       if (updates.status) {
         updateData.status = updates.status;
+
+        // Set started_at timestamp when task execution begins
+        if (updates.status === 'running' || updates.status === 'processing') {
+          updateData.started_at = new Date().toISOString();
+        }
+
+        // Set completed_at timestamp when task finishes
+        if (updates.status === 'completed' || updates.status === 'failed') {
+          updateData.completed_at = new Date().toISOString();
+        }
+      }
+
+      // Handle deliverable-related fields
+      if (updates.deliverableType) {
+        updateData.deliverable_type = updates.deliverableType;
+      }
+
+      // Handle response field (for storing task results)
+      if (updates.response !== undefined) {
+        updateData.response = updates.response;
+      }
+
+      // Handle response_metadata field (for LLM response metadata)
+      if (updates.responseMetadata) {
+        updateData.response_metadata = updates.responseMetadata;
       }
 
       // Store custom fields in params.status_data for A2A protocol
@@ -123,12 +148,57 @@ export class Agent2AgentTaskStatusService {
     response: unknown,
   ): Promise<void> {
     try {
-      const updateData = {
+      // Extract metadata from response - could be TaskResponseDto or plain object
+      const responseObj = response as {
+        metadata?: Record<string, unknown>;
+        payload?: {
+          type?: string;
+          metadata?: Record<string, unknown>;
+          content?: {
+            deliverable?: { type?: string };
+          };
+        }
+      };
+
+      // Try multiple paths to extract metadata
+      // 1. Top-level metadata (from TaskResponseDto)
+      // 2. payload.metadata (nested in payload)
+      const responseMetadata = responseObj?.metadata || responseObj?.payload?.metadata;
+
+      // Try to extract deliverable type from multiple locations
+      const deliverableType =
+        responseObj?.payload?.type ||
+        responseObj?.payload?.content?.deliverable?.type;
+
+      this.logger.debug(
+        `🔍 [completeTask] Response structure - hasTopMetadata: ${!!responseObj?.metadata}, hasPayloadMetadata: ${!!responseObj?.payload?.metadata}, hasPayload: ${!!responseObj?.payload}`,
+      );
+      this.logger.debug(
+        `🔍 [completeTask] Extracted metadata - hasMetadata: ${!!responseMetadata}, metadataKeys: ${responseMetadata ? Object.keys(responseMetadata).join(',') : 'none'}, deliverableType: ${deliverableType}`,
+      );
+
+      const updateData: Record<string, unknown> = {
         status: 'completed',
         response: response,
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+
+      // Store response metadata (LLM provider, model, usage, etc.)
+      if (responseMetadata && Object.keys(responseMetadata).length > 0) {
+        updateData.response_metadata = responseMetadata;
+        this.logger.debug(
+          `✅ [completeTask] Setting response_metadata with keys: ${Object.keys(responseMetadata).join(',')}`,
+        );
+      }
+
+      // Store deliverable type if available
+      if (deliverableType) {
+        updateData.deliverable_type = deliverableType;
+        this.logger.debug(
+          `✅ [completeTask] Setting deliverable_type: ${deliverableType}`,
+        );
+      }
 
       const { error } = await this.supabaseService
         .getServiceClient()

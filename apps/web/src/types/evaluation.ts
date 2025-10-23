@@ -72,8 +72,6 @@ export interface EvaluationWithMessage {
     llmMetadata?: JsonObject;
     taskMetadata?: JsonObject;
     deliverableType?: string;
-    deliverableMetadata?: JsonObject;
-    progressMessage?: string;
     workflowStepsCompleted?: string[];
     userEmail?: string;
   });

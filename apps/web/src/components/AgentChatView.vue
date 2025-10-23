@@ -127,9 +127,20 @@ const currentAgent = computed(() => {
     organizationSlug: conv.organizationSlug,
   };
 });
-const messages = computed(() =>
-  props.conversation?.messages || chatUiStore.activeConversation?.messages || []
-);
+const messages = computed(() => {
+  // Get conversation ID from props or active conversation
+  const conversationId = props.conversation?.id || chatUiStore.activeConversation?.id;
+
+  if (!conversationId) {
+    console.log('📭 [AgentChatView] No conversationId, returning empty messages');
+    return [];
+  }
+
+  // Get messages from the store's messages Map (not from conversation.messages)
+  const msgs = conversationsStore.messagesByConversation(conversationId);
+  console.log('📬 [AgentChatView] Messages computed for conversation', conversationId, ':', msgs.length);
+  return msgs;
+});
 const isLoading = computed(() =>
   props.conversation?.isLoading || chatUiStore.activeConversation?.isLoading || false
 );

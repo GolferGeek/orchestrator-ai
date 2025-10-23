@@ -88,8 +88,6 @@ export interface TaskRecord {
   updated_at?: string | null;
   completed_at?: string | null;
   type?: string | null;
-  progress_message?: string | null;
-  deliverable_metadata?: Record<string, unknown> | null;
   metadata?: Record<string, unknown> | null;
   response_metadata?: TaskResponseMetadata | null;
   llm_metadata?: TaskLLMMetadata | null;

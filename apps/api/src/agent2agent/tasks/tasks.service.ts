@@ -39,7 +39,6 @@ interface TaskRow {
   response_metadata?: Record<string, unknown>;
   status: string;
   progress: number;
-  progress_message?: string;
   evaluation?: Record<string, unknown>;
   llm_metadata?: Record<string, unknown>;
   pii_metadata?: Record<string, unknown>;
@@ -183,9 +182,17 @@ export class TasksService {
           {
             status: 'pending',
             progress: 0,
-            progressMessage: 'Task created, waiting for execution...',
           },
         );
+
+        // Create initial task message for status tracking
+        await this.taskMessageService.createTaskMessage({
+          taskId: createdTask.id!,
+          userId,
+          content: 'Task created, waiting for execution...',
+          messageType: 'status',
+          progressPercentage: 0,
+        });
 
         // Emit task created event
         this.eventEmitter.emit('task.created', {
@@ -315,7 +322,6 @@ export class TasksService {
     const anyUpdateData = updateData as unknown as {
       responseMetadata?: Record<string, unknown>;
       errorData?: Record<string, unknown>;
-      progressMessage?: string;
       errorCode?: string;
       errorMessage?: string;
       llmMetadata?: Record<string, unknown>;
@@ -327,10 +333,6 @@ export class TasksService {
     if (anyUpdateData.errorData !== undefined) {
       updateData.error_data = anyUpdateData.errorData;
       delete anyUpdateData.errorData;
-    }
-    if (anyUpdateData.progressMessage !== undefined) {
-      updateData.progress_message = anyUpdateData.progressMessage;
-      delete anyUpdateData.progressMessage;
     }
     if (anyUpdateData.errorCode !== undefined) {
       updateData.error_code = anyUpdateData.errorCode;
@@ -372,7 +374,6 @@ export class TasksService {
     await this.taskStatusService.updateTaskStatus(taskId, userId, {
       status: updates.status as TaskStatusState | undefined,
       progress: updates.progress,
-      progressMessage: updates.progressMessage,
       result: updates.response
         ? typeof updates.response === 'string'
           ? updates.response
@@ -382,11 +383,10 @@ export class TasksService {
     });
 
     // Emit progress event
-    if (updates.progress !== undefined || updates.progressMessage) {
+    if (updates.progress !== undefined) {
       const progressEvent: TaskProgressEvent = {
         taskId,
         progress: updates.progress ?? updatedTask.progress,
-        message: updates.progressMessage,
         status: updates.status,
       };
       this.eventEmitter.emit('task.progress', progressEvent);
@@ -413,7 +413,6 @@ export class TasksService {
       .from('tasks')
       .update({
         progress,
-        progress_message: message,
         updated_at: new Date().toISOString(),
       })
       .eq('id', taskId);
@@ -560,7 +559,6 @@ export class TasksService {
       yield {
         taskId,
         progress: task.progress,
-        message: task.progressMessage,
         status: task.status,
       };
 
@@ -574,7 +572,6 @@ export class TasksService {
           yield {
             taskId,
             progress: updatedTask.progress,
-            message: updatedTask.progressMessage,
             status: updatedTask.status,
           };
 
@@ -680,7 +677,6 @@ export class TasksService {
         (converted.responseMetadata as Record<string, unknown>) || {},
       status: converted.status as Task['status'],
       progress: (converted.progress as number | undefined) ?? 0,
-      progressMessage: converted.progressMessage as string | undefined,
       evaluation: (converted.evaluation as Record<string, unknown>) || {},
       llmMetadata: (converted.llmMetadata as Record<string, unknown>) || {},
       errorCode: converted.errorCode as string | undefined,

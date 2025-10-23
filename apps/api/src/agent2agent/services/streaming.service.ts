@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { randomUUID } from 'crypto';
 import { TaskStatusService } from '../tasks/task-status.service';
 
 /**
@@ -153,7 +152,10 @@ export class StreamingService {
       },
     };
 
-    this.logger.debug('🔔 [StreamingService] Emitting agent.stream.chunk event', eventPayload);
+    this.logger.debug(
+      '🔔 [StreamingService] Emitting agent.stream.chunk event',
+      eventPayload,
+    );
 
     // Emit A2A formatted stream chunk event
     this.eventEmitter.emit('agent.stream.chunk', eventPayload);

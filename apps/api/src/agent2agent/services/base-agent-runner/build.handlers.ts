@@ -126,11 +126,6 @@ export async function handleBuildRead(
       }
 
       const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
-        deliverableMetadata: buildDeliverableMetadata(
-          (targetVersion as Record<string, unknown>).content as
-            | string
-            | undefined,
-        ),
         requestedVersionId: payload.versionId,
         conversationId,
       });
@@ -165,11 +160,6 @@ export async function handleBuildRead(
       versionRaw ?? deliverableRecord.currentVersion ?? null;
 
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
-      deliverableMetadata: buildDeliverableMetadata(
-        ((responseVersion as Record<string, unknown> | undefined)?.content as
-          | string
-          | undefined) ?? '',
-      ),
       conversationId,
     });
 
@@ -314,7 +304,6 @@ export async function handleBuildEdit(
 
     const metadataPayload = {
       comment: payload.comment,
-      deliverableMetadata: buildDeliverableMetadata(normalizedContent),
       deliverableStructureApplied: Boolean(definition.deliverableStructure),
       ioSchemaApplied: Boolean(ioSchemaOutput),
     };
@@ -337,10 +326,6 @@ export async function handleBuildEdit(
 
     const editResultData = editResult.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
-      deliverableMetadata: buildDeliverableMetadata(
-        ((editResultData.version as Record<string, unknown> | undefined)
-          ?.content as string | undefined) ?? '',
-      ),
       source: 'manual-edit',
     });
 
@@ -574,10 +559,6 @@ export async function handleBuildSetCurrent(
 
     const resultData = result.data as Record<string, unknown>;
     const metadata = buildResponseMetadata(EMPTY_BUILD_METADATA, {
-      deliverableMetadata: buildDeliverableMetadata(
-        ((resultData.version as Record<string, unknown> | undefined)
-          ?.content as string | undefined) ?? '',
-      ),
       updatedVersionId: payload.versionId,
     });
 
@@ -1096,65 +1077,6 @@ export function validateDeliverableSchema(
     error.details = validate.errors;
     throw error;
   }
-}
-
-/**
- * Prepares metadata associated with BUILD responses.
- * @param deliverableContent - Generated deliverable payload
- * @returns Metadata describing the deliverable
- */
-export function buildDeliverableMetadata(
-  deliverableContent: unknown,
-): Record<string, unknown> {
-  if (deliverableContent === null || deliverableContent === undefined) {
-    return { hasContent: false };
-  }
-
-  if (typeof deliverableContent === 'string') {
-    const trimmed = deliverableContent.trim();
-    const metadata: Record<string, unknown> = {
-      format: 'text',
-      contentLength: trimmed.length,
-      lineCount: trimmed.split(/\r?\n/).length,
-    };
-
-    if (trimmed.length > 0) {
-      metadata.preview = trimmed.slice(0, 200);
-    }
-
-    const parsed = tryParseJson(trimmed);
-    if (parsed !== null) {
-      const keys = Object.keys(parsed as Record<string, unknown>);
-      metadata.format = Array.isArray(parsed) ? 'array' : 'json';
-      metadata.keyCount = keys.length;
-      if (keys.length > 0) {
-        metadata.topLevelKeys = keys.slice(0, 10);
-      }
-    }
-
-    return metadata;
-  }
-
-  if (Array.isArray(deliverableContent)) {
-    return {
-      format: 'array',
-      length: deliverableContent.length,
-      hasContent: deliverableContent.length > 0,
-    };
-  }
-
-  if (typeof deliverableContent === 'object') {
-    const keys = Object.keys(deliverableContent as Record<string, unknown>);
-    return {
-      format: 'object',
-      keyCount: keys.length,
-      topLevelKeys: keys.slice(0, 10),
-    };
-  }
-
-  return {
-    format: typeof deliverableContent,
-  };
 }
 
 const EMPTY_USAGE = {

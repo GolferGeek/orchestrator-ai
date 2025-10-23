@@ -107,9 +107,11 @@ const handleConversationFromQuery = async () => {
   const conversationId = route.query.conversationId as string;
   if (conversationId && auth.isAuthenticated) {
     try {
-      // Check if conversation is already open
+      // Check if conversation is already loaded with messages
       const existingConversation = conversationsStore.conversationById(conversationId);
-      if (existingConversation) {
+      const existingMessages = conversationsStore.messagesByConversation(conversationId);
+
+      if (existingConversation && existingMessages && existingMessages.length > 0) {
         // Just switch to it
         chatUiStore.setActiveConversation(conversationId);
       } else {
@@ -137,11 +139,23 @@ const handleConversationFromQuery = async () => {
         const createdAt = backendConversation.createdAt ? new Date(backendConversation.createdAt) : new Date();
         const loadedConversation = conversation.createConversationObject(agent, createdAt);
         loadedConversation.id = conversationId; // Override the generated ID with the actual backend ID
-        loadedConversation.messages = messages;
         loadedConversation.title = backendConversation.title || loadedConversation.title;
 
-        // Add it to the store
-        conversationsStore.addConversation(loadedConversation);
+        // Add conversation to the store
+        if (existingConversation) {
+          conversationsStore.updateConversation(conversationId, loadedConversation);
+        } else {
+          conversationsStore.setConversation(loadedConversation);
+        }
+
+        // Set messages separately (the store manages messages in a separate Map)
+        console.log('💾 [HomePage] Setting messages in store for conversation', conversationId, ':', messages.length);
+        conversationsStore.setMessages(conversationId, messages);
+
+        // Verify messages were set
+        const verifyMessages = conversationsStore.messagesByConversation(conversationId);
+        console.log('✅ [HomePage] Messages set in store, verified count:', verifyMessages.length);
+
         chatUiStore.setActiveConversation(conversationId);
       }
       // Clear the query parameter to avoid re-opening on refresh

@@ -483,13 +483,13 @@ const currentAgent = computed(() => {
 });
 const currentAgentIdentifier = computed(() => currentAgent.value?.name ?? '');
 const messages = computed<AgentChatMessage[]>(() => {
-  // Try to get messages from conversation prop first (old structure), then from store
-  if (props.conversation?.messages) {
-    return props.conversation.messages;
-  }
+  // Always read from store - conversation.messages is legacy and may be empty/stale
   if (props.conversation?.id) {
-    return conversationsStore.messagesByConversation(props.conversation.id);
+    const msgs = conversationsStore.messagesByConversation(props.conversation.id);
+    console.log('📬 [TwoPaneConversationView] Using messages from store for conversation', props.conversation.id, ':', msgs.length);
+    return msgs;
   }
+  console.log('📭 [TwoPaneConversationView] No conversation ID available');
   return [];
 });
 
@@ -1182,21 +1182,25 @@ const executeRerunWithConfig = async (
     // Set loading state
     chatUiStore.setIsSendingMessage(true);
 
-    // Add a system message to show the rerun in the UI (not sent to LLM)
-    const systemMessage: AgentChatMessage = {
-      id: `rerun-${Date.now()}`,
-      role: 'system',
-      content: `🔄 Regenerating with ${llmConfig.provider}/${llmConfig.model}`,
+    // Create assistant message upfront (will be updated with deliverable when complete)
+    // This matches the build flow pattern
+    const rerunMessageId = `rerun-${Date.now()}`;
+    const initialMessage: AgentChatMessage = {
+      id: rerunMessageId,
+      role: 'assistant',
+      content: 'Regenerating...',
       timestamp: new Date(),
       metadata: {
+        mode: isPlan ? 'plan' : 'build',
         isRerunRequest: true,
         originalVersionId: capturedRerunData.version.id,
-        rerunLLMConfig: llmConfig,
+        provider: llmConfig.provider,
+        model: llmConfig.model,
       }
     };
 
     if (props.conversation) {
-      conversationsStore.addMessage(props.conversation.id, systemMessage);
+      conversationsStore.addMessage(props.conversation.id, initialMessage);
     }
 
     console.log('🔄 LLM Rerun Config:', llmConfig, 'isPlan:', isPlan, 'isDeliverable:', isDeliverable);
@@ -1239,25 +1243,31 @@ const executeRerunWithConfig = async (
       );
     }
 
-    // Create assistant response message with the new version
-    const assistantMessage: AgentChatMessage = {
-      id: `rerun-response-${Date.now()}`,
-      role: 'assistant',
-      content: `✅ Created new version with ${llmConfig.provider}/${llmConfig.model}`,
-      timestamp: new Date(),
-      ...(isPlan ? { planId: plan.id } : {}),
-      ...(isDeliverable ? { deliverableId: deliverable.id } : {}),
-      metadata: {
-        isRerunResponse: true,
-        newVersionId: result.version.id,
-        llmUsed: llmConfig,
-        sourceVersionId: capturedRerunData.version.id
-      }
-    };
+    // Update the initial message with deliverable (matches initial build structure)
+    const assistantContent = isDeliverable
+      ? 'Deliverable created'
+      : isPlan
+      ? 'Plan created'
+      : 'Created successfully';
 
     if (props.conversation) {
-      // Use store method instead of direct prop mutation
-      conversationsStore.addMessage(props.conversation.id, assistantMessage);
+      // Update the message we created earlier
+      conversationsStore.updateMessage(props.conversation.id, rerunMessageId, {
+        content: assistantContent,
+        ...(isPlan ? { planId: plan.id } : {}),
+        ...(isDeliverable ? { deliverableId: deliverable.id } : {}),
+        metadata: {
+          mode: isPlan ? 'plan' : 'build',
+          isCompleted: true,
+          isRerunResponse: true,
+          newVersionId: result.version.id,
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+          sourceVersionId: capturedRerunData.version.id,
+          // Include usage/token data if available from response
+          ...(result.version.metadata?.usage && { usage: result.version.metadata.usage }),
+        }
+      });
     }
 
     // For plans, the store is already updated by the rerunPlan action

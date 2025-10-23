@@ -299,34 +299,37 @@ export async function createDeliverable(
 
     // 9. Update the existing assistant message with deliverable and final content
     if (assistantMessageId) {
-      // Find and update the message
+      // Get current message to preserve existing data
       const messages = conversationsStore.messagesByConversation(conversationId);
-      const messageIndex = messages.findIndex(m => m.id === assistantMessageId);
+      const message = messages.find(m => m.id === assistantMessageId);
 
-      if (messageIndex >= 0) {
-        const message = messages[messageIndex];
+      if (message) {
+        // Update message content
         const updatedMessage = {
           ...message,
           content: assistantContent,
           deliverableId: finalDeliverable.id,
-          metadata: {
-            ...message.metadata,
-            taskId: result.taskId,
-            deliverableId: finalDeliverable.id,
-            thinking: thinkingContent || (parsedResult as any).extractedThinking,
-            provider: (parsedResult as any)?.payload?.metadata?.provider ||
-                     (parsedResult as any)?.metadata?.provider ||
-                     message.metadata?.provider,
-            model: (parsedResult as any)?.payload?.metadata?.model ||
-                  (parsedResult as any)?.metadata?.model ||
-                  message.metadata?.model,
-            workflow_steps_realtime: Array.from(workflowSteps.values()).sort((a, b) => a.stepIndex - b.stepIndex),
-          },
         };
 
-        // Update the message in the store
-        messages[messageIndex] = updatedMessage;
-        conversationsStore.setMessages(conversationId, [...messages]);
+        // Update message metadata
+        conversationsStore.updateMessageMetadata(conversationId, assistantMessageId, {
+          taskId: result.taskId,
+          deliverableId: finalDeliverable.id,
+          thinking: thinkingContent || (parsedResult as any).extractedThinking,
+          provider: (parsedResult as any)?.payload?.metadata?.provider ||
+                   (parsedResult as any)?.metadata?.provider ||
+                   message.metadata?.provider,
+          model: (parsedResult as any)?.payload?.metadata?.model ||
+                (parsedResult as any)?.metadata?.model ||
+                message.metadata?.model,
+          workflow_steps_realtime: Array.from(workflowSteps.values()).sort((a, b) => a.stepIndex - b.stepIndex),
+        });
+
+        // Update content and deliverableId
+        conversationsStore.updateMessage(conversationId, assistantMessageId, {
+          content: assistantContent,
+          deliverableId: finalDeliverable.id,
+        });
       }
     }
 

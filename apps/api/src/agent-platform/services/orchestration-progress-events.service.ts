@@ -4,6 +4,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { firstValueFrom } from 'rxjs';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { TaskStatusService } from '@/agent2agent/tasks/task-status.service';
+import { TaskMessageService } from '@/agent2agent/tasks/task-message.service';
 import {
   OrchestrationRunEventPayload,
   OrchestrationStepSnapshot,
@@ -20,6 +21,7 @@ export class OrchestrationProgressEventsService {
     private readonly eventEmitter: EventEmitter2,
     private readonly http: HttpService,
     private readonly taskStatusService: TaskStatusService,
+    private readonly taskMessageService: TaskMessageService,
   ) {}
 
   @OnEvent('orchestration.event', { async: true })
@@ -109,38 +111,33 @@ export class OrchestrationProgressEventsService {
 
     switch (event.type) {
       case 'orchestration.run.created':
-        await this.safeUpdateTaskStatus(task.id, task.userId, {
+        await this.createTaskMessageAndUpdateStatus(task.id, task.userId, 'Orchestration run created', 'status', progress ?? 0, {
           status: 'running',
           progress: progress ?? 0,
-          progressMessage: 'Orchestration run created',
         });
         break;
       case 'orchestration.run.updated':
-        await this.safeUpdateTaskStatus(task.id, task.userId, {
+        await this.createTaskMessageAndUpdateStatus(task.id, task.userId, `Run status updated: ${event.run.status}`, 'status', progress, {
           status: this.normalizeRunStatus(event.run.status),
           progress: progress,
-          progressMessage: `Run status updated: ${event.run.status}`,
         });
         break;
       case 'orchestration.step.queued':
-        await this.safeUpdateTaskStatus(task.id, task.userId, {
+        await this.createTaskMessageAndUpdateStatus(task.id, task.userId, this.buildStepMessage(step, 'queued'), 'progress', progress, {
           status: 'running',
           progress: progress,
-          progressMessage: this.buildStepMessage(step, 'queued'),
         });
         break;
       case 'orchestration.step.running':
-        await this.safeUpdateTaskStatus(task.id, task.userId, {
+        await this.createTaskMessageAndUpdateStatus(task.id, task.userId, this.buildStepMessage(step, 'running'), 'progress', progress, {
           status: 'running',
           progress: progress,
-          progressMessage: this.buildStepMessage(step, 'running'),
         });
         break;
       case 'orchestration.step.completed':
-        await this.safeUpdateTaskStatus(task.id, task.userId, {
+        await this.createTaskMessageAndUpdateStatus(task.id, task.userId, this.buildStepMessage(step, 'completed'), 'progress', progress, {
           status: 'running',
           progress: progress,
-          progressMessage: this.buildStepMessage(step, 'completed'),
         });
         break;
       case 'orchestration.step.failed':
@@ -153,10 +150,9 @@ export class OrchestrationProgressEventsService {
         });
         break;
       case 'orchestration.run.completed':
-        await this.safeUpdateTaskStatus(task.id, task.userId, {
+        await this.createTaskMessageAndUpdateStatus(task.id, task.userId, 'Orchestration run completed', 'status', 100, {
           status: 'completed',
           progress: 100,
-          progressMessage: 'Orchestration run completed',
           result: event.run.results ?? {},
         });
         break;
@@ -169,6 +165,33 @@ export class OrchestrationProgressEventsService {
         break;
       default:
         break;
+    }
+  }
+
+  private async createTaskMessageAndUpdateStatus(
+    taskId: string,
+    userId: string,
+    message: string,
+    messageType: 'progress' | 'status' | 'info' | 'warning' | 'error',
+    progressPercentage: number | undefined,
+    update: Parameters<TaskStatusService['updateTaskStatus']>[2],
+  ): Promise<void> {
+    try {
+      // Create task message first
+      await this.taskMessageService.createTaskMessage({
+        taskId,
+        userId,
+        content: message,
+        messageType,
+        progressPercentage,
+      });
+      // Then update task status
+      await this.taskStatusService.updateTaskStatus(taskId, userId, update);
+    } catch (error) {
+      this.logger.debug(
+        `Unable to create task message or update task status for task ${taskId}`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

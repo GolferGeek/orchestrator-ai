@@ -401,7 +401,11 @@ export const useConversationsStore = defineStore('conversations', () => {
     };
 
     const conversationMessages = messages.value.get(conversationId) || [];
-    messages.value.set(conversationId, [...conversationMessages, newMessage]);
+
+    // Create a new Map to trigger Vue reactivity
+    const newMessages = new Map(messages.value);
+    newMessages.set(conversationId, [...conversationMessages, newMessage]);
+    messages.value = newMessages;
 
     // Update conversation's updatedAt and lastActiveAt
     updateConversation(conversationId, {
@@ -454,14 +458,20 @@ export const useConversationsStore = defineStore('conversations', () => {
    * Used when loading messages from API
    */
   function setMessages(conversationId: string, messageList: Message[]): void {
-    messages.value.set(conversationId, messageList);
+    // Create a new Map to trigger Vue reactivity
+    const newMessages = new Map(messages.value);
+    newMessages.set(conversationId, messageList);
+    messages.value = newMessages;
   }
 
   /**
    * Clear all messages for a conversation
    */
   function clearMessages(conversationId: string): void {
-    messages.value.set(conversationId, []);
+    // Create a new Map to trigger Vue reactivity
+    const newMessages = new Map(messages.value);
+    newMessages.set(conversationId, []);
+    messages.value = newMessages;
   }
 
   /**
@@ -489,7 +499,43 @@ export const useConversationsStore = defineStore('conversations', () => {
     };
 
     conversationMessages[messageIndex] = updatedMessage;
-    messages.value.set(conversationId, [...conversationMessages]);
+
+    // Create a new Map to trigger Vue reactivity
+    const newMessages = new Map(messages.value);
+    newMessages.set(conversationId, [...conversationMessages]);
+    messages.value = newMessages;
+  }
+
+  /**
+   * Update entire message (content, deliverableId, metadata, etc.)
+   */
+  function updateMessage(
+    conversationId: string,
+    messageId: string,
+    updates: Partial<Omit<Message, 'id' | 'conversationId'>>
+  ): void {
+    const conversationMessages = messages.value.get(conversationId);
+    if (!conversationMessages) return;
+
+    const messageIndex = conversationMessages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+
+    const message = conversationMessages[messageIndex];
+    const updatedMessage = {
+      ...message,
+      ...updates,
+      metadata: updates.metadata ? {
+        ...message.metadata,
+        ...updates.metadata,
+      } : message.metadata,
+    };
+
+    conversationMessages[messageIndex] = updatedMessage;
+
+    // Create a new Map to trigger Vue reactivity
+    const newMessages = new Map(messages.value);
+    newMessages.set(conversationId, [...conversationMessages]);
+    messages.value = newMessages;
   }
 
   // --------------------------------------------------------------------------
@@ -757,6 +803,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     setMessages,
     clearMessages,
     updateMessageMetadata,
+    updateMessage,
 
     // Task mutations
     addTask,

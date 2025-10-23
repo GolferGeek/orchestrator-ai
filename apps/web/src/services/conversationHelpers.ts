@@ -70,15 +70,20 @@ export class ConversationService {
    */
   async loadConversationMessages(conversationId: string): Promise<AgentChatMessage[]> {
 
-    
+
     try {
       // Load all tasks for this conversation
-      const tasksResponse = await tasksService.listTasks({ 
+      const tasksResponse = await tasksService.listTasks({
         conversationId: conversationId,
         limit: 100 // Load up to 100 tasks for this conversation
       });
-      
+
       const tasks = tasksResponse.tasks || [];
+
+      console.log(`📋 [loadConversationMessages] Loaded ${tasks.length} tasks for conversation ${conversationId}`);
+      if (tasks.length > 0) {
+        console.log('📋 [loadConversationMessages] First task:', tasks[0]);
+      }
 
       
       // Load deliverables for this conversation to link them to messages
@@ -239,9 +244,15 @@ export class ConversationService {
 
             // Merge backend-provided metadata (provider/model/usage, etc.)
             if (parsedResponse && typeof parsedResponse === 'object') {
+              console.log('[loadConversationMessages] Extracting metadata from response for task', task.id);
+
               // Extract metadata from various locations
               // 1. Top-level provider/model/usage fields
               if (parsedResponse.provider || parsedResponse.model || parsedResponse.usage) {
+                console.log('[loadConversationMessages] Found metadata at top level:', {
+                  provider: parsedResponse.provider,
+                  model: parsedResponse.model
+                });
                 mergedResponseMetadata = {
                   ...mergedResponseMetadata,
                   provider: parsedResponse.provider,
@@ -252,18 +263,23 @@ export class ConversationService {
 
               // 2. result.metadata (agent2agent format)
               if (parsedResponse.result?.metadata) {
+                console.log('[loadConversationMessages] Found result.metadata:', parsedResponse.result.metadata);
                 mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.result.metadata };
               }
 
               // 3. Top-level metadata object
               if (parsedResponse.metadata) {
+                console.log('[loadConversationMessages] Found top-level metadata:', parsedResponse.metadata);
                 mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.metadata };
               }
 
               // 4. payload.metadata
               if (parsedResponse.payload?.metadata) {
+                console.log('[loadConversationMessages] Found payload.metadata:', parsedResponse.payload.metadata);
                 mergedResponseMetadata = { ...mergedResponseMetadata, ...parsedResponse.payload.metadata };
               }
+
+              console.log('[loadConversationMessages] Final merged metadata:', mergedResponseMetadata);
             }
           } catch {
             // Keep raw response
@@ -272,6 +288,22 @@ export class ConversationService {
 
           // Completed task - create assistant message with parsed response and merged metadata
           const assistantMessageId = `assistant-${task.id}`;
+
+          // For API agents that don't use LLMs, provide defaults
+          const taskMode = task.params?.mode || (task.method?.includes('plan') ? 'plan' : task.method?.includes('build') ? 'build' : 'converse');
+
+          // Check if we have LLM metadata from task storage
+          const storedLlmSelection = task.llmMetadata?.originalLLMSelection;
+          if (storedLlmSelection && !mergedResponseMetadata.provider && !mergedResponseMetadata.model) {
+            // Use stored LLM selection if response didn't include it
+            // LlmSelection uses 'provider' and 'model' fields
+            mergedResponseMetadata.provider = storedLlmSelection.provider;
+            mergedResponseMetadata.model = storedLlmSelection.model;
+            console.log('[loadConversationMessages] Using stored LLM selection:', mergedResponseMetadata);
+          }
+
+          const hasLlmMetadata = mergedResponseMetadata.provider || mergedResponseMetadata.model || (task.llmMetadata && Object.keys(task.llmMetadata).length > 0);
+
           const assistantMessage: AgentChatMessage = {
             id: assistantMessageId,
             role: 'assistant',
@@ -283,11 +315,16 @@ export class ConversationService {
               completedAt: task.completedAt,
               responseMetadata: task.responseMetadata,
               // Include mode information
-              mode: task.params?.mode || (task.method?.includes('plan') ? 'plan' : task.method?.includes('build') ? 'build' : 'converse'),
+              mode: taskMode,
               // Include LLM metadata stored with the task (contains original selection)
               ...(task.llmMetadata ? { llmMetadata: task.llmMetadata } : {}),
               // Include provider/model/usage from response metadata for accurate display
               ...mergedResponseMetadata,
+              // For API agents without LLM metadata, provide defaults
+              ...(!hasLlmMetadata && taskMode === 'build' ? {
+                provider: 'n8n',
+                model: 'workflow'
+              } : {}),
               originalTaskData: {
                 method: task.method,
                 status: task.status,

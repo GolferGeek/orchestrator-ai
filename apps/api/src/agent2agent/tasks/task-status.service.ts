@@ -8,6 +8,7 @@ import {
   AgentStreamErrorEvent,
 } from '@/agent-platform/services/agent-runtime-stream.service';
 import { randomUUID } from 'crypto';
+import { TaskMessageService } from './task-message.service';
 
 export type TaskStatusState =
   | 'pending'
@@ -23,7 +24,6 @@ export interface TaskStatus {
   userId: string;
   status: TaskStatusState;
   progress: number;
-  progressMessage?: string;
   result?: JsonValue;
   error?: string;
   metadata?: JsonObject;
@@ -35,7 +35,6 @@ export interface TaskStatus {
 export interface TaskStatusUpdate {
   status?: TaskStatusState;
   progress?: number;
-  progressMessage?: string;
   result?: JsonValue;
   error?: string;
   metadata?: JsonObject;
@@ -98,6 +97,7 @@ export class TaskStatusService {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly supabaseService: SupabaseService,
+    private readonly taskMessageService: TaskMessageService,
   ) {}
 
   registerStreamSession(params: {
@@ -347,8 +347,22 @@ export class TaskStatusService {
       update.progress = progress;
     }
 
+    // Write progress message to task_messages table before updating status
     if (content && content.trim().length > 0) {
-      update.progressMessage = content;
+      this.taskMessageService
+        .createTaskMessage({
+          taskId: session.taskId,
+          userId: session.userId,
+          content,
+          messageType: 'progress',
+          progressPercentage: progress,
+        })
+        .catch((error) => {
+          this.logger.debug(
+            `Failed to create task message for task ${session.taskId}`,
+            error,
+          );
+        });
     }
 
     if (!currentStatus || currentStatus.status !== 'completed') {
@@ -391,12 +405,28 @@ export class TaskStatusService {
 
     this.addTaskMessage(session.taskId, 'Stream completed', 'status', metadata);
 
+    // Write completion message to task_messages table
+    this.taskMessageService
+      .createTaskMessage({
+        taskId: session.taskId,
+        userId: session.userId,
+        content: 'Stream completed',
+        messageType: 'status',
+        progressPercentage: 100,
+        metadata,
+      })
+      .catch((error) => {
+        this.logger.debug(
+          `Failed to create task completion message for task ${session.taskId}`,
+          error,
+        );
+      });
+
     const currentStatus = this.activeTaskStatuses.get(session.taskId);
     if (!currentStatus || currentStatus.status !== 'completed') {
       this.updateTaskStatus(session.taskId, session.userId, {
         status: 'completed',
         progress: 100,
-        progressMessage: 'Stream completed',
       }).catch((error) => {
         this.logger.debug(
           `Failed to apply stream completion status update for task ${session.taskId}`,
@@ -505,7 +535,6 @@ export class TaskStatusService {
           .update({
             status: taskStatus.status,
             progress: taskStatus.progress,
-            progress_message: taskStatus.progressMessage,
             updated_at: new Date().toISOString(),
           })
           .eq('id', taskId)
@@ -564,7 +593,6 @@ export class TaskStatusService {
         const updateData: Record<string, unknown> = {
           status: newStatus.status,
           progress: newStatus.progress,
-          progress_message: newStatus.progressMessage,
           updated_at: new Date().toISOString(),
         };
 
@@ -765,10 +793,20 @@ export class TaskStatusService {
     progress: number,
     message?: string,
   ): Promise<void> {
+    // Write message to task_messages table if provided
+    if (message) {
+      await this.taskMessageService.createTaskMessage({
+        taskId,
+        userId,
+        content: message,
+        messageType: 'progress',
+        progressPercentage: progress,
+      });
+    }
+
     await this.updateTaskStatus(taskId, userId, {
       status: 'running',
       progress,
-      progressMessage: message,
     });
   }
 
@@ -827,7 +865,6 @@ export class TaskStatusService {
       userId: taskStatus.userId,
       status: taskStatus.status,
       progress: taskStatus.progress,
-      message: taskStatus.progressMessage,
       data: taskStatus,
     });
 

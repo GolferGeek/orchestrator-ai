@@ -1350,9 +1350,6 @@ export class EvaluationService {
         const responseMetadataRecord = this.asRecord(task.response_metadata);
         const llmMetadataRecord = this.asRecord(task.llm_metadata);
         const taskMetadataRecord = this.asRecord(task.metadata);
-        const deliverableMetadataRecord = this.asRecord(
-          task.deliverable_metadata,
-        );
 
         const sessionId =
           this.pickString(task.session_id) ??
@@ -1444,10 +1441,6 @@ export class EvaluationService {
               ? this.toPlainObject(taskMetadataRecord)
               : undefined,
             deliverableType: task.type,
-            deliverableMetadata: deliverableMetadataRecord
-              ? this.toPlainObject(deliverableMetadataRecord)
-              : undefined,
-            progressMessage: task.progress_message,
             workflowStepsCompleted:
               responseMetadataRecord?.workflow_steps_completed,
             userEmail,

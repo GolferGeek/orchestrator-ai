@@ -236,6 +236,25 @@ export class Agent2AgentTasksService {
         },
       };
 
+      // Store LLM selection in dedicated llm_metadata column for better querying
+      if (params.llmSelection) {
+        (taskData as any).llm_metadata = {
+          originalLLMSelection: params.llmSelection,
+          createdAt: new Date().toISOString(),
+        };
+      }
+
+      // Store top-level metadata for task-level information
+      // This is separate from params.metadata which is protocol-specific
+      if (params.metadata && Object.keys(params.metadata).length > 0) {
+        (taskData as any).metadata = {
+          ...params.metadata,
+          agentName,
+          agentType,
+          createdAt: new Date().toISOString(),
+        };
+      }
+
       // Only include id if taskId is provided (otherwise let DB generate it)
       if (params.taskId) {
         taskData.id = params.taskId;

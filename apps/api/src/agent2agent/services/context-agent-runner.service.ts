@@ -8,7 +8,6 @@ import type {
 import { LLMService } from '@llm/llm.service';
 import { BaseAgentRunner } from './base-agent-runner.service';
 import {
-  buildDeliverableMetadata,
   validateDeliverableStructure,
 } from './base-agent-runner/build.handlers';
 import {
@@ -353,10 +352,6 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           conversationMessageCount: conversationForPrompt.length,
           deliverableStructureApplied: Boolean(deliverableStructure),
           ioSchemaApplied: Boolean(outputSchema),
-          deliverableMetadata: buildDeliverableMetadata(
-            (createResult.data as { version?: { content?: unknown } }).version
-              ?.content ?? finalContent,
-          ),
           rerun: payload.rerunContext
             ? {
                 sourceVersionId: payload.rerunContext.sourceVersion?.id ?? null,
