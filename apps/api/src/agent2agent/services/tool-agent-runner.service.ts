@@ -112,11 +112,63 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       const tools: string[] =
         overrideTools && overrideTools.length > 0 ? overrideTools : configTools;
 
-      const toolParams = this.mergeToolParams(
+      // Extract provider/model from request metadata for LLM-powered tools
+      const metadata = this.asRecord(request.metadata);
+      const payload = this.asRecord(request.payload);
+
+      // Check for provider/model in metadata.buildRerun.config (from rerun action)
+      const buildRerun = this.asRecord(metadata?.buildRerun);
+      const buildRerunConfig = this.asRecord(buildRerun?.config);
+
+      // Check for provider/model in payload.config (from frontend)
+      const payloadConfig = this.asRecord(payload?.config);
+
+      // Try metadata first, then buildRerun.config, then payload.config
+      const providerFromMetadata = this.ensureString(metadata?.provider) ||
+                                    this.ensureString(buildRerunConfig?.provider) ||
+                                    this.ensureString(payloadConfig?.provider);
+      const modelFromMetadata = this.ensureString(metadata?.model) ||
+                                  this.ensureString(buildRerunConfig?.model) ||
+                                  this.ensureString(payloadConfig?.model);
+
+      this.logger.debug(
+        `Provider/model extraction - ` +
+        `metadata: ${metadata?.provider}/${metadata?.model}, ` +
+        `buildRerun.config: ${buildRerunConfig?.provider}/${buildRerunConfig?.model}, ` +
+        `payload.config: ${payloadConfig?.provider}/${payloadConfig?.model}, ` +
+        `final: ${providerFromMetadata}/${modelFromMetadata}`,
+      );
+
+      // Merge tool params: config < payload < metadata (for provider/model)
+      let toolParams = this.mergeToolParams(
         this.asRecord(configRecord?.toolParams),
         this.asRecord(payloadOverrides.toolParams),
       );
 
+      // Auto-inject provider/model from metadata into LLM-powered tools
+      if (providerFromMetadata && modelFromMetadata) {
+        // Inject into generate-sql tool
+        const generateSqlParams = toolParams['supabase/generate-sql'] || {};
+        toolParams['supabase/generate-sql'] = {
+          ...generateSqlParams,
+          provider: providerFromMetadata,
+          model: modelFromMetadata,
+        };
+
+        // Inject into analyze-results tool
+        const analyzeResultsParams = toolParams['supabase/analyze-results'] || {};
+        toolParams['supabase/analyze-results'] = {
+          ...analyzeResultsParams,
+          provider: providerFromMetadata,
+          model: modelFromMetadata,
+        };
+
+        this.logger.debug(
+          `Auto-injected LLM config for Supabase tools: ${providerFromMetadata}/${modelFromMetadata}`,
+        );
+      }
+
+      // Validate tools configuration
       if (tools.length === 0) {
         return TaskResponseDto.failure(
           AgentTaskMode.BUILD,
@@ -124,17 +176,17 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         );
       }
 
-      this.logger.log(
-        `Executing ${tools.length} tools for agent ${definition.slug}`,
-      );
+      // Validate namespace format for all tools (fail-fast per PRD §6)
+      for (const toolName of tools) {
+        if (!toolName.includes('/')) {
+          return TaskResponseDto.failure(
+            AgentTaskMode.BUILD,
+            `Tool '${toolName}' must include namespace: expected 'namespace/tool'`,
+          );
+        }
+      }
 
-      // 2. Execute tools sequentially (or in parallel if configured)
-      const toolResults: Array<{
-        tool: string;
-        success: boolean;
-        result?: unknown;
-        error?: string;
-      }> = [];
+      // 2. Resolve execution configuration
       const executionMode = this.resolveExecutionMode(
         payloadOverrides.toolExecutionMode ?? configRecord?.toolExecutionMode,
       );
@@ -142,6 +194,22 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         this.ensureBoolean(payloadOverrides.stopOnError) ??
         this.ensureBoolean(configRecord?.stopOnError) ??
         true;
+
+      // Log execution metadata for observability (PRD §8)
+      this.logger.log(
+        `Executing ${tools.length} tools for agent ${definition.slug}`,
+      );
+      this.logger.debug(
+        `Tool execution config - Mode: ${executionMode}, StopOnError: ${stopOnError}, Tools: ${tools.join(', ')}`,
+      );
+
+      // 3. Execute tools sequentially (or in parallel if configured)
+      const toolResults: Array<{
+        tool: string;
+        success: boolean;
+        result?: unknown;
+        error?: string;
+      }> = [];
 
       if (executionMode === 'parallel') {
         // Execute all tools in parallel
@@ -173,13 +241,41 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           }
         });
       } else {
-        // Execute tools sequentially
+        // Execute tools sequentially with result chaining
+        let previousResult: unknown = null;
+
         for (const toolName of tools) {
           try {
-            const params = toolParams[toolName] || {};
+            let params = toolParams[toolName] || {};
+
+            // Auto-inject provider/model for LLM-powered tools
+            if (providerFromMetadata && modelFromMetadata) {
+              if (toolName === 'supabase/generate-sql' || toolName === 'supabase/analyze-results') {
+                params = {
+                  ...params,
+                  provider: providerFromMetadata,
+                  model: modelFromMetadata,
+                };
+                this.logger.debug(
+                  `Injected provider/model for ${toolName}: ${providerFromMetadata}/${modelFromMetadata}`,
+                );
+              }
+            } else {
+              this.logger.warn(
+                `No provider/model metadata found for ${toolName}. Provider: ${providerFromMetadata}, Model: ${modelFromMetadata}`,
+              );
+            }
+
+            // Chain results: merge previous tool's output into current params
+            const chainedParams = this.chainToolParams(
+              params,
+              previousResult,
+              toolName,
+            );
+
             const result: unknown = await this.executeTool(
               toolName,
-              params,
+              chainedParams,
               request,
             );
 
@@ -189,6 +285,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
               result,
             });
 
+            previousResult = result;
             this.logger.debug(`Tool ${toolName} executed successfully`);
           } catch (error) {
             const errorMessage =
@@ -278,6 +375,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           successfulTools: successfulTools.length,
           failedTools: failedTools.length,
           executionMode,
+          stopOnError,
+          toolsUsed: tools,
         }),
       });
     } catch (error) {
@@ -349,26 +448,109 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     return normalized === 'parallel' ? 'parallel' : 'sequential';
   }
 
+  /**
+   * Chain tool parameters by merging previous tool's result
+   *
+   * Handles common chaining patterns:
+   * - generate-sql outputs { sql: "..." } → execute-sql needs { sql: "..." }
+   * - execute-sql outputs results array → analyze-results needs { data: [...] }
+   * - JSON responses are parsed and merged into params
+   */
+  private chainToolParams(
+    params: Record<string, unknown>,
+    previousResult: unknown,
+    currentToolName: string,
+  ): Record<string, unknown> {
+    if (!previousResult) {
+      return params;
+    }
+
+    const chained = { ...params };
+
+    // Parse JSON string results
+    let resultData: unknown = previousResult;
+    if (typeof previousResult === 'string') {
+      try {
+        resultData = JSON.parse(previousResult);
+      } catch {
+        // Not JSON, use as-is
+        resultData = previousResult;
+      }
+    }
+
+    // Handle array results (from MCP content array)
+    if (Array.isArray(resultData) && resultData.length > 0) {
+      // Extract first item if it's a string
+      const firstItem = resultData[0];
+      if (typeof firstItem === 'string') {
+        try {
+          resultData = JSON.parse(firstItem);
+        } catch {
+          resultData = firstItem;
+        }
+      }
+    }
+
+    // Tool-specific chaining logic
+    if (currentToolName === 'supabase/execute-sql' || currentToolName.endsWith('/execute-sql')) {
+      // execute-sql needs 'sql' param from generate-sql
+      const resultObj = resultData as Record<string, unknown>;
+      if (resultObj && typeof resultObj === 'object' && 'sql' in resultObj) {
+        chained.sql = resultObj.sql;
+        this.logger.debug(`Chained SQL: ${String(resultObj.sql).substring(0, 100)}...`);
+      }
+    } else if (currentToolName === 'supabase/analyze-results' || currentToolName.endsWith('/analyze-results')) {
+      // analyze-results needs 'data' param from execute-sql
+      const resultObj = resultData as Record<string, unknown>;
+      if (resultObj && typeof resultObj === 'object' && 'data' in resultObj) {
+        // execute-sql returns { data: [...], row_count, ... }
+        chained.data = resultObj.data;
+        const dataArray = resultObj.data as unknown[];
+        this.logger.debug(`Chained ${dataArray?.length || 0} result rows for analysis`);
+      } else if (Array.isArray(resultData)) {
+        chained.data = resultData;
+        this.logger.debug(`Chained ${resultData.length} result rows for analysis`);
+      } else if (resultObj && typeof resultObj === 'object' && 'rows' in resultObj) {
+        chained.data = resultObj.rows;
+      } else if (resultObj && typeof resultObj === 'object' && 'results' in resultObj) {
+        chained.data = resultObj.results;
+      } else {
+        chained.data = resultData;
+      }
+    }
+
+    return chained;
+  }
+
   private mergeToolParams(
     base: Record<string, unknown> | null,
     override: Record<string, unknown> | null,
   ): Record<string, Record<string, unknown>> {
     const merged: Record<string, Record<string, unknown>> = {};
 
-    const apply = (source: Record<string, unknown> | null) => {
-      if (!source) {
-        return;
-      }
-      for (const [key, value] of Object.entries(source)) {
+    // Apply base params first
+    if (base) {
+      for (const [key, value] of Object.entries(base)) {
         const record = this.asRecord(value);
         if (record) {
           merged[key] = this.toPlainRecord(record);
         }
       }
-    };
+    }
 
-    apply(base);
-    apply(override);
+    // Deep merge override params per tool
+    if (override) {
+      for (const [key, value] of Object.entries(override)) {
+        const record = this.asRecord(value);
+        if (record) {
+          // Deep merge: combine base and override params for this tool
+          merged[key] = {
+            ...(merged[key] || {}),
+            ...this.toPlainRecord(record),
+          };
+        }
+      }
+    }
 
     return merged;
   }
@@ -381,10 +563,11 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     params: Record<string, unknown>,
     request: TaskRequestDto,
   ): Promise<unknown> {
-    this.logger.debug(`Executing tool: ${toolName}`);
+    this.logger.debug(`Executing tool: ${toolName} with params: ${JSON.stringify(params)}`);
 
     // Interpolate parameters with request data
     const interpolatedParams = this.interpolateParams(params, request);
+    this.logger.debug(`Interpolated params for ${toolName}: ${JSON.stringify(interpolatedParams)}`);
 
     // Call MCP service
     const result = await this.mcpService.callTool({
@@ -430,12 +613,39 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
 
   /**
    * Interpolate parameters with request data
-   * Supports {{payload.field}} and {{metadata.field}} syntax
+   *
+   * Supports template variable syntax:
+   * - `{{payload.field}}` - Access request payload fields
+   * - `{{metadata.field}}` - Access request metadata fields
+   * - `{{payload.nested.field}}` - Access nested object fields
+   *
+   * Non-string values are passed through as-is.
+   *
+   * @example
+   * ```typescript
+   * const params = {
+   *   query: "{{payload.userMessage}}",
+   *   max_rows: 100,
+   *   table: "{{metadata.table}}"
+   * };
+   * const interpolated = this.interpolateParams(params, request);
+   * // Result: { query: "actual message", max_rows: 100, table: "users" }
+   * ```
+   *
+   * @param params - Parameter object with potential template variables
+   * @param request - Task request containing payload and metadata
+   * @returns Interpolated parameter object
    */
   private interpolateParams(
     params: Record<string, unknown>,
     request: TaskRequestDto,
   ): Record<string, unknown> {
+    this.logger.debug(`[INTERPOLATE] Starting interpolation`);
+    this.logger.debug(`[INTERPOLATE] Request keys: ${Object.keys(request).join(', ')}`);
+    this.logger.debug(`[INTERPOLATE] Request.payload type: ${typeof request.payload}`);
+    this.logger.debug(`[INTERPOLATE] Request.payload keys: ${request.payload && typeof request.payload === 'object' ? Object.keys(request.payload as Record<string, unknown>).join(', ') : 'none'}`);
+    this.logger.debug(`[INTERPOLATE] Params to interpolate: ${JSON.stringify(params).substring(0, 300)}`);
+
     const interpolated: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(params)) {
@@ -444,6 +654,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         interpolated[key] = value.replace(
           /\{\{([^}]+)\}\}/g,
           (match: string, path: string) => {
+            this.logger.debug(`[INTERPOLATE] Processing template: ${match}`);
             const keys = path.trim().split('.');
             let val: unknown = request;
 
@@ -451,12 +662,19 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
               if (val && typeof val === 'object' && k in val) {
                 const objVal = val as Record<string, unknown>;
                 val = objVal[k];
+                this.logger.debug(`[INTERPOLATE] Found key '${k}', type: ${typeof val}`);
               } else {
+                this.logger.warn(
+                  `[INTERPOLATE] Template variable ${match} not found. Key '${k}' not in object. ` +
+                  `Available keys: ${val && typeof val === 'object' ? Object.keys(val).join(', ') : 'none'}`,
+                );
                 return match; // Keep original if not found
               }
             }
 
-            return typeof val === 'string' ? val : JSON.stringify(val);
+            const result = typeof val === 'string' ? val : JSON.stringify(val);
+            this.logger.debug(`[INTERPOLATE] Final value for ${match}: ${result}`);
+            return result;
           },
         );
       } else {
@@ -465,6 +683,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       }
     }
 
+    this.logger.debug(`[INTERPOLATE] Result: ${JSON.stringify(interpolated).substring(0, 300)}`);
     return interpolated;
   }
 
@@ -483,6 +702,14 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     if (format === 'json') {
       return JSON.stringify(results, null, 2);
     } else if (format === 'markdown') {
+      // Check if these are Supabase tools for special formatting
+      const isSupabaseTools = results.some(r => r.tool.startsWith('supabase/'));
+
+      if (isSupabaseTools) {
+        return this.formatSupabaseResults(results);
+      }
+
+      // Default markdown formatting
       let markdown = '# Tool Execution Results\n\n';
 
       for (const result of results) {
@@ -512,5 +739,97 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         })
         .join('\n\n');
     }
+  }
+
+  /**
+   * Format Supabase tool results in a user-friendly markdown format
+   */
+  private formatSupabaseResults(
+    results: Array<{
+      tool: string;
+      success: boolean;
+      result?: unknown;
+      error?: string;
+    }>,
+  ): string {
+    let markdown = '';
+
+    // Extract SQL and analysis from results
+    let sql = '';
+    let analysis = '';
+    const errors: string[] = [];
+
+    for (const result of results) {
+      if (!result.success) {
+        errors.push(`${result.tool}: ${result.error}`);
+        continue;
+      }
+
+      // Handle generate-sql result
+      if (result.tool === 'supabase/generate-sql' && result.result) {
+        try {
+          const resultArray = Array.isArray(result.result) ? result.result : [result.result];
+          const sqlData = JSON.parse(String(resultArray[0]));
+          sql = sqlData.sql || '';
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+
+      // Handle analyze-results result
+      if (result.tool === 'supabase/analyze-results' && result.result) {
+        try {
+          const resultArray = Array.isArray(result.result) ? result.result : [result.result];
+          const analysisData = typeof resultArray[0] === 'string'
+            ? JSON.parse(resultArray[0])
+            : resultArray[0];
+
+          // Format the analysis nicely
+          if (analysisData.stakeholder_summary?.key_insights) {
+            analysis = '## Analysis\n\n';
+            const insights = analysisData.stakeholder_summary.key_insights;
+            if (Array.isArray(insights)) {
+              insights.forEach((insight: string) => {
+                analysis += `- ${insight}\n`;
+              });
+            }
+          } else if (analysisData.key_insights) {
+            analysis = '## Analysis\n\n';
+            const insights = analysisData.key_insights;
+            Object.values(insights).forEach((insight: unknown) => {
+              analysis += `- ${String(insight)}\n`;
+            });
+          } else if (typeof analysisData === 'string') {
+            analysis = `## Analysis\n\n${analysisData}\n`;
+          } else {
+            analysis = `## Analysis\n\n${JSON.stringify(analysisData, null, 2)}\n`;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Build the final markdown
+    if (errors.length > 0) {
+      markdown += '## ❌ Errors\n\n';
+      errors.forEach(error => {
+        markdown += `- ${error}\n`;
+      });
+      markdown += '\n';
+    }
+
+    if (sql) {
+      markdown += '## SQL Query\n\n';
+      markdown += '```sql\n';
+      markdown += sql;
+      markdown += '\n```\n\n';
+    }
+
+    if (analysis) {
+      markdown += analysis;
+    }
+
+    return markdown || '## No Results\n\nNo SQL or analysis generated.';
   }
 }

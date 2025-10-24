@@ -27,9 +27,9 @@ General SQL filter pattern for a metric (use substring for resilience):
 
 ```sql
 SELECT d.name AS department, SUM(kd.value) AS total_revenue
-FROM departments d
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.departments d
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name ILIKE '%Revenue%'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '12 months'
 GROUP BY d.id, d.name
@@ -51,21 +51,21 @@ ORDER BY total_revenue DESC;
 ```sql
 WITH r AS (
   SELECT d.id AS dept_id, SUM(kd.value) AS revenue
-  FROM departments d
-  JOIN kpi_data kd ON d.id = kd.department_id
-  JOIN kpi_metrics km ON kd.metric_id = km.id
+  FROM company.departments d
+  JOIN company.kpi_data kd ON d.id = kd.department_id
+  JOIN company.kpi_metrics km ON kd.metric_id = km.id
   WHERE km.name LIKE '%revenue%'
   GROUP BY d.id
 ), c AS (
   SELECT d.id AS dept_id, SUM(kd.value) AS cogs
-  FROM departments d
-  JOIN kpi_data kd ON d.id = kd.department_id
-  JOIN kpi_metrics km ON kd.metric_id = km.id
+  FROM company.departments d
+  JOIN company.kpi_data kd ON d.id = kd.department_id
+  JOIN company.kpi_metrics km ON kd.metric_id = km.id
   WHERE km.name ILIKE '%cogs%' OR km.name ILIKE '%cost of goods%'
   GROUP BY d.id
 )
 SELECT d.name AS department, (r.revenue - c.cogs) AS gross_profit
-FROM departments d
+FROM company.departments d
 LEFT JOIN r ON r.dept_id = d.id
 LEFT JOIN c ON c.dept_id = d.id
 ORDER BY gross_profit DESC;
@@ -133,12 +133,12 @@ Notes
 
 ## KPI Tables
 
-### public.companies
+### company.companies
 
 **Purpose:** Company information and business details
 
 ```sql
-CREATE TABLE public.companies (
+CREATE TABLE company.companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL, -- Company name (NOT company_name!)
   industry VARCHAR(255),
@@ -148,12 +148,12 @@ CREATE TABLE public.companies (
 );
 ```
 
-### public.departments
+### company.departments
 
 **Purpose:** Organizational structure and department management
 
 ```sql
-CREATE TABLE public.departments (
+CREATE TABLE company.departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID,
   name VARCHAR(255) NOT NULL,
@@ -163,12 +163,12 @@ CREATE TABLE public.departments (
 );
 ```
 
-### public.kpi_metrics
+### company.kpi_metrics
 
 **Purpose:** Key performance indicator definitions and metadata
 
 ```sql
-CREATE TABLE public.kpi_metrics (
+CREATE TABLE company.kpi_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
   description TEXT,
@@ -178,12 +178,12 @@ CREATE TABLE public.kpi_metrics (
 );
 ```
 
-### public.kpi_goals
+### company.kpi_goals
 
 **Purpose:** Target values and goals for each metric by department
 
 ```sql
-CREATE TABLE public.kpi_goals (
+CREATE TABLE company.kpi_goals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   department_id UUID,
   metric_id UUID,
@@ -194,12 +194,12 @@ CREATE TABLE public.kpi_goals (
 );
 ```
 
-### public.kpi_data
+### company.kpi_data
 
 **Purpose:** Historical performance data and actual measurements
 
 ```sql
-CREATE TABLE public.kpi_data (
+CREATE TABLE company.kpi_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   department_id UUID,
   metric_id UUID,
@@ -222,22 +222,22 @@ CREATE TABLE public.kpi_data (
 
 ```sql
 -- KPI data by department and date (most common query)
-CREATE INDEX idx_kpi_data_dept_date ON kpi_data(department_id, date_recorded DESC);
+CREATE INDEX idx_kpi_data_dept_date ON company.kpi_data(department_id, date_recorded DESC);
 
 -- KPI data by metric and date (for metric analysis)
-CREATE INDEX idx_kpi_data_metric_date ON kpi_data(metric_id, date_recorded DESC);
+CREATE INDEX idx_kpi_data_metric_date ON company.kpi_data(metric_id, date_recorded DESC);
 
 -- Company lookup by name
-CREATE INDEX idx_companies_name ON companies(name);
+CREATE INDEX idx_companies_name ON company.companies(name);
 
 -- Departments by company
-CREATE INDEX idx_departments_company ON departments(company_id, name);
+CREATE INDEX idx_departments_company ON company.departments(company_id, name);
 
 -- Active metrics
-CREATE INDEX idx_kpi_metrics_active ON kpi_metrics(is_active, metric_type) WHERE is_active = true;
+CREATE INDEX idx_kpi_metrics_active ON company.kpi_metrics(is_active, metric_type) WHERE is_active = true;
 
 -- Current goals
-CREATE INDEX idx_kpi_goals_current ON kpi_goals(department_id, metric_id, period_start, period_end);
+CREATE INDEX idx_kpi_goals_current ON company.kpi_goals(department_id, metric_id, period_start, period_end);
 ```
 
 ---
@@ -286,7 +286,7 @@ Quick check of available metrics:
 
 ```sql
 SELECT name, metric_type, unit, description
-FROM kpi_metrics
+FROM company.kpi_metrics
 ORDER BY metric_type, name;
 ```
 
@@ -299,10 +299,10 @@ ORDER BY metric_type, name;
 ```sql
 SELECT c.name as company,
        SUM(kd.value) as total_revenue
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
 GROUP BY c.id, c.name
@@ -321,10 +321,10 @@ SELECT d.name as department,
          WHEN AVG(kd.value) >= kg.target_value THEN 'Meeting Goal'
          ELSE 'Below Goal'
        END as performance_status
-FROM departments d
-JOIN kpi_goals kg ON d.id = kg.department_id
-JOIN kpi_metrics km ON kg.metric_id = km.id
-JOIN kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
+FROM company.departments d
+JOIN company.kpi_goals kg ON d.id = kg.department_id
+JOIN company.kpi_metrics km ON kg.metric_id = km.id
+JOIN company.kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
 WHERE kg.period_start <= CURRENT_DATE
   AND kg.period_end >= CURRENT_DATE
   AND kd.date_recorded >= kg.period_start
@@ -338,8 +338,8 @@ ORDER BY d.name, km.name;
 ```sql
 SELECT DATE_TRUNC('month', kd.date_recorded) as month,
        SUM(kd.value) as monthly_revenue
-FROM kpi_data kd
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.kpi_data kd
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '12 months'
 GROUP BY DATE_TRUNC('month', kd.date_recorded)
@@ -353,9 +353,9 @@ SELECT d.name as department,
        c.name as company,
        COUNT(DISTINCT kd.metric_id) as metrics_tracked,
        AVG(kd.value) as average_performance
-FROM departments d
-JOIN companies c ON d.company_id = c.id
-JOIN kpi_data kd ON d.id = kd.department_id
+FROM company.departments d
+JOIN company.companies c ON d.company_id = c.id
+JOIN company.kpi_data kd ON d.id = kd.department_id
 WHERE kd.date_recorded >= CURRENT_DATE - INTERVAL '3 months'
 GROUP BY d.id, d.name, c.name
 HAVING COUNT(DISTINCT kd.metric_id) >= 3
@@ -369,7 +369,7 @@ LIMIT 5;
 SELECT metric_type,
        COUNT(*) as metric_count,
        STRING_AGG(name, ', ') as metrics
-FROM kpi_metrics
+FROM company.kpi_metrics
 WHERE is_active = true
 GROUP BY metric_type
 ORDER BY metric_count DESC;

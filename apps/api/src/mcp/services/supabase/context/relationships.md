@@ -122,10 +122,10 @@ SELECT c.name as company,
        COUNT(kd.id) as data_points,
        MIN(kd.date_recorded) as earliest_date,
        MAX(kd.date_recorded) as latest_date
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.metric_type = 'financial'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
 GROUP BY c.id, c.name, c.industry, d.id, d.name, km.id, km.name
@@ -147,11 +147,11 @@ SELECT c.name as company,
          WHEN AVG(kd.value) >= kg.target_value * 0.9 THEN 'Near Target'
          ELSE 'Below Target'
        END as status
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_goals kg ON d.id = kg.department_id
-JOIN kpi_metrics km ON kg.metric_id = km.id
-JOIN kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_goals kg ON d.id = kg.department_id
+JOIN company.kpi_metrics km ON kg.metric_id = km.id
+JOIN company.kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
 WHERE kg.period_start <= CURRENT_DATE
   AND kg.period_end >= CURRENT_DATE
   AND kd.date_recorded BETWEEN kg.period_start AND kg.period_end
@@ -223,10 +223,10 @@ SELECT c.name as company,
            )) - 1) * 100
          ELSE NULL
        END as month_over_month_growth_pct
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '12 months'
 GROUP BY c.id, c.name, DATE_TRUNC('month', kd.date_recorded)
@@ -268,15 +268,15 @@ ORDER BY kpi_conversations DESC;
 
 ```sql
 -- ❌ BAD: Cross join without proper WHERE
-SELECT * FROM companies, departments, kpi_data;
+SELECT * FROM company.companies, departments, kpi_data;
 
 -- ❌ BAD: No date filtering on large kpi_data table
-SELECT * FROM kpi_data kd JOIN kpi_metrics km ON kd.metric_id = km.id;
+SELECT * FROM company.kpi_data kd JOIN company.kpi_metrics km ON kd.metric_id = km.id;
 
 -- ❌ BAD: Missing LIMIT on potentially large result
-SELECT c.*, d.*, kd.* FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id;
+SELECT c.*, d.*, kd.* FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id;
 ```
 
 ### Recommended Patterns
@@ -284,10 +284,10 @@ JOIN kpi_data kd ON d.id = kd.department_id;
 ```sql
 -- ✅ GOOD: Filter first, then join
 SELECT c.name, SUM(kd.value) as revenue
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
 GROUP BY c.id, c.name

@@ -147,10 +147,10 @@ SELECT c.name as company,
        MIN(kd.date_recorded) as earliest_data,
        MAX(kd.date_recorded) as latest_data,
        RANK() OVER (ORDER BY SUM(kd.value) DESC) as revenue_rank
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
 GROUP BY c.id, c.name, c.industry
@@ -181,10 +181,10 @@ SELECT c.name as company,
            )
          ELSE NULL
        END as month_over_month_growth_pct
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '12 months'
 GROUP BY c.id, c.name, DATE_TRUNC('month', kd.date_recorded)
@@ -210,11 +210,11 @@ SELECT c.name as company,
          ELSE '❌ Below Target'
        END as performance_status,
        COUNT(kd.id) as data_points
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_goals kg ON d.id = kg.department_id
-JOIN kpi_metrics km ON kg.metric_id = km.id
-JOIN kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_goals kg ON d.id = kg.department_id
+JOIN company.kpi_metrics km ON kg.metric_id = km.id
+JOIN company.kpi_data kd ON d.id = kd.department_id AND km.id = kd.metric_id
 WHERE kg.period_start <= CURRENT_DATE
   AND kg.period_end >= CURRENT_DATE
   AND kd.date_recorded BETWEEN kg.period_start AND kg.period_end
@@ -232,10 +232,10 @@ WITH metric_performance AS (
          AVG(kd.value) as avg_value,
          RANK() OVER (PARTITION BY km.id ORDER BY AVG(kd.value) DESC) as rank_desc,
          RANK() OVER (PARTITION BY km.id ORDER BY AVG(kd.value) ASC) as rank_asc
-  FROM departments d
+  FROM company.departments d
   JOIN companies c ON d.company_id = c.id
-  JOIN kpi_data kd ON d.id = kd.department_id
-  JOIN kpi_metrics km ON kd.metric_id = km.id
+  JOIN company.kpi_data kd ON d.id = kd.department_id
+  JOIN company.kpi_metrics km ON kd.metric_id = km.id
   WHERE kd.date_recorded >= CURRENT_DATE - INTERVAL '3 months'
     AND km.is_active = true
   GROUP BY d.id, d.name, c.name, km.id, km.name
@@ -277,10 +277,10 @@ SELECT c.name as company,
            ROUND((SUM(CASE WHEN km.name = 'Revenue' THEN kd.value ELSE 0 END) / d.budget), 2)
          ELSE NULL
        END as revenue_to_budget_ratio
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-LEFT JOIN kpi_data kd ON d.id = kd.department_id
-LEFT JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+LEFT JOIN company.kpi_data kd ON d.id = kd.department_id
+LEFT JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE kd.date_recorded >= CURRENT_DATE - INTERVAL '6 months'
 GROUP BY c.id, c.name, d.id, d.name, d.budget, d.employee_count
 HAVING COUNT(DISTINCT km.id) > 0
@@ -309,10 +309,10 @@ SELECT c.name as company,
          ORDER BY kd.date_recorded
          ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
        ) as thirty_day_avg
-FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '3 months'
   AND c.name = 'TechCorp' -- Filter to specific company
@@ -328,8 +328,8 @@ SELECT EXTRACT(QUARTER FROM kd.date_recorded) as quarter,
        COUNT(*) as data_points,
        MIN(kd.value) as min_revenue,
        MAX(kd.value) as max_revenue
-FROM kpi_data kd
-JOIN kpi_metrics km ON kd.metric_id = km.id
+FROM company.kpi_data kd
+JOIN company.kpi_metrics km ON kd.metric_id = km.id
 WHERE km.name = 'Revenue'
   AND kd.date_recorded >= CURRENT_DATE - INTERVAL '2 years'
 GROUP BY EXTRACT(QUARTER FROM kd.date_recorded)
@@ -403,19 +403,19 @@ GROUP BY c.id, c.name  -- Instead of just c.name
 
 ```sql
 -- ❌ BAD: No date filtering on large tables
-SELECT * FROM kpi_data;
+SELECT * FROM company.kpi_data;
 
 -- ❌ BAD: SELECT * with joins
-SELECT * FROM companies c JOIN departments d ON c.id = d.company_id;
+SELECT * FROM company.companies c JOIN company.departments d ON c.id = d.company_id;
 
 -- ❌ BAD: No LIMIT on potentially large results
-SELECT c.name, SUM(kd.value) FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id;
+SELECT c.name, SUM(kd.value) FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id;
 
 -- ❌ BAD: Inefficient subqueries
-SELECT * FROM companies WHERE id IN (
-  SELECT company_id FROM departments WHERE budget > 100000
+SELECT * FROM company.companies WHERE id IN (
+  SELECT company_id FROM company.departments WHERE budget > 100000
 );
 ```
 
@@ -423,23 +423,23 @@ SELECT * FROM companies WHERE id IN (
 
 ```sql
 -- ✅ GOOD: Proper date filtering
-SELECT * FROM kpi_data WHERE date_recorded >= CURRENT_DATE - INTERVAL '1 month';
+SELECT * FROM company.kpi_data WHERE date_recorded >= CURRENT_DATE - INTERVAL '1 month';
 
 -- ✅ GOOD: Specific column selection
-SELECT c.name, d.name, d.budget FROM companies c
-JOIN departments d ON c.id = d.company_id;
+SELECT c.name, d.name, d.budget FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id;
 
 -- ✅ GOOD: Limited results with ordering
-SELECT c.name, SUM(kd.value) as total_revenue FROM companies c
-JOIN departments d ON c.id = d.company_id
-JOIN kpi_data kd ON d.id = kd.department_id
+SELECT c.name, SUM(kd.value) as total_revenue FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
+JOIN company.kpi_data kd ON d.id = kd.department_id
 WHERE kd.date_recorded >= CURRENT_DATE - INTERVAL '1 year'
 GROUP BY c.id, c.name
 ORDER BY total_revenue DESC
 LIMIT 10;
 
 -- ✅ GOOD: Efficient joins instead of subqueries
-SELECT DISTINCT c.* FROM companies c
-JOIN departments d ON c.id = d.company_id
+SELECT DISTINCT c.* FROM company.companies c
+JOIN company.departments d ON c.id = d.company_id
 WHERE d.budget > 100000;
 ```

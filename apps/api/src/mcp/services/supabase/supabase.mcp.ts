@@ -418,7 +418,10 @@ export class SupabaseMCPServer implements IMCPServer {
       tables,
       domain_hint,
       max_rows,
+      provider,
+      model,
     });
+    console.log('[MCP-SQL-DEBUG] Full args object:', JSON.stringify(args));
 
     try {
       // Get relevant schema context for specified tables
@@ -496,6 +499,28 @@ export class SupabaseMCPServer implements IMCPServer {
     const startTime = Date.now();
 
     try {
+      // Validate SQL parameter
+      if (!sql || typeof sql !== 'string') {
+        throw new Error(
+          `Missing or invalid 'sql' parameter. Received: ${typeof sql}. Args: ${JSON.stringify(args).substring(0, 200)}`
+        );
+      }
+
+      // Security validation - deny destructive operations (PRD §7)
+      // Use word boundaries to avoid false positives with column names like "updated_at"
+      const deniedOperations = ['DROP', 'TRUNCATE', 'ALTER', 'DELETE', 'UPDATE'];
+      const sqlUpper = sql.toUpperCase();
+
+      for (const operation of deniedOperations) {
+        // Use regex with word boundaries to match only the SQL keyword, not substrings
+        const regex = new RegExp(`\\b${operation}\\b`, 'i');
+        if (regex.test(sqlUpper)) {
+          throw new Error(
+            `Security violation: Operation '${operation}' is not allowed in read-only mode. Denied operations: ${deniedOperations.join(', ')}`
+          );
+        }
+      }
+
       // Add LIMIT if not present and max_rows specified
       let finalSQL = sql.trim();
 
@@ -509,6 +534,10 @@ export class SupabaseMCPServer implements IMCPServer {
       }
 
       // Execute SQL using Supabase RPC function
+      console.log('[SUPABASE-EXEC] ====== EXECUTING SQL ======');
+      console.log('[SUPABASE-EXEC] SQL:', finalSQL);
+      console.log('[SUPABASE-EXEC] max_rows:', max_rows);
+
       const rpcResponse = await this.supabaseClient.rpc('exec_sql', {
         query: finalSQL,
       });
@@ -516,6 +545,10 @@ export class SupabaseMCPServer implements IMCPServer {
         data: unknown;
         error: unknown;
       };
+
+      console.log('[SUPABASE-EXEC] Response error:', error);
+      console.log('[SUPABASE-EXEC] Response data type:', typeof result);
+      console.log('[SUPABASE-EXEC] Response data:', JSON.stringify(result).substring(0, 500));
 
       const executionTime = Date.now() - startTime;
 
@@ -585,6 +618,12 @@ export class SupabaseMCPServer implements IMCPServer {
       provider = 'anthropic',
       model = 'claude-3-5-sonnet-20241022',
     } = args;
+
+    console.log('[ANALYZE-HANDLER] ====== handleAnalyzeResults CALLED ======');
+    console.log('[ANALYZE-HANDLER] Args received:', JSON.stringify(args).substring(0, 500));
+    console.log('[ANALYZE-HANDLER] Data type:', typeof data, 'isArray:', Array.isArray(data));
+    console.log('[ANALYZE-HANDLER] Data length:', Array.isArray(data) ? data.length : 'N/A');
+    console.log('[ANALYZE-HANDLER] Provider:', provider, 'Model:', model);
 
     try {
       // Use LLM service for analysis
@@ -705,7 +744,7 @@ export class SupabaseMCPServer implements IMCPServer {
     return filtered.join('\n');
   }
 
-  private buildSchemaContext(tables: string[], domain_hint?: string): string {
+  private buildSchemaContext(tables?: string[], domain_hint?: string): string {
     console.log(
       '[MCP-SQL-DEBUG] buildSchemaContext - tables:',
       tables,
@@ -715,8 +754,9 @@ export class SupabaseMCPServer implements IMCPServer {
     let context = '';
 
     // Add relevant schema information
-    const isKpi = this.isKpiTables(tables);
-    const isCore = this.isCoreTables(tables);
+    // If no tables specified, include all schemas to let LLM infer
+    const isKpi = tables ? this.isKpiTables(tables) : true;
+    const isCore = tables ? this.isCoreTables(tables) : true;
     console.log(
       '[MCP-SQL-DEBUG] Table classification - isKpi:',
       isKpi,
@@ -738,17 +778,23 @@ export class SupabaseMCPServer implements IMCPServer {
     console.log('[MCP-SQL-DEBUG] Adding SQL patterns');
     context += this.readContextFile('sql-patterns.md');
 
-    const filtered = this.filterSchemaByTables(context, tables);
-    console.log(
-      '[MCP-SQL-DEBUG] Context after filtering - length:',
-      filtered.length,
-    );
-    return filtered;
+    // Only filter if tables are specified
+    if (tables && tables.length > 0) {
+      const filtered = this.filterSchemaByTables(context, tables);
+      console.log(
+        '[MCP-SQL-DEBUG] Context after filtering - length:',
+        filtered.length,
+      );
+      return filtered;
+    }
+
+    console.log('[MCP-SQL-DEBUG] No tables filter, returning full context - length:', context.length);
+    return context;
   }
 
   private async generateSQLFromQuery(
     query: string,
-    tables: string[],
+    tables: string[] | undefined,
     schemaContext: string,
     maxRows: number,
     provider?: string,
@@ -795,8 +841,7 @@ Generate a SQL query that answers this request accurately and efficiently.`;
 
     const userPrompt = `Generate a PostgreSQL SQL query to: ${query}
 
-Available tables to query: ${tables.join(', ')}
-Maximum rows to return: ${maxRows}
+${tables ? `Available tables to query: ${tables.join(', ')}\n` : ''}Maximum rows to return: ${maxRows}
 
 Return ONLY the SQL query, no explanation or formatting.`;
 
@@ -805,38 +850,36 @@ Return ONLY the SQL query, no explanation or formatting.`;
       console.log('[MCP-SQL-DEBUG] System prompt length:', systemPrompt.length);
       console.log('[MCP-SQL-DEBUG] User prompt:', userPrompt);
 
-      const llmParams: LLMRequestOptions = {
+      // Build options for LLM service
+      const generateOptions: {
+        temperature?: number;
+        maxTokens?: number;
+        callerType?: string;
+        callerName?: string;
+        dataClassification?: string;
+        providerName?: string;
+        modelName?: string;
+        includeMetadata?: boolean;
+        provider?: 'openai' | 'anthropic' | 'google' | 'ollama';
+        cidafmOptions?: any;
+        complexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
+      } = {
         temperature: 0.1,
         maxTokens: 1000,
         callerType: 'service',
         callerName: 'supabase-mcp-service',
         dataClassification: 'internal',
-        // Pass through provider/model when provided by caller; keep responses lean
         providerName: provider,
         modelName: model,
         includeMetadata: false,
+        provider: provider as 'openai' | 'anthropic' | 'google' | 'ollama' | undefined,
       };
-      console.log('[MCP-SQL-DEBUG] LLM params:', llmParams);
+      console.log('[MCP-SQL-DEBUG] LLM params:', generateOptions);
 
       const response = await this.llmService.generateResponse(
         systemPrompt,
         userPrompt,
-        {
-          provider:
-            (provider as
-              | 'openai'
-              | 'anthropic'
-              | 'google'
-              | 'ollama'
-              | undefined) || undefined,
-          cidafmOptions: llmParams.cidafmOptions,
-          complexity: llmParams.complexity as
-            | 'simple'
-            | 'medium'
-            | 'complex'
-            | 'reasoning'
-            | undefined,
-        },
+        generateOptions,
       );
 
       const responseIsLLM = isLLMResponse(response);
@@ -1014,7 +1057,7 @@ Return ONLY the SQL query, no explanation or formatting.`;
       console.log('\n🧠 GENERATED SQL:');
       console.log('='.repeat(50));
       console.log(`Query: ${query}`);
-      console.log(`Tables: ${tables.join(', ')}`);
+      console.log(`Tables: ${tables ? tables.join(', ') : 'auto-detected'}`);
       console.log('Generated SQL:');
       console.log(sql);
       console.log('='.repeat(50));
@@ -1048,14 +1091,23 @@ Return ONLY the SQL query, no explanation or formatting.`;
     model: string,
   ): Promise<Record<string, unknown>> {
     try {
+      console.log('[SUPABASE-ANALYZE] ====== ANALYZING RESULTS ======');
+      console.log('[SUPABASE-ANALYZE] Data length:', data.length);
+      console.log('[SUPABASE-ANALYZE] Data received:', JSON.stringify(data).substring(0, 500));
+      console.log('[SUPABASE-ANALYZE] Prompt:', prompt);
+      console.log('[SUPABASE-ANALYZE] Provider:', provider);
+      console.log('[SUPABASE-ANALYZE] Model:', model);
+
       const analysisPrompt = `Analyze the following data and provide insights based on this request: "${prompt}"
 
 Data (${data.length} records):
 ${JSON.stringify(data.slice(0, 10), null, 2)}${data.length > 10 ? '\n... (showing first 10 records)' : ''}
 
+CRITICAL: Use ONLY the actual numbers from the data above. Do NOT make up numbers. Do NOT hallucinate.
+
 Please provide:
 1. Key insights from the data
-2. Patterns or trends identified  
+2. Patterns or trends identified
 3. Actionable recommendations
 4. Data quality observations
 5. Summary statistics where relevant

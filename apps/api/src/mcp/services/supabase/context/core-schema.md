@@ -12,26 +12,25 @@
 
 ### public.users
 
-**Purpose:** User profile and application data (distinct from auth.users)
+**Purpose:** User profile and application data
 
 ```sql
 CREATE TABLE public.users (
-  id UUID PRIMARY KEY,
-  email TEXT,
-  display_name TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-  phone VARCHAR,
-  phone_verified BOOLEAN DEFAULT false,
-  company VARCHAR,
-  role VARCHAR,
-  department VARCHAR,
-  location JSONB,
-  timezone VARCHAR DEFAULT 'UTC',
-  locale VARCHAR DEFAULT 'en-US',
-  status VARCHAR DEFAULT 'active',
-  roles TEXT[] DEFAULT ARRAY['user']
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) NOT NULL UNIQUE,
+  display_name VARCHAR(255),
+  role VARCHAR(50),
+  roles JSONB DEFAULT '["user"]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  namespace_access JSONB NOT NULL DEFAULT '["my-org"]'::jsonb,
+  status TEXT DEFAULT 'active',
+  organization_slug TEXT
 );
+
+-- Indexes
+CREATE UNIQUE INDEX users_email_key ON users(email);
+CREATE INDEX idx_users_email ON users(email);
 ```
 
 ### public.agent_conversations
