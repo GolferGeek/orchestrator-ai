@@ -1,0 +1,34 @@
+{
+  "id": "643cb103-ef36-4e82-acce-349a95c80f39",
+  "organization_slug": "global",
+  "slug": "image-generator-openai",
+  "display_name": "OpenAI Image Generator",
+  "description": "Generates images via OpenAI GPT-Image-1 with configurable quality tiers.",
+  "agent_type": "function",
+  "mode_profile": "function_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"image-generator-openai\",\n        \"displayName\": \"OpenAI Image Generator\",\n        \"description\": \"Generates images via OpenAI GPT-Image-1 with configurable quality tiers.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"function\",\n        \"tags\": [\n            \"image\",\n            \"openai\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\",\n            \"application/json\"\n        ],\n        \"output_modes\": [\n            \"application/json\"\n        ]\n    },\n    \"configuration\": {\n        \"function\": {\n            \"language\": \"javascript\",\n            \"timeout_ms\": 20000,\n            \"code\": \"async function handler(input, ctx) {\\\\n  const axios = ctx.require(\\\\\"axios\\\\\");\\\\n  const crypto = ctx.require(\\\\\"crypto\\\\\");\\\\n\\\\n  const source = input || {};\\\\n  const basePrompt = typeof source.prompt === \\\\\"string\\\\\" ? source.prompt : \\\\\"\\\\\";\\\\n  const prompt =\\\\n    basePrompt.trim() ||\\\\n    (typeof source.userMessage === \\\\\"string\\\\\" ? source.userMessage.trim() : \\\\\"\\\");\\\\n  if (!prompt) {\\\\n    throw new Error(\\\\\"prompt is required\\\\\");\\\\n  }\\\\n\\\\n  const size =\\\\n    typeof source.size === \\\\\"string\\\\\" && source.size.trim().length\\\\n      ? source.size.trim()\\\\n      : \\\\\"1024x1024\\\\\";\\\\n  const quality =\\\\n    typeof source.quality === \\\\\"string\\\\\" &&\\\\n    source.quality.toLowerCase() === \\\\\"hd\\\\\"\\\\n      ? \\\\\"hd\\\\\"\\\\n      : \\\\\"standard\\\\\";\\\\n  const rawCount = Number(source.count ?? source.n ?? 1);\\\\n  const count = Math.max(\\\\n    1,\\\\n    Math.min(Number.isFinite(rawCount) ? rawCount : 1, 4)\\\\n  );\\\\n  const title =\\\\n    typeof source.title === \\\\\"string\\\\\" && source.title.trim().length\\\\n      ? source.title.trim()\\\\n      : \\\\\"OpenAI Image Set\\\\\";\\\\n  const negativePrompt =\\\\n    typeof source.negativePrompt === \\\\\"string\\\\\"\\\\n      ? source.negativePrompt.trim()\\\\n      : undefined;\\\\n\\\\n  const apiKey = ctx.process.env.OPENAI_API_KEY;\\\\n  if (!apiKey) {\\\\n    throw new Error(\\\\\"OPENAI_API_KEY not configured\\\\\");\\\\n  }\\\\n\\\\n  const payload = {\\\\n    model: \\\\\"gpt-image-1\\\\\",\\\\n    prompt,\\\\n    size,\\\\n    quality,\\\\n    n: count,\\\\n    response_format: \\\\\"b64_json\\\\\",\\\\n    user: ctx.userId || undefined,\\\\n  };\\\\n\\\\n  if (negativePrompt) {\\\\n    payload.negative_prompt = negativePrompt;\\\\n  }\\\\n\\\\n  const response = await axios.post(\\\\n    \\\\\"https://api.openai.com/v1/images/generations\\\\\",\\\\n    payload,\\\\n    {\\\\n      headers: {\\\\n        Authorization: `Bearer ${apiKey}`,\\\\n        \\\\\"Content-Type\\\\\": \\\\\"application/json\\\\\",\\\\n      },\\\\n      timeout: 120000,\\\\n    }\\\\n  );\\\\n\\\\n  const images = Array.isArray(response.data?.data)\\\\n    ? response.data.data\\\\n    : [];\\\\n\\\\n  if (!images.length) {\\\\n    throw new Error(\\\\\"OpenAI returned no images\\\\\");\\\\n  }\\\\n\\\\n  const attachments = [];\\\\n  for (let index = 0; index < images.length; index++) {\\\\n    const entry = images[index];\\\\n    const b64 = entry?.b64_json;\\\\n    if (!b64 || typeof b64 !== \\\\\"string\\\\\") {\\\\n      continue;\\\\n    }\\\\n\\\\n    const buffer = Buffer.from(b64, \\\\\"base64\\\\\");\\\\n    if (!buffer.length) {\\\\n      continue;\\\\n    }\\\\n\\\\n    const hash = crypto.createHash(\\\\\"sha256\\\\\").update(buffer).digest(\\\\\"hex\\\\\");\\\\n\\\\n    const asset = await ctx.assets.saveBuffer({\\\\n      buffer,\\\\n      mime: \\\\\"image/png\\\\\",\\\\n      filename: `openai-${Date.now()}-${index}.png`,\\\\n      subpath: \\\\\"generated\\\\\",\\\\n    });\\\\n\\\\n    attachments.push({\\\\n      assetId: asset.id,\\\\n      url: `/assets/${asset.id}`,\\\\n      mime: \\\\\"image/png\\\\\",\\\\n      size: buffer.length,\\\\n      hash,\\\\n      altText: prompt,\\\\n      provider: \\\\\"openai\\\\\",\\\\n      index,\\\\n    });\\\\n  }\\\\n\\\\n  if (!attachments.length) {\\\\n    throw new Error(\\\\\"Failed to generate image attachments\\\\\");\\\\n  }\\\\n\\\\n  const deliverable = await ctx.deliverables.create({\\\\n    title,\\\\n    content: `Generated ${attachments.length} image(s) via OpenAI GPT-Image-1`,\\\\n    format: \\\\\"image/png\\\\\",\\\\n    type: \\\\\"image\\\\\",\\\\n    attachments: { images: attachments },\\\\n    metadata: {\\\\n      provider: \\\\\"openai\\\\\",\\\\n      model: \\\\\"gpt-image-1\\\\\",\\\\n      prompt,\\\\n      size,\\\\n      quality,\\\\n      count: attachments.length,\\\\n      negativePrompt: negativePrompt || null,\\\\n    },\\\\n  });\\\\n\\\\n  return {\\\\n    success: true,\\\\n    provider: \\\\\"openai\\\\\",\\\\n    deliverable,\\\\n    images: attachments,\\\\n    metadata: {\\\\n      prompt,\\\\n      size,\\\\n      quality,\\\\n      count: attachments.length,\\\\n    },\\\\n  };\\\\n}\\\\n\\\\nmodule.exports = handler;\"\n        },\n        \"execution_capabilities\": {\n            \"supports_converse\": false,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        }\n    },\n    \"prompts\": {\n        \"system\": \"Generate production-ready images using OpenAI GPT-Image-1. Respect safety policies and return structured metadata.\"\n    }\n}\n",
+  "context": {
+    "defaults": {
+      "size": "1024x1024",
+      "quality": "standard"
+    },
+    "input_modes": [
+      "text/plain",
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json"
+    ],
+    "supported_modes": [
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.663667+00:00",
+  "updated_at": "2025-10-13T18:27:20.632132+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

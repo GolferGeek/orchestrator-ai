@@ -1,0 +1,27 @@
+{
+  "organization_slug": "demo",
+  "slug": "supabase-agent",
+  "display_name": "Supabase Tool Agent",
+  "description": "Wraps the Supabase MCP to inspect schema, generate SQL, execute queries (read-only), and analyze results.",
+  "agent_type": "tool",
+  "mode_profile": "tool_full",
+  "version": "0.1.0",
+  "status": "active",
+  "yaml": "{\n  \"metadata\": {\n    \"name\": \"supabase-agent\",\n    \"displayName\": \"Supabase Tool Agent\",\n    \"description\": \"Wraps Supabase MCP for schema, SQL generation, safe execution, and results analysis.\",\n    \"version\": \"0.1.0\",\n    \"type\": \"tool\"\n  },\n  \"communication\": {\n    \"input_modes\": [\n      \"text/plain\",\n      \"application/json\"\n    ],\n    \"output_modes\": [\n      \"application/json\",\n      \"text/markdown\"\n    ]\n  },\n  \"configuration\": {\n    \"prompt_prefix\": \"You are a Supabase data specialist. Use MCP tools to safely inspect schema, craft SQL, execute read-only queries, and explain findings.\",\n    \"execution_capabilities\": {\n      \"supports_converse\": false,\n      \"supports_plan\": false,\n      \"supports_build\": true\n    },\n    \"mcp\": {\n      \"server\": \"supabase\"\n    },\n    \"tools\": [\n      \"supabase/get-schema\",\n      \"supabase/generate-sql\",\n      \"supabase/execute-sql\",\n      \"supabase/analyze-results\"\n    ],\n    \"toolParams\": {\n      \"supabase/generate-sql\": {\n        \"query\": \"{{userMessage}}\",\n        \"max_rows\": 100\n      },\n      \"supabase/execute-sql\": {\n        \"max_rows\": 1000\n      },\n      \"supabase/analyze-results\": {\n        \"analysis_prompt\": \"Summarize for stakeholders\"\n      }\n    },\n    \"toolExecutionMode\": \"sequential\",\n    \"stopOnError\": true,\n    \"security\": {\n      \"denied_operations\": [\n        \"DROP\",\n        \"TRUNCATE\",\n        \"ALTER\",\n        \"DELETE\",\n        \"UPDATE\"\n      ],\n      \"allowed_tables\": [\n        \"agent_conversations\",\n        \"kpi_data\",\n        \"kpi_metrics\",\n        \"users\"\n      ]\n    },\n    \"deliverable\": {\n      \"format\": \"markdown\",\n      \"type\": \"data-analysis\"\n    }\n  },\n  \"context\": {\n    \"input_modes\": [\n      \"text/plain\",\n      \"application/json\"\n    ],\n    \"output_modes\": [\n      \"application/json\",\n      \"text/markdown\"\n    ],\n    \"supported_modes\": [\n      \"build\"\n    ]\n  }\n}",
+  "context": {
+    "input_modes": [
+      "text/plain",
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json",
+      "text/markdown"
+    ],
+    "supported_modes": [
+      "build"
+    ]
+  },
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

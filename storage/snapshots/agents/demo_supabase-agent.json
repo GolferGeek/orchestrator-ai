@@ -1,0 +1,45 @@
+{
+  "id": "37e4b8d9-c7ba-4ffc-8167-19aeb04fde63",
+  "organization_slug": "demo",
+  "slug": "supabase-agent",
+  "display_name": "Supabase Database Agent",
+  "description": "Interacts with Supabase via MCP tools to introspect schema, generate SQL, and analyze results.",
+  "agent_type": "tool",
+  "mode_profile": "tool_full",
+  "version": null,
+  "status": "active",
+  "yaml": "\n{\n    \"metadata\": {\n        \"name\": \"supabase-agent\",\n        \"displayName\": \"Supabase Database Agent\",\n        \"description\": \"Interacts with Supabase via MCP tools to introspect schema, generate SQL, and analyze results.\",\n        \"version\": \"0.1.0\",\n        \"type\": \"tool\",\n        \"tags\": [\n            \"database\",\n            \"supabase\",\n            \"analytics\"\n        ]\n    },\n    \"communication\": {\n        \"input_modes\": [\n            \"text/plain\",\n            \"application/json\"\n        ],\n        \"output_modes\": [\n            \"application/json\",\n            \"text/markdown\"\n        ]\n    },\n    \"configuration\": {\n        \"prompt_prefix\": \"You are a Supabase data specialist. Safely inspect schema, craft SQL, execute queries, and explain findings with clear business context.\",\n        \"execution_capabilities\": {\n            \"supports_converse\": true,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        },\n        \"mcp\": {\n            \"server\": \"supabase\",\n            \"tools\": [\n                \"get-schema\",\n                \"generate-sql\",\n                \"execute-sql\",\n                \"analyze-results\"\n            ]\n        },\n        \"security\": {\n            \"allowed_tables\": [\n                \"revenue\",\n                \"expenses\",\n                \"kpis\",\n                \"metrics\"\n            ],\n            \"denied_operations\": [\n                \"DROP\",\n                \"TRUNCATE\",\n                \"ALTER\"\n            ]\n        }\n    },\n    \"prompts\": {\n        \"system\": \"You answer analytics questions about the Supabase warehouse. Validate assumptions, include SQL, and highlight anomalies.\",\n        \"build\": \"Return an object with keys sql, rows, and summary. Use analyze-results to provide narrative insights for stakeholders.\",\n        \"human\": \"List additional clarifications or approvals required before running potentially destructive operations.\"\n    },\n    \"context\": {\n        \"templates\": {\n            \"analysis\": {\n                \"sql\": \"SELECT ...\",\n                \"summary\": \"Explain what the query returns and why it matters.\",\n                \"next_steps\": \"Recommend follow-up investigations.\"\n            }\n        }\n    }\n}\n",
+  "context": {
+    "security": {
+      "allowed_tables": [
+        "revenue",
+        "expenses",
+        "kpis",
+        "metrics"
+      ],
+      "denied_operations": [
+        "DROP",
+        "TRUNCATE",
+        "ALTER"
+      ]
+    },
+    "input_modes": [
+      "text/plain",
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json",
+      "text/markdown"
+    ],
+    "supported_modes": [
+      "converse",
+      "build"
+    ]
+  },
+  "created_at": "2025-10-12T18:39:12.663667+00:00",
+  "updated_at": "2025-10-13T18:35:28.665574+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}

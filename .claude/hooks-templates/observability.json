@@ -1,0 +1,54 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --source-app {{SOURCE_APP}} --event-type PreToolUse"
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --source-app {{SOURCE_APP}} --event-type PostToolUse"
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --source-app {{SOURCE_APP}} --event-type Stop --add-chat"
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --source-app {{SOURCE_APP}} --event-type UserPromptSubmit --summarize"
+        }
+      ]
+    }
+  ],
+  "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --source-app {{SOURCE_APP}} --event-type SessionStart"
+        }
+      ]
+    }
+  ]
+}

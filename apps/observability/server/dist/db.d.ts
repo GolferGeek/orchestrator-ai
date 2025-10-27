@@ -1,0 +1,15 @@
+import pkg from 'pg';
+import type { HookEvent, FilterOptions, Theme, ThemeSearchQuery } from './types.js';
+declare const pool: pkg.Pool;
+export declare function initDatabase(): void;
+export declare function insertEvent(event: HookEvent): Promise<HookEvent>;
+export declare function getFilterOptions(): Promise<FilterOptions>;
+export declare function getRecentEvents(limit?: number): Promise<HookEvent[]>;
+export declare function updateEventHITLResponse(id: number, response: any): Promise<HookEvent | null>;
+export declare function insertTheme(theme: Theme): Promise<Theme>;
+export declare function updateTheme(id: string, updates: Partial<Theme>): Promise<boolean>;
+export declare function getTheme(id: string): Promise<Theme | null>;
+export declare function getThemes(query?: ThemeSearchQuery): Promise<Theme[]>;
+export declare function deleteTheme(id: string): Promise<boolean>;
+export declare function incrementThemeDownloadCount(id: string): Promise<boolean>;
+export { pool };

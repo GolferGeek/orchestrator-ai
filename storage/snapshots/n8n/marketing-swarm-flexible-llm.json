@@ -1,0 +1,534 @@
+{
+  "id": "1LaQnwqSoTxmnw3Z",
+  "name": "Marketing Swarm - Flexible LLM",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marketing-swarm-flexible",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        304
+      ],
+      "webhookId": "marketing-swarm-flex"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9jxl03jCcqg17oOy",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "web-post-task",
+      "name": "Web Post Task",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9jxl03jCcqg17oOy",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/9jxl03jCcqg17oOy"
+        },
+        "options": {}
+      },
+      "id": "seo-task",
+      "name": "SEO Task",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9jxl03jCcqg17oOy",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/9jxl03jCcqg17oOy"
+        },
+        "options": {}
+      },
+      "id": "social-task",
+      "name": "Social Media Task",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Webhook').item.json.body.statusWebHook }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  taskId: $('Webhook').item.json.body.taskId,\n  status: 'completed',\n  timestamp: new Date().toISOString(),\n  step: 'swarm completed',\n  message: 'Marketing Swarm workflow completed',\n  sequence: 4,\n  totalSteps: 4,\n  conversationId: $('Webhook').item.json.body.conversationId,\n  userId: $('WebHook').item.json.userId,\n}) }}",
+        "options": {}
+      },
+      "id": "send-final-status",
+      "name": "Send Final Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        96
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  \"web post\": $json.webPost,\n  \"seo\": $json.seoContent,\n  \"social media\": $json.socialMedia\n}) }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "provider",
+              "type": "string",
+              "value": "={{ $json.body.provider || 'openai' }}",
+              "id": "0e7e1195-46be-4104-ae35-19107420019d"
+            },
+            {
+              "name": "model",
+              "type": "string",
+              "value": "={{ $json.body.model || 'gpt-4' }}",
+              "id": "997b9201-041c-4053-81f2-7e1f69ffe070"
+            },
+            {
+              "name": "announcement",
+              "type": "string",
+              "value": "={{ $json.body.announcement }}",
+              "id": "37100b7a-3727-4855-824f-2725e80d0440"
+            },
+            {
+              "name": "taskId",
+              "type": "string",
+              "value": "={{ $json.body.taskId }}",
+              "id": "c26c5743-8792-41fc-807a-65cc83a14ca1"
+            },
+            {
+              "name": "conversationId",
+              "type": "string",
+              "value": "={{ $json.body.conversationId }}",
+              "id": "f95fd7fb-df93-4dd3-8450-2830ce517fcd"
+            },
+            {
+              "name": "userId",
+              "type": "string",
+              "value": "={{ $json.body.userId }}",
+              "id": "56763026-b467-4e4b-b3fb-7842b63c1caf"
+            },
+            {
+              "name": "statusWebhook",
+              "type": "string",
+              "value": "={{ $json.body.statusWebHook }}",
+              "id": "5b5c4d3a-93bf-4f2d-aadf-e31b89a41079"
+            },
+            {
+              "id": "a95859db-69f5-46c2-a895-883b3659deac",
+              "name": "systemMessage",
+              "value": "You are a social media content strategist. Create engaging social media posts (NOT blog posts) for multiple platforms: Twitter/X (280 chars with hashtags), LinkedIn (professional tone, 1300 chars max), and Facebook (conversational, 500 chars). Focus on hooks, engagement, and platform-specific best practices. Include relevant hashtags and emojis where appropriate.",
+              "type": "string"
+            },
+            {
+              "id": "5c7b8969-c60a-42df-b9dc-84849e0f10a2",
+              "name": "userMessage",
+              "value": "={{ $json.body.announcement }}",
+              "type": "string"
+            },
+            {
+              "id": "7b8664d1-0f50-4a1d-ad16-3867967041f8",
+              "name": "stepName",
+              "value": "Create Social Media",
+              "type": "string"
+            },
+            {
+              "id": "291d34dd-2292-4cea-9432-3ae16b054053",
+              "name": "sequence",
+              "value": "3",
+              "type": "string"
+            },
+            {
+              "id": "8cc15d2f-cab2-4691-b5ec-954ded016211",
+              "name": "totalSteps",
+              "value": "3",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "99b3b396-8e31-444e-aa5e-f652105cf9a7",
+      "name": "Social Media",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "provider",
+              "type": "string",
+              "value": "={{ $json.body.provider || 'openai' }}",
+              "id": "0e7e1195-46be-4104-ae35-19107420019d"
+            },
+            {
+              "name": "model",
+              "type": "string",
+              "value": "={{ $json.body.model || 'gpt-4' }}",
+              "id": "997b9201-041c-4053-81f2-7e1f69ffe070"
+            },
+            {
+              "name": "announcement",
+              "type": "string",
+              "value": "={{ $json.body.announcement }}",
+              "id": "37100b7a-3727-4855-824f-2725e80d0440"
+            },
+            {
+              "name": "taskId",
+              "type": "string",
+              "value": "={{ $json.body.taskId }}",
+              "id": "c26c5743-8792-41fc-807a-65cc83a14ca1"
+            },
+            {
+              "name": "conversationId",
+              "type": "string",
+              "value": "={{ $json.body.conversationId }}",
+              "id": "f95fd7fb-df93-4dd3-8450-2830ce517fcd"
+            },
+            {
+              "name": "userId",
+              "type": "string",
+              "value": "={{ $json.body.userId }}",
+              "id": "56763026-b467-4e4b-b3fb-7842b63c1caf"
+            },
+            {
+              "name": "statusWebhook",
+              "type": "string",
+              "value": "={{ $json.body.statusWebhook || 'http://host.docker.internal:7100/webhooks/status' }}",
+              "id": "5b5c4d3a-93bf-4f2d-aadf-e31b89a41079"
+            },
+            {
+              "id": "a95859db-69f5-46c2-a895-883b3659deac",
+              "name": "systemMessage",
+              "value": "You are an expert SEO specialist. Generate comprehensive SEO-optimized content including: meta title (60 chars max), meta description (155 chars max), 5-10 relevant keywords, H1 heading, and JSON-LD structured data for the given topic. Focus on search intent, readability, and technical SEO best practices.",
+              "type": "string"
+            },
+            {
+              "id": "5c7b8969-c60a-42df-b9dc-84849e0f10a2",
+              "name": "userMessage",
+              "value": "={{ $json.body.announcement }}",
+              "type": "string"
+            },
+            {
+              "id": "7b8664d1-0f50-4a1d-ad16-3867967041f8",
+              "name": "stepName",
+              "value": "Create SEO",
+              "type": "string"
+            },
+            {
+              "id": "291d34dd-2292-4cea-9432-3ae16b054053",
+              "name": "sequence",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "8cc15d2f-cab2-4691-b5ec-954ded016211",
+              "name": "totalSteps",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c035862f-b3ef-48e8-b7d3-8226b0a0642a",
+      "name": "SEO",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "provider",
+              "type": "string",
+              "value": "={{ $json.body.provider || 'openai' }}",
+              "id": "0e7e1195-46be-4104-ae35-19107420019d"
+            },
+            {
+              "name": "model",
+              "type": "string",
+              "value": "={{ $json.body.model || 'gpt-4' }}",
+              "id": "997b9201-041c-4053-81f2-7e1f69ffe070"
+            },
+            {
+              "name": "announcement",
+              "type": "string",
+              "value": "={{ $json.body.announcement }}",
+              "id": "37100b7a-3727-4855-824f-2725e80d0440"
+            },
+            {
+              "name": "taskId",
+              "type": "string",
+              "value": "={{ $json.body.taskId }}",
+              "id": "c26c5743-8792-41fc-807a-65cc83a14ca1"
+            },
+            {
+              "name": "conversationId",
+              "type": "string",
+              "value": "={{ $json.body.conversationId }}",
+              "id": "f95fd7fb-df93-4dd3-8450-2830ce517fcd"
+            },
+            {
+              "name": "userId",
+              "type": "string",
+              "value": "={{ $json.body.userId }}",
+              "id": "56763026-b467-4e4b-b3fb-7842b63c1caf"
+            },
+            {
+              "name": "statusWebhook",
+              "type": "string",
+              "value": "={{ $json.body.statusWebhook || 'http://host.docker.internal:7100/webhooks/status' }}",
+              "id": "5b5c4d3a-93bf-4f2d-aadf-e31b89a41079"
+            },
+            {
+              "id": "a95859db-69f5-46c2-a895-883b3659deac",
+              "name": "systemMessage",
+              "value": "You are a brilliant blog post writer who specializes in being both entertaining and informative, and you're best known for being able to write posts for all audiences. ",
+              "type": "string"
+            },
+            {
+              "id": "5c7b8969-c60a-42df-b9dc-84849e0f10a2",
+              "name": "userMessage",
+              "value": "={{ $json.body.announcement }}",
+              "type": "string"
+            },
+            {
+              "id": "7b8664d1-0f50-4a1d-ad16-3867967041f8",
+              "name": "stepName",
+              "value": "Write Blog Post",
+              "type": "string"
+            },
+            {
+              "id": "291d34dd-2292-4cea-9432-3ae16b054053",
+              "name": "sequence",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "8cc15d2f-cab2-4691-b5ec-954ded016211",
+              "name": "totalSteps",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract-config",
+      "name": "Web Post",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1264,
+        224
+      ],
+      "id": "9a602287-8e53-45f0-a320-517acc8c7912",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all 3 items from the merge\nconst items = $input.all();\n\n// Combine them into a single object\nreturn [{\n  json: {\n    webPost: items[0].json.text,\n    seoContent: items[1].json.text,\n    socialMedia: items[2].json.text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        240
+      ],
+      "id": "df59f646-cdbe-4d71-b958-db6a17c2d003",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Web Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SEO",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Social Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Web Post Task": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEO Task": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Social Media Task": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Send Final Status": {
+      "main": [
+        []
+      ]
+    },
+    "Social Media": {
+      "main": [
+        [
+          {
+            "node": "Social Media Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEO": {
+      "main": [
+        [
+          {
+            "node": "SEO Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Web Post": {
+      "main": [
+        [
+          {
+            "node": "Web Post Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Final Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "pinData": {},
+  "versionId": "9011a749-9328-4c75-9d7a-1578048ca754",
+  "triggerCount": 1,
+  "meta": null
+}

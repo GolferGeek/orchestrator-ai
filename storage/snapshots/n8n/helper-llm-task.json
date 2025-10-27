@@ -1,0 +1,618 @@
+{
+  "id": "9jxl03jCcqg17oOy",
+  "name": "Helper: LLM Task",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.statusWebhook || \"http://host.docker.internal:7100/webhooks/status\"}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  taskId: $json.taskId,\n  status: 'running',\n  timestamp: new Date().toISOString(),\n  step: $json.stepName,\n  message: `Starting ${$json.stepName || 'task'}`,\n  sequence: $json.sequence,\n  totalSteps: $json.totalSteps,\n  conversationId: $json.conversationId,\n  userId: $json.userId\n}) }}",
+        "options": {}
+      },
+      "id": "send-start-status",
+      "name": "Send Start Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        176
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.provider }}",
+                    "rightValue": "openai",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a1593526-252b-40e7-b755-414c0363680d"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "46d844e4-2f30-44cb-87c6-618ed4c789d3",
+                    "leftValue": "={{ $json.provider }}",
+                    "rightValue": "ollama",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "9331fc1c-d594-4900-81b6-89021334541c",
+                    "leftValue": "=  {{ $json.provider }}",
+                    "rightValue": "anthropic",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": 0
+        }
+      },
+      "id": "select-provider",
+      "name": "Select Provider",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        256,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\\n  model: $('Trigger').item.json.model || 'claude-3-sonnet-20240229',\\n  messages: [{ role: 'user', content: $('Trigger').item.json.prompt }],\\n  temperature: $('Trigger').item.json.temperature || 0.7,\\n  max_tokens: $('Trigger').item.json.maxTokens || 1000\\n}) }}",
+        "options": {}
+      },
+      "id": "anthropic-request",
+      "name": "Anthropic Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.message.content }}",
+              "id": "30f4cc34-cbec-4fca-8b91-e20aa43ddd65"
+            },
+            {
+              "name": "provider",
+              "type": "string",
+              "value": "openai",
+              "id": "541ecad6-3b94-4836-96b0-b9781b984082"
+            },
+            {
+              "name": "model",
+              "type": "string",
+              "value": "={{ $('Edit Fields').item.json.model }}",
+              "id": "60f6d0c1-0884-4c00-bacc-53c73c86c2c2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normalize-openai",
+      "name": "Normalize OpenAI",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.output }}",
+              "id": "926dda93-2e9e-4dfc-8bc0-117cdd7411ec"
+            },
+            {
+              "name": "provider",
+              "type": "string",
+              "value": "ollama",
+              "id": "e3f38e7d-5f10-4f83-93e4-a07d98b0d9ec"
+            },
+            {
+              "name": "model",
+              "type": "string",
+              "value": "={{ $('Edit Fields').item.json.model }}",
+              "id": "97cf8ec6-5dfd-422c-b9ff-834a7af9af05"
+            },
+            {
+              "name": "usage",
+              "type": "object",
+              "value": "={{ { prompt_tokens: $json.prompt_eval_count, completion_tokens: $json.eval_count } }}",
+              "id": "13a20d07-fc9f-4bac-aec5-98f4007f2b27"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normalize-ollama",
+      "name": "Normalize Ollama",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.content[0].text }}"
+            },
+            {
+              "name": "provider",
+              "type": "string",
+              "value": "anthropic"
+            },
+            {
+              "name": "model",
+              "type": "string",
+              "value": "={{ $json.model }}"
+            },
+            {
+              "name": "usage",
+              "type": "object",
+              "value": "={{ $json.usage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normalize-anthropic",
+      "name": "Normalize Anthropic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.statusWebhook || 'http://host.docker.internal:7100/webhooks/status' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  taskId: $('Edit Fields').item.json.taskId,\n  status: 'completed',\n  timestamp: new Date().toISOString(),\n  step: $('Edit Fields').item.json.stepName,\n  message: `Completed ${$('Edit Fields').item.json.stepName || 'task'}`,\n  sequence: $('Edit Fields').item.json.sequence,\n  totalSteps: $('Edit Fields').item.json.totalSteps,\n  conversationId: $('Edit Fields').item.json.conversationId,\n  userId: $('Edit Fields').item.json.userId\n}) }}",
+        "options": {}
+      },
+      "id": "send-end-status",
+      "name": "Send End Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1584,
+        224
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "id": "execute-workflow-trigger",
+      "name": "Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12f8c18a-7b6e-4614-85bf-229053383b5c",
+              "name": "taskId",
+              "value": "={{ $json.taskId }}",
+              "type": "string"
+            },
+            {
+              "id": "9028a85d-49ec-4801-a5a4-2d69221316ab",
+              "name": "conversationId",
+              "value": "={{ $json.conversationId}}",
+              "type": "string"
+            },
+            {
+              "id": "3ff69eae-d1d9-4914-bc6b-373025caf3cd",
+              "name": "userId",
+              "value": "={{ $json.userId }}",
+              "type": "string"
+            },
+            {
+              "id": "56ff3fd3-baf6-47c6-9d39-ac0b0ee08fe1",
+              "name": "provider",
+              "value": "={{ $json.provider }}",
+              "type": "string"
+            },
+            {
+              "id": "ccff1938-95b6-4aa9-a5c2-920db7438e80",
+              "name": "model",
+              "value": "={{ $json.model }}",
+              "type": "string"
+            },
+            {
+              "id": "78a2244a-5425-45ee-8aa2-b1fe99b5148d",
+              "name": "systemMessage",
+              "value": "={{ $json.systemMessage }}",
+              "type": "string"
+            },
+            {
+              "id": "8e5dd07f-7174-48d1-b8e9-88e1d14ee329",
+              "name": "userMessage",
+              "value": "={{ $json.userMessage }}",
+              "type": "string"
+            },
+            {
+              "id": "caaafbf9-3b3f-4af7-a781-5a4777759fe5",
+              "name": "stepName",
+              "value": "={{ $json.stepName }} ",
+              "type": "string"
+            },
+            {
+              "id": "61b1529b-9cb1-4b73-b469-b835fc78767a",
+              "name": "sequence",
+              "value": "={{ $json.sequence }}",
+              "type": "number"
+            },
+            {
+              "id": "c5163f91-4647-4a7c-b7b7-346abb4acb25",
+              "name": "statusWebhook",
+              "value": "={{ $json.statusWebhook }}",
+              "type": "string"
+            },
+            {
+              "id": "3f34c0ff-db77-42a1-9d41-90abe27a1150",
+              "name": "=totalSteps",
+              "value": "={{ $json.totalSteps }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        288
+      ],
+      "id": "81c83945-6bd0-41bb-9a6d-7c8eb2db9338",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        384
+      ],
+      "id": "9d553c6b-ecae-4157-acf2-c5d6dff83eaa",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        928,
+        400
+      ],
+      "id": "84dbc11a-2747-4d17-ab88-d368279feb87",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "hz52TIdzOn7p9IzY",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "={{ $json.model }}",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json['userMessage'] }}"
+            },
+            {
+              "content": "={{ $json['systemMessage'] }}",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        576,
+        112
+      ],
+      "id": "0f6dbcf1-2458-4881-8c32-a4619529064e",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json['userMessage'] }}",
+        "options": {
+          "systemMessage": "={{ $json['systemMessage'] }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        288
+      ],
+      "id": "9ad2d867-3295-49ee-bfe9-d5641c47dcf1",
+      "name": "Ollama"
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log('Received data:', JSON.stringify($input.all(), null, 2));\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        560
+      ],
+      "id": "09f5c425-7ea8-45e3-82f2-55e072314d39",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "connections": {
+    "Send Start Status": {
+      "main": [
+        []
+      ]
+    },
+    "Select Provider": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Anthropic Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        []
+      ]
+    },
+    "Anthropic Request": {
+      "main": [
+        [
+          {
+            "node": "Normalize Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Send End Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Ollama": {
+      "main": [
+        [
+          {
+            "node": "Send End Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Send End Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send Start Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Select Provider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Ollama",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Normalize OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama": {
+      "main": [
+        [
+          {
+            "node": "Normalize Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "pinData": {},
+  "versionId": "50dd25f5-908f-42f1-ab0c-eb475aab702c",
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

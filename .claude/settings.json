@@ -1,0 +1,101 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "npx tsx $CLAUDE_PROJECT_DIR/.claude/status_lines/status_line_main.ts",
+    "padding": 0
+  },
+  "permissions": {
+    "allow": [
+      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -p 7012 -U postgres -d postgres -c \"\\d auth.users\")",
+      "Bash(docker exec:*)",
+      "Bash(export:*)",
+      "Bash(for:*)",
+      "Bash(done)",
+      "Bash(npm run dev:*)",
+      "Bash(/Users/golfergeek/projects/golfergeek/orchestrator-ai/apps/observability/server/node_modules/.bin/tsx watch /Users/golfergeek/projects/golfergeek/orchestrator-ai/apps/observability/server/src/index.ts)",
+      "Bash(curl:*)",
+      "Bash(npx supabase:*)",
+      "Bash(/Users/golfergeek/projects/golfergeek/orchestrator-ai/apps/api/node_modules/.bin/supabase start)",
+      "Bash(psql:*)",
+      "Bash(do [ \"$file\" != \"apps/api/supabase/migrations/20251026000000_create_observability_schema.sql\" ])",
+      "Bash(echo \"Applying: $file\")",
+      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -p 7012 -U postgres -d postgres -f \"$file\")",
+      "Bash(docker restart:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker run:*)",
+      "Bash(docker inspect:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker start:*)",
+      "Bash(supabase services:*)",
+      "Bash(supabase stop:*)",
+      "Bash(supabase start:*)",
+      "Bash(do echo \"Applying: $file\")",
+      "Read(//tmp/claude-code-hooks-multi-agent-observability/.claude/**)",
+      "Bash(chmod:*)",
+      "Bash(npx tsx:*)",
+      "Bash(ANTHROPIC_API_KEY=\"$ANTHROPIC_API_KEY:-dummy\" npx tsx apps/observability/hooks/send-event.ts --source-app test --event-type PreToolUse --summarize --server-url http://localhost:9999)",
+      "Bash(npm install:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "/Users/golfergeek/projects/golfergeek/orchestrator-ai-davids-goliath"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --auto-detect --event-type PreToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --auto-detect --event-type PostToolUse"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --auto-detect --event-type Stop --add-chat"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --auto-detect --event-type UserPromptSubmit --summarize"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx $CLAUDE_PROJECT_DIR/apps/observability/hooks/send-event.ts --auto-detect --event-type SessionStart"
+          }
+        ]
+      }
+    ]
+  }
+}
