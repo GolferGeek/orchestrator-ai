@@ -78,3 +78,7 @@ playwright/.cache/
 
 # Obsidian history files
 obsidian/efforts/matt/history/
+
+# Storage - exclude backups but include scripts and snapshots
+storage/backups/
+storage/images/
