@@ -53,11 +53,11 @@
 
           <!-- Sound Toggle Button -->
           <button
-            @click="soundNotifications.toggleSound()"
+            @click="() => { soundNotifications.toggleSound(); soundNotifications.playCompletionSound(); }"
             class="p-3 mobile:p-1 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 border border-white/30 hover:border-white/50 backdrop-blur-sm shadow-lg hover:shadow-xl"
-            :title="soundNotifications.isEnabled ? 'Sound on' : 'Sound off'"
+            :title="soundNotifications.isEnabled.value ? 'Sound on (click to toggle)' : 'Sound off (click to toggle)'"
           >
-            <span class="text-2xl mobile:text-base">{{ soundNotifications.isEnabled ? '🔔' : '🔕' }}</span>
+            <span class="text-2xl mobile:text-base">{{ soundNotifications.isEnabled.value ? '🔔' : '🔕' }}</span>
           </button>
 
           <!-- Theme Manager Button -->
@@ -215,24 +215,34 @@ watch(uniqueAppNames, (newAppNames) => {
   });
 }, { deep: true });
 
+// Track last processed event to avoid duplicate notifications
+let lastProcessedEventId = 0;
+
 // Watch for new events and play sounds for HITL and completions
-watch(events, (newEvents, oldEvents) => {
-  if (newEvents.length === oldEvents?.length) return;
+watch(events, (newEvents) => {
+  if (newEvents.length === 0) return;
 
   // Check the most recent event
   const latestEvent = newEvents[newEvents.length - 1];
   if (!latestEvent) return;
 
+  // Skip if we've already processed this event
+  if (latestEvent.id && latestEvent.id <= lastProcessedEventId) return;
+  if (latestEvent.id) lastProcessedEventId = latestEvent.id;
+
+  console.log('New event:', latestEvent.hook_event_type, 'ID:', latestEvent.id, latestEvent);
+
   // Play sound for HITL requests
   if (latestEvent.humanInTheLoop && latestEvent.humanInTheLoop.status === 'pending') {
+    console.log('Playing HITL sound');
     notifyHITLRequest(latestEvent);
   }
 
   // Play sound for agent completions
-  // PostToolUse typically indicates task completion
-  if (latestEvent.eventType === 'PostToolUse' ||
-      latestEvent.eventType === 'TaskComplete' ||
-      latestEvent.eventType === 'AgentComplete') {
+  if (latestEvent.hook_event_type === 'Stop' ||
+      latestEvent.hook_event_type === 'SubagentStop' ||
+      latestEvent.hook_event_type === 'SessionEnd') {
+    console.log('Playing completion sound for:', latestEvent.hook_event_type);
     notifyAgentCompletion(latestEvent);
   }
 }, { deep: true });
