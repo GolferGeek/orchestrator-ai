@@ -51,6 +51,15 @@
             <span class="text-2xl mobile:text-base">📊</span>
           </button>
 
+          <!-- Sound Toggle Button -->
+          <button
+            @click="soundNotifications.toggleSound()"
+            class="p-3 mobile:p-1 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 border border-white/30 hover:border-white/50 backdrop-blur-sm shadow-lg hover:shadow-xl"
+            :title="soundNotifications.isEnabled ? 'Sound on' : 'Sound off'"
+          >
+            <span class="text-2xl mobile:text-base">{{ soundNotifications.isEnabled ? '🔔' : '🔕' }}</span>
+          </button>
+
           <!-- Theme Manager Button -->
           <button
             @click="handleThemeManagerClick"
@@ -141,6 +150,7 @@ import type { TimeRange } from './types';
 import { useWebSocket } from './composables/useWebSocket';
 import { useThemes } from './composables/useThemes';
 import { useEventColors } from './composables/useEventColors';
+import { useHITLNotifications } from './composables/useHITLNotifications';
 import EventTimeline from './components/EventTimeline.vue';
 import FilterPanel from './components/FilterPanel.vue';
 import StickScrollButton from './components/StickScrollButton.vue';
@@ -158,6 +168,9 @@ useThemes();
 
 // Event colors
 const { getHexColorForApp } = useEventColors();
+
+// Notifications (includes sound)
+const { notifyHITLRequest, notifyAgentCompletion, soundNotifications } = useHITLNotifications();
 
 // Filters
 const filters = ref({
@@ -200,6 +213,28 @@ watch(uniqueAppNames, (newAppNames) => {
       toasts.value.push(toast);
     }
   });
+}, { deep: true });
+
+// Watch for new events and play sounds for HITL and completions
+watch(events, (newEvents, oldEvents) => {
+  if (newEvents.length === oldEvents?.length) return;
+
+  // Check the most recent event
+  const latestEvent = newEvents[newEvents.length - 1];
+  if (!latestEvent) return;
+
+  // Play sound for HITL requests
+  if (latestEvent.humanInTheLoop && latestEvent.humanInTheLoop.status === 'pending') {
+    notifyHITLRequest(latestEvent);
+  }
+
+  // Play sound for agent completions
+  // PostToolUse typically indicates task completion
+  if (latestEvent.eventType === 'PostToolUse' ||
+      latestEvent.eventType === 'TaskComplete' ||
+      latestEvent.eventType === 'AgentComplete') {
+    notifyAgentCompletion(latestEvent);
+  }
 }, { deep: true });
 
 const dismissToast = (id: number) => {
