@@ -57,6 +57,7 @@
     "lint:report": "node scripts/lint-report.mjs",
     "db:export-snapshot": "bash storage/scripts/export-snapshot.sh",
     "db:apply-snapshot": "bash storage/scripts/apply-snapshot.sh",
+    "db:apply-migration": "bash storage/scripts/apply-proposed-migration.sh",
     "db:export-agent": "bash storage/scripts/export-agent.sh",
     "db:import-agent": "bash storage/scripts/import-agent.sh",
     "db:export-all-agents": "bash storage/scripts/export-all-agents.sh",
