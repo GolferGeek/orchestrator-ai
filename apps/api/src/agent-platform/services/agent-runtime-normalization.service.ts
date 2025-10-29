@@ -268,8 +268,6 @@ export class AgentRuntimeNormalizationService {
         return 'plan';
       case AgentTaskMode.BUILD:
         return 'build';
-      case AgentTaskMode.ORCHESTRATE:
-        return 'orchestrate';
       default:
         return String(mode).toLowerCase();
     }

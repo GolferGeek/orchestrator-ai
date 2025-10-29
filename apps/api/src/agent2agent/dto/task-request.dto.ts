@@ -79,18 +79,6 @@ export class TaskRequestDto {
   planId?: string;
 
   @IsOptional()
-  @IsUUID()
-  orchestrationId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  orchestrationRunId?: string;
-
-  @IsOptional()
-  @IsString()
-  orchestrationSlug?: string;
-
-  @IsOptional()
   @IsObject()
   payload?: Record<string, unknown>;
 

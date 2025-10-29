@@ -37,7 +37,6 @@ import { AgentPromotionService } from './services/agent-promotion.service';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { TasksModule } from '@/agent2agent/tasks/tasks.module';
 import { ContextOptimizationModule } from '@/agent2agent/context-optimization/context-optimization.module';
-import { MetricsController } from './controllers/metrics.controller';
 
 @Module({
   imports: [
@@ -57,7 +56,6 @@ import { MetricsController } from './controllers/metrics.controller';
     AgentApprovalsController,
     AgentsAdminController,
     AgentsPublicController,
-    MetricsController,
   ],
   providers: [
     AgentsRepository,

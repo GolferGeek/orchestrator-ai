@@ -101,8 +101,6 @@ export class RoutingPolicyAdapterService {
       conversationId: request.conversationId,
       sessionId: request.sessionId,
       planId: request.planId,
-      orchestrationSlug: request.orchestrationSlug,
-      orchestrationRunId: request.orchestrationRunId,
       organizationSlug: agent.organization_slug ?? null,
       userId: (metadata.userId ?? payload.userId ?? null) as string | null,
       requestId: (metadata.requestId ?? payload.requestId ?? null) as
