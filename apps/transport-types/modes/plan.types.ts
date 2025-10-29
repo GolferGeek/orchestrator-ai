@@ -148,6 +148,8 @@ export interface PlanRequestMetadata {
   source: string;
   /** User ID making the request (REQUIRED) */
   userId: string;
+  /** Current sub-agent handling the request (for orchestrator delegation) */
+  current_sub_agent?: string | null;
 }
 
 /**
@@ -167,6 +169,8 @@ export interface PlanResponseMetadata {
   };
   /** Routing decision information (optional) */
   routingDecision?: Record<string, any>;
+  /** Current sub-agent that handled the request (for orchestrator delegation) */
+  current_sub_agent?: string | null;
 }
 
 /**
