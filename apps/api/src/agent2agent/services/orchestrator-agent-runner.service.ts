@@ -15,9 +15,9 @@ import { firstValueFrom } from 'rxjs';
 
 /**
  * Orchestrator V2 Agent Runner
- * 
+ *
  * Minimal proxy that delegates to sub-agents via standard A2A endpoints.
- * 
+ *
  * Features:
  * - Sticky routing: if current_sub_agent exists in metadata, route directly
  * - LLM-based selection: for first message, use LLM to pick best sub-agent
@@ -58,10 +58,12 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   ): Promise<TaskResponseDto> {
     try {
       // Extract current sub-agent from metadata (sticky routing)
-      const currentSubAgent = request.metadata?.current_sub_agent as string | undefined;
+      const currentSubAgent = request.metadata?.current_sub_agent as
+        | string
+        | undefined;
 
       let targetAgent: string;
-      
+
       if (currentSubAgent) {
         // Sticky routing: continue with same sub-agent
         targetAgent = currentSubAgent;
@@ -89,9 +91,15 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
         targetAgent,
       );
 
-      return this.addAttribution(response, targetAgent, subAgentDefinition?.display_name);
+      return this.addAttribution(
+        response,
+        targetAgent,
+        subAgentDefinition?.display_name,
+      );
     } catch (error) {
-      this.logger.error(`Orchestrator delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Orchestrator delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw error;
     }
   }
@@ -106,9 +114,9 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
   ): Promise<string> {
     // Get available sub-agents
     const agents = await this.agentRegistry.listAgents(organizationSlug);
-    
+
     // Filter to only sub-agents (agents that are not orchestrators)
-    const subAgents = agents.filter(a => a.agent_type !== 'orchestrator');
+    const subAgents = agents.filter((a) => a.agent_type !== 'orchestrator');
 
     if (subAgents.length === 0) {
       throw new Error('No sub-agents available for delegation');
@@ -120,9 +128,12 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
 
     // Build LLM prompt with user message and agent capabilities
     const userMessage = request.userMessage || JSON.stringify(request.payload);
-    const agentList = subAgents.map(a => 
-      `- ${a.slug}: ${a.display_name} - ${a.description || 'No description'}`
-    ).join('\n');
+    const agentList = subAgents
+      .map(
+        (a) =>
+          `- ${a.slug}: ${a.display_name} - ${a.description || 'No description'}`,
+      )
+      .join('\n');
 
     const prompt = `You are an orchestrator selecting the best agent for a user's request.
 
@@ -143,13 +154,19 @@ Respond with ONLY the agent slug (e.g., "marketing", "analytics"). Choose the si
       },
     );
 
-    const selected = (typeof response === 'string' ? response : response.content).trim().toLowerCase();
-    
+    const selected = (
+      typeof response === 'string' ? response : response.content
+    )
+      .trim()
+      .toLowerCase();
+
     // Validate selection
-    const match = subAgents.find(a => a.slug === selected);
+    const match = subAgents.find((a) => a.slug === selected);
     if (!match) {
       // Fallback to first available agent if LLM returns invalid selection
-      this.logger.warn(`LLM returned invalid agent "${selected}", using fallback`);
+      this.logger.warn(
+        `LLM returned invalid agent "${selected}", using fallback`,
+      );
       return subAgents[0]?.slug || '';
     }
 
