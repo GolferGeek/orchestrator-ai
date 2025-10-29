@@ -63,22 +63,22 @@ BEGIN;
 
 -- Step 1: Drop orchestration_runs (CASCADE to checkpoints and steps)
 -- This is the parent table that other orchestration tables reference
-RAISE NOTICE 'Dropping orchestration_runs (CASCADE to children)...';
+DO $$ BEGIN RAISE NOTICE 'Dropping orchestration_runs (CASCADE to children)...'; END $$;
 DROP TABLE IF EXISTS public.orchestration_runs CASCADE;
 
 -- Step 2: Drop independent tables (no foreign key dependencies)
-RAISE NOTICE 'Dropping agent_orchestrations...';
+DO $$ BEGIN RAISE NOTICE 'Dropping agent_orchestrations...'; END $$;
 DROP TABLE IF EXISTS public.agent_orchestrations CASCADE;
 
-RAISE NOTICE 'Dropping orchestration_definitions...';
+DO $$ BEGIN RAISE NOTICE 'Dropping orchestration_definitions...'; END $$;
 DROP TABLE IF EXISTS public.orchestration_definitions CASCADE;
 
 -- Step 3: Explicitly drop remaining tables (safety check in case CASCADE didn't handle them)
 -- These should already be dropped by CASCADE, but we're being explicit for safety
-RAISE NOTICE 'Verifying orchestration_checkpoints is dropped...';
+DO $$ BEGIN RAISE NOTICE 'Verifying orchestration_checkpoints is dropped...'; END $$;
 DROP TABLE IF EXISTS public.orchestration_checkpoints CASCADE;
 
-RAISE NOTICE 'Verifying orchestration_steps is dropped...';
+DO $$ BEGIN RAISE NOTICE 'Verifying orchestration_steps is dropped...'; END $$;
 DROP TABLE IF EXISTS public.orchestration_steps CASCADE;
 
 -- ============================================
