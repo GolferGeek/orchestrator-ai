@@ -24,13 +24,13 @@ import type { JsonObject } from '@/types';
 /**
  * Chat mode for conversation
  */
-export type ChatMode = 'converse' | 'plan' | 'build' | 'orchestrate';
+export type ChatMode = 'converse' | 'plan' | 'build';
 
 /**
  * Pending action in UI
  */
 export interface PendingAction {
-  type: 'plan' | 'build' | 'orchestration';
+  type: 'plan' | 'build';
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   conversationId?: string;
   metadata?: JsonObject;
@@ -103,7 +103,6 @@ export const useChatUiStore = defineStore('chatUi', () => {
   const isConversationalMode = computed(() => chatMode.value === 'converse');
   const isPlanMode = computed(() => chatMode.value === 'plan');
   const isBuildMode = computed(() => chatMode.value === 'build');
-  const isOrchestrateMode = computed(() => chatMode.value === 'orchestrate');
 
   /**
    * Get effective execution mode for active conversation
@@ -385,7 +384,6 @@ export const useChatUiStore = defineStore('chatUi', () => {
     isConversationalMode,
     isPlanMode,
     isBuildMode,
-    isOrchestrateMode,
     effectiveExecutionMode,
     executionMode,
 

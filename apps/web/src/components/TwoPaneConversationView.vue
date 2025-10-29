@@ -596,8 +596,7 @@ const isSimpleMessage = (message: any) => {
     const hasTaskMetadata = message.metadata?.planId ||
                            message.metadata?.deliverableId ||
                            message.metadata?.mode === 'plan' ||
-                           message.metadata?.mode === 'build' ||
-                           message.metadata?.mode?.includes('orchestrate');
+                           message.metadata?.mode === 'build';
     return !hasTaskMetadata;
   }
 

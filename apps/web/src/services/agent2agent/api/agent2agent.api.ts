@@ -302,46 +302,7 @@ export class Agent2AgentApi {
   };
 
   // ============================================================================
-  // ORCHESTRATE OPERATIONS
-  // ============================================================================
-
-  /**
-   * Convenience methods for orchestrate operations
-   * Uses action-based routing with payload.action field
-   */
-  orchestrate = {
-    create: async (conversationId: string, payload: Record<string, unknown>) => {
-      const strictRequest = buildRequest.orchestrate.create(
-        { conversationId },
-        payload
-      );
-      return this.executeStrictRequest(strictRequest);
-    },
-
-    execute: async (conversationId: string, payload: Record<string, unknown>) => {
-      const strictRequest = buildRequest.orchestrate.execute(
-        { conversationId },
-        payload
-      );
-      return this.executeStrictRequest(strictRequest);
-    },
-
-    continue: async (conversationId: string, payload: Record<string, unknown>) => {
-      const strictRequest = buildRequest.orchestrate.continue(
-        { conversationId },
-        payload
-      );
-      return this.executeStrictRequest(strictRequest);
-    },
-
-    saveRecipe: async (conversationId: string, payload: Record<string, unknown>) => {
-      const strictRequest = buildRequest.orchestrate.saveRecipe(
-        { conversationId },
-        payload
-      );
-      return this.executeStrictRequest(strictRequest);
-    },
-  };
+  // REMOVED: Orchestrate operations - no longer supported in Orchestrator V2
 
   // ============================================================================
   // CORE EXECUTION METHODS
