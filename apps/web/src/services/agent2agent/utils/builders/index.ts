@@ -6,12 +6,10 @@
 export { planBuilder } from './plan.builder';
 export { buildBuilder } from './build.builder';
 export { converseBuilder } from './converse.builder';
-export { orchestrateBuilder } from './orchestrate.builder';
 
 import { planBuilder } from './plan.builder';
 import { buildBuilder } from './build.builder';
 import { converseBuilder } from './converse.builder';
-import { orchestrateBuilder } from './orchestrate.builder';
 
 /**
  * Unified request builder
@@ -21,7 +19,6 @@ export const buildRequest = {
   plan: planBuilder,
   build: buildBuilder,
   converse: converseBuilder,
-  orchestrate: orchestrateBuilder,
 };
 
 /**
