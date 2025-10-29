@@ -157,13 +157,14 @@ export class Agent2AgentTaskStatusService {
           content?: {
             deliverable?: { type?: string };
           };
-        }
+        };
       };
 
       // Try multiple paths to extract metadata
       // 1. Top-level metadata (from TaskResponseDto)
       // 2. payload.metadata (nested in payload)
-      const responseMetadata = responseObj?.metadata || responseObj?.payload?.metadata;
+      const responseMetadata =
+        responseObj?.metadata || responseObj?.payload?.metadata;
 
       // Try to extract deliverable type from multiple locations
       const deliverableType =

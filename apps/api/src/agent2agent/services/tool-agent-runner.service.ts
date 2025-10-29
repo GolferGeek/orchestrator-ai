@@ -124,23 +124,25 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       const payloadConfig = this.asRecord(payload?.config);
 
       // Try metadata first, then buildRerun.config, then payload.config
-      const providerFromMetadata = this.ensureString(metadata?.provider) ||
-                                    this.ensureString(buildRerunConfig?.provider) ||
-                                    this.ensureString(payloadConfig?.provider);
-      const modelFromMetadata = this.ensureString(metadata?.model) ||
-                                  this.ensureString(buildRerunConfig?.model) ||
-                                  this.ensureString(payloadConfig?.model);
+      const providerFromMetadata =
+        this.ensureString(metadata?.provider) ||
+        this.ensureString(buildRerunConfig?.provider) ||
+        this.ensureString(payloadConfig?.provider);
+      const modelFromMetadata =
+        this.ensureString(metadata?.model) ||
+        this.ensureString(buildRerunConfig?.model) ||
+        this.ensureString(payloadConfig?.model);
 
       this.logger.debug(
         `Provider/model extraction - ` +
-        `metadata: ${metadata?.provider}/${metadata?.model}, ` +
-        `buildRerun.config: ${buildRerunConfig?.provider}/${buildRerunConfig?.model}, ` +
-        `payload.config: ${payloadConfig?.provider}/${payloadConfig?.model}, ` +
-        `final: ${providerFromMetadata}/${modelFromMetadata}`,
+          `metadata: ${String(metadata?.provider)}/${String(metadata?.model)}, ` +
+          `buildRerun.config: ${String(buildRerunConfig?.provider)}/${String(buildRerunConfig?.model)}, ` +
+          `payload.config: ${String(payloadConfig?.provider)}/${String(payloadConfig?.model)}, ` +
+          `final: ${providerFromMetadata}/${modelFromMetadata}`,
       );
 
       // Merge tool params: config < payload < metadata (for provider/model)
-      let toolParams = this.mergeToolParams(
+      const toolParams = this.mergeToolParams(
         this.asRecord(configRecord?.toolParams),
         this.asRecord(payloadOverrides.toolParams),
       );
@@ -156,7 +158,8 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
         };
 
         // Inject into analyze-results tool
-        const analyzeResultsParams = toolParams['supabase/analyze-results'] || {};
+        const analyzeResultsParams =
+          toolParams['supabase/analyze-results'] || {};
         toolParams['supabase/analyze-results'] = {
           ...analyzeResultsParams,
           provider: providerFromMetadata,
@@ -250,7 +253,10 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
 
             // Auto-inject provider/model for LLM-powered tools
             if (providerFromMetadata && modelFromMetadata) {
-              if (toolName === 'supabase/generate-sql' || toolName === 'supabase/analyze-results') {
+              if (
+                toolName === 'supabase/generate-sql' ||
+                toolName === 'supabase/analyze-results'
+              ) {
                 params = {
                   ...params,
                   provider: providerFromMetadata,
@@ -481,10 +487,10 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     // Handle array results (from MCP content array)
     if (Array.isArray(resultData) && resultData.length > 0) {
       // Extract first item if it's a string
-      const firstItem = resultData[0];
+      const firstItem = resultData[0] as unknown;
       if (typeof firstItem === 'string') {
         try {
-          resultData = JSON.parse(firstItem);
+          resultData = JSON.parse(firstItem) as Record<string, unknown>;
         } catch {
           resultData = firstItem;
         }
@@ -492,27 +498,47 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     }
 
     // Tool-specific chaining logic
-    if (currentToolName === 'supabase/execute-sql' || currentToolName.endsWith('/execute-sql')) {
+    if (
+      currentToolName === 'supabase/execute-sql' ||
+      currentToolName.endsWith('/execute-sql')
+    ) {
       // execute-sql needs 'sql' param from generate-sql
       const resultObj = resultData as Record<string, unknown>;
       if (resultObj && typeof resultObj === 'object' && 'sql' in resultObj) {
         chained.sql = resultObj.sql;
-        this.logger.debug(`Chained SQL: ${String(resultObj.sql).substring(0, 100)}...`);
+        this.logger.debug(
+          `Chained SQL: ${String(resultObj.sql).substring(0, 100)}...`,
+        );
       }
-    } else if (currentToolName === 'supabase/analyze-results' || currentToolName.endsWith('/analyze-results')) {
+    } else if (
+      currentToolName === 'supabase/analyze-results' ||
+      currentToolName.endsWith('/analyze-results')
+    ) {
       // analyze-results needs 'data' param from execute-sql
       const resultObj = resultData as Record<string, unknown>;
       if (resultObj && typeof resultObj === 'object' && 'data' in resultObj) {
         // execute-sql returns { data: [...], row_count, ... }
         chained.data = resultObj.data;
         const dataArray = resultObj.data as unknown[];
-        this.logger.debug(`Chained ${dataArray?.length || 0} result rows for analysis`);
+        this.logger.debug(
+          `Chained ${dataArray?.length || 0} result rows for analysis`,
+        );
       } else if (Array.isArray(resultData)) {
         chained.data = resultData;
-        this.logger.debug(`Chained ${resultData.length} result rows for analysis`);
-      } else if (resultObj && typeof resultObj === 'object' && 'rows' in resultObj) {
+        this.logger.debug(
+          `Chained ${resultData.length} result rows for analysis`,
+        );
+      } else if (
+        resultObj &&
+        typeof resultObj === 'object' &&
+        'rows' in resultObj
+      ) {
         chained.data = resultObj.rows;
-      } else if (resultObj && typeof resultObj === 'object' && 'results' in resultObj) {
+      } else if (
+        resultObj &&
+        typeof resultObj === 'object' &&
+        'results' in resultObj
+      ) {
         chained.data = resultObj.results;
       } else {
         chained.data = resultData;
@@ -563,11 +589,15 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     params: Record<string, unknown>,
     request: TaskRequestDto,
   ): Promise<unknown> {
-    this.logger.debug(`Executing tool: ${toolName} with params: ${JSON.stringify(params)}`);
+    this.logger.debug(
+      `Executing tool: ${toolName} with params: ${JSON.stringify(params)}`,
+    );
 
     // Interpolate parameters with request data
     const interpolatedParams = this.interpolateParams(params, request);
-    this.logger.debug(`Interpolated params for ${toolName}: ${JSON.stringify(interpolatedParams)}`);
+    this.logger.debug(
+      `Interpolated params for ${toolName}: ${JSON.stringify(interpolatedParams)}`,
+    );
 
     // Call MCP service
     const result = await this.mcpService.callTool({
@@ -641,10 +671,18 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     request: TaskRequestDto,
   ): Record<string, unknown> {
     this.logger.debug(`[INTERPOLATE] Starting interpolation`);
-    this.logger.debug(`[INTERPOLATE] Request keys: ${Object.keys(request).join(', ')}`);
-    this.logger.debug(`[INTERPOLATE] Request.payload type: ${typeof request.payload}`);
-    this.logger.debug(`[INTERPOLATE] Request.payload keys: ${request.payload && typeof request.payload === 'object' ? Object.keys(request.payload as Record<string, unknown>).join(', ') : 'none'}`);
-    this.logger.debug(`[INTERPOLATE] Params to interpolate: ${JSON.stringify(params).substring(0, 300)}`);
+    this.logger.debug(
+      `[INTERPOLATE] Request keys: ${Object.keys(request).join(', ')}`,
+    );
+    this.logger.debug(
+      `[INTERPOLATE] Request.payload type: ${typeof request.payload}`,
+    );
+    this.logger.debug(
+      `[INTERPOLATE] Request.payload keys: ${request.payload && typeof request.payload === 'object' ? Object.keys(request.payload).join(', ') : 'none'}`,
+    );
+    this.logger.debug(
+      `[INTERPOLATE] Params to interpolate: ${JSON.stringify(params).substring(0, 300)}`,
+    );
 
     const interpolated: Record<string, unknown> = {};
 
@@ -662,18 +700,22 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
               if (val && typeof val === 'object' && k in val) {
                 const objVal = val as Record<string, unknown>;
                 val = objVal[k];
-                this.logger.debug(`[INTERPOLATE] Found key '${k}', type: ${typeof val}`);
+                this.logger.debug(
+                  `[INTERPOLATE] Found key '${k}', type: ${typeof val}`,
+                );
               } else {
                 this.logger.warn(
                   `[INTERPOLATE] Template variable ${match} not found. Key '${k}' not in object. ` +
-                  `Available keys: ${val && typeof val === 'object' ? Object.keys(val).join(', ') : 'none'}`,
+                    `Available keys: ${val && typeof val === 'object' ? Object.keys(val).join(', ') : 'none'}`,
                 );
                 return match; // Keep original if not found
               }
             }
 
             const result = typeof val === 'string' ? val : JSON.stringify(val);
-            this.logger.debug(`[INTERPOLATE] Final value for ${match}: ${result}`);
+            this.logger.debug(
+              `[INTERPOLATE] Final value for ${match}: ${result}`,
+            );
             return result;
           },
         );
@@ -683,7 +725,9 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       }
     }
 
-    this.logger.debug(`[INTERPOLATE] Result: ${JSON.stringify(interpolated).substring(0, 300)}`);
+    this.logger.debug(
+      `[INTERPOLATE] Result: ${JSON.stringify(interpolated).substring(0, 300)}`,
+    );
     return interpolated;
   }
 
@@ -703,7 +747,9 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       return JSON.stringify(results, null, 2);
     } else if (format === 'markdown') {
       // Check if these are Supabase tools for special formatting
-      const isSupabaseTools = results.some(r => r.tool.startsWith('supabase/'));
+      const isSupabaseTools = results.some((r) =>
+        r.tool.startsWith('supabase/'),
+      );
 
       if (isSupabaseTools) {
         return this.formatSupabaseResults(results);
@@ -768,10 +814,15 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       // Handle generate-sql result
       if (result.tool === 'supabase/generate-sql' && result.result) {
         try {
-          const resultArray = Array.isArray(result.result) ? result.result : [result.result];
-          const sqlData = JSON.parse(String(resultArray[0]));
-          sql = sqlData.sql || '';
-        } catch (e) {
+          const resultArray = Array.isArray(result.result)
+            ? result.result
+            : [result.result];
+          const sqlData = JSON.parse(String(resultArray[0])) as Record<
+            string,
+            unknown
+          >;
+          sql = (sqlData.sql as string) || '';
+        } catch {
           // Ignore parse errors
         }
       }
@@ -779,32 +830,39 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
       // Handle analyze-results result
       if (result.tool === 'supabase/analyze-results' && result.result) {
         try {
-          const resultArray = Array.isArray(result.result) ? result.result : [result.result];
-          const analysisData = typeof resultArray[0] === 'string'
-            ? JSON.parse(resultArray[0])
-            : resultArray[0];
+          const resultArray = Array.isArray(result.result)
+            ? result.result
+            : [result.result];
+          const analysisData =
+            typeof resultArray[0] === 'string'
+              ? (JSON.parse(resultArray[0]) as Record<string, unknown>)
+              : (resultArray[0] as Record<string, unknown>);
 
           // Format the analysis nicely
-          if (analysisData.stakeholder_summary?.key_insights) {
+          const stakeholderSummary = analysisData.stakeholder_summary as
+            | Record<string, unknown>
+            | undefined;
+          if (stakeholderSummary?.key_insights) {
             analysis = '## Analysis\n\n';
-            const insights = analysisData.stakeholder_summary.key_insights;
+            const insights = stakeholderSummary.key_insights;
             if (Array.isArray(insights)) {
-              insights.forEach((insight: string) => {
-                analysis += `- ${insight}\n`;
+              insights.forEach((insight: unknown) => {
+                analysis += `- ${String(insight)}\n`;
               });
             }
           } else if (analysisData.key_insights) {
             analysis = '## Analysis\n\n';
-            const insights = analysisData.key_insights;
+            const insights = analysisData.key_insights as Record<
+              string,
+              unknown
+            >;
             Object.values(insights).forEach((insight: unknown) => {
               analysis += `- ${String(insight)}\n`;
             });
-          } else if (typeof analysisData === 'string') {
-            analysis = `## Analysis\n\n${analysisData}\n`;
           } else {
             analysis = `## Analysis\n\n${JSON.stringify(analysisData, null, 2)}\n`;
           }
-        } catch (e) {
+        } catch {
           // Ignore parse errors
         }
       }
@@ -813,7 +871,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
     // Build the final markdown
     if (errors.length > 0) {
       markdown += '## ❌ Errors\n\n';
-      errors.forEach(error => {
+      errors.forEach((error) => {
         markdown += `- ${error}\n`;
       });
       markdown += '\n';

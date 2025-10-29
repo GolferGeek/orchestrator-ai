@@ -1,10 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { LLMService } from '../../../llms/llm.service';
-import {
-  isLLMResponse,
-  LLMRequestOptions,
-} from '@/llms/services/llm-interfaces';
+import { isLLMResponse } from '@/llms/services/llm-interfaces';
 import {
   IMCPServer,
   MCPServerInfo,
@@ -502,13 +499,19 @@ export class SupabaseMCPServer implements IMCPServer {
       // Validate SQL parameter
       if (!sql || typeof sql !== 'string') {
         throw new Error(
-          `Missing or invalid 'sql' parameter. Received: ${typeof sql}. Args: ${JSON.stringify(args).substring(0, 200)}`
+          `Missing or invalid 'sql' parameter. Received: ${typeof sql}. Args: ${JSON.stringify(args).substring(0, 200)}`,
         );
       }
 
       // Security validation - deny destructive operations (PRD §7)
       // Use word boundaries to avoid false positives with column names like "updated_at"
-      const deniedOperations = ['DROP', 'TRUNCATE', 'ALTER', 'DELETE', 'UPDATE'];
+      const deniedOperations = [
+        'DROP',
+        'TRUNCATE',
+        'ALTER',
+        'DELETE',
+        'UPDATE',
+      ];
       const sqlUpper = sql.toUpperCase();
 
       for (const operation of deniedOperations) {
@@ -516,7 +519,7 @@ export class SupabaseMCPServer implements IMCPServer {
         const regex = new RegExp(`\\b${operation}\\b`, 'i');
         if (regex.test(sqlUpper)) {
           throw new Error(
-            `Security violation: Operation '${operation}' is not allowed in read-only mode. Denied operations: ${deniedOperations.join(', ')}`
+            `Security violation: Operation '${operation}' is not allowed in read-only mode. Denied operations: ${deniedOperations.join(', ')}`,
           );
         }
       }
@@ -548,7 +551,10 @@ export class SupabaseMCPServer implements IMCPServer {
 
       console.log('[SUPABASE-EXEC] Response error:', error);
       console.log('[SUPABASE-EXEC] Response data type:', typeof result);
-      console.log('[SUPABASE-EXEC] Response data:', JSON.stringify(result).substring(0, 500));
+      console.log(
+        '[SUPABASE-EXEC] Response data:',
+        JSON.stringify(result).substring(0, 500),
+      );
 
       const executionTime = Date.now() - startTime;
 
@@ -620,9 +626,20 @@ export class SupabaseMCPServer implements IMCPServer {
     } = args;
 
     console.log('[ANALYZE-HANDLER] ====== handleAnalyzeResults CALLED ======');
-    console.log('[ANALYZE-HANDLER] Args received:', JSON.stringify(args).substring(0, 500));
-    console.log('[ANALYZE-HANDLER] Data type:', typeof data, 'isArray:', Array.isArray(data));
-    console.log('[ANALYZE-HANDLER] Data length:', Array.isArray(data) ? data.length : 'N/A');
+    console.log(
+      '[ANALYZE-HANDLER] Args received:',
+      JSON.stringify(args).substring(0, 500),
+    );
+    console.log(
+      '[ANALYZE-HANDLER] Data type:',
+      typeof data,
+      'isArray:',
+      Array.isArray(data),
+    );
+    console.log(
+      '[ANALYZE-HANDLER] Data length:',
+      Array.isArray(data) ? data.length : 'N/A',
+    );
     console.log('[ANALYZE-HANDLER] Provider:', provider, 'Model:', model);
 
     try {
@@ -788,7 +805,10 @@ export class SupabaseMCPServer implements IMCPServer {
       return filtered;
     }
 
-    console.log('[MCP-SQL-DEBUG] No tables filter, returning full context - length:', context.length);
+    console.log(
+      '[MCP-SQL-DEBUG] No tables filter, returning full context - length:',
+      context.length,
+    );
     return context;
   }
 
@@ -861,18 +881,23 @@ Return ONLY the SQL query, no explanation or formatting.`;
         modelName?: string;
         includeMetadata?: boolean;
         provider?: 'openai' | 'anthropic' | 'google' | 'ollama';
-        cidafmOptions?: any;
+        cidafmOptions?: Record<string, unknown>;
         complexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
       } = {
         temperature: 0.1,
         maxTokens: 1000,
-        callerType: 'service',
+        callerType: 'service' as const,
         callerName: 'supabase-mcp-service',
-        dataClassification: 'internal',
+        dataClassification: 'internal' as const,
         providerName: provider,
         modelName: model,
         includeMetadata: false,
-        provider: provider as 'openai' | 'anthropic' | 'google' | 'ollama' | undefined,
+        provider: provider as
+          | 'openai'
+          | 'anthropic'
+          | 'google'
+          | 'ollama'
+          | undefined,
       };
       console.log('[MCP-SQL-DEBUG] LLM params:', generateOptions);
 
@@ -1093,7 +1118,10 @@ Return ONLY the SQL query, no explanation or formatting.`;
     try {
       console.log('[SUPABASE-ANALYZE] ====== ANALYZING RESULTS ======');
       console.log('[SUPABASE-ANALYZE] Data length:', data.length);
-      console.log('[SUPABASE-ANALYZE] Data received:', JSON.stringify(data).substring(0, 500));
+      console.log(
+        '[SUPABASE-ANALYZE] Data received:',
+        JSON.stringify(data).substring(0, 500),
+      );
       console.log('[SUPABASE-ANALYZE] Prompt:', prompt);
       console.log('[SUPABASE-ANALYZE] Provider:', provider);
       console.log('[SUPABASE-ANALYZE] Model:', model);

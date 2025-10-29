@@ -332,14 +332,23 @@ export class Agent2AgentController {
       // Legacy format was payload.llmSelection
       let llmSelectionFromPayload: LlmSelection | undefined;
       if (dto.payload?.config && typeof dto.payload.config === 'object') {
-        const config = dto.payload.config as { provider?: string; model?: string; temperature?: number; maxTokens?: number };
+        const config = dto.payload.config as {
+          provider?: string;
+          model?: string;
+          temperature?: number;
+          maxTokens?: number;
+        };
         if (config.provider && config.model) {
           // LlmSelection type uses 'provider' and 'model' fields (not providerName/modelName)
           llmSelectionFromPayload = {
             provider: config.provider,
             model: config.model,
-            ...(config.temperature !== undefined && { temperature: config.temperature }),
-            ...(config.maxTokens !== undefined && { maxTokens: config.maxTokens }),
+            ...(config.temperature !== undefined && {
+              temperature: config.temperature,
+            }),
+            ...(config.maxTokens !== undefined && {
+              maxTokens: config.maxTokens,
+            }),
           };
         }
       } else if (dto.payload?.llmSelection) {
@@ -570,8 +579,11 @@ export class Agent2AgentController {
 
       // Success case - update task and create deliverable
       // Extract deliverable type from results if available
-      const resultsObj = body.results as { type?: string; payload?: { type?: string } } | undefined;
-      const deliverableType = resultsObj?.type || resultsObj?.payload?.type || null;
+      const resultsObj = body.results as
+        | { type?: string; payload?: { type?: string } }
+        | undefined;
+      const deliverableType =
+        resultsObj?.type || resultsObj?.payload?.type || null;
 
       await this.taskUpdateService.updateTask(taskId, body.userId, {
         status: 'completed',

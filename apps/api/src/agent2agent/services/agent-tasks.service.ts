@@ -238,7 +238,11 @@ export class Agent2AgentTasksService {
 
       // Store LLM selection in dedicated llm_metadata column for better querying
       if (params.llmSelection) {
-        (taskData as any).llm_metadata = {
+        (
+          taskData as typeof taskData & {
+            llm_metadata: Record<string, unknown>;
+          }
+        ).llm_metadata = {
           originalLLMSelection: params.llmSelection,
           createdAt: new Date().toISOString(),
         };
@@ -247,7 +251,9 @@ export class Agent2AgentTasksService {
       // Store top-level metadata for task-level information
       // This is separate from params.metadata which is protocol-specific
       if (params.metadata && Object.keys(params.metadata).length > 0) {
-        (taskData as any).metadata = {
+        (
+          taskData as typeof taskData & { metadata: Record<string, unknown> }
+        ).metadata = {
           ...params.metadata,
           agentName,
           agentType,
