@@ -1045,7 +1045,6 @@ export class Agent2AgentController {
       data: {
         streamId: event.streamId,
         conversationId: event.conversationId,
-        orchestrationRunId: event.orchestrationRunId,
         organizationSlug: event.organizationSlug ?? null,
         agentSlug: event.agentSlug,
         mode: event.mode,
@@ -1067,7 +1066,6 @@ export class Agent2AgentController {
       data: {
         streamId: event.streamId,
         conversationId: event.conversationId,
-        orchestrationRunId: event.orchestrationRunId,
         organizationSlug: event.organizationSlug ?? null,
         agentSlug: event.agentSlug,
         mode: event.mode,
@@ -1085,7 +1083,6 @@ export class Agent2AgentController {
       data: {
         streamId: event.streamId,
         conversationId: event.conversationId,
-        orchestrationRunId: event.orchestrationRunId,
         organizationSlug: event.organizationSlug ?? null,
         agentSlug: event.agentSlug,
         mode: event.mode,
@@ -1268,21 +1265,6 @@ export class Agent2AgentController {
       case 'agent.build':
       case 'tasks.build':
         return AgentTaskMode.BUILD;
-      case 'orchestrate':
-      case 'agent.orchestrate':
-      case 'orchestrate.create':
-      case 'agent.orchestrate_create':
-      case 'orchestrate_create':
-      case 'orchestrate.execute':
-      case 'agent.orchestrate_execute':
-      case 'orchestrate_execute':
-      case 'orchestrate.continue':
-      case 'agent.orchestrate_continue':
-      case 'orchestrate_continue':
-      case 'orchestrate.save_recipe':
-      case 'agent.orchestrate_save_recipe':
-      case 'orchestrate_save_recipe':
-        return AgentTaskMode.ORCHESTRATE;
       default:
         return undefined;
     }
@@ -1428,7 +1410,6 @@ export class Agent2AgentController {
       mode: dto.mode,
       conversationId: dto.conversationId ?? null,
       planId: dto.planId ?? null,
-      orchestrationRunId: dto.orchestrationRunId ?? null,
       jsonrpc: jsonrpc
         ? {
             id: jsonrpc.id ?? null,
