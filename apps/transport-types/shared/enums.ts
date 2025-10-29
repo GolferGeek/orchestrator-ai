@@ -11,9 +11,6 @@ export enum AgentTaskMode {
 
   /** Building/execution phase */
   BUILD = 'build',
-
-  /** Orchestration mode (action-based routing) */
-  ORCHESTRATE = 'orchestrate',
 }
 
 /**
@@ -30,12 +27,6 @@ export type JsonRpcMethod =
   | 'build'
   | 'agent.build'
   | 'tasks.build'
-  | 'orchestrate'
-  | 'agent.orchestrate'
-  | 'tasks.orchestrate'
-  | 'orchestrate.create'
-  | 'orchestrate.execute'
-  | 'orchestrate.continue'
   | string; // Allow extension
 
 /**
