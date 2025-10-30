@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "n8n": {
+      "command": "node",
+      "args": ["mcp-n8n-server/index.js"],
+      "env": {
+        "N8N_WEBHOOK_URL": "http://localhost:5678",
+        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5ZjEyYjBmZi0zNzJiLTRkNDYtYjhlYS0zMGMxNGE0YTE0YTIiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzYxODQ4ODUyfQ.IUoVkInpOpeZPQ72KpVa1cMUJ0BVdY029CFNEb2-MN8"
+      }
+    }
+  }
+}

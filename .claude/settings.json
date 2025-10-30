@@ -1,4 +1,5 @@
 {
+  "enableAllProjectMcpServers": true,
   "statusLine": {
     "type": "command",
     "command": "npx tsx $CLAUDE_PROJECT_DIR/.claude/status_lines/status_line_main.ts",
