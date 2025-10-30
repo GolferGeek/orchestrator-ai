@@ -1,0 +1,19 @@
+{
+  "name": "mcp-n8n-server",
+  "version": "1.0.0",
+  "description": "MCP server for N8n workflow management",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.0.0"
+  },
+  "keywords": ["mcp", "n8n", "workflow", "automation"],
+  "author": "Orchestrator AI",
+  "license": "MIT"
+}
