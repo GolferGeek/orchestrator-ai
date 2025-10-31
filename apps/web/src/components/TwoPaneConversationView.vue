@@ -591,7 +591,7 @@ const sovereignBannerVariant = computed(() => {
   return 'info';
 });
 // Check if message should be displayed as simple bubble (converse mode)
-const isSimpleMessage = (message: any) => {
+const isSimpleMessage = (message: AgentChatMessage) => {
   // User messages are always simple
   if (message.role === 'user') return true;
 
@@ -1169,7 +1169,7 @@ const executeRerunWithConfig = async (
   const isPlan = Boolean(plan);
 
   // Use the user message that was captured when opening the modal
-  const userPrompt = (capturedRerunData as any).userMessage || '';
+  const userPrompt = (capturedRerunData as { userMessage?: string }).userMessage || '';
 
   console.log('🔍 [executeRerunWithConfig] Using captured user message:', userPrompt);
 

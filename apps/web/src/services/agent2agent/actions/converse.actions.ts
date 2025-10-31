@@ -14,6 +14,11 @@ import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { tasksService } from '@/services/tasksService';
 import type { Conversation, Message } from '@/stores/conversationsStore';
+import type {
+  TaskResponse,
+  ConverseResponseContent,
+  ConverseResponseMetadata
+} from '@orchestrator-ai/transport-types';
 
 /**
  * Send a message in converse mode
@@ -108,30 +113,25 @@ export async function sendMessage(
     console.log('📦 [Converse Action] Full result from backend:', result);
     console.log('📦 [Converse Action] Parsed result:', parsedResult);
 
-    // Backend should provide clean thinking and message
-    // Check multiple paths for the message content
-    const thinkingContent = (parsedResult as any)?.payload?.content?.thinking ||
-                           (parsedResult as any)?.payload?.thinking ||
-                           (parsedResult as any)?.thinking;
+    // Parse as TaskResponse with ConverseResponseContent
+    const taskResponse = parsedResult as TaskResponse;
+    const converseContent = taskResponse?.payload?.content as ConverseResponseContent;
+    const responseMetadata = taskResponse?.payload?.metadata as ConverseResponseMetadata;
 
-    const assistantContent = (parsedResult as any)?.payload?.content?.message ||
-                            (parsedResult as any)?.payload?.message ||
-                            (parsedResult as any)?.message ||
-                            (parsedResult as any)?.payload?.content ||
-                            (typeof parsedResult === 'string' ? parsedResult : 'No response content');
+    const thinkingContent = (taskResponse?.humanResponse as { thinking?: string })?.thinking;
+    const assistantContent = converseContent?.message || 'No response content';
 
     console.log('📝 [Converse Action] Extracted content:', { thinkingContent, assistantContent });
 
-    // Extract provider/model metadata
+    // Extract provider/model metadata from proper transport type structure
     const metadata = {
       taskId: result.taskId,
-      provider: (parsedResult as any)?.payload?.metadata?.provider ||
-                (parsedResult as any)?.metadata?.provider,
-      model: (parsedResult as any)?.payload?.metadata?.model ||
-             (parsedResult as any)?.metadata?.model,
-      thinking: thinkingContent || (parsedResult as any).extractedThinking, // Store thinking in metadata
-      ...(parsedResult as any)?.payload?.metadata,
-      ...(parsedResult as any)?.metadata,
+      provider: responseMetadata?.provider,
+      model: responseMetadata?.model,
+      thinking: thinkingContent,
+      usage: responseMetadata?.usage,
+      routingDecision: responseMetadata?.routingDecision,
+      current_sub_agent: responseMetadata?.current_sub_agent,
     };
 
     const assistantMessage = conversationsStore.addMessage(conversationId, {

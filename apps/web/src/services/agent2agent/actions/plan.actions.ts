@@ -14,7 +14,16 @@ import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { usePlanStore } from '@/stores/planStore';
 import { createAgent2AgentApi } from '@/services/agent2agent/api';
-import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
+import type {
+  PlanData,
+  PlanVersionData,
+  TaskResponse,
+  PlanCreateResponseContent,
+  PlanRerunResponseContent,
+  PlanResponseMetadata,
+  JsonRpcSuccessResponse,
+  JsonRpcErrorResponse
+} from '@orchestrator-ai/transport-types';
 
 /**
  * Create a new plan
@@ -121,18 +130,19 @@ export async function createPlan(
       }
     }
 
-    // Extract thinking content separately (if available in structured response)
+    // Parse as TaskResponse with PlanCreateResponseContent
+    const taskResponse = parsedResult as TaskResponse;
+    const planContent = taskResponse?.payload?.content as PlanCreateResponseContent;
+    const responseMetadata = taskResponse?.payload?.metadata as PlanResponseMetadata;
+
+    // Extract thinking content
     const thinkingContent =
       extractedThinking ||
-      (parsedResult as any)?.payload?.thinking ||
-      (parsedResult as any)?.thinking ||
-      (parsedResult as any)?.payload?.content?.thinking;
+      (taskResponse?.humanResponse as { thinking?: string })?.thinking;
 
     // Extract the actual message content
     let assistantContent =
-      (parsedResult as any)?.payload?.content?.message ||
-      (parsedResult as any)?.content?.message ||
-      (parsedResult as any)?.message ||
+      taskResponse?.humanResponse?.message ||
       'Plan created successfully';
 
     // Strip <thinking> tags from message content if they exist
@@ -141,16 +151,18 @@ export async function createPlan(
       const strippedContent = assistantContent.replace(thinkingTagRegex, '').trim();
 
       // If we stripped thinking tags and don't have separate thinking content, extract it
+      let extractedThinkingFromTags: string | undefined;
       if (!thinkingContent && thinkingTagRegex.test(assistantContent)) {
         const thinkingMatch = assistantContent.match(/<thinking>([\s\S]*?)<\/thinking>/i);
         if (thinkingMatch && thinkingMatch[1]) {
-          (parsedResult as any).extractedThinking = thinkingMatch[1].trim();
+          extractedThinkingFromTags = thinkingMatch[1].trim();
         }
       }
 
       // Try to detect untagged thinking at the start of the response
       // Common patterns: "Let me think...", "I need to...", "First, I'll...", etc.
-      if (!thinkingContent && strippedContent.length > 200) {
+      let extractedThinkingFromPattern: string | undefined;
+      if (!thinkingContent && !extractedThinkingFromTags && strippedContent.length > 200) {
         const thinkingPatterns = [
           /^(Let me think|I need to|First,? I'?ll?|I'?ll? need to|My approach|I should|To (create|plan|develop))[\s\S]{100,}?(?=\n\n[A-Z#]|\n\n\*)/i,
           /^[\s\S]{50,}?(?=\n\n#{1,3}\s)/,  // Text before markdown headers
@@ -159,49 +171,41 @@ export async function createPlan(
         for (const pattern of thinkingPatterns) {
           const match = strippedContent.match(pattern);
           if (match) {
-            (parsedResult as any).extractedThinking = match[0].trim();
+            extractedThinkingFromPattern = match[0].trim();
             assistantContent = strippedContent.substring(match[0].length).trim();
-            console.log('🧠 [Plan Action] Detected untagged thinking, extracted:', (parsedResult as any).extractedThinking.substring(0, 100));
+            console.log('🧠 [Plan Action] Detected untagged thinking, extracted:', extractedThinkingFromPattern.substring(0, 100));
             break;
           }
         }
       }
+
+      const finalThinking = thinkingContent || extractedThinkingFromTags || extractedThinkingFromPattern;
 
       assistantContent = strippedContent || 'Plan created successfully';
     }
 
     // Extract plan from response - backend returns at payload.content.plan
     console.log('🔍 [Plan Create Action] Parsed result keys:', Object.keys(parsedResult || {}));
-    console.log('🔍 [Plan Create Action] Payload keys:', Object.keys((parsedResult as any)?.payload || {}));
+    console.log('🔍 [Plan Create Action] Payload keys:', Object.keys(taskResponse?.payload || {}));
 
-    const plan = (parsedResult as any)?.payload?.content?.plan ||
-                 (parsedResult as any)?.payload?.plan ||
-                 (parsedResult as any)?.plan;
-    const version = (parsedResult as any)?.payload?.content?.version ||
-                   (parsedResult as any)?.payload?.version ||
-                   (parsedResult as any)?.version ||
-                   plan?.currentVersion;
+    const plan = planContent?.plan;
+    const version = planContent?.version;
 
-    if (!plan) {
-      console.error('❌ [Plan Create Action] No plan found. Full response:', JSON.stringify(result, null, 2));
-      throw new Error('No plan in response');
+    if (!plan || !version) {
+      console.error('❌ [Plan Create Action] No plan or version found. Full response:', JSON.stringify(result, null, 2));
+      throw new Error('No plan or version in response');
     }
-
-    console.log('✅ [Plan Create Action] Found plan as:', (parsedResult as any)?.payload?.plan ? 'payload.plan' : (parsedResult as any)?.plan ? 'plan' : 'payload.deliverable');
 
     console.log('✅ [Plan Create Action] Plan extracted:', { plan, version });
 
     // 7. Enrich version with LLM metadata from response
-    const enrichedVersion = {
+    const enrichedVersion: PlanVersionData = {
       ...version,
       metadata: {
         ...version.metadata,
-        provider: (parsedResult as any)?.payload?.metadata?.provider ||
-                 (parsedResult as any)?.metadata?.provider,
-        model: (parsedResult as any)?.payload?.metadata?.model ||
-              (parsedResult as any)?.metadata?.model,
-        llmMetadata: (parsedResult as any)?.payload?.metadata?.llmMetadata ||
-                    (parsedResult as any)?.metadata?.llmMetadata,
+        provider: responseMetadata?.provider,
+        model: responseMetadata?.model,
+        usage: responseMetadata?.usage,
       },
     };
 
@@ -224,11 +228,9 @@ export async function createPlan(
       metadata: {
         taskId: result.taskId,
         planId: plan.id,
-        thinking: thinkingContent || (parsedResult as any).extractedThinking,
-        provider: (parsedResult as any)?.payload?.metadata?.provider ||
-                 (parsedResult as any)?.metadata?.provider,
-        model: (parsedResult as any)?.payload?.metadata?.model ||
-              (parsedResult as any)?.metadata?.model,
+        thinking: thinkingContent,
+        provider: responseMetadata?.provider,
+        model: responseMetadata?.model,
       },
     });
 
@@ -290,7 +292,7 @@ export async function rerunPlan(
 
   // 3. Build and send request
   console.log('📤 [Plan Rerun Action] Sending rerun request');
-  const response = await api.plans.rerun(conversationId, versionId, llmConfig) as { plan: any; version: any };
+  const response = await api.plans.rerun(conversationId, versionId, llmConfig) as { plan: PlanData; version: PlanVersionData };
 
   console.log('📥 [Plan Rerun Action] Response received:', JSON.stringify(response, null, 2));
 
@@ -346,17 +348,17 @@ export async function setCurrentPlanVersion(
   console.log('🔖 [Plan Set Current Action] Starting', { agentName, planId, versionId });
 
   const api = createAgent2AgentApi(agentName);
-  const jsonRpcResponse = await api.plans.setCurrent(planId, versionId) as any;
+  const jsonRpcResponse = await api.plans.setCurrent(planId, versionId) as JsonRpcSuccessResponse<{ success: boolean }> | JsonRpcErrorResponse;
 
   console.log('🔖 [Plan Set Current Action] Response:', jsonRpcResponse);
 
   // Handle JSON-RPC response format
-  if (jsonRpcResponse.error) {
+  if ('error' in jsonRpcResponse) {
     console.error('❌ [Plan Set Current Action] Failed:', jsonRpcResponse.error);
     throw new Error(jsonRpcResponse.error?.message || 'Failed to set current version');
   }
 
-  const response = jsonRpcResponse.result || jsonRpcResponse;
+  const response = jsonRpcResponse.result;
 
   if (!response.success) {
     console.error('❌ [Plan Set Current Action] Failed:', response);
@@ -385,17 +387,17 @@ export async function deletePlanVersion(
   console.log('🗑️  [Plan Delete Version Action] Starting', { agentName, planId, versionId });
 
   const api = createAgent2AgentApi(agentName);
-  const jsonRpcResponse = await api.plans.deleteVersion(planId, versionId) as any;
+  const jsonRpcResponse = await api.plans.deleteVersion(planId, versionId) as JsonRpcSuccessResponse<{ success: boolean }> | JsonRpcErrorResponse;
 
   console.log('🗑️  [Plan Delete Version Action] Response:', jsonRpcResponse);
 
   // Handle JSON-RPC response format
-  if (jsonRpcResponse.error) {
+  if ('error' in jsonRpcResponse) {
     console.error('❌ [Plan Delete Version Action] Failed:', jsonRpcResponse.error);
     throw new Error(jsonRpcResponse.error?.message || 'Failed to delete version');
   }
 
-  const response = jsonRpcResponse.result || jsonRpcResponse;
+  const response = jsonRpcResponse.result;
 
   if (!response.success) {
     console.error('❌ [Plan Delete Version Action] Failed:', response);

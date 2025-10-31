@@ -14,7 +14,22 @@ import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { createAgent2AgentApi } from '@/services/agent2agent/api';
-import type { DeliverableData, DeliverableVersionData } from '@orchestrator-ai/transport-types';
+import type {
+  DeliverableData,
+  DeliverableVersionData,
+  TaskResponse,
+  BuildCreateResponseContent,
+  BuildResponseMetadata,
+  JsonRpcSuccessResponse,
+  JsonRpcErrorResponse
+} from '@orchestrator-ai/transport-types';
+
+// Local workflow step type for SSE tracking
+interface WorkflowStep {
+  stepIndex?: number;
+  status?: string;
+  [key: string]: unknown;
+}
 
 /**
  * Create a new deliverable
@@ -77,7 +92,7 @@ export async function createDeliverable(
 
     // 5. Set up for SSE connection (if using websocket/polling mode)
     const executionMode = chatUiStore.executionMode || 'polling';
-    const workflowSteps = new Map<number, any>();
+    const workflowSteps = new Map<number, WorkflowStep>();
     let assistantMessageId: string | null = null;
 
     // Generate taskId upfront so we can use it for SSE connection
@@ -225,77 +240,47 @@ export async function createDeliverable(
     console.log('📦 [Build Create Action] Parsed result:', parsedResult);
     console.log('📦 [Build Create Action] Result keys:', Object.keys(parsedResult || {}));
 
-    // Backend should provide clean thinking, message, and deliverable
-    const thinkingContent = (parsedResult as any)?.thinking;
-    const assistantContent = (parsedResult as any)?.message || 'Deliverable created successfully';
+    // Parse as TaskResponse with BuildCreateResponseContent
+    const taskResponse = parsedResult as TaskResponse;
+    const buildContent = taskResponse?.payload?.content as BuildCreateResponseContent;
+    const metadata = taskResponse?.payload?.metadata as BuildResponseMetadata;
 
-    // Extract deliverable from response - try multiple paths
-    const deliverable = (parsedResult as any)?.payload?.deliverable ||
-                       (parsedResult as any)?.deliverable ||
-                       (parsedResult as any)?.payload?.content?.deliverable ||
-                       (parsedResult as any)?.result?.deliverable;
+    const thinkingContent = (taskResponse?.humanResponse as { thinking?: string })?.thinking;
+    const assistantContent = taskResponse?.humanResponse?.message || 'Deliverable created successfully';
 
-    const version = (parsedResult as any)?.payload?.version ||
-                   (parsedResult as any)?.version ||
-                   (parsedResult as any)?.payload?.content?.version ||
-                   deliverable?.currentVersion;
+    // Extract deliverable and version from proper transport type structure
+    const deliverable = buildContent?.deliverable;
+    const version = buildContent?.version;
 
-    // Also check if deliverable ID is in the result
-    const deliverableId = (parsedResult as any)?.deliverableId ||
-                         (parsedResult as any)?.payload?.deliverableId ||
-                         (parsedResult as any)?.result?.deliverableId;
+    console.log('📦 [Build Create Action] Extracted:', { deliverable, version, thinking: thinkingContent });
 
-    console.log('📦 [Build Create Action] Extracted:', { deliverable, version, deliverableId, thinking: thinkingContent || (parsedResult as any).extractedThinking });
-
-    // If we only have a deliverableId, fetch the full deliverable
-    let finalDeliverable = deliverable;
-    let finalVersion = version;
-
-    if (!finalDeliverable && deliverableId) {
-      console.log('📥 [Build Create Action] Only have deliverableId, fetching full deliverable:', deliverableId);
-      const { deliverablesService } = await import('@/services/deliverablesService');
-      try {
-        finalDeliverable = await deliverablesService.getDeliverable(deliverableId);
-        finalVersion = finalDeliverable?.currentVersion;
-        console.log('✅ [Build Create Action] Fetched deliverable:', finalDeliverable);
-      } catch (error) {
-        console.error('❌ [Build Create Action] Failed to fetch deliverable:', error);
-      }
-    }
-
-    if (!finalDeliverable) {
+    if (!deliverable || !version) {
       console.error('❌ [Build Create Action] Could not find deliverable in response. Full result:', JSON.stringify(parsedResult, null, 2));
-      throw new Error('No deliverable in response');
+      throw new Error('No deliverable or version in response');
     }
 
-    console.log('✅ [Build Create Action] Deliverable extracted:', { deliverable: finalDeliverable, version: finalVersion });
+    console.log('✅ [Build Create Action] Deliverable extracted:', { deliverable, version });
 
     // 7. Enrich version with LLM metadata from response
-    const enrichedVersion = finalVersion ? {
-      ...finalVersion,
+    const enrichedVersion: DeliverableVersionData = {
+      ...version,
       metadata: {
-        ...finalVersion.metadata,
-        provider: (parsedResult as any)?.payload?.metadata?.provider ||
-                 (parsedResult as any)?.metadata?.provider,
-        model: (parsedResult as any)?.payload?.metadata?.model ||
-              (parsedResult as any)?.metadata?.model,
-        llmMetadata: (parsedResult as any)?.payload?.metadata?.llmMetadata ||
-                    (parsedResult as any)?.metadata?.llmMetadata,
+        ...version.metadata,
+        provider: metadata?.provider,
+        model: metadata?.model,
+        usage: metadata?.usage,
       },
-    } : null;
+    };
 
     console.log('✅ [Build Create Action] Enriched version metadata:', enrichedVersion?.metadata);
 
     // 8. Update deliverables store
-    deliverablesStore.addDeliverable(finalDeliverable);
-
-    if (enrichedVersion) {
-      deliverablesStore.addVersion(finalDeliverable.id, enrichedVersion);
-      deliverablesStore.setCurrentVersion(finalDeliverable.id, enrichedVersion.id);
-    }
+    deliverablesStore.addDeliverable(deliverable);
+    deliverablesStore.addVersion(deliverable.id, enrichedVersion);
+    deliverablesStore.setCurrentVersion(deliverable.id, enrichedVersion.id);
 
     // Associate deliverable with conversation
-    deliverablesStore.associateDeliverableWithConversation(finalDeliverable.id, conversationId);
+    deliverablesStore.associateDeliverableWithConversation(deliverable.id, conversationId);
 
     // 9. Update the existing assistant message with deliverable and final content
     if (assistantMessageId) {
@@ -304,31 +289,20 @@ export async function createDeliverable(
       const message = messages.find(m => m.id === assistantMessageId);
 
       if (message) {
-        // Update message content
-        const updatedMessage = {
-          ...message,
-          content: assistantContent,
-          deliverableId: finalDeliverable.id,
-        };
-
         // Update message metadata
         conversationsStore.updateMessageMetadata(conversationId, assistantMessageId, {
           taskId: result.taskId,
-          deliverableId: finalDeliverable.id,
-          thinking: thinkingContent || (parsedResult as any).extractedThinking,
-          provider: (parsedResult as any)?.payload?.metadata?.provider ||
-                   (parsedResult as any)?.metadata?.provider ||
-                   message.metadata?.provider,
-          model: (parsedResult as any)?.payload?.metadata?.model ||
-                (parsedResult as any)?.metadata?.model ||
-                message.metadata?.model,
-          workflow_steps_realtime: Array.from(workflowSteps.values()).sort((a, b) => a.stepIndex - b.stepIndex),
+          deliverableId: deliverable.id,
+          thinking: thinkingContent,
+          provider: metadata?.provider || message.metadata?.provider,
+          model: metadata?.model || message.metadata?.model,
+          workflow_steps_realtime: Array.from(workflowSteps.values()).sort((a, b) => (a.stepIndex || 0) - (b.stepIndex || 0)),
         });
 
         // Update content and deliverableId
         conversationsStore.updateMessage(conversationId, assistantMessageId, {
           content: assistantContent,
-          deliverableId: finalDeliverable.id,
+          deliverableId: deliverable.id,
         });
       }
     }
@@ -337,7 +311,7 @@ export async function createDeliverable(
 
     chatUiStore.setIsSendingMessage(false);
 
-    return { deliverable: finalDeliverable, version: enrichedVersion };
+    return { deliverable, version: enrichedVersion };
   } catch (error) {
     console.error('❌ [Build Create Action] Error:', error);
     chatUiStore.setIsSendingMessage(false);
@@ -508,18 +482,8 @@ export async function rerunDeliverable(
   }
 
   // Enrich version with LLM metadata from response
-  const enrichedVersion = {
-    ...version,
-    metadata: {
-      ...version.metadata,
-      provider: (response as any).data?.metadata?.provider ||
-               (response as any).metadata?.provider,
-      model: (response as any).data?.metadata?.model ||
-            (response as any).metadata?.model,
-      llmMetadata: (response as any).data?.metadata?.llmMetadata ||
-                  (response as any).metadata?.llmMetadata,
-    },
-  };
+  // Response.data contains the deliverable/version with metadata already populated by backend
+  const enrichedVersion: DeliverableVersionData = version;
 
   console.log('✅ [Build Rerun Action] Enriched version metadata:', enrichedVersion.metadata);
 
@@ -548,17 +512,17 @@ export async function setCurrentVersion(
   console.log('🔖 [Build Set Current Action] Starting', { agentName, deliverableId, versionId });
 
   const api = createAgent2AgentApi(agentName);
-  const jsonRpcResponse = await api.deliverables.setCurrent(deliverableId, versionId) as any;
+  const jsonRpcResponse = await api.deliverables.setCurrent(deliverableId, versionId) as JsonRpcSuccessResponse<{ success: boolean }> | JsonRpcErrorResponse;
 
   console.log('🔖 [Build Set Current Action] Response:', jsonRpcResponse);
 
   // Handle JSON-RPC response format
-  if (jsonRpcResponse.error) {
+  if ('error' in jsonRpcResponse) {
     console.error('❌ [Build Set Current Action] Failed:', jsonRpcResponse.error);
     throw new Error(jsonRpcResponse.error?.message || 'Failed to set current version');
   }
 
-  const response = jsonRpcResponse.result || jsonRpcResponse;
+  const response = jsonRpcResponse.result;
 
   if (!response.success) {
     console.error('❌ [Build Set Current Action] Failed:', response);
@@ -587,17 +551,17 @@ export async function deleteVersion(
   console.log('🗑️  [Build Delete Version Action] Starting', { agentName, deliverableId, versionId });
 
   const api = createAgent2AgentApi(agentName);
-  const jsonRpcResponse = await api.deliverables.deleteVersion(deliverableId, versionId) as any;
+  const jsonRpcResponse = await api.deliverables.deleteVersion(deliverableId, versionId) as JsonRpcSuccessResponse<{ success: boolean }> | JsonRpcErrorResponse;
 
   console.log('🗑️  [Build Delete Version Action] Response:', jsonRpcResponse);
 
   // Handle JSON-RPC response format
-  if (jsonRpcResponse.error) {
+  if ('error' in jsonRpcResponse) {
     console.error('❌ [Build Delete Version Action] Failed:', jsonRpcResponse.error);
     throw new Error(jsonRpcResponse.error?.message || 'Failed to delete version');
   }
 
-  const response = jsonRpcResponse.result || jsonRpcResponse;
+  const response = jsonRpcResponse.result;
 
   if (!response.success) {
     console.error('❌ [Build Delete Version Action] Failed:', response);

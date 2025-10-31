@@ -20,6 +20,7 @@
 import { deliverablesService } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { Deliverable, DeliverableVersion, CreateVersionDto } from '@/services/deliverablesService';
+import type { JsonRpcSuccessResponse, JsonRpcErrorResponse } from '@orchestrator-ai/transport-types';
 
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -185,7 +186,7 @@ export async function createDeliverableVersion(
     // Use A2A API 'edit' action which triggers saveManualEdit on backend
     const { createAgent2AgentApi } = await import('@/services/agent2agent/api');
     const api = createAgent2AgentApi(agentSlug);
-    const jsonRpcResponse = await api.deliverables.edit(deliverable.conversationId, content, versionMetadata) as any;
+    const jsonRpcResponse = await api.deliverables.edit(deliverable.conversationId, content, versionMetadata) as JsonRpcSuccessResponse<{ success: boolean; version?: DeliverableVersion }> | JsonRpcErrorResponse;
 
     console.log('🔖 [Deliverable Create Version] Response:', jsonRpcResponse);
 
