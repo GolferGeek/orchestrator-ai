@@ -7,10 +7,24 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { LLMService } from './llm.service';
 import { isLLMResponse } from './services/llm-interfaces';
 import { LocalModelStatusService } from './local-model-status.service';
+
+/**
+ * Authenticated request with user information
+ */
+interface AuthenticatedRequest extends Request {
+  user?: {
+    sub?: string;
+    id?: string;
+    userId?: string;
+  };
+}
 
 @Controller('llm')
 export class LLMController {
@@ -40,8 +54,11 @@ export class LLMController {
         callerName?: string;
         conversationId?: string;
         dataClassification?: string;
+        // User identification (required for usage tracking)
+        userId?: string;
       };
     },
+    @Req() req: AuthenticatedRequest,
   ): Promise<{
     response: string;
     content?: string;
@@ -72,6 +89,19 @@ export class LLMController {
         throw new BadRequestException(guidance);
       }
 
+      // Require userId for usage tracking - get from request body or authenticated user
+      const userId =
+        request.options?.userId ||
+        req.user?.id ||
+        req.user?.sub ||
+        req.user?.userId;
+
+      if (!userId) {
+        throw new UnauthorizedException(
+          'userId is required for LLM service calls. Provide userId in options or authenticate the request.',
+        );
+      }
+
       const result = await this.llmService.generateResponse(
         request.systemPrompt,
         request.userPrompt,
@@ -87,6 +117,8 @@ export class LLMController {
           callerName: request.options?.callerName || 'llm-controller',
           conversationId: request.options?.conversationId,
           dataClassification: request.options?.dataClassification || 'public',
+          // User identification (required for usage tracking)
+          userId,
           // Request metadata for Python agents
           includeMetadata: true,
         },
