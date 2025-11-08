@@ -134,6 +134,19 @@
                           <ion-label>LLM Usage</ion-label>
                         </ion-item>
                       </ion-menu-toggle>
+                      <ion-menu-toggle v-if="auth.hasAdminAccess">
+                        <ion-item 
+                          :button="true"
+                          router-direction="root" 
+                          router-link="/app/admin/observability" 
+                          lines="none" 
+                          :detail="false"
+                          :class="{ 'selected': $route.path === '/app/admin/observability' }"
+                        >
+                          <ion-icon aria-hidden="true" :icon="pulseOutline" slot="start"></ion-icon>
+                          <ion-label>System Observability</ion-label>
+                        </ion-item>
+                      </ion-menu-toggle>
                     </ion-list>
                   </div>
                 </ion-accordion>
@@ -167,7 +180,7 @@ import { computed, ref } from 'vue';
 import { 
   IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup
 } from '@ionic/vue';
-import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, settingsOutline } from 'ionicons/icons';
+import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, pulseOutline, settingsOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { conversation } from '@/services/conversationHelpers';
 import { useConversationsStore } from '@/stores/conversationsStore';
