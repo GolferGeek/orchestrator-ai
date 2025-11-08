@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.observability_events (
   username TEXT, -- display_name or email (cached for performance)
   
   -- Task/Conversation context
-  conversation_id UUID REFERENCES public.agent_conversations(id) ON DELETE SET NULL,
+  conversation_id UUID REFERENCES public.conversations(id) ON DELETE SET NULL,
   task_id UUID REFERENCES public.tasks(id) ON DELETE CASCADE,
   
   -- Agent context
