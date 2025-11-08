@@ -267,6 +267,15 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       // 5. Execute HTTP request
+      // Observability: Calling external API
+      await this.emitObservabilityEvent('agent.progress', 'Calling external API', {
+        definition,
+        request,
+        organizationSlug,
+        taskId,
+        progress: 30,
+      });
+
       const startTime = Date.now();
       let response: unknown;
 
@@ -295,6 +304,15 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
 
       const duration = Date.now() - startTime;
 
+      // Observability: Processing API response
+      await this.emitObservabilityEvent('agent.progress', 'Processing API response', {
+        definition,
+        request,
+        organizationSlug,
+        taskId,
+        progress: 60,
+      });
+
       // 6. Check response status
       const responseTyped = response as {
         status: number;
@@ -312,6 +330,15 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       // 7. Format response data
+      // Observability: Formatting response
+      await this.emitObservabilityEvent('agent.progress', 'Formatting response', {
+        definition,
+        request,
+        organizationSlug,
+        taskId,
+        progress: 80,
+      });
+
       const responseData = responseTyped.data;
       const formattedContent = this.formatApiResponse(
         responseData,
