@@ -55,7 +55,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
   protected readonly logger = new Logger(ApiAgentRunnerService.name);
 
   constructor(
-    private readonly httpService: HttpService,
+    protected readonly httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
     llmService: LLMService,
     contextOptimization: ContextOptimizationService,
@@ -196,7 +196,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         ...request,
         userId,
         conversationId,
-        taskId: taskId || undefined,
+        taskId: taskId ?? undefined,
         payload: {
           ...(request.payload as Record<string, unknown>),
           provider,
@@ -272,7 +272,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         definition,
         request,
         organizationSlug,
-        taskId,
+        taskId: taskId ?? undefined,
         progress: 30,
       });
 
@@ -309,7 +309,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         definition,
         request,
         organizationSlug,
-        taskId,
+        taskId: taskId ?? undefined,
         progress: 60,
       });
 
@@ -335,7 +335,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         definition,
         request,
         organizationSlug,
-        taskId,
+        taskId: taskId ?? undefined,
         progress: 80,
       });
 
@@ -419,7 +419,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
           deliverableId: targetDeliverableId ?? undefined,
           agentName: definition.slug,
           namespace: organizationSlug || 'default',
-          taskId: taskId || undefined,
+          taskId: taskId ?? undefined,
           metadata: {
             apiUrl: url,
             method,
@@ -432,7 +432,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
           conversationId,
           userId,
           agentSlug: definition.slug,
-          taskId: taskId || undefined,
+          taskId: taskId ?? undefined,
         },
       );
 
@@ -655,7 +655,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         ...request,
         userId,
         conversationId,
-        taskId: taskId || undefined,
+        taskId: taskId ?? undefined,
         payload: {
           ...(request.payload as Record<string, unknown>),
           provider,

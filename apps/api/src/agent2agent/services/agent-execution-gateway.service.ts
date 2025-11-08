@@ -3,7 +3,9 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
@@ -48,6 +50,7 @@ export class AgentExecutionGateway {
     private readonly stepExecutor: OrchestrationStepExecutorService,
     private readonly checkpointService: OrchestrationCheckpointService,
     private readonly observability: ObservabilityWebhookService,
+    @Inject(HttpService) private readonly httpService?: HttpService,
   ) {}
 
   async execute(
@@ -160,7 +163,7 @@ export class AgentExecutionGateway {
           organizationSlug,
         });
       } else {
-        this.emitAgentLifecycleEvent('agent.failed', response.error || 'Agent execution failed', {
+        this.emitAgentLifecycleEvent('agent.failed', 'Agent execution failed', {
           definition,
           request,
           organizationSlug,
@@ -874,22 +877,24 @@ export class AgentExecutionGateway {
       const taskId = (context.request.payload as Record<string, unknown>)?.taskId as string | null;
 
       // Fire webhook call (non-blocking)
-      this.observability.sendWebhookEvent({
-        taskId: taskId || conversationId || 'unknown',
-        status: eventType,
-        timestamp: new Date().toISOString(),
-        message,
-        userId: userId || undefined,
-        conversationId: conversationId || undefined,
-        agentSlug: context.definition.slug,
-        organizationSlug: context.organizationSlug || 'global',
-        mode: context.request.mode || undefined,
-      }).catch((error) => {
-        // Log but don't throw - observability should never break execution
-        this.logger.warn(
-          `Failed to emit observability event (${eventType}): ${error.message}`,
-        );
-      });
+      if (this.httpService) {
+        this.httpService.post('http://localhost:7100/webhooks/status', {
+          taskId: taskId || conversationId || 'unknown',
+          status: eventType,
+          timestamp: new Date().toISOString(),
+          message,
+          userId: userId || undefined,
+          conversationId: conversationId || undefined,
+          agentSlug: context.definition.slug,
+          organizationSlug: context.organizationSlug || 'global',
+          mode: context.request.mode || undefined,
+        }).toPromise().catch((error: Error) => {
+          // Log but don't throw - observability should never break execution
+          this.logger.warn(
+            `Failed to emit observability event (${eventType}): ${error.message}`,
+          );
+        });
+      }
     } catch (error) {
       // Silently catch - observability is non-critical
       this.logger.debug(
@@ -900,8 +905,8 @@ export class AgentExecutionGateway {
 
   private resolveUserId(request: TaskRequestDto): string | null {
     return (
-      (request.metadata as Record<string, unknown>)?.userId as string |
-      (request.payload as Record<string, unknown>)?.userId as string |
+      ((request.metadata as Record<string, unknown>)?.userId as string) ||
+      ((request.payload as Record<string, unknown>)?.userId as string) ||
       null
     );
   }

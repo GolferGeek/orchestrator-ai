@@ -4,7 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '@supabase-client/interfaces/user-role.enum';
+import { UserRole } from '../auth/decorators/roles.decorator';
 import { SupabaseService } from '../supabase/supabase.service';
 
 /**
@@ -59,7 +59,7 @@ export class ObservabilityStreamController {
     // Send recent events on connection (last 100 events)
     try {
       const { data: recentEvents, error } = await this.supabaseService
-        .getServiceRoleClient()
+        .getServiceClient()
         .from('observability_events')
         .select('*')
         .order('created_at', { ascending: false })

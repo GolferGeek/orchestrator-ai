@@ -51,7 +51,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
   protected readonly logger = new Logger(ExternalAgentRunnerService.name);
 
   constructor(
-    private readonly httpService: HttpService,
+    protected readonly httpService: HttpService,
     llmService: LLMService,
     contextOptimization: ContextOptimizationService,
     plansService: PlansService,
@@ -131,7 +131,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       const userId = this.resolveUserId(request);
       const conversationId = this.resolveConversationId(request);
       const payload = request.payload as Record<string, unknown>;
-      const taskId: unknown = payload?.taskId || null;
+      const taskId = (payload?.taskId as string) || null;
 
       if (!userId || !conversationId) {
         return TaskResponseDto.failure(
@@ -220,7 +220,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
         definition,
         request,
         organizationSlug,
-        taskId: taskId as string | undefined,
+        taskId: taskId ?? undefined,
         progress: 20,
       });
 
@@ -233,7 +233,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
           definition,
           request,
           organizationSlug,
-          taskId: taskId as string | undefined,
+          taskId: taskId ?? undefined,
           progress: 40,
         });
 
@@ -265,7 +265,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
         definition,
         request,
         organizationSlug,
-        taskId: taskId as string | undefined,
+        taskId: taskId ?? undefined,
         progress: 70,
       });
 
@@ -309,7 +309,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
             deliverableId: targetDeliverableId ?? undefined,
             agentName: definition.slug,
             namespace: organizationSlug || 'default',
-            taskId: taskId || undefined,
+            taskId: taskId ?? undefined,
             metadata: {
               externalUrl: endpoint,
               duration,

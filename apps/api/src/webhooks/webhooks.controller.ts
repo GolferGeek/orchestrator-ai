@@ -263,7 +263,13 @@ export class WebhooksController {
       // Resolve username if not provided
       let username = update.username;
       if (update.userId && !username) {
-        username = await this.observabilityService.resolveUsername(update.userId);
+        // Resolve username from userId using AuthService
+        try {
+          const userProfile = await this.observabilityService['authService'].getUserProfile(update.userId);
+          username = userProfile?.displayName || userProfile?.email || update.userId;
+        } catch {
+          username = update.userId; // Fallback to userId if resolution fails
+        }
       }
 
       const eventData = {
@@ -287,7 +293,7 @@ export class WebhooksController {
 
       // Store in database
       const { error: dbError } = await this.supabaseService
-        .getServiceRoleClient()
+        .getServiceClient()
         .from('observability_events')
         .insert(eventData);
 
