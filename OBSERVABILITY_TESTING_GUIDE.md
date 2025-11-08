@@ -19,17 +19,20 @@ API will be at: `http://localhost:7100`
 cd ~/projects/golfergeek/orchestrator-ai
 npm run dev:web
 ```
-Wait for: `Local: http://localhost:8100/`  
-Web UI will be at: `http://localhost:8100`
+Wait for: `Local: http://localhost:7101/` (or check terminal for actual port)
+Web UI will be at: `http://localhost:7101` (default from WEB_PORT in .env)
 
 ### Step 2: Access the Observability UI
 
-1. Open browser: `http://localhost:8100`
+1. Open browser: `http://localhost:7101` (or the port shown in your terminal)
 2. Login with admin credentials:
    - **Email:** `demo.user@playground.com`
    - **Password:** `demouser`
 3. Navigate to: **Admin → System Observability**
    - Look for the pulse icon (📊) in the left sidebar under "Admin"
+
+> **Note:** The web port is configured via `WEB_PORT` or `VITE_WEB_PORT` in your `.env` file.  
+> Default is **7101** but your terminal will show the actual port being used.
 
 ### Step 3: Test with Live Events
 
