@@ -10,10 +10,13 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TasksService } from '../agent2agent/tasks/tasks.service';
 import { StreamingService } from '../agent2agent/services/streaming.service';
+import { SupabaseService } from '../supabase/supabase.service';
+import { ObservabilityWebhookService } from '../observability/observability-webhook.service';
 
 /**
  * Workflow Status Update
  * This can come from n8n, coded function agents, or any external workflow system
+ * Extended to support internal agent observability
  */
 interface WorkflowStatusUpdate {
   // Required fields
@@ -48,6 +51,12 @@ interface WorkflowStatusUpdate {
     totalSteps?: number;
     [key: string]: unknown;
   };
+
+  // NEW: Observability enrichment fields
+  agentSlug?: string; // Agent being executed
+  username?: string; // display_name or email (human-readable)
+  organizationSlug?: string; // Organization namespace
+  mode?: string; // 'converse', 'plan', 'build', 'orchestrate'
 }
 
 @Controller('webhooks')
@@ -62,6 +71,8 @@ export class WebhooksController {
     @Inject(forwardRef(() => TasksService))
     private readonly tasksService: TasksService,
     private readonly streamingService: StreamingService,
+    private readonly supabaseService: SupabaseService,
+    private readonly observabilityService: ObservabilityWebhookService,
   ) {}
 
   /**
@@ -221,8 +232,86 @@ export class WebhooksController {
       this.logger.debug(
         `Webhook received status "${update.status}" - emitting as progress update only`,
       );
+
+      // NEW: Emit observability event for admin monitoring and store in database
+      await this.storeAndBroadcastObservabilityEvent(update, {
+        stepName,
+        progress,
+        sequence,
+        totalStepsFromUpdate,
+      });
     } catch (error) {
       this.logger.error('Error processing workflow status update', error);
+    }
+  }
+
+  /**
+   * Store observability event in database and broadcast to admin clients
+   */
+  private async storeAndBroadcastObservabilityEvent(
+    update: WorkflowStatusUpdate,
+    computed: {
+      stepName: string;
+      progress: number;
+      sequence: number;
+      totalStepsFromUpdate?: number;
+    },
+  ): Promise<void> {
+    try {
+      const now = Date.now();
+      
+      // Resolve username if not provided
+      let username = update.username;
+      if (update.userId && !username) {
+        username = await this.observabilityService.resolveUsername(update.userId);
+      }
+
+      const eventData = {
+        source_app: 'orchestrator-ai',
+        session_id: update.conversationId || update.taskId,
+        hook_event_type: update.status, // 'agent.started', 'agent.progress', etc.
+        user_id: update.userId || null,
+        username: username || null,
+        conversation_id: update.conversationId || null,
+        task_id: update.taskId,
+        agent_slug: update.agentSlug || null,
+        organization_slug: update.organizationSlug || null,
+        mode: update.mode || null,
+        status: update.status,
+        message: update.message || null,
+        progress: computed.progress,
+        step: computed.stepName,
+        payload: update,
+        timestamp: now,
+      };
+
+      // Store in database
+      const { error: dbError } = await this.supabaseService
+        .getServiceRoleClient()
+        .from('observability_events')
+        .insert(eventData);
+
+      if (dbError) {
+        this.logger.error(
+          `Failed to store observability event: ${dbError.message}`,
+          dbError,
+        );
+      } else {
+        this.logger.debug(
+          `📊 Stored observability event for task ${update.taskId}`,
+        );
+      }
+
+      // Emit to admin clients via EventEmitter
+      this.eventEmitter.emit('observability.event', {
+        ...eventData,
+        eventType: update.status,
+      });
+    } catch (error) {
+      this.logger.error(
+        'Failed to process observability event',
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

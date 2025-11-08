@@ -20,6 +20,7 @@ import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
 import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     SystemModule,
     AssetsModule,
     WebhooksModule,
+    ObservabilityModule,
   ],
   controllers: [AppController, AnalyticsController],
   providers: [AppService, AgentRegistryService],

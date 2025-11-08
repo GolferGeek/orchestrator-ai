@@ -1,4 +1,5 @@
-import { Logger } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { LLMService } from '@llm/llm.service';
 import { IAgentRunner } from '../interfaces/agent-runner.interface';
@@ -13,6 +14,7 @@ import * as ConverseHandlers from './base-agent-runner/converse.handlers';
 import * as PlanHandlers from './base-agent-runner/plan.handlers';
 import * as BuildHandlers from './base-agent-runner/build.handlers';
 import { handleError as sharedHandleError } from './base-agent-runner/shared.helpers';
+import { firstValueFrom } from 'rxjs';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -63,6 +65,7 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     protected readonly conversationsService: Agent2AgentConversationsService,
     protected readonly deliverablesService: DeliverablesService,
     protected readonly streamingService: StreamingService,
+    @Inject(HttpService) protected readonly httpService?: HttpService,
   ) {
     this.logger = new Logger(this.constructor.name);
   }
@@ -1119,5 +1122,72 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     }
 
     return Promise.resolve(results);
+  }
+
+  /**
+   * Emit observability event for admin monitoring.
+   * 
+   * This helper method calls the /webhooks/status endpoint internally to emit
+   * agent execution events. Events are fire-and-forget (non-blocking).
+   * 
+   * @param eventType - Event type ('agent.started', 'agent.progress', 'agent.completed', 'agent.failed')
+   * @param message - Human-readable message describing the event
+   * @param context - Context information about the agent and task
+   */
+  protected async emitObservabilityEvent(
+    eventType: string,
+    message: string,
+    context: {
+      definition: AgentRuntimeDefinition;
+      request: TaskRequestDto;
+      organizationSlug: string | null;
+      taskId?: string;
+      progress?: number;
+    },
+  ): Promise<void> {
+    // Skip if HttpService not injected (some tests or edge cases)
+    if (!this.httpService) {
+      return;
+    }
+
+    try {
+      const apiPort = process.env.API_PORT || '7100';
+      const webhookUrl = `http://localhost:${apiPort}/webhooks/status`;
+
+      const userId = this.resolveUserId(context.request);
+      const conversationId = this.resolveConversationId(context.request);
+      const taskId = context.taskId || ((context.request.payload as Record<string, unknown>)?.taskId as string | null) || null;
+
+      const payload = {
+        taskId: taskId || conversationId || 'unknown',
+        status: eventType,
+        timestamp: new Date().toISOString(),
+        message,
+        userId,
+        conversationId,
+        agentSlug: context.definition.slug,
+        organizationSlug: context.organizationSlug || 'global',
+        mode: context.request.mode,
+        progress: context.progress,
+      };
+
+      // Fire-and-forget: don't await, don't block execution
+      firstValueFrom(
+        this.httpService.post(webhookUrl, payload, {
+          timeout: 5000,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ).catch((error) => {
+        // Log error but don't throw - observability should never break agent execution
+        this.logger.warn(
+          `Failed to emit observability event (${eventType}): ${error.message}`,
+        );
+      });
+    } catch (error) {
+      // Silently catch errors - observability is non-critical
+      this.logger.debug(
+        `Error preparing observability event: ${error instanceof Error ? error.message : error}`,
+      );
+    }
   }
 }

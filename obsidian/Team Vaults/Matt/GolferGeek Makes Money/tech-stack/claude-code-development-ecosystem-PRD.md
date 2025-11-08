@@ -555,3 +555,4 @@ See `obsidian/Team Vaults/Matt/GolferGeek Makes Money/tech-stack/claude-code-com
 - **Documentation is critical** - Skills and agents must contain complete patterns and examples
 
 
+

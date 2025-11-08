@@ -176,6 +176,15 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
           ? payload.planVersionId.trim()
           : null;
 
+      // Observability: Fetching context
+      await this.emitObservabilityEvent('agent.progress', 'Fetching context', {
+        definition,
+        request,
+        organizationSlug,
+        taskId,
+        progress: 10,
+      });
+
       const buildContext = await this.gatherBuildContext(
         definition,
         request,
@@ -186,6 +195,15 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       if (buildContext.error) {
         return TaskResponseDto.failure(AgentTaskMode.BUILD, buildContext.error);
       }
+
+      // Observability: Context fetched, optimizing
+      await this.emitObservabilityEvent('agent.progress', 'Optimizing context', {
+        definition,
+        request,
+        organizationSlug,
+        taskId,
+        progress: 30,
+      });
 
       const namespace = this.resolveNamespace(definition, organizationSlug);
       const conversationForPrompt =
@@ -221,6 +239,15 @@ export class ContextAgentRunnerService extends BaseAgentRunner {
       let llmMetadata: Record<string, unknown> | null = null;
 
       if (!finalContent) {
+        // Observability: Calling LLM
+        await this.emitObservabilityEvent('agent.progress', 'Calling LLM', {
+          definition,
+          request,
+          organizationSlug,
+          taskId,
+          progress: 50,
+        });
+
         const llmConfig = this.buildLlmConfig(
           definition,
           payload,

@@ -27,6 +27,7 @@ import { OrchestrationCheckpointService } from '@agent-platform/services/orchest
 import type { OrchestrationCheckpointDecision } from '@agent-platform/types/orchestration-run.types';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
+import { ObservabilityWebhookService } from '../../observability/observability-webhook.service';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -46,6 +47,7 @@ export class AgentExecutionGateway {
     private readonly executionService: OrchestrationExecutionService,
     private readonly stepExecutor: OrchestrationStepExecutorService,
     private readonly checkpointService: OrchestrationCheckpointService,
+    private readonly observability: ObservabilityWebhookService,
   ) {}
 
   async execute(
