@@ -173,9 +173,9 @@ export class WebhooksController {
         }
       }
 
-      // Emit SSE chunk event via StreamingService for real-time streaming to frontend
+      // Emit SSE chunk event via StreamingService for real-time streaming to frontend (USER STREAM)
       this.logger.log(
-        `📤 [WebhookController] Calling streamingService.emitProgress for taskId=${update.taskId}`,
+        `📤 [WebhookController] Broadcasting to USER stream via streamingService.emitProgress for taskId=${update.taskId}`,
       );
       this.streamingService.emitProgress(
         update.taskId,
@@ -189,7 +189,7 @@ export class WebhooksController {
         },
       );
       this.logger.debug(
-        `✅ [WebhookController] Called streamingService.emitProgress successfully`,
+        `✅ [WebhookController] Broadcasted to USER stream successfully`,
       );
 
       // Webhooks only emit progress - never completion
@@ -233,13 +233,19 @@ export class WebhooksController {
         `Webhook received status "${update.status}" - emitting as progress update only`,
       );
 
-      // NEW: Emit observability event for admin monitoring and store in database
+      // NEW: Emit observability event for admin monitoring and store in database (ADMIN STREAM)
+      this.logger.log(
+        `📊 [WebhookController] Broadcasting to ADMIN stream via observability event for taskId=${update.taskId}`,
+      );
       await this.storeAndBroadcastObservabilityEvent(update, {
         stepName,
         progress,
         sequence,
         totalStepsFromUpdate,
       });
+      this.logger.debug(
+        `✅ [WebhookController] Broadcasted to ADMIN stream successfully`,
+      );
     } catch (error) {
       this.logger.error('Error processing workflow status update', error);
     }
@@ -308,11 +314,15 @@ export class WebhooksController {
         );
       }
 
-      // Emit to admin clients via EventEmitter
+      // Emit to admin clients via EventEmitter (ADMIN STREAM)
+      // This event is picked up by /observability/stream endpoint
       this.eventEmitter.emit('observability.event', {
         ...eventData,
         eventType: update.status,
       });
+      this.logger.debug(
+        `📡 Emitted observability.event for admin stream: ${update.status} - ${update.message?.substring(0, 50)}...`,
+      );
     } catch (error) {
       this.logger.error(
         'Failed to process observability event',
