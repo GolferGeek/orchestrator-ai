@@ -219,9 +219,9 @@ import {
   pieChartOutline,
 } from 'ionicons/icons';
 import { useAdminObservabilityStream } from '@/composables/useAdminObservabilityStream';
-import AdminEventTimeline from '@/components/admin/observability/AdminEventTimeline.vue';
-import AdminAgentSwimLane from '@/components/admin/observability/AdminAgentSwimLane.vue';
-import ConversationDetailView from '@/components/admin/observability/ConversationDetailView.vue';
+import AdminEventTimeline from '@/components/Admin/observability/AdminEventTimeline.vue';
+import AdminAgentSwimLane from '@/components/Admin/observability/AdminAgentSwimLane.vue';
+import ConversationDetailView from '@/components/Admin/observability/ConversationDetailView.vue';
 
 // Stream connection
 const streamStore = useAdminObservabilityStream();

@@ -55,7 +55,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
   protected readonly logger = new Logger(ApiAgentRunnerService.name);
 
   constructor(
-    protected readonly httpService: HttpService,
+    httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
     llmService: LLMService,
     contextOptimization: ContextOptimizationService,
@@ -71,6 +71,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       conversationsService,
       deliverablesService,
       streamingService,
+      httpService, // Pass httpService to base class as last parameter
     );
   }
 

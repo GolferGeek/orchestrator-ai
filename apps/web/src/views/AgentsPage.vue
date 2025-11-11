@@ -134,19 +134,18 @@
                           <ion-label>LLM Usage</ion-label>
                         </ion-item>
                       </ion-menu-toggle>
-                      <ion-menu-toggle v-if="auth.hasAdminAccess">
-                        <ion-item 
-                          :button="true"
-                          router-direction="root" 
-                          router-link="/app/admin/observability" 
-                          lines="none" 
-                          :detail="false"
-                          :class="{ 'selected': $route.path === '/app/admin/observability' }"
-                        >
-                          <ion-icon aria-hidden="true" :icon="pulseOutline" slot="start"></ion-icon>
-                          <ion-label>System Observability</ion-label>
-                        </ion-item>
-                      </ion-menu-toggle>
+                      <ion-item 
+                        v-if="auth.hasAdminAccess"
+                        :button="true"
+                        router-direction="root" 
+                        router-link="/app/admin/observability" 
+                        lines="none" 
+                        :detail="false"
+                        :class="{ 'selected': $route.path === '/app/admin/observability' }"
+                      >
+                        <ion-icon aria-hidden="true" :icon="pulseOutline" slot="start"></ion-icon>
+                        <ion-label>System Observability</ion-label>
+                      </ion-item>
                     </ion-list>
                   </div>
                 </ion-accordion>

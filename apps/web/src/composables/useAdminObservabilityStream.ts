@@ -1,5 +1,5 @@
 import { ref, onUnmounted, computed } from 'vue';
-import { useAuth } from '@/stores/authStore';
+import { useAuthStore } from '@/stores/authStore';
 
 export interface ObservabilityEvent {
   id?: number;
@@ -35,7 +35,7 @@ export interface AgentActivity {
  * Provides real-time monitoring of all agent executions
  */
 export function useAdminObservabilityStream() {
-  const authStore = useAuth();
+  const authStore = useAuthStore();
   
   // Connection state
   const isConnected = ref(false);
