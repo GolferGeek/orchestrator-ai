@@ -39,7 +39,7 @@ __decorate([
     __metadata("design:type", String)
 ], WorkflowRequestDto.prototype, "prompt", void 0);
 __decorate([
-    (0, class_validator_1.IsUrl)(),
+    (0, class_validator_1.IsUrl)({ require_tld: false, require_protocol: true }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], WorkflowRequestDto.prototype, "statusWebhook", void 0);

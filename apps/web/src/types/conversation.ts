@@ -242,7 +242,7 @@ export interface AgentConversation {
   activeTaskId?: string | null;
 }
 
-export type ExecutionMode = 'immediate' | 'polling' | 'websocket';
+export type ExecutionMode = 'immediate' | 'polling' | 'real-time';
 
 export interface TaskExecutionOptions {
   method: string;

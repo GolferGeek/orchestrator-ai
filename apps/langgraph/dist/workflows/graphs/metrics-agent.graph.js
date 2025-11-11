@@ -35,6 +35,7 @@ let MetricsAgentGraph = MetricsAgentGraph_1 = class MetricsAgentGraph {
                 systemMessage: 'You are a business metrics analyst. Analyze this metrics request and identify: metrics type (financial/customer/product/operational), required data sources, and analysis approach. Return as JSON.',
                 userMessage: state.prompt,
                 callerName: 'metrics-parse',
+                userId: state.userId,
             });
             state.queryAnalysis = parseResult.text;
             if (state.statusWebhook) {
@@ -49,6 +50,7 @@ let MetricsAgentGraph = MetricsAgentGraph_1 = class MetricsAgentGraph {
                 temperature: 0.2,
                 maxTokens: 3500,
                 callerName: 'metrics-generate',
+                userId: state.userId,
             });
             state.report = reportResult.text;
             const sqlMatch = state.report.match(/```sql\n([\s\S]*?)\n```/);

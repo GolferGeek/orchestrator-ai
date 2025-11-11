@@ -24,12 +24,16 @@ let LLMNodeExecutor = class LLMNodeExecutor {
             await this.webhookService.sendProgress(statusWebhook, taskId, conversationId, userId, config.stepName, config.sequence, config.totalSteps);
         }
         const userMessage = state[config.userMessageField];
+        if (!userId) {
+            throw new Error(`userId is required in workflow state for LLM node execution (step: ${config.stepName})`);
+        }
         const result = await this.llmClient.callLLM({
             provider,
             model,
             systemMessage: config.systemMessage,
             userMessage,
             callerName: config.stepName,
+            userId,
         });
         return {
             [config.outputField]: result.text,

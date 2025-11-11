@@ -67,6 +67,7 @@ export class MetricsAgentGraph {
         systemMessage: 'You are a business metrics analyst. Analyze this metrics request and identify: metrics type (financial/customer/product/operational), required data sources, and analysis approach. Return as JSON.',
         userMessage: state.prompt,
         callerName: 'metrics-parse',
+        userId: state.userId,
       });
       state.queryAnalysis = parseResult.text;
 
@@ -94,6 +95,7 @@ export class MetricsAgentGraph {
         temperature: 0.2,
         maxTokens: 3500,
         callerName: 'metrics-generate',
+        userId: state.userId,
       });
 
       state.report = reportResult.text;

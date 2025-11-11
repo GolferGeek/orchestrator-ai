@@ -105,6 +105,14 @@ export async function sendMessage(
       }
     }
 
+    // Handle case where parsedResult is undefined or null (e.g., error response)
+    if (!parsedResult) {
+      const errorMessage = result.error || 'No response from agent';
+      console.error('❌ [Converse Action] No valid result from backend:', errorMessage);
+      conversationsStore.setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+
     console.log('📦 [Converse Action] Full result from backend:', result);
     console.log('📦 [Converse Action] Parsed result:', parsedResult);
 
@@ -112,7 +120,8 @@ export async function sendMessage(
     // Check multiple paths for the message content
     const thinkingContent = (parsedResult as any)?.payload?.content?.thinking ||
                            (parsedResult as any)?.payload?.thinking ||
-                           (parsedResult as any)?.thinking;
+                           (parsedResult as any)?.thinking ||
+                           (parsedResult as any)?.extractedThinking;
 
     const assistantContent = (parsedResult as any)?.payload?.content?.message ||
                             (parsedResult as any)?.payload?.message ||
@@ -129,7 +138,7 @@ export async function sendMessage(
                 (parsedResult as any)?.metadata?.provider,
       model: (parsedResult as any)?.payload?.metadata?.model ||
              (parsedResult as any)?.metadata?.model,
-      thinking: thinkingContent || (parsedResult as any).extractedThinking, // Store thinking in metadata
+      thinking: thinkingContent, // Store thinking in metadata
       ...(parsedResult as any)?.payload?.metadata,
       ...(parsedResult as any)?.metadata,
     };

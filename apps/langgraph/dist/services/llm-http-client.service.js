@@ -20,8 +20,16 @@ let LLMHttpClientService = LLMHttpClientService_1 = class LLMHttpClientService {
         this.httpService = httpService;
         this.configService = configService;
         this.logger = new common_1.Logger(LLMHttpClientService_1.name);
-        this.llmServiceUrl = this.configService.get('LLM_SERVICE_URL') || 'http://localhost:7100';
-        this.llmEndpoint = this.configService.get('LLM_ENDPOINT') || '/llm/generate';
+        const apiPort = this.configService.get('API_PORT');
+        if (!apiPort) {
+            throw new Error('API_PORT environment variable is required. ' +
+                'Please set API_PORT in your .env file (e.g., API_PORT=7100). ' +
+                'This must be explicitly configured for your environment.');
+        }
+        const apiHost = this.configService.get('API_HOST') || 'localhost';
+        const llmEndpoint = this.configService.get('LLM_ENDPOINT') || '/llm/generate';
+        this.llmServiceUrl = `http://${apiHost}:${apiPort}`;
+        this.llmEndpoint = llmEndpoint;
     }
     async callLLM(request) {
         const url = `${this.llmServiceUrl}${this.llmEndpoint}`;
@@ -31,16 +39,21 @@ let LLMHttpClientService = LLMHttpClientService_1 = class LLMHttpClientService {
             caller: request.callerName,
         });
         try {
+            if (!request.userId) {
+                throw new Error('userId is required for LLM calls');
+            }
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.post(url, {
                 systemPrompt: request.systemMessage || '',
                 userPrompt: request.userMessage,
                 options: {
                     provider: request.provider,
+                    providerName: request.provider,
                     modelName: request.model,
                     temperature: request.temperature ?? 0.7,
                     maxTokens: request.maxTokens ?? 3500,
                     callerType: 'langgraph',
                     callerName: request.callerName || 'workflow',
+                    userId: request.userId,
                 },
             }));
             const text = response.data.response || response.data.content || '';
@@ -50,8 +63,26 @@ let LLMHttpClientService = LLMHttpClientService_1 = class LLMHttpClientService {
             };
         }
         catch (error) {
-            this.logger.error('LLM call failed', error);
-            throw new Error(`LLM call failed: ${error.message}`);
+            let errorMessage = error.message;
+            let errorDetails = '';
+            if (error.response) {
+                errorDetails = JSON.stringify(error.response.data || error.response.statusText);
+                errorMessage = `Request failed with status code ${error.response.status}: ${errorDetails}`;
+            }
+            else if (error.request) {
+                errorMessage = `No response received: ${error.message}`;
+            }
+            this.logger.error('LLM call failed', {
+                message: errorMessage,
+                details: errorDetails,
+                url,
+                request: {
+                    provider: request.provider,
+                    model: request.model,
+                    callerName: request.callerName,
+                },
+            });
+            throw new Error(`LLM call failed: ${errorMessage}`);
         }
     }
 };

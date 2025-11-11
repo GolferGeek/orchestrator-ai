@@ -492,22 +492,13 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       });
 
       if (agentInfo?.execution_modes && Array.isArray(agentInfo.execution_modes)) {
-        // Map execution modes from agent data (handles 'real-time' -> 'websocket')
+        // Use execution modes directly from agent data
         const rawModes = agentInfo.execution_modes;
 
-        const mappedModes = rawModes.map((mode: string) => {
-          if (mode === 'real-time') {
-
-            return 'websocket';
-          }
-
-          return mode as ExecutionMode;
-        });
-        const supportedModes = mappedModes.filter((mode: string) => {
-          const isSupported = ['immediate', 'polling', 'websocket'].includes(mode);
-
+        const supportedModes = rawModes.filter((mode: string) => {
+          const isSupported = ['immediate', 'polling', 'real-time'].includes(mode);
           return isSupported;
-        });
+        }) as ExecutionMode[];
         conversation.supportedExecutionModes = supportedModes;
 
       } else {

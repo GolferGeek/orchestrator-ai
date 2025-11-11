@@ -19,7 +19,7 @@ export class WorkflowRequestDto {
   @IsString()
   prompt: string; // Main user prompt/announcement
 
-  @IsUrl()
+  @IsUrl({ require_tld: false, require_protocol: true })
   @IsOptional()
   statusWebhook?: string; // Webhook URL for progress updates
 

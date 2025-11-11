@@ -82,6 +82,7 @@ export class RequirementsWriterGraph {
         systemMessage: 'You are an expert requirements analyst. Analyze this request and identify: intent, scope (small/medium/large/enterprise), domain (technical/business/product), and provide a brief summary. Return as JSON.',
         userMessage: state.prompt,
         callerName: 'requirements-analyze',
+        userId: state.userId,
       });
 
       let analysisObj: Record<string, unknown> = {};
@@ -112,6 +113,7 @@ export class RequirementsWriterGraph {
         systemMessage: 'Determine the best document type for this request. Choose from: prd, trd, api, user_story, architecture, general. Return only the type name.',
         userMessage: `Request: ${state.prompt}\n\nAnalysis: ${state.analysis}`,
         callerName: 'requirements-type',
+        userId: state.userId,
       });
 
       const docType = typeResult.text.trim().toLowerCase();
@@ -137,6 +139,7 @@ export class RequirementsWriterGraph {
         systemMessage: 'Extract key features, components, and capabilities from this request. Return as a JSON array of strings.',
         userMessage: state.prompt,
         callerName: 'requirements-features',
+        userId: state.userId,
       });
       state.features = featuresResult.text;
 
@@ -160,6 +163,7 @@ export class RequirementsWriterGraph {
         systemMessage: 'Assess the complexity of this project. Return JSON with: overall_complexity (low/medium/high/enterprise), effort_estimate (e.g., "3-6 weeks"), team_size_recommendation, risk_level.',
         userMessage: `Request: ${state.prompt}\n\nFeatures: ${state.features}`,
         callerName: 'requirements-complexity',
+        userId: state.userId,
       });
       state.complexity = complexityResult.text;
 
@@ -187,6 +191,7 @@ export class RequirementsWriterGraph {
         temperature: 0.2,
         maxTokens: 4000,
         callerName: 'requirements-generate',
+        userId: state.userId,
       });
       state.document = documentResult.text;
 

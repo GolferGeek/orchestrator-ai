@@ -8,6 +8,7 @@ export interface LLMCallRequest {
     temperature?: number;
     maxTokens?: number;
     callerName?: string;
+    userId: string;
 }
 export interface LLMCallResponse {
     text: string;

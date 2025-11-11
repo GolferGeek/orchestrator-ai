@@ -36,8 +36,8 @@
           <ion-label>Polling</ion-label>
         </ion-segment-button>
         <ion-segment-button 
-          value="websocket" 
-          v-if="supportedModes.includes('websocket')"
+          value="real-time" 
+          v-if="supportedModes.includes('real-time')"
           :disabled="isSingleModeAgent"
         >
           <ion-icon :icon="wifi" />
@@ -71,6 +71,7 @@ import {
   refresh,
   wifi,
   chevronDown,
+  speedometer,
 } from 'ionicons/icons';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
@@ -109,7 +110,7 @@ const getModeColor = (mode: string) => {
   switch (mode) {
     case 'immediate': return 'warning';
     case 'polling': return 'medium'; 
-    case 'websocket': return 'success';
+    case 'real-time': return 'success';
     default: return 'medium';
   }
 };
@@ -117,7 +118,7 @@ const getModeIcon = (mode: string) => {
   switch (mode) {
     case 'immediate': return flash;
     case 'polling': return refresh;
-    case 'websocket': return wifi;
+    case 'real-time': return wifi;
     default: return speedometer;
   }
 };
@@ -125,13 +126,13 @@ const getModeLabel = (mode: string) => {
   switch (mode) {
     case 'immediate': return 'Immediate';
     case 'polling': return 'Polling';
-    case 'websocket': return 'Real-time';
+    case 'real-time': return 'Real-time';
     default: return 'Auto';
   }
 };
 // Event handlers
 const handleModeChange = (event: CustomEvent) => {
-  const newMode = event.detail.value as 'immediate' | 'polling' | 'websocket';
+  const newMode = event.detail.value as 'immediate' | 'polling' | 'real-time';
   console.log('[TaskExecutionControls] 🔄 Changing execution mode:', {
     from: currentMode.value,
     to: newMode,

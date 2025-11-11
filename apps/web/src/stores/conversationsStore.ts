@@ -682,11 +682,10 @@ export const useConversationsStore = defineStore('conversations', () => {
         const rawModes = agent?.execution_modes ||
                          agentWithContext?.context?.execution_modes ||
                          ['immediate'];
-        const mappedModes = rawModes.map((mode: string) => {
-          if (mode === 'real-time') return 'websocket';
-          return mode;
-        }).filter((mode: string) => ['immediate', 'polling', 'websocket'].includes(mode)) as ('immediate' | 'polling' | 'websocket')[];
-        const supportedModes = mappedModes.length > 0 ? mappedModes : ['immediate'];
+        const supportedModes = rawModes.filter((mode: string) => 
+          ['immediate', 'polling', 'real-time'].includes(mode)
+        ) as ('immediate' | 'polling' | 'real-time')[];
+        const validModes = supportedModes.length > 0 ? supportedModes : ['immediate'];
 
         return {
           id: conv.id,
@@ -708,7 +707,7 @@ export const useConversationsStore = defineStore('conversations', () => {
           // Add agent and execution mode fields
           agent: agent,
           executionMode: 'immediate',
-          supportedExecutionModes: supportedModes,
+          supportedExecutionModes: validModes,
           isExecutionModeOverride: false,
         };
       });

@@ -234,7 +234,7 @@
         >
           <ion-select-option value="immediate">Immediate (Wait for completion)</ion-select-option>
           <ion-select-option value="polling">Polling (Check status periodically)</ion-select-option>
-          <ion-select-option value="websocket">WebSocket (Real-time updates)</ion-select-option>
+          <ion-select-option value="real-time">Real-time (SSE streaming)</ion-select-option>
         </ion-select>
       </div>
       <div class="preference-item">

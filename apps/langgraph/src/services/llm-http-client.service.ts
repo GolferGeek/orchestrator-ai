@@ -33,8 +33,23 @@ export class LLMHttpClientService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
-    this.llmServiceUrl = this.configService.get<string>('LLM_SERVICE_URL') || 'http://localhost:7100';
-    this.llmEndpoint = this.configService.get<string>('LLM_ENDPOINT') || '/llm/generate';
+    // Build LLM service URL from API_PORT (same as main API)
+    // Fail fast if required configuration is missing - no defaults allowed
+    const apiPort = this.configService.get<string>('API_PORT');
+    if (!apiPort) {
+      throw new Error(
+        'API_PORT environment variable is required. ' +
+        'Please set API_PORT in your .env file (e.g., API_PORT=7100). ' +
+        'This must be explicitly configured for your environment.'
+      );
+    }
+    
+    // API_HOST and LLM_ENDPOINT have stable defaults but can be overridden
+    const apiHost = this.configService.get<string>('API_HOST') || 'localhost';
+    const llmEndpoint = this.configService.get<string>('LLM_ENDPOINT') || '/llm/generate';
+    
+    this.llmServiceUrl = `http://${apiHost}:${apiPort}`;
+    this.llmEndpoint = llmEndpoint;
   }
 
   /**
@@ -59,7 +74,9 @@ export class LLMHttpClientService {
           systemPrompt: request.systemMessage || '',
           userPrompt: request.userMessage,
           options: {
+            // Support both provider and providerName for compatibility
             provider: request.provider,
+            providerName: request.provider,
             modelName: request.model,
             temperature: request.temperature ?? 0.7,
             maxTokens: request.maxTokens ?? 3500,
@@ -77,8 +94,31 @@ export class LLMHttpClientService {
         usage: response.data.metadata?.usage,
       };
     } catch (error) {
-      this.logger.error('LLM call failed', error);
-      throw new Error(`LLM call failed: ${error.message}`);
+      // Extract detailed error information
+      let errorMessage = error.message;
+      let errorDetails = '';
+      
+      if (error.response) {
+        // Axios error with response
+        errorDetails = JSON.stringify(error.response.data || error.response.statusText);
+        errorMessage = `Request failed with status code ${error.response.status}: ${errorDetails}`;
+      } else if (error.request) {
+        // Axios error without response
+        errorMessage = `No response received: ${error.message}`;
+      }
+      
+      this.logger.error('LLM call failed', {
+        message: errorMessage,
+        details: errorDetails,
+        url,
+        request: {
+          provider: request.provider,
+          model: request.model,
+          callerName: request.callerName,
+        },
+      });
+      
+      throw new Error(`LLM call failed: ${errorMessage}`);
     }
   }
 }

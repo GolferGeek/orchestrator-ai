@@ -107,7 +107,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
 
   /**
    * Get effective execution mode for active conversation
-   * Prefers 'websocket' (real-time) if available, then falls back to first supported mode
+   * Prefers 'real-time' (SSE streaming) if available, then falls back to first supported mode
    */
   const effectiveExecutionMode = computed(() => {
     const currentMode = activeConversation.value?.executionMode;
@@ -119,10 +119,10 @@ export const useChatUiStore = defineStore('chatUi', () => {
       return currentMode;
     }
 
-    // If mode is set to 'immediate' but websocket is available and not overridden,
-    // upgrade to websocket (handles existing conversations that defaulted to immediate)
-    if (currentMode === 'immediate' && supportedModes.includes('websocket') && !isOverride) {
-      return 'websocket';
+    // If mode is set to 'immediate' but real-time is available and not overridden,
+    // upgrade to real-time (handles existing conversations that defaulted to immediate)
+    if (currentMode === 'immediate' && supportedModes.includes('real-time') && !isOverride) {
+      return 'real-time';
     }
 
     // If mode is already set, use it
@@ -130,9 +130,9 @@ export const useChatUiStore = defineStore('chatUi', () => {
       return currentMode;
     }
 
-    // Otherwise, prefer 'websocket' if available
-    if (supportedModes.includes('websocket')) {
-      return 'websocket';
+    // Otherwise, prefer 'real-time' if available
+    if (supportedModes.includes('real-time')) {
+      return 'real-time';
     }
 
     // Fall back to first supported mode or 'immediate'
@@ -293,7 +293,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
   /**
    * Set execution mode for active conversation
    */
-  function setExecutionMode(mode: 'immediate' | 'polling' | 'websocket'): void {
+  function setExecutionMode(mode: 'immediate' | 'polling' | 'real-time'): void {
     if (!activeConversationId.value) return;
 
     const conversationsStore = useConversationsStore();
@@ -315,10 +315,10 @@ export const useChatUiStore = defineStore('chatUi', () => {
     const conversation = conversationsStore.conversationById(activeConversationId.value);
 
     if (conversation) {
-      // Reset to preferred mode (websocket if available, otherwise first supported mode)
+      // Reset to preferred mode (real-time if available, otherwise first supported mode)
       const supportedModes = conversation.supportedExecutionModes || [];
-      const defaultMode = supportedModes.includes('websocket')
-        ? 'websocket'
+      const defaultMode = supportedModes.includes('real-time')
+        ? 'real-time'
         : (supportedModes[0] || 'immediate');
 
       conversationsStore.updateConversation(activeConversationId.value, {

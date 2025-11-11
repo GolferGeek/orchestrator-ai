@@ -7,24 +7,10 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-  Req,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { LLMService } from './llm.service';
 import { isLLMResponse } from './services/llm-interfaces';
 import { LocalModelStatusService } from './local-model-status.service';
-
-/**
- * Authenticated request with user information
- */
-interface AuthenticatedRequest extends Request {
-  user?: {
-    sub?: string;
-    id?: string;
-    userId?: string;
-  };
-}
 
 @Controller('llm')
 export class LLMController {
@@ -52,13 +38,12 @@ export class LLMController {
         // Caller tracking for usage analytics
         callerType?: string;
         callerName?: string;
+        // User and conversation context for observability
+        userId?: string;
         conversationId?: string;
         dataClassification?: string;
-        // User identification (required for usage tracking)
-        userId?: string;
       };
     },
-    @Req() req: AuthenticatedRequest,
   ): Promise<{
     response: string;
     content?: string;
@@ -67,8 +52,9 @@ export class LLMController {
     metadata?: Record<string, unknown>;
   }> {
     try {
-      // Guard: Conversation-based requests must use the agent tasks endpoint
-      if (request?.options?.conversationId) {
+      // Guard: Conversation-based requests from frontend should use agent tasks endpoint
+      // But allow external API calls (like n8n) to use conversationId for observability
+      if (request?.options?.conversationId && request?.options?.callerType !== 'external') {
         const guidance = {
           message:
             'Conversation-based requests must use the agent tasks endpoint to preserve agent + MCP context.',
@@ -89,18 +75,17 @@ export class LLMController {
         throw new BadRequestException(guidance);
       }
 
-      // Require userId for usage tracking - get from request body or authenticated user
-      const userId =
-        request.options?.userId ||
-        req.user?.id ||
-        req.user?.sub ||
-        req.user?.userId;
-
-      if (!userId) {
-        throw new UnauthorizedException(
-          'userId is required for LLM service calls. Provide userId in options or authenticate the request.',
-        );
-      }
+      // Ensure providerName and modelName are set (use provider as fallback for compatibility)
+      const providerName = request.options?.providerName || request.options?.provider;
+      const modelName = request.options?.modelName;
+      
+      this.logger.debug(`LLM request options:`, {
+        provider: request.options?.provider,
+        providerName: request.options?.providerName,
+        modelName: request.options?.modelName,
+        resolvedProviderName: providerName,
+        resolvedModelName: modelName,
+      });
 
       const result = await this.llmService.generateResponse(
         request.systemPrompt,
@@ -109,16 +94,16 @@ export class LLMController {
           temperature: request.options?.temperature,
           maxTokens: request.options?.maxTokens,
           provider: request.options?.provider,
-          // Support full LLM preferences from UI
-          providerName: request.options?.providerName,
-          modelName: request.options?.modelName,
+          // Support full LLM preferences from UI - ensure both are set
+          providerName,
+          modelName,
           // Caller tracking - use provided values or defaults
           callerType: request.options?.callerType || 'api',
           callerName: request.options?.callerName || 'llm-controller',
+          // User and conversation context for observability and usage tracking
+          userId: request.options?.userId,
           conversationId: request.options?.conversationId,
           dataClassification: request.options?.dataClassification || 'public',
-          // User identification (required for usage tracking)
-          userId,
           // Request metadata for Python agents
           includeMetadata: true,
         },
