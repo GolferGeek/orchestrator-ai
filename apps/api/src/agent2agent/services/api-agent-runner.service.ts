@@ -281,7 +281,13 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       let response: unknown;
 
       try {
-        const observable = this.httpService.request({
+        if (!this.httpService) {
+          throw new Error('HttpService not available');
+        }
+        if (!this.httpService) {
+        throw new Error('HttpService not available');
+      }
+      const observable = this.httpService.request({
           url,
           method: method,
           headers,
@@ -407,6 +413,21 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
+
+      // Debug: Verify deliverablesService is available
+      if (!this.deliverablesService) {
+        this.logger.error('deliverablesService is undefined');
+        throw new Error('DeliverablesService not injected');
+      }
+      if (typeof this.deliverablesService.executeAction !== 'function') {
+        this.logger.error('deliverablesService.executeAction is not a function', {
+          deliverablesService: this.deliverablesService,
+          type: typeof this.deliverablesService,
+          constructor: this.deliverablesService?.constructor?.name,
+          methods: Object.getOwnPropertyNames(Object.getPrototypeOf(this.deliverablesService)),
+        });
+        throw new Error('DeliverablesService.executeAction is not available');
+      }
 
       const deliverableResult = await this.deliverablesService.executeAction(
         'create',
@@ -720,6 +741,9 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       this.logger.log(`📡 Making async API call to ${url}`);
       const startTime = Date.now();
 
+      if (!this.httpService) {
+        throw new Error('HttpService not available');
+      }
       const observable = this.httpService.request({
         url,
         method: method,
