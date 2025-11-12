@@ -16,6 +16,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import { useConversationsStore } from '../conversationsStore';
 import type { JsonObject } from '@/types';
+import type { ExecutionMode } from '@/types/conversation';
 
 // ============================================================================
 // Types
@@ -119,24 +120,24 @@ export const useChatUiStore = defineStore('chatUi', () => {
       return currentMode;
     }
 
-    // If mode is set to 'immediate' but real-time is available and not overridden,
-    // upgrade to real-time (handles existing conversations that defaulted to immediate)
-    if (currentMode === 'immediate' && supportedModes.includes('real-time') && !isOverride) {
-      return 'real-time';
-    }
-
     // If mode is already set, use it
     if (currentMode) {
+      if (!isOverride && currentMode === 'immediate') {
+        if (supportedModes.includes('auto')) {
+          return 'auto';
+        }
+        if (supportedModes.includes('real-time')) {
+          return 'real-time';
+        }
+      }
       return currentMode;
     }
 
-    // Otherwise, prefer 'real-time' if available
-    if (supportedModes.includes('real-time')) {
-      return 'real-time';
-    }
+    const priority: ExecutionMode[] = ['auto', 'real-time', 'polling', 'immediate'];
+    const preferred = priority.find((mode) => supportedModes.includes(mode));
 
     // Fall back to first supported mode or 'immediate'
-    return supportedModes[0] || 'immediate';
+    return preferred || supportedModes[0] || 'immediate';
   });
 
   /**
@@ -293,7 +294,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
   /**
    * Set execution mode for active conversation
    */
-  function setExecutionMode(mode: 'immediate' | 'polling' | 'real-time'): void {
+  function setExecutionMode(mode: ExecutionMode): void {
     if (!activeConversationId.value) return;
 
     const conversationsStore = useConversationsStore();
@@ -317,9 +318,11 @@ export const useChatUiStore = defineStore('chatUi', () => {
     if (conversation) {
       // Reset to preferred mode (real-time if available, otherwise first supported mode)
       const supportedModes = conversation.supportedExecutionModes || [];
-      const defaultMode = supportedModes.includes('real-time')
-        ? 'real-time'
-        : (supportedModes[0] || 'immediate');
+      const priority: ExecutionMode[] = ['auto', 'real-time', 'polling', 'immediate'];
+      const defaultMode =
+        priority.find((mode) => supportedModes.includes(mode)) ||
+        supportedModes[0] ||
+        'immediate';
 
       conversationsStore.updateConversation(activeConversationId.value, {
         executionMode: defaultMode,

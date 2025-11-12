@@ -491,20 +491,32 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
         } : null
       });
 
+      const normalizeMode = (mode: string): ExecutionMode | null => {
+        switch (mode) {
+          case 'immediate':
+          case 'polling':
+          case 'real-time':
+          case 'auto':
+            return mode;
+          case 'websocket':
+            return 'real-time';
+          default:
+            return null;
+        }
+      };
+
       if (agentInfo?.execution_modes && Array.isArray(agentInfo.execution_modes)) {
         // Use execution modes directly from agent data
         const rawModes = agentInfo.execution_modes;
 
-        const supportedModes = rawModes.filter((mode: string) => {
-          const isSupported = ['immediate', 'polling', 'real-time'].includes(mode);
-          return isSupported;
-        }) as ExecutionMode[];
-        conversation.supportedExecutionModes = supportedModes;
+        const supportedModes = rawModes
+          .map((mode: string) => normalizeMode(mode))
+          .filter((mode): mode is ExecutionMode => mode !== null);
 
+        conversation.supportedExecutionModes = supportedModes.length > 0 ? supportedModes : ['immediate'];
       } else {
         // Default to immediate mode if no execution modes specified
         conversation.supportedExecutionModes = ['immediate'];
-
       }
 
       const defaultAllowed: AgentChatMode[] = [...DEFAULT_CHAT_MODES];
@@ -606,16 +618,31 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
 
     console.log('🔍 [createConversationObject] Agent:', agent.name, 'rawModes:', rawModes);
 
-    const mappedModes = rawModes.map((mode: string) => {
-      if (mode === 'real-time') return 'websocket';
-      return mode;
-    }).filter((mode: string) => ['immediate', 'polling', 'websocket'].includes(mode));
-    const supportedModes = mappedModes.length > 0 ? mappedModes : ['immediate'];
+    const normalizeMode = (mode: string): ExecutionMode | null => {
+      switch (mode) {
+        case 'immediate':
+        case 'polling':
+        case 'real-time':
+        case 'auto':
+          return mode;
+        case 'websocket':
+          return 'real-time';
+        default:
+          return null;
+      }
+    };
 
-    // Default to websocket (real-time) if available, otherwise use first supported mode
-    const defaultExecutionMode = supportedModes.includes('websocket')
-      ? 'websocket'
-      : supportedModes[0];
+    const mappedModes = rawModes
+      .map((mode: string) => normalizeMode(mode))
+      .filter((mode): mode is ExecutionMode => mode !== null) as ExecutionMode[];
+
+    const supportedModes: ExecutionMode[] = mappedModes.length > 0 ? mappedModes : ['immediate'];
+
+    // Default to preferred ordering: auto > real-time > polling > immediate
+    const defaultExecutionMode: ExecutionMode =
+      (['auto', 'real-time', 'polling', 'immediate'] as ExecutionMode[]).find((mode) =>
+        supportedModes.includes(mode),
+      ) ?? supportedModes[0];
 
     console.log('✅ [createConversationObject] supportedModes:', supportedModes, 'defaultExecutionMode:', defaultExecutionMode);
 

@@ -43,6 +43,14 @@
           <ion-icon :icon="wifi" />
           <ion-label>Real-time</ion-label>
         </ion-segment-button>
+        <ion-segment-button 
+          value="auto" 
+          v-if="supportedModes.includes('auto')"
+          :disabled="isSingleModeAgent"
+        >
+          <ion-icon :icon="speedometer" />
+          <ion-label>Auto</ion-label>
+        </ion-segment-button>
       </ion-segment>
       <!-- Reset button if overridden -->
       <ion-button 
@@ -90,7 +98,7 @@ const supportedModes = computed(() => {
 });
 const isSingleModeAgent = computed(() => {
   const modes = supportedModes.value;
-  return modes.length === 1 && modes[0] === 'immediate';
+  return modes.length === 1;
 });
 const showControls = computed(() => {
   console.log('[TaskExecutionControls] Debug:', {
@@ -111,6 +119,7 @@ const getModeColor = (mode: string) => {
     case 'immediate': return 'warning';
     case 'polling': return 'medium'; 
     case 'real-time': return 'success';
+    case 'auto': return 'primary';
     default: return 'medium';
   }
 };
@@ -119,6 +128,7 @@ const getModeIcon = (mode: string) => {
     case 'immediate': return flash;
     case 'polling': return refresh;
     case 'real-time': return wifi;
+    case 'auto': return speedometer;
     default: return speedometer;
   }
 };
@@ -127,12 +137,13 @@ const getModeLabel = (mode: string) => {
     case 'immediate': return 'Immediate';
     case 'polling': return 'Polling';
     case 'real-time': return 'Real-time';
-    default: return 'Auto';
+    case 'auto': return 'Auto';
+    default: return mode;
   }
 };
 // Event handlers
 const handleModeChange = (event: CustomEvent) => {
-  const newMode = event.detail.value as 'immediate' | 'polling' | 'real-time';
+  const newMode = event.detail.value as 'immediate' | 'polling' | 'real-time' | 'auto';
   console.log('[TaskExecutionControls] 🔄 Changing execution mode:', {
     from: currentMode.value,
     to: newMode,
