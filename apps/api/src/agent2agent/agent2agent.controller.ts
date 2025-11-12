@@ -333,14 +333,23 @@ export class Agent2AgentController {
       // Legacy format was payload.llmSelection
       let llmSelectionFromPayload: LlmSelection | undefined;
       if (dto.payload?.config && typeof dto.payload.config === 'object') {
-        const config = dto.payload.config as { provider?: string; model?: string; temperature?: number; maxTokens?: number };
+        const config = dto.payload.config as {
+          provider?: string;
+          model?: string;
+          temperature?: number;
+          maxTokens?: number;
+        };
         if (config.provider && config.model) {
           // LlmSelection type uses 'provider' and 'model' fields (not providerName/modelName)
           llmSelectionFromPayload = {
             provider: config.provider,
             model: config.model,
-            ...(config.temperature !== undefined && { temperature: config.temperature }),
-            ...(config.maxTokens !== undefined && { maxTokens: config.maxTokens }),
+            ...(config.temperature !== undefined && {
+              temperature: config.temperature,
+            }),
+            ...(config.maxTokens !== undefined && {
+              maxTokens: config.maxTokens,
+            }),
           };
         }
       } else if (dto.payload?.llmSelection) {
@@ -571,8 +580,11 @@ export class Agent2AgentController {
 
       // Success case - update task and create deliverable
       // Extract deliverable type from results if available
-      const resultsObj = body.results as { type?: string; payload?: { type?: string } } | undefined;
-      const deliverableType = resultsObj?.type || resultsObj?.payload?.type || null;
+      const resultsObj = body.results as
+        | { type?: string; payload?: { type?: string } }
+        | undefined;
+      const deliverableType =
+        resultsObj?.type || resultsObj?.payload?.type || null;
 
       await this.taskUpdateService.updateTask(taskId, body.userId, {
         status: 'completed',
@@ -1034,7 +1046,6 @@ export class Agent2AgentController {
       data: {
         streamId: event.streamId,
         conversationId: event.conversationId,
-        orchestrationRunId: event.orchestrationRunId,
         organizationSlug: event.organizationSlug ?? null,
         agentSlug: event.agentSlug,
         mode: event.mode,
@@ -1056,7 +1067,6 @@ export class Agent2AgentController {
       data: {
         streamId: event.streamId,
         conversationId: event.conversationId,
-        orchestrationRunId: event.orchestrationRunId,
         organizationSlug: event.organizationSlug ?? null,
         agentSlug: event.agentSlug,
         mode: event.mode,
@@ -1074,7 +1084,6 @@ export class Agent2AgentController {
       data: {
         streamId: event.streamId,
         conversationId: event.conversationId,
-        orchestrationRunId: event.orchestrationRunId,
         organizationSlug: event.organizationSlug ?? null,
         agentSlug: event.agentSlug,
         mode: event.mode,
@@ -1257,21 +1266,6 @@ export class Agent2AgentController {
       case 'agent.build':
       case 'tasks.build':
         return AgentTaskMode.BUILD;
-      case 'orchestrate':
-      case 'agent.orchestrate':
-      case 'orchestrate.create':
-      case 'agent.orchestrate_create':
-      case 'orchestrate_create':
-      case 'orchestrate.execute':
-      case 'agent.orchestrate_execute':
-      case 'orchestrate_execute':
-      case 'orchestrate.continue':
-      case 'agent.orchestrate_continue':
-      case 'orchestrate_continue':
-      case 'orchestrate.save_recipe':
-      case 'agent.orchestrate_save_recipe':
-      case 'orchestrate_save_recipe':
-        return AgentTaskMode.ORCHESTRATE;
       default:
         return undefined;
     }
@@ -1417,7 +1411,6 @@ export class Agent2AgentController {
       mode: dto.mode,
       conversationId: dto.conversationId ?? null,
       planId: dto.planId ?? null,
-      orchestrationRunId: dto.orchestrationRunId ?? null,
       jsonrpc: jsonrpc
         ? {
             id: jsonrpc.id ?? null,

@@ -11,7 +11,6 @@ export enum TaskMode {
   BUILD = 'build',
   CONVERSE = 'converse',
   TOOL = 'tool',
-  ORCHESTRATE = 'orchestrate',
 }
 
 /**

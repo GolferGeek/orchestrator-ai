@@ -105,6 +105,10 @@
               <div v-if="message.timestamp" class="message-timestamp">
                 {{ formatTimestamp(message.timestamp) }}
               </div>
+              <!-- Sub-agent attribution badge (Orchestrator V2) -->
+              <div v-if="message.metadata?.resolvedByDisplayName" class="attribution-badge">
+                ✓ Resolved by: {{ message.metadata.resolvedByDisplayName }}
+              </div>
             </div>
             <!-- Task item for plan/build/orchestrate modes -->
             <AgentTaskItem
@@ -587,7 +591,7 @@ const sovereignBannerVariant = computed(() => {
   return 'info';
 });
 // Check if message should be displayed as simple bubble (converse mode)
-const isSimpleMessage = (message: any) => {
+const isSimpleMessage = (message: AgentChatMessage) => {
   // User messages are always simple
   if (message.role === 'user') return true;
 
@@ -596,8 +600,7 @@ const isSimpleMessage = (message: any) => {
     const hasTaskMetadata = message.metadata?.planId ||
                            message.metadata?.deliverableId ||
                            message.metadata?.mode === 'plan' ||
-                           message.metadata?.mode === 'build' ||
-                           message.metadata?.mode?.includes('orchestrate');
+                           message.metadata?.mode === 'build';
     return !hasTaskMetadata;
   }
 
@@ -1166,7 +1169,7 @@ const executeRerunWithConfig = async (
   const isPlan = Boolean(plan);
 
   // Use the user message that was captured when opening the modal
-  const userPrompt = (capturedRerunData as any).userMessage || '';
+  const userPrompt = (capturedRerunData as { userMessage?: string }).userMessage || '';
 
   console.log('🔍 [executeRerunWithConfig] Using captured user message:', userPrompt);
 
@@ -1686,6 +1689,34 @@ watch(() => showWorkProductPane.value, (newVal, oldVal) => {
   opacity: 0.7;
   margin-top: 4px;
   text-align: right;
+}
+
+/* Sub-agent attribution badge (Orchestrator V2) */
+.simple-message-bubble .attribution-badge {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 6px;
+  padding: 3px 8px;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+  border-radius: 4px;
+  display: inline-block;
+  color: var(--ion-color-primary-shade);
+  font-weight: 500;
+}
+
+.simple-message-bubble.user .attribution-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme="dark"] .simple-message-bubble .attribution-badge {
+  background: rgba(var(--ion-color-primary-rgb), 0.15);
+  color: var(--ion-color-primary-tint);
+}
+
+html[data-theme="dark"] .simple-message-bubble.user .attribution-badge {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
 }
 .input-area {
   border-top: 1px solid var(--ion-color-light);

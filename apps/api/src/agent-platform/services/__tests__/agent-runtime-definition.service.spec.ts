@@ -58,7 +58,6 @@ describe('AgentRuntimeDefinitionService', () => {
         execution_capabilities: {
           can_plan: false,
           can_build: true,
-          can_orchestrate: false,
         },
         timeout_seconds: 120,
       },

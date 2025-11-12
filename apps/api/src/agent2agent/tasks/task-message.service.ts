@@ -110,7 +110,6 @@ export class TaskMessageService {
     return taskMessage;
   }
 
-
   /**
    * Get messages for a specific task
    */

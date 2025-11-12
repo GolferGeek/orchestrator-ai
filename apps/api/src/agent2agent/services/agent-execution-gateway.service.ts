@@ -7,8 +7,6 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
-import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
-import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
 import { AgentRecord } from '@agent-platform/interfaces/agent.interface';
 import { ConversationPlanRecord } from '@agent-platform/interfaces/conversation-plan-record.interface';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
@@ -16,7 +14,6 @@ import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { PlanEngineService } from '@agent-platform/services/plan-engine.service';
-import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 import { AgentRegistryService } from '@agent-platform/services/agent-registry.service';
 import { AgentRuntimeExecutionService } from '@agent-platform/services/agent-runtime-execution.service';
 import { AgentRuntimeAgentMetadata } from '@agent-platform/interfaces/agent-runtime-agent-metadata.interface';
@@ -24,12 +21,6 @@ import { AgentRuntimeDefinitionService } from '@agent-platform/services/agent-ru
 import { AgentRuntimeDefinition } from '@agent-platform/interfaces/agent.interface';
 import { AgentRuntimeStreamService } from '@agent-platform/services/agent-runtime-stream.service';
 import { HumanApprovalsRepository } from '@agent-platform/repositories/human-approvals.repository';
-import { OrchestrationRunRecord } from '@agent-platform/interfaces/orchestration-run-record.interface';
-import { OrchestrationCheckpointService } from '@agent-platform/services/orchestration-checkpoint.service';
-import type { OrchestrationCheckpointDecision } from '@agent-platform/types/orchestration-run.types';
-import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
-import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
-import { ObservabilityWebhookService } from '../../observability/observability-webhook.service';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -42,14 +33,8 @@ export class AgentExecutionGateway {
     private readonly routingPolicy: RoutingPolicyAdapterService,
     private readonly modeRouter: AgentModeRouterService,
     private readonly planEngine: PlanEngineService,
-    private readonly orchestrationRunner: OrchestrationRunnerService,
-    private readonly agentOrchestrations: AgentOrchestrationsRepository,
     private readonly streamService: AgentRuntimeStreamService,
     private readonly approvals: HumanApprovalsRepository,
-    private readonly executionService: OrchestrationExecutionService,
-    private readonly stepExecutor: OrchestrationStepExecutorService,
-    private readonly checkpointService: OrchestrationCheckpointService,
-    private readonly observability: ObservabilityWebhookService,
     @Inject(HttpService) private readonly httpService?: HttpService,
   ) {}
 
@@ -200,10 +185,6 @@ export class AgentExecutionGateway {
         return exec.canBuild
           ? null
           : TaskResponseDto.failure(mode, 'Mode not supported by agent');
-      case AgentTaskMode.ORCHESTRATE:
-        return exec.canOrchestrate
-          ? null
-          : TaskResponseDto.failure(mode, 'Mode not supported by agent');
       default:
         return null;
     }
@@ -267,19 +248,6 @@ export class AgentExecutionGateway {
     request: TaskRequestDto,
     routingMetadata?: Record<string, unknown>,
   ): Promise<TaskResponseDto> {
-    const orchestrationResponse = await this.startOrchestrationFromRequest(
-      organizationSlug,
-      agent,
-      agentMetadata,
-      request,
-      AgentTaskMode.BUILD,
-      { requireTarget: false },
-    );
-
-    if (orchestrationResponse) {
-      return orchestrationResponse;
-    }
-
     return this.modeRouter.execute({
       organizationSlug,
       agentSlug: agent.slug,
@@ -290,333 +258,10 @@ export class AgentExecutionGateway {
     });
   }
 
-  private async startOrchestrationFromRequest(
-    organizationSlug: string | null,
-    agent: AgentRecord,
-    agentMetadata: AgentRuntimeAgentMetadata,
-    request: TaskRequestDto,
-    responseMode: AgentTaskMode,
-    _options: { requireTarget: boolean },
-  ): Promise<TaskResponseDto | null> {
-    const agentSlug = agent.slug;
-    const orchestrationSlug =
-      request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
-    const promptInputs =
-      request.promptParameters ?? request.payload?.promptParameters ?? {};
-    const streamSession = this.maybeStartStream(
-      request,
-      organizationSlug,
-      agent,
-      responseMode,
-    );
+  // REMOVED: startOrchestrationFromRequest method (292 lines)
+  // Orchestration logic is no longer needed - agent runner handles delegation
 
-    const metadata = this.runtimeExecution.collectRequestMetadata(request);
-
-    try {
-      if (
-        request.payload?.action === 'resume_after_approval' &&
-        request.payload.approvalId
-      ) {
-        const actorIdValue =
-          request.metadata?.actorId ?? request.metadata?.userId;
-        const actorId = typeof actorIdValue === 'string' ? actorIdValue : null;
-
-        const approvalId = request.payload.approvalId;
-        const decision = request.payload.decision;
-        const notesValue = request.payload.notes;
-        const notes = typeof notesValue === 'string' ? notesValue : null;
-
-        const resolutionResult = await this.resolveCheckpointAndMaybeResume({
-          approvalId: typeof approvalId === 'string' ? approvalId : '',
-          decision: decision as Parameters<
-            typeof this.resolveCheckpointAndMaybeResume
-          >[0]['decision'],
-          actorId,
-          notes,
-          modifications: request.payload.modifications as
-            | Record<string, unknown>
-            | undefined,
-        });
-
-        this.publishStreamChunk(streamSession, {
-          type: 'partial',
-          content: JSON.stringify({
-            status: 'checkpoint_resolved',
-            approvalId: request.payload.approvalId,
-            decision: request.payload.decision,
-          }),
-        });
-
-        if (resolutionResult.decision === 'abort') {
-          this.completeStream(streamSession);
-          return TaskResponseDto.success(responseMode, {
-            content: {
-              orchestrationRunId: resolutionResult.run.id,
-              status: resolutionResult.run.status,
-            },
-            metadata: {
-              orchestrationDefinitionId:
-                resolutionResult.run.orchestration_definition_id,
-              ownerAgentSlug: agentMetadata.slug,
-            },
-          });
-        }
-
-        const resumedRun = resolutionResult.run;
-        const readySteps = resolutionResult.readySteps ?? [];
-        const allSteps = resolutionResult.steps ?? [];
-
-        this.publishStreamChunk(streamSession, {
-          type: 'partial',
-          content: JSON.stringify({
-            status: 'run_resumed',
-            run: resumedRun,
-          }),
-        });
-
-        this.completeStream(streamSession);
-
-        return TaskResponseDto.success(responseMode, {
-          content: {
-            orchestrationRunId: resumedRun.id,
-            status: resumedRun.status,
-            steps: allSteps,
-            readySteps,
-          },
-          metadata: {
-            orchestrationDefinitionId: resumedRun.orchestration_definition_id,
-            ownerAgentSlug: agentMetadata.slug,
-          },
-        });
-      }
-
-      if (request.planId) {
-        const plan = await this.resolvePlanForExecution(
-          organizationSlug,
-          agent,
-          request,
-        );
-        const runMetadata = this.runtimeExecution.buildRunMetadata(
-          metadata,
-          agentMetadata,
-          {
-            conversationId: plan.conversation_id,
-            planVersion: plan.version,
-          },
-        );
-        const run = await this.orchestrationRunner.startRun({
-          planId: plan.id,
-          originType: 'plan',
-          originId: plan.id,
-          organizationSlug: plan.organization_slug ?? null,
-          agentId: agentMetadata.id,
-          agentSlug: agentMetadata.slug,
-          agentType: agentMetadata.type,
-          agentDisplayName: agentMetadata.displayName,
-          parameters: promptInputs as unknown as Parameters<
-            typeof this.orchestrationRunner.startRun
-          >[0]['parameters'],
-          metadata: runMetadata,
-        });
-
-        const concurrencyLimit = this.executionService.getConcurrencyLimit(run);
-        const { run: executionRun, readySteps } =
-          await this.executionService.startExecution(run.id, {
-            maxParallel: concurrencyLimit,
-          });
-        const allSteps = await this.orchestrationRunner.listSteps(
-          executionRun.id,
-        );
-
-        this.triggerRunProcessing(executionRun.id, readySteps.length);
-
-        this.triggerRunProcessing(executionRun.id, readySteps.length);
-
-        this.publishStreamChunk(streamSession, {
-          type: 'partial',
-          content: JSON.stringify({
-            status: 'run_started',
-            run: executionRun,
-          }),
-        });
-
-        const responseMetadata = this.attachStreamId(
-          this.runtimeExecution.buildRunMetadata(
-            {
-              originType: 'plan',
-              planId: plan.id,
-              planVersion: plan.version,
-              conversationId: plan.conversation_id,
-              promptInputs,
-            } as unknown as Parameters<
-              typeof this.runtimeExecution.buildRunMetadata
-            >[0],
-            agentMetadata,
-          ),
-          streamSession,
-        );
-
-        this.completeStream(streamSession);
-
-        return TaskResponseDto.success(responseMode, {
-          content: {
-            orchestrationRunId: executionRun.id,
-            status: executionRun.status,
-            steps: allSteps.map((step) => ({
-              id: step.step_id,
-              index: step.step_index,
-              status: step.status,
-              agent: step.agent_slug,
-              mode: step.mode,
-              dependsOn: step.depends_on,
-            })),
-            readySteps: readySteps.map((step) => ({
-              id: step.step_id,
-              index: step.step_index,
-              agent: step.agent_slug,
-              mode: step.mode,
-            })),
-          },
-          metadata: responseMetadata,
-        });
-      }
-
-      if (orchestrationSlug) {
-        const orchestration = await this.agentOrchestrations.findBySlug(
-          organizationSlug,
-          agentSlug,
-          typeof orchestrationSlug === 'string' ? orchestrationSlug : '',
-        );
-
-        if (!orchestration) {
-          throw new NotFoundException('Saved orchestration not found');
-        }
-
-        const resolvedInputs = this.validatePromptInputs(
-          orchestration,
-          (promptInputs ?? {}) as Record<string, unknown>,
-        );
-
-        const run = await this.orchestrationRunner.startRun({
-          organizationSlug,
-          originType: 'saved_orchestration',
-          originId: orchestration.id,
-          orchestrationSlug: orchestration.slug,
-          parameters: resolvedInputs as JsonObject,
-          agentId: agentMetadata.id,
-          agentSlug: agentMetadata.slug,
-          agentType: agentMetadata.type,
-          agentDisplayName: agentMetadata.displayName,
-          metadata: this.runtimeExecution.buildRunMetadata(
-            metadata,
-            agentMetadata,
-            {
-              orchestrationId: orchestration.id,
-            },
-          ),
-        });
-
-        const savedConcurrency = this.executionService.getConcurrencyLimit(run);
-        const { run: executionRun, readySteps } =
-          await this.executionService.startExecution(run.id, {
-            maxParallel: savedConcurrency,
-          });
-        const allSteps = await this.orchestrationRunner.listSteps(
-          executionRun.id,
-        );
-
-        this.publishStreamChunk(streamSession, {
-          type: 'partial',
-          content: JSON.stringify({
-            status: 'run_started',
-            run: executionRun,
-          }),
-        });
-
-        const responseMetadata = this.attachStreamId(
-          this.runtimeExecution.buildRunMetadata(
-            {
-              originType: 'saved_orchestration',
-              orchestration: {
-                id: orchestration.id,
-                slug: orchestration.slug,
-              },
-              promptInputs: resolvedInputs as JsonObject,
-            },
-            agentMetadata,
-          ),
-          streamSession,
-        );
-
-        this.completeStream(streamSession);
-
-        return TaskResponseDto.success(responseMode, {
-          content: {
-            orchestrationRunId: executionRun.id,
-            status: executionRun.status,
-            steps: allSteps.map((step) => ({
-              id: step.step_id,
-              index: step.step_index,
-              status: step.status,
-              agent: step.agent_slug,
-              mode: step.mode,
-              dependsOn: step.depends_on,
-            })),
-            readySteps: readySteps.map((step) => ({
-              id: step.step_id,
-              index: step.step_index,
-              agent: step.agent_slug,
-              mode: step.mode,
-            })),
-          },
-          metadata: responseMetadata,
-        });
-      }
-
-      // If we reach this point there is no immediate orchestration to launch.
-      // Keep the A2A contract clean by returning null after completing stream.
-      this.completeStream(streamSession);
-      return null;
-    } catch (error) {
-      this.errorStream(streamSession, error);
-      throw error;
-    }
-  }
-
-  private validatePromptInputs(
-    orchestration: AgentOrchestrationRecord,
-    provided: Record<string, unknown> | undefined,
-  ): Record<string, unknown> {
-    const templates = orchestration.prompt_templates ?? [];
-    if (!templates.length) {
-      return provided ?? {};
-    }
-
-    const result: Record<string, unknown> = {};
-    for (const template of templates) {
-      const supplied = (provided ?? {})[template.name] ?? {};
-      const params = template.parameters ?? [];
-      const resolved: Record<string, unknown> = { ...supplied };
-
-      for (const param of params) {
-        const suppliedRecord = supplied as Record<string, unknown>;
-        const value = suppliedRecord[param.key];
-        if (value === undefined || value === null) {
-          if (param.defaultValue !== undefined) {
-            resolved[param.key] = param.defaultValue;
-          } else if (param.required !== false) {
-            throw new BadRequestException(
-              `Missing prompt parameter ${param.key} for template ${template.name}`,
-            );
-          }
-        }
-      }
-
-      result[template.name] = resolved;
-    }
-
-    return result;
-  }
+  // REMOVED: validatePromptInputs method (orchestration-specific)
 
   private async resolvePlanForExecution(
     organizationSlug: string | null,
@@ -685,17 +330,7 @@ export class AgentExecutionGateway {
     };
   }
 
-  private triggerRunProcessing(runId: string, readySteps: number): void {
-    if (readySteps <= 0) {
-      return;
-    }
-
-    this.stepExecutor.processRun(runId).catch((error) => {
-      this.logger.error(
-        `Failed to process orchestration run ${runId}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    });
-  }
+  // REMOVED: triggerRunProcessing method (orchestration-specific)
 
   private maybeStartStream(
     request: TaskRequestDto,
@@ -725,7 +360,6 @@ export class AgentExecutionGateway {
       {
         conversationId: request.conversationId,
         sessionId: request.sessionId,
-        orchestrationRunId: request.orchestrationRunId,
         organizationSlug,
         agentSlug: agent.slug,
         mode,
@@ -787,64 +421,7 @@ export class AgentExecutionGateway {
     );
   }
 
-  private async resolveCheckpointAndMaybeResume(options: {
-    approvalId: string;
-    decision: OrchestrationCheckpointDecision;
-    actorId?: string | null;
-    notes?: string | null;
-    modifications?: Record<string, unknown> | undefined;
-  }): Promise<{
-    decision: OrchestrationCheckpointDecision;
-    run: OrchestrationRunRecord;
-    readySteps?: Awaited<
-      ReturnType<OrchestrationExecutionService['startExecution']>
-    >['readySteps'];
-    steps?: Awaited<ReturnType<OrchestrationRunnerService['listSteps']>>;
-  }> {
-    const resolution = await this.checkpointService.resolveCheckpoint({
-      approvalId: options.approvalId,
-      decision: options.decision,
-      actorId: options.actorId ?? null,
-      notes: options.notes ?? null,
-      modifications: (options.modifications ?? undefined) as
-        | JsonObject
-        | undefined,
-    });
-
-    if (resolution.decision === 'abort') {
-      return {
-        decision: resolution.decision,
-        run: resolution.run,
-        readySteps: [],
-        steps: [],
-      };
-    }
-
-    const resumeConcurrency = this.executionService.getConcurrencyLimit(
-      resolution.run,
-    );
-    const resumeResult = await this.executionService.startExecution(
-      resolution.run.id,
-      {
-        maxParallel: resumeConcurrency,
-      },
-    );
-    const stepList = await this.orchestrationRunner.listSteps(
-      resumeResult.run.id,
-    );
-
-    this.triggerRunProcessing(
-      resumeResult.run.id,
-      resumeResult.readySteps?.length ?? 0,
-    );
-
-    return {
-      decision: resolution.decision,
-      run: resumeResult.run,
-      readySteps: resumeResult.readySteps,
-      steps: stepList,
-    };
-  }
+  // REMOVED: resolveCheckpointAndMaybeResume method (orchestration-specific)
 
   private toJsonObject(value: unknown, fallback: JsonObject): JsonObject {
     if (this.isJsonObject(value)) {

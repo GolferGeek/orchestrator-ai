@@ -617,8 +617,6 @@ export class AgentRuntimeDispatchService {
         return 'plan';
       case AgentTaskMode.BUILD:
         return 'build';
-      case AgentTaskMode.ORCHESTRATE:
-        return 'orchestrate';
       default:
         return 'converse';
     }

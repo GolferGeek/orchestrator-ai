@@ -7,9 +7,7 @@ import type {
 } from '@orchestrator-ai/transport-types/shared/data-types';
 import { LLMService } from '@llm/llm.service';
 import { BaseAgentRunner } from './base-agent-runner.service';
-import {
-  validateDeliverableStructure,
-} from './base-agent-runner/build.handlers';
+import { validateDeliverableStructure } from './base-agent-runner/build.handlers';
 import {
   buildResponseMetadata,
   callLLM,

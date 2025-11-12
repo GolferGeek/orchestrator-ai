@@ -18,7 +18,7 @@
 
 import { createAgent2AgentApi } from '@/services/agent2agent/api';
 import { usePlanStore } from '@/stores/planStore';
-import type { PlanVersionData } from '@orchestrator-ai/transport-types';
+import type { PlanVersionData, JsonRpcSuccessResponse, JsonRpcErrorResponse } from '@orchestrator-ai/transport-types';
 import type { JsonObject } from '@/types';
 
 const getErrorMessage = (error: unknown): string =>
@@ -84,7 +84,7 @@ export async function createPlanVersion(
 
     // Use edit action with conversationId to create a new version
     // The backend will derive planId from conversationId and create the new version
-    const jsonRpcResponse = await api.plans.edit(plan.conversationId, content, versionMetadata) as any;
+    const jsonRpcResponse = await api.plans.edit(plan.conversationId, content, versionMetadata) as JsonRpcSuccessResponse<{ success: boolean; version?: PlanVersionData }> | JsonRpcErrorResponse;
 
     console.log('🔖 [Plan Create Version Action] Response:', jsonRpcResponse);
     console.log('🔖 [Plan Create Version Action] Response.data:', jsonRpcResponse.data);
@@ -138,8 +138,8 @@ export async function loadPlanVersions(
     store.clearError();
 
     // Use A2A API to list versions
-    const api = createAgent2AgentApi(agentSlug);
-    const jsonRpcResponse = await api.plans.list(planId) as any;
+    const api = createAgent2AgentApi(agentName);
+    const jsonRpcResponse = await api.plans.list(planId) as JsonRpcSuccessResponse<{ versions?: PlanVersionData[] }> | JsonRpcErrorResponse;
 
     // Handle JSON-RPC response format
     if (jsonRpcResponse.error) {

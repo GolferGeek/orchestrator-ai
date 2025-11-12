@@ -4,16 +4,8 @@ import { SupabaseModule } from '@/supabase/supabase.module';
 import { LLMModule } from '@/llms/llm.module';
 import { AgentsRepository } from './repositories/agents.repository';
 import { ConversationPlansRepository } from './repositories/conversation-plans.repository';
-import { OrchestrationRunsRepository } from './repositories/orchestration-runs.repository';
-import { OrchestrationDefinitionsRepository } from './repositories/orchestration-definitions.repository';
-import { OrchestrationStepsRepository } from './repositories/orchestration-steps.repository';
 import { OrganizationCredentialsRepository } from './repositories/organization-credentials.repository';
-import { AgentOrchestrationsRepository } from './repositories/agent-orchestrations.repository';
 import { PlanEngineService } from './services/plan-engine.service';
-import { OrchestrationRunnerService } from './services/orchestration-runner.service';
-import { OrchestrationCheckpointService } from './services/orchestration-checkpoint.service';
-import { OrchestrationDefinitionService } from './services/orchestration-definition.service';
-import { OrchestrationStateService } from './services/orchestration-state.service';
 import { AgentRegistryService } from './services/agent-registry.service';
 import { AgentRuntimeDefinitionService } from './services/agent-runtime-definition.service';
 import { AgentRuntimeExecutionService } from './services/agent-runtime-execution.service';
@@ -37,26 +29,14 @@ import { RedactionPatternsRepository } from './repositories/redaction-patterns.r
 import { AgentApprovalsController } from './controllers/agent-approvals.controller';
 import { AgentsAdminController } from './controllers/agents-admin.controller';
 import { AgentsPublicController } from './controllers/agents-public.controller';
-import { OrchestrationsController } from './controllers/orchestrations.controller';
 import { AgentValidationService } from './services/agent-validation.service';
 import { AgentDryRunService } from './services/agent-dry-run.service';
 import { AgentPolicyService } from './services/agent-policy.service';
 import { AgentBuilderService } from './services/agent-builder.service';
 import { AgentPromotionService } from './services/agent-promotion.service';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
-import { OrchestrationExecutionService } from './services/orchestration-execution.service';
-import { OrchestrationCheckpointEventsService } from './services/orchestration-checkpoint-events.service';
-import { OrchestrationEventsService } from './services/orchestration-events.service';
-import { OrchestrationProgressEventsService } from './services/orchestration-progress-events.service';
 import { TasksModule } from '@/agent2agent/tasks/tasks.module';
 import { ContextOptimizationModule } from '@/agent2agent/context-optimization/context-optimization.module';
-import { OrchestrationStatusService } from './services/orchestration-status.service';
-import { OrchestrationOutputMapper } from './services/orchestration-output-mapper.service';
-import { OrchestrationRunFactoryService } from './services/orchestration-run-factory.service';
-import { OrchestrationDashboardService } from './services/orchestration-dashboard.service';
-import { OrchestrationCacheService } from './services/orchestration-cache.service';
-import { OrchestrationMetricsService } from './services/orchestration-metrics.service';
-import { MetricsController } from './controllers/metrics.controller';
 
 @Module({
   imports: [
@@ -76,34 +56,14 @@ import { MetricsController } from './controllers/metrics.controller';
     AgentApprovalsController,
     AgentsAdminController,
     AgentsPublicController,
-    OrchestrationsController,
-    MetricsController,
   ],
   providers: [
     AgentsRepository,
     RedactionPatternsRepository,
     HumanApprovalsRepository,
     ConversationPlansRepository,
-    OrchestrationDefinitionsRepository,
-    OrchestrationRunsRepository,
-    OrchestrationStepsRepository,
     OrganizationCredentialsRepository,
-    AgentOrchestrationsRepository,
     PlanEngineService,
-    OrchestrationDefinitionService,
-    OrchestrationStateService,
-    OrchestrationRunnerService,
-    OrchestrationCheckpointService,
-    OrchestrationEventsService,
-    OrchestrationCheckpointEventsService,
-    OrchestrationProgressEventsService,
-    OrchestrationExecutionService,
-    OrchestrationStatusService,
-    OrchestrationOutputMapper,
-    OrchestrationRunFactoryService,
-    OrchestrationDashboardService,
-    OrchestrationCacheService,
-    OrchestrationMetricsService,
     AgentRegistryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
@@ -129,23 +89,9 @@ import { MetricsController } from './controllers/metrics.controller';
     RedactionPatternsRepository,
     HumanApprovalsRepository,
     ConversationPlansRepository,
-    OrchestrationDefinitionsRepository,
-    OrchestrationRunsRepository,
-    OrchestrationStepsRepository,
     OrganizationCredentialsRepository,
-    AgentOrchestrationsRepository,
     PlanEngineService,
-    OrchestrationDefinitionService,
-    OrchestrationStateService,
-    OrchestrationRunnerService,
-    OrchestrationCheckpointService,
-    OrchestrationEventsService,
-    OrchestrationCheckpointEventsService,
-    OrchestrationProgressEventsService,
-    OrchestrationExecutionService,
-    OrchestrationStatusService,
     AgentRegistryService,
-    OrchestrationRunFactoryService,
     AgentRuntimeDefinitionService,
     AgentRuntimeExecutionService,
     AgentRuntimePromptService,
@@ -164,10 +110,6 @@ import { MetricsController } from './controllers/metrics.controller';
     AgentPolicyService,
     AgentBuilderService,
     AgentPromotionService,
-    OrchestrationOutputMapper,
-    OrchestrationDashboardService,
-    OrchestrationCacheService,
-    OrchestrationMetricsService,
   ],
 })
 export class AgentPlatformModule {}

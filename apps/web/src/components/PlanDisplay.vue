@@ -844,7 +844,7 @@ const getMimeType = () => {
 const getVersionLLMInfo = (version: Record<string, unknown>): string | null => {
   if (!version?.metadata) return null;
 
-  const metadata = version.metadata as any;
+  const metadata = version.metadata as Record<string, unknown>;
 
   // Check for llmRerunInfo (from rerun operations)
   if (metadata.llmRerunInfo?.provider && metadata.llmRerunInfo?.model) {

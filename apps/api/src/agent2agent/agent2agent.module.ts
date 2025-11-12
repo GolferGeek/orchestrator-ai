@@ -11,7 +11,6 @@ import { ToolAgentRunnerService } from './services/tool-agent-runner.service';
 import { ApiAgentRunnerService } from './services/api-agent-runner.service';
 import { ExternalAgentRunnerService } from './services/external-agent-runner.service';
 import { OrchestratorAgentRunnerService } from './services/orchestrator-agent-runner.service';
-import { OrchestrationStepExecutorService } from './services/orchestration-step-executor.service';
 import { RoutingPolicyAdapterService } from './services/routing-policy-adapter.service';
 import { ApiKeyGuard } from './guards/api-key.guard';
 import { LLMModule } from '../llms/llm.module';
@@ -59,7 +58,6 @@ import { ObservabilityModule } from '../observability/observability.module';
     ExternalAgentRunnerService,
     OrchestratorAgentRunnerService,
     RoutingPolicyAdapterService,
-    OrchestrationStepExecutorService,
     ApiKeyGuard,
     Agent2AgentDeliverablesService,
     Agent2AgentTasksService,
@@ -69,7 +67,6 @@ import { ObservabilityModule } from '../observability/observability.module';
   ],
   exports: [
     AgentExecutionGateway,
-    OrchestrationStepExecutorService,
     AgentModeRouterService,
     Agent2AgentConversationsService,
     StreamingService,

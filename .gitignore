@@ -54,10 +54,6 @@ apps/web/dist/
 # TaskMaster files - exclude from Git
 .taskmaster/ 
 
-# Task files
-# tasks.json
-# tasks/ 
-
 # Private agent namespaces (keep internal agents out of public forks)
 apps/api/src/agents/my-org/
 apps/api/src/agents/saas/
@@ -82,3 +78,7 @@ obsidian/efforts/matt/history/
 # Storage - exclude backups but include scripts and snapshots
 storage/backups/
 storage/images/
+
+# Task files
+# tasks.json
+# tasks/ 

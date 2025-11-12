@@ -1154,8 +1154,8 @@ const getVersionLLMInfo = (version: DeliverableVersion): string | null => {
   }
 
   // Check top-level provider/model (from metadata enrichment)
-  const metadata = version.metadata as any;
-  if (metadata.provider && metadata.model) {
+  const metadata = version.metadata as Record<string, unknown> | undefined;
+  if (metadata && typeof metadata.provider === 'string' && typeof metadata.model === 'string') {
     return `${metadata.provider}/${metadata.model}`;
   }
 

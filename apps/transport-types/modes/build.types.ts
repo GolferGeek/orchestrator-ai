@@ -154,6 +154,8 @@ export interface BuildRequestMetadata {
   deliverableType?: string;
   /** Output format preference (optional) */
   format?: string;
+  /** Current sub-agent handling the request (for orchestrator delegation) */
+  current_sub_agent?: string | null;
 }
 
 /**
@@ -175,6 +177,8 @@ export interface BuildResponseMetadata {
   routingDecision?: Record<string, any>;
   /** Whether plan context was used (optional) */
   usedPlanContext?: boolean;
+  /** Current sub-agent that handled the request (for orchestrator delegation) */
+  current_sub_agent?: string | null;
 }
 
 /**

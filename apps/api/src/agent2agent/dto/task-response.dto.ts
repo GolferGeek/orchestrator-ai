@@ -39,9 +39,10 @@ export class TaskResponseDto implements TaskResponse {
       reason = maybeReason;
     }
 
+    // Changed from 'orchestrate' to 'converse' - human review is not orchestration-specific
     return new TaskResponseDto(
       false,
-      'orchestrate',
+      'converse',
       {
         content: {
           action: 'run_human_response',

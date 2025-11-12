@@ -26,6 +26,8 @@ export interface ConverseRequestMetadata {
   userId: string;
   /** Conversation context (optional) */
   context?: string;
+  /** Current sub-agent handling the request (for orchestrator delegation) */
+  current_sub_agent?: string | null;
 }
 
 /**
@@ -47,6 +49,8 @@ export interface ConverseResponseMetadata {
   routingDecision?: Record<string, any>;
   /** Stream ID if streaming was used (optional) */
   streamId?: string;
+  /** Current sub-agent that handled the request (for orchestrator delegation) */
+  current_sub_agent?: string | null;
 }
 
 /**

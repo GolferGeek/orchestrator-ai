@@ -114,10 +114,7 @@ describe('ChatUiStore', () => {
       expect(store.isBuildMode).toBe(true);
       expect(store.isPlanMode).toBe(false);
 
-      store.setChatMode('orchestrate');
-      expect(store.chatMode).toBe('orchestrate');
-      expect(store.isOrchestrateMode).toBe(true);
-      expect(store.isBuildMode).toBe(false);
+      // orchestrate mode removed in Orchestrator V2
     });
   });
 

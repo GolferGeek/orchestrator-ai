@@ -127,13 +127,6 @@ export abstract class BaseAgentRunner implements IAgentRunner {
         case AgentTaskMode.BUILD:
           return await this.handleBuild(definition, request, organizationSlug);
 
-        case AgentTaskMode.ORCHESTRATE:
-          return await this.handleOrchestrate(
-            definition,
-            request,
-            organizationSlug,
-          );
-
         default:
           this.logger.warn(`Unsupported mode: ${String(mode)}`);
           return TaskResponseDto.failure(mode, 'Unsupported mode');
@@ -518,23 +511,6 @@ export abstract class BaseAgentRunner implements IAgentRunner {
   ): Promise<TaskResponseDto>;
 
   /**
-   * Handle orchestrate - Abstract, each runner implements specific orchestrate logic.
-   * For most runners, this will return "not supported". Only orchestrator agent runner implements this.
-   */
-  protected handleOrchestrate(
-    _definition: AgentRuntimeDefinition,
-    _request: TaskRequestDto,
-    _organizationSlug: string | null,
-  ): Promise<TaskResponseDto> {
-    return Promise.resolve(
-      TaskResponseDto.failure(
-        AgentTaskMode.ORCHESTRATE,
-        'Orchestrate mode not supported by this agent type',
-      ),
-    );
-  }
-
-  /**
    * Handles PLAN create action.
    */
   protected async handlePlanCreate(
@@ -860,8 +836,6 @@ export abstract class BaseAgentRunner implements IAgentRunner {
         return exec.canPlan;
       case AgentTaskMode.BUILD:
         return exec.canBuild;
-      case AgentTaskMode.ORCHESTRATE:
-        return exec.canOrchestrate;
       default:
         return false;
     }

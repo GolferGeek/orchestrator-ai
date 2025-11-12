@@ -43,12 +43,12 @@ describe('TaskResponseDto', () => {
   });
 
   describe('human()', () => {
-    it('should return mode as orchestrate', () => {
+    it('should return mode as converse', () => {
       const response = TaskResponseDto.human(
         'Please review and approve this step',
       );
 
-      expect(response.mode).toBe('orchestrate');
+      expect(response.mode).toBe('converse');
     });
 
     it('should set success to false', () => {
