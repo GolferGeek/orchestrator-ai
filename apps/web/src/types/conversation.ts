@@ -218,8 +218,8 @@ export interface AgentConversation {
   // Conversation mode controls high-level intent
   chatMode: AgentChatMode;
   allowedChatModes: AgentChatMode[];
-  executionMode: 'immediate' | 'polling' | 'websocket';
-  supportedExecutionModes: ('immediate' | 'polling' | 'websocket')[];
+  executionMode: 'immediate' | 'polling' | 'real-time' | 'auto';
+  supportedExecutionModes: ('immediate' | 'polling' | 'real-time' | 'auto')[];
   isExecutionModeOverride?: boolean;
   executionProfile?: AgentExecutionProfile;
   executionCapabilities?: AgentExecutionCapabilities;
@@ -242,7 +242,7 @@ export interface AgentConversation {
   activeTaskId?: string | null;
 }
 
-export type ExecutionMode = 'immediate' | 'polling' | 'websocket';
+export type ExecutionMode = 'immediate' | 'polling' | 'real-time' | 'auto';
 
 export interface TaskExecutionOptions {
   method: string;

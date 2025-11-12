@@ -41,6 +41,7 @@ import { AgentRecord } from '../agent-platform/interfaces/agent.interface';
 import { Public } from '../auth/decorators/public.decorator';
 import { Agent2AgentDeliverablesService } from './services/agent2agent-deliverables.service';
 import { SupabaseService } from '../supabase/supabase.service';
+import { load as yamlLoad } from 'js-yaml';
 import {
   A2ATaskSuccessResponse,
   A2ATaskErrorResponse,
@@ -1512,6 +1513,7 @@ export class Agent2AgentController {
         : isOrchestrator
           ? 'orchestrator'
           : (record.agent_type ?? 'specialist');
+      const executionModes = this.extractExecutionModes(record);
 
       return {
         id: record.id,
@@ -1522,6 +1524,7 @@ export class Agent2AgentController {
         relativePath: record.slug,
         namespace: record.organization_slug ?? undefined,
         namespacedPath: `db://${record.organization_slug ?? 'global'}/${record.slug}`,
+        execution_modes: executionModes.length > 0 ? executionModes : undefined,
         metadata: {
           description: record.description ?? undefined,
           version: record.version ?? undefined,
@@ -1535,6 +1538,8 @@ export class Agent2AgentController {
           execution_profile: record.config?.execution_profile ?? undefined,
           execution_capabilities:
             record.config?.execution_capabilities ?? undefined,
+          execution_modes:
+            executionModes.length > 0 ? executionModes : undefined,
         },
         children,
       };
@@ -1590,6 +1595,58 @@ export class Agent2AgentController {
     });
 
     return roots;
+  }
+
+  private extractExecutionModes(record: AgentRecord): string[] {
+    const modes = new Set<string>();
+
+    const configExecutionModes =
+      (record.config as { execution_modes?: unknown; executionModes?: unknown } | null)
+        ?.execution_modes ??
+      (record.config as { execution_modes?: unknown; executionModes?: unknown } | null)
+        ?.executionModes;
+
+    if (Array.isArray(configExecutionModes)) {
+      for (const mode of configExecutionModes) {
+        if (typeof mode === 'string' && mode.trim().length > 0) {
+          modes.add(mode);
+        }
+      }
+    }
+
+    if (record.yaml) {
+      try {
+        const parsed =
+          typeof record.yaml === 'string'
+            ? (yamlLoad(record.yaml) as Record<string, any>)
+            : (record.yaml as unknown as Record<string, any>);
+        const yamlConfig = parsed?.configuration as
+          | Record<string, any>
+          | undefined;
+        const yamlExecutionModes =
+          yamlConfig?.execution_modes ?? yamlConfig?.executionModes;
+
+        if (Array.isArray(yamlExecutionModes)) {
+          for (const mode of yamlExecutionModes) {
+            if (typeof mode === 'string' && mode.trim().length > 0) {
+              modes.add(mode);
+            }
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse YAML for agent ${record.slug}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
+      }
+    }
+
+    if (modes.size === 0) {
+      modes.add('immediate');
+    }
+
+    return Array.from(modes);
   }
 
   /**

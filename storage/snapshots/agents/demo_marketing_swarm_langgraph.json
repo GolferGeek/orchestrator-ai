@@ -1,0 +1,31 @@
+{
+  "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+  "organization_slug": "demo",
+  "slug": "marketing-swarm-langgraph",
+  "display_name": "Marketing Swarm (LangGraph)",
+  "description": "Generate comprehensive marketing content using LangGraph workflow. Creates blog posts, SEO-optimized content, and social media posts for product announcements.",
+  "agent_type": "api",
+  "mode_profile": "build",
+  "version": "1.0.0",
+  "status": "active",
+  "yaml": "{\n    \"metadata\": {\n        \"name\": \"marketing-swarm-langgraph\",\n        \"displayName\": \"Marketing Swarm (LangGraph)\",\n        \"description\": \"Generate comprehensive marketing content using LangGraph workflow\",\n        \"version\": \"1.0.0\",\n        \"type\": \"api\",\n        \"department\": \"marketing\"\n    },\n    \"configuration\": {\n        \"api\": {\n            \"endpoint\": \"http://localhost:7200/workflows/marketing-swarm\",\n            \"method\": \"POST\",\n            \"headers\": {\n                \"Content-Type\": \"application/json\"\n            },\n            \"body\": {\n                \"taskId\": \"{{taskId}}\",\n                \"conversationId\": \"{{conversationId}}\",\n                \"userId\": \"{{userId}}\",\n                \"prompt\": \"{{userMessage}}\",\n                \"provider\": \"{{llmSelection.providerName}}\",\n                \"model\": \"{{llmSelection.modelName}}\",\n                \"statusWebhook\": \"{{env.AGENT_BASE_URL}}:{{env.API_PORT}}/webhooks/status?taskId={{taskId}}\"\n            },\n            \"authentication\": {\n                \"type\": \"none\"\n            },\n            \"response_mapping\": {\n                \"status_field\": \"success\",\n                \"result_field\": \"data\"\n            },\n            \"timeout\": 180000\n        },\n        \"deliverable\": {\n            \"format\": \"json\",\n            \"type\": \"marketing-campaign\"\n        },\n        \"execution_modes\": [\n            \"immediate\",\n            \"polling\",\n            \"real-time\"\n        ],\n        \"execution_capabilities\": {\n            \"supports_converse\": false,\n            \"supports_plan\": false,\n            \"supports_build\": true\n        }\n    }\n}",
+  "context": {
+    "input_modes": [
+      "application/json"
+    ],
+    "output_modes": [
+      "application/json"
+    ],
+    "supported_modes": [
+      "build"
+    ]
+  },
+  "created_at": "2025-01-27T00:00:00.000000+00:00",
+  "updated_at": "2025-01-27T00:00:00.000000+00:00",
+  "function_code": null,
+  "plan_structure": null,
+  "deliverable_structure": null,
+  "io_schema": null
+}
+
+

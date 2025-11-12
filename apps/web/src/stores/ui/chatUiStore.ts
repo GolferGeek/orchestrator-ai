@@ -16,6 +16,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
 import { useConversationsStore } from '../conversationsStore';
 import type { JsonObject } from '@/types';
+import type { ExecutionMode } from '@/types/conversation';
 
 // ============================================================================
 // Types
@@ -107,7 +108,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
 
   /**
    * Get effective execution mode for active conversation
-   * Prefers 'websocket' (real-time) if available, then falls back to first supported mode
+   * Prefers 'real-time' (SSE streaming) if available, then falls back to first supported mode
    */
   const effectiveExecutionMode = computed(() => {
     const currentMode = activeConversation.value?.executionMode;
@@ -119,24 +120,24 @@ export const useChatUiStore = defineStore('chatUi', () => {
       return currentMode;
     }
 
-    // If mode is set to 'immediate' but websocket is available and not overridden,
-    // upgrade to websocket (handles existing conversations that defaulted to immediate)
-    if (currentMode === 'immediate' && supportedModes.includes('websocket') && !isOverride) {
-      return 'websocket';
-    }
-
     // If mode is already set, use it
     if (currentMode) {
+      if (!isOverride && currentMode === 'immediate') {
+        if (supportedModes.includes('auto')) {
+          return 'auto';
+        }
+        if (supportedModes.includes('real-time')) {
+          return 'real-time';
+        }
+      }
       return currentMode;
     }
 
-    // Otherwise, prefer 'websocket' if available
-    if (supportedModes.includes('websocket')) {
-      return 'websocket';
-    }
+    const priority: ExecutionMode[] = ['auto', 'real-time', 'polling', 'immediate'];
+    const preferred = priority.find((mode) => supportedModes.includes(mode));
 
     // Fall back to first supported mode or 'immediate'
-    return supportedModes[0] || 'immediate';
+    return preferred || supportedModes[0] || 'immediate';
   });
 
   /**
@@ -293,7 +294,7 @@ export const useChatUiStore = defineStore('chatUi', () => {
   /**
    * Set execution mode for active conversation
    */
-  function setExecutionMode(mode: 'immediate' | 'polling' | 'websocket'): void {
+  function setExecutionMode(mode: ExecutionMode): void {
     if (!activeConversationId.value) return;
 
     const conversationsStore = useConversationsStore();
@@ -315,11 +316,13 @@ export const useChatUiStore = defineStore('chatUi', () => {
     const conversation = conversationsStore.conversationById(activeConversationId.value);
 
     if (conversation) {
-      // Reset to preferred mode (websocket if available, otherwise first supported mode)
+      // Reset to preferred mode (real-time if available, otherwise first supported mode)
       const supportedModes = conversation.supportedExecutionModes || [];
-      const defaultMode = supportedModes.includes('websocket')
-        ? 'websocket'
-        : (supportedModes[0] || 'immediate');
+      const priority: ExecutionMode[] = ['auto', 'real-time', 'polling', 'immediate'];
+      const defaultMode =
+        priority.find((mode) => supportedModes.includes(mode)) ||
+        supportedModes[0] ||
+        'immediate';
 
       conversationsStore.updateConversation(activeConversationId.value, {
         executionMode: defaultMode,

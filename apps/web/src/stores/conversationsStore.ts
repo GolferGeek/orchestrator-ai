@@ -62,8 +62,8 @@ export interface Conversation extends Partial<AgentConversation> {
   lastActiveAt?: Date | string;
 
   // Execution modes
-  executionMode?: 'immediate' | 'polling' | 'websocket';
-  supportedExecutionModes?: ('immediate' | 'polling' | 'websocket')[];
+  executionMode?: 'immediate' | 'polling' | 'real-time' | 'auto';
+  supportedExecutionModes?: ('immediate' | 'polling' | 'real-time' | 'auto')[];
   isExecutionModeOverride?: boolean;
 }
 
@@ -677,16 +677,41 @@ export const useConversationsStore = defineStore('conversations', () => {
         // Look up the agent to get execution modes (agents should already be loaded)
         const agent = agentsStore.availableAgents?.find(a => a.name === conv.agentName);
 
+        const normalizeMode = (mode: string): 'immediate' | 'polling' | 'real-time' | 'auto' | null => {
+          switch (mode) {
+            case 'immediate':
+            case 'polling':
+            case 'real-time':
+            case 'auto':
+              return mode;
+            case 'websocket':
+              return 'real-time';
+            default:
+              return null;
+          }
+        };
+
         // Extract execution modes from agent (check both formats)
         const agentWithContext = agent as typeof agent & { context?: { execution_modes?: string[] } };
         const rawModes = agent?.execution_modes ||
                          agentWithContext?.context?.execution_modes ||
                          ['immediate'];
-        const mappedModes = rawModes.map((mode: string) => {
-          if (mode === 'real-time') return 'websocket';
-          return mode;
-        }).filter((mode: string) => ['immediate', 'polling', 'websocket'].includes(mode)) as ('immediate' | 'polling' | 'websocket')[];
-        const supportedModes = mappedModes.length > 0 ? mappedModes : ['immediate'];
+
+        const supportedModes = rawModes
+          .map((mode: string) => normalizeMode(mode))
+          .filter((mode): mode is 'immediate' | 'polling' | 'real-time' | 'auto' => mode !== null) as (
+            | 'immediate'
+            | 'polling'
+            | 'real-time'
+            | 'auto'
+          )[];
+
+        const validModes: ('immediate' | 'polling' | 'real-time' | 'auto')[] =
+          supportedModes.length > 0 ? supportedModes : ['immediate'];
+        const defaultMode: ('immediate' | 'polling' | 'real-time' | 'auto') =
+          (['auto', 'real-time', 'polling', 'immediate'] as const).find((mode) =>
+            validModes.includes(mode),
+          ) ?? validModes[0] ?? 'immediate';
 
         return {
           id: conv.id,
@@ -707,8 +732,8 @@ export const useConversationsStore = defineStore('conversations', () => {
           metadata: conv.metadata,
           // Add agent and execution mode fields
           agent: agent,
-          executionMode: 'immediate',
-          supportedExecutionModes: supportedModes,
+          executionMode: defaultMode,
+          supportedExecutionModes: validModes,
           isExecutionModeOverride: false,
         };
       });

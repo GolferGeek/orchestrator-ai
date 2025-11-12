@@ -609,6 +609,24 @@ export class TasksService {
     progressPercentage?: number,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
+    try {
+      const task = await this.getTaskById(taskId, userId);
+
+      if (!task) {
+        this.logger.warn(
+          `Skipping task message for ${taskId} – task not found for user ${userId}`,
+        );
+        return;
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to verify task ${taskId} for user ${userId} before emitting message: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+      return;
+    }
+
     await this.taskMessageService.createTaskMessage({
       taskId,
       userId,

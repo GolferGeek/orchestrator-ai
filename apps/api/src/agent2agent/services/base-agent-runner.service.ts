@@ -312,11 +312,11 @@ export abstract class BaseAgentRunner implements IAgentRunner {
     const action =
       typeof payload.action === 'string' ? payload.action : 'create';
 
-    // Check execution mode for 'create' action - handle websocket (SSE) mode
+    // Check execution mode for 'create' action - handle real-time (SSE) mode
     if (action === 'create') {
       const executionMode = payload.executionMode || 'immediate';
 
-      if (executionMode === 'websocket' || executionMode === 'polling') {
+      if (executionMode === 'real-time' || executionMode === 'polling') {
         return this.handleBuildWithStreaming(
           definition,
           request,

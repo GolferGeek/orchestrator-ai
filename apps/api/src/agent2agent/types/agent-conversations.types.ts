@@ -99,7 +99,7 @@ export interface CreateTaskDto {
   timeoutSeconds?: number;
   llmSelection?: LLMSelection; // LLM and CIDAFM configuration
   llmMetadata?: Record<string, unknown>; // Additional metadata such as context optimization details
-  executionMode?: 'immediate' | 'polling' | 'websocket'; // Execution mode for backend processing
+  executionMode?: 'immediate' | 'polling' | 'real-time'; // Execution mode for backend processing (real-time uses SSE)
   conversationHistory?: Array<{
     role: string;
     content: string;
