@@ -1,11 +1,31 @@
 -- Seed Data Export
 -- Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
--- Tables: agents, providers, models
+-- Tables: auth.users, public.users, agents, providers, models
 
 -- Clear existing data
+TRUNCATE TABLE auth.users CASCADE;
+TRUNCATE TABLE public.users CASCADE;
 TRUNCATE TABLE public.agents CASCADE;
 TRUNCATE TABLE public.providers CASCADE;
 TRUNCATE TABLE public.models CASCADE;
+
+--
+-- Auth users seed data
+-- Note: Passwords are encrypted. Plain passwords: DemoUser123!, Admin123!, GolferGeek123!
+--
+
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at, recovery_token, recovery_sent_at, email_change_token_new, email_change, email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at, phone, phone_confirmed_at, phone_change, phone_change_token, phone_change_sent_at, confirmed_at, email_change_token_current, email_change_confirm_status, banned_until, reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at, is_anonymous) VALUES ('739b2b8b-0bb1-4894-b5ba-8698c8cd071a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@orchestratorai.io', '$2a$10$IaAmRqq3qRIVivhEZigCdeveOyMKild.R4/RraUviFv4k1ZzsBycq', '2025-11-12 22:15:02.569637+00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{"provider": "email", "providers": ["email"]}'::jsonb, '{"display_name": "Admin User", "email_verified": true}'::jsonb, NULL, '2025-11-12 22:15:02.568312+00', '2025-11-12 22:15:02.569932+00', NULL, NULL, NULL, NULL, NULL, '2025-11-12 22:15:02.569637+00', NULL, '0', NULL, NULL, NULL, false, NULL, false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at, recovery_token, recovery_sent_at, email_change_token_new, email_change, email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at, phone, phone_confirmed_at, phone_change, phone_change_token, phone_change_sent_at, confirmed_at, email_change_token_current, email_change_confirm_status, banned_until, reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at, is_anonymous) VALUES ('493101fa-8892-4de4-a0f9-daf43afdca1f', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'demo.user@orchestratorai.io', '$2a$10$RscEkjI.9XUDP1jtwFCHReD6pBAXyH7UECSUYoy2JBcKMxck62XFi', '2025-11-12 22:15:02.511026+00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-11-12 22:15:28.285277+00', '{"provider": "email", "providers": ["email"]}'::jsonb, '{"display_name": "Demo User", "email_verified": true}'::jsonb, NULL, '2025-11-12 22:15:02.50755+00', '2025-11-12 22:15:28.287531+00', NULL, NULL, NULL, NULL, NULL, '2025-11-12 22:15:02.511026+00', NULL, '0', NULL, NULL, NULL, false, NULL, false) ON CONFLICT (id) DO NOTHING;
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at, recovery_token, recovery_sent_at, email_change_token_new, email_change, email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at, phone, phone_confirmed_at, phone_change, phone_change_token, phone_change_sent_at, confirmed_at, email_change_token_current, email_change_confirm_status, banned_until, reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at, is_anonymous) VALUES ('618f3960-a8be-4c67-855f-aae4130699b8', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'golfergeek@orchestratorai.io', '$2a$10$C5oupbLsMDHY7SbLpXexz.VLq6Gm.MzGzF7v6RQxPh8lVMblI6xzS', '2025-11-12 22:15:02.623351+00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '{"provider": "email", "providers": ["email"]}'::jsonb, '{"display_name": "GolferGeek", "email_verified": true}'::jsonb, NULL, '2025-11-12 22:15:02.621942+00', '2025-11-12 22:15:02.623599+00', NULL, NULL, NULL, NULL, NULL, '2025-11-12 22:15:02.623351+00', NULL, '0', NULL, NULL, NULL, false, NULL, false) ON CONFLICT (id) DO NOTHING;
+
+--
+-- Public users seed data
+-- Note: IDs match auth.users IDs above
+--
+
+INSERT INTO public.users (id, email, display_name, role, roles, created_at, updated_at, namespace_access, status, organization_slug) VALUES ('739b2b8b-0bb1-4894-b5ba-8698c8cd071a', 'admin@orchestratorai.io', 'Admin User', NULL, '["user", "admin"]'::jsonb, '2025-10-09 19:28:38.367404+00', '2025-10-09 19:28:38.367404+00', '["demo", "my-org"]'::jsonb, 'active', NULL) ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.users (id, email, display_name, role, roles, created_at, updated_at, namespace_access, status, organization_slug) VALUES ('493101fa-8892-4de4-a0f9-daf43afdca1f', 'demo.user@orchestratorai.io', 'Demo User', NULL, '["user"]'::jsonb, '2025-10-09 19:18:09.981049+00', '2025-10-09 19:18:09.981049+00', '["demo"]'::jsonb, 'active', NULL) ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.users (id, email, display_name, role, roles, created_at, updated_at, namespace_access, status, organization_slug) VALUES ('618f3960-a8be-4c67-855f-aae4130699b8', 'golfergeek@orchestratorai.io', 'GolferGeek', NULL, '["user", "admin"]'::jsonb, '2025-10-09 19:28:38.367404+00', '2025-10-09 19:28:38.367404+00', '["my-org"]'::jsonb, 'active', NULL) ON CONFLICT (id) DO NOTHING;
 
 --
 -- PostgreSQL database dump

@@ -125,17 +125,6 @@ export class AgentExecutionGateway {
             routingMetadata,
           });
           break;
-        case AgentTaskMode.ORCHESTRATE:
-          // Delegate to mode router (uses action-based routing for orchestrate operations)
-          response = await this.modeRouter.execute({
-            organizationSlug,
-            agentSlug: agent.slug,
-            agent,
-            definition,
-            request,
-            routingMetadata,
-          });
-          break;
         default:
           response = TaskResponseDto.failure(request.mode!, 'Unsupported mode');
       }

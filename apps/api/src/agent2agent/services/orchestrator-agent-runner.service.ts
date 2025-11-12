@@ -30,7 +30,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
 
   constructor(
     private readonly agentRegistry: AgentRegistryService,
-    private readonly httpService: HttpService,
+    httpService: HttpService,
     llmService: LLMService,
     contextOptimization: ContextOptimizationService,
     plansService: PlansService,
@@ -45,6 +45,7 @@ export class OrchestratorAgentRunnerService extends BaseAgentRunner {
       conversationsService,
       deliverablesService,
       streamingService,
+      httpService, // Pass httpService to base class
     );
   }
 
@@ -195,7 +196,7 @@ Respond with ONLY the agent slug (e.g., "marketing", "analytics"). Choose the si
     };
 
     const { data } = await firstValueFrom(
-      this.httpService.post<TaskResponseDto>(url, forwardRequest, {
+      this.httpService!.post<TaskResponseDto>(url, forwardRequest, {
         headers: { 'Content-Type': 'application/json' },
       }),
     );
