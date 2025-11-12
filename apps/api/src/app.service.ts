@@ -7,6 +7,7 @@ import {
   DEFAULT_EXECUTION_PROFILE,
   AgentExecutionProfile,
 } from './agent-platform/types/agent-execution.types';
+import { load as yamlLoad } from 'js-yaml';
 
 @Injectable()
 export class AppService implements OnModuleInit {
@@ -280,6 +281,8 @@ export class AppService implements OnModuleInit {
         record.config?.human_gate === true,
     };
 
+    const executionModes = this.extractExecutionModes(record);
+
     const metadata = {
       organization_slug: record.organization_slug,
       source: 'database',
@@ -290,15 +293,8 @@ export class AppService implements OnModuleInit {
       config: record.config,
       context: record.context,
       agent_category: agentCategory,
+      execution_modes: executionModes,
     };
-
-    // Extract execution_modes from context if available
-    const contextExecutionModes = record.context?.execution_modes;
-    const executionModes: string[] = Array.isArray(contextExecutionModes)
-      ? contextExecutionModes.filter(
-          (mode): mode is string => typeof mode === 'string',
-        )
-      : ['immediate'];
 
     return {
       id: record.id,
@@ -317,6 +313,62 @@ export class AppService implements OnModuleInit {
       registeredAt: new Date(record.created_at),
       lastHeartbeat: new Date(record.updated_at),
     };
+  }
+
+  private extractExecutionModes(record: AgentRecord): string[] {
+    const modes = new Set<string>();
+
+    const config = record.config as
+      | (Record<string, unknown> & {
+          execution_modes?: unknown;
+          executionModes?: unknown;
+        })
+      | null
+      | undefined;
+
+    const configModes = config?.execution_modes ?? config?.executionModes;
+    if (Array.isArray(configModes)) {
+      for (const mode of configModes) {
+        if (typeof mode === 'string' && mode.trim().length > 0) {
+          modes.add(mode);
+        }
+      }
+    }
+
+    if (record.yaml) {
+      try {
+        const parsed = yamlLoad(record.yaml) as Record<string, unknown>;
+        const configuration = parsed?.configuration as
+          | (Record<string, unknown> & {
+              execution_modes?: unknown;
+              executionModes?: unknown;
+            })
+          | undefined;
+
+        const yamlModes =
+          configuration?.execution_modes ?? configuration?.executionModes;
+
+        if (Array.isArray(yamlModes)) {
+          for (const mode of yamlModes) {
+            if (typeof mode === 'string' && mode.trim().length > 0) {
+              modes.add(mode);
+            }
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse YAML for agent ${record.slug}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
+      }
+    }
+
+    if (modes.size === 0) {
+      modes.add('immediate');
+    }
+
+    return Array.from(modes);
   }
 
   private normalizeAgentIdentifier(

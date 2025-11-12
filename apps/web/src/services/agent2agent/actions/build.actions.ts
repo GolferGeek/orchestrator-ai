@@ -75,7 +75,7 @@ export async function createDeliverable(
       modelName: llmStore.selectedModel.modelName,
     } : undefined;
 
-    // 5. Set up for SSE connection (if using websocket/polling mode)
+    // 5. Set up for SSE connection (if using real-time/polling mode)
     const executionMode = chatUiStore.executionMode || 'polling';
     const workflowSteps = new Map<number, any>();
     let assistantMessageId: string | null = null;
@@ -118,7 +118,7 @@ export async function createDeliverable(
     );
 
     // 7. If using SSE mode, connect with retry logic (in parallel with API call)
-    if (executionMode === 'websocket' || executionMode === 'polling') {
+    if (executionMode === 'real-time' || executionMode === 'polling') {
       const { A2AStreamHandler } = await import('@/services/agent2agent/sse/a2aStreamHandler');
       const streamHandler = new A2AStreamHandler();
       const orgSlug = conversation.organizationSlug || 'global';
@@ -225,6 +225,35 @@ export async function createDeliverable(
     console.log('📦 [Build Create Action] Parsed result:', parsedResult);
     console.log('📦 [Build Create Action] Result keys:', Object.keys(parsedResult || {}));
 
+    // Check if the response indicates failure
+    const isSuccess = (parsedResult as any)?.success !== false && result.success !== false;
+    if (!isSuccess) {
+      const errorReason = (parsedResult as any)?.payload?.metadata?.reason ||
+                          (parsedResult as any)?.payload?.content?.error ||
+                          (parsedResult as any)?.error ||
+                          result.error ||
+                          'Unknown error';
+      
+      const errorMessage = errorReason || 'API call failed';
+      console.error('❌ [Build Create Action] Backend returned failure:', {
+        success: (parsedResult as any)?.success,
+        error: errorMessage,
+        fullResult: parsedResult,
+      });
+      
+      // Check if streaming is available (for polling mode)
+      const streamingInfo = (parsedResult as any)?.payload?.metadata?.streaming;
+      if (streamingInfo) {
+        console.log('ℹ️ [Build Create Action] Streaming endpoints available, task may still be processing:', streamingInfo);
+        // Don't throw error - let the streaming handle it
+        // Return a placeholder response that indicates streaming is in progress
+        return { deliverable: null, version: null };
+      }
+      
+      conversationsStore.setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+
     // Backend should provide clean thinking, message, and deliverable
     const thinkingContent = (parsedResult as any)?.thinking;
     const assistantContent = (parsedResult as any)?.message || 'Deliverable created successfully';
@@ -264,8 +293,17 @@ export async function createDeliverable(
     }
 
     if (!finalDeliverable) {
+      // Check if streaming is available - if so, don't throw error yet
+      const streamingInfo = (parsedResult as any)?.payload?.metadata?.streaming;
+      if (streamingInfo) {
+        console.log('ℹ️ [Build Create Action] No deliverable yet, but streaming available. Task may still be processing.');
+        return { deliverable: null, version: null };
+      }
+      
       console.error('❌ [Build Create Action] Could not find deliverable in response. Full result:', JSON.stringify(parsedResult, null, 2));
-      throw new Error('No deliverable in response');
+      const errorMessage = (parsedResult as any)?.payload?.metadata?.reason || 'No deliverable in response';
+      conversationsStore.setError(errorMessage);
+      throw new Error(errorMessage);
     }
 
     console.log('✅ [Build Create Action] Deliverable extracted:', { deliverable: finalDeliverable, version: finalVersion });

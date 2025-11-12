@@ -35,7 +35,7 @@ interface UserPreferences {
   enableSoundNotifications: boolean;
   messageHistory: number; // Number of messages to keep in history
   // Task Execution Preferences
-  defaultExecutionMode: 'immediate' | 'polling' | 'websocket';
+  defaultExecutionMode: 'immediate' | 'polling' | 'real-time' | 'auto';
   pollingInterval: number; // seconds
   enableProgressIndicators: boolean;
   autoSwitchToWebSocketForWorkflows: boolean;
@@ -98,7 +98,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   enableSoundNotifications: false,
   messageHistory: 100,
   // Task Execution Preferences
-  defaultExecutionMode: 'immediate',
+  defaultExecutionMode: 'auto',
   pollingInterval: 2,
   enableProgressIndicators: true,
   autoSwitchToWebSocketForWorkflows: false,
@@ -389,7 +389,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     updatePreference('enableDebugMode', !preferences.value.enableDebugMode);
   };
   // Task execution convenience methods
-  const setExecutionMode = (mode: 'immediate' | 'polling' | 'websocket') => {
+  const setExecutionMode = (mode: 'immediate' | 'polling' | 'real-time' | 'auto') => {
     updatePreference('defaultExecutionMode', mode);
   };
   const toggleProgressIndicators = () => {

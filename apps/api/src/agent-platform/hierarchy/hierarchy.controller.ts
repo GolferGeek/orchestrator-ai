@@ -12,9 +12,11 @@ interface HierarchyNode {
   description: string | null;
   status: string | null;
   namespace: string;
+  execution_modes?: string[];
   metadata: {
     execution_profile?: string | null;
     execution_capabilities?: unknown;
+    execution_modes?: string[];
   };
   children: HierarchyNode[];
 }
@@ -130,6 +132,29 @@ export class HierarchyController {
 
       // Create nodes for all agents
       for (const agent of namespaceAgents) {
+        // Extract execution_modes from YAML configuration
+        let executionModes: string[] = ['immediate']; // default
+        
+        if (agent.yaml) {
+          try {
+            // Parse the YAML string (yamlLoad handles both YAML and JSON)
+            const yamlConfig = yamlLoad(agent.yaml) as Record<string, any>;
+            const modes = yamlConfig?.configuration?.execution_modes;
+            
+            if (Array.isArray(modes) && modes.length > 0) {
+              executionModes = modes.filter(
+                (mode): mode is string => typeof mode === 'string',
+              );
+            }
+            
+          } catch (error) {
+            // If parsing fails, keep the default
+            this.logger.warn(
+              `Failed to parse YAML for agent ${agent.slug}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
+          }
+        }
+
         const node = {
           id: agent.id,
           name: agent.slug,
@@ -138,9 +163,11 @@ export class HierarchyController {
           description: agent.description,
           status: agent.status,
           namespace: agent.organization_slug ?? 'global',
+          execution_modes: executionModes,
           metadata: {
             execution_profile: agent.config?.execution_profile,
             execution_capabilities: agent.config?.execution_capabilities,
+            execution_modes: executionModes,
           },
           children: [],
         };

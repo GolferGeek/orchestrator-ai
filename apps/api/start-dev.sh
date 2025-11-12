@@ -10,6 +10,7 @@ NC='\033[0m' # No Color
 N8N_MANAGE_SCRIPT="../n8n/manage.sh"
 N8N_CONTAINER_NAME="orchestrator-n8n"
 N8N_STARTED_BY_SCRIPT=false
+LANGGRAPH_STARTED_BY_SCRIPT=false
 
 echo -e "${BLUE}🚀 Starting OrchAI NestJS API${NC}"
 
@@ -131,6 +132,57 @@ start_n8n() {
     fi
 }
 
+is_langgraph_running() {
+    if check_port 7200; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+start_langgraph() {
+    if is_langgraph_running; then
+        echo -e "${GREEN}✅ LangGraph server already running on port 7200${NC}"
+        return 0
+    fi
+
+    if [ ! -d "../langgraph" ]; then
+        echo -e "${YELLOW}⚠️  LangGraph app directory not found at ../langgraph${NC}"
+        return 1
+    fi
+
+    echo -e "${BLUE}🔄 Starting LangGraph workflow server...${NC}"
+    cd ../langgraph
+
+    # Check if dependencies are installed
+    if [ ! -d "node_modules" ]; then
+        echo -e "${BLUE}📦 Installing LangGraph dependencies...${NC}"
+        npm install >/dev/null 2>&1
+    fi
+
+    # Start LangGraph in background
+    npm run start:dev > /tmp/langgraph.log 2>&1 &
+    LANGGRAPH_PID=$!
+    cd - > /dev/null
+
+    # Wait for it to start
+    local count=0
+    local max_attempts=10
+    while [ $count -lt $max_attempts ]; do
+        if check_port 7200; then
+            echo -e "${GREEN}✅ LangGraph server running at http://localhost:7200${NC}"
+            LANGGRAPH_STARTED_BY_SCRIPT=true
+            return 0
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+
+    echo -e "${RED}❌ Failed to start LangGraph server${NC}"
+    echo -e "${BLUE}💡 Check logs: tail -f /tmp/langgraph.log${NC}"
+    return 1
+}
+
 # Check if Supabase is running on dev port 7010
 if check_port 7010; then
     echo -e "${GREEN}✅ Local Supabase is already running on port 7010${NC}"
@@ -181,6 +233,10 @@ if ! start_n8n; then
     echo -e "${YELLOW}⚠️  Continuing without local n8n instance${NC}"
 fi
 
+if ! start_langgraph; then
+    echo -e "${YELLOW}⚠️  Continuing without local LangGraph server${NC}"
+fi
+
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${RED}🛑 Shutting down services...${NC}"
@@ -191,6 +247,15 @@ cleanup() {
         kill $NESTJS_PID 2>/dev/null
         wait $NESTJS_PID 2>/dev/null
         echo -e "${GREEN}✅ NestJS server stopped${NC}"
+    fi
+
+    # Kill the LangGraph server
+    if [ "$LANGGRAPH_STARTED_BY_SCRIPT" = true ] && [ ! -z "$LANGGRAPH_PID" ]; then
+        echo -e "${RED}🔄 Stopping LangGraph server...${NC}"
+        kill $LANGGRAPH_PID 2>/dev/null
+        # Also kill any child processes on port 7200
+        lsof -ti:7200 | xargs kill -9 2>/dev/null || true
+        echo -e "${GREEN}✅ LangGraph server stopped${NC}"
     fi
 
     if [ "$N8N_STARTED_BY_SCRIPT" = true ] && [ -x "$N8N_MANAGE_SCRIPT" ]; then
@@ -221,6 +286,9 @@ sleep 2
 
 echo -e "${GREEN}✅ Development environment ready!${NC}"
 echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-7100}${NC}"
+if [ "$LANGGRAPH_STARTED_BY_SCRIPT" = true ]; then
+    echo -e "${BLUE}🔄 LangGraph Workflows: http://localhost:7200${NC}"
+fi
 echo -e "\n${BLUE}Press Ctrl+C to stop all services${NC}"
 
 # Wait for NestJS process to finish
