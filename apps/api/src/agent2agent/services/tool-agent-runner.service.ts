@@ -343,7 +343,7 @@ export class ToolAgentRunnerService extends BaseAgentRunner {
           deliverableId: targetDeliverableId ?? undefined,
           agentName: definition.slug,
           namespace: organizationSlug || 'default',
-          taskId: taskId || undefined,
+          taskId: taskId ?? undefined,
           metadata: {
             toolsExecuted: tools.length,
             successfulTools: successfulTools.length,

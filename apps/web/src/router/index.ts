@@ -125,6 +125,16 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresRole: ['admin'] }
       },
       {
+        path: 'admin/observability',
+        name: 'AdminObservability',
+        component: () => import('../views/admin/AdminObservabilityView.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresRole: ['admin'],
+          title: 'System Observability'
+        }
+      },
+      {
         path: 'admin/function-agents',
         name: 'AdminFunctionAgents',
         component: () => import('../views/admin/AdminFunctionAgentsView.vue'),

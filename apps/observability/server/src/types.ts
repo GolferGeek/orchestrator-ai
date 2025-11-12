@@ -36,6 +36,15 @@ export interface HookEvent {
   timestamp?: number;
   model_name?: string;
 
+  // Enriched fields for observability
+  userId?: string;
+  username?: string; // display_name or email (human-readable)
+  conversationId?: string;
+  taskId?: string;
+  agentSlug?: string;
+  organizationSlug?: string;
+  mode?: string;
+
   // Optional HITL data
   humanInTheLoop?: HumanInTheLoop;
   humanInTheLoopStatus?: HumanInTheLoopStatus;

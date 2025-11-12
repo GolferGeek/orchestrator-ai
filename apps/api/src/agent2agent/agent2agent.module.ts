@@ -29,6 +29,7 @@ import { ContextOptimizationModule } from './context-optimization/context-optimi
 import { MCPModule } from '../mcp/mcp.module';
 import { HttpModule } from '@nestjs/axios';
 import { StreamingService } from './services/streaming.service';
+import { ObservabilityModule } from '../observability/observability.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { StreamingService } from './services/streaming.service';
     SupabaseModule,
     MCPModule,
     HttpModule,
+    ObservabilityModule,
     // Agent2Agent Sub-modules
     AgentConversationsModule,
     TasksModule,

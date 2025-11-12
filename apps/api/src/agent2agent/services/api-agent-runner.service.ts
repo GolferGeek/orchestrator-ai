@@ -55,7 +55,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
   protected readonly logger = new Logger(ApiAgentRunnerService.name);
 
   constructor(
-    private readonly httpService: HttpService,
+    httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
     llmService: LLMService,
     contextOptimization: ContextOptimizationService,
@@ -71,6 +71,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       conversationsService,
       deliverablesService,
       streamingService,
+      httpService, // Pass httpService to base class as last parameter
     );
   }
 
@@ -197,7 +198,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         ...request,
         userId,
         conversationId,
-        taskId: taskId || undefined,
+        taskId: taskId ?? undefined,
         payload: {
           ...(request.payload as Record<string, unknown>),
           provider,
@@ -285,11 +286,26 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       // 5. Execute HTTP request
+      // Observability: Calling external API
+      await this.emitObservabilityEvent('agent.progress', 'Calling external API', {
+        definition,
+        request,
+        organizationSlug,
+        taskId: taskId ?? undefined,
+        progress: 30,
+      });
+
       const startTime = Date.now();
       let response: unknown;
 
       try {
-        const observable = this.httpService.request({
+        if (!this.httpService) {
+          throw new Error('HttpService not available');
+        }
+        if (!this.httpService) {
+        throw new Error('HttpService not available');
+      }
+      const observable = this.httpService.request({
           url,
           method: method,
           headers,
@@ -351,6 +367,15 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
 
       const duration = Date.now() - startTime;
 
+      // Observability: Processing API response
+      await this.emitObservabilityEvent('agent.progress', 'Processing API response', {
+        definition,
+        request,
+        organizationSlug,
+        taskId: taskId ?? undefined,
+        progress: 60,
+      });
+
       // 6. Check response status
       const responseTyped = response as {
         status: number;
@@ -368,6 +393,15 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       }
 
       // 7. Format response data
+      // Observability: Formatting response
+      await this.emitObservabilityEvent('agent.progress', 'Formatting response', {
+        definition,
+        request,
+        organizationSlug,
+        taskId: taskId ?? undefined,
+        progress: 80,
+      });
+
       const responseData = responseTyped.data;
       const formattedContent = this.formatApiResponse(
         responseData,
@@ -436,6 +470,21 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
 
       const targetDeliverableId = this.resolveDeliverableIdFromRequest(request);
 
+      // Debug: Verify deliverablesService is available
+      if (!this.deliverablesService) {
+        this.logger.error('deliverablesService is undefined');
+        throw new Error('DeliverablesService not injected');
+      }
+      if (typeof this.deliverablesService.executeAction !== 'function') {
+        this.logger.error('deliverablesService.executeAction is not a function', {
+          deliverablesService: this.deliverablesService,
+          type: typeof this.deliverablesService,
+          constructor: this.deliverablesService?.constructor?.name,
+          methods: Object.getOwnPropertyNames(Object.getPrototypeOf(this.deliverablesService)),
+        });
+        throw new Error('DeliverablesService.executeAction is not available');
+      }
+
       const deliverableResult = await this.deliverablesService.executeAction(
         'create',
         {
@@ -448,7 +497,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
           deliverableId: targetDeliverableId ?? undefined,
           agentName: definition.slug,
           namespace: organizationSlug || 'default',
-          taskId: taskId || undefined,
+          taskId: taskId ?? undefined,
           metadata: {
             apiUrl: url,
             method,
@@ -461,7 +510,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
           conversationId,
           userId,
           agentSlug: definition.slug,
-          taskId: taskId || undefined,
+          taskId: taskId ?? undefined,
         },
       );
 
@@ -813,7 +862,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
         ...request,
         userId,
         conversationId,
-        taskId: taskId || undefined,
+        taskId: taskId ?? undefined,
         payload: {
           ...(request.payload as Record<string, unknown>),
           provider,
@@ -877,6 +926,9 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
       this.logger.log(`📡 Making async API call to ${url}`);
       const startTime = Date.now();
 
+      if (!this.httpService) {
+        throw new Error('HttpService not available');
+      }
       const observable = this.httpService.request({
         url,
         method: method,

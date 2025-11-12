@@ -3,7 +3,9 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
 import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
 import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
@@ -27,6 +29,7 @@ import { OrchestrationCheckpointService } from '@agent-platform/services/orchest
 import type { OrchestrationCheckpointDecision } from '@agent-platform/types/orchestration-run.types';
 import { OrchestrationExecutionService } from '@agent-platform/services/orchestration-execution.service';
 import { OrchestrationStepExecutorService } from './orchestration-step-executor.service';
+import { ObservabilityWebhookService } from '../../observability/observability-webhook.service';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -46,6 +49,8 @@ export class AgentExecutionGateway {
     private readonly executionService: OrchestrationExecutionService,
     private readonly stepExecutor: OrchestrationStepExecutorService,
     private readonly checkpointService: OrchestrationCheckpointService,
+    private readonly observability: ObservabilityWebhookService,
+    @Inject(HttpService) private readonly httpService?: HttpService,
   ) {}
 
   async execute(
@@ -68,6 +73,13 @@ export class AgentExecutionGateway {
       organizationSlug,
     );
 
+    // Observability: Agent execution started
+    this.emitAgentLifecycleEvent('agent.started', 'Agent execution started', {
+      definition,
+      request,
+      organizationSlug,
+    });
+
     const assessment = await this.routingPolicy.evaluate(request, agent);
     const routingMetadata = {
       ...(assessment.metadata ?? {}),
@@ -84,51 +96,89 @@ export class AgentExecutionGateway {
     // Enforce execution capabilities before routing
     const unsupported = this.checkUnsupportedMode(definition, request.mode!);
     if (unsupported) {
+      this.emitAgentLifecycleEvent('agent.failed', 'Unsupported mode', {
+        definition,
+        request,
+        organizationSlug,
+      });
       return unsupported;
     }
 
-    switch (request.mode!) {
-      case AgentTaskMode.CONVERSE:
-        return this.modeRouter.execute({
-          organizationSlug,
-          agentSlug: agent.slug,
-          agent,
+    try {
+      let response: TaskResponseDto;
+
+      switch (request.mode!) {
+        case AgentTaskMode.CONVERSE:
+          response = await this.modeRouter.execute({
+            organizationSlug,
+            agentSlug: agent.slug,
+            agent,
+            definition,
+            request,
+            routingMetadata,
+          });
+          break;
+        case AgentTaskMode.PLAN:
+          // Delegate to mode router (uses new plans table via PlansService)
+          response = await this.modeRouter.execute({
+            organizationSlug,
+            agentSlug: agent.slug,
+            agent,
+            definition,
+            request,
+            routingMetadata,
+          });
+          break;
+        case AgentTaskMode.BUILD:
+          // Delegate to mode router (uses new deliverables table via DeliverablesService)
+          response = await this.modeRouter.execute({
+            organizationSlug,
+            agentSlug: agent.slug,
+            agent,
+            definition,
+            request,
+            routingMetadata,
+          });
+          break;
+        case AgentTaskMode.ORCHESTRATE:
+          // Delegate to mode router (uses action-based routing for orchestrate operations)
+          response = await this.modeRouter.execute({
+            organizationSlug,
+            agentSlug: agent.slug,
+            agent,
+            definition,
+            request,
+            routingMetadata,
+          });
+          break;
+        default:
+          response = TaskResponseDto.failure(request.mode!, 'Unsupported mode');
+      }
+
+      // Emit completion or failure based on response
+      if (response.success) {
+        this.emitAgentLifecycleEvent('agent.completed', 'Agent execution completed', {
           definition,
           request,
-          routingMetadata,
-        });
-      case AgentTaskMode.PLAN:
-        // Delegate to mode router (uses new plans table via PlansService)
-        return this.modeRouter.execute({
           organizationSlug,
-          agentSlug: agent.slug,
-          agent,
+        });
+      } else {
+        this.emitAgentLifecycleEvent('agent.failed', 'Agent execution failed', {
           definition,
           request,
-          routingMetadata,
-        });
-      case AgentTaskMode.BUILD:
-        // Delegate to mode router (uses new deliverables table via DeliverablesService)
-        return this.modeRouter.execute({
           organizationSlug,
-          agentSlug: agent.slug,
-          agent,
-          definition,
-          request,
-          routingMetadata,
         });
-      case AgentTaskMode.ORCHESTRATE:
-        // Delegate to mode router (uses action-based routing for orchestrate operations)
-        return this.modeRouter.execute({
-          organizationSlug,
-          agentSlug: agent.slug,
-          agent,
-          definition,
-          request,
-          routingMetadata,
-        });
-      default:
-        return TaskResponseDto.failure(request.mode!, 'Unsupported mode');
+      }
+
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.emitAgentLifecycleEvent('agent.failed', `Agent execution error: ${errorMessage}`, {
+        definition,
+        request,
+        organizationSlug,
+      });
+      throw error;
     }
   }
 
@@ -806,5 +856,58 @@ export class AgentExecutionGateway {
 
   private isJsonObject(value: unknown): value is JsonObject {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  /**
+   * Emit agent lifecycle event for observability.
+   * Fire-and-forget to avoid blocking agent execution.
+   */
+  private emitAgentLifecycleEvent(
+    eventType: string,
+    message: string,
+    context: {
+      definition: AgentRuntimeDefinition;
+      request: TaskRequestDto;
+      organizationSlug: string | null;
+    },
+  ): void {
+    try {
+      const userId = this.resolveUserId(context.request);
+      const conversationId = context.request.conversationId || null;
+      const taskId = (context.request.payload as Record<string, unknown>)?.taskId as string | null;
+
+      // Fire webhook call (non-blocking)
+      if (this.httpService) {
+        this.httpService.post('http://localhost:7100/webhooks/status', {
+          taskId: taskId || conversationId || 'unknown',
+          status: eventType,
+          timestamp: new Date().toISOString(),
+          message,
+          userId: userId || undefined,
+          conversationId: conversationId || undefined,
+          agentSlug: context.definition.slug,
+          organizationSlug: context.organizationSlug || 'global',
+          mode: context.request.mode || undefined,
+        }).toPromise().catch((error: Error) => {
+          // Log but don't throw - observability should never break execution
+          this.logger.warn(
+            `Failed to emit observability event (${eventType}): ${error.message}`,
+          );
+        });
+      }
+    } catch (error) {
+      // Silently catch - observability is non-critical
+      this.logger.debug(
+        `Error preparing observability event: ${error instanceof Error ? error.message : error}`,
+      );
+    }
+  }
+
+  private resolveUserId(request: TaskRequestDto): string | null {
+    return (
+      ((request.metadata as Record<string, unknown>)?.userId as string) ||
+      ((request.payload as Record<string, unknown>)?.userId as string) ||
+      null
+    );
   }
 }

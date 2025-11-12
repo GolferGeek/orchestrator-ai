@@ -10,10 +10,13 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TasksService } from '../agent2agent/tasks/tasks.service';
 import { StreamingService } from '../agent2agent/services/streaming.service';
+import { SupabaseService } from '../supabase/supabase.service';
+import { ObservabilityWebhookService } from '../observability/observability-webhook.service';
 
 /**
  * Workflow Status Update
  * This can come from n8n, coded function agents, or any external workflow system
+ * Extended to support internal agent observability
  */
 interface WorkflowStatusUpdate {
   // Required fields
@@ -48,6 +51,12 @@ interface WorkflowStatusUpdate {
     totalSteps?: number;
     [key: string]: unknown;
   };
+
+  // NEW: Observability enrichment fields
+  agentSlug?: string; // Agent being executed
+  username?: string; // display_name or email (human-readable)
+  organizationSlug?: string; // Organization namespace
+  mode?: string; // 'converse', 'plan', 'build', 'orchestrate'
 }
 
 @Controller('webhooks')
@@ -62,6 +71,8 @@ export class WebhooksController {
     @Inject(forwardRef(() => TasksService))
     private readonly tasksService: TasksService,
     private readonly streamingService: StreamingService,
+    private readonly supabaseService: SupabaseService,
+    private readonly observabilityService: ObservabilityWebhookService,
   ) {}
 
   /**
@@ -162,9 +173,9 @@ export class WebhooksController {
         }
       }
 
-      // Emit SSE chunk event via StreamingService for real-time streaming to frontend
+      // Emit SSE chunk event via StreamingService for real-time streaming to frontend (USER STREAM)
       this.logger.log(
-        `📤 [WebhookController] Calling streamingService.emitProgress for taskId=${update.taskId}`,
+        `📤 [WebhookController] Broadcasting to USER stream via streamingService.emitProgress for taskId=${update.taskId}`,
       );
       this.streamingService.emitProgress(
         update.taskId,
@@ -178,7 +189,7 @@ export class WebhooksController {
         },
       );
       this.logger.debug(
-        `✅ [WebhookController] Called streamingService.emitProgress successfully`,
+        `✅ [WebhookController] Broadcasted to USER stream successfully`,
       );
 
       // Webhooks only emit progress - never completion
@@ -221,8 +232,102 @@ export class WebhooksController {
       this.logger.debug(
         `Webhook received status "${update.status}" - emitting as progress update only`,
       );
+
+      // NEW: Emit observability event for admin monitoring and store in database (ADMIN STREAM)
+      this.logger.log(
+        `📊 [WebhookController] Broadcasting to ADMIN stream via observability event for taskId=${update.taskId}`,
+      );
+      await this.storeAndBroadcastObservabilityEvent(update, {
+        stepName,
+        progress,
+        sequence,
+        totalStepsFromUpdate,
+      });
+      this.logger.debug(
+        `✅ [WebhookController] Broadcasted to ADMIN stream successfully`,
+      );
     } catch (error) {
       this.logger.error('Error processing workflow status update', error);
+    }
+  }
+
+  /**
+   * Store observability event in database and broadcast to admin clients
+   */
+  private async storeAndBroadcastObservabilityEvent(
+    update: WorkflowStatusUpdate,
+    computed: {
+      stepName: string;
+      progress: number;
+      sequence: number;
+      totalStepsFromUpdate?: number;
+    },
+  ): Promise<void> {
+    try {
+      const now = Date.now();
+      
+      // Resolve username if not provided
+      let username = update.username;
+      if (update.userId && !username) {
+        // Resolve username from userId using AuthService
+        try {
+          const userProfile = await this.observabilityService['authService'].getUserProfile(update.userId);
+          username = userProfile?.displayName || userProfile?.email || update.userId;
+        } catch {
+          username = update.userId; // Fallback to userId if resolution fails
+        }
+      }
+
+      const eventData = {
+        source_app: 'orchestrator-ai',
+        session_id: update.conversationId || update.taskId,
+        hook_event_type: update.status, // 'agent.started', 'agent.progress', etc.
+        user_id: update.userId || null,
+        username: username || null,
+        conversation_id: update.conversationId || null,
+        task_id: update.taskId,
+        agent_slug: update.agentSlug || null,
+        organization_slug: update.organizationSlug || null,
+        mode: update.mode || null,
+        status: update.status,
+        message: update.message || null,
+        progress: computed.progress,
+        step: computed.stepName,
+        payload: update,
+        timestamp: now,
+      };
+
+      // Store in database
+      const { error: dbError } = await this.supabaseService
+        .getServiceClient()
+        .from('observability_events')
+        .insert(eventData);
+
+      if (dbError) {
+        this.logger.error(
+          `Failed to store observability event: ${dbError.message}`,
+          dbError,
+        );
+      } else {
+        this.logger.debug(
+          `📊 Stored observability event for task ${update.taskId}`,
+        );
+      }
+
+      // Emit to admin clients via EventEmitter (ADMIN STREAM)
+      // This event is picked up by /observability/stream endpoint
+      this.eventEmitter.emit('observability.event', {
+        ...eventData,
+        eventType: update.status,
+      });
+      this.logger.debug(
+        `📡 Emitted observability.event for admin stream: ${update.status} - ${update.message?.substring(0, 50)}...`,
+      );
+    } catch (error) {
+      this.logger.error(
+        'Failed to process observability event',
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

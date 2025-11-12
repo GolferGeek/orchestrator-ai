@@ -70,13 +70,18 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const bearerToken = this.extractBearerToken(request);
-    if (bearerToken) {
+    const queryToken = this.extractQueryToken(request);
+    
+    // Try bearer token first, then query token
+    const token = bearerToken || queryToken;
+    
+    if (token) {
       try {
         const supabaseClient = this.supabaseService.getAnonClient();
         const {
           data: { user },
           error,
-        } = await supabaseClient.auth.getUser(bearerToken);
+        } = await supabaseClient.auth.getUser(token);
 
         if (error || !user) {
           throw new UnauthorizedException('Invalid token');
@@ -105,33 +110,43 @@ export class JwtAuthGuard implements CanActivate {
         };
 
         request.user = validatedUser;
+        
+        // If token came from query params, try to parse as stream token (for backward compatibility)
+        if (queryToken && !bearerToken) {
+          try {
+            const claims = this.streamTokenService.verifyToken(queryToken);
+            request.streamTokenClaims = claims;
+            request.sanitizedUrl = this.streamTokenService.stripTokenFromUrl(
+              request.originalUrl ?? request.url,
+            );
+          } catch {
+            // Not a stream token, that's fine - it's a regular JWT
+          }
+        }
+        
         return true;
       } catch (error) {
-        this.logger.warn('Bearer token validation failed', {
+        this.logger.warn('Token validation failed', {
           reason: (error as Error)?.message,
+          source: bearerToken ? 'header' : 'query',
         });
+        // If query token failed as JWT, try as stream token (for backward compatibility)
+        if (queryToken && !bearerToken) {
+          try {
+            const claims = this.streamTokenService.verifyToken(queryToken);
+            const validatedUser = this.buildUserFromClaims(claims);
+            request.user = validatedUser;
+            request.streamTokenClaims = claims;
+            request.sanitizedUrl = this.streamTokenService.stripTokenFromUrl(
+              request.originalUrl ?? request.url,
+            );
+            return true;
+          } catch {
+            // Not a stream token either
+          }
+        }
         throw new UnauthorizedException('Invalid token');
       }
-    }
-
-    const queryToken = this.extractQueryToken(request);
-    if (queryToken) {
-      const claims = this.streamTokenService.verifyToken(queryToken);
-      const validatedUser = this.buildUserFromClaims(claims);
-
-      request.user = validatedUser;
-      request.streamTokenClaims = claims;
-      request.sanitizedUrl = this.streamTokenService.stripTokenFromUrl(
-        request.originalUrl ?? request.url,
-      );
-
-      if (request.query && typeof request.query === 'object') {
-        if ('token' in request.query) {
-          delete (request.query as Record<string, unknown>).token;
-        }
-      }
-
-      return true;
     }
 
     throw new UnauthorizedException('No token provided');

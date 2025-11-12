@@ -51,7 +51,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
   protected readonly logger = new Logger(ExternalAgentRunnerService.name);
 
   constructor(
-    private readonly httpService: HttpService,
+    protected readonly httpService: HttpService,
     llmService: LLMService,
     contextOptimization: ContextOptimizationService,
     plansService: PlansService,
@@ -131,7 +131,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       const userId = this.resolveUserId(request);
       const conversationId = this.resolveConversationId(request);
       const payload = request.payload as Record<string, unknown>;
-      const taskId: unknown = payload?.taskId || null;
+      const taskId = (payload?.taskId as string) || null;
 
       if (!userId || !conversationId) {
         return TaskResponseDto.failure(
@@ -215,10 +215,28 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       }
 
       // 3. Execute HTTP request
+      // Observability: Forwarding request to external agent
+      await this.emitObservabilityEvent('agent.progress', 'Forwarding request to external agent', {
+        definition,
+        request,
+        organizationSlug,
+        taskId: taskId ?? undefined,
+        progress: 20,
+      });
+
       const startTime = Date.now();
       let response: { status: number; data: unknown };
 
       try {
+        // Observability: Waiting for external agent response
+        await this.emitObservabilityEvent('agent.progress', 'Waiting for external agent response', {
+          definition,
+          request,
+          organizationSlug,
+          taskId: taskId ?? undefined,
+          progress: 40,
+        });
+
         const observable = this.httpService.request({
           url: endpoint,
           method: 'POST',
@@ -241,6 +259,15 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
       }
 
       const duration = Date.now() - startTime;
+
+      // Observability: Processing external agent response
+      await this.emitObservabilityEvent('agent.progress', 'Processing external agent response', {
+        definition,
+        request,
+        organizationSlug,
+        taskId: taskId ?? undefined,
+        progress: 70,
+      });
 
       // 4. Check response status
       const statusCodeRaw: unknown = response.status;
@@ -282,7 +309,7 @@ export class ExternalAgentRunnerService extends BaseAgentRunner {
             deliverableId: targetDeliverableId ?? undefined,
             agentName: definition.slug,
             namespace: organizationSlug || 'default',
-            taskId: taskId || undefined,
+            taskId: taskId ?? undefined,
             metadata: {
               externalUrl: endpoint,
               duration,

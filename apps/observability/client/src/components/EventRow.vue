@@ -165,6 +165,9 @@
           <span class="text-xs text-[var(--theme-text-secondary)] px-1.5 py-0.5 rounded-full border bg-[var(--theme-bg-tertiary)]/50" :class="borderColorClass">
             {{ sessionIdShort }}
           </span>
+          <span v-if="event.username" class="text-xs text-[var(--theme-text-primary)] px-1.5 py-0.5 rounded-full border-2 border-[var(--theme-primary)] bg-[var(--theme-primary-light)] shadow-sm font-semibold" :title="`User: ${event.username}${event.userId ? ' (' + event.userId.slice(0, 8) + '...)' : ''}`">
+            <span class="mr-0.5">👤</span>{{ event.username }}
+          </span>
           <span v-if="event.model_name" class="text-xs text-[var(--theme-text-secondary)] px-1.5 py-0.5 rounded-full border bg-[var(--theme-bg-tertiary)]/50 shadow-sm" :title="`Model: ${event.model_name}`">
             <span class="mr-0.5">🧠</span>{{ formatModelName(event.model_name) }}
           </span>
@@ -186,6 +189,9 @@
           </span>
           <span class="text-sm text-[var(--theme-text-secondary)] px-2 py-0.5 rounded-full border bg-[var(--theme-bg-tertiary)]/50 shadow-md" :class="borderColorClass">
             {{ sessionIdShort }}
+          </span>
+          <span v-if="event.username" class="text-sm text-[var(--theme-text-primary)] px-2 py-0.5 rounded-full border-2 border-[var(--theme-primary)] bg-[var(--theme-primary-light)] shadow-md font-semibold" :title="`User: ${event.username}${event.userId ? ' (' + event.userId.slice(0, 8) + '...)' : ''}`">
+            <span class="mr-1">👤</span>{{ event.username }}
           </span>
           <span v-if="event.model_name" class="text-sm text-[var(--theme-text-secondary)] px-2 py-0.5 rounded-full border bg-[var(--theme-bg-tertiary)]/50 shadow-md" :title="`Model: ${event.model_name}`">
             <span class="mr-1">🧠</span>{{ formatModelName(event.model_name) }}
