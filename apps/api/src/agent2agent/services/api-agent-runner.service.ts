@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -61,6 +61,7 @@ export class ApiAgentRunnerService extends BaseAgentRunner {
     contextOptimization: ContextOptimizationService,
     plansService: PlansService,
     conversationsService: Agent2AgentConversationsService,
+    @Inject(forwardRef(() => DeliverablesService))
     deliverablesService: DeliverablesService,
     streamingService: StreamingService,
   ) {
