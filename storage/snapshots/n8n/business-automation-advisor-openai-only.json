@@ -1,0 +1,490 @@
+{
+  "createdAt": "2025-10-29T20:48:59.551Z",
+  "updatedAt": "2025-11-19T19:31:39.126Z",
+  "id": "wkJtdSfm9LZs4Tdx",
+  "name": "Business Automation Advisor - OpenAI Only",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "automation-advisor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e1a855e4-bf67-4db0-9e9f-ddd21660dd7e",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        480
+      ],
+      "webhookId": "auto-advisor-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.industry }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "b2d1e50f-8633-4b4d-ae12-66dafa0d7ba2",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "industry",
+              "value": "={{ $json.body.industry }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "request_id",
+              "value": "={{ $now.toFormat('yyyyMMdd-HHmmss') }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "start_time",
+              "value": "={{ Date.now() }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a78e037d-b215-41b4-aeab-eb6229bce3a6",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a business industry classifier. Return ONLY valid JSON (no markdown, no code blocks):\\n{\\n  \\\"normalized_industry\\\": \\\"Professional industry name (2-5 words)\\\",\\n  \\\"description\\\": \\\"Brief description (1 sentence)\\\",\\n  \\\"common_business_types\\\": \\\"Related business types\\\"\\n}\\n\\nExamples:\\nInput: \\\"dentist\\\"\\nOutput: {\\\"normalized_industry\\\": \\\"Dental Practice\\\", \\\"description\\\": \\\"Healthcare providers specializing in oral health and dental care\\\", \\\"common_business_types\\\": \\\"general dentistry, orthodontics, periodontics\\\"}\\n\\nInput: \\\"I sell stuff online\\\"\\nOutput: {\\\"normalized_industry\\\": \\\"E-commerce Business\\\", \\\"description\\\": \\\"Online retail business selling products to consumers\\\", \\\"common_business_types\\\": \\\"online stores, dropshipping, marketplace sellers\\\"}\\n\\nNow process: {{ $json.industry }}\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 200\n}",
+        "options": {}
+      },
+      "id": "8cf73ba9-4fe3-4846-9742-485562d6516b",
+      "name": "Normalize Industry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        128,
+        368
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse OpenAI response\nconst raw = $input.item.json.choices[0].message.content;\nlet cleaned = raw.replace(/```json\\n?/g, '').replace(/```/g, '').trim();\n\ntry {\n  const data = JSON.parse(cleaned);\n  return {\n    json: {\n      normalized_industry: data.normalized_industry || $('Extract Data').item.json.industry,\n      description: data.description || 'Business industry',\n      common_business_types: data.common_business_types || '',\n      request_id: $('Extract Data').item.json.request_id,\n      start_time: $('Extract Data').item.json.start_time\n    }\n  };\n} catch(e) {\n  // Fallback\n  return {\n    json: {\n      normalized_industry: $('Extract Data').item.json.industry,\n      description: `Business in the ${$('Extract Data').item.json.industry} industry`,\n      common_business_types: '',\n      request_id: $('Extract Data').item.json.request_id,\n      start_time: $('Extract Data').item.json.start_time\n    }\n  };\n}"
+      },
+      "id": "3db318c8-f53e-4390-91ef-fe5988afa29a",
+      "name": "Parse Normalization",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are an elite automation consultant and expert in {{ $json.normalized_industry }}. You understand their daily workflows, bottlenecks, and automation opportunities.\\n\\nIndustry: {{ $json.normalized_industry }}\\nDescription: {{ $json.description }}\\nBusiness Types: {{ $json.common_business_types }}\\n\\nGenerate EXACTLY 8-10 AI agent ideas that are:\\n- HYPER-SPECIFIC to this industry (use industry terminology)\\n- Save 5-20+ hours per week\\n- Solve real, expensive problems\\n- Inspiring yet practical\\n- Cover Sales, Operations, Customer Service, Marketing, Finance, Admin\\n\\nReturn ONLY a JSON array (no markdown, no code blocks, no explanation):\\n[\\n  {\\n    \\\"name\\\": \\\"Benefit-focused name (4-8 words)\\\",\\n    \\\"tagline\\\": \\\"One powerful sentence of value\\\",\\n    \\\"description\\\": \\\"2-3 sentences with concrete details and industry-specific language\\\",\\n    \\\"use_case_example\\\": \\\"When [trigger], this agent automatically [action and result]\\\",\\n    \\\"time_saved\\\": \\\"5-8 hours per week\\\",\\n    \\\"wow_factor\\\": \\\"Most impressive or surprising capability\\\",\\n    \\\"category\\\": \\\"Sales|Operations|Customer Service|Marketing|Finance|Admin\\\"\\n  }\\n]\\n\\nMake 70%+ highly industry-specific. Return the raw JSON array only, starting with [ and ending with ].\"\n    }\n  ],\n  \"temperature\": 0.8,\n  \"max_tokens\": 4000,\n  \"top_p\": 0.95\n}",
+        "options": {}
+      },
+      "id": "f7b2b91d-6dcd-4f18-b2ca-7bb1f7700e7f",
+      "name": "Generate Ideas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        368
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get OpenAI response\nlet raw = $input.item.json.choices[0].message.content;\nraw = raw.replace(/```json\\n?/g, '').replace(/```/g, '').trim();\n\n// Extract JSON array if embedded in text\nconst match = raw.match(/\\[\\s*\\{[\\s\\S]*\\}\\s*\\]/);\nif (match) {\n  raw = match[0];\n}\n\ntry {\n  const ideas = JSON.parse(raw);\n  \n  // Validate structure\n  if (!Array.isArray(ideas)) {\n    return { json: { success: false, fallback_needed: true }};\n  }\n  \n  if (ideas.length < 8 || ideas.length > 10) {\n    return { json: { success: false, fallback_needed: true }};\n  }\n  \n  // Check required fields\n  const required = ['name', 'tagline', 'description', 'use_case_example', 'time_saved', 'wow_factor', 'category'];\n  for (const idea of ideas) {\n    for (const field of required) {\n      if (!idea[field]) {\n        return { json: { success: false, fallback_needed: true }};\n      }\n    }\n  }\n  \n  return {\n    json: {\n      success: true,\n      agent_ideas: ideas,\n      count: ideas.length,\n      fallback_needed: false\n    }\n  };\n} catch(e) {\n  return { json: { success: false, fallback_needed: true }};\n}"
+      },
+      "id": "8804a65b-c674-4e18-aea8-8b71b2143b7f",
+      "name": "Validate Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "0bb08883-4f64-48b7-a8c5-76f18ecf682b",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fb1",
+              "name": "agent_ideas",
+              "value": "={{ [\n  {\n    \"name\": \"Smart Appointment Scheduler\",\n    \"tagline\": \"Automate booking, reminders, and calendar management\",\n    \"description\": \"Handles appointment scheduling across multiple calendars, sends automated reminders via email and SMS, and manages rescheduling requests without manual intervention.\",\n    \"use_case_example\": \"When a client requests an appointment via email or web form, this agent checks availability, books the slot, sends confirmation, and sets up automated reminders.\",\n    \"time_saved\": \"3-5 hours per week\",\n    \"wow_factor\": \"Learns optimal scheduling patterns based on your historical booking data\",\n    \"category\": \"Admin\"\n  },\n  {\n    \"name\": \"Invoice Chaser Pro\",\n    \"tagline\": \"Never manually follow up on unpaid invoices again\",\n    \"description\": \"Automatically tracks invoice payment status and sends personalized, progressively urgent follow-up messages to clients with outstanding balances.\",\n    \"use_case_example\": \"When an invoice is 7 days overdue, sends a friendly reminder. At 14 days, escalates tone. At 30 days, alerts you for personal intervention.\",\n    \"time_saved\": \"4-6 hours per week\",\n    \"wow_factor\": \"Adjusts communication style based on client payment history and relationship\",\n    \"category\": \"Finance\"\n  },\n  {\n    \"name\": \"Lead Response Lightning\",\n    \"tagline\": \"Engage new leads within 60 seconds automatically\",\n    \"description\": \"Instantly responds to new lead inquiries with personalized messages, qualifies prospects with intelligent questions, and routes hot leads to your sales team immediately.\",\n    \"use_case_example\": \"When someone fills out your contact form, instantly sends a personalized email, asks qualifying questions, and alerts your team if they're a high-value prospect.\",\n    \"time_saved\": \"10+ hours per week\",\n    \"wow_factor\": \"Increases conversion rates by 30-40% through instant response times\",\n    \"category\": \"Sales\"\n  },\n  {\n    \"name\": \"Meeting Notes & Action Tracker\",\n    \"tagline\": \"Turn every meeting into actionable next steps automatically\",\n    \"description\": \"Records meetings, generates summaries, extracts action items, assigns tasks to team members, and sends follow-up reminders to ensure nothing falls through the cracks.\",\n    \"use_case_example\": \"After each client call, automatically sends a summary email with key points discussed, action items with owners and due dates, and schedules follow-up reminders.\",\n    \"time_saved\": \"2-3 hours per week\",\n    \"wow_factor\": \"Integrates with your project management tools to create tasks automatically\",\n    \"category\": \"Operations\"\n  },\n  {\n    \"name\": \"Social Media Content Recycler\",\n    \"tagline\": \"Keep your social presence active without daily effort\",\n    \"description\": \"Analyzes your best-performing content, repurposes it for different platforms, and schedules posts automatically to maintain consistent social media presence.\",\n    \"use_case_example\": \"When you publish a blog post, creates 10 social media variations optimized for LinkedIn, Twitter, and Instagram, and schedules them over the next month.\",\n    \"time_saved\": \"5-8 hours per week\",\n    \"wow_factor\": \"Learns which content types perform best and optimizes posting times\",\n    \"category\": \"Marketing\"\n  },\n  {\n    \"name\": \"Customer Onboarding Autopilot\",\n    \"tagline\": \"Welcome new customers with a flawless automated experience\",\n    \"description\": \"Guides new customers through setup, sends helpful resources at the right time, checks in on progress, and escalates to your team only when needed.\",\n    \"use_case_example\": \"When someone signs up, sends welcome email immediately, setup guide after 1 day, tips after 3 days, and checks in after 1 week with personalized help.\",\n    \"time_saved\": \"6-10 hours per week\",\n    \"wow_factor\": \"Personalizes the journey based on customer type and engagement level\",\n    \"category\": \"Customer Service\"\n  },\n  {\n    \"name\": \"Expense Report Auto-Processor\",\n    \"tagline\": \"Turn receipt photos into categorized expense reports instantly\",\n    \"description\": \"Scans receipts via photo or email, extracts data using OCR, categorizes expenses, checks policy compliance, and submits reports for approval automatically.\",\n    \"use_case_example\": \"When you snap a photo of a receipt, agent extracts amount, vendor, date, categorizes it (meals, travel, etc.), and adds it to your monthly expense report.\",\n    \"time_saved\": \"2-4 hours per week\",\n    \"wow_factor\": \"Flags policy violations before submission to prevent approval delays\",\n    \"category\": \"Finance\"\n  },\n  {\n    \"name\": \"Email Newsletter Auto-Curator\",\n    \"tagline\": \"Generate engaging newsletters from your content library automatically\",\n    \"description\": \"Analyzes your blog posts, social media, and industry news, curates the most relevant content, writes compelling copy, and schedules newsletter distribution.\",\n    \"use_case_example\": \"Each month, scans your content, picks top 5 articles, writes summaries with your brand voice, designs layout, and sends to your email list.\",\n    \"time_saved\": \"4-6 hours per month\",\n    \"wow_factor\": \"A/B tests subject lines and content to maximize open rates\",\n    \"category\": \"Marketing\"\n  }\n] }}",
+              "type": "object"
+            },
+            {
+              "id": "fb2",
+              "name": "count",
+              "value": "=8",
+              "type": "number"
+            },
+            {
+              "id": "fb3",
+              "name": "is_fallback",
+              "value": "=true",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1a8132b-f2ab-4bae-8f05-fce7c3a38e03",
+      "name": "Fallback Ideas",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1008,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "err1",
+              "name": "status",
+              "value": "=error",
+              "type": "string"
+            },
+            {
+              "id": "err2",
+              "name": "message",
+              "value": "=Missing required field: industry",
+              "type": "string"
+            },
+            {
+              "id": "err3",
+              "name": "example",
+              "value": "={{ {\"industry\": \"Real Estate Agency\"} }}",
+              "type": "object"
+            },
+            {
+              "id": "err4",
+              "name": "is_error",
+              "value": "=true",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "92c43eec-249a-44a9-9aba-bfed24c6cb7e",
+      "name": "Set Error Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if this is an error from validation\nif ($input.item.json.is_error) {\n  return {\n    json: {\n      status: 'error',\n      message: $input.item.json.message,\n      example: $input.item.json.example\n    }\n  };\n}\n\n// Get data for success path\nconst data = $input.item.json;\nconst norm = $('Parse Normalization').item.json;\n\n// Build final response\nreturn {\n  json: {\n    status: data.is_fallback ? 'partial' : 'success',\n    message: data.is_fallback ? 'AI generation failed, using fallback recommendations' : 'Recommendations generated successfully',\n    data: {\n      version: '1.0.0',\n      timestamp: new Date().toISOString(),\n      industry: norm.normalized_industry,\n      industry_description: norm.description,\n      recommendation_count: Array.isArray(data.agent_ideas) ? data.agent_ideas.length : 8,\n      is_fallback: data.is_fallback || false,\n      recommendations: data.agent_ideas,\n      metadata: {\n        processing_time_ms: Date.now() - norm.start_time,\n        model_used: data.is_fallback ? 'fallback' : 'gpt-4o',\n        request_id: norm.request_id,\n        search_method: 'ai_knowledge_base'\n      }\n    }\n  }\n};"
+      },
+      "id": "c4aeb1b7-f227-4972-b9eb-0acba7d2390a",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status === 'error' ? 400 : 200 }}"
+        }
+      },
+      "id": "a57751f4-62ac-4b7f-b0b9-b06814dd8eeb",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1456,
+        480
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Error Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "node": "Normalize Industry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Industry": {
+      "main": [
+        [
+          {
+            "node": "Parse Normalization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Normalization": {
+      "main": [
+        [
+          {
+            "node": "Generate Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Ideas": {
+      "main": [
+        [
+          {
+            "node": "Validate Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Output": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Ideas": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Error Data": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "40cd4d1a-a92c-4110-8d04-85c8d13ca5c3",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-10-29T20:48:59.551Z",
+      "updatedAt": "2025-10-29T20:48:59.551Z",
+      "role": "workflow:owner",
+      "workflowId": "wkJtdSfm9LZs4Tdx",
+      "projectId": "i9Hx3voRXPvZMWtL",
+      "project": {
+        "createdAt": "2025-10-09T20:29:48.678Z",
+        "updatedAt": "2025-10-09T20:45:39.243Z",
+        "id": "i9Hx3voRXPvZMWtL",
+        "name": "Golfer Geek <golfergeek@orchestratorai.io>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "createdAt": "2025-10-14T19:30:39.851Z",
+            "updatedAt": "2025-10-14T19:30:39.851Z",
+            "userId": "9f12b0ff-372b-4d46-b8ea-30c14a4a14a2",
+            "projectId": "i9Hx3voRXPvZMWtL",
+            "user": {
+              "createdAt": "2025-10-09T20:29:48.187Z",
+              "updatedAt": "2025-11-19T19:28:09.777Z",
+              "id": "9f12b0ff-372b-4d46-b8ea-30c14a4a14a2",
+              "email": "linksmarttechllc@gmail.com",
+              "firstName": "Justin",
+              "lastName": "Link",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-10-09T20:45:55.451Z",
+                "personalization_survey_n8n_version": "1.113.3",
+                "companySize": "<20",
+                "companyType": "saas",
+                "role": "business-owner",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "9jxl03jCcqg17oOy",
+                "userActivatedAt": 1760149441660,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 1,
+                  "lastShownAt": 1761763499124
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-19",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
+}

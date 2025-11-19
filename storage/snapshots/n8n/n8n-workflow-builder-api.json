@@ -1,0 +1,437 @@
+{
+  "createdAt": "2025-10-29T21:25:32.008Z",
+  "updatedAt": "2025-11-19T19:31:31.420Z",
+  "id": "kJIj6vHEUJfni5Hf",
+  "name": "n8n Workflow Builder API",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "build-workflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        144
+      ],
+      "id": "721e7050-a368-4555-b797-fba9030347b6",
+      "name": "Webhook Trigger",
+      "webhookId": "build-workflow-api"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"workflow_id\": $json.id, \"workflow_link\": $json.workflowLink, \"message\": \"Workflow created successfully\" } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2288,
+        144
+      ],
+      "id": "aef8f8eb-a172-4cb7-8e5d-5b9342856695",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "maxTokens": 8000,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        400
+      ],
+      "id": "7aead81f-812c-427f-8130-e4b5c88bbb61",
+      "name": "OpenAI GPT-4o",
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "workflowObject": "={ \"name\": \"{{ $json.name }}\", \"nodes\": {{ JSON.stringify($json.nodes) }}, \"connections\": {{ JSON.stringify($json.connections) }}, \"settings\": {{ JSON.stringify($json.settings) }}, \"staticData\": null, \"pinData\": {}, \"tags\": [] }",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        144
+      ],
+      "id": "3fe224d0-1578-4e94-84d6-79f70718a9bc",
+      "name": "Create Workflow in n8n",
+      "credentials": {
+        "n8nApi": {
+          "id": "JzKwI9To5HjQu4xY",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "workflow-link-assignment",
+              "name": "workflowLink",
+              "value": "=http://localhost:5678/workflow/{{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "workflow-id-assignment",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2128,
+        144
+      ],
+      "id": "ff238e92-eec5-41b7-b1e7-228022a93cfc",
+      "name": "Format Response Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "docs-assignment",
+              "name": "n8nDocs",
+              "value": "  AI Agent Node with Tools, Memory, and Output Parser\n  {\n    \"nodes\": [\n      {\n        \"parameters\": {\n          \"promptType\": \"define\",\n          \"text\": \"User message\",\n          \"hasOutputParser\": true,\n          \"options\": {\n            \"systemMessage\": \"System Message\\n\"\n          }\n        },\n        \"type\": \"@n8n/n8n-nodes-langchain.agent\",\n        \"typeVersion\": 2,\n        \"position\": [\n          220,\n          0\n        ],\n        \"id\": \"random string of letters and numbers\",\n        \"name\": \"AI Agent\"\n      },\n      {\n        \"parameters\": {\n          \"options\": {}\n        },\n        \"type\": \"n8n-nodes-base.gmailTool\",\n        \"typeVersion\": 2.1,\n        \"position\": [\n          380,\n          220\n        ],\n        \"id\": \"f27ec884-81d6-4b9c-a4b2-7cf504a6c2f2\",\n        \"name\": \"Gmail\",\n        \"webhookId\": \"f1acaebc-b42a-449d-87ab-c5a9395d33d2\",\n        \"credentials\": {\n          \"gmailOAuth2\": {\n            \"id\": \"auth ID\",\n            \"name\": \"auth name\"\n          }\n        }\n      },\n      {\n        \"parameters\": {\n          \"options\": {}\n        },\n        \"type\": \"@n8n/n8n-nodes-langchain.lmChatOpenRouter\",\n        \"typeVersion\": 1,\n        \"position\": [\n          140,\n          220\n        ],\n        \"id\": \"b4bcd23a-7511-47b6-bcd7-e7d45e2e00a3\",\n        \"name\": \"OpenRouter Chat Model\",\n        \"credentials\": {\n          \"openRouterApi\": {\n            \"id\": \"auth ID\",\n            \"name\": \"auth name\"\n          }\n        }\n      },\n      {\n        \"parameters\": {},\n        \"type\": \"@n8n/n8n-nodes-langchain.memoryBufferWindow\",\n        \"typeVersion\": 1.3,\n        \"position\": [\n          260,\n          220\n        ],\n        \"id\": \"60d159f2-4f9f-427d-b28c-5ae661592b07\",\n        \"name\": \"Simple Memory\"\n      },\n      {\n        \"parameters\": {\n          \"schemaType\": \"manual\",\n          \"inputSchema\": \"{\\n  \\\"type\\\": \\\"object\\\",\\n  \\\"properties\\\": {\\n    \\\"subject\\\": {\\n      \\\"type\\\": \\\"string\\\",\\n      \\\"description\\\": \\\"The subject line of\n  the email\\\"\\n    },\\n    \\\"email\\\": {\\n      \\\"type\\\": \\\"string\\\",\\n      \\\"description\\\": \\\"The body content of the email\\\"\\n    }\\n  },\\n  \\\"required\\\":\n  [\\\"subject\\\", \\\"email\\\"]\\n}\"\n        },\n        \"type\": \"@n8n/n8n-nodes-langchain.outputParserStructured\",\n        \"typeVersion\": 1.2,\n        \"position\": [\n          640,\n          220\n        ],\n        \"id\": \"dee10905-085e-4dca-9a7f-ba77ef656efb\",\n        \"name\": \"Structured Output Parser\"\n      },\n      {\n        \"parameters\": {\n          \"toolDescription\": \"Use this tool to search the internet\",\n          \"method\": \"POST\",\n          \"url\": \"https://api.tavily.com/search\",\n          \"sendBody\": true,\n          \"specifyBody\": \"json\",\n          \"jsonBody\": \"{\\n    \\\"api_key\\\": \\\"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\\\",\\n    \\\"query\\\": \\\"{searchTerm}\\\",\\n    \\\"search_depth\\\": \\\"basic\\\",\\n\n  \\\"include_answer\\\": true,\\n    \\\"topic\\\": \\\"news\\\",\\n    \\\"include_raw_content\\\": true,\\n    \\\"max_results\\\": 3\\n} \",\n          \"placeholderDefinitions\": {\n            \"values\": [\n              {\n                \"name\": \"searchTerm\",\n                \"description\": \"What the user has requested to search the internet for\",\n                \"type\": \"string\"\n              }\n            ]\n          }\n        },\n        \"type\": \"@n8n/n8n-nodes-langchain.toolHttpRequest\",\n        \"typeVersion\": 1.1,\n        \"position\": [\n          520,\n          220\n        ],\n        \"id\": \"278aa4c8-4916-4fae-a75c-ecb298d44311\",\n        \"name\": \"HTTP Request\"\n      }\n    ],\n    \"connections\": {\n      \"Gmail\": {\n        \"ai_tool\": [\n          [\n            {\n              \"node\": \"AI Agent\",\n              \"type\": \"ai_tool\",\n              \"index\": 0\n            }\n          ]\n        ]\n      },\n      \"OpenRouter Chat Model\": {\n        \"ai_languageModel\": [\n          [\n            {\n              \"node\": \"AI Agent\",\n              \"type\": \"ai_languageModel\",\n              \"index\": 0\n            }\n          ]\n        ]\n      },\n      \"Simple Memory\": {\n        \"ai_memory\": [\n          [\n            {\n              \"node\": \"AI Agent\",\n              \"type\": \"ai_memory\",\n              \"index\": 0\n            }\n          ]\n        ]\n      },\n      \"Structured Output Parser\": {\n        \"ai_outputParser\": [\n          [\n            {\n              \"node\": \"AI Agent\",\n              \"type\": \"ai_outputParser\",\n              \"index\": 0\n            }\n          ]\n        ]\n      },\n      \"Tavily\": {\n        \"ai_tool\": [\n          [\n            {\n              \"node\": \"AI Agent\",\n              \"type\": \"ai_tool\",\n              \"index\": 0\n            }\n          ]\n        ]\n      }\n    },\n    \"pinData\": {},\n    \"meta\": {\n      \"templateCredsSetupCompleted\": true,\n      \"instanceId\": \"95e5a8c2e51c83e33b232ea792bbe3f063c094c33d9806a5565cb31759e1ad39\"\n    }\n  }\n\n  Webhook-Triggered Agent (for Orchestrator AI integration)\n  {\n    \"nodes\": [\n      {\n        \"parameters\": {\n          \"httpMethod\": \"POST\",\n          \"path\": \"your-agent-endpoint\",\n          \"responseMode\": \"lastNode\",\n          \"options\": {\n            \"allowedOrigins\": \"*\"\n          }\n        },\n        \"type\": \"n8n-nodes-base.webhook\",\n        \"typeVersion\": 1.1,\n        \"position\": [\n          140,\n          200\n        ],\n        \"id\": \"webhook-trigger-id\",\n        \"name\": \"Agent Webhook Trigger\",\n        \"webhookId\": \"your-agent-webhook-id\"\n      },\n      {\n        \"parameters\": {\n          \"promptType\": \"define\",\n          \"text\": \"{{ $json.body.message }}\",\n          \"hasOutputParser\": true,\n          \"options\": {\n            \"systemMessage\": \"You are an AI agent in the Orchestrator AI system. Process the incoming request and provide a helpful response.\"\n          }\n        },\n        \"type\": \"@n8n/n8n-nodes-langchain.agent\",\n        \"typeVersion\": 2,\n        \"position\": [\n          360,\n          200\n        ],\n        \"id\": \"ai-agent-id\",\n        \"name\": \"AI Agent\"\n      }\n    ],\n    \"connections\": {\n      \"Agent Webhook Trigger\": {\n        \"main\": [\n          [\n            {\n              \"node\": \"AI Agent\",\n              \"type\": \"main\",\n              \"index\": 0\n            }\n          ]\n        ]\n      }\n    },\n    \"pinData\": {},\n    \"meta\": {\n      \"templateCredsSetupCompleted\": true,\n      \"instanceId\": \"95e5a8c2e51c83e33b232ea792bbe3f063c094c33d9806a5565cb31759e1ad39\"\n    }\n  }\n\n  Sticky Note\n  {\n    \"nodes\": [\n      {\n        \"parameters\": {\n          \"content\": \"## Sticky Note Title\\nSticky note text\"\n        },\n        \"type\": \"n8n-nodes-base.stickyNote\",\n        \"typeVersion\": 1,\n        \"position\": [\n          1400,\n          -460\n        ],\n        \"id\": \"ae20053d-915d-4aa2-a9b7-e05b07152a9f\",\n        \"name\": \"Sticky Note2\"\n      }\n    ],\n    \"connections\": {},\n    \"pinData\": {},\n    \"meta\": {\n      \"templateCredsSetupCompleted\": true,\n      \"instanceId\": \"95e5a8c2e51c83e33b232ea792bbe3f063c094c33d9806a5565cb31759e1ad39\"\n    }\n  }",
+              "type": "string"
+            },
+            {
+              "id": "query-assignment",
+              "name": "userQuery",
+              "value": "={{ $json.body.query || $json.query }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        144
+      ],
+      "id": "f895b687-1f55-4f83-a2c9-864b8c3e0c06",
+      "name": "Prepare Documentation & Query"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the JSON string from the AI agent output\nconst workflowJson = JSON.parse($input.item.json.output);\n\n// Return the parsed workflow object\n// The n8n node expects the workflow data directly in the json property\nreturn [{ json: workflowJson }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        144
+      ],
+      "id": "2f4bfcf9-6935-4646-8344-3e3cb9a96c9b",
+      "name": "Parse Workflow JSON"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User request: {{ $json.userQuery }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are an expert AI automation developer specializing in building workflows for n8n. Your job is to translate a human's natural language request into a fully functional n8n workflow JSON. It should be comprehensive, functional, and importable with 100% valid JSON structure, node types, and connection methods.\n\n## Output Requirements\nYour output must be ONLY the final JSON of the full workflow.\n\n**CRITICAL:** Your output must:\n- Start with a { character\n- End with a } character\n- Contain NO markdown formatting (no ```json, no ```, no code blocks)\n- Contain NO text before the opening {\n- Contain NO text after the closing }\n- Be pure, valid JSON ready for API submission\n\nThe JSON must:\n- Be syntactically valid and complete\n- Include a `name` field with a descriptive workflow name\n- Include a `nodes` array with each node containing all required parameters\n- Include a `connections` object that correctly maps outputs to inputs\n- Include a `settings` object with workflow-level settings\n- Include `staticData` set to null\n- Start with appropriate trigger node (Webhook, Schedule, Manual, etc.)\n- Contain descriptive names and parameter values relevant to the user request\n- Avoid placeholders unless no reasonable value can be inferred\n- Include sticky notes explaining each step and any credentials that need configuration\n- Use varied colors for sticky notes throughout the workflow\n\n## Required Top-Level Fields\n```json\n{\n  \"name\": \"Workflow Name\",\n  \"nodes\": [...],\n  \"connections\": {...},\n  \"settings\": {\n    \"executionOrder\": \"v1\",\n    \"saveManualExecutions\": true,\n    \"saveDataSuccessExecution\": \"all\",\n    \"saveExecutionProgress\": true,\n    \"saveDataErrorExecution\": \"all\"\n  },\n  \"staticData\": null,\n  \"pinData\": {},\n  \"tags\": []\n}\n```\n\n## Workflow Design Process\nBefore generating JSON:\n1. Analyze the request and break it into logical automation steps\n2. Choose appropriate nodes based on the steps\n3. Properly connect nodes to reflect execution order\n4. If ambiguous, make best guess using standard automation logic\n\n## n8n Documentation\n{{ $json.n8nDocs }}\n\n## Final Reminder\nOutput ONLY the JSON object. No explanations. No markdown. Just pure JSON starting with { and ending with }."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        144
+      ],
+      "id": "c2a4c3ff-7989-490f-9fb9-38accd3b575f",
+      "name": "Workflow Builder Agent"
+    },
+    {
+      "parameters": {
+        "content": "# 🏗️ Workflow Builder API\n\n## Purpose\nThis workflow exposes a webhook endpoint that accepts workflow requests via API and automatically generates n8n workflows.\n\n## API Endpoint\n**POST** `http://localhost:5678/webhook/build-workflow`\n\n## Request Body\n```json\n{\n  \"query\": \"Your workflow description here\"\n}\n```\n\n## Response\n```json\n{\n  \"success\": true,\n  \"workflow_id\": \"abc123\",\n  \"workflow_link\": \"http://localhost:5678/workflow/abc123\",\n  \"message\": \"Workflow created successfully\"\n}\n```\n\n## ✅ Configuration Status\n- Documentation: ✅ Hardcoded\n- Domain: ✅ Set to localhost:5678\n- Still Needed: OpenAI API Key, n8n API Key",
+        "height": 400,
+        "width": 1280,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        544
+      ],
+      "id": "087e3528-e375-4f09-b6e6-b8e737dce6ec",
+      "name": "Workflow Builder Section"
+    },
+    {
+      "parameters": {
+        "content": "# 🔧 Setup Instructions\n\n## Required Credentials\n\n### 1. OpenAI API Key\n- Go to platform.openai.com\n- Create API key\n- Add to \"OpenAI GPT-4o\" node\n\n### 2. n8n API Key\n- In your n8n instance: Settings > API\n- Generate API key\n- Add to \"Create Workflow in n8n\" node\n\n## Configuration Steps\n\n### Step 1: Update Webhook URL\nIn the \"Webhook Trigger\" node:\n- Note your webhook URL\n- Production mode: Use production URL\n- Test mode: Use test URL\n\n### Step 2: Documentation Added ✅\n✅ Documentation is already hardcoded in the workflow\n\n### Step 3: Domain Configured ✅\n✅ Set to http://localhost:5678\n\n### Step 4: Test the API\nSend POST request:\n```bash\ncurl -X POST http://localhost:5678/webhook/build-workflow \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"query\": \"Create a workflow that sends an email daily\"}'\n```\n\n## What Changed from Chat Version?\n\n### Removed:\n- Chat trigger (replaced with webhook)\n- Google Drive integration (docs now hardcoded)\n- Extract from File node\n- Multi-agent setup with separate execution\n- Chat memory (not needed for stateless API)\n- OpenRouter/Anthropic models\n\n### Added:\n- Webhook trigger for API access\n- Webhook response node\n- Hardcoded documentation\n- Direct response format for API consumers\n- OpenAI GPT-4o as primary model\n\n### Modified:\n- Simplified to single execution flow\n- Direct data passing (no sub-workflow calls)\n- API-friendly response structure\n- Removed conversational elements",
+        "height": 1000,
+        "width": 720,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -400
+      ],
+      "id": "791499c8-e046-45e5-b01b-c2c8018baac4",
+      "name": "Setup Guide"
+    },
+    {
+      "parameters": {
+        "content": "## 📥 Input Processing\n\nExtracts query from webhook body and prepares documentation.\n\n**Expected Input:**\n```json\n{\n  \"query\": \"workflow description\"\n}\n```\n\n**Status:** ✅ Documentation hardcoded and ready",
+        "height": 240,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -256
+      ],
+      "id": "836c0650-3cf8-4fa9-803c-1686acf37618",
+      "name": "Input Note"
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 AI Builder\n\nGPT-4o generates valid n8n workflow JSON.\n\n**Configuration Needed:**\n⚠️ Add OpenAI API credentials\n\n**Output:** Pure JSON workflow definition",
+        "height": 240,
+        "width": 340,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        -224
+      ],
+      "id": "2d8f9dd8-468b-4dc3-9863-a2f8fb6b0e4d",
+      "name": "AI Builder Note"
+    },
+    {
+      "parameters": {
+        "content": "## ✅ Workflow Creation\n\nCreates workflow in n8n via API.\n\n**Configuration Needed:**\n⚠️ Add n8n API credentials\n\n**Returns:** Workflow ID",
+        "height": 240,
+        "width": 340,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        -224
+      ],
+      "id": "188bbdf7-9cd4-4567-a72a-9ec225757b9c",
+      "name": "Creation Note"
+    },
+    {
+      "parameters": {
+        "content": "## 📤 Response\n\nFormats and returns API response.\n\n**Status:** ✅ Domain set to localhost:5678\n\n**Returns:** Success + workflow link",
+        "height": 240,
+        "width": 340,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2288,
+        -208
+      ],
+      "id": "8db382bf-eab4-47c7-95b6-b47e42f0935e",
+      "name": "Response Note"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Documentation & Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Documentation & Query": {
+      "main": [
+        [
+          {
+            "node": "Workflow Builder Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Workflow Builder Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Builder Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Workflow JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Workflow JSON": {
+      "main": [
+        [
+          {
+            "node": "Create Workflow in n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Workflow in n8n": {
+      "main": [
+        [
+          {
+            "node": "Format Response Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response Data": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "9c74735c-97ce-4bd1-a990-32e528bbf39b",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-10-29T21:25:32.008Z",
+      "updatedAt": "2025-10-29T21:25:32.008Z",
+      "role": "workflow:owner",
+      "workflowId": "kJIj6vHEUJfni5Hf",
+      "projectId": "i9Hx3voRXPvZMWtL",
+      "project": {
+        "createdAt": "2025-10-09T20:29:48.678Z",
+        "updatedAt": "2025-10-09T20:45:39.243Z",
+        "id": "i9Hx3voRXPvZMWtL",
+        "name": "Golfer Geek <golfergeek@orchestratorai.io>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "createdAt": "2025-10-14T19:30:39.851Z",
+            "updatedAt": "2025-10-14T19:30:39.851Z",
+            "userId": "9f12b0ff-372b-4d46-b8ea-30c14a4a14a2",
+            "projectId": "i9Hx3voRXPvZMWtL",
+            "user": {
+              "createdAt": "2025-10-09T20:29:48.187Z",
+              "updatedAt": "2025-11-19T19:28:09.777Z",
+              "id": "9f12b0ff-372b-4d46-b8ea-30c14a4a14a2",
+              "email": "linksmarttechllc@gmail.com",
+              "firstName": "Justin",
+              "lastName": "Link",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-10-09T20:45:55.451Z",
+                "personalization_survey_n8n_version": "1.113.3",
+                "companySize": "<20",
+                "companyType": "saas",
+                "role": "business-owner",
+                "reportedSource": "youtube"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "9jxl03jCcqg17oOy",
+                "userActivatedAt": 1760149441660,
+                "npsSurvey": {
+                  "waitingForResponse": true,
+                  "ignoredCount": 1,
+                  "lastShownAt": 1761763499124
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-11-19",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [
+    {
+      "createdAt": "2025-10-30T05:19:26.511Z",
+      "updatedAt": "2025-10-30T05:19:26.511Z",
+      "id": "UPPPd4aevR0WDw3X",
+      "name": "API"
+    },
+    {
+      "createdAt": "2025-10-30T05:19:26.535Z",
+      "updatedAt": "2025-10-30T05:19:26.535Z",
+      "id": "wSKBjQlmYYbgW7BD",
+      "name": "Automation"
+    },
+    {
+      "createdAt": "2025-10-30T05:19:26.522Z",
+      "updatedAt": "2025-10-30T05:19:26.522Z",
+      "id": "EWNx1rKixcum2tOs",
+      "name": "AI"
+    }
+  ]
+}
