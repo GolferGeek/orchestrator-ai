@@ -1,0 +1,1788 @@
+{
+  "name": "Study Pack Generator - OpenAI Direct",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-pack-generator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        800
+      ],
+      "webhookId": "study-pack-generator"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "subject",
+              "name": "subject",
+              "value": "={{ $json.body.subject || $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "name": "level",
+              "value": "={{ ($json.body.level || $json.level || 'basic').toLowerCase() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract-input",
+      "name": "Extract Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.level }}",
+                    "rightValue": "basic",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "basic"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.level }}",
+                    "rightValue": "advanced",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "advanced"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "basic"
+        }
+      },
+      "id": "level-router",
+      "name": "Level Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.1,
+      "position": [
+        720,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Subject: ' + $('Extract Input').item.json.subject + '. Select 4-7 appropriate advanced materials. Return only the JSON array.' }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an educational content curator. Given a subject, determine which advanced study materials would be most valuable. Return ONLY a valid JSON array of material types to generate from this list: [\"deep_dive\", \"diagrams\", \"mnemonics\", \"practice_questions\", \"practice_quiz\", \"quiz_answer_key\", \"pitfalls\", \"implementation_roadmap\", \"edge_cases\", \"troubleshooting\"]. Example: [\"deep_dive\",\"diagrams\",\"practice_quiz\",\"quiz_answer_key\"]"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-material-selector",
+      "name": "Generate: Material Selector AI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        960,
+        1000
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.item.json;\nlet selectedMaterials = [];\ntry {\n  const aiResponse = input.message?.content || input.text || '';\n  const jsonMatch = aiResponse.match(/\\[.*?\\]/s);\n  if (jsonMatch) { selectedMaterials = JSON.parse(jsonMatch[0]); }\n} catch (e) { selectedMaterials = ['deep_dive']; }\nreturn [{ json: { selectedMaterials, subject: $('Extract Input').item.json.subject }}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        1000
+      ],
+      "id": "parse-material-selection",
+      "name": "Parse Material Selection"
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a comprehensive overview for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an expert educational content writer. Create a comprehensive overview of the given subject. Include: main concepts, importance, real-world applications, and key takeaways."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-overview",
+      "name": "Generate: Overview",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a detailed study guide for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an expert study guide creator. Generate a structured study guide with: learning objectives, main topics with detailed explanations, suggested study strategies, and review questions."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-study_guide",
+      "name": "Generate: Study Guide",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create flashcards for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a flashcard content expert. Create 20-30 flashcards in Q&A format. Each card should have a clear question on one side and a concise answer on the other."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-flashcards",
+      "name": "Generate: Flashcards",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        440
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a key terms glossary for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a terminology expert. Create a glossary of 15-20 key terms with clear, concise definitions."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-key_terms",
+      "name": "Generate: Key Terms",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        560
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create an FAQ document for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an expert at anticipating questions. Create 10-15 frequently asked questions with detailed answers."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-faq",
+      "name": "Generate: FAQ",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        680
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create comparison tables for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a comparison expert. Create tables comparing key concepts, methodologies, or approaches. Format as markdown tables."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-comparison_table",
+      "name": "Generate: Comparison Table",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        800
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create detailed examples for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an examples specialist. Provide 5-7 detailed real-world examples that illustrate key concepts with context and explanations."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-examples",
+      "name": "Generate: Examples",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        920
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create helpful analogies for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an analogy expert. Create 3-5 creative analogies that make complex concepts easy to understand through familiar comparisons."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-analogy",
+      "name": "Generate: Analogy",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        1040
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a structured outline for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an outline specialist. Create a hierarchical outline covering all major topics and subtopics with brief descriptions."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-outline",
+      "name": "Generate: Outline",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1200,
+        1160
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('deep_dive') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-deep_dive",
+      "name": "If Selected: Deep Dive",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a deep dive analysis of: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a deep analysis expert. Provide an in-depth exploration of advanced concepts, theory, and nuances. Go beyond basics."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-deep_dive",
+      "name": "Generate: Deep Dive",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        1200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('practice_quiz') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-practice_quiz",
+      "name": "If Selected: Practice Quiz",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a practice quiz for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a quiz creator. Generate 15-20 multiple choice questions with 4 options each, correct answers, and explanations."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-practice_quiz",
+      "name": "Generate: Practice Quiz",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        1320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('diagrams') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-diagrams",
+      "name": "If Selected: Diagrams",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create diagram descriptions for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a visual learning expert. Describe 3-5 diagrams using ASCII art or detailed text descriptions showing relationships and flows."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-diagrams",
+      "name": "Generate: Diagrams",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        1440
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('mnemonics') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-mnemonics",
+      "name": "If Selected: Mnemonics",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create mnemonics for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a memory expert. Create 5-10 mnemonics, memory aids, and memorization strategies for key concepts."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-mnemonics",
+      "name": "Generate: Mnemonics",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        1560
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('practice_questions') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-practice_questions",
+      "name": "If Selected: Practice Questions",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create practice questions for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an assessment expert. Create 10-15 open-ended practice questions progressing from basic to advanced."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-practice_questions",
+      "name": "Generate: Practice Questions",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        1680
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('quiz_answer_key') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-quiz_answer_key",
+      "name": "If Selected: Quiz Answer Key",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a quiz answer key for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an answer key specialist. Create detailed answer key with explanations for quiz questions."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-quiz_answer_key",
+      "name": "Generate: Quiz Answer Key",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        1800
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('pitfalls') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-pitfalls",
+      "name": "If Selected: Pitfalls",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Identify common pitfalls in: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an expert at identifying common mistakes. List 10-15 common pitfalls, misconceptions, and mistakes to avoid with explanations."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-pitfalls",
+      "name": "Generate: Pitfalls",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        1920
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('implementation_roadmap') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-implementation_roadmap",
+      "name": "If Selected: Implementation Roadmap",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        2040
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create an implementation roadmap for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an implementation strategist. Create a step-by-step roadmap for applying concepts in practice."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-implementation_roadmap",
+      "name": "Generate: Implementation Roadmap",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        2040
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('edge_cases') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-edge_cases",
+      "name": "If Selected: Edge Cases",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Identify edge cases for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are an edge case specialist. Identify and explain 8-12 edge cases, exceptions, and special scenarios."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-edge_cases",
+      "name": "Generate: Edge Cases",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        2160
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse Material Selection').item.json.selectedMaterials.includes('troubleshooting') }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-troubleshooting",
+      "name": "If Selected: Troubleshooting",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        2280
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "={{ 'Create a troubleshooting guide for: ' + $('Extract Input').item.json.subject }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a troubleshooting expert. Create a troubleshooting guide with common problems and their solutions."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "gen-troubleshooting",
+      "name": "Generate: Troubleshooting",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1680,
+        2280
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "7tuOlNCTiyjK0BzN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 19
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2000,
+        800
+      ],
+      "id": "merge-all",
+      "name": "Merge All Materials"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst materials = [];\nfor (const item of items) {\n  const content = item.json.message?.content || item.json.text || 'No content';\n  const materialName = item.json._materialName || 'unknown';\n  materials.push({ filename: `${materialName}.md`, content });\n}\nreturn [{ json: { materials } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        800
+      ],
+      "id": "format-materials",
+      "name": "Format Materials"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'success', materials: $json.materials } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2480,
+        800
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Input": {
+      "main": [
+        [
+          {
+            "node": "Level Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate: Material Selector AI": {
+      "main": [
+        [
+          {
+            "node": "Parse Material Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate: Overview": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate: Study Guide": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Generate: Flashcards": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Generate: Key Terms": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Generate: FAQ": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Generate: Comparison Table": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Generate: Examples": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "Generate: Analogy": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 7
+          }
+        ]
+      ]
+    },
+    "Generate: Outline": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 8
+          }
+        ]
+      ]
+    },
+    "Parse Material Selection": {
+      "main": [
+        [
+          {
+            "node": "If Selected: Deep Dive",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Practice Quiz",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Diagrams",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Mnemonics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Practice Questions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Quiz Answer Key",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Pitfalls",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Implementation Roadmap",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Edge Cases",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Selected: Troubleshooting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Selected: Deep Dive": {
+      "main": [
+        [
+          {
+            "node": "Generate: Deep Dive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Deep Dive": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 9
+          }
+        ]
+      ]
+    },
+    "If Selected: Practice Quiz": {
+      "main": [
+        [
+          {
+            "node": "Generate: Practice Quiz",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Practice Quiz": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 10
+          }
+        ]
+      ]
+    },
+    "If Selected: Diagrams": {
+      "main": [
+        [
+          {
+            "node": "Generate: Diagrams",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Diagrams": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 11
+          }
+        ]
+      ]
+    },
+    "If Selected: Mnemonics": {
+      "main": [
+        [
+          {
+            "node": "Generate: Mnemonics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Mnemonics": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 12
+          }
+        ]
+      ]
+    },
+    "If Selected: Practice Questions": {
+      "main": [
+        [
+          {
+            "node": "Generate: Practice Questions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Practice Questions": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 13
+          }
+        ]
+      ]
+    },
+    "If Selected: Quiz Answer Key": {
+      "main": [
+        [
+          {
+            "node": "Generate: Quiz Answer Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Quiz Answer Key": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 14
+          }
+        ]
+      ]
+    },
+    "If Selected: Pitfalls": {
+      "main": [
+        [
+          {
+            "node": "Generate: Pitfalls",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Pitfalls": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 15
+          }
+        ]
+      ]
+    },
+    "If Selected: Implementation Roadmap": {
+      "main": [
+        [
+          {
+            "node": "Generate: Implementation Roadmap",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Implementation Roadmap": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 16
+          }
+        ]
+      ]
+    },
+    "If Selected: Edge Cases": {
+      "main": [
+        [
+          {
+            "node": "Generate: Edge Cases",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Edge Cases": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 17
+          }
+        ]
+      ]
+    },
+    "If Selected: Troubleshooting": {
+      "main": [
+        [
+          {
+            "node": "Generate: Troubleshooting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Generate: Troubleshooting": {
+      "main": [
+        [
+          {
+            "node": "Merge All Materials",
+            "type": "main",
+            "index": 18
+          }
+        ]
+      ]
+    },
+    "Merge All Materials": {
+      "main": [
+        [
+          {
+            "node": "Format Materials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Materials": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Level Router": {
+      "main": [
+        [
+          {
+            "node": "Generate: Overview",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Study Guide",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Flashcards",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Key Terms",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: FAQ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Comparison Table",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Examples",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Analogy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Outline",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate: Material Selector AI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Overview",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Study Guide",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Flashcards",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Key Terms",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: FAQ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Comparison Table",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Examples",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Analogy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate: Outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "tags": []
+}
